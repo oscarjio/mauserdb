@@ -1,0 +1,12 @@
+<app-header [logoUrl]="'https://www.noreko.com/wp-content/uploads/2023/07/Mauser_Packaging_Solutions_Grayscale.png'" *ngIf="!hideMenu">
+  <ng-container *ngIf="!hideMenu">
+    <app-menu></app-menu>
+  </ng-container>
+</app-header>
+<ng-container *ngIf="!hideMenu">
+  <app-submenu></app-submenu>
+</ng-container>
+<main>
+  <router-outlet></router-outlet>
+  <button *ngIf="showBackButton" class="btn btn-outline-info go-back-bottom-left" (click)="goHome()">&larr; Gå tillbaka</button>
+</main>

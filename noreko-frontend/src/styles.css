@@ -1,0 +1,8 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* You can add global styles to this file, and also import other style files */
+
+body {
+  background: #181a1b;
+  color: #f8f9fa;
+}
