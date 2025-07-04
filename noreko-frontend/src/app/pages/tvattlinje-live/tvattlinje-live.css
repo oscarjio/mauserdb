@@ -10,6 +10,7 @@
 
 .row.g-4.align-items-stretch.justify-content-center {
   gap: 0 !important;
+  min-height: 0;
 }
 
 .live-card {
@@ -17,16 +18,17 @@
   color: #fff;
   border-radius: 1.5rem;
   box-shadow: 0 2px 16px rgba(0,0,0,0.2);
-  padding: 2rem 1rem;
+  padding: 0.7rem 0.5rem;
   margin: 0.5rem;
   width: 100%;
-  min-height: 180px;
+  min-height: 90px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: 2.8vw;
   min-width: 0;
+  height: 100%;
 }
 
 .clock-card {
@@ -104,10 +106,74 @@
   position: relative;
 }
 
+.mini-tvattlinje-live .live-card {
+  font-size: 1.1vw !important;
+}
+
+.mini-tvattlinje-live .live-label {
+  font-size: 0.9rem !important;
+}
+
+.mini-tvattlinje-live .live-value {
+  font-size: 1.3rem !important;
+}
+
+.mini-tvattlinje-live .live-clock,
+.mini-tvattlinje-live .live-ibc-today {
+  font-size: 2.2vw !important;
+}
+
+.mini-tvattlinje-live .speedometer-modern svg {
+  max-width: 90px !important;
+}
+
+.mini-tvattlinje-live .speedometer-status .badge {
+  font-size: 0.8rem !important;
+  padding: 0.2em 0.5em !important;
+}
+
+.mini-tvattlinje-live .tvattlinje-live-page,
+.mini-tvattlinje-live .live-card,
+.mini-tvattlinje-live .live-label,
+.mini-tvattlinje-live .live-value,
+.mini-tvattlinje-live .live-clock,
+.mini-tvattlinje-live .live-ibc-today,
+.mini-tvattlinje-live .speedometer-status .badge {
+  font-size: 12px !important;
+  line-height: 1.1 !important;
+}
+.mini-tvattlinje-live .live-label {
+  font-size: 10px !important;
+}
+.mini-tvattlinje-live .live-value {
+  font-size: 16px !important;
+}
+.mini-tvattlinje-live .live-clock,
+.mini-tvattlinje-live .live-ibc-today {
+  font-size: 18px !important;
+}
+.mini-tvattlinje-live .speedometer-modern svg {
+  max-width: 70px !important;
+}
+.mini-tvattlinje-live .speedometer-status .badge {
+  font-size: 10px !important;
+  padding: 0.1em 0.3em !important;
+}
+
 @media (min-width: 992px) {
   .tvattlinje-live-page .row > div {
-    flex: 0 0 50%;
-    max-width: 50%;
+    flex: 0 0 33.3333%;
+    max-width: 33.3333%;
+  }
+  .tvattlinje-live-page .row:first-of-type > div {
+    flex: 0 0 33.3333%;
+    max-width: 33.3333%;
+  }
+  .tvattlinje-live-page .row:first-of-type {
+    min-height: 30vh;
+  }
+  .tvattlinje-live-page .row:first-of-type > div .live-card {
+    font-size: 14.4vw;
   }
 }
 @media (max-width: 991px) {
@@ -117,8 +183,8 @@
   }
   .live-card {
     font-size: 4vw;
-    min-height: 140px;
-    padding: 1rem 0.5rem;
+    min-height: 70px;
+    padding: 0.5rem 0.3rem;
   }
   .live-clock {
     font-size: 12vw;

@@ -25,3 +25,19 @@ main {
   left: 2rem;
   z-index: 2000;
 }
+
+.mini-tvattlinje-live {
+  max-width: 420px;
+  margin: 0 auto;
+  transform: scale(0.95);
+  transform-origin: top center;
+  width: 100%;
+}
+
+@media (min-width: 992px) {
+  .mini-tvattlinje-live {
+    max-width: 420px;
+    margin: 0 auto;
+    transform: scale(0.85);
+  }
+}

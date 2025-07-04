@@ -7,6 +7,12 @@
   <app-submenu></app-submenu>
 </ng-container>
 <main>
+  <ng-container *ngIf="router.url === '/'">
+   <!-- <div class="mini-tvattlinje-live">
+      <app-tvattlinje-live></app-tvattlinje-live>
+    </div>-->
+  </ng-container>
+
   <router-outlet></router-outlet>
   <button *ngIf="showBackButton" class="btn btn-outline-info go-back-bottom-left" (click)="goHome()">&larr; Gå tillbaka</button>
 </main>

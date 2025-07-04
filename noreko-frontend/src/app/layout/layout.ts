@@ -13,7 +13,7 @@ import { Submenu } from '../submenu/submenu';
   styleUrl: './layout.css'
 })
 export class Layout {
-  constructor(private router: Router) {}
+  constructor(public router: Router) {}
 
   get hideMenu() {
     // Hide menu on any 'live' or 'login' route

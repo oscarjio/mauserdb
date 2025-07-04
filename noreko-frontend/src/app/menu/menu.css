@@ -39,10 +39,11 @@
   background: #fff;
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   min-width: 180px;
-  z-index: 10;
+  z-index: 1050;
   border-radius: 0 0 8px 8px;
   padding: 0.5rem 0;
   font-size: 1.2rem;
+  overflow: visible;
 }
 .submenu li {
   padding: 0;
@@ -58,6 +59,26 @@
   background: #f3f4f6;
 }
 
+.custom-navbar .container-fluid {
+  max-width: 60vw;
+  width: 60vw;
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+
+.custom-navbar {
+  width: 60vw;
+  min-width: 0;
+  margin: 0;
+  border-radius: 2.5rem 2.5rem 2.5rem 2.5rem;
+  overflow: visible;
+}
+
+.navbar-nav.custom-menu {
+  width: 100vw;
+  justify-content: space-between;
+}
+
 @media (max-width: 991px) {
   .main-menu {
     font-size: 1rem;
@@ -68,5 +89,16 @@
   }
   .menu-item {
     margin-right: 0.7rem;
+  }
+  .custom-navbar .container-fluid {
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+  }
+  .custom-navbar,
+  .navbar-nav.custom-menu {
+    width: 60vw;
+    max-width: 60vw;
+    padding-left: 0;
+    padding-right: 0;
   }
 }
