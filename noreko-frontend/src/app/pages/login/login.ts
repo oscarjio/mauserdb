@@ -36,7 +36,7 @@ export class LoginPage {
 
   login() {
     this.error = false;
-    this.http.post<any>('http://localhost/noreko-backend/api.php?action=login', {
+    this.http.post<any>('/noreko-backend/api.php?action=login', {
       username: this.username,
       password: this.password
     }, { withCredentials: true }).subscribe({

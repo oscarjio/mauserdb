@@ -1,24 +1,23 @@
 import { Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { CommonModule } from '@angular/common';
+import { interval } from 'rxjs';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, HttpClientModule, CommonModule],
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
 export class Header {
   @Input() logoUrl: string = 'https://www.noreko.com/wp-content/uploads/2023/07/Mauser_Packaging_Solutions_Grayscale.png';
   selectedMenu: string = 'Älvängen';
+  loggedIn = false;
+  user: any = null;
+  showMenu = false;
+  http = new HttpClient(null as any);
 
-  onMenuChange(event: Event) {
-    // Här kan du spara valet i localStorage eller annan logik
-    localStorage.setItem('selectedMenu', this.selectedMenu);
-  }
 
-  ngOnInit() {
-    const saved = localStorage.getItem('selectedMenu');
-    if (saved) this.selectedMenu = saved;
-  }
 }
