@@ -62,8 +62,8 @@
 .custom-navbar .container-fluid {
   max-width: 60vw;
   width: 60vw;
-  padding-left: 2.5rem;
-  padding-right: 2.5rem;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .custom-navbar {
@@ -79,6 +79,34 @@
   justify-content: space-between;
 }
 
+.menu-selector-item {
+  margin-left: 0.3rem;
+  margin-right: 0;
+  display: flex;
+  align-items: center;
+  background: none;
+  border-radius: 1.2em;
+  padding: 0.1em 0.2em;
+  height: 2.5em;
+}
+.menu-selector {
+  border-radius: 1.2em;
+  border: 2px solid #00d4ff;
+  background: #181a1b;
+  color: #00d4ff;
+  font-size: 1.1rem;
+  padding: 0.2em 0.5em;
+  margin-left: 0.2em;
+  font-weight: 600;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  min-width: 90px;
+}
+.menu-selector:focus {
+  border: 2px solid #00ff6a;
+  box-shadow: 0 0 0 2px #00ff6a33;
+}
+
 @media (max-width: 991px) {
   .main-menu {
     font-size: 1rem;
@@ -90,10 +118,7 @@
   .menu-item {
     margin-right: 0.7rem;
   }
-  .custom-navbar .container-fluid {
-    padding-left: 1.2rem;
-    padding-right: 1.2rem;
-  }
+  .custom-navbar .container-fluid,
   .custom-navbar,
   .navbar-nav.custom-menu {
     width: 60vw;

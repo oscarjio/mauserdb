@@ -1,0 +1,55 @@
+<form class="register-form" (ngSubmit)="onSubmit()" #registerForm="ngForm">
+  <h2>Registrera konto</h2>
+  <div class="form-group">
+    <label for="username">Användarnamn</label>
+    <input id="username" name="username" class="form-control" required [(ngModel)]="user.username" />
+  </div>
+  <div class="form-group">
+    <label for="password">Lösenord</label>
+    <input id="password" name="password" type="password" class="form-control" required [(ngModel)]="user.password" (ngModelChange)="checkPasswordStrength()" />
+    <div class="password-feedback" *ngIf="showFeedback">
+      <div *ngIf="!isAcceptable" class="invalid-feedback">
+        Lösenordet måste vara minst 8 tecken, innehålla bokstav och siffra.
+      </div>
+      <div *ngIf="isAcceptable" class="valid-feedback">
+        Godkänt lösenord
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="password2">Upprepa lösenord</label>
+    <input id="password2" name="password2" type="password" class="form-control" required [(ngModel)]="user.password2" (ngModelChange)="checkPasswordStrength()" />
+    <div class="password-feedback" *ngIf="showFeedback && user.password2.length > 0">
+      <div *ngIf="isAcceptable && !passwordsMatch" class="match-warning">
+        Lösenorden matchar inte.
+      </div>
+      <div *ngIf="isAcceptable && passwordsMatch" class="valid-feedback">
+        Lösenorden matchar
+      </div>
+    </div>
+    <div class="password-feedback" *ngIf="isAcceptable && user.password2.length === 0">
+      <div class="pending-feedback">
+        Fyll i båda fälten för att verifiera.
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="email">E-post</label>
+    <input id="email" name="email" type="email" class="form-control" required [(ngModel)]="user.email" (ngModelChange)="checkEmail()" />
+    <div *ngIf="user.email.length > 0 && !isEmailValid" class="invalid-feedback">
+      Ogiltig e-postadress
+    </div>
+    <div *ngIf="user.email.length > 0 && isEmailValid" class="valid-feedback">
+      E-postadressen är giltig
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="phone">Telefonnummer</label>
+    <input id="phone" name="phone" type="tel" class="form-control" required [(ngModel)]="user.phone" />
+  </div>
+  <div class="form-group">
+    <label for="code">Kontrollkod</label>
+    <input id="code" name="code" class="form-control" required [(ngModel)]="user.code" />
+  </div>
+  <button class="btn btn-primary w-100 mt-3" type="submit">Registrera</button>
+</form>

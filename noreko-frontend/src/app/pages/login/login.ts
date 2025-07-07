@@ -1,11 +1,13 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIf } from '@angular/common';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { inject } from '@angular/core';
 
 @Component({
   standalone: true,
   selector: 'app-login',
-  imports: [FormsModule, NgIf],
+  imports: [FormsModule, NgIf, HttpClientModule],
   template: `
     <div class="login-page">
       <h2>Login</h2>
@@ -30,13 +32,24 @@ export class LoginPage {
   username = '';
   password = '';
   error = false;
+  http = inject(HttpClient);
 
   login() {
-    if (this.username === 'admin' && this.password === 'admin') {
-      localStorage.setItem('loggedIn', 'true');
-      window.location.href = '/';
-    } else {
-      this.error = true;
-    }
+    this.error = false;
+    this.http.post<any>('http://localhost/noreko-backend/api.php?action=login', {
+      username: this.username,
+      password: this.password
+    }, { withCredentials: true }).subscribe({
+      next: (res) => {
+        if (res.success) {
+          window.location.href = '/';
+        } else {
+          this.error = true;
+        }
+      },
+      error: () => {
+        this.error = true;
+      }
+    });
   }
 }
