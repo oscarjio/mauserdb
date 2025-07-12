@@ -57,3 +57,19 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+
+## Remember with Apache you need:
+```
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # If the requested file or directory exists, serve it
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Otherwise, redirect all requests to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+```

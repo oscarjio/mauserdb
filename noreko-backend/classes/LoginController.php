@@ -3,6 +3,11 @@ class LoginController {
     public function handle() {
         global $pdo;
         session_start();
+        $run = $_GET['run'] ?? 'login';
+        if ($run === 'logout') {
+            $this->logout();
+            return;
+        }
         $data = json_decode(file_get_contents('php://input'), true);
         $username = $data['username'] ?? '';
         $password = $data['password'] ?? '';
@@ -29,5 +34,11 @@ class LoginController {
     private function hashPassword($password) {
         // Kombinerad hashning (för demo, använd password_hash i produktion!)
         return sha1(md5($password));
+    }
+
+    private function logout() {
+        session_unset();
+        session_destroy();
+        echo json_encode(['success' => true, 'message' => 'Utloggad']);
     }
 }

@@ -107,6 +107,10 @@
   box-shadow: 0 0 0 2px #00ff6a33;
 }
 
+.dropdown-item {
+  cursor: pointer;
+}
+
 @media (max-width: 991px) {
   .main-menu {
     font-size: 1rem;
