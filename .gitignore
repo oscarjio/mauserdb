@@ -22,3 +22,6 @@ Thumbs.db
 
 # Miljöfiler
 .env
+*.ppk
+*.sql
+*.code-workspace

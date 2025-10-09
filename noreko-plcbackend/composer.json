@@ -1,0 +1,16 @@
+{
+    "name": "aiab/api",
+    "autoload": {
+        "psr-4": {
+            "Aiab\\Api\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "aiab"
+        }
+    ],
+    "require": {
+        "adduc/phpmodbus": "^0.8.0"
+    }
+}

@@ -5,7 +5,7 @@ header('Content-Type: application/json');
 
 // Databasanslutning (byt till dina värden)
 global $pdo;
-$pdo = new PDO('mysql:host=localhost;dbname=mauserdb;charset=utf8mb4', 'root', '');
+$pdo = new PDO('mysql:host=localhost:33061;dbname=mauserdb;charset=utf8mb4', 'aiab', 'Noreko2025');
 
 // Enkel PSR-4-liknande autoloader
 spl_autoload_register(function ($class) {
@@ -22,3 +22,4 @@ if (class_exists($className)) {
 } else {
     echo json_encode(['error' => 'Ogiltig action eller klass saknas']);
 }
+ 

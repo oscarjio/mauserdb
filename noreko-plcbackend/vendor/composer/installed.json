@@ -1,0 +1,49 @@
+{
+    "packages": [
+        {
+            "name": "adduc/phpmodbus",
+            "version": "0.8",
+            "version_normalized": "0.8.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/Adduc/phpmodbus.git",
+                "reference": "bb0cdd467ac7942eae316e61b7c655902bcb3028"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/Adduc/phpmodbus/zipball/bb0cdd467ac7942eae316e61b7c655902bcb3028",
+                "reference": "bb0cdd467ac7942eae316e61b7c655902bcb3028",
+                "shasum": ""
+            },
+            "require": {
+                "ext-sockets": "*"
+            },
+            "time": "2013-11-30T04:27:16+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "classmap": [
+                    "Phpmodbus"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "LGPL"
+            ],
+            "authors": [
+                {
+                    "name": "Honza Krakora",
+                    "email": "krakora.jan@googlemail.com"
+                }
+            ],
+            "description": "Composer version of PhpModBus",
+            "support": {
+                "issues": "https://github.com/Adduc/phpmodbus/issues",
+                "source": "https://github.com/Adduc/phpmodbus/tree/master"
+            },
+            "install-path": "../adduc/phpmodbus"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}

@@ -7,7 +7,8 @@ class StatusController {
                 'loggedIn' => true,
                 'user' => [
                     'id' => $_SESSION['user_id'],
-                    'username' => $_SESSION['username']
+                    'username' => $_SESSION['username'],
+                    'role' => $_SESSION['role'] ?? null
                 ]
             ]);
         } else {
