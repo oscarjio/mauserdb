@@ -6,7 +6,7 @@ require_once 'vendor/autoload.php';
 ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
 try {
-    $db = new PDO('mysql:host=localhost;dbname=mauserdb', 'aiab', 'Noreko2025');
+    $db = new PDO('mysql:host=localhost:33061;dbname=mauserdb', 'aiab', 'Noreko2025');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $processor = new WebhookProcessor($db);
     $receiver = new WebhookReceiver($processor);

@@ -19,7 +19,7 @@ class WebhookProcessor {
             case 'tvattlinje':
                 $this->line = "tvattlinje";
                 $tvattlinje = new TvattLinje($this);
-                // Kontrollera vilken typ av anrop som körs. Cykel eller Status
+                // Kontrollera vilken typ av anrop som körs.
                 switch ($type) {
                     case 'cycle':
                         $tvattlinje->handleCycle($data);
@@ -30,6 +30,21 @@ class WebhookProcessor {
                     default:
                         throw new InvalidArgumentException('Unsupported webhook type: ' . $type);
                 }
+                break;
+                case 'rebotling':
+                    $this->line = "rebotling";
+                    $rebotling = new Rebotling($this);
+                    // Kontrollera vilken typ av anrop som körs. 
+                    switch ($type) {
+                        case 'cycle':
+                            $rebotling->handleCycle($data);
+                            break;
+                        case 'running':
+                            $rebotling->handleRunning($data);
+                            break;
+                        default:
+                            throw new InvalidArgumentException('Unsupported webhook type: ' . $type);
+                    }
                 break;
             default:
                 throw new InvalidArgumentException('Unsupported webhook line: ' . $_GET["line"]);
