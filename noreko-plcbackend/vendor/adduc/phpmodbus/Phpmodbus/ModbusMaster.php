@@ -41,14 +41,14 @@ require_once dirname(__FILE__) . '/PhpType.php';
  */
 class ModbusMaster {
   private $sock;
-  public $host = "192.168.1.1";
+  public $host = "192.168.0.200";
   public $port = "502";  
   public $client = "";
   public $client_port = "502";
   public $status;
   public $timeout_sec = 5; // Timeout 5 sec
   public $endianness = 0; // Endianness codding (little endian == 0, big endian == 1) 
-  public $socket_protocol = "UDP"; // Socket protocol (TCP, UDP)
+  public $socket_protocol = "TCP"; // Socket protocol (TCP, UDP)
   
   /**
    * ModbusMaster

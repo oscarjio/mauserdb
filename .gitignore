@@ -25,3 +25,5 @@ Thumbs.db
 *.ppk
 *.sql
 *.code-workspace
+
+gx*/

@@ -10,11 +10,7 @@ class Rebotling {
     public function __construct(WebhookProcessor $processor) {
         $this->processor = $processor;
         $this->db = $processor->db;
-        /*
-        $this->modbus = new ModbusMaster;
-        $this->modbus->socket_protocol = "TCP"; 
-        $this->modbus->host = "192.168.0.250"; // PLC Adress. Tvättlinje
-        */
+        
     }
     
     
@@ -55,24 +51,6 @@ class Rebotling {
             }
         }
         
-        /*    
-        $this->modbus->writeMultipleRegister(0, 10, array(1,8,7,6), array("INT","INT","INT","INT"));
-        
-        sleep(1);
-        // Hämta data från PLC
-        $PLC_data = $this->modbus->readMultipleRegisters(0, 0, 20);
-
-        // Gör om 8bitars värden till 16bitar
-        $PLC_data16 = array();
-        for($i=0;$i<(count($PLC_data) / 2);$i++){
-            $PLC_data16[$i] = $PLC_data[$i*2] << 8;
-            $PLC_data16[$i] += $PLC_data[$i*2+1];
-        }    
-        
-        print_r($PLC_data16);
-        die();
-        */
-        
         // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
             INSERT INTO rebotling_ibc (s_count, ibc_count)
@@ -90,6 +68,32 @@ class Rebotling {
         if (!isset($_GET['high'], $_GET['low'])) {
             throw new InvalidArgumentException('Missing required fields high and low for handleRunning');
         }
+
+        // Anropa Modbus!
+        $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
+
+        $this->modbus->writeMultipleRegister(0, 199, array(0), array("INT"));
+        sleep(1);
+        // Hämta data från PLC
+        
+        $PLC_data = $this->modbus->readMultipleRegisters(0, 200, 7);
+        // Gör om 8bitars värden till 16bitar PLC D register är 16bit
+        $PLC_data16 = array();
+        for($i=0;$i<(count($PLC_data) / 2);$i++){
+            $PLC_data16[$i] = $PLC_data[$i*2] << 8;
+            $PLC_data16[$i] += $PLC_data[$i*2+1];
+        }    
+
+        /*
+        D200 Program
+        D201 Op1
+        D202 Op2
+        D203 Op3
+        D204 Produkt
+        D205 Antal
+        D206 Runtime PLC
+        */
+        
 
         $high = (int)$_GET['high'];
         $low = (int)$_GET['low'];
@@ -154,15 +158,22 @@ class Rebotling {
 
         // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_onoff (s_count_h, s_count_l, runtime_today, running)
-            VALUES (:s_count_h, :s_count_l, :runtime_today, :running)
+            INSERT INTO rebotling_onoff (s_count_h, s_count_l, runtime_today, running, program, op1, op2, op3, produkt, antal, runtime_plc)
+            VALUES (:s_count_h, :s_count_l, :runtime_today, :running, :program, :op1, :op2, :op3, :produkt, :antal, :runtime_plc)
         ');
         
         $stmt->execute([
             's_count_h' => $high,
             's_count_l' => $low,
             'runtime_today' => $runtime_today,
-            'running' => $is_running
+            'running' => $is_running,
+            'program' => $PLC_data16[0],
+            'op1' => $PLC_data16[1],
+            'op2' => $PLC_data16[2],
+            'op3' => $PLC_data16[3],
+            'produkt' => $PLC_data16[4],
+            'antal' => $PLC_data16[5],
+            'runtime_plc' => $PLC_data16[6]
         ]);
     }
     
