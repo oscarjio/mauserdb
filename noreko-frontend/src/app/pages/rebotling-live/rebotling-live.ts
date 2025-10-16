@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { RebotlingService, RebotlingLiveStatsResponse } from '../../services/rebotling.service';
 
 @Component({
   standalone: true,
@@ -13,48 +14,40 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   intervalId: any;
   
   // Rebotling data
-  rebotlingToday: number = 75;
-  rebotlingTarget: number = 120;
-  rebotlingThisHour: number = 8;
-  hourlyTarget: number = 15;
+  rebotlingToday: number = 0;
+  rebotlingTarget: number = 0;
+  rebotlingThisHour: number = 0;
+  hourlyTarget: number = 0;
   
   // Speedometer properties
-  needleRotation: number = -25; // Start position
+  needleRotation: number = -150; // Start position
   statusText: string = 'Bra produktion';
   statusBadgeClass: string = 'bg-success';
+
+  constructor(private rebotlingService: RebotlingService) {}
 
   ngOnInit() {
     this.intervalId = setInterval(() => {
       this.now = new Date();
-      this.updateRebotlingData();
-      this.updateSpeedometer();
-    }, 1000);
-    
-    // Initial data update
-    this.updateRebotlingData();
-    this.updateSpeedometer();
+      this.fetchLiveStats();
+    }, 2000);
+    this.fetchLiveStats();
   }
 
   ngOnDestroy() {
     clearInterval(this.intervalId);
   }
 
-  private updateRebotlingData() {
-    // Simulate real-time data updates
-    // In a real application, this would fetch data from an API
-    const currentHour = this.now.getHours();
-    
-    // Simulate hourly production based on time of day
-    if (currentHour >= 6 && currentHour <= 18) {
-      // Working hours - higher production
-      this.rebotlingThisHour = Math.floor(Math.random() * 5) + 12;
-    } else {
-      // Non-working hours - lower production
-      this.rebotlingThisHour = Math.floor(Math.random() * 3) + 2;
-    }
-    
-    // Update daily total (simulate cumulative)
-    this.rebotlingToday = Math.floor(Math.random() * 10) + 70;
+  private fetchLiveStats() {
+    this.rebotlingService.getLiveStats().subscribe((res: RebotlingLiveStatsResponse) => {
+      if (res && res.success && res.data) {
+        this.rebotlingToday = res.data.rebotlingToday;
+        this.rebotlingTarget = res.data.rebotlingTarget;
+        this.rebotlingThisHour = res.data.rebotlingThisHour;
+        this.hourlyTarget = res.data.hourlyTarget;
+        this.updateSpeedometer();
+      }
+    });
   }
 
   private updateSpeedometer() {
@@ -62,7 +55,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     const percentage = Math.min((this.rebotlingThisHour / this.hourlyTarget) * 100, 100);
     
     // Convert percentage to needle rotation (-25 to 155 degrees)
-    this.needleRotation = -25 + (percentage / 100) * 180;
+    this.needleRotation = -100 + (percentage / 100) * 180;
     
     // Update status based on performance
     if (percentage >= 80) {
