@@ -1,0 +1,278 @@
+/* Rebotling Admin Page Styles - Dark Theme */
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #2d3748;
+  color: #e2e8f0;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+  background-color: #1a202c !important;
+}
+
+.card-body {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.form-control {
+  background-color: #4a5568;
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.form-control:focus {
+  background-color: #4a5568;
+  border-color: #86b7fe;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control::placeholder {
+  color: #a0aec0;
+}
+
+.form-label {
+  color: #e2e8f0;
+}
+
+.btn {
+  transition: all 0.15s ease-in-out;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+.btn-success {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.btn-success:hover {
+  background-color: #157347;
+  border-color: #146c43;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+}
+
+.btn-danger:hover {
+  background-color: #bb2d3b;
+  border-color: #b02a37;
+}
+
+.btn-info {
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+  color: #000;
+}
+
+.btn-info:hover {
+  background-color: #3dd5f3;
+  border-color: #25cff2;
+  color: #000;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #000;
+}
+
+.btn-warning:hover {
+  background-color: #ffca2c;
+  border-color: #ffc720;
+  color: #000;
+}
+
+/* Status indicators */
+.text-center .h4 {
+  margin-bottom: 0.5rem;
+}
+
+.text-center .small {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Form styling */
+.form-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-text {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Access denied styling */
+.border-danger {
+  border-color: #dc3545 !important;
+}
+
+.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .btn {
+    margin-bottom: 0.5rem;
+  }
+  
+  .card-body .row .col-md-4,
+  .card-body .row .col-md-6 {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Animation for status indicators */
+.text-center .h4 i {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Custom spacing */
+.mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+
+.mt-4 {
+  margin-top: 1.5rem !important;
+}
+
+/* Product table styling - Dark Theme */
+.table-responsive {
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.table {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.table th {
+  background-color: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  vertical-align: middle;
+  border-color: #4a5568;
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(66, 153, 225, 0.1);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.btn-group-sm .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Form styling for inline editing */
+.form-control-sm {
+  min-width: 120px;
+}
+
+/* Loading state */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Product form styling - Dark Theme */
+.border-primary {
+  border-color: #0d6efd !important;
+}
+
+.bg-light {
+  background-color: #4a5568 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Card headers with dark theme */
+
+.bg-success {
+  background-color: #38a169 !important;
+}
+
+
+.bg-info {
+  background-color: #3182ce !important;
+}
+
+.bg-danger {
+  background-color: #e53e3e !important;
+}
+
+/* Text colors for dark theme */
+.text-muted {
+  color: #a0aec0 !important;
+}
+
+.text-center .small {
+  color: #a0aec0;
+  font-weight: 500;
+}
+
+/* Toast notification styling */
+.toast {
+  background-color: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+.toast-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-body {
+  background-color: #2d3748 !important;
+  color: #e2e8f0 !important;
+}
+
+.btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}

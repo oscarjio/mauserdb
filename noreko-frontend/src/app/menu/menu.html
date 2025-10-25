@@ -12,6 +12,8 @@
           <li><a class="dropdown-item" routerLink="/rebotling/live">Live</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/skiftrapport">Skiftrapport</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/statistik">Statistik</a></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
         </ul>
       </li>
       <li class="nav-item dropdown">
