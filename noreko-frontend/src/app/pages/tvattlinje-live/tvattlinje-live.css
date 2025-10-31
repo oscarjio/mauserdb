@@ -6,6 +6,47 @@
   justify-content: center;
   background: #181a1b;
   padding: 2vw 0;
+  position: relative;
+}
+
+.status-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.status-bar-on {
+  background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+  box-shadow: 0 0 20px rgba(46, 204, 113, 0.5);
+  animation: pulse-on 2s ease-in-out infinite;
+}
+
+.status-bar-off {
+  background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+  animation: pulse-off 2s ease-in-out infinite;
+}
+
+@keyframes pulse-on {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes pulse-off {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .row.g-4.align-items-stretch.justify-content-center {

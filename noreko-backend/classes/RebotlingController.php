@@ -14,6 +14,8 @@ class RebotlingController {
         if ($method === 'GET') {
             if ($action === 'admin-settings') {
                 $this->getAdminSettings();
+            } elseif ($action === 'status') {
+                $this->getRunningStatus();
             } else {
                 $this->getLiveStats();
             }
@@ -48,6 +50,36 @@ class RebotlingController {
                 'hourlyTarget' => $hourlyTarget
             ]
         ]);
+    }
+
+    private function getRunningStatus() {
+        try {
+            // Hämta senaste running status för rebotling
+            $stmt = $this->pdo->prepare('
+                SELECT running, datum
+                FROM rebotling_onoff 
+                ORDER BY datum DESC 
+                LIMIT 1
+            ');
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
+            $lastUpdate = $result && isset($result['datum']) ? $result['datum'] : null;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'running' => $isRunning,
+                    'lastUpdate' => $lastUpdate
+                ]
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte hämta status: ' . $e->getMessage()
+            ]);
+        }
     }
 
     private function getAdminSettings() {

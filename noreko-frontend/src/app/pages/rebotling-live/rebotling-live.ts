@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RebotlingService, RebotlingLiveStatsResponse } from '../../services/rebotling.service';
+import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../../services/rebotling.service';
 
 @Component({
   standalone: true,
@@ -23,6 +23,10 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   needleRotation: number = -150; // Start position
   statusText: string = 'Bra produktion';
   statusBadgeClass: string = 'bg-success';
+  
+  // Line status
+  isLineRunning: boolean = false;
+  statusBarClass: string = 'status-bar-off';
 
   constructor(private rebotlingService: RebotlingService) {}
 
@@ -30,8 +34,10 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.intervalId = setInterval(() => {
       this.now = new Date();
       this.fetchLiveStats();
+      this.fetchLineStatus();
     }, 2000);
     this.fetchLiveStats();
+    this.fetchLineStatus();
   }
 
   ngOnDestroy() {
@@ -46,6 +52,15 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
         this.rebotlingThisHour = res.data.rebotlingThisHour;
         this.hourlyTarget = res.data.hourlyTarget;
         this.updateSpeedometer();
+      }
+    });
+  }
+
+  private fetchLineStatus() {
+    this.rebotlingService.getRunningStatus().subscribe((res: LineStatusResponse) => {
+      if (res && res.success && res.data) {
+        this.isLineRunning = res.data.running;
+        this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
       }
     });
   }
