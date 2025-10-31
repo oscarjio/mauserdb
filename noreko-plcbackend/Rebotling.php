@@ -70,7 +70,7 @@ class Rebotling {
         }
 
         // Anropa Modbus!
-        $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
+        $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
 
         $this->modbus->writeMultipleRegister(0, 199, array(0), array("INT"));
         sleep(1);
@@ -174,6 +174,47 @@ class Rebotling {
             'produkt' => $PLC_data16[4],
             'antal' => $PLC_data16[5],
             'runtime_plc' => $PLC_data16[6]
+        ]);
+    }
+
+    public function handleSkiftrapport(array $data): void {
+        // Anropa Modbus!
+        $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
+
+        // Hämta data från PLC (D210-D216 = 7 registers, starting at address 210)
+        $PLC_data = $this->modbus->readMultipleRegisters(0, 210, 7);
+        
+        // Gör om 8bitars värden till 16bitar PLC D register är 16bit
+        $PLC_data16 = array();
+        for($i=0;$i<(count($PLC_data) / 2);$i++){
+            $PLC_data16[$i] = $PLC_data[$i*2] << 8;
+            $PLC_data16[$i] += $PLC_data[$i*2+1];
+        }    
+
+        /*
+        D210 ibc_ok
+        D211 bur_ej_ok
+        D212 ibc_ej_ok
+        D213 totalt
+        D214 operator (user_id)
+        D215 produkt (product_id)
+        D216 drifttid
+        */
+
+        // Förbered och kör SQL-query
+        $stmt = $this->db->prepare('
+            INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, user_id, product_id, drifttid)
+            VALUES (CURDATE(), :ibc_ok, :bur_ej_ok, :ibc_ej_ok, :totalt, :operator, :produkt, :drifttid)
+        ');
+        
+        $stmt->execute([
+            'ibc_ok' => $PLC_data16[0],
+            'bur_ej_ok' => $PLC_data16[1],
+            'ibc_ej_ok' => $PLC_data16[2],
+            'totalt' => $PLC_data16[3],
+            'operator' => $PLC_data16[4],
+            'produkt' => $PLC_data16[5],
+            'drifttid' => $PLC_data16[6]
         ]);
     }
     

@@ -42,6 +42,9 @@ class WebhookProcessor {
                         case 'running':
                             $rebotling->handleRunning($data);
                             break;
+                        case 'skiftrapport':
+                            $rebotling->handleSkiftrapport($data);
+                            break;
                         default:
                             throw new InvalidArgumentException('Unsupported webhook type: ' . $type);
                     }
