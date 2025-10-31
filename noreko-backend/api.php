@@ -16,7 +16,8 @@ spl_autoload_register(function ($class) {
 $action = $_GET['action'] ?? '';
 // Mapping för actions som inte följer standardnamngivning
 $classNameMap = [
-    'rebotlingproduct' => 'RebotlingProductController'
+    'rebotlingproduct' => 'RebotlingProductController',
+    'skiftrapport' => 'SkiftrapportController'
 ];
 $className = $classNameMap[strtolower($action)] ?? ucfirst(strtolower($action)) . 'Controller';
 

@@ -1,1 +1,210 @@
-<div class="rebotling-skiftrapport-page"><h2>Rebotling Skiftrapport</h2></div>
+<div class="container-fluid mt-4">
+  <!-- Success Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <div class="toast show" *ngIf="showSuccessMessage" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header bg-success text-white">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong class="me-auto">Framgång</strong>
+        <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage = false"></button>
+      </div>
+      <div class="toast-body bg-dark text-white">
+        {{ successMessage }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+          <i class="fas fa-clipboard-list me-2"></i>
+          Rebotling Skiftrapport
+        </h1>
+      </div>
+
+      <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ errorMessage }}
+      </div>
+
+      <!-- Add New Report Card -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-plus me-2"></i>
+            Lägg till ny skiftrapport
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Datum</label>
+              <input type="date" class="form-control" [(ngModel)]="newReport.datum" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">IBC OK</label>
+              <input type="number" class="form-control" [(ngModel)]="newReport.ibc_ok" min="0" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Bur ej OK</label>
+              <input type="number" class="form-control" [(ngModel)]="newReport.bur_ej_ok" min="0" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">IBC ej OK</label>
+              <input type="number" class="form-control" [(ngModel)]="newReport.ibc_ej_ok" min="0" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">&nbsp;</label>
+              <button class="btn btn-success w-100" (click)="addReport()">
+                <i class="fas fa-plus me-2"></i>
+                Lägg till
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Table Card -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-table me-2"></i>
+            Skiftrapporter
+          </h5>
+          <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
+            <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(true)" title="Markera valda som inlagda">
+              <i class="fas fa-check me-1"></i>
+              Markera inlagda
+            </button>
+            <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(false)" title="Markera valda som ej inlagda">
+              <i class="fas fa-times me-1"></i>
+              Markera ej inlagda
+            </button>
+            <button class="btn btn-sm btn-outline-danger" (click)="bulkDelete()" title="Ta bort valda">
+              <i class="fas fa-trash me-1"></i>
+              Ta bort ({{ selectedIds.size }})
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loading" class="text-center text-muted">
+            <i class="fas fa-spinner fa-spin me-2"></i>
+            Laddar skiftrapporter...
+          </div>
+          
+          <div class="table-responsive" *ngIf="!loading">
+            <table class="table table-striped table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th width="40" *ngIf="isAdmin">
+                    <input type="checkbox" [checked]="selectedIds.size === reports.length && reports.length > 0" (change)="toggleSelectAll()" />
+                  </th>
+                  <th>ID</th>
+                  <th>Datum</th>
+                  <th>IBC OK</th>
+                  <th>Bur ej OK</th>
+                  <th>IBC ej OK</th>
+                  <th>Totalt</th>
+                  <th>Inlagd</th>
+                  <th>Åtgärder</th>
+                </tr>
+              </thead>
+              <tbody>
+                <ng-container *ngFor="let report of reports">
+                  <tr [class.inlagd-row]="report.inlagd == 1">
+                    <td *ngIf="isAdmin">
+                      <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
+                    </td>
+                    <td>{{ report.id }}</td>
+                    <td>
+                      <span *ngIf="!expanded[report.id] || !isAdmin">{{ report.datum | date:'yyyy-MM-dd' }}</span>
+                      <input *ngIf="expanded[report.id] && isAdmin" type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" />
+                    </td>
+                    <td>
+                      <span *ngIf="!expanded[report.id] || !isAdmin">{{ report.ibc_ok }}</span>
+                      <input *ngIf="expanded[report.id] && isAdmin" type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ok" min="0" />
+                    </td>
+                    <td>
+                      <span *ngIf="!expanded[report.id] || !isAdmin">{{ report.bur_ej_ok }}</span>
+                      <input *ngIf="expanded[report.id] && isAdmin" type="number" class="form-control form-control-sm" [(ngModel)]="report.bur_ej_ok" min="0" />
+                    </td>
+                    <td>
+                      <span *ngIf="!expanded[report.id] || !isAdmin">{{ report.ibc_ej_ok }}</span>
+                      <input *ngIf="expanded[report.id] && isAdmin" type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ej_ok" min="0" />
+                    </td>
+                    <td><strong>{{ report.totalt }}</strong></td>
+                    <td>
+                      <div class="form-check form-switch" *ngIf="isAdmin">
+                        <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
+                        <label class="form-check-label">
+                          {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
+                        </label>
+                      </div>
+                      <span *ngIf="!isAdmin" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="report.inlagd == 0">
+                        {{ report.inlagd == 1 ? 'Ja' : 'Nej' }}
+                      </span>
+                    </td>
+                    <td>
+                      <div class="btn-group btn-group-sm" role="group">
+                        <button *ngIf="isAdmin" class="btn btn-outline-primary" (click)="toggleExpand(report.id)" [title]="expanded[report.id] ? 'Stäng' : 'Redigera'">
+                          <i class="fas" [class.fa-edit]="!expanded[report.id]" [class.fa-times]="expanded[report.id]"></i>
+                        </button>
+                        <button *ngIf="isAdmin" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr *ngIf="expanded[report.id] && isAdmin" class="edit-row">
+                    <td [attr.colspan]="isAdmin ? 9 : 8">
+                      <div class="card border-primary">
+                        <div class="card-body">
+                          <form (ngSubmit)="saveReport(report)" class="edit-form">
+                            <div class="row g-2 align-items-end">
+                              <div class="col-md-2">
+                                <label class="form-label">Datum</label>
+                                <input type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" name="datum-{{report.id}}" />
+                              </div>
+                              <div class="col-md-2">
+                                <label class="form-label">IBC OK</label>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ok" name="ibc_ok-{{report.id}}" min="0" />
+                              </div>
+                              <div class="col-md-2">
+                                <label class="form-label">Bur ej OK</label>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.bur_ej_ok" name="bur_ej_ok-{{report.id}}" min="0" />
+                              </div>
+                              <div class="col-md-2">
+                                <label class="form-label">IBC ej OK</label>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ej_ok" name="ibc_ej_ok-{{report.id}}" min="0" />
+                              </div>
+                              <div class="col-md-2">
+                                <label class="form-label">Totalt</label>
+                                <input type="text" class="form-control form-control-sm" [value]="report.ibc_ok + report.bur_ej_ok + report.ibc_ej_ok" readonly />
+                              </div>
+                              <div class="col-md-2">
+                                <button class="btn btn-success btn-sm w-100" type="submit">
+                                  <i class="fas fa-save me-1"></i>
+                                  Spara
+                                </button>
+                              </div>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+                <tr *ngIf="reports.length === 0">
+                  <td [attr.colspan]="isAdmin ? 9 : 8" class="text-center text-muted">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Inga skiftrapporter hittades.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
