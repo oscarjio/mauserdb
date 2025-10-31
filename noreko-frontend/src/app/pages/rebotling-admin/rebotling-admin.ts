@@ -15,7 +15,6 @@ export class RebotlingAdminPage implements OnInit {
   loggedIn = false;
   user: any = null;
   isAdmin = false;
-  currentTime = new Date();
 
 
   // Product management
@@ -43,7 +42,7 @@ export class RebotlingAdminPage implements OnInit {
 
   private loadProducts() {
     this.loading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=product', { withCredentials: true })
+    this.http.get<any>('/noreko-backend/api.php?action=rebotlingproduct', { withCredentials: true })
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -74,7 +73,7 @@ export class RebotlingAdminPage implements OnInit {
     }
 
     this.loading = true;
-    this.http.post<any>('/noreko-backend/api.php?action=product', this.newProduct, { withCredentials: true })
+    this.http.post<any>('/noreko-backend/api.php?action=rebotlingproduct', this.newProduct, { withCredentials: true })
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -121,7 +120,7 @@ export class RebotlingAdminPage implements OnInit {
       cycle_time_minutes: product.cycle_time_minutes
     };
 
-    this.http.put<any>('/noreko-backend/api.php?action=product', updateData, { withCredentials: true })
+    this.http.put<any>('/noreko-backend/api.php?action=rebotlingproduct', updateData, { withCredentials: true })
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -155,7 +154,7 @@ export class RebotlingAdminPage implements OnInit {
 
     this.loading = true;
     // Use POST with delete action instead of DELETE method
-    this.http.post<any>('/noreko-backend/api.php?action=product&run=delete', { id: product.id }, { withCredentials: true })
+    this.http.post<any>('/noreko-backend/api.php?action=rebotlingproduct&run=delete', { id: product.id }, { withCredentials: true })
       .subscribe({
         next: (response) => {
           if (response.success) {
