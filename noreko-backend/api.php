@@ -14,12 +14,35 @@ spl_autoload_register(function ($class) {
 });
 
 $action = $_GET['action'] ?? '';
-$className = ucfirst(strtolower($action)) . 'Controller';
+// Mapping för actions som inte följer standardnamngivning
+$classNameMap = [
+    'rebotlingproduct' => 'RebotlingProductController'
+];
+$className = $classNameMap[strtolower($action)] ?? ucfirst(strtolower($action)) . 'Controller';
+
+// Ladda klassen manuellt
+$file = __DIR__ . '/classes/' . $className . '.php';
+if (file_exists($file)) {
+    require_once $file;
+}
 
 if (class_exists($className)) {
-    $controller = new $className();
-    $controller->handle();
+    try {
+        $controller = new $className();
+        $controller->handle();
+    } catch (Exception $e) {
+        echo json_encode([
+            'error' => 'Fel vid instansiering av controller',
+            'message' => $e->getMessage(),
+            'debug' => [
+                'action' => $action,
+                'className' => $className
+            ]
+        ]);
+    }
 } else {
-    echo json_encode(['error' => 'Ogiltig action eller klass saknas']);
+    echo json_encode([
+        'error' => 'Ogiltig action eller klass saknas'
+    ]);
 }
  

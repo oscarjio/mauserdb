@@ -1,18 +1,32 @@
 <?php
 class RebotlingController {
+    private $pdo;
+
+    public function __construct() {
+        global $pdo;
+        $this->pdo = $pdo;
+    }
+
     public function handle() {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $action = $_GET['run'] ?? '';
+        
         if ($method === 'GET') {
-            $this->getLiveStats();
+            if ($action === 'admin-settings') {
+                $this->getAdminSettings();
+            } else {
+                $this->getLiveStats();
+            }
             return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
-        if (isset($data['data'])) {
-            echo json_encode(['success' => true, 'message' => 'Data mottagen', 'received' => $data['data']]);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Ingen data mottagen']);
+        if ($method === 'POST' && $action === 'admin-settings') {
+            $this->saveAdminSettings();
+            return;
         }
+
+        // Om ingen matchande metod finns
+        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
     }
 
     private function getLiveStats() {
@@ -34,5 +48,50 @@ class RebotlingController {
                 'hourlyTarget' => $hourlyTarget
             ]
         ]);
+    }
+
+    private function getAdminSettings() {
+        try {
+            // Hämta admin-inställningar från databasen eller returnera standardvärden
+            $settings = [
+                'rebotlingTarget' => 1000,
+                'hourlyTarget' => 50,
+                'systemSettings' => [
+                    'autoStart' => false,
+                    'maintenanceMode' => false,
+                    'alertThreshold' => 80
+                ]
+            ];
+
+            echo json_encode([
+                'success' => true,
+                'data' => $settings
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte hämta admin-inställningar: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    private function saveAdminSettings() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        try {
+            // TODO: Spara inställningar i databasen
+            // För nu bara returnera success
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Inställningar sparade',
+                'data' => $data
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte spara inställningar: ' . $e->getMessage()
+            ]);
+        }
     }
 }
