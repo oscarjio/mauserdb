@@ -8,25 +8,50 @@
         <th>Användarnamn</th>
         <th>Email</th>
         <th>Telefon</th>
+        <th>Status</th>
+        <th>Admin</th>
         <th>Senaste inloggning</th>
-        <th></th>
+        <th>Åtgärder</th>
       </tr>
     </thead>
     <tbody>
       <ng-container *ngFor="let user of users">
-        <tr>
+        <tr [class.table-danger]="user.active === 0">
           <td>{{ user.username }}</td>
           <td>{{ user.email }}</td>
-          <td>{{ user.phone }}</td>
+          <td>{{ user.phone || '-' }}</td>
+          <td>
+            <span class="badge" [class.bg-success]="user.active === 1" [class.bg-secondary]="user.active === 0">
+              {{ user.active === 1 ? 'Aktiv' : 'Inaktiv' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge" [class.bg-primary]="user.admin === 1" [class.bg-secondary]="user.admin === 0">
+              {{ user.admin === 1 ? 'Admin' : 'Användare' }}
+            </span>
+          </td>
           <td>{{ user.last_login || '-' }}</td>
           <td>
-            <button class="btn btn-sm btn-outline-primary" (click)="toggleExpand(user.id)">
-              {{ expanded[user.id] ? 'Stäng' : 'Redigera' }}
-            </button>
+            <div class="btn-group" role="group">
+              <button class="btn btn-sm btn-outline-primary" (click)="toggleExpand(user.id)">
+                {{ expanded[user.id] ? 'Stäng' : 'Redigera' }}
+              </button>
+              <button class="btn btn-sm btn-outline-info" (click)="toggleAdmin(user)" 
+                      [title]="user.admin === 1 ? 'Ta bort admin-status' : 'Sätt som admin'">
+                {{ user.admin === 1 ? '▼ Admin' : '▲ Admin' }}
+              </button>
+              <button class="btn btn-sm btn-outline-warning" (click)="toggleActive(user)"
+                      [title]="user.active === 1 ? 'Inaktivera konto' : 'Aktivera konto'">
+                {{ user.active === 1 ? 'Inaktivera' : 'Aktivera' }}
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="deleteUser(user)" title="Ta bort användare">
+                Ta bort
+              </button>
+            </div>
           </td>
         </tr>
         <tr *ngIf="expanded[user.id]" class="edit-row">
-          <td colspan="5">
+          <td colspan="7">
             <form (ngSubmit)="saveUser(user)" class="edit-form">
               <div class="row g-2 align-items-center">
                 <div class="col">

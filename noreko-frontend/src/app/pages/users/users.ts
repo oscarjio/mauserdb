@@ -57,12 +57,65 @@ export class UsersPage implements OnInit {
       next: (res) => {
         if (res.success) {
           this.expanded[user.id] = false;
+          this.fetchUsers(); // Uppdatera listan
         } else {
           alert('Kunde inte spara användare: ' + (res.message || 'Okänt fel'));
         }
       },
       error: () => {
         alert('Kunde inte spara användare.');
+      }
+    });
+  }
+
+  deleteUser(user: any) {
+    if (!confirm(`Är du säker på att du vill ta bort användaren "${user.username}"?`)) {
+      return;
+    }
+    
+    this.usersService.deleteUser(user.id).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.fetchUsers(); // Uppdatera listan
+        } else {
+          alert(res.message || 'Kunde inte ta bort användare');
+        }
+      },
+      error: (error) => {
+        alert(error.error?.message || 'Kunde inte ta bort användare');
+      }
+    });
+  }
+
+  toggleAdmin(user: any) {
+    this.usersService.toggleAdmin(user.id).subscribe({
+      next: (res) => {
+        if (res.success) {
+          user.admin = res.admin;
+          user.role = res.admin === 1 ? 'admin' : 'user';
+          this.fetchUsers(); // Uppdatera listan
+        } else {
+          alert(res.message || 'Kunde inte ändra admin-status');
+        }
+      },
+      error: (error) => {
+        alert(error.error?.message || 'Kunde inte ändra admin-status');
+      }
+    });
+  }
+
+  toggleActive(user: any) {
+    this.usersService.toggleActive(user.id).subscribe({
+      next: (res) => {
+        if (res.success) {
+          user.active = res.active;
+          this.fetchUsers(); // Uppdatera listan
+        } else {
+          alert(res.message || 'Kunde inte ändra status');
+        }
+      },
+      error: (error) => {
+        alert(error.error?.message || 'Kunde inte ändra status');
       }
     });
   }
