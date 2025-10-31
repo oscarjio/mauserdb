@@ -14,6 +14,7 @@ import { AuthService } from '../../services/auth.service';
 })
 export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   reports: any[] = [];
+  products: any[] = [];
   selectedIds: Set<number> = new Set();
   expanded: { [id: number]: boolean } = {};
   loading = false;
@@ -30,6 +31,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   newReport = {
     datum: new Date().toISOString().split('T')[0],
+    product_id: null as number | null,
     ibc_ok: 0,
     bur_ej_ok: 0,
     ibc_ej_ok: 0
@@ -41,6 +43,20 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       this.isAdmin = user?.role === 'admin';
     });
     this.fetchReports();
+    this.fetchProducts();
+  }
+
+  fetchProducts() {
+    this.skiftrapportService.getProducts().subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.products = res.data || [];
+        }
+      },
+      error: (error) => {
+        console.error('Error fetching products:', error);
+      }
+    });
   }
 
   ngOnDestroy() {
@@ -84,6 +100,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   isSelected(id: number): boolean {
     return this.selectedIds.has(id);
+  }
+
+  isOwner(report: any): boolean {
+    return this.user && report.user_id === this.user.id;
+  }
+
+  canEdit(report: any): boolean {
+    return this.isAdmin || this.isOwner(report);
   }
 
   toggleInlagd(report: any) {
@@ -186,11 +210,17 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.newReport.product_id) {
+      this.errorMessage = 'Produkt måste väljas';
+      return;
+    }
+
     const totalt = this.newReport.ibc_ok + this.newReport.bur_ej_ok + this.newReport.ibc_ej_ok;
     
     this.loading = true;
     this.skiftrapportService.createSkiftrapport({
       datum: this.newReport.datum,
+      product_id: this.newReport.product_id,
       ibc_ok: this.newReport.ibc_ok,
       bur_ej_ok: this.newReport.bur_ej_ok,
       ibc_ej_ok: this.newReport.ibc_ej_ok,
@@ -202,6 +232,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           this.fetchReports();
           this.newReport = {
             datum: new Date().toISOString().split('T')[0],
+            product_id: null,
             ibc_ok: 0,
             bur_ej_ok: 0,
             ibc_ej_ok: 0
@@ -234,6 +265,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     
     this.skiftrapportService.updateSkiftrapport(report.id, {
       datum: datum,
+      product_id: report.product_id,
       ibc_ok: parseInt(report.ibc_ok) || 0,
       bur_ej_ok: parseInt(report.bur_ej_ok) || 0,
       ibc_ej_ok: parseInt(report.ibc_ej_ok) || 0

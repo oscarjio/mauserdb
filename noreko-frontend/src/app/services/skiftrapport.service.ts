@@ -10,6 +10,10 @@ export class SkiftrapportService {
     return this.http.get<any>('/noreko-backend/api.php?action=skiftrapport', { withCredentials: true });
   }
 
+  getProducts(): Observable<any> {
+    return this.http.get<any>('/noreko-backend/api.php?action=rebotlingproduct', { withCredentials: true });
+  }
+
   createSkiftrapport(report: any): Observable<any> {
     return this.http.post<any>('/noreko-backend/api.php?action=skiftrapport', {
       action: 'create',

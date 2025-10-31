@@ -21,7 +21,7 @@ class SkiftrapportController {
             if ($action === 'create') {
                 $this->createSkiftrapport($data);
             } elseif ($action === 'delete') {
-                $this->checkAdmin();
+                $this->checkOwnerOrAdmin($data['id'] ?? 0);
                 $this->deleteSkiftrapport($data);
             } elseif ($action === 'updateInlagd') {
                 $this->checkAdmin();
@@ -33,7 +33,7 @@ class SkiftrapportController {
                 $this->checkAdmin();
                 $this->bulkUpdateInlagd($data);
             } elseif ($action === 'update') {
-                $this->checkAdmin();
+                $this->checkOwnerOrAdmin($data['id'] ?? 0);
                 $this->updateSkiftrapport($data);
             } else {
                 http_response_code(400);
@@ -53,6 +53,42 @@ class SkiftrapportController {
         }
     }
 
+    private function checkOwnerOrAdmin($reportId) {
+        if (!isset($_SESSION['user_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Inte inloggad']);
+            exit;
+        }
+
+        // Admins can do anything
+        if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+            return;
+        }
+
+        // Check if user owns this report
+        try {
+            $stmt = $this->pdo->prepare("SELECT user_id FROM rebotling_skiftrapport WHERE id = ?");
+            $stmt->execute([$reportId]);
+            $report = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$report) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Skiftrapport hittades inte']);
+                exit;
+            }
+
+            if ($report['user_id'] != $_SESSION['user_id']) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'message' => 'Du kan bara ändra dina egna skiftrapporter']);
+                exit;
+            }
+        } catch (PDOException $e) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Databasfel']);
+            exit;
+        }
+    }
+
     private function ensureTableExists() {
         try {
             $stmt = $this->pdo->query("SHOW TABLES LIKE 'rebotling_skiftrapport'");
@@ -66,13 +102,30 @@ class SkiftrapportController {
                     `ibc_ej_ok` int NOT NULL DEFAULT 0,
                     `totalt` int NOT NULL DEFAULT 0,
                     `inlagd` tinyint(1) NOT NULL DEFAULT 0,
+                    `product_id` int DEFAULT NULL,
+                    `user_id` int DEFAULT NULL,
                     `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`id`),
-                    KEY `idx_datum` (`datum`)
+                    KEY `idx_datum` (`datum`),
+                    KEY `idx_product_id` (`product_id`),
+                    KEY `idx_user_id` (`user_id`)
                 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
                 
                 $this->pdo->exec($sql);
+            } else {
+                // Check if new columns exist and add them if not
+                $stmt = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport LIKE 'product_id'");
+                if ($stmt->rowCount() === 0) {
+                    $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `product_id` int DEFAULT NULL AFTER `inlagd`");
+                    $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD INDEX `idx_product_id` (`product_id`)");
+                }
+                
+                $stmt = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport LIKE 'user_id'");
+                if ($stmt->rowCount() === 0) {
+                    $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `user_id` int DEFAULT NULL AFTER `product_id`");
+                    $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD INDEX `idx_user_id` (`user_id`)");
+                }
             }
         } catch (PDOException $e) {
             // Ignorera om tabellen redan finns
@@ -81,7 +134,13 @@ class SkiftrapportController {
 
     private function getSkiftrapporter() {
         try {
-            $stmt = $this->pdo->query("SELECT id, datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, inlagd, created_at, updated_at FROM rebotling_skiftrapport ORDER BY datum DESC, id DESC");
+            $stmt = $this->pdo->query("SELECT s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt, s.inlagd, s.product_id, s.user_id, s.created_at, s.updated_at,
+                u.username as user_name,
+                p.name as product_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN products p ON s.product_id = p.id
+                ORDER BY s.datum DESC, s.id DESC");
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             echo json_encode([
@@ -104,9 +163,11 @@ class SkiftrapportController {
             $bur_ej_ok = intval($data['bur_ej_ok'] ?? 0);
             $ibc_ej_ok = intval($data['ibc_ej_ok'] ?? 0);
             $totalt = $ibc_ok + $bur_ej_ok + $ibc_ej_ok;
+            $product_id = isset($data['product_id']) ? intval($data['product_id']) : null;
+            $user_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
-            $stmt = $this->pdo->prepare("INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt) VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([$datum, $ibc_ok, $bur_ej_ok, $ibc_ej_ok, $totalt]);
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$datum, $ibc_ok, $bur_ej_ok, $ibc_ej_ok, $totalt, $product_id, $user_id]);
             
             echo json_encode([
                 'success' => true,
@@ -244,6 +305,7 @@ class SkiftrapportController {
             $ibc_ok = isset($data['ibc_ok']) ? intval($data['ibc_ok']) : null;
             $bur_ej_ok = isset($data['bur_ej_ok']) ? intval($data['bur_ej_ok']) : null;
             $ibc_ej_ok = isset($data['ibc_ej_ok']) ? intval($data['ibc_ej_ok']) : null;
+            $product_id = isset($data['product_id']) ? intval($data['product_id']) : null;
             
             $fields = [];
             $params = [];
@@ -263,6 +325,10 @@ class SkiftrapportController {
             if ($ibc_ej_ok !== null) {
                 $fields[] = 'ibc_ej_ok = ?';
                 $params[] = $ibc_ej_ok;
+            }
+            if ($product_id !== null) {
+                $fields[] = 'product_id = ?';
+                $params[] = $product_id;
             }
             
             if (empty($fields)) {
