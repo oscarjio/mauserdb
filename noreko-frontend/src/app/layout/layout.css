@@ -24,6 +24,23 @@ main {
   bottom: 2rem;
   left: 2rem;
   z-index: 2000;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.go-back-bottom-left.hide-back-button {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hide cursor on live pages when mouse is inactive */
+:host-context(main) {
+  cursor: auto;
+}
+
+/* Global cursor hiding for live pages */
+body.cursor-hidden {
+  cursor: none !important;
 }
 
 .mini-tvattlinje-live {

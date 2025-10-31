@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe } from '@angular/common';
 
 @Component({
@@ -8,7 +8,7 @@ import { DatePipe } from '@angular/common';
   templateUrl: './tvattlinje-live.html',
   styleUrl: './tvattlinje-live.css'
 })
-export class TvattlinjeLivePage {
+export class TvattlinjeLivePage implements OnInit, OnDestroy {
   now = new Date();
   intervalId: any;
 
@@ -19,6 +19,8 @@ export class TvattlinjeLivePage {
   }
 
   ngOnDestroy() {
-    clearInterval(this.intervalId);
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 }
