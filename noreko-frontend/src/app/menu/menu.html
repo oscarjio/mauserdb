@@ -26,6 +26,26 @@
           <li><a class="dropdown-item" routerLink="/tvattlinje/statistik">Statistik</a></li>
         </ul>
       </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="saglinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Såglinje
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="saglinjeDropdown">
+          <li><a class="dropdown-item" routerLink="/saglinje/live">Live</a></li>
+          <li><a class="dropdown-item" routerLink="/saglinje/skiftrapport">Skiftrapport</a></li>
+          <li><a class="dropdown-item" routerLink="/saglinje/statistik">Statistik</a></li>
+        </ul>
+      </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="klassificeringslinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Klassificeringslinje
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="klassificeringslinjeDropdown">
+          <li><a class="dropdown-item" routerLink="/klassificeringslinje/live">Live</a></li>
+          <li><a class="dropdown-item" routerLink="/klassificeringslinje/skiftrapport">Skiftrapport</a></li>
+          <li><a class="dropdown-item" routerLink="/klassificeringslinje/statistik">Statistik</a></li>
+        </ul>
+      </li>
 
       <li class="nav-item dropdown" *ngIf="!loggedIn">
         <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

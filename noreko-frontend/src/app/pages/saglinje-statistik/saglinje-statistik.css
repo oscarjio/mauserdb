@@ -1,0 +1,9 @@
+/* Minimal placeholder for Såglinje Statistik page */
+.saglinje-statistik-page {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+

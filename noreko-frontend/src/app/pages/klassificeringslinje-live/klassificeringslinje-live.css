@@ -1,0 +1,112 @@
+/* Minimal placeholder for Klassificeringslinje Live page */
+.klassificeringslinje-live-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  background: #181a1b;
+  padding: 2vw 0;
+}
+
+.row.g-4.align-items-stretch.justify-content-center {
+  gap: 0 !important;
+  min-height: 0;
+}
+
+.live-card {
+  background: #23272b;
+  color: #fff;
+  border-radius: 1.5rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.2);
+  padding: 0.7rem 0.5rem;
+  margin: 0.5rem;
+  width: 100%;
+  min-height: 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.8vw;
+  min-width: 0;
+  height: 100%;
+}
+
+.clock-card {
+  margin: 0.5rem;
+}
+
+.live-label {
+  font-size: 1.7rem;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+}
+
+.live-value {
+  font-size: 3.8rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+.live-clock {
+  font-size: 7vw;
+  margin: 0.5rem 0 0.5rem 0;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.live-ibc-today {
+  font-size: 7vw;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+.speedometer-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding-bottom: 0;
+}
+
+.speedometer-modern {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.speedometer-modern svg {
+  max-width: 260px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.speedometer-status {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-top: 1.5rem;
+  position: static;
+}
+
+.speedometer-status .badge {
+  font-size: 1.5rem !important;
+  padding: 0.5em 1em;
+}
+
+.live-card.speedometer-wrapper {
+  padding-bottom: 2.5rem;
+  position: relative;
+}
+
+.mini-klassificeringslinje-live .live-card {
+  font-size: 1.1vw !important;
+}
+

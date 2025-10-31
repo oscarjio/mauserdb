@@ -1,0 +1,9 @@
+/* Minimal placeholder for Klassificeringslinje Skiftrapport page */
+.klassificeringslinje-skiftrapport-page {
+  min-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
