@@ -9,6 +9,15 @@
   max-width: 100%;
 }
 
+.noreko-logo {
+  position: absolute;
+  top: 0.75rem;
+  left: 1.5rem;
+  height: 90px;
+  width: auto;
+  z-index: 101;
+}
+
 .header-container {
   display: flex;
   flex-direction: column;
@@ -76,5 +85,10 @@
   }
   .logo-text {
     font-size: 2.1rem;
+  }
+  .noreko-logo {
+    height: 45px;
+    top: 0.5rem;
+    left: 1rem;
   }
 }
