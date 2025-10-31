@@ -26,6 +26,7 @@ export class RebotlingAdminPage implements OnInit {
   loading = false;
   showSuccessMessage = false;
   successMessage = '';
+  showAddProductForm = false;
 
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
@@ -79,6 +80,7 @@ export class RebotlingAdminPage implements OnInit {
           if (response.success) {
             this.loadProducts(); // Reload products
             this.newProduct = { name: '', cycle_time_minutes: null }; // Reset form
+            this.showAddProductForm = false; // Hide form after adding
             console.log('Produkt tillagd');
             this.showSuccess('Produkt tillagd!');
           } else {

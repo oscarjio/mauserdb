@@ -27,15 +27,19 @@
 
       <!-- Product Management -->
       <div class="card mb-4">
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">
             <i class="fas fa-boxes me-2"></i>
             Produkthantering
           </h5>
+          <button class="btn btn-sm btn-outline-light" (click)="showAddProductForm = !showAddProductForm" [title]="showAddProductForm ? 'Dölj formulär' : 'Visa formulär'">
+            <i class="fas" [class.fa-minus]="showAddProductForm" [class.fa-plus]="!showAddProductForm"></i>
+            {{ showAddProductForm ? 'Dölj' : 'Lägg till produkt' }}
+          </button>
         </div>
         <div class="card-body">
           <!-- Add New Product Form -->
-          <div class="row mb-4">
+          <div class="row mb-4" *ngIf="showAddProductForm">
             <div class="col-12">
               <div class="card border-primary">
                 <div class="card-header bg-light">

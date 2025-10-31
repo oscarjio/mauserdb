@@ -23,6 +23,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   showSuccessMessage = false;
   isAdmin = false;
   user: any = null;
+  showAddReportForm = false;
+  loggedIn = false;
 
   constructor(
     private skiftrapportService: SkiftrapportService,
@@ -38,6 +40,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   };
 
   ngOnInit() {
+    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
     this.auth.user$.subscribe(user => {
       this.user = user;
       this.isAdmin = user?.role === 'admin';
@@ -237,6 +240,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
             bur_ej_ok: 0,
             ibc_ej_ok: 0
           };
+          this.showAddReportForm = false; // Hide form after adding
           this.showSuccess('Skiftrapport tillagd');
         } else {
           this.errorMessage = res.message || 'Kunde inte lägga till skiftrapport';

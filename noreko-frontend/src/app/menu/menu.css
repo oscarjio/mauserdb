@@ -75,7 +75,7 @@
 }
 
 .navbar-nav.custom-menu {
-  width: 100vw;
+  width: 100%;
   justify-content: space-between;
 }
 
@@ -125,8 +125,8 @@
   .custom-navbar .container-fluid,
   .custom-navbar,
   .navbar-nav.custom-menu {
-    width: 60vw;
-    max-width: 60vw;
+    width: 100%;
+    max-width: 100%;
     padding-left: 0;
     padding-right: 0;
   }

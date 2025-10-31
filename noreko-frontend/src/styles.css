@@ -3,7 +3,24 @@
 
 /* You can add global styles to this file, and also import other style files */
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
 body {
   background: #181a1b;
   color: #f8f9fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Allow horizontal scrolling for table-responsive elements */
+.table-responsive {
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }

@@ -20,6 +20,10 @@
           <i class="fas fa-clipboard-list me-2"></i>
           Rebotling Skiftrapport
         </h1>
+        <button *ngIf="loggedIn" class="btn btn-success" (click)="showAddReportForm = !showAddReportForm" [title]="showAddReportForm ? 'Dölj formulär' : 'Visa formulär'">
+          <i class="fas" [class.fa-minus]="showAddReportForm" [class.fa-plus]="!showAddReportForm"></i>
+          {{ showAddReportForm ? 'Dölj' : 'Lägg till skiftrapport' }}
+        </button>
       </div>
 
       <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
@@ -28,7 +32,7 @@
       </div>
 
       <!-- Add New Report Card -->
-      <div class="card mb-4">
+      <div class="card mb-4" *ngIf="showAddReportForm">
         <div class="card-header bg-success text-white">
           <h5 class="card-title mb-0">
             <i class="fas fa-plus me-2"></i>
@@ -125,28 +129,16 @@
                       <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
                     </td>
                     <td>{{ report.id }}</td>
-                    <td>
-                      <span *ngIf="!expanded[report.id] || !canEdit(report)">{{ report.datum | date:'yyyy-MM-dd' }}</span>
-                      <input *ngIf="expanded[report.id] && canEdit(report)" type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" />
-                    </td>
+                    <td>{{ report.datum | date:'yyyy-MM-dd' }}</td>
                     <td>
                       <span class="badge bg-info">{{ report.product_name || '-' }}</span>
                     </td>
                     <td>
                       <span class="badge bg-secondary">{{ report.user_name || '-' }}</span>
                     </td>
-                    <td>
-                      <span *ngIf="!expanded[report.id] || !canEdit(report)">{{ report.ibc_ok }}</span>
-                      <input *ngIf="expanded[report.id] && canEdit(report)" type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ok" min="0" />
-                    </td>
-                    <td>
-                      <span *ngIf="!expanded[report.id] || !canEdit(report)">{{ report.bur_ej_ok }}</span>
-                      <input *ngIf="expanded[report.id] && canEdit(report)" type="number" class="form-control form-control-sm" [(ngModel)]="report.bur_ej_ok" min="0" />
-                    </td>
-                    <td>
-                      <span *ngIf="!expanded[report.id] || !canEdit(report)">{{ report.ibc_ej_ok }}</span>
-                      <input *ngIf="expanded[report.id] && canEdit(report)" type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ej_ok" min="0" />
-                    </td>
+                    <td>{{ report.ibc_ok }}</td>
+                    <td>{{ report.bur_ej_ok }}</td>
+                    <td>{{ report.ibc_ej_ok }}</td>
                     <td><strong>{{ report.totalt }}</strong></td>
                     <td>
                       <div class="form-check form-switch" *ngIf="isAdmin">
@@ -170,7 +162,7 @@
                       </div>
                     </td>
                   </tr>
-                  <tr *ngIf="expanded[report.id] && canEdit(report)" class="edit-row">
+                  <tr *ngIf="expanded[report.id]" class="edit-row">
                     <td [attr.colspan]="isAdmin ? 11 : 10">
                       <div class="card border-primary">
                         <div class="card-body">

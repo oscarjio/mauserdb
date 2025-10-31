@@ -72,6 +72,8 @@ class Rebotling {
         // Anropa Modbus!
         $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
 
+
+        // Återföring till PLC att data hämtats.
         $this->modbus->writeMultipleRegister(0, 199, array(0), array("INT"));
         sleep(1);
         // Hämta data från PLC
@@ -180,6 +182,11 @@ class Rebotling {
     public function handleSkiftrapport(array $data): void {
         // Anropa Modbus!
         $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
+
+
+        // Återföring för att PLC ska kunna larma om data inte hämtas.
+        $this->modbus->writeMultipleRegister(0, 199, array(0), array("INT"));
+        sleep(1);
 
         // Hämta data från PLC (D210-D216 = 7 registers, starting at address 210)
         $PLC_data = $this->modbus->readMultipleRegisters(0, 210, 7);
