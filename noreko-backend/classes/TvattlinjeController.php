@@ -12,11 +12,18 @@ class TvattlinjeController {
         $action = $_GET['run'] ?? '';
         
         if ($method === 'GET') {
-            if ($action === 'status') {
+            if ($action === 'admin-settings') {
+                $this->getAdminSettings();
+            } elseif ($action === 'status') {
                 $this->getRunningStatus();
             } else {
                 $this->getLiveStats();
             }
+            return;
+        }
+
+        if ($method === 'POST' && $action === 'admin-settings') {
+            $this->saveAdminSettings();
             return;
         }
 
@@ -35,8 +42,9 @@ class TvattlinjeController {
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
             
-            // Placeholder-värden för nu
-            $ibcTarget = 150;
+            // Hämta target från settings
+            $settings = $this->loadSettings();
+            $ibcTarget = $settings['antal_per_dag'] ?? 150;
 
             echo json_encode([
                 'success' => true,
@@ -81,5 +89,77 @@ class TvattlinjeController {
                 'error' => 'Kunde inte hämta status: ' . $e->getMessage()
             ]);
         }
+    }
+
+    private function getAdminSettings() {
+        try {
+            $settings = $this->loadSettings();
+            
+            echo json_encode([
+                'success' => true,
+                'data' => $settings
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte hämta admin-inställningar: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    private function saveAdminSettings() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        
+        try {
+            if (!isset($data['antal_per_dag'])) {
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'antal_per_dag är obligatoriskt'
+                ]);
+                return;
+            }
+
+            // Kontrollera om settings existerar
+            $stmt = $this->pdo->query("SELECT COUNT(*) FROM tvattlinje_settings");
+            $exists = $stmt->fetchColumn() > 0;
+
+            if ($exists) {
+                // Uppdatera befintlig rad
+                $stmt = $this->pdo->prepare("UPDATE tvattlinje_settings SET antal_per_dag = ?, updated_at = NOW() WHERE id = 1");
+                $stmt->execute([$data['antal_per_dag']]);
+            } else {
+                // Skapa ny rad
+                $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_settings (antal_per_dag) VALUES (?)");
+                $stmt->execute([$data['antal_per_dag']]);
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Inställningar sparade',
+                'data' => [
+                    'antal_per_dag' => $data['antal_per_dag']
+                ]
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte spara inställningar: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    private function loadSettings() {
+        $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings LIMIT 1");
+        $settings = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$settings) {
+            // Returnera standardvärden om inga settings finns
+            return [
+                'id' => 1,
+                'antal_per_dag' => 150
+            ];
+        }
+        
+        return $settings;
     }
 }

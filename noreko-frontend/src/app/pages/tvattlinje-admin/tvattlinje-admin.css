@@ -1,0 +1,134 @@
+/* Tvättlinje Admin Page Styles - Dark Theme */
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #2d3748;
+  color: #e2e8f0;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+  background-color: #1a202c !important;
+}
+
+.card-body {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.form-control {
+  background-color: #4a5568;
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.form-control:focus {
+  background-color: #4a5568;
+  border-color: #86b7fe;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.form-control::placeholder {
+  color: #a0aec0;
+}
+
+.form-label {
+  color: #e2e8f0;
+}
+
+.btn {
+  transition: all 0.15s ease-in-out;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+.btn-success {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+.btn-success:hover {
+  background-color: #157347;
+  border-color: #146c43;
+}
+
+.btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+  background-color: #0b5ed7;
+  border-color: #0a58ca;
+}
+
+/* Access denied styling */
+.border-danger {
+  border-color: #dc3545 !important;
+}
+
+.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+.bg-primary {
+  background-color: #0d6efd !important;
+}
+
+/* Text colors for dark theme */
+.text-muted {
+  color: #a0aec0 !important;
+}
+
+.form-text {
+  color: #a0aec0;
+  font-size: 0.875rem;
+}
+
+/* Toast notification styling */
+.toast {
+  background-color: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+.toast-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-body {
+  background-color: #2d3748 !important;
+  color: #e2e8f0 !important;
+}
+
+.btn-close-white {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .btn {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Custom spacing */
+.mb-4 {
+  margin-bottom: 1.5rem !important;
+}
+
+.mt-4 {
+  margin-top: 1.5rem !important;
+}
+

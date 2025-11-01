@@ -1,0 +1,106 @@
+<div class="container-fluid mt-4" *ngIf="loggedIn && isAdmin">
+  <!-- Success Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <div class="toast show" *ngIf="showSuccessMessage" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header bg-success text-white">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong class="me-auto">Framgång</strong>
+        <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage = false"></button>
+      </div>
+      <div class="toast-body bg-dark text-white">
+        {{ successMessage }}
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+          <i class="fas fa-cogs me-2"></i>
+          Tvättlinje Admin
+        </h1>
+        <div class="text-muted">
+          <small>Inloggad som: <strong>{{ user?.username }}</strong></small>
+        </div>
+      </div>
+
+      <!-- Settings Card -->
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-sliders-h me-2"></i>
+            Inställningar
+          </h5>
+        </div>
+        <div class="card-body">
+          <form (ngSubmit)="saveSettings()">
+            <div class="row">
+              <div class="col-md-8">
+                <div class="mb-3">
+                  <label for="antalPerDag" class="form-label">Antal per dag</label>
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    id="antalPerDag" 
+                    [(ngModel)]="settings.antal_per_dag"
+                    name="antal_per_dag"
+                    min="1"
+                    step="1"
+                    placeholder="Ange mål per dag"
+                    required>
+                  <div class="form-text">
+                    Detta är det dagliga målet för antal producerade enheter på tvättlinjen.
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="mb-3">
+                  <label class="form-label">&nbsp;</label>
+                  <button 
+                    class="btn btn-success w-100" 
+                    type="submit"
+                    [disabled]="loading || !settings.antal_per_dag">
+                    <i class="fas fa-save me-2" *ngIf="!loading"></i>
+                    <i class="fas fa-spinner fa-spin me-2" *ngIf="loading"></i>
+                    {{ loading ? 'Sparar...' : 'Spara' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Access Denied Message -->
+<div class="container-fluid mt-4" *ngIf="!loggedIn || !isAdmin">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white text-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-lock me-2"></i>
+            Åtkomst nekad
+          </h5>
+        </div>
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+          </div>
+          <p class="card-text">
+            Du har inte behörighet att komma åt denna sida. 
+            Endast administratörer kan komma åt tvättlinje admin-panelen.
+          </p>
+          <a href="/" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>
+            Gå tillbaka till startsidan
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
