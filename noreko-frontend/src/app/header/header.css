@@ -9,13 +9,15 @@
   max-width: 100%;
 }
 
-.noreko-logo {
-  position: absolute;
-  top: 0.75rem;
-  left: 1.5rem;
+.noreko-logo-desktop {
+  display: block;
   height: 90px;
   width: auto;
-  z-index: 101;
+  margin: 0.75rem auto;
+}
+
+.noreko-logo-mobile {
+  display: none;
 }
 
 .header-container {
@@ -26,7 +28,6 @@
   max-width: 100%;
   margin: 0;
   padding: 1rem 2rem;
-  min-height: 90px;
   gap: 1rem;
   width: 100%;
 }
@@ -35,6 +36,7 @@
   display: flex;
   justify-content: center;
   width: 100%;
+  position: relative;
 }
 
 .header-actions {
@@ -86,9 +88,19 @@
   .logo-text {
     font-size: 2.1rem;
   }
-  .noreko-logo {
+  .noreko-logo-desktop {
+    display: none;
+  }
+  .noreko-logo-mobile {
+    display: block;
     height: 45px;
-    top: 0.5rem;
-    left: 1rem;
+    width: auto;
+    margin: 0 auto 0.5rem auto;
+  }
+  .logo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
   }
 }

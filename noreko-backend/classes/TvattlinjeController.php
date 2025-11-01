@@ -11,13 +11,46 @@ class TvattlinjeController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $action = $_GET['run'] ?? '';
         
-        if ($method === 'GET' && $action === 'status') {
-            $this->getRunningStatus();
+        if ($method === 'GET') {
+            if ($action === 'status') {
+                $this->getRunningStatus();
+            } else {
+                $this->getLiveStats();
+            }
             return;
         }
 
         // Om ingen matchande metod finns
         echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
+    }
+
+    private function getLiveStats() {
+        try {
+            // Hämta antal IBCer producerade idag
+            $stmt = $this->pdo->prepare('
+                SELECT COUNT(*) 
+                FROM tvattlinje_ibc 
+                WHERE DATE(datum) = CURDATE()
+            ');
+            $stmt->execute();
+            $ibcToday = (int)$stmt->fetchColumn();
+            
+            // Placeholder-värden för nu
+            $ibcTarget = 150;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'ibcToday' => $ibcToday,
+                    'ibcTarget' => $ibcTarget
+                ]
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
+            ]);
+        }
     }
 
     private function getRunningStatus() {

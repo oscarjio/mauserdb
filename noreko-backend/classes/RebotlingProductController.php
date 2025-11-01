@@ -35,7 +35,7 @@ class RebotlingProductController {
 
     private function getProducts() {
         try {
-            $stmt = $this->pdo->prepare("SELECT * FROM products ORDER BY id");
+            $stmt = $this->pdo->prepare("SELECT * FROM rebotling_products ORDER BY id");
             $stmt->execute();
             $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -63,7 +63,7 @@ class RebotlingProductController {
         }
 
         try {
-            $stmt = $this->pdo->prepare("INSERT INTO products (name, cycle_time_minutes) VALUES (?, ?)");
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_products (name, cycle_time_minutes) VALUES (?, ?)");
             $stmt->execute([$data['name'], $data['cycle_time_minutes']]);
             
             $productId = $this->pdo->lastInsertId();
@@ -97,7 +97,7 @@ class RebotlingProductController {
         }
 
         try {
-            $stmt = $this->pdo->prepare("UPDATE products SET name = ?, cycle_time_minutes = ? WHERE id = ?");
+            $stmt = $this->pdo->prepare("UPDATE rebotling_products SET name = ?, cycle_time_minutes = ? WHERE id = ?");
             $stmt->execute([$data['name'], $data['cycle_time_minutes'], $data['id']]);
             
             if ($stmt->rowCount() > 0) {
@@ -137,7 +137,7 @@ class RebotlingProductController {
 
         try {
             // Hard delete - ta bort raden från databasen
-            $stmt = $this->pdo->prepare("DELETE FROM products WHERE id = ?");
+            $stmt = $this->pdo->prepare("DELETE FROM rebotling_products WHERE id = ?");
             $stmt->execute([$data['id']]);
             
             if ($stmt->rowCount() > 0) {

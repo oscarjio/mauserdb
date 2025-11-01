@@ -139,7 +139,7 @@ class SkiftrapportController {
                 p.name as product_name
                 FROM rebotling_skiftrapport s
                 LEFT JOIN users u ON s.user_id = u.id
-                LEFT JOIN products p ON s.product_id = p.id
+                LEFT JOIN rebotling_products p ON s.product_id = p.id
                 ORDER BY s.datum DESC, s.id DESC");
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             

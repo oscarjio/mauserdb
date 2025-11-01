@@ -10,9 +10,24 @@ export interface LineStatusResponse {
   };
 }
 
+export interface TvattlinjeLiveStatsResponse {
+  success: boolean;
+  data: {
+    ibcToday: number;
+    ibcTarget: number;
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class TvattlinjeService {
   constructor(private http: HttpClient) {}
+
+  getLiveStats(): Observable<TvattlinjeLiveStatsResponse> {
+    return this.http.get<TvattlinjeLiveStatsResponse>(
+      '/noreko-backend/api.php?action=tvattlinje',
+      { withCredentials: true }
+    );
+  }
 
   getRunningStatus(): Observable<LineStatusResponse> {
     return this.http.get<LineStatusResponse>(
