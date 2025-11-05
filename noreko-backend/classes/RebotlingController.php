@@ -34,10 +34,16 @@ class RebotlingController {
     private function getLiveStats() {
         // TODO: Hämta verklig data från PLC/DB
         // Placeholdervärden för nu
+        /*
         $nowHour = (int)date('G');
         $working = $nowHour >= 6 && $nowHour <= 18;
         $rebotlingThisHour = $working ? rand(2, 16) : rand(12, 15);
         $rebotlingToday = rand(40, 85);
+        $hourlyTarget = 15;
+        $rebotlingTarget = 120;
+        */
+        $rebotlingThisHour = 10;
+        $rebotlingToday = 50;
         $hourlyTarget = 15;
         $rebotlingTarget = 120;
 
