@@ -15,6 +15,7 @@ export interface TvattlinjeLiveStatsResponse {
   data: {
     ibcToday: number;
     ibcTarget: number;
+    utetemperatur: number | null;
   };
 }
 

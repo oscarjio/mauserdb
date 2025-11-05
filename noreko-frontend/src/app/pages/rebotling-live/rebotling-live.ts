@@ -1,11 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../../services/rebotling.service';
 
 @Component({
   standalone: true,
   selector: 'app-rebotling-live',
-  imports: [DatePipe],
+  imports: [DatePipe, DecimalPipe],
   templateUrl: './rebotling-live.html',
   styleUrl: './rebotling-live.css'
 })
@@ -18,6 +18,8 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   rebotlingTarget: number = 0;
   rebotlingThisHour: number = 0;
   hourlyTarget: number = 0;
+  ibcToday: number = 0;
+  productionPercentage: number = 0;
   
   // Speedometer properties
   needleRotation: number = -150; // Start position
@@ -51,6 +53,15 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
         this.rebotlingTarget = res.data.rebotlingTarget;
         this.rebotlingThisHour = res.data.rebotlingThisHour;
         this.hourlyTarget = res.data.hourlyTarget;
+        this.ibcToday = res.data.ibcToday || 0;
+        
+        // Beräkna produktionsprocent baserat på mål per timme
+        if (this.hourlyTarget > 0) {
+          this.productionPercentage = Math.round((this.rebotlingThisHour / this.hourlyTarget) * 100);
+        } else {
+          this.productionPercentage = 0;
+        }
+        
         this.updateSpeedometer();
       }
     });
@@ -66,21 +77,24 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   }
 
   private updateSpeedometer() {
-    // Calculate percentage of hourly target achieved
-    const percentage = Math.min((this.rebotlingThisHour / this.hourlyTarget) * 100, 100);
+    // Använd samma produktionsprocent som visas i "Produktion"
+    // Max 200% för speedometern
+    const percentage = Math.min(this.productionPercentage, 200);
     
-    // Convert percentage to needle rotation (-25 to 155 degrees)
-    this.needleRotation = -100 + (percentage / 100) * 180;
+    // Convert percentage to needle rotation (-180 to 0 degrees)
+    // -180 degrees är vänster (0%), 0 degrees är höger (200%)
+    // Mappar 0-200% till -180 till 0 grader
+    this.needleRotation = -100 + (percentage / 200) * 180;
     
     // Update status based on performance
-    if (percentage >= 80) {
-      this.statusText = 'Utmärkt produktion';
+    if (percentage >= 120) {
+      this.statusText = 'Mycket bra produktion';
       this.statusBadgeClass = 'bg-success';
-    } else if (percentage >= 60) {
+    } else if (percentage >= 100) {
       this.statusText = 'Bra produktion';
       this.statusBadgeClass = 'bg-success';
-    } else if (percentage >= 40) {
-      this.statusText = 'Acceptabel produktion';
+    } else if (percentage >= 60) {
+      this.statusText = 'Produktion under målet';
       this.statusBadgeClass = 'bg-warning';
     } else {
       this.statusText = 'Låg produktion';

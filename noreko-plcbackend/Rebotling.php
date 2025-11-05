@@ -51,15 +51,30 @@ class Rebotling {
             }
         }
         
+        // Hämta senaste skiftraknare från rebotling_onoff (total över alla dagar)
+        $stmt = $this->db->prepare('
+            SELECT skiftraknare
+            FROM rebotling_onoff 
+            WHERE skiftraknare IS NOT NULL
+            ORDER BY datum DESC 
+            LIMIT 1
+        ');
+        $stmt->execute();
+        $skiftraknareResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        $skiftraknare = $skiftraknareResult && isset($skiftraknareResult['skiftraknare']) 
+            ? (int)$skiftraknareResult['skiftraknare'] 
+            : 1; // Starta på 1 om inga rader finns
+        
         // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_ibc (s_count, ibc_count)
-            VALUES (:s_count, :ibc_count)
+            INSERT INTO rebotling_ibc (s_count, ibc_count, skiftraknare)
+            VALUES (:s_count, :ibc_count, :skiftraknare)
         ');
         
         $stmt->execute([
             's_count' => $_GET['count'],
-            'ibc_count' => $ibc_count
+            'ibc_count' => $ibc_count,
+            'skiftraknare' => $skiftraknare
         ]);
     }
 
@@ -99,12 +114,17 @@ class Rebotling {
 
         $high = (int)$_GET['high'];
         $low = (int)$_GET['low'];
-        $is_running = $_GET["running"] == "true" ? 1 : 0;
+        // Hantera running som kan vara "true", "1", eller 1
+        $running_param = $_GET["running"] ?? "0";
+        $is_running = ($running_param == "true" || $running_param == "1" || $running_param == 1) ? 1 : 0;
         $runtime_today = 0;
+        // Hantera nyttskift som kan vara "1", 1, eller "true"
+        $nyttskift = isset($_GET['nyttskift']) && ($_GET['nyttskift'] == "1" || $_GET['nyttskift'] == 1 || $_GET['nyttskift'] == "true");
+        $skiftraknare = null;
 
         // Hämta senaste entry från idag för att jämföra state changes
         $stmt = $this->db->prepare('
-            SELECT s_count_l, s_count_h, runtime_today, running, datum, CURRENT_TIMESTAMP as tid
+            SELECT s_count_l, s_count_h, runtime_today, running, datum, skiftraknare, CURRENT_TIMESTAMP as tid
             FROM rebotling_onoff 
             WHERE DATE(datum) = CURDATE() 
             ORDER BY datum DESC 
@@ -158,10 +178,53 @@ class Rebotling {
             $runtime_today = 0;
         }
 
+        // Hantera skiftraknare om nyttskift=1 (oavsett running-status)
+        if ($nyttskift  && $is_running == 1) {
+            // Hämta senaste skiftraknare från alla rader (total räknare)
+            $stmt = $this->db->prepare('
+                SELECT skiftraknare
+                FROM rebotling_onoff 
+                WHERE skiftraknare IS NOT NULL
+                ORDER BY datum DESC 
+                LIMIT 1
+            ');
+            $stmt->execute();
+            $lastSkiftraknare = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($lastSkiftraknare && isset($lastSkiftraknare['skiftraknare'])) {
+                // Räkna upp från senaste skiftraknare (total över alla dagar)
+                $skiftraknare = (int)$lastSkiftraknare['skiftraknare'] + 1;
+            } else {
+                // Första skiftet någonsin, starta på 1
+                $skiftraknare = 1;
+            }
+        } elseif ($lastEntry && isset($lastEntry['skiftraknare'])) {
+            // Behåll samma skiftraknare som senaste entry om det inte är nytt skift
+            $skiftraknare = $lastEntry['skiftraknare'];
+        } else {
+            // Om lastEntry inte har skiftraknare, hämta senaste från alla rader
+            $stmt = $this->db->prepare('
+                SELECT skiftraknare
+                FROM rebotling_onoff 
+                WHERE skiftraknare IS NOT NULL
+                ORDER BY datum DESC 
+                LIMIT 1
+            ');
+            $stmt->execute();
+            $lastSkiftraknareAll = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($lastSkiftraknareAll && isset($lastSkiftraknareAll['skiftraknare'])) {
+                $skiftraknare = (int)$lastSkiftraknareAll['skiftraknare'];
+            } else {
+                // Om inga rader finns med skiftraknare, starta på 1
+                $skiftraknare = 1;
+            }
+        }
+
         // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_onoff (s_count_h, s_count_l, runtime_today, running, program, op1, op2, op3, produkt, antal, runtime_plc)
-            VALUES (:s_count_h, :s_count_l, :runtime_today, :running, :program, :op1, :op2, :op3, :produkt, :antal, :runtime_plc)
+            INSERT INTO rebotling_onoff (s_count_h, s_count_l, runtime_today, running, program, op1, op2, op3, produkt, antal, runtime_plc, skiftraknare)
+            VALUES (:s_count_h, :s_count_l, :runtime_today, :running, :program, :op1, :op2, :op3, :produkt, :antal, :runtime_plc, :skiftraknare)
         ');
         
         $stmt->execute([
@@ -175,7 +238,8 @@ class Rebotling {
             'op3' => $PLC_data16[3],
             'produkt' => $PLC_data16[4],
             'antal' => $PLC_data16[5],
-            'runtime_plc' => $PLC_data16[6]
+            'runtime_plc' => $PLC_data16[6],
+            'skiftraknare' => $skiftraknare
         ]);
     }
 

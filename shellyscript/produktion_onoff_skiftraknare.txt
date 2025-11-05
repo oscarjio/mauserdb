@@ -1,0 +1,101 @@
+// Konfiguration
+let CONFIG = {
+  inputPin: 1,           // Pulsräknare på ingång 1
+  shiftInputPin: 2,      // Ingång 3 – bara status, ingen trigger
+  debounceTime: 50,      // Debounce för ingång 1
+  kvsKeyHigh: "pulseCountHigh",
+  kvsKeyLow: "pulseCountLow",
+};
+
+// Variabler
+let lastState = false;
+let lastChangeTime = 0;
+let pulseCountHigh = 0;
+let pulseCountLow = 0;
+
+// Ladda räknare från KVS
+function loadCounters() {
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKeyHigh }, function (res) {
+    if (res && res.value) {
+      pulseCountHigh = parseInt(res.value, 10) || 0;
+      print("Laddade pulseCountHigh: ", pulseCountHigh);
+    }
+  });
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKeyLow }, function (res) {
+    if (res && res.value) {
+      pulseCountLow = parseInt(res.value, 10) || 0;
+      print("Laddade pulseCountLow: ", pulseCountLow);
+    }
+  });
+}
+
+// Spara räknare till KVS
+function saveCounter(key, value) {
+  Shelly.call("KVS.Set", { key: key, value: value.toString() }, function (res, error_code, error_message) {
+    if (error_code === 0) {
+      print("Sparat ", key, ": ", value);
+    }
+  });
+}
+
+// Hämta aktuell status för ingång 3 (0 eller 1)
+function getShiftStatus() {
+  let status = Shelly.getComponentStatus("input:" + CONFIG.shiftInputPin);
+  return status && status.state !== undefined ? (status.state ? 1 : 0) : 0;
+}
+
+// Skicka webhook med puls + status för ingång 3
+function sendWebhook(state, countHigh, countLow) {
+  let nyttskift = getShiftStatus(); // Läs av ingång 3 just nu
+
+  let url = "http://192.168.0.100/api/v1.php?type=running&line=rebotling"
+          + "&running=" + (state ? 1 : 0)
+          + "&high=" + countHigh
+          + "&low=" + countLow
+          + "&nyttskift=" + nyttskift;
+
+  Shelly.call("HTTP.GET", { url: url }, function (result, error_code, error_message) {
+    if (error_code === 0) {
+      print("Webhook skickad (nyttskift=", nyttskift, "): ", url);
+    } else {
+      print("Webhook-fel: ", error_code, " - ", error_message);
+    }
+  });
+}
+
+// Hantera puls på ingång 1
+function handlePulseInput(state) {
+  let currentTime = Date.now();
+
+  if (state !== lastState && (currentTime - lastChangeTime > CONFIG.debounceTime)) {
+    if (state) {
+      pulseCountHigh++;
+      saveCounter(CONFIG.kvsKeyHigh, pulseCountHigh);
+      print("Hög puls! Totalt höga: ", pulseCountHigh);
+    } else {
+      pulseCountLow++;
+      saveCounter(CONFIG.kvsKeyLow, pulseCountLow);
+      print("Låg puls! Totalt låga: ", pulseCountLow);
+    }
+
+    // Skicka webhook med aktuell status för ingång 3
+    sendWebhook(state, pulseCountHigh, pulseCountLow);
+  }
+
+  lastState = state;
+  lastChangeTime = currentTime;
+}
+
+// Händelsehanterare – ENDAST för ingång 1
+Shelly.addEventHandler(function (event) {
+  if (event.component === "input:" + CONFIG.inputPin) {
+    handlePulseInput(event.info.state);
+  }
+  // Inga händelser för ingång 3 – vi läser bara av den vid puls
+});
+
+// Starta
+loadCounters();
+print("Pulsräknare + status för ingång 3 startad");
+print(" - Puls: ingång ", CONFIG.inputPin);
+print(" - Status (nyttskift): ingång ", CONFIG.shiftInputPin);

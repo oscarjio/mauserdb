@@ -9,6 +9,7 @@ export interface RebotlingLiveStatsResponse {
     rebotlingTarget: number;
     rebotlingThisHour: number;
     hourlyTarget: number;
+    ibcToday: number;
   };
 }
 

@@ -46,11 +46,31 @@ class TvattlinjeController {
             $settings = $this->loadSettings();
             $ibcTarget = $settings['antal_per_dag'] ?? 150;
 
+            // Hämta senaste utetemperatur
+            $utetemperatur = null;
+            try {
+                $stmt = $this->pdo->prepare('
+                    SELECT utetemperatur, datum
+                    FROM vader_data 
+                    ORDER BY datum DESC 
+                    LIMIT 1
+                ');
+                $stmt->execute();
+                $weatherData = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($weatherData) {
+                    $utetemperatur = (float)$weatherData['utetemperatur'];
+                }
+            } catch (Exception $e) {
+                // Ignorera fel vid hämtning av väderdata
+                error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
+            }
+
             echo json_encode([
                 'success' => true,
                 'data' => [
                     'ibcToday' => $ibcToday,
-                    'ibcTarget' => $ibcTarget
+                    'ibcTarget' => $ibcTarget,
+                    'utetemperatur' => $utetemperatur
                 ]
             ]);
         } catch (Exception $e) {

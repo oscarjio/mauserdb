@@ -1,0 +1,91 @@
+// Konfiguration
+let CONFIG = {
+  inputPin: 1, // Ingångspin (0 eller 1, beroende på din Shelly-enhet)
+  webhookUrl: "http://192.168.1.22/test.php", // Ersätt med din webhook-URL
+  debounceTime: 50, // Debounce-tid i ms för att undvika falska pulser
+  kvsKeyHigh: "pulseCountHigh", // Nyckel för hög räknare i KVS
+  kvsKeyLow: "pulseCountLow",   // Nyckel för låg räknare i KVS
+};
+
+// Variabler för att hantera pulser
+let lastState = false;
+let lastChangeTime = 0;
+let pulseCountHigh = 0; // Räknare för höga pulser
+let pulseCountLow = 0;  // Räknare för låga pulser
+
+// Funktion för att ladda räknare från KVS
+function loadCounters() {
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKeyHigh }, function (res, error_code, error_message) {
+    if (error_code === 0 && res && res.value) {
+      pulseCountHigh = parseInt(res.value, 10) || 0; // Ladda hög räknare
+      print("Laddade pulseCountHigh från KVS: ", pulseCountHigh);
+    }
+  });
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKeyLow }, function (res, error_code, error_message) {
+    if (error_code === 0 && res && res.value) {
+      pulseCountLow = parseInt(res.value, 10) || 0; // Ladda låg räknare
+      print("Laddade pulseCountLow från KVS: ", pulseCountLow);
+    }
+  });
+}
+
+// Funktion för att spara räknare till KVS
+function saveCounter(key, value) {
+  Shelly.call("KVS.Set", { key: key, value: value.toString() }, function (res, error_code, error_message) {
+    if (error_code === 0) {
+      print("Sparade ", key, " till KVS: ", value);
+    } else {
+      print("Fel vid sparande till KVS för ", key, ": ", error_message);
+    }
+  });
+}
+
+// Funktion för att skicka webhook
+function sendWebhook(input, state, countHigh, countLow) {
+ 
+  Shelly.call(
+  "HTTP.GET",
+  {url: "http://192.168.0.100/api/v1.php?type=running&line=rebotling&running=" + state  + "&high=" + countHigh + "&low=" + countLow},
+  function(result, error_code, error_message) {
+    if (error_code != 0) {
+      print("Webhook anropad framgångsrikt: ", );
+    } else {
+      print("Fel vid webhook-anrop: ", result.code, result.body);
+    }
+  });
+}
+
+// Funktion för att hantera ingångshändelser
+function handleInput(state) {
+  let currentTime = Date.now(); // Använd Date.now() för tid
+  
+  // Kontrollera om tillståndet har ändrats och tillräcklig tid har gått (debounce)
+  if (state !== lastState && (currentTime - lastChangeTime > CONFIG.debounceTime)) {
+    if (state) {
+      pulseCountHigh++; // Öka räknaren för hög signal
+      saveCounter(CONFIG.kvsKeyHigh, pulseCountHigh); // Spara till KVS
+      print("Hög signal detekterad! Totalt höga: ", CONFIG.pulseCountHigh);
+    } else {
+      pulseCountLow++; // Öka räknaren för låg signal
+      saveCounter(CONFIG.kvsKeyLow, pulseCountLow); // Spara till KVS
+      print("Låg signal detekterad! Totalt låga: ", CONFIG.pulseCountLow);
+    }
+    
+    // Skicka webhook med ingång, tillstånd och båda räknarna
+    sendWebhook(CONFIG.inputPin, state, pulseCountHigh, pulseCountLow);
+  }
+  
+  lastState = state;
+  lastChangeTime = currentTime;
+}
+
+// Sätt upp händelsehanterare för ingången
+Shelly.addEventHandler(function (event) {
+  if (event.component === "input:" + CONFIG.inputPin) {
+    handleInput(event.info.state);
+  }
+});
+
+// Initialisera scriptet
+loadCounters();
+print("Pulsräknare startad på ingång ", CONFIG.inputPin);

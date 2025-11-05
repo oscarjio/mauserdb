@@ -1,0 +1,75 @@
+// Konfiguration
+let CONFIG = {
+  inputPin: 0, // Ingångspin (0 eller 1, beroende på din Shelly-enhet)
+  webhookUrl: "http://mauserdb.com/plc/v1.php", // Ersätt med din webhook-URL
+  debounceTime: 50, // Debounce-tid i ms för att undvika falska pulser
+  kvsKey: "pulseCount", // Nyckel för räknaren i KVS
+};
+
+// Variabler för att hantera pulser
+let lastState = false;
+let lastChangeTime = 0;
+let pulseCount = 0; // Räknare för pulser
+
+// Funktion för att ladda räknaren från KVS
+function loadCounter() {
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKey }, function (res, error_code, error_message) {
+    if (error_code === 0 && res && res.value) {
+      pulseCount = parseInt(res.value, 10) || 0; // Ladda räknaren
+      print("Laddade pulseCount från KVS: ", pulseCount);
+    }
+  });
+}
+
+// Funktion för att spara räknaren till KVS
+function saveCounter() {
+  Shelly.call("KVS.Set", { key: CONFIG.kvsKey, value: pulseCount.toString() }, function (res, error_code, error_message) {
+    if (error_code === 0) {
+      print("Sparade pulseCount till KVS: ", pulseCount);
+    } else {
+      print("Fel vid sparande till KVS: ", error_message);
+    }
+  });
+}
+// Funktion för att skicka webhook
+function sendWebhook(input, count, webhookUrl ) {
+
+  Shelly.call(
+  "HTTP.GET",
+  {url: webhookUrl + "?type=cycle&line=rebotling&count=" + count},
+  function(result, error_code, error_message) {
+    if (error_code != 0) {
+      print("Webhook anropad framgångsrikt: ", );
+    } else {
+      print("Fel vid webhook-anrop: ", result.code, result.body);
+    }
+  });
+}
+
+// Funktion för att hantera ingångshändelser
+function handleInput(state) {
+  let currentTime = Date.now(); 
+  
+  // Kontrollera om det är en stigande flank och tillräcklig tid har gått (debounce)
+  if (state && !lastState && (currentTime - lastChangeTime > CONFIG.debounceTime)) {
+    pulseCount++; // Öka pulsräknaren
+    print("Puls detekterad! Totalt: ", pulseCount);
+    saveCounter(); // Spara till KVS
+    // Skicka webhook med ingång och antal pulser
+    sendWebhook(CONFIG.inputPin, pulseCount, CONFIG.webhookUrl);
+  }
+  
+  lastState = state;
+  lastChangeTime = currentTime;
+}
+
+// Sätt upp händelsehanterare för ingången
+Shelly.addEventHandler(function (event) {
+  if (event.component === "input:" + CONFIG.inputPin) {
+    handleInput(event.info.state);
+  }
+});
+
+// Initialisera scriptet
+loadCounter(); // Ladda räknaren från KVS vid uppstart
+print("Pulsräknare startad på ingång ", CONFIG.inputPin);
