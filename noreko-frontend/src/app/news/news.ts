@@ -14,11 +14,6 @@ export class News implements OnInit, OnDestroy {
   // Rebotling data
   rebotlingStatus: boolean = false;
   rebotlingToday: number = 0;
-  rebotlingTarget: number = 0;
-  rebotlingThisHour: number = 0;
-  hourlyTarget: number = 0;
-  rebotlingNeedleRotation: number = -100;
-  rebotlingBadgeClass: string = 'bg-success';
 
   // Tvättlinje data
   tvattlinjeStatus: boolean = false;
@@ -66,11 +61,8 @@ export class News implements OnInit, OnDestroy {
     // Fetch live stats
     this.rebotlingService.getLiveStats().subscribe((res: RebotlingLiveStatsResponse) => {
       if (res && res.success && res.data) {
-        this.rebotlingToday = res.data.rebotlingToday;
-        this.rebotlingTarget = res.data.rebotlingTarget;
-        this.rebotlingThisHour = res.data.rebotlingThisHour;
-        this.hourlyTarget = res.data.hourlyTarget;
-        this.updateRebotlingSpeedometer();
+        // Använd ibcToday (antal rader från rebotling_ibc idag) istället för rebotlingToday
+        this.rebotlingToday = res.data.ibcToday || 0;
       }
     });
 
@@ -99,18 +91,4 @@ export class News implements OnInit, OnDestroy {
     });
   }
 
-  private updateRebotlingSpeedometer() {
-    const percentage = Math.min((this.rebotlingThisHour / this.hourlyTarget) * 100, 100);
-    this.rebotlingNeedleRotation = -100 + (percentage / 100) * 180;
-    
-    if (percentage >= 80) {
-      this.rebotlingBadgeClass = 'bg-success';
-    } else if (percentage >= 60) {
-      this.rebotlingBadgeClass = 'bg-success';
-    } else if (percentage >= 40) {
-      this.rebotlingBadgeClass = 'bg-warning';
-    } else {
-      this.rebotlingBadgeClass = 'bg-danger';
-    }
-  }
 }

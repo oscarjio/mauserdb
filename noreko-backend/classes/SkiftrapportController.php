@@ -104,12 +104,14 @@ class SkiftrapportController {
                     `inlagd` tinyint(1) NOT NULL DEFAULT 0,
                     `product_id` int DEFAULT NULL,
                     `user_id` int DEFAULT NULL,
+                    `skiftraknare` int DEFAULT NULL,
                     `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
                     `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     PRIMARY KEY (`id`),
                     KEY `idx_datum` (`datum`),
                     KEY `idx_product_id` (`product_id`),
-                    KEY `idx_user_id` (`user_id`)
+                    KEY `idx_user_id` (`user_id`),
+                    KEY `idx_skiftraknare` (`skiftraknare`)
                 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
                 
                 $this->pdo->exec($sql);
@@ -126,6 +128,12 @@ class SkiftrapportController {
                     $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `user_id` int DEFAULT NULL AFTER `product_id`");
                     $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD INDEX `idx_user_id` (`user_id`)");
                 }
+                
+                $stmt = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport LIKE 'skiftraknare'");
+                if ($stmt->rowCount() === 0) {
+                    $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `skiftraknare` int DEFAULT NULL AFTER `user_id`");
+                    $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD INDEX `idx_skiftraknare` (`skiftraknare`)");
+                }
             }
         } catch (PDOException $e) {
             // Ignorera om tabellen redan finns
@@ -134,7 +142,7 @@ class SkiftrapportController {
 
     private function getSkiftrapporter() {
         try {
-            $stmt = $this->pdo->query("SELECT s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt, s.inlagd, s.product_id, s.user_id, s.created_at, s.updated_at,
+            $stmt = $this->pdo->query("SELECT s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt, s.inlagd, s.product_id, s.user_id, s.skiftraknare, s.created_at, s.updated_at,
                 u.username as user_name,
                 p.name as product_name
                 FROM rebotling_skiftrapport s

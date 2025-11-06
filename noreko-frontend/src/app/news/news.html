@@ -13,40 +13,11 @@
               <span class="stat-label">Idag</span>
               <span class="stat-value">{{ rebotlingToday }}</span>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Mål</span>
-              <span class="stat-value">{{ rebotlingTarget }}</span>
-            </div>
           </div>
-          <div class="speedometer-container">
-            <svg viewBox="0 0 300 180" width="100%" height="auto">
-              <defs>
-                <linearGradient id="speedoRed" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#e74c3c"/>
-                  <stop offset="100%" stop-color="#e74c3c"/>
-                </linearGradient>
-                <linearGradient id="speedoYellow" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#f1c40f"/>
-                  <stop offset="100%" stop-color="#f1c40f"/>
-                </linearGradient>
-                <linearGradient id="speedoGreen" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#27ae60"/>
-                  <stop offset="100%" stop-color="#27ae60"/>
-                </linearGradient>
-              </defs>
-              <path d="M60,160 A90,90 0 0,1 120,80" stroke="url(#speedoRed)" stroke-width="20" fill="none" stroke-linecap="round"/>
-              <path d="M120,80 A90,90 0 0,1 180,80" stroke="url(#speedoYellow)" stroke-width="20" fill="none" stroke-linecap="round"/>
-              <path d="M180,80 A90,90 0 0,1 240,160" stroke="url(#speedoGreen)" stroke-width="20" fill="none" stroke-linecap="round"/>
-              <g>
-                <rect x="147" y="80" width="6" height="90" rx="3" fill="#fff" filter="url(#needleShadow)" [attr.transform]="'rotate(' + rebotlingNeedleRotation + ' 150 150)'"/>
-                <circle cx="150" cy="150" r="14" fill="#222" stroke="#fff" stroke-width="4"/>
-                <circle cx="150" cy="150" r="7" fill="#fff"/>
-              </g>
-              <filter id="needleShadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feDropShadow dx="0" dy="4" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
-              </filter>
-            </svg>
-            <span class="badge" [class]="rebotlingBadgeClass">Produktion</span>
+          <div class="status-badge-container">
+            <span class="badge" [class]="rebotlingStatus ? 'bg-success' : 'bg-danger'">
+              {{ rebotlingStatus ? 'Igång' : 'Stoppad' }}
+            </span>
           </div>
         </div>
       </div>

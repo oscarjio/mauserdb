@@ -10,6 +10,7 @@ export interface RebotlingLiveStatsResponse {
     rebotlingThisHour: number;
     hourlyTarget: number;
     ibcToday: number;
+    productionPercentage: number;
   };
 }
 

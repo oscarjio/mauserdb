@@ -55,12 +55,8 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
         this.hourlyTarget = res.data.hourlyTarget;
         this.ibcToday = res.data.ibcToday || 0;
         
-        // Beräkna produktionsprocent baserat på mål per timme
-        if (this.hourlyTarget > 0) {
-          this.productionPercentage = Math.round((this.rebotlingThisHour / this.hourlyTarget) * 100);
-        } else {
-          this.productionPercentage = 0;
-        }
+        // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
+        this.productionPercentage = res.data.productionPercentage || 0;
         
         this.updateSpeedometer();
       }
@@ -79,11 +75,12 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   private updateSpeedometer() {
     // Använd samma produktionsprocent som visas i "Produktion"
     // Max 200% för speedometern
-    const percentage = Math.min(this.productionPercentage, 200);
+    const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
     
     // Convert percentage to needle rotation (-180 to 0 degrees)
     // -180 degrees är vänster (0%), 0 degrees är höger (200%)
     // Mappar 0-200% till -180 till 0 grader
+    // Start position är -100 (ungefär 25% på speedometern)
     this.needleRotation = -100 + (percentage / 200) * 180;
     
     // Update status based on performance

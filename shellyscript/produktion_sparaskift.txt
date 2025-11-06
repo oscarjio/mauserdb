@@ -1,0 +1,44 @@
+// Konfiguration
+let CONFIG = {
+  inputPin: 0, // Ingångspin (0 eller 1)
+  webhookUrl: "http://mauserdb.com/plc/v1.php?type=cycle&line=rebotling", // Webhook-URL med fasta parametrar
+  debounceTime: 50 // Debounce-tid i ms
+};
+
+// Variabler för debounce
+let lastState = false;
+let lastChangeTime = 0;
+
+// Funktion för att skicka webhook
+function sendWebhook() {
+  Shelly.call("HTTP.GET", { url: CONFIG.webhookUrl }, function(res, error_code, error_message) {
+    if (error_code === 0) {
+      print("Webhook skickad framgångsrikt");
+    } else {
+      print("Fel vid webhook-anrop: ", error_code, " - ", error_message);
+    }
+  });
+}
+
+// Hantera ingångshändelser
+function handleInput(state) {
+  let now = Date.now();
+
+  // Detektera stigande flank med debounce
+  if (state && !lastState && (now - lastChangeTime > CONFIG.debounceTime)) {
+    print("Puls detekterad på ingång ", CONFIG.inputPin, " – skickar webhook");
+    sendWebhook();
+  }
+
+  lastState = state;
+  lastChangeTime = now;
+}
+
+// Koppla händelsehanterare
+Shelly.addEventHandler(function(event) {
+  if (event.component === "input:" + CONFIG.inputPin) {
+    handleInput(event.info.state);
+  }
+});
+
+print("Webhook-script startat på ingång ", CONFIG.inputPin);

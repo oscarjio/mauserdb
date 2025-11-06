@@ -33,26 +33,6 @@ class RebotlingController {
 
     private function getLiveStats() {
         try {
-            // Hämta antal rader i rebotling_ibc för idag
-            $stmt = $this->pdo->prepare('
-                SELECT COUNT(*) as ibc_count
-                FROM rebotling_ibc 
-                WHERE DATE(datum) = CURDATE()
-            ');
-            $stmt->execute();
-            $ibcResult = $stmt->fetch(PDO::FETCH_ASSOC);
-            $ibcToday = $ibcResult ? (int)$ibcResult['ibc_count'] : 0;
-
-            // Hämta antal rader i rebotling_ibc från senaste timmen
-            $stmt = $this->pdo->prepare('
-                SELECT COUNT(*) as ibc_count_hour
-                FROM rebotling_ibc 
-                WHERE datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
-            ');
-            $stmt->execute();
-            $ibcHourResult = $stmt->fetch(PDO::FETCH_ASSOC);
-            $rebotlingThisHour = $ibcHourResult ? (int)$ibcHourResult['ibc_count_hour'] : 0;
-
             // Hämta senaste skifträknaren
             $stmt = $this->pdo->prepare('
                 SELECT skiftraknare
@@ -64,6 +44,33 @@ class RebotlingController {
             $stmt->execute();
             $skiftResult = $stmt->fetch(PDO::FETCH_ASSOC);
             $currentSkift = $skiftResult && isset($skiftResult['skiftraknare']) ? (int)$skiftResult['skiftraknare'] : null;
+
+            // Hämta antal IBCer för nuvarande skift
+            $ibcToday = 0;
+            if ($currentSkift !== null) {
+                $stmt = $this->pdo->prepare('
+                    SELECT COUNT(*) as ibc_count
+                    FROM rebotling_ibc 
+                    WHERE skiftraknare = ?
+                ');
+                $stmt->execute([$currentSkift]);
+                $ibcResult = $stmt->fetch(PDO::FETCH_ASSOC);
+                $ibcToday = $ibcResult ? (int)$ibcResult['ibc_count'] : 0;
+            }
+
+            // Hämta antal IBCer från senaste timmen för nuvarande skift
+            $rebotlingThisHour = 0;
+            if ($currentSkift !== null) {
+                $stmt = $this->pdo->prepare('
+                    SELECT COUNT(*) as ibc_count_hour
+                    FROM rebotling_ibc 
+                    WHERE skiftraknare = ?
+                    AND datum >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+                ');
+                $stmt->execute([$currentSkift]);
+                $ibcHourResult = $stmt->fetch(PDO::FETCH_ASSOC);
+                $rebotlingThisHour = $ibcHourResult ? (int)$ibcHourResult['ibc_count_hour'] : 0;
+            }
 
             // Hämta produkt från nuvarande skift
             $hourlyTarget = 15; // Default värde
@@ -99,6 +106,68 @@ class RebotlingController {
                 }
             }
 
+            // Beräkna total runtime för nuvarande skift
+            // Runtime räknas som summan av alla perioder när maskinen var running
+            $totalRuntimeMinutes = 0;
+            if ($currentSkift !== null) {
+                // Hämta alla rader för skiftet sorterade efter datum
+                $stmt = $this->pdo->prepare('
+                    SELECT datum, running
+                    FROM rebotling_onoff 
+                    WHERE skiftraknare = ?
+                    ORDER BY datum ASC
+                ');
+                $stmt->execute([$currentSkift]);
+                $skiftEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (count($skiftEntries) > 0) {
+                    $lastRunningStart = null;
+                    $now = new DateTime();
+                    
+                    foreach ($skiftEntries as $entry) {
+                        $entryTime = new DateTime($entry['datum']);
+                        $isRunning = (bool)($entry['running'] ?? false);
+                        
+                        // Om maskinen startar (running=1) och vi inte redan räknar en period
+                        if ($isRunning && $lastRunningStart === null) {
+                            $lastRunningStart = $entryTime;
+                        }
+                        // Om maskinen stoppar (running=0) och vi räknar en period
+                        elseif (!$isRunning && $lastRunningStart !== null) {
+                            $diff = $lastRunningStart->diff($entryTime);
+                            $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                            $totalRuntimeMinutes += $periodMinutes;
+                            $lastRunningStart = null;
+                        }
+                    }
+                    
+                    // Om maskinen fortfarande kör (senaste entry är running=1)
+                    if ($lastRunningStart !== null) {
+                        $lastEntryTime = new DateTime($skiftEntries[count($skiftEntries) - 1]['datum']);
+                        // Räkna från när maskinen startade till senaste entry
+                        $diff = $lastRunningStart->diff($lastEntryTime);
+                        $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $totalRuntimeMinutes += $periodMinutes;
+                        
+                        // Lägg till tiden från senaste entry till nu
+                        $diffSinceLast = $lastEntryTime->diff($now);
+                        $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                        $totalRuntimeMinutes += $minutesSinceLastUpdate;
+                    }
+                }
+            }
+
+            // Beräkna produktionsprocent
+            // Produktion = (antal cykler / total runtime i timmar) / hourlyTarget * 100
+            // eller: (antal cykler * 60) / (total runtime i minuter) / hourlyTarget * 100
+            $productionPercentage = 0;
+            if ($totalRuntimeMinutes > 0 && $ibcToday > 0 && $hourlyTarget > 0) {
+                // Beräkna faktisk produktion per timme: (antal cykler * 60) / runtime i minuter
+                $actualProductionPerHour = ($ibcToday * 60) / $totalRuntimeMinutes;
+                // Jämför med mål per timme för att få procent
+                $productionPercentage = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
+            }
+
             // TODO: Hämta verklig data från PLC/DB
             // Placeholdervärden för nu
             /*
@@ -117,7 +186,8 @@ class RebotlingController {
                     'rebotlingTarget' => $rebotlingTarget,
                     'rebotlingThisHour' => $rebotlingThisHour,
                     'hourlyTarget' => $hourlyTarget,
-                    'ibcToday' => $ibcToday
+                    'ibcToday' => $ibcToday,
+                    'productionPercentage' => $productionPercentage
                 ]
             ]);
         } catch (Exception $e) {

@@ -25,6 +25,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   user: any = null;
   showAddReportForm = false;
   loggedIn = false;
+  private updateInterval: any = null;
 
   constructor(
     private skiftrapportService: SkiftrapportService,
@@ -47,6 +48,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
     this.fetchReports();
     this.fetchProducts();
+    
+    // Uppdatera tabellen var 10:e sekund
+    this.updateInterval = setInterval(() => {
+      this.fetchReports(true); // true = sömlös uppdatering
+    }, 10000);
   }
 
   fetchProducts() {
@@ -63,23 +69,69 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Cleanup om nödvändigt
+    // Rensa interval när komponenten förstörs
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+    }
   }
 
-  fetchReports() {
-    this.loading = true;
+  fetchReports(silent: boolean = false) {
+    // Visa inte loading-spinner vid automatiska uppdateringar
+    if (!silent) {
+      this.loading = true;
+    }
     this.errorMessage = '';
+    
+    // Spara scroll-position och befintliga rader för sömlös uppdatering
+    const tableContainer = document.querySelector('.table-responsive');
+    const scrollTop = tableContainer ? tableContainer.scrollTop : 0;
+    const oldReportIds = new Set(this.reports.map(r => r.id));
+    
     this.skiftrapportService.getSkiftrapporter().subscribe({
       next: (res) => {
-        this.loading = false;
+        if (!silent) {
+          this.loading = false;
+        }
         if (res.success) {
-          this.reports = res.data || [];
+          const newReports = res.data || [];
+          
+          // Om det är en sömlös uppdatering, behåll expanderade rader och val
+          if (silent) {
+            // Behåll expanderade rader
+            const expandedCopy = { ...this.expanded };
+            // Behåll valda rader
+            const selectedIdsCopy = new Set(this.selectedIds);
+            
+            // Uppdatera rapporterna
+            this.reports = newReports;
+            
+            // Återställ expanderade rader
+            this.expanded = expandedCopy;
+            // Återställ valda rader (bara de som fortfarande finns)
+            this.selectedIds = new Set(
+              Array.from(selectedIdsCopy).filter(id => 
+                newReports.some((r: any) => r.id === id)
+              )
+            );
+            
+            // Återställ scroll-position
+            if (tableContainer) {
+              setTimeout(() => {
+                tableContainer.scrollTop = scrollTop;
+              }, 0);
+            }
+          } else {
+            // Normal uppdatering - ersätt allt
+            this.reports = newReports;
+          }
         } else {
           this.errorMessage = res.message || 'Kunde inte hämta skiftrapporter';
         }
       },
       error: (error) => {
-        this.loading = false;
+        if (!silent) {
+          this.loading = false;
+        }
         this.errorMessage = error.error?.message || 'Ett fel uppstod vid hämtning av skiftrapporter';
       }
     });

@@ -143,6 +143,24 @@ class Rebotling {
         $currentRuntime = $stmt->fetch(PDO::FETCH_ASSOC);
         $runtime_today = $currentRuntime['current_runtime'];
 
+        // Kontrollera om det är första gången running idag
+        $is_first_running_today = false;
+        if ($is_running == 1) {
+            // Kontrollera om det finns några rader idag med running=1
+            $stmt = $this->db->prepare('
+                SELECT COUNT(*) as running_count
+                FROM rebotling_onoff 
+                WHERE DATE(datum) = CURDATE() 
+                AND running = 1
+            ');
+            $stmt->execute();
+            $runningCountResult = $stmt->fetch(PDO::FETCH_ASSOC);
+            $running_count_today = (int)($runningCountResult['running_count'] ?? 0);
+            
+            // Om det inte finns några running-rader idag, är detta första gången
+            $is_first_running_today = ($running_count_today == 0);
+        }
+
         // Kontrollera om det är en flankändring
         if ($lastEntry) {
             $prev_high = $lastEntry['s_count_h'];
@@ -178,8 +196,29 @@ class Rebotling {
             $runtime_today = 0;
         }
 
-        // Hantera skiftraknare om nyttskift=1 (oavsett running-status)
-        if ($nyttskift  && $is_running == 1) {
+        // Hantera skiftraknare
+        // Om det är första gången running idag, öka skifträknaren automatiskt
+        if ($is_first_running_today) {
+            // Hämta senaste skiftraknare från alla rader (total räknare)
+            $stmt = $this->db->prepare('
+                SELECT skiftraknare
+                FROM rebotling_onoff 
+                WHERE skiftraknare IS NOT NULL
+                ORDER BY datum DESC 
+                LIMIT 1
+            ');
+            $stmt->execute();
+            $lastSkiftraknare = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($lastSkiftraknare && isset($lastSkiftraknare['skiftraknare'])) {
+                // Räkna upp från senaste skiftraknare (total över alla dagar)
+                $skiftraknare = (int)$lastSkiftraknare['skiftraknare'] + 1;
+            } else {
+                // Första skiftet någonsin, starta på 1
+                $skiftraknare = 1;
+            }
+        } elseif ($nyttskift && $is_running == 1) {
+            // Hantera skiftraknare om nyttskift=1 (oavsett running-status)
             // Hämta senaste skiftraknare från alla rader (total räknare)
             $stmt = $this->db->prepare('
                 SELECT skiftraknare
@@ -272,10 +311,24 @@ class Rebotling {
         D216 drifttid
         */
 
+        // Hämta nuvarande skifträknare från rebotling_onoff
+        $stmt = $this->db->prepare('
+            SELECT skiftraknare
+            FROM rebotling_onoff 
+            WHERE skiftraknare IS NOT NULL
+            ORDER BY datum DESC 
+            LIMIT 1
+        ');
+        $stmt->execute();
+        $skiftraknareResult = $stmt->fetch(PDO::FETCH_ASSOC);
+        $skiftraknare = $skiftraknareResult && isset($skiftraknareResult['skiftraknare']) 
+            ? (int)$skiftraknareResult['skiftraknare'] 
+            : null; // Null om inga rader finns
+
         // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, user_id, product_id, drifttid)
-            VALUES (CURDATE(), :ibc_ok, :bur_ej_ok, :ibc_ej_ok, :totalt, :operator, :produkt, :drifttid)
+            INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, user_id, product_id, drifttid, skiftraknare)
+            VALUES (CURDATE(), :ibc_ok, :bur_ej_ok, :ibc_ej_ok, :totalt, :operator, :produkt, :drifttid, :skiftraknare)
         ');
         
         $stmt->execute([
@@ -285,7 +338,8 @@ class Rebotling {
             'totalt' => $PLC_data16[3],
             'operator' => $PLC_data16[4],
             'produkt' => $PLC_data16[5],
-            'drifttid' => $PLC_data16[6]
+            'drifttid' => $PLC_data16[6],
+            'skiftraknare' => $skiftraknare
         ]);
     }
     
