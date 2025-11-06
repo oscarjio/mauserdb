@@ -218,22 +218,46 @@
   }
 }
 @media (max-width: 991px) {
+  .tvattlinje-live-page {
+    height: auto;
+    min-height: 100vh;
+  }
+  .tvattlinje-live-page .row {
+    height: auto;
+    min-height: 100vh;
+  }
   .tvattlinje-live-page .row > div {
     flex: 0 0 100%;
     max-width: 100%;
+    height: 25vh;
+    min-height: 150px;
   }
   .live-card {
-    font-size: 4vw;
-    min-height: 70px;
+    font-size: 1rem;
+    min-height: 150px;
     padding: 0.5rem 0.3rem;
   }
+  .live-label {
+    font-size: 1rem;
+    opacity: 0.7;
+    margin-bottom: 0.3rem;
+  }
+  .live-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
   .live-clock {
-    font-size: 12vw;
+    font-size: 2.5rem;
   }
   .live-ibc-today {
-    font-size: 12vw;
+    font-size: 2.5rem;
   }
   .speedometer-modern svg {
     max-width: 180px;
+  }
+  .speedometer-status .badge {
+    font-size: 0.9rem !important;
+    padding: 0.3em 0.6em;
   }
 }
