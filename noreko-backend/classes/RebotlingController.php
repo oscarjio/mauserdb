@@ -45,18 +45,14 @@ class RebotlingController {
             $skiftResult = $stmt->fetch(PDO::FETCH_ASSOC);
             $currentSkift = $skiftResult && isset($skiftResult['skiftraknare']) ? (int)$skiftResult['skiftraknare'] : null;
 
-            // Hämta antal IBCer för nuvarande skift
-            $ibcToday = 0;
-            if ($currentSkift !== null) {
-                $stmt = $this->pdo->prepare('
-                    SELECT COUNT(*) as ibc_count
-                    FROM rebotling_ibc 
-                    WHERE skiftraknare = ?
-                ');
-                $stmt->execute([$currentSkift]);
-                $ibcResult = $stmt->fetch(PDO::FETCH_ASSOC);
-                $ibcToday = $ibcResult ? (int)$ibcResult['ibc_count'] : 0;
-            }
+            // Hämta totalt antal IBCer rebotlat idag (alla rader i rebotling_ibc för idag)
+            $stmt = $this->pdo->prepare('
+                SELECT COUNT(*) 
+                FROM rebotling_ibc 
+                WHERE DATE(datum) = CURDATE()
+            ');
+            $stmt->execute();
+            $ibcToday = (int)$stmt->fetchColumn();
 
             // Hämta antal IBCer från senaste timmen för nuvarande skift
             $rebotlingThisHour = 0;
@@ -179,6 +175,25 @@ class RebotlingController {
             $rebotlingToday = 50;
             $rebotlingTarget = 120;
 
+            // Hämta senaste utetemperatur
+            $utetemperatur = null;
+            try {
+                $stmt = $this->pdo->prepare('
+                    SELECT utetemperatur, datum
+                    FROM vader_data 
+                    ORDER BY datum DESC 
+                    LIMIT 1
+                ');
+                $stmt->execute();
+                $weatherData = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($weatherData) {
+                    $utetemperatur = (float)$weatherData['utetemperatur'];
+                }
+            } catch (Exception $e) {
+                // Ignorera fel vid hämtning av väderdata
+                error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
+            }
+
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -187,7 +202,8 @@ class RebotlingController {
                     'rebotlingThisHour' => $rebotlingThisHour,
                     'hourlyTarget' => $hourlyTarget,
                     'ibcToday' => $ibcToday,
-                    'productionPercentage' => $productionPercentage
+                    'productionPercentage' => $productionPercentage,
+                    'utetemperatur' => $utetemperatur
                 ]
             ]);
         } catch (Exception $e) {

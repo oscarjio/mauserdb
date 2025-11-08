@@ -20,6 +20,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   hourlyTarget: number = 0;
   ibcToday: number = 0;
   productionPercentage: number = 0;
+  utetemperatur: number | null = null;
   
   // Speedometer properties
   needleRotation: number = -150; // Start position
@@ -57,6 +58,9 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
         
         // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
         this.productionPercentage = res.data.productionPercentage || 0;
+        
+        // Hämta utetemperatur
+        this.utetemperatur = res.data.utetemperatur ?? null;
         
         this.updateSpeedometer();
       }

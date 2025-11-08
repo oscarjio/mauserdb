@@ -65,16 +65,112 @@ class Rebotling {
             ? (int)$skiftraknareResult['skiftraknare'] 
             : 1; // Starta på 1 om inga rader finns
         
+        // Beräkna produktion_procent för nuvarande tidpunkt
+        $produktion_procent = 0;
+        if ($skiftraknare !== null) {
+            // Hämta produkt från nuvarande skift
+            $hourlyTarget = 15; // Default värde
+            $stmt = $this->db->prepare('
+                SELECT produkt
+                FROM rebotling_onoff 
+                WHERE skiftraknare = ?
+                AND produkt IS NOT NULL
+                ORDER BY datum DESC 
+                LIMIT 1
+            ');
+            $stmt->execute([$skiftraknare]);
+            $produktResult = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($produktResult && isset($produktResult['produkt']) && $produktResult['produkt'] > 0) {
+                $produktId = (int)$produktResult['produkt'];
+                
+                // Hämta cykeltid för produkten
+                $stmt = $this->db->prepare('
+                    SELECT cycle_time_minutes
+                    FROM rebotling_products 
+                    WHERE id = ?
+                ');
+                $stmt->execute([$produktId]);
+                $productResult = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if ($productResult && isset($productResult['cycle_time_minutes']) && $productResult['cycle_time_minutes'] > 0) {
+                    $cycleTime = (float)$productResult['cycle_time_minutes'];
+                    // Räkna ut antal per timme: 60 minuter / cykeltid i minuter
+                    $hourlyTarget = round(60 / $cycleTime, 1);
+                }
+            }
+            
+            // Beräkna total runtime för nuvarande skift
+            $totalRuntimeMinutes = 0;
+            $stmt = $this->db->prepare('
+                SELECT datum, running
+                FROM rebotling_onoff 
+                WHERE skiftraknare = ?
+                ORDER BY datum ASC
+            ');
+            $stmt->execute([$skiftraknare]);
+            $skiftEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            if (count($skiftEntries) > 0) {
+                $lastRunningStart = null;
+                $now = new DateTime();
+                
+                foreach ($skiftEntries as $entry) {
+                    $entryTime = new DateTime($entry['datum']);
+                    $isRunning = (bool)($entry['running'] ?? false);
+                    
+                    if ($isRunning && $lastRunningStart === null) {
+                        $lastRunningStart = $entryTime;
+                    } elseif (!$isRunning && $lastRunningStart !== null) {
+                        $diff = $lastRunningStart->diff($entryTime);
+                        $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $totalRuntimeMinutes += $periodMinutes;
+                        $lastRunningStart = null;
+                    }
+                }
+                
+                if ($lastRunningStart !== null) {
+                    $lastEntryTime = new DateTime($skiftEntries[count($skiftEntries) - 1]['datum']);
+                    $diff = $lastRunningStart->diff($lastEntryTime);
+                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalRuntimeMinutes += $periodMinutes;
+                    
+                    $diffSinceLast = $lastEntryTime->diff($now);
+                    $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                    $totalRuntimeMinutes += $minutesSinceLastUpdate;
+                }
+            }
+            
+            // Hämta antal IBCer för nuvarande skift (inklusive den som ska läggas till)
+            $stmt = $this->db->prepare('
+                SELECT COUNT(*) as ibc_count
+                FROM rebotling_ibc 
+                WHERE skiftraknare = ?
+            ');
+            $stmt->execute([$skiftraknare]);
+            $ibcResult = $stmt->fetch(PDO::FETCH_ASSOC);
+            $ibcCount = $ibcResult ? (int)$ibcResult['ibc_count'] : 0;
+            // Lägg till 1 för den IBC som ska läggas till
+            $ibcCount += 1;
+            
+            // Beräkna produktionsprocent
+            if ($totalRuntimeMinutes > 0 && $ibcCount > 0 && $hourlyTarget > 0) {
+                $actualProductionPerHour = ($ibcCount * 60) / $totalRuntimeMinutes;
+                $produktion_procent = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
+            }
+        }
+        
         // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_ibc (s_count, ibc_count, skiftraknare)
-            VALUES (:s_count, :ibc_count, :skiftraknare)
+            INSERT INTO rebotling_ibc (s_count, ibc_count, skiftraknare, produktion_procent)
+            VALUES (:s_count, :ibc_count, :skiftraknare, :produktion_procent)
         ');
         
         $stmt->execute([
             's_count' => $_GET['count'],
             'ibc_count' => $ibc_count,
-            'skiftraknare' => $skiftraknare
+            'skiftraknare' => $skiftraknare,
+            'produktion_procent' => $produktion_procent
         ]);
     }
 

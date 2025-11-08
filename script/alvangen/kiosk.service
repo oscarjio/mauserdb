@@ -1,0 +1,30 @@
+[Unit]
+Description=Production Display Kiosk
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aiab
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=WAYLAND_DISPLAY=wayland-0
+ExecStart=/usr/bin/chromium-browser \
+ --noerrdialogs --incognito --kiosk \
+  --ozone-platform=wayland \
+  --enable-features=WaylandWindowDecorations \
+  --check-for-update-interval=3600 \
+  --disable-session-crashed-bubble \
+  --disable-infobars \
+  --no-first-run \
+  --ignore-certificate-errors \
+  --user-data-dir=/tmp/kiosk-profile \
+  --unsafely-treat-insecure-origin-as-secure=https://mauserdb.com \
+  --reload-if-failed \
+  "http://mauserdb.com/rebotling/live" "http://mauserdb.com/rebotling/live"
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
