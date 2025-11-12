@@ -181,6 +181,7 @@ class Rebotling {
         }
 
         // Anropa Modbus!
+        /*
         $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
 
 
@@ -197,6 +198,8 @@ class Rebotling {
             $PLC_data16[$i] += $PLC_data[$i*2+1];
         }    
 
+
+        */
         /*
         D200 Program
         D201 Op1
@@ -367,19 +370,27 @@ class Rebotling {
             's_count_l' => $low,
             'runtime_today' => $runtime_today,
             'running' => $is_running,
-            'program' => $PLC_data16[0],
+            /*'program' => $PLC_data16[0],
             'op1' => $PLC_data16[1],
             'op2' => $PLC_data16[2],
             'op3' => $PLC_data16[3],
             'produkt' => $PLC_data16[4],
             'antal' => $PLC_data16[5],
-            'runtime_plc' => $PLC_data16[6],
+            'runtime_plc' => $PLC_data16[6],*/
+            'program' => 0,
+            'op1' => 0,
+            'op2' => 0,
+            'op3' => 0,
+            'produkt' => 1,
+            'antal' => 0,
+            'runtime_plc' => 0,
             'skiftraknare' => $skiftraknare
         ]);
     }
 
     public function handleSkiftrapport(array $data): void {
         // Anropa Modbus!
+        /*
         $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
 
 
@@ -396,7 +407,7 @@ class Rebotling {
             $PLC_data16[$i] = $PLC_data[$i*2] << 8;
             $PLC_data16[$i] += $PLC_data[$i*2+1];
         }    
-
+        */
         /*
         D210 ibc_ok
         D211 bur_ej_ok
