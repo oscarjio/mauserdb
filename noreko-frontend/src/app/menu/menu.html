@@ -1,3 +1,10 @@
+<!-- VPN Status Indicator för admin -->
+<div class="vpn-status-indicator" *ngIf="loggedIn && user?.role === 'admin' && vpnConnectedCount > 0">
+  <span class="vpn-status-text">
+    <i class="fas fa-network-wired me-1"></i>
+    {{ vpnConnectedCount }} {{ vpnConnectedCount === 1 ? 'användare ansluten' : 'användare anslutna' }} till VPN
+  </span>
+</div>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark custom-navbar">
   <div class="container-fluid">
     <ul class="navbar-nav ms-auto align-items-center custom-menu">
@@ -73,6 +80,8 @@
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
           <li><a class="dropdown-item" routerLink="/admin/users">Användare</a></li>
           <li><a class="dropdown-item" routerLink="/admin/create-user">Skapa användare</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" routerLink="/admin/vpn"><i class="fas fa-network-wired me-2"></i>VPN</a></li>
         </ul>
       </li>
       <li class="nav-item dropdown menu-selector-item">

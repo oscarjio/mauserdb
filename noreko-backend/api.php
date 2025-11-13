@@ -17,7 +17,8 @@ $action = $_GET['action'] ?? '';
 // Mapping för actions som inte följer standardnamngivning
 $classNameMap = [
     'rebotlingproduct' => 'RebotlingProductController',
-    'skiftrapport' => 'SkiftrapportController'
+    'skiftrapport' => 'SkiftrapportController',
+    'vpn' => 'VpnController'
 ];
 $className = $classNameMap[strtolower($action)] ?? ucfirst(strtolower($action)) . 'Controller';
 

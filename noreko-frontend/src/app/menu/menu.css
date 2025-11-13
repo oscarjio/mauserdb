@@ -111,6 +111,44 @@
   cursor: pointer;
 }
 
+.vpn-status-indicator {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.3rem 1rem;
+  margin-bottom: 0.5rem;
+  width: 60vw;
+  max-width: 60vw;
+}
+
+.vpn-status-text {
+  font-size: 0.85rem;
+  color: #00d4ff;
+  background: rgba(0, 212, 255, 0.1);
+  padding: 0.3rem 0.8rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+}
+
+.vpn-status-text i {
+  font-size: 0.9rem;
+}
+
+@media (max-width: 991px) {
+  .vpn-status-indicator {
+    width: 100%;
+    max-width: 100%;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .vpn-status-text {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+  }
+}
+
 @media (max-width: 991px) {
   .main-menu {
     font-size: 1rem;

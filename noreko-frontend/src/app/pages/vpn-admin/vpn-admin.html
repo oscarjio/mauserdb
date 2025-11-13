@@ -1,0 +1,187 @@
+<div class="container-fluid mt-4" *ngIf="loggedIn && isAdmin">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">
+          <i class="fas fa-network-wired me-2"></i>
+          VPN Admin
+        </h1>
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-outline-light btn-sm" (click)="loadVpnStatus()" [disabled]="loading">
+            <i class="fas fa-sync-alt me-2" [class.fa-spin]="loading"></i>
+            Uppdatera
+          </button>
+          <div class="text-muted">
+            <small>Inloggad som: <strong>{{ user?.username }}</strong></small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Cards -->
+      <div class="row mb-4">
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title text-muted mb-2">
+                <i class="fas fa-users me-2"></i>
+                Totalt användare
+              </h5>
+              <h2 class="mb-0">{{ totalClients }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title text-muted mb-2">
+                <i class="fas fa-plug me-2"></i>
+                Anslutna nu
+              </h5>
+              <h2 class="mb-0 text-success">{{ totalConnected }}</h2>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <h5 class="card-title text-muted mb-2">
+                <i class="fas fa-sign-out-alt me-2"></i>
+                Frånkopplade
+              </h5>
+              <h2 class="mb-0 text-secondary">{{ totalClients - totalConnected }}</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div class="alert alert-danger" *ngIf="error && !loading">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        {{ error }}
+      </div>
+
+      <!-- VPN Clients Table -->
+      <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-list me-2"></i>
+            VPN Användare
+          </h5>
+          <span class="badge bg-light text-dark" *ngIf="!loading">
+            {{ totalConnected }} / {{ totalClients }} anslutna
+          </span>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Laddar...</span>
+            </div>
+            <p class="mt-3 text-muted">Hämtar VPN-status...</p>
+          </div>
+
+          <div *ngIf="!loading && clients.length === 0 && !error" class="text-center py-5">
+            <i class="fas fa-info-circle text-muted" style="font-size: 3rem;"></i>
+            <p class="mt-3 text-muted">Inga VPN-användare hittades.</p>
+          </div>
+
+          <div class="table-responsive" *ngIf="!loading && clients.length > 0">
+            <table class="table table-striped table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>Status</th>
+                  <th>Användarnamn</th>
+                  <th>Common Name</th>
+                  <th>Virtuell IP</th>
+                  <th>Riktig IP</th>
+                  <th>Mottaget</th>
+                  <th>Skickat</th>
+                  <th>Senast ansluten</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let client of clients">
+                  <td>
+                    <span [ngClass]="getStatusBadgeClass(client.connected)">
+                      {{ getStatusText(client.connected) }}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>{{ client.username || client.common_name }}</strong>
+                  </td>
+                  <td>{{ client.common_name }}</td>
+                  <td>
+                    <code class="text-info">{{ client.virtual_address || '-' }}</code>
+                  </td>
+                  <td>
+                    <code>{{ client.real_address || '-' }}</code>
+                  </td>
+                  <td>{{ formatBytes(client.bytes_received || 0) }}</td>
+                  <td>{{ formatBytes(client.bytes_sent || 0) }}</td>
+                  <td>
+                    <span *ngIf="client.connected" class="text-success">
+                      <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                      {{ formatDate(client.last_seen) }}
+                    </span>
+                    <span *ngIf="!client.connected" class="text-muted">
+                      {{ formatDate(client.last_seen) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Box -->
+      <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>
+            Information
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-2">
+            <strong>Management Interface:</strong> 127.0.0.1:7505
+          </p>
+          <p class="mb-0 text-muted">
+            Denna sida visar alla användare som har anslutit till OpenVPN-servern. 
+            Status uppdateras automatiskt var 30:e sekund. Klicka på "Uppdatera" för att manuellt uppdatera.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Access Denied Message -->
+<div class="container-fluid mt-4" *ngIf="!loggedIn || !isAdmin">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white text-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-lock me-2"></i>
+            Åtkomst nekad
+          </h5>
+        </div>
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+          </div>
+          <p class="card-text">
+            Du har inte behörighet att komma åt denna sida. 
+            Endast administratörer kan komma åt VPN admin-panelen.
+          </p>
+          <a href="/" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>
+            Gå tillbaka till startsidan
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+

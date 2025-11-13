@@ -1,0 +1,213 @@
+/* VPN Admin Page Styles - Dark Theme */
+
+.card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #2d3748;
+  color: #e2e8f0;
+  transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+}
+
+.card-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+  background-color: #1a202c !important;
+}
+
+.card-body {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.bg-primary {
+  background-color: #3182ce !important;
+}
+
+.bg-success {
+  background-color: #38a169 !important;
+}
+
+.bg-info {
+  background-color: #3182ce !important;
+}
+
+.bg-danger {
+  background-color: #e53e3e !important;
+}
+
+/* Table styling - Dark Theme */
+.table-responsive {
+  border-radius: 0.375rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.table th {
+  background-color: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  vertical-align: middle;
+  border-color: #4a5568;
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(66, 153, 225, 0.1);
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Badge styling */
+.badge {
+  padding: 0.35em 0.65em;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.badge.bg-success {
+  background-color: #38a169 !important;
+}
+
+.badge.bg-secondary {
+  background-color: #718096 !important;
+}
+
+/* Code styling */
+code {
+  background-color: #1a202c;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: #63b3ed;
+}
+
+/* Button styling */
+.btn {
+  transition: all 0.15s ease-in-out;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline-light {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #e2e8f0;
+}
+
+.btn-outline-light:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Spinner */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Alert styling */
+.alert {
+  background-color: #2d3748;
+  border-color: #e53e3e;
+  color: #e2e8f0;
+}
+
+.alert-danger {
+  background-color: rgba(229, 62, 62, 0.1);
+  border-color: #e53e3e;
+  color: #feb2b2;
+}
+
+/* Text colors */
+.text-muted {
+  color: #a0aec0 !important;
+}
+
+.text-success {
+  color: #68d391 !important;
+}
+
+.text-secondary {
+  color: #a0aec0 !important;
+}
+
+.text-info {
+  color: #63b3ed !important;
+}
+
+/* Statistics cards */
+.card.text-center .card-body h2 {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.card.text-center .card-body h5 {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem;
+  }
+  
+  .card-body h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Loading animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fa-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Access denied styling */
+.border-danger {
+  border-color: #dc3545 !important;
+}
+
+/* Gap utility */
+.gap-3 {
+  gap: 1rem;
+}
+
+
