@@ -111,6 +111,34 @@
   cursor: pointer;
 }
 
+.account-settings {
+  min-width: 260px;
+}
+
+.account-settings form {
+  width: 100%;
+}
+
+.account-settings .form-label {
+  font-size: 0.75rem;
+  color: #bfc7cf;
+}
+
+.account-settings .form-control-sm {
+  background-color: #1f1f1f;
+  border: 1px solid #2f3338;
+  color: #f4f6f8;
+}
+
+.account-settings .form-control-sm:focus {
+  border-color: #00d4ff;
+  box-shadow: none;
+}
+
+.account-settings .alert {
+  font-size: 0.75rem;
+}
+
 .vpn-status-indicator {
   display: flex;
   justify-content: flex-end;

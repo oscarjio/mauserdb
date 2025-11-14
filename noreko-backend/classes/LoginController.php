@@ -12,7 +12,7 @@ class LoginController {
         $username = $data['username'] ?? '';
         $password = $data['password'] ?? '';
 
-        $stmt = $pdo->prepare("SELECT id, username, password, admin FROM users WHERE username = ?");
+        $stmt = $pdo->prepare("SELECT id, username, email, password, admin FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -23,9 +23,11 @@ class LoginController {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = ($user['admin'] == 1) ? 'admin' : 'user';
+            $_SESSION['email'] = $user['email'] ?? null;
             echo json_encode(['success' => true, 'user' => [
                 'id' => $user['id'],
                 'username' => $user['username'],
+                'email' => $user['email'] ?? null,
                 'role' => ($_SESSION['role'])
             ]]);
         } else {

@@ -18,6 +18,15 @@ export class Menu implements OnInit, OnDestroy {
   showMenu = false;
   selectedMenu: string = 'Älvängen';
   vpnConnectedCount: number = 0;
+  profileForm = {
+    email: '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  };
+  profileMessage: string | null = null;
+  profileError: string | null = null;
+  savingProfile = false;
   private refreshInterval: any;
 
   constructor(
@@ -38,6 +47,9 @@ export class Menu implements OnInit, OnDestroy {
     });
     this.auth.user$.subscribe(val => {
       this.user = val;
+      if (val?.email) {
+        this.profileForm.email = val.email;
+      }
       if (val?.role === 'admin' && this.loggedIn) {
         this.loadVpnStatus();
       } else {
@@ -95,6 +107,59 @@ export class Menu implements OnInit, OnDestroy {
 
   onMenuChange(event: Event) {
     localStorage.setItem('selectedMenu', this.selectedMenu);
+  }
+
+  updateProfile() {
+    if (this.user?.role === 'admin') {
+      return;
+    }
+
+    this.profileMessage = null;
+    this.profileError = null;
+
+    const trimmedEmail = this.profileForm.email?.trim() ?? '';
+    if (!trimmedEmail) {
+      this.profileError = 'E-postadress krävs.';
+      return;
+    }
+
+    if (this.profileForm.newPassword || this.profileForm.confirmPassword) {
+      if (this.profileForm.newPassword !== this.profileForm.confirmPassword) {
+        this.profileError = 'Nya lösenord matchar inte.';
+        return;
+      }
+      if (!this.profileForm.currentPassword) {
+        this.profileError = 'Nuvarande lösenord krävs för att byta lösenord.';
+        return;
+      }
+    }
+
+    const payload: any = { email: trimmedEmail };
+    if (this.profileForm.newPassword) {
+      payload.currentPassword = this.profileForm.currentPassword;
+      payload.newPassword = this.profileForm.newPassword;
+    }
+
+    this.savingProfile = true;
+    this.http.post<any>('/noreko-backend/api.php?action=profile', payload, { withCredentials: true })
+      .subscribe({
+        next: (response) => {
+          if (response?.success) {
+            this.profileMessage = response.message || 'Konto uppdaterat.';
+            this.profileForm.currentPassword = '';
+            this.profileForm.newPassword = '';
+            this.profileForm.confirmPassword = '';
+            this.auth.fetchStatus();
+          } else {
+            this.profileError = response?.message || 'Kunde inte uppdatera kontot.';
+          }
+          this.savingProfile = false;
+        },
+        error: (error) => {
+          this.profileError = error?.error?.message || 'Ett fel inträffade.';
+          this.savingProfile = false;
+        }
+      });
   }
 
   logout() {

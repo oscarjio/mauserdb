@@ -70,6 +70,56 @@
           {{ user?.username }}
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
+          <li class="dropdown-header" *ngIf="user?.role !== 'admin'">Mitt konto</li>
+          <li class="px-3 py-2 account-settings" *ngIf="user?.role !== 'admin'">
+            <form (ngSubmit)="updateProfile()" (click)="$event.stopPropagation()" novalidate>
+              <div class="mb-2">
+                <label class="form-label account-label" for="accountEmail">E-post</label>
+                <input
+                  type="email"
+                  class="form-control form-control-sm"
+                  id="accountEmail"
+                  name="accountEmail"
+                  required
+                  [(ngModel)]="profileForm.email" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label account-label" for="newPassword">Nytt lösenord</label>
+                <input
+                  type="password"
+                  class="form-control form-control-sm"
+                  id="newPassword"
+                  name="newPassword"
+                  [(ngModel)]="profileForm.newPassword" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label account-label" for="confirmPassword">Bekräfta nytt lösenord</label>
+                <input
+                  type="password"
+                  class="form-control form-control-sm"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  [(ngModel)]="profileForm.confirmPassword" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label account-label" for="currentPassword">Nuvarande lösenord</label>
+                <input
+                  type="password"
+                  class="form-control form-control-sm"
+                  id="currentPassword"
+                  name="currentPassword"
+                  [required]="(profileForm?.newPassword?.length || 0) > 0 || (profileForm?.confirmPassword?.length || 0) > 0"
+                  [(ngModel)]="profileForm.currentPassword" />
+                <small class="text-muted d-block mt-1">Behövs bara vid byte av lösenord.</small>
+              </div>
+              <div class="alert alert-success py-1 px-2 mb-2" *ngIf="profileMessage">{{ profileMessage }}</div>
+              <div class="alert alert-danger py-1 px-2 mb-2" *ngIf="profileError">{{ profileError }}</div>
+              <button class="btn btn-sm btn-primary w-100" type="submit" [disabled]="savingProfile">
+                {{ savingProfile ? 'Sparar…' : 'Spara' }}
+              </button>
+            </form>
+          </li>
+          <li *ngIf="user?.role !== 'admin'"><hr class="dropdown-divider" /></li>
           <li><a class="dropdown-item" (click)="logout()">Logga ut</a></li>
         </ul>
       </li>
