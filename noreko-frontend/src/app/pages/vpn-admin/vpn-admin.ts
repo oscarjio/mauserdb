@@ -34,6 +34,9 @@ export class VpnAdminPage implements OnInit, OnDestroy {
   error: string | null = null;
   totalConnected = 0;
   totalClients = 0;
+  disconnecting: Record<string, boolean> = {};
+  disconnectMessage: string | null = null;
+  disconnectError: string | null = null;
   
   private refreshInterval: any;
 
@@ -104,6 +107,43 @@ export class VpnAdminPage implements OnInit, OnDestroy {
           this.loading = false;
         }
       });
+  }
+
+  disconnectClient(client: VpnClient) {
+    if (!client?.common_name || !client.connected) {
+      return;
+    }
+
+    const commonName = client.common_name;
+    const confirmed = confirm(`Vill du koppla från ${commonName}?`);
+    if (!confirmed) {
+      return;
+    }
+
+    this.disconnectMessage = null;
+    this.disconnectError = null;
+    this.disconnecting[commonName] = true;
+
+    const request = this.http.post<any>('/noreko-backend/api.php?action=vpn', {
+      command: 'disconnect',
+      commonName
+    }, { withCredentials: true }).subscribe({
+      next: (response) => {
+        if (response?.success) {
+          this.disconnectMessage = response.message || `Anslutningen för ${commonName} har avslutats.`;
+          this.loadVpnStatus();
+        } else {
+          this.disconnectError = response?.message || 'Kunde inte avbryta anslutningen.';
+        }
+      },
+      error: (error) => {
+        this.disconnectError = error?.error?.message || 'Kunde inte nå VPN-backend.';
+      }
+    });
+
+    request.add(() => {
+      delete this.disconnecting[commonName];
+    });
   }
 
   formatBytes(bytes: number): string {

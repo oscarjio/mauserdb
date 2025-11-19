@@ -140,6 +140,22 @@ code {
   color: #feb2b2;
 }
 
+.alert-success {
+  background-color: rgba(56, 161, 105, 0.1);
+  border-color: #38a169;
+  color: #c6f6d5;
+}
+
+.alert-warning {
+  background-color: rgba(237, 137, 54, 0.1);
+  border-color: #ed8936;
+  color: #fbd38d;
+}
+
+.vpn-action-cell {
+  white-space: nowrap;
+}
+
 /* Text colors */
 .text-muted {
   color: #a0aec0 !important;
@@ -209,6 +225,7 @@ code {
 .gap-3 {
   gap: 1rem;
 }
+
 
 
 

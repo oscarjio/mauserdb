@@ -23,9 +23,77 @@ class VpnController {
         
         if ($method === 'GET') {
             $this->getVpnStatus();
+        } elseif ($method === 'POST') {
+            $this->handlePost();
         } else {
+            http_response_code(405);
             echo json_encode(['error' => 'Ogiltig metod']);
         }
+    }
+
+    private function handlePost() {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $command = $input['command'] ?? $input['action'] ?? '';
+
+        if ($command === 'disconnect') {
+            $commonName = isset($input['commonName']) ? trim($input['commonName']) : '';
+
+            if ($commonName === '') {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Common Name krävs.']);
+                return;
+            }
+
+            if (preg_match('/[\r\n]/', $commonName) || !preg_match('/^[\w\.\-@]+$/u', $commonName)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Ogiltigt Common Name-format.']);
+                return;
+            }
+
+            $result = $this->disconnectClient($commonName);
+            echo json_encode($result);
+            return;
+        }
+
+        http_response_code(400);
+        echo json_encode(['success' => false, 'message' => 'Ogiltigt kommando.']);
+    }
+
+    private function disconnectClient($commonName) {
+        $socket = @fsockopen($this->managementHost, $this->managementPort, $errno, $errstr, 5);
+
+        if (!$socket) {
+            return [
+                'success' => false,
+                'message' => "Kunde inte ansluta till management interface ($errstr - $errno)."
+            ];
+        }
+
+        stream_set_timeout($socket, 2);
+
+        // Läs välkomstmeddelande innan vi skickar kommando
+        $this->readUntilPrompt($socket, 1);
+
+        fwrite($socket, "kill {$commonName}\n");
+        $response = $this->readUntilPrompt($socket, 2);
+        fclose($socket);
+
+        if (stripos($response, 'SUCCESS') !== false) {
+            return [
+                'success' => true,
+                'message' => "Anslutningen för {$commonName} har avslutats."
+            ];
+        }
+
+        $cleanResponse = trim($response);
+        if ($cleanResponse === '') {
+            $cleanResponse = 'Inget svar från management interface.';
+        }
+
+        return [
+            'success' => false,
+            'message' => $cleanResponse
+        ];
     }
 
     private function getVpnStatus() {

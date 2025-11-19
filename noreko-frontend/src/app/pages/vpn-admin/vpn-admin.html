@@ -59,6 +59,14 @@
         <i class="fas fa-exclamation-triangle me-2"></i>
         {{ error }}
       </div>
+      <div class="alert alert-success" *ngIf="disconnectMessage">
+        <i class="fas fa-check-circle me-2"></i>
+        {{ disconnectMessage }}
+      </div>
+      <div class="alert alert-warning" *ngIf="disconnectError">
+        <i class="fas fa-info-circle me-2"></i>
+        {{ disconnectError }}
+      </div>
 
       <!-- VPN Clients Table -->
       <div class="card">
@@ -96,6 +104,7 @@
                   <th>Mottaget</th>
                   <th>Skickat</th>
                   <th>Senast ansluten</th>
+                  <th class="text-end">Åtgärder</th>
                 </tr>
               </thead>
               <tbody>
@@ -125,6 +134,17 @@
                     <span *ngIf="!client.connected" class="text-muted">
                       {{ formatDate(client.last_seen) }}
                     </span>
+                  </td>
+                  <td class="text-end vpn-action-cell">
+                    <button
+                      class="btn btn-outline-danger btn-sm"
+                      *ngIf="client.connected"
+                      (click)="disconnectClient(client)"
+                      [disabled]="disconnecting[client.common_name]">
+                      <i class="fas" [ngClass]="{'fa-ban': !disconnecting[client.common_name], 'fa-spinner fa-spin': disconnecting[client.common_name]}"></i>
+                      <span class="ms-1">{{ disconnecting[client.common_name] ? 'Kopplar från...' : 'Koppla från' }}</span>
+                    </button>
+                    <span *ngIf="!client.connected" class="text-muted">-</span>
                   </td>
                 </tr>
               </tbody>
@@ -183,6 +203,7 @@
     </div>
   </div>
 </div>
+
 
 
 
