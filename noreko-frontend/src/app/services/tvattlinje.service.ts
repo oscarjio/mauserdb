@@ -15,6 +15,7 @@ export interface TvattlinjeLiveStatsResponse {
   data: {
     ibcToday: number;
     ibcTarget: number;
+    productionPercentage: number;
     utetemperatur: number | null;
   };
 }

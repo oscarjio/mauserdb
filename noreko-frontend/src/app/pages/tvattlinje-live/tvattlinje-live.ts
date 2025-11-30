@@ -21,6 +21,15 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   ibcToday: number = 0;
   ibcTarget: number = 0;
   utetemperatur: number | null = null;
+  productionPercentage: number = 0;
+  
+  // Speedometer properties
+  needleRotation: number = -150; // Start position
+
+  get isGoalAchieved(): boolean {
+    // Grön om produktion är >= 100%, annars röd
+    return this.productionPercentage >= 100;
+  }
 
   constructor(private tvattlinjeService: TvattlinjeService) {}
 
@@ -55,7 +64,23 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
         this.ibcToday = res.data.ibcToday;
         this.ibcTarget = res.data.ibcTarget;
         this.utetemperatur = res.data.utetemperatur;
+        // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
+        this.productionPercentage = res.data.productionPercentage || 0;
+        
+        this.updateSpeedometer();
       }
     });
+  }
+
+  private updateSpeedometer() {
+    // Använd samma produktionsprocent som visas från backend
+    // Max 200% för speedometern
+    const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
+    
+    // Convert percentage to needle rotation (-180 to 0 degrees)
+    // -180 degrees är vänster (0%), 0 degrees är höger (200%)
+    // Mappar 0-200% till -180 till 0 grader
+    // Start position är -100 (ungefär 25% på speedometern)
+    this.needleRotation = -100 + (percentage / 200) * 180;
   }
 }

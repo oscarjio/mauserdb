@@ -87,27 +87,27 @@
 }
 
 .live-label {
-  font-size: 1.7rem;
+  font-size: 7rem;
   opacity: 0.7;
   margin-bottom: 0.5rem;
 }
 
 .live-value {
-  font-size: 3.8rem;
+  font-size: 6.8rem;
   font-weight: bold;
   letter-spacing: 0.05em;
 }
 
 .live-clock {
-  font-size: 7vw;
-  margin: 0.5rem 0 0.5rem 0;
+  font-size: 10vw;
+  margin: 0.3rem 0 0.3rem 0;
   font-weight: bold;
   letter-spacing: 0.05em;
   text-align: center;
 }
 
 .live-ibc-today {
-  font-size: 7vw;
+  font-size: 10vw;
   font-weight: bold;
   letter-spacing: 0.05em;
   text-align: center;
@@ -131,30 +131,52 @@
 }
 
 .speedometer-modern svg {
-  max-width: 260px;
+  max-width: 100%;
   width: 100%;
   height: auto;
   display: block;
   margin: 0 auto;
-}
-
-.speedometer-status {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  margin-top: 1.5rem;
-  position: static;
-}
-
-.speedometer-status .badge {
-  font-size: 1.5rem !important;
-  padding: 0.5em 1em;
+  max-height: 85%;
 }
 
 .live-card.speedometer-wrapper {
-  padding-bottom: 2.5rem;
+  padding: 1rem;
   position: relative;
+  overflow: visible;
+}
+
+.goal-status-indicator {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  width: 5rem;
+  height: 5rem;
+  border-radius: 50%;
+  z-index: 10;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: pulse-indicator 2s ease-in-out infinite;
+}
+
+.goal-status-indicator.goal-achieved {
+  background: radial-gradient(circle, #2ecc71 0%, #27ae60 100%);
+  box-shadow: 0 4px 20px rgba(46, 204, 113, 0.6), 0 0 30px rgba(46, 204, 113, 0.3);
+}
+
+.goal-status-indicator.goal-not-achieved {
+  background: radial-gradient(circle, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 4px 20px rgba(231, 76, 60, 0.6), 0 0 30px rgba(231, 76, 60, 0.3);
+}
+
+@keyframes pulse-indicator {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
 }
 
 .mini-tvattlinje-live .live-card {
@@ -178,9 +200,11 @@
   max-width: 90px !important;
 }
 
-.mini-tvattlinje-live .speedometer-status .badge {
-  font-size: 0.8rem !important;
-  padding: 0.2em 0.5em !important;
+.mini-tvattlinje-live .goal-status-indicator {
+  width: 2rem !important;
+  height: 2rem !important;
+  top: 0.5rem !important;
+  right: 0.5rem !important;
 }
 
 .mini-tvattlinje-live .tvattlinje-live-page,
@@ -205,10 +229,6 @@
 }
 .mini-tvattlinje-live .speedometer-modern svg {
   max-width: 70px !important;
-}
-.mini-tvattlinje-live .speedometer-status .badge {
-  font-size: 10px !important;
-  padding: 0.1em 0.3em !important;
 }
 
 @media (min-width: 992px) {
@@ -238,26 +258,29 @@
     padding: 0.5rem 0.3rem;
   }
   .live-label {
-    font-size: 1rem;
+    font-size: 1.5rem;
     opacity: 0.7;
     margin-bottom: 0.3rem;
   }
   .live-value {
-    font-size: 1.8rem;
+    font-size: 3rem;
     font-weight: bold;
     letter-spacing: 0.05em;
   }
   .live-clock {
-    font-size: 2.5rem;
+    font-size: 4rem;
   }
   .live-ibc-today {
-    font-size: 2.5rem;
+    font-size: 4rem;
   }
   .speedometer-modern svg {
-    max-width: 180px;
+    max-width: 100%;
+    max-height: 85%;
   }
-  .speedometer-status .badge {
-    font-size: 0.9rem !important;
-    padding: 0.3em 0.6em;
+  .goal-status-indicator {
+    width: 3.6rem;
+    height: 3.6rem;
+    top: 0.8rem;
+    right: 0.8rem;
   }
 }

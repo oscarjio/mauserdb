@@ -22,6 +22,7 @@
     </div>
     <div class="col-6 d-flex align-items-stretch">
       <div class="live-card flex-fill speedometer-wrapper h-100 w-100 d-flex flex-column justify-content-center align-items-center">
+        <div class="goal-status-indicator" [class.goal-achieved]="isGoalAchieved" [class.goal-not-achieved]="!isGoalAchieved"></div>
         <div class="speedometer speedometer-modern w-100">
           <svg viewBox="0 0 300 180" width="100%" height="100%">
             <defs>
@@ -46,7 +47,7 @@
             <path d="M180,80 A90,90 0 0,1 240,160" stroke="url(#speedoGreen)" stroke-width="24" fill="none" stroke-linecap="round"/>
             <!-- Modern needle -->
             <g>
-              <rect x="147" y="80" width="6" height="90" rx="3" fill="#fff" filter="url(#needleShadow)" transform="rotate(-25 150 150)"/>
+              <rect x="147" y="80" width="6" height="90" rx="3" fill="#fff" filter="url(#needleShadow)" [attr.transform]="'rotate(' + needleRotation + ' 150 150)'"/>
               <circle cx="150" cy="150" r="14" fill="#222" stroke="#fff" stroke-width="4"/>
               <circle cx="150" cy="150" r="7" fill="#fff"/>
             </g>
@@ -54,9 +55,6 @@
               <feDropShadow dx="0" dy="4" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
             </filter>
           </svg>
-          <div class="speedometer-status mt-3 w-100 d-flex justify-content-center">
-            <span class="badge bg-success fs-3 w-100 text-center">Bra produktion</span>
-          </div>
         </div>
       </div>
     </div>
