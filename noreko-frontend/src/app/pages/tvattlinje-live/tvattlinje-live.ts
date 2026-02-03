@@ -59,14 +59,33 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   }
 
   private fetchLiveStats() {
-    this.tvattlinjeService.getLiveStats().subscribe((res: TvattlinjeLiveStatsResponse) => {
-      if (res && res.success && res.data) {
-        this.ibcToday = res.data.ibcToday;
-        this.ibcTarget = res.data.ibcTarget;
-        this.utetemperatur = res.data.utetemperatur;
-        // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
-        this.productionPercentage = res.data.productionPercentage || 0;
-        
+    this.tvattlinjeService.getLiveStats().subscribe({
+      next: (res: TvattlinjeLiveStatsResponse) => {
+        if (res && res.success && res.data) {
+          this.ibcToday = res.data.ibcToday;
+          this.ibcTarget = res.data.ibcTarget;
+          this.utetemperatur = res.data.utetemperatur;
+          // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
+          // Kontrollera om productionPercentage finns i response, annars sätt till 0
+          this.productionPercentage = (res.data.productionPercentage !== undefined && res.data.productionPercentage !== null) 
+            ? res.data.productionPercentage 
+            : 0;
+          
+          // Debug: logga om productionPercentage saknas
+          if (res.data.productionPercentage === undefined || res.data.productionPercentage === null) {
+            console.warn('productionPercentage saknas i backend response:', res);
+          }
+          
+          this.updateSpeedometer();
+        } else {
+          console.error('Ogiltigt svar från backend:', res);
+          this.productionPercentage = 0;
+          this.updateSpeedometer();
+        }
+      },
+      error: (err) => {
+        console.error('Fel vid hämtning av live stats:', err);
+        this.productionPercentage = 0;
         this.updateSpeedometer();
       }
     });

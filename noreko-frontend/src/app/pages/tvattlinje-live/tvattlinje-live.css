@@ -99,7 +99,7 @@
 }
 
 .live-clock {
-  font-size: 10vw;
+  font-size: 15vw;
   margin: 0.3rem 0 0.3rem 0;
   font-weight: bold;
   letter-spacing: 0.05em;
@@ -107,7 +107,7 @@
 }
 
 .live-ibc-today {
-  font-size: 10vw;
+  font-size: 15vw;
   font-weight: bold;
   letter-spacing: 0.05em;
   text-align: center;
@@ -268,10 +268,10 @@
     letter-spacing: 0.05em;
   }
   .live-clock {
-    font-size: 4rem;
+    font-size: 6rem;
   }
   .live-ibc-today {
-    font-size: 4rem;
+    font-size: 6rem;
   }
   .speedometer-modern svg {
     max-width: 100%;

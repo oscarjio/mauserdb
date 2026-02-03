@@ -129,7 +129,7 @@ class TvattlinjeController {
                 error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
             }
 
-            echo json_encode([
+            $response = [
                 'success' => true,
                 'data' => [
                     'ibcToday' => $ibcToday,
@@ -137,7 +137,24 @@ class TvattlinjeController {
                     'productionPercentage' => $productionPercentage,
                     'utetemperatur' => $utetemperatur
                 ]
-            ]);
+            ];
+            
+            // Lägg till debug-info om productionPercentage är 0 eller saknas
+            if ($productionPercentage === 0 || $productionPercentage === null) {
+                $response['debug'] = [
+                    'totalRuntimeMinutes' => $totalRuntimeMinutes,
+                    'ibcToday' => $ibcToday,
+                    'hourlyTarget' => $hourlyTarget,
+                    'productionPercentage' => $productionPercentage,
+                    'calculation_condition' => [
+                        'hasRuntime' => $totalRuntimeMinutes > 0,
+                        'hasIbcToday' => $ibcToday > 0,
+                        'hasHourlyTarget' => $hourlyTarget > 0
+                    ]
+                ];
+            }
+            
+            echo json_encode($response);
         } catch (Exception $e) {
             echo json_encode([
                 'success' => false,
