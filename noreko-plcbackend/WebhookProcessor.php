@@ -27,6 +27,9 @@ class WebhookProcessor {
                     case 'running':
                         $tvattlinje->handleRunning($data);
                         break;
+                    case 'rast':
+                        $tvattlinje->handleRast($data);
+                        break;
                     default:
                         throw new InvalidArgumentException('Unsupported webhook type: ' . $type);
                 }
@@ -41,6 +44,9 @@ class WebhookProcessor {
                             break;
                         case 'running':
                             $rebotling->handleRunning($data);
+                            break;
+                        case 'rast':
+                            $rebotling->handleRast($data);
                             break;
                         case 'skiftrapport':
                             $rebotling->handleSkiftrapport($data);

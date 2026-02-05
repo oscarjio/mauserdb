@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { of } from 'rxjs';
+import { catchError, finalize, timeout } from 'rxjs/operators';
 import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse } from '../../services/tvattlinje.service';
 
 @Component({
@@ -12,6 +14,9 @@ import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse } fr
 export class TvattlinjeLivePage implements OnInit, OnDestroy {
   now = new Date();
   intervalId: any;
+  
+  private isFetchingLineStatus = false;
+  private isFetchingLiveStats = false;
   
   // Line status
   isLineRunning: boolean = false;
@@ -50,45 +55,79 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   }
 
   private fetchLineStatus() {
-    this.tvattlinjeService.getRunningStatus().subscribe((res: LineStatusResponse) => {
-      if (res && res.success && res.data) {
-        this.isLineRunning = res.data.running;
-        this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
-      }
-    });
+    // Undvik parallella status-anrop om backend inte svarar
+    if (this.isFetchingLineStatus) {
+      return;
+    }
+    this.isFetchingLineStatus = true;
+
+    this.tvattlinjeService
+      .getRunningStatus()
+      .pipe(
+        timeout(5000),
+        catchError((err) => {
+          console.error('Fel vid hämtning av tvättlinje linjestatus:', err);
+          return of<LineStatusResponse | null>(null);
+        }),
+        finalize(() => {
+          this.isFetchingLineStatus = false;
+        })
+      )
+      .subscribe((res: LineStatusResponse | null) => {
+        if (res && res.success && res.data) {
+          this.isLineRunning = res.data.running;
+          this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
+        }
+      });
   }
 
   private fetchLiveStats() {
-    this.tvattlinjeService.getLiveStats().subscribe({
-      next: (res: TvattlinjeLiveStatsResponse) => {
+    // Undvik att starta flera parallella anrop om backend slutar svara
+    if (this.isFetchingLiveStats) {
+      return;
+    }
+    this.isFetchingLiveStats = true;
+
+    this.tvattlinjeService
+      .getLiveStats()
+      .pipe(
+        timeout(5000),
+        catchError((err) => {
+          console.error('Fel vid hämtning av tvättlinje live stats:', err);
+          // Fortsätt strömmen men utan att uppdatera data
+          return of<TvattlinjeLiveStatsResponse | null>(null);
+        }),
+        finalize(() => {
+          this.isFetchingLiveStats = false;
+        })
+      )
+      .subscribe((res: TvattlinjeLiveStatsResponse | null) => {
         if (res && res.success && res.data) {
           this.ibcToday = res.data.ibcToday;
           this.ibcTarget = res.data.ibcTarget;
           this.utetemperatur = res.data.utetemperatur;
           // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
           // Kontrollera om productionPercentage finns i response, annars sätt till 0
-          this.productionPercentage = (res.data.productionPercentage !== undefined && res.data.productionPercentage !== null) 
-            ? res.data.productionPercentage 
-            : 0;
-          
+          this.productionPercentage =
+            res.data.productionPercentage !== undefined && res.data.productionPercentage !== null
+              ? res.data.productionPercentage
+              : 0;
+
           // Debug: logga om productionPercentage saknas
           if (res.data.productionPercentage === undefined || res.data.productionPercentage === null) {
             console.warn('productionPercentage saknas i backend response:', res);
           }
-          
+
+          this.updateSpeedometer();
+        } else if (res === null) {
+          // Vid fel behåller vi senaste värdena men loggning görs i catchError
           this.updateSpeedometer();
         } else {
           console.error('Ogiltigt svar från backend:', res);
           this.productionPercentage = 0;
           this.updateSpeedometer();
         }
-      },
-      error: (err) => {
-        console.error('Fel vid hämtning av live stats:', err);
-        this.productionPercentage = 0;
-        this.updateSpeedometer();
-      }
-    });
+      });
   }
 
   private updateSpeedometer() {

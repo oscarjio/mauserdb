@@ -16,6 +16,8 @@ class TvattlinjeController {
                 $this->getAdminSettings();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
+            } elseif ($action === 'statistics') {
+                $this->getStatistics();
             } else {
                 $this->getLiveStats();
             }
@@ -263,5 +265,144 @@ class TvattlinjeController {
         }
         
         return $settings;
+    }
+
+    private function getStatistics() {
+        try {
+            $start = $_GET['start'] ?? date('Y-m-d');
+            $end = $_GET['end'] ?? date('Y-m-d');
+
+            // Tvättlinje har enkel struktur: bara s_count, ibc_count och datum
+            // Vi beräknar cykeltid från tiden mellan varje IBC
+            $stmt = $this->pdo->prepare('
+                SELECT 
+                    i.datum,
+                    i.ibc_count,
+                    i.s_count,
+                    100 as produktion_procent,
+                    1 as skiftraknare,
+                    TIMESTAMPDIFF(MINUTE, 
+                        LAG(i.datum) OVER (ORDER BY i.datum), 
+                        i.datum
+                    ) as cycle_time,
+                    3 as target_cycle_time
+                FROM tvattlinje_ibc i
+                WHERE DATE(i.datum) BETWEEN :start AND :end
+                ORDER BY i.datum ASC
+            ');
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            $rawCycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Filtrera bort felaktiga cykeltider
+            // Tvättlinje har kortare cykeltider, så max 15 minuter istället för 30
+            $cycles = [];
+            foreach ($rawCycles as $cycle) {
+                if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 0 && $cycle['cycle_time'] <= 15) {
+                    $cycles[] = $cycle;
+                } else if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 15) {
+                    // Behåll cykeln men sätt cycle_time till NULL för långa pauser
+                    $cycle['cycle_time'] = null;
+                    $cycles[] = $cycle;
+                }
+            }
+
+            // Hämta on/off events för perioden
+            $stmt = $this->pdo->prepare('
+                SELECT 
+                    datum,
+                    running,
+                    runtime_today
+                FROM tvattlinje_onoff 
+                WHERE DATE(datum) BETWEEN :start AND :end
+                ORDER BY datum ASC
+            ');
+            $stmt->execute(['start' => $start, 'end' => $end]);
+            $onoff_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna sammanfattning
+            $total_cycles = count($cycles);
+            $avg_production_percent = 100; // Tvättlinje har alltid 100% eftersom den inte trackar produktion_procent
+            $avg_cycle_time = 0;
+            $total_runtime_hours = 0;
+            $target_cycle_time = 3; // Tvättlinje mål är 3 minuter
+            
+            if ($total_cycles > 0) {
+                // Beräkna genomsnittlig cykeltid
+                $cycle_times = array_filter(array_column($cycles, 'cycle_time'), function($val) {
+                    return $val !== null && $val > 0;
+                });
+                
+                if (count($cycle_times) > 0) {
+                    $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
+                }
+            }
+
+            // Beräkna total runtime från on/off events
+            $totalRuntimeMinutes = 0;
+            
+            if (count($onoff_events) > 0) {
+                $lastRunningStart = null;
+                
+                foreach ($onoff_events as $event) {
+                    $eventTime = new DateTime($event['datum']);
+                    $isRunning = (bool)($event['running'] ?? false);
+                    
+                    if ($isRunning && $lastRunningStart === null) {
+                        $lastRunningStart = $eventTime;
+                    } elseif (!$isRunning && $lastRunningStart !== null) {
+                        $diff = $lastRunningStart->diff($eventTime);
+                        $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $totalRuntimeMinutes += $periodMinutes;
+                        $lastRunningStart = null;
+                    }
+                }
+                
+                // Om maskinen fortfarande kör vid slutet av perioden
+                if ($lastRunningStart !== null) {
+                    $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum']);
+                    $diff = $lastRunningStart->diff($lastEventTime);
+                    $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalRuntimeMinutes += $periodMinutes;
+                }
+            }
+            
+            // Alternativ beräkning: Om vi inte fick runtime från events men har cykler,
+            // uppskatta runtime från första till sista cykeln
+            if ($totalRuntimeMinutes == 0 && $total_cycles > 0) {
+                $firstCycle = new DateTime($cycles[0]['datum']);
+                $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum']);
+                $diff = $firstCycle->diff($lastCycle);
+                $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+            }
+            
+            $total_runtime_hours = $totalRuntimeMinutes / 60;
+
+            // Räkna dagar med produktion
+            $unique_dates = array_unique(array_map(function($cycle) {
+                return date('Y-m-d', strtotime($cycle['datum']));
+            }, $cycles));
+            $days_with_production = count($unique_dates);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'cycles' => $cycles,
+                    'onoff_events' => $onoff_events,
+                    'summary' => [
+                        'total_cycles' => $total_cycles,
+                        'avg_production_percent' => round($avg_production_percent, 1),
+                        'avg_cycle_time' => round($avg_cycle_time, 1),
+                        'target_cycle_time' => round($target_cycle_time, 1),
+                        'total_runtime_hours' => round($total_runtime_hours, 1),
+                        'days_with_production' => $days_with_production
+                    ]
+                ]
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
+            ]);
+        }
     }
 }

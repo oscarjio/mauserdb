@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { of } from 'rxjs';
+import { catchError, finalize, timeout } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../../services/rebotling.service';
 
 @Component({
@@ -12,6 +14,8 @@ import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from
 export class RebotlingLivePage implements OnInit, OnDestroy {
   now = new Date();
   intervalId: any;
+  private isFetchingLiveStats = false;
+  private isFetchingLineStatus = false;
   
   // Rebotling data
   rebotlingToday: number = 0;
@@ -48,32 +52,70 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   }
 
   private fetchLiveStats() {
-    this.rebotlingService.getLiveStats().subscribe((res: RebotlingLiveStatsResponse) => {
-      if (res && res.success && res.data) {
-        this.rebotlingToday = res.data.rebotlingToday;
-        this.rebotlingTarget = res.data.rebotlingTarget;
-        this.rebotlingThisHour = res.data.rebotlingThisHour;
-        this.hourlyTarget = res.data.hourlyTarget;
-        this.ibcToday = res.data.ibcToday || 0;
-        
-        // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
-        this.productionPercentage = res.data.productionPercentage || 0;
-        
-        // Hämta utetemperatur
-        this.utetemperatur = res.data.utetemperatur ?? null;
-        
-        this.updateSpeedometer();
-      }
-    });
+    // Undvik att starta flera parallella anrop om backend slutar svara
+    if (this.isFetchingLiveStats) {
+      return;
+    }
+    this.isFetchingLiveStats = true;
+
+    this.rebotlingService
+      .getLiveStats()
+      .pipe(
+        // Sätt en timeout så anropet inte hänger för evigt om backend inte svarar
+        timeout(5000),
+        catchError((err) => {
+          console.error('Fel vid hämtning av rebotling live stats:', err);
+          // Fortsätt strömmen men utan att uppdatera data
+          return of<RebotlingLiveStatsResponse | null>(null);
+        }),
+        finalize(() => {
+          this.isFetchingLiveStats = false;
+        })
+      )
+      .subscribe((res: RebotlingLiveStatsResponse | null) => {
+        if (res && res.success && res.data) {
+          this.rebotlingToday = res.data.rebotlingToday;
+          this.rebotlingTarget = res.data.rebotlingTarget;
+          this.rebotlingThisHour = res.data.rebotlingThisHour;
+          this.hourlyTarget = res.data.hourlyTarget;
+          this.ibcToday = res.data.ibcToday || 0;
+
+          // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
+          this.productionPercentage = res.data.productionPercentage || 0;
+
+          // Hämta utetemperatur
+          this.utetemperatur = res.data.utetemperatur ?? null;
+
+          this.updateSpeedometer();
+        }
+      });
   }
 
   private fetchLineStatus() {
-    this.rebotlingService.getRunningStatus().subscribe((res: LineStatusResponse) => {
-      if (res && res.success && res.data) {
-        this.isLineRunning = res.data.running;
-        this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
-      }
-    });
+    // Undvik parallella status-anrop om backend inte svarar
+    if (this.isFetchingLineStatus) {
+      return;
+    }
+    this.isFetchingLineStatus = true;
+
+    this.rebotlingService
+      .getRunningStatus()
+      .pipe(
+        timeout(5000),
+        catchError((err) => {
+          console.error('Fel vid hämtning av rebotling linjestatus:', err);
+          return of<LineStatusResponse | null>(null);
+        }),
+        finalize(() => {
+          this.isFetchingLineStatus = false;
+        })
+      )
+      .subscribe((res: LineStatusResponse | null) => {
+        if (res && res.success && res.data) {
+          this.isLineRunning = res.data.running;
+          this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
+        }
+      });
   }
 
   private updateSpeedometer() {

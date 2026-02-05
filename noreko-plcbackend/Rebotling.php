@@ -449,5 +449,38 @@ class Rebotling {
             'skiftraknare' => $skiftraknare
         ]);
     }
+
+    public function handleRast(array $data): void {
+        // Validera att rast-parameter finns
+        if (!isset($_GET['rast'])) {
+            throw new InvalidArgumentException('Missing required field: rast');
+        }
+
+        $rast_status = (int)$_GET['rast']; // 0 = arbetar, 1 = på rast
+
+        // Hämta senaste status för att undvika duplicering
+        $stmt = $this->db->prepare('
+            SELECT rast_status 
+            FROM rebotling_runtime 
+            ORDER BY datum DESC 
+            LIMIT 1
+        ');
+        $stmt->execute();
+        $lastEntry = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        $lastStatus = $lastEntry ? (int)$lastEntry['rast_status'] : -1;
+
+        // Endast spara om status har ändrats
+        if ($lastStatus !== $rast_status) {
+            $stmt = $this->db->prepare('
+                INSERT INTO rebotling_runtime (datum, rast_status) 
+                VALUES (NOW(), :rast_status)
+            ');
+            
+            $stmt->execute([
+                'rast_status' => $rast_status
+            ]);
+        }
+    }
     
 }

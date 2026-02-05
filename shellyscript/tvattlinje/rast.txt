@@ -1,0 +1,143 @@
+// ========================================
+// Noreko - Tvättlinje Rast-registrering
+// ========================================
+// Detta script övervakar en ingång på Shelly-pucken
+// och registrerar när arbetare tar rast (ingång hög = rast)
+
+// Konfiguration
+let CONFIG = {
+  rastInputPin: 3,           // Vilken ingång som används för rast-signalen
+  debounceTime: 500,         // Debounce i millisekunder (500ms = 0.5s)
+  webhookUrl: "http://192.168.0.100/api/v1.php?type=rast&line=tvattlinje",
+  kvsKeyStatus: "rastStatus" // Nyckel för att spara status i Shelly KVS
+};
+
+// Variabler
+let lastRastState = false;
+let lastChangeTime = 0;
+
+// Ladda senaste status från KVS (för att överleva omstart)
+function loadLastStatus() {
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKeyStatus }, function (res) {
+    if (res && res.value !== undefined) {
+      lastRastState = res.value === "1";
+      print("Laddade senaste rast-status från KVS: ", lastRastState);
+    } else {
+      print("Ingen tidigare status i KVS, startar från false");
+    }
+  });
+}
+
+// Spara status till KVS
+function saveStatus(status) {
+  let statusValue = status ? "1" : "0";
+  Shelly.call("KVS.Set", { 
+    key: CONFIG.kvsKeyStatus, 
+    value: statusValue 
+  }, function (res, error_code, error_message) {
+    if (error_code === 0) {
+      print("Status sparad i KVS: ", status);
+    } else {
+      print("Kunde inte spara status: ", error_message);
+    }
+  });
+}
+
+// Skicka webhook till backend
+function sendWebhook(rastStatus) {
+  let url = CONFIG.webhookUrl + "&rast=" + (rastStatus ? 1 : 0);
+
+  Shelly.call("HTTP.GET", { url: url }, function (result, error_code, error_message) {
+    if (error_code === 0) {
+      print("✓ Webhook skickad - Rast: ", rastStatus ? "PÅ" : "AV");
+      if (result && result.body) {
+        print("  Svar från server: ", result.body);
+      }
+    } else {
+      print("✗ Webhook-fel: ", error_code, " - ", error_message);
+    }
+  });
+}
+
+// Hantera förändring av rast-status
+function handleRastChange(state) {
+  let currentTime = Date.now();
+
+  // Debounce - ignorera snabba ändringar
+  if (currentTime - lastChangeTime < CONFIG.debounceTime) {
+    print("⏱ Debounce - ignorerar ändring");
+    return;
+  }
+
+  // Kolla om status faktiskt har ändrats
+  if (state !== lastRastState) {
+    print("═══════════════════════════════════════");
+    print("🔄 RAST-STATUS ÄNDRAD!");
+    print("   Tidigare: ", lastRastState ? "PÅ RAST" : "ARBETAR");
+    print("   Ny:       ", state ? "PÅ RAST" : "ARBETAR");
+    print("   Tid:      ", new Date().toISOString());
+    print("═══════════════════════════════════════");
+
+    // Uppdatera variabler
+    lastRastState = state;
+    lastChangeTime = currentTime;
+
+    // Spara till KVS
+    saveStatus(state);
+
+    // Skicka till backend
+    sendWebhook(state);
+  }
+}
+
+// Event-hanterare för ingångs-förändring
+Shelly.addEventHandler(function (event) {
+  // Lyssna endast på vår rast-ingång
+  if (event.component === "input:" + CONFIG.rastInputPin) {
+    if (event.info && event.info.state !== undefined) {
+      handleRastChange(event.info.state);
+    }
+  }
+});
+
+// Timer för att övervaka status även utan events (säkerhet)
+// Kör var 30:e sekund
+Timer.set(30000, true, function() {
+  let status = Shelly.getComponentStatus("input:" + CONFIG.rastInputPin);
+  if (status && status.state !== undefined) {
+    // Kontrollera om status skiljer sig från vad vi tror
+    if (status.state !== lastRastState) {
+      print("⚠️ Status-avvikelse upptäckt av timer!");
+      handleRastChange(status.state);
+    }
+  }
+});
+
+// ========================================
+// START
+// ========================================
+print("╔════════════════════════════════════════╗");
+print("║  NOREKO - TVÄTTLINJE RAST-ÖVERVAKARE  ║");
+print("╔════════════════════════════════════════╗");
+print("  Ingång:  Pin ", CONFIG.rastInputPin);
+print("  Backend: ", CONFIG.webhookUrl);
+print("  Debounce:", CONFIG.debounceTime, "ms");
+print("════════════════════════════════════════");
+
+// Ladda senaste status
+loadLastStatus();
+
+// Vänta 1 sekund, sen läs initial status
+Timer.set(1000, false, function() {
+  let status = Shelly.getComponentStatus("input:" + CONFIG.rastInputPin);
+  if (status && status.state !== undefined) {
+    print("📊 Initial status: ", status.state ? "PÅ RAST" : "ARBETAR");
+    
+    // Om status skiljer sig från KVS, skicka uppdatering
+    if (status.state !== lastRastState) {
+      handleRastChange(status.state);
+    }
+  }
+});
+
+print("✅ Script aktivt och övervakar raster!");

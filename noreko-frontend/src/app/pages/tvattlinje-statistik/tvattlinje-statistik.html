@@ -1,1 +1,322 @@
-<div class="tvattlinje-statistik-page"><h2>Tvättlinje Statistik</h2></div>
+<div class="tvattlinje-statistik-page">
+  
+  <!-- Header with Breadcrumb -->
+  <div class="stats-header">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-2">
+            <i class="fas fa-chart-line me-2"></i>
+            Tvättlinje Statistik
+          </h2>
+          <!-- Breadcrumb Navigation -->
+          <nav class="breadcrumb-nav">
+            <button 
+              class="breadcrumb-btn" 
+              (click)="navigateToYear()"
+              [class.active]="viewMode === 'year'">
+              {{ breadcrumb[0] || currentYear }}
+            </button>
+            <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 1">
+              <i class="fas fa-chevron-right"></i>
+            </span>
+            <button 
+              *ngIf="breadcrumb.length > 1"
+              class="breadcrumb-btn" 
+              (click)="navigateToMonth()"
+              [class.active]="viewMode === 'month'">
+              {{ breadcrumb[1] }}
+            </button>
+            <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 2">
+              <i class="fas fa-chevron-right"></i>
+            </span>
+            <button 
+              *ngIf="breadcrumb.length > 2"
+              class="breadcrumb-btn active">
+              {{ breadcrumb[2] }}
+            </button>
+          </nav>
+        </div>
+        
+        <!-- Navigation Controls -->
+        <div class="nav-controls">
+          <button class="btn btn-dark btn-sm" (click)="navigatePrevious()">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="mx-3 view-mode-label">{{ getViewModeLabel() }}</span>
+          <button class="btn btn-dark btn-sm" (click)="navigateNext()">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid py-4">
+    
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <i class="fas fa-cubes"></i>
+          </div>
+          <div class="kpi-value">{{ totalCycles }}</div>
+          <div class="kpi-label">Totalt Cykler</div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="kpi-value">{{ avgCycleTime }} min</div>
+          <div class="kpi-label">Snitt Cykeltid</div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <i class="fas fa-percentage"></i>
+          </div>
+          <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">
+            {{ avgEfficiency }}%
+          </div>
+          <div class="kpi-label">Genomsnittlig Effektivitet</div>
+        </div>
+      </div>
+
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <i class="fas fa-hourglass-half"></i>
+          </div>
+          <div class="kpi-value">{{ totalRuntimeHours }}h</div>
+          <div class="kpi-label">Total Körtid</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="text-center py-5" *ngIf="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-3">Hämtar statistik...</p>
+    </div>
+
+    <!-- Error State -->
+    <div class="alert alert-warning" *ngIf="error && !loading">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      {{ error }}
+      <small class="d-block mt-1">Visar exempeldata</small>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="row" *ngIf="!loading">
+      
+      <!-- Calendar/Period Selector -->
+      <div class="col-lg-3 mb-4">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-calendar-alt me-2"></i>
+              Välj Period
+            </h5>
+            <small class="text-muted" *ngIf="viewMode !== 'day'">
+              Klicka för att markera, dubbelklicka för att öppna
+            </small>
+            <small class="text-muted" *ngIf="viewMode === 'day'">
+              Visar snitt cykeltid (min) per 10-minutersintervall
+            </small>
+          </div>
+          <div class="card-body">
+            <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
+              <div 
+                *ngFor="let cell of periodCells"
+                class="period-cell"
+                [class.has-data]="cell.hasData"
+                [class.selected]="cell.isSelected"
+                (mousedown)="onCellMouseDown(cell, $event)"
+                (mouseenter)="onCellMouseEnter(cell)"
+                (dblclick)="onCellDoubleClick(cell)">
+                <div class="cell-label">{{ cell.label }}</div>
+                <div class="cell-count" *ngIf="cell.hasData && viewMode !== 'day'">
+                  {{ cell.cyclesCount }}
+                </div>
+                <div class="cell-count" *ngIf="cell.hasData && viewMode === 'day' && cell.avgCycleTime > 0">
+                  {{ cell.avgCycleTime }}<small style="font-size: 0.7em;">min</small>
+                </div>
+                <div class="cell-info" *ngIf="cell.hasData && viewMode !== 'day'">
+                  <small>{{ cell.avgCycleTime }}min</small>
+                </div>
+                <div class="cell-info" *ngIf="cell.hasData && viewMode === 'day'">
+                  <small>{{ cell.cyclesCount }} cykel<span *ngIf="cell.cyclesCount !== 1">er</span></small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-3" *ngIf="viewMode !== 'day'">
+              <!-- Action Buttons -->
+              <div class="d-grid gap-2 mb-3">
+                <button 
+                  class="btn btn-primary btn-lg"
+                  (click)="showStatistics()"
+                  [disabled]="loading">
+                  <i class="fas fa-sync-alt me-2" [class.fa-spin]="loading"></i>
+                  <span *ngIf="selectedPeriods.length > 0">
+                    Visa Markerade ({{ selectedPeriods.length }})
+                  </span>
+                  <span *ngIf="selectedPeriods.length === 0">
+                    Uppdatera Statistik
+                  </span>
+                </button>
+                <button 
+                  class="btn btn-outline-secondary"
+                  (click)="clearSelection()"
+                  [disabled]="selectedPeriods.length === 0">
+                  <i class="fas fa-times me-2"></i>
+                  Rensa markering
+                </button>
+              </div>
+              
+              <small class="legend d-block text-center">
+                <span class="legend-item">
+                  <span class="legend-color" style="background: #228b22"></span>
+                  = Produktion
+                </span>
+                <span class="legend-item ms-3">
+                  <span class="legend-color selected"></span>
+                  = Vald
+                </span>
+              </small>
+              <small class="text-muted d-block text-center mt-2">
+                💡 Dra musen för att markera flera
+              </small>
+            </div>
+            
+            <div class="mt-3" *ngIf="viewMode === 'day'">
+              <small class="legend d-block text-center">
+                <span class="legend-item">
+                  <span class="legend-color" style="background: #228b22"></span>
+                  = Data finns
+                </span>
+              </small>
+              <small class="text-muted d-block text-center mt-2">
+                💡 Visar genomsnittlig cykeltid per 10-minutersintervall
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="col-lg-9 mb-4">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-line me-2"></i>
+              Produktionsanalys
+            </h5>
+            <small class="text-muted">
+              Bakgrund: Grön = Kör, Röd = Stoppad | Gul = Snitt | Orange = Mål
+            </small>
+          </div>
+          <div class="card-body">
+            <div class="chart-container">
+              <canvas #productionChart></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Data Table -->
+    <div class="row" *ngIf="!loading && tableData.length > 0">
+      <div class="col-12">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-table me-2"></i>
+              Detaljerad Statistik
+            </h5>
+            <small class="text-muted">
+              Klicka på en rad för att öppna detaljvy
+            </small>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="stats-table">
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th class="text-end">Cykler</th>
+                    <th class="text-end">Snitt Cykeltid</th>
+                    <th class="text-end">Effektivitet</th>
+                    <th class="text-end">Körtid (min)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr 
+                    *ngFor="let row of tableData"
+                    [class.clickable]="row.clickable"
+                    (click)="onTableRowClick(row)">
+                    <td>
+                      <i class="fas fa-calendar-day me-2 text-muted"></i>
+                      {{ row.period }}
+                    </td>
+                    <td class="text-end">
+                      <strong>{{ row.cycles }}</strong>
+                    </td>
+                    <td class="text-end">
+                      {{ row.avgCycleTime }} min
+                    </td>
+                    <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
+                      <strong>{{ row.efficiency }}%</strong>
+                    </td>
+                    <td class="text-end">
+                      {{ row.runtime | number:'1.0-0' }}
+                    </td>
+                  </tr>
+                </tbody>
+                <tfoot *ngIf="tableData.length > 1">
+                  <tr class="total-row">
+                    <td><strong>Totalt</strong></td>
+                    <td class="text-end">
+                      <strong>{{ totalCycles }}</strong>
+                    </td>
+                    <td class="text-end">
+                      <strong>{{ avgCycleTime }} min</strong>
+                    </td>
+                    <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
+                      <strong>{{ avgEfficiency }}%</strong>
+                    </td>
+                    <td class="text-end">
+                      <strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Data Message -->
+    <div class="row" *ngIf="!loading && tableData.length === 0">
+      <div class="col-12">
+        <div class="dark-card text-center py-5">
+          <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+          <h5>Ingen data för vald period</h5>
+          <p class="text-muted">Välj en annan period eller vänta på att produktionen startar</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

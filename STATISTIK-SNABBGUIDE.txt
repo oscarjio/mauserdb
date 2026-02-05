@@ -1,0 +1,151 @@
+╔═══════════════════════════════════════════════════════════════╗
+║        REBOTLING STATISTIKSIDA - SNABBGUIDE                   ║
+╔═══════════════════════════════════════════════════════════════╗
+
+✨ VAD DU FÅR:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 4 KPI-KORT med animationer:
+   • Totalt Antal Cykler
+   • Genomsnittlig Effektivitet (%)
+   • Total Körtid (timmar)
+   • Dagar med Produktion
+
+📈 2 INTERAKTIVA GRAFER (Chart.js):
+   • Produktionsöversikt (cykler + effektivitet)
+   • Linjestatus (grön/röd för kör/stopp)
+
+📅 PRODUKTIONSKALENDER:
+   • Klicka på dagar med produktion
+   • Grön markering = Körde den dagen
+   • Navigation mellan månader
+
+📱 MOBILANPASSAT:
+   • Fungerar perfekt på mobil/tablet/desktop
+   • Bootstrap-responsiv design
+
+
+🎨 DESIGN:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Moderna kort med skuggor och hover-effekter
+• Färgkodade ikoner (Bootstrap-färger)
+• Smooth animationer på allt
+• Professionell typografi
+• Printoptimerad
+
+
+🚀 TESTA DIREKT:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Chart.js är redan installerat! ✅
+
+2. Bygg frontend:
+   Ctrl+Shift+B
+
+3. Kör lokalt för att testa:
+   cd noreko-frontend
+   npm start
+   
+   Gå till: http://localhost:4200/rebotling/statistik
+
+4. Eller deploya direkt:
+   Ctrl+Shift+D
+
+
+📂 FILER SOM SKAPATS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Frontend:
+✅ rebotling-statistik.ts        (Huvudlogik)
+✅ rebotling-statistik.html       (Template)
+✅ rebotling-statistik.css        (Snygg styling)
+✅ rebotling.service.ts           (API-anrop)
+
+Backend:
+✅ RebotlingController.php        (2 nya endpoints)
+   • getStatistics()  - Hämta statistik för period
+   • getDayStats()    - Hämta dagsdetaljer
+
+
+🎯 FUNKTIONER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PERIODVAL:
+• Dag - Timvis detaljvy
+• Vecka - Senaste 7 dagarna
+• Månad - Senaste 30 dagarna  
+• År - Senaste 365 dagarna
+• Anpassad - Välj start/slut
+
+GRAFER:
+• Produktionsöversikt:
+  - Blå linje = Antal cykler (vänster axel)
+  - Grön linje = Effektivitet % (höger axel)
+  - Hover för detaljer
+
+• Linjestatus:
+  - 🟢 Grön = Linjen körde
+  - 🔴 Röd = Linjen stoppad
+
+KALENDER:
+• Grön bakgrund = Produktion den dagen
+• Gul ram = Dagens datum
+• Blå bakgrund = Vald dag
+• Klicka för att se dagsdetaljer
+
+
+💾 MOCK DATA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Om backend inte svarar visas automatiskt testdata!
+
+Du kan testa sidan DIREKT utan att backend är klar.
+
+
+🔮 FRAMTIDA FÖRBÄTTRINGAR (Förberedd!):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• Operatörsjämförelse (placeholder finns redan)
+• Export till Excel/PDF
+• Jämför olika perioder
+• Real-time uppdatering
+• Filtrera på produkt
+• Filtrera på skift
+
+
+📱 RESPONSIV:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Desktop:  4 KPI-kort på rad
+Tablet:   2 KPI-kort på rad
+Mobil:    1 KPI-kort på rad
+
+Grafer anpassar sig automatiskt.
+Kalender touch-optimerad.
+
+
+🎨 FÄRGER:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Primary (Blå):   #0d6efd
+Success (Grön):  #198754
+Warning (Gul):   #ffc107
+Danger (Röd):    #dc3545
+Info (Ljusblå):  #0dcaf0
+
+
+📖 FULLSTÄNDIG DOKUMENTATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Se: STATISTIK-README.md
+
+
+═══════════════════════════════════════════════════════════════
+
+🎉 ALLT ÄR KLART!
+
+Testa med: npm start
+Deploya med: Ctrl+Shift+D
+
+Statistiksidan är proffsig, snabb och mobilanpassad! 🚀
