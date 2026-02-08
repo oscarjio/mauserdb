@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { TvattlinjeService } from '../../services/tvattlinje.service';
 
@@ -56,14 +57,30 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
   
   productionChart: Chart | null = null;
   tableData: TableRow[] = [];
+
+  // Senaste hämtade statistik-data (för zoom/markering i grafen)
+  private lastStatisticsData: any = null;
+  // Markering i dags-grafen (10-minutersintervall, index 0-143)
+  private chartSelectionStartIndex: number | null = null;
+  private chartSelectionEndIndex: number | null = null;
+  // Förhandsvisning medan man drar med musen
+  private chartSelectionPreviewStartIndex: number | null = null;
+  private chartSelectionPreviewEndIndex: number | null = null;
   
   loading: boolean = false;
   error: string | null = null;
   breadcrumb: string[] = [];
 
+  /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
+  showOnlyDaysWithCycles: boolean = true;
+
   isDragging: boolean = false;
 
-  constructor(private tvattlinjeService: TvattlinjeService) {}
+  constructor(
+    private tvattlinjeService: TvattlinjeService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
   @HostListener('document:mouseup')
   onDocumentMouseUp() {
@@ -71,10 +88,65 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    this.applyStateFromUrl();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    // Auto-load statistics for initial view
+    this.syncStateToUrl();
     this.loadStatistics();
+  }
+
+  /** Läs vy, år, månad och valda datum från URL query params. */
+  private applyStateFromUrl() {
+    const q = this.route.snapshot.queryParams;
+    const view = (q['view'] || 'month') as ViewMode;
+    if (view === 'year' || view === 'month' || view === 'day') {
+      this.viewMode = view;
+    }
+    const year = parseInt(q['year'], 10);
+    if (!isNaN(year) && year >= 2000 && year <= 2100) {
+      this.currentYear = year;
+    }
+    const month = parseInt(q['month'], 10);
+    if (!isNaN(month) && month >= 0 && month <= 11) {
+      this.currentMonth = month;
+    }
+    const datesStr = q['dates'];
+    if (datesStr && typeof datesStr === 'string') {
+      const parts = datesStr.split(',').map(s => s.trim()).filter(Boolean);
+      this.selectedPeriods = parts
+        .map(s => {
+          const d = new Date(s);
+          return isNaN(d.getTime()) ? null : d;
+        })
+        .filter((d): d is Date => d !== null);
+      if (this.selectedPeriods.length > 0 && (isNaN(year) || isNaN(month))) {
+        const first = this.selectedPeriods[0];
+        this.currentYear = first.getFullYear();
+        this.currentMonth = first.getMonth();
+      }
+    }
+  }
+
+  /** Uppdatera URL med nuvarande vy, år, månad och valda datum (ersätter inte history). */
+  private syncStateToUrl() {
+    const params: Record<string, string> = {
+      view: this.viewMode,
+      year: String(this.currentYear),
+      month: String(this.currentMonth)
+    };
+    if (this.selectedPeriods.length > 0) {
+      params['dates'] = this.selectedPeriods
+        .map(d => this.formatDate(d))
+        .join(',');
+    } else {
+      delete params['dates'];
+    }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
   }
 
   ngAfterViewInit() {}
@@ -94,8 +166,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
   navigateToYear() {
     this.viewMode = 'year';
     this.selectedPeriods = [];
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -106,16 +180,22 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       this.currentMonth = date.getMonth();
     }
     this.selectedPeriods = [];
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
   navigateToDay(date: Date) {
     this.viewMode = 'day';
     this.selectedPeriods = [date];
+    this.currentYear = date.getFullYear();
+    this.currentMonth = date.getMonth();
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -134,8 +214,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       this.selectedPeriods = [date];
     }
     
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -154,8 +236,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       this.selectedPeriods = [date];
     }
     
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -178,8 +262,22 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       }
     } else if (this.viewMode === 'month') {
       const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-      
-      for (let day = 1; day <= daysInMonth; day++) {
+
+      // Om användaren har markerat specifika dagar vill vi bara visa dessa i kalendern
+      let daysToShow: number[];
+      if (this.selectedPeriods.length > 0) {
+        const daySet = new Set<number>();
+        this.selectedPeriods.forEach(d => {
+          if (d.getFullYear() === this.currentYear && d.getMonth() === this.currentMonth) {
+            daySet.add(d.getDate());
+          }
+        });
+        daysToShow = Array.from(daySet).sort((a, b) => a - b);
+      } else {
+        daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+      }
+
+      daysToShow.forEach(day => {
         const date = new Date(this.currentYear, this.currentMonth, day);
         this.periodCells.push({
           label: `${day}`,
@@ -191,7 +289,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
           isSelected: this.isDateSelected(date),
           hasData: false
         });
-      }
+      });
     } else if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
       const date = this.selectedPeriods[0];
       // Generate 10-minute intervals (6 per hour, 144 total)
@@ -239,16 +337,61 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       this.selectedPeriods.push(cell.date);
       cell.isSelected = true;
     }
+    this.syncStateToUrl();
   }
 
   clearSelection() {
     this.selectedPeriods = [];
     this.periodCells.forEach(cell => cell.isSelected = false);
+    this.generatePeriodCells();
+    this.resetChartSelection();
+    this.syncStateToUrl();
   }
 
   showStatistics() {
-    // Reload statistics for selected periods
+    if (this.viewMode === 'year' && this.selectedPeriods.length === 1) {
+      this.navigateToMonth(this.selectedPeriods[0]);
+      return;
+    }
+    if (this.viewMode === 'month' && this.selectedPeriods.length === 1) {
+      this.navigateToDay(this.selectedPeriods[0]);
+      return;
+    }
+    if (this.viewMode === 'month' && this.selectedPeriods.length > 0) {
+      this.generatePeriodCells();
+      this.syncStateToUrl();
+    }
     this.loadStatistics();
+  }
+
+  /** Celler som ska visas i kalendern (filtrerar bort dagar utan data i månadsvy om showOnlyDaysWithCycles) */
+  getVisiblePeriodCells(): PeriodCell[] {
+    if (this.viewMode !== 'month' || !this.showOnlyDaysWithCycles) {
+      return this.periodCells;
+    }
+    const withData = this.periodCells.filter(cell => cell.hasData);
+    return withData.length > 0 ? withData : this.periodCells;
+  }
+
+  private resetChartSelection() {
+    this.chartSelectionStartIndex = null;
+    this.chartSelectionEndIndex = null;
+    this.chartSelectionPreviewStartIndex = null;
+    this.chartSelectionPreviewEndIndex = null;
+  }
+
+  chartHasSelection(): boolean {
+    return this.chartSelectionStartIndex !== null && this.chartSelectionEndIndex !== null;
+  }
+
+  resetChartZoom() {
+    if (!this.lastStatisticsData) {
+      this.resetChartSelection();
+      return;
+    }
+    this.resetChartSelection();
+    this.updateChart(this.lastStatisticsData);
+    this.updateTable(this.lastStatisticsData);
   }
 
   onCellDoubleClick(cell: PeriodCell) {
@@ -277,6 +420,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
     this.tvattlinjeService.getStatistics(start, end).subscribe({
       next: (response) => {
         if (response.success) {
+          // Spara senaste data så vi kan zooma/markera i grafen
+          this.lastStatisticsData = response.data;
           this.updateStatistics(response.data);
           this.updateChart(response.data);
           this.updateTable(response.data);
@@ -332,12 +477,17 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
     return { start: this.formatDate(start), end: this.formatDate(end) };
   }
 
+  /** YYYY-MM-DD i lokal tidszon (inte UTC) så att dagvy inte får fel dag/antal. */
   formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   loadMockData() {
     const mockData = this.generateMockData();
+    this.lastStatisticsData = mockData;
     this.updateStatistics(mockData);
     this.updateChart(mockData);
     this.updateTable(mockData);
@@ -602,12 +752,40 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
         }
       }
     } else if (this.viewMode === 'month') {
-      const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-      for (let d = 1; d <= daysInMonth; d++) {
-        grouped.set(`${d}`, { 
-          cycles: [], 
-          cycleTime: [], 
-          running: false 
+      const useHourlyChart = this.selectedPeriods.length >= 2;
+
+      if (useHourlyChart) {
+        // Flera dagar valda: visa per timme för mer detalj
+        const sorted = [...this.selectedPeriods].sort((a, b) => a.getTime() - b.getTime());
+        const start = new Date(sorted[0]);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(sorted[sorted.length - 1]);
+        end.setHours(23, 0, 0, 0);
+        for (let t = new Date(start); t <= end; t.setHours(t.getHours() + 1)) {
+          const y = t.getFullYear();
+          const m = t.getMonth();
+          const d = t.getDate();
+          const h = t.getHours();
+          const key = `${y}-${m}-${d}-${h}`;
+          const label = `${d}/${m + 1} ${h.toString().padStart(2, '0')}`;
+          grouped.set(key, { cycles: [], cycleTime: [], running: false, label });
+        }
+      } else {
+        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        let daysToShow: number[];
+        if (this.selectedPeriods.length > 0) {
+          const daySet = new Set<number>();
+          this.selectedPeriods.forEach(d => {
+            if (d.getFullYear() === this.currentYear && d.getMonth() === this.currentMonth) {
+              daySet.add(d.getDate());
+            }
+          });
+          daysToShow = Array.from(daySet).sort((a, b) => a - b);
+        } else {
+          daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        }
+        daysToShow.forEach(d => {
+          grouped.set(`${d}`, { cycles: [], cycleTime: [], running: false });
         });
       }
     } else {
@@ -620,6 +798,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       }
     }
     
+    const monthViewHourly = this.viewMode === 'month' && this.selectedPeriods.length >= 2;
+
     // Add cycle data
     cycles.forEach((cycle: any, index: number) => {
       const date = new Date(cycle.datum);
@@ -630,7 +810,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
         const minute = Math.floor(date.getMinutes() / 10) * 10;
         key = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       } else if (this.viewMode === 'month') {
-        key = `${date.getDate()}`;
+        key = monthViewHourly
+          ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
+          : `${date.getDate()}`;
       } else {
         key = this.monthNames[date.getMonth()].substring(0, 3);
       }
@@ -658,7 +840,9 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
         const minute = Math.floor(date.getMinutes() / 10) * 10;
         key = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       } else if (this.viewMode === 'month') {
-        key = `${date.getDate()}`;
+        key = monthViewHourly
+          ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
+          : `${date.getDate()}`;
       } else {
         key = this.monthNames[date.getMonth()].substring(0, 3);
       }
@@ -675,7 +859,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       }
     });
 
-    // Build arrays
+    // Build arrays (med stöd för zoom/markering i dag-vy)
     const labels: string[] = [];
     const cycleTime: number[] = [];
     const avgCycleTimeArr: number[] = [];
@@ -683,9 +867,28 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
     
     let totalCycleTime = 0;
     let totalCount = 0;
-    
-    grouped.forEach((value, key) => {
-      labels.push(key);
+
+    const entries = Array.from(grouped.entries());
+
+    // Om vi är i dagsvy och har en markering i grafen, begränsa till valt intervall
+    let fromIndex = 0;
+    let toIndex = entries.length - 1;
+    if (
+      this.viewMode === 'day' &&
+      this.chartSelectionStartIndex !== null &&
+      this.chartSelectionEndIndex !== null &&
+      entries.length > 0
+    ) {
+      const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      fromIndex = Math.max(0, minSel);
+      toIndex = Math.min(entries.length - 1, maxSel);
+    }
+
+    const slicedEntries = entries.slice(fromIndex, toIndex + 1);
+
+    slicedEntries.forEach(([key, value]) => {
+      labels.push((value as any).label !== undefined ? (value as any).label : key);
       
       let avgTime = 0;
       if (value.cycleTime.length > 0) {
@@ -707,11 +910,13 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
       targetCycleTimeArr.push(this.targetCycleTime);
     });
 
-    // Build running periods for background colors
+    // Build running periods for background colors (anpassat till ev. urklippt intervall)
     const runningPeriods: any[] = [];
     let currentPeriod: any = null;
+
+    const slicedValues = slicedEntries.map(([, value]) => value);
     
-    Array.from(grouped.values()).forEach((value, index) => {
+    slicedValues.forEach((value, index) => {
       if (value.running && (!currentPeriod || !currentPeriod.running)) {
         if (currentPeriod) runningPeriods.push(currentPeriod);
         currentPeriod = { startIndex: index, endIndex: index, running: true };
@@ -849,13 +1054,118 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
                 console.error('Background draw error:', e);
               }
             });
+
+            // Rita förhandsvisning av markerat intervall i ljusblått när man drar i dags-vy
+            if (
+              this.viewMode === 'day' &&
+              this.chartSelectionPreviewStartIndex !== null &&
+              this.chartSelectionPreviewEndIndex !== null
+            ) {
+              try {
+                const minSel = Math.min(this.chartSelectionPreviewStartIndex, this.chartSelectionPreviewEndIndex);
+                const maxSel = Math.max(this.chartSelectionPreviewStartIndex, this.chartSelectionPreviewEndIndex);
+                const selStart = Math.max(0, minSel);
+                const selEnd = maxSel + 1;
+
+                const xStart = scales.x.getPixelForValue(selStart);
+                const xEnd = scales.x.getPixelForValue(selEnd);
+
+                ctx.fillStyle = 'rgba(0, 153, 255, 0.18)'; // ljusblå, transparent
+                ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+              } catch (e) {
+                console.error('Selection preview draw error:', e);
+              }
+            }
           }
         }]
       });
       
+      // Aktivera interaktiv markering/zoom i grafen för dag-vy
+      this.attachChartSelectionHandlers(this.productionChart);
+      
     } catch (error) {
       console.error('❌ Chart creation error:', error);
     }
+  }
+
+  private attachChartSelectionHandlers(chart: Chart) {
+    const canvas = chart.canvas as HTMLCanvasElement | null;
+    if (!canvas) {
+      return;
+    }
+
+    let isSelecting = false;
+    let startIndex: number | null = null;
+
+    const getIndexFromEvent = (event: MouseEvent): number | null => {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const xScale: any = chart.scales['x'];
+      if (!xScale) return null;
+
+      const value = xScale.getValueForPixel(x);
+      if (typeof value === 'number') {
+        return Math.round(value);
+      }
+      if (typeof value === 'string' && Array.isArray(chart.data.labels)) {
+        const idx = (chart.data.labels as string[]).indexOf(value);
+        return idx >= 0 ? idx : null;
+      }
+      return null;
+    };
+
+    canvas.onmousedown = (event: MouseEvent) => {
+      if (this.viewMode !== 'day') return;
+      if (!this.lastStatisticsData) return;
+
+      const idx = getIndexFromEvent(event);
+      if (idx === null) return;
+
+      isSelecting = true;
+      startIndex = idx;
+      this.chartSelectionPreviewStartIndex = idx;
+      this.chartSelectionPreviewEndIndex = idx;
+      chart.update('none');
+    };
+
+    canvas.onmouseup = (event: MouseEvent) => {
+      if (!isSelecting) return;
+      isSelecting = false;
+      if (this.viewMode !== 'day') return;
+      if (!this.lastStatisticsData) return;
+
+      const endIndex = getIndexFromEvent(event);
+      if (startIndex === null || endIndex === null) return;
+
+      this.chartSelectionStartIndex = startIndex;
+      this.chartSelectionEndIndex = endIndex;
+      this.chartSelectionPreviewStartIndex = null;
+      this.chartSelectionPreviewEndIndex = null;
+
+      // Rita om graf och tabell för endast valt intervall
+      this.updateChart(this.lastStatisticsData);
+      this.updateTable(this.lastStatisticsData);
+    };
+
+    // Dubbelklick på grafen nollställer markeringen (visar hela dagen igen)
+    canvas.ondblclick = () => {
+      if (!this.lastStatisticsData) return;
+      this.resetChartSelection();
+      this.updateChart(this.lastStatisticsData);
+      this.updateTable(this.lastStatisticsData);
+    };
+
+    canvas.onmousemove = (event: MouseEvent) => {
+      if (!isSelecting) return;
+      if (this.viewMode !== 'day') return;
+      if (!this.lastStatisticsData) return;
+
+      const idx = getIndexFromEvent(event);
+      if (idx === null) return;
+
+      this.chartSelectionPreviewEndIndex = idx;
+      chart.update('none');
+    };
   }
 
   updateTable(data: any) {
@@ -874,6 +1184,20 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
         // Group by 10-minute intervals for day view
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
+
+        // Om användaren har markerat ett intervall i dag-vyn, filtrera bort cykler utanför
+        if (
+          this.chartSelectionStartIndex !== null &&
+          this.chartSelectionEndIndex !== null
+        ) {
+          const bucketIndex = hour * 6 + minute / 10;
+          const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          if (bucketIndex < minSel || bucketIndex > maxSel) {
+            return;
+          }
+        }
+
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}-${minute}`;
       }
       

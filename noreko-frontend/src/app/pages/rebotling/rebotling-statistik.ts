@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Chart, registerables } from 'chart.js';
 import { RebotlingService } from '../../services/rebotling.service';
 
@@ -57,13 +58,29 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
   productionChart: Chart | null = null;
   tableData: TableRow[] = [];
   
+  // Senaste hämtade statistik-data (används för zoom/val i grafen)
+  private lastStatisticsData: any = null;
+  // Markering i dags-grafen (10-minutersintervall, index 0-143)
+  private chartSelectionStartIndex: number | null = null;
+  private chartSelectionEndIndex: number | null = null;
+  // Förhandsvisning medan man drar med musen
+  private chartSelectionPreviewStartIndex: number | null = null;
+  private chartSelectionPreviewEndIndex: number | null = null;
+  
   loading: boolean = false;
   error: string | null = null;
   breadcrumb: string[] = [];
 
+  /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
+  showOnlyDaysWithCycles: boolean = true;
+
   isDragging: boolean = false;
 
-  constructor(private rebotlingService: RebotlingService) {}
+  constructor(
+    private rebotlingService: RebotlingService,
+    private route: ActivatedRoute,
+    private router: Router
+  ) {}
 
   @HostListener('document:mouseup')
   onDocumentMouseUp() {
@@ -71,10 +88,90 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
   }
 
   ngOnInit() {
+    this.applyStateFromUrl();
+    this.syncStateToUrl();
     this.updateBreadcrumb();
     this.generatePeriodCells();
-    // Auto-load statistics for initial view
     this.loadStatistics();
+  }
+
+  /** Återställ vy och val från URL (vid sidladdning / uppdatering) */
+  private applyStateFromUrl() {
+    const q = this.route.snapshot.queryParamMap;
+    const view = q.get('view') as ViewMode | null;
+    if (!view || !['year', 'month', 'day'].includes(view)) return;
+
+    const y = q.get('y');
+    const year = y ? parseInt(y, 10) : null;
+    if (year === null || isNaN(year)) return;
+
+    this.viewMode = view;
+    this.currentYear = year;
+
+    if (view === 'year') {
+      this.selectedPeriods = [];
+      const months = q.get('months');
+      if (months) {
+        months.split(',').forEach(s => {
+          const m = parseInt(s.trim(), 10);
+          if (!isNaN(m) && m >= 0 && m <= 11) {
+            this.selectedPeriods.push(new Date(year, m, 1));
+          }
+        });
+      }
+    } else if (view === 'month') {
+      const m = q.get('m');
+      const month = m !== null ? parseInt(m, 10) : null;
+      if (month === null || isNaN(month) || month < 0 || month > 11) return;
+      this.currentMonth = month;
+      this.selectedPeriods = [];
+      const days = q.get('days');
+      if (days) {
+        days.split(',').forEach(s => {
+          const d = parseInt(s.trim(), 10);
+          if (!isNaN(d) && d >= 1 && d <= 31) {
+            this.selectedPeriods.push(new Date(year, month, d));
+          }
+        });
+      }
+    } else {
+      const dateStr = q.get('date');
+      if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
+      const [yStr, moStr, dStr] = dateStr.split('-').map(Number);
+      this.selectedPeriods = [new Date(yStr, moStr - 1, dStr)];
+      this.currentYear = yStr;
+      this.currentMonth = moStr - 1;
+    }
+    this.resetChartSelection();
+  }
+
+  /** Skriv aktuell vy och val till URL */
+  private syncStateToUrl() {
+    const params: Record<string, string> = {
+      view: this.viewMode,
+      y: String(this.currentYear)
+    };
+    if (this.viewMode === 'year') {
+      if (this.selectedPeriods.length > 0) {
+        const months = [...new Set(this.selectedPeriods.map(d => d.getMonth()))].sort((a, b) => a - b);
+        params['months'] = months.join(',');
+      }
+    } else if (this.viewMode === 'month') {
+      params['m'] = String(this.currentMonth);
+      if (this.selectedPeriods.length > 0) {
+        const days = [...new Set(this.selectedPeriods.map(d => d.getDate()))].sort((a, b) => a - b);
+        params['days'] = days.join(',');
+      }
+    } else if (this.viewMode === 'day' && this.selectedPeriods.length > 0) {
+      const d = this.selectedPeriods[0];
+      params['date'] = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: params,
+      queryParamsHandling: '',
+      replaceUrl: true
+    });
   }
 
   ngAfterViewInit() {}
@@ -94,8 +191,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
   navigateToYear() {
     this.viewMode = 'year';
     this.selectedPeriods = [];
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -106,16 +205,20 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       this.currentMonth = date.getMonth();
     }
     this.selectedPeriods = [];
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
   navigateToDay(date: Date) {
     this.viewMode = 'day';
     this.selectedPeriods = [date];
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -134,8 +237,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       this.selectedPeriods = [date];
     }
     
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -154,8 +259,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       this.selectedPeriods = [date];
     }
     
+    this.resetChartSelection();
     this.updateBreadcrumb();
     this.generatePeriodCells();
+    this.syncStateToUrl();
     this.loadStatistics();
   }
 
@@ -244,11 +351,59 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
   clearSelection() {
     this.selectedPeriods = [];
     this.periodCells.forEach(cell => cell.isSelected = false);
+    this.resetChartSelection();
+    this.syncStateToUrl();
+  }
+
+  private resetChartSelection() {
+    this.chartSelectionStartIndex = null;
+    this.chartSelectionEndIndex = null;
+    this.chartSelectionPreviewStartIndex = null;
+    this.chartSelectionPreviewEndIndex = null;
+  }
+
+  chartHasSelection(): boolean {
+    return this.chartSelectionStartIndex !== null && this.chartSelectionEndIndex !== null;
+  }
+
+  resetChartZoom() {
+    if (!this.lastStatisticsData) {
+      this.resetChartSelection();
+      return;
+    }
+    this.resetChartSelection();
+    this.updateChart(this.lastStatisticsData);
+    this.updateTable(this.lastStatisticsData);
   }
 
   showStatistics() {
-    // Reload statistics for selected periods
+    // Ett val i årsvy → gå till månadsvy för den månaden
+    if (this.viewMode === 'year' && this.selectedPeriods.length === 1) {
+      this.navigateToMonth(this.selectedPeriods[0]);
+      return;
+    }
+    // Ett val i månadsvy → gå till dagsvy för den dagen
+    if (this.viewMode === 'month' && this.selectedPeriods.length === 1) {
+      this.navigateToDay(this.selectedPeriods[0]);
+      return;
+    }
+    // Flera valda: uppdatera kalender, synka URL och ladda statistik
+    if (this.viewMode === 'month' && this.selectedPeriods.length > 0) {
+      this.generatePeriodCells();
+    }
+    if (this.selectedPeriods.length > 0) {
+      this.syncStateToUrl();
+    }
     this.loadStatistics();
+  }
+
+  /** Celler som ska visas i kalendern (filtrerar bort dagar utan data i månadsvy om showOnlyDaysWithCycles) */
+  getVisiblePeriodCells(): PeriodCell[] {
+    if (this.viewMode !== 'month' || !this.showOnlyDaysWithCycles) {
+      return this.periodCells;
+    }
+    const withData = this.periodCells.filter(cell => cell.hasData);
+    return withData.length > 0 ? withData : this.periodCells;
   }
 
   onCellDoubleClick(cell: PeriodCell) {
@@ -277,6 +432,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
     this.rebotlingService.getStatistics(start, end).subscribe({
       next: (response) => {
         if (response.success) {
+          // Spara senaste data så vi kan göra zoom/markering i grafen utan att hämta om
+          this.lastStatisticsData = response.data;
           this.updateStatistics(response.data);
           this.updateChart(response.data);
           this.updateTable(response.data);
@@ -332,12 +489,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
     return { start: this.formatDate(start), end: this.formatDate(end) };
   }
 
+  /** YYYY-MM-DD i lokal tidszon (inte UTC) så att dagvy inte får fel dag/antal. */
   formatDate(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   loadMockData() {
     const mockData = this.generateMockData();
+    this.lastStatisticsData = mockData;
     this.updateStatistics(mockData);
     this.updateChart(mockData);
     this.updateTable(mockData);
@@ -602,12 +764,40 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
         }
       }
     } else if (this.viewMode === 'month') {
-      const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
-      for (let d = 1; d <= daysInMonth; d++) {
-        grouped.set(`${d}`, { 
-          cycles: [], 
-          cycleTime: [], 
-          running: false 
+      const useHourlyChart = this.selectedPeriods.length >= 2;
+
+      if (useHourlyChart) {
+        // Flera dagar valda: visa per timme för mer detalj
+        const sorted = [...this.selectedPeriods].sort((a, b) => a.getTime() - b.getTime());
+        const start = new Date(sorted[0]);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(sorted[sorted.length - 1]);
+        end.setHours(23, 0, 0, 0);
+        for (let t = new Date(start); t <= end; t.setHours(t.getHours() + 1)) {
+          const y = t.getFullYear();
+          const m = t.getMonth();
+          const d = t.getDate();
+          const h = t.getHours();
+          const key = `${y}-${m}-${d}-${h}`;
+          const label = `${d}/${m + 1} ${h.toString().padStart(2, '0')}`;
+          grouped.set(key, { cycles: [], cycleTime: [], running: false, label });
+        }
+      } else {
+        const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+        let daysToShow: number[];
+        if (this.selectedPeriods.length > 0) {
+          const daySet = new Set<number>();
+          this.selectedPeriods.forEach(d => {
+            if (d.getFullYear() === this.currentYear && d.getMonth() === this.currentMonth) {
+              daySet.add(d.getDate());
+            }
+          });
+          daysToShow = Array.from(daySet).sort((a, b) => a - b);
+        } else {
+          daysToShow = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        }
+        daysToShow.forEach(d => {
+          grouped.set(`${d}`, { cycles: [], cycleTime: [], running: false });
         });
       }
     } else {
@@ -620,6 +810,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       }
     }
     
+    const monthViewHourly = this.viewMode === 'month' && this.selectedPeriods.length >= 2;
+
     // Add cycle data
     cycles.forEach((cycle: any, index: number) => {
       const date = new Date(cycle.datum);
@@ -630,7 +822,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
         const minute = Math.floor(date.getMinutes() / 10) * 10;
         key = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       } else if (this.viewMode === 'month') {
-        key = `${date.getDate()}`;
+        key = monthViewHourly
+          ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
+          : `${date.getDate()}`;
       } else {
         key = this.monthNames[date.getMonth()].substring(0, 3);
       }
@@ -658,7 +852,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
         const minute = Math.floor(date.getMinutes() / 10) * 10;
         key = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       } else if (this.viewMode === 'month') {
-        key = `${date.getDate()}`;
+        key = monthViewHourly
+          ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
+          : `${date.getDate()}`;
       } else {
         key = this.monthNames[date.getMonth()].substring(0, 3);
       }
@@ -675,7 +871,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       }
     });
 
-    // Build arrays
+    // Build arrays (med stöd för zoom/markering i dag-vy)
     const labels: string[] = [];
     const cycleTime: number[] = [];
     const avgCycleTimeArr: number[] = [];
@@ -683,9 +879,28 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
     
     let totalCycleTime = 0;
     let totalCount = 0;
-    
-    grouped.forEach((value, key) => {
-      labels.push(key);
+
+    const entries = Array.from(grouped.entries());
+
+    // Om vi är i dagsvy och har en markering i grafen, begränsa till valt intervall
+    let fromIndex = 0;
+    let toIndex = entries.length - 1;
+    if (
+      this.viewMode === 'day' &&
+      this.chartSelectionStartIndex !== null &&
+      this.chartSelectionEndIndex !== null &&
+      entries.length > 0
+    ) {
+      const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      fromIndex = Math.max(0, minSel);
+      toIndex = Math.min(entries.length - 1, maxSel);
+    }
+
+    const slicedEntries = entries.slice(fromIndex, toIndex + 1);
+
+    slicedEntries.forEach(([key, value]) => {
+      labels.push((value as any).label !== undefined ? (value as any).label : key);
       
       let avgTime = 0;
       if (value.cycleTime.length > 0) {
@@ -707,11 +922,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       targetCycleTimeArr.push(this.targetCycleTime);
     });
 
-    // Build running periods for background colors
+    // Build running periods for background colors (anpassat till ev. urklippt intervall)
     const runningPeriods: any[] = [];
     let currentPeriod: any = null;
+
+    const slicedValues = slicedEntries.map(([, value]) => value);
     
-    Array.from(grouped.values()).forEach((value, index) => {
+    slicedValues.forEach((value, index) => {
       if (value.running && (!currentPeriod || !currentPeriod.running)) {
         if (currentPeriod) runningPeriods.push(currentPeriod);
         currentPeriod = { startIndex: index, endIndex: index, running: true };
@@ -849,13 +1066,127 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
                 console.error('Background draw error:', e);
               }
             });
+
+            // Rita förhandsvisning av markerat intervall i ljusblått när man drar i dags-vy
+            if (
+              this.viewMode === 'day' &&
+              this.chartSelectionPreviewStartIndex !== null &&
+              this.chartSelectionPreviewEndIndex !== null
+            ) {
+              try {
+                const minSel = Math.min(this.chartSelectionPreviewStartIndex, this.chartSelectionPreviewEndIndex);
+                const maxSel = Math.max(this.chartSelectionPreviewStartIndex, this.chartSelectionPreviewEndIndex);
+                const selStart = Math.max(0, minSel);
+                const selEnd = maxSel + 1;
+
+                const xStart = scales.x.getPixelForValue(selStart);
+                const xEnd = scales.x.getPixelForValue(selEnd);
+
+                ctx.fillStyle = 'rgba(0, 153, 255, 0.18)'; // ljusblå, transparent
+                ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+              } catch (e) {
+                console.error('Selection preview draw error:', e);
+              }
+            }
           }
         }]
       });
       
+      // Aktivera interaktiv markering/zoom i grafen för dag-vy
+      this.attachChartSelectionHandlers(this.productionChart);
+      
     } catch (error) {
       console.error('❌ Chart creation error:', error);
     }
+  }
+
+  private attachChartSelectionHandlers(chart: Chart) {
+    const canvas = chart.canvas as HTMLCanvasElement | null;
+    if (!canvas) {
+      return;
+    }
+
+    let isSelecting = false;
+    let startIndex: number | null = null;
+
+    const getIndexFromEvent = (event: MouseEvent): number | null => {
+      const rect = canvas.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const xScale: any = chart.scales['x'];
+      if (!xScale) return null;
+
+      const value = xScale.getValueForPixel(x);
+      if (typeof value === 'number') {
+        return Math.round(value);
+      }
+      // För kategorisk skala kan value ibland vara label, då försöker vi slå upp indexet
+      if (typeof value === 'string' && Array.isArray(chart.data.labels)) {
+        const idx = (chart.data.labels as string[]).indexOf(value);
+        return idx >= 0 ? idx : null;
+      }
+      return null;
+    };
+
+    canvas.onmousedown = (event: MouseEvent) => {
+      if (this.viewMode !== 'day') return;
+      if (!this.lastStatisticsData) return;
+
+      const idx = getIndexFromEvent(event);
+      if (idx === null) return;
+
+      isSelecting = true;
+      startIndex = idx;
+      this.chartSelectionPreviewStartIndex = idx;
+      this.chartSelectionPreviewEndIndex = idx;
+      chart.update('none');
+    };
+
+    canvas.onmouseup = (event: MouseEvent) => {
+      if (!isSelecting) return;
+      isSelecting = false;
+      if (this.viewMode !== 'day') return;
+      if (!this.lastStatisticsData) return;
+
+      const endIndex = getIndexFromEvent(event);
+      if (startIndex === null || endIndex === null) return;
+
+      this.chartSelectionStartIndex = startIndex;
+      this.chartSelectionEndIndex = endIndex;
+      this.chartSelectionPreviewStartIndex = null;
+      this.chartSelectionPreviewEndIndex = null;
+
+      // Rita om graf och tabell för endast valt intervall
+      this.updateChart(this.lastStatisticsData);
+      this.updateTable(this.lastStatisticsData);
+    };
+
+    // Dubbelklick på grafen nollställer markeringen (visar hela dagen igen)
+    canvas.ondblclick = () => {
+      if (!this.lastStatisticsData) return;
+      this.resetChartSelection();
+      this.updateChart(this.lastStatisticsData);
+      this.updateTable(this.lastStatisticsData);
+    };
+
+    canvas.onmousemove = (event: MouseEvent) => {
+      if (!isSelecting) return;
+      if (this.viewMode !== 'day') return;
+      if (!this.lastStatisticsData) return;
+
+      const idx = getIndexFromEvent(event);
+      if (idx === null) return;
+
+      this.chartSelectionPreviewEndIndex = idx;
+      chart.update('none');
+    };
+
+    // Dubbelklick på grafen nollställer markeringen (visar hela dagen igen)
+    canvas.ondblclick = () => {
+      if (!this.lastStatisticsData) return;
+      this.resetChartSelection();
+      this.updateChart(this.lastStatisticsData);
+      this.updateTable(this.lastStatisticsData);
+    };
   }
 
   updateTable(data: any) {
@@ -874,6 +1205,20 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
         // Group by 10-minute intervals for day view
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
+
+        // Om användaren har markerat ett intervall i dag-vyn, filtrera bort cykler utanför
+        if (
+          this.chartSelectionStartIndex !== null &&
+          this.chartSelectionEndIndex !== null
+        ) {
+          const bucketIndex = hour * 6 + minute / 10;
+          const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          if (bucketIndex < minSel || bucketIndex > maxSel) {
+            return;
+          }
+        }
+
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}-${minute}`;
       }
       
