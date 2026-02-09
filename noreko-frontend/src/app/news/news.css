@@ -137,6 +137,19 @@
   padding: 0.6em 1.2em;
 }
 
+/* Mini chart container */
+.mini-chart-container {
+  width: 100%;
+  height: 80px;
+  margin: 0.5rem 0;
+  padding: 0 0.5rem;
+}
+
+.mini-chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Responsive design */
 @media (max-width: 1200px) {
   .dashboard-card {

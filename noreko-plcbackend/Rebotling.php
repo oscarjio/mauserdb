@@ -457,30 +457,65 @@ class Rebotling {
         }
 
         $rast_status = (int)$_GET['rast']; // 0 = arbetar, 1 = på rast
+        $rast_today = 0;
 
-        // Hämta senaste status för att undvika duplicering
+        // Hämta senaste entry från idag för att jämföra state changes och beräkna rast_today
         $stmt = $this->db->prepare('
-            SELECT rast_status 
-            FROM rebotling_runtime 
-            ORDER BY datum DESC 
+            SELECT rast_status, rast_today, datum, CURRENT_TIMESTAMP as tid
+            FROM rebotling_rast
+            WHERE DATE(datum) = CURDATE()
+            ORDER BY datum DESC
             LIMIT 1
         ');
         $stmt->execute();
         $lastEntry = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        $lastStatus = $lastEntry ? (int)$lastEntry['rast_status'] : -1;
 
-        // Endast spara om status har ändrats
-        if ($lastStatus !== $rast_status) {
-            $stmt = $this->db->prepare('
-                INSERT INTO rebotling_runtime (datum, rast_status) 
-                VALUES (NOW(), :rast_status)
-            ');
-            
-            $stmt->execute([
-                'rast_status' => $rast_status
-            ]);
+        // Hämta dagens nuvarande rast_today som bas
+        $stmt = $this->db->prepare('
+            SELECT COALESCE(MAX(rast_today), 0) as current_rast
+            FROM rebotling_rast
+            WHERE DATE(datum) = CURDATE()
+        ');
+        $stmt->execute();
+        $currentRast = $stmt->fetch(PDO::FETCH_ASSOC);
+        $rast_today = $currentRast['current_rast'];
+
+        // Kontrollera om det är en statusändring och beräkna rasttid
+        if ($lastEntry) {
+            $prev_rast_status = (int)$lastEntry['rast_status'];
+
+            // Om rasten avslutas (går från 1 till 0), beräkna rastperioden
+            if ($rast_status == 0 && $prev_rast_status == 1) {
+                $last_entry_time = new DateTime($lastEntry['datum']);
+                $current_time = new DateTime($lastEntry['tid']);
+                $interval = $last_entry_time->diff($current_time);
+
+                // Beräkna rast i minuter för denna period
+                $rast_period = ($interval->days * 24 * 60) +
+                              ($interval->h * 60) +
+                              $interval->i +
+                              round($interval->s / 60, 2);
+
+                // Lägg till denna period till dagens totala rasttid
+                $rast_today += $rast_period;
+            }
+
+            // Endast spara om status har ändrats
+            if ($prev_rast_status === $rast_status) {
+                return; // Ingen ändring, gör inget
+            }
         }
+
+        // Spara till databasen
+        $stmt = $this->db->prepare('
+            INSERT INTO rebotling_rast (datum, rast_status, rast_today)
+            VALUES (NOW(), :rast_status, :rast_today)
+        ');
+
+        $stmt->execute([
+            'rast_status' => $rast_status,
+            'rast_today' => $rast_today
+        ]);
     }
     
 }

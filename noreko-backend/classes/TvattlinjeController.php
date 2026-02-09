@@ -117,8 +117,8 @@ class TvattlinjeController {
             try {
                 $stmt = $this->pdo->prepare('
                     SELECT utetemperatur, datum
-                    FROM vader_data 
-                    ORDER BY datum DESC 
+                    FROM vader_data
+                    ORDER BY datum DESC
                     LIMIT 1
                 ');
                 $stmt->execute();
@@ -131,16 +131,73 @@ class TvattlinjeController {
                 error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
             }
 
+            // Beräkna total rasttid för idag
+            $totalRastMinutes = 0;
+            $isOnRast = false;
+            try {
+                // Hämta alla rast-rader för idag sorterade efter datum
+                $stmt = $this->pdo->prepare('
+                    SELECT datum, rast_status, rast_today
+                    FROM tvattlinje_rast
+                    WHERE DATE(datum) = CURDATE()
+                    ORDER BY datum ASC
+                ');
+                $stmt->execute();
+                $rastEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (count($rastEntries) > 0) {
+                    $lastRastStart = null;
+                    $now = new DateTime();
+
+                    foreach ($rastEntries as $entry) {
+                        $entryTime = new DateTime($entry['datum']);
+                        $isRast = (bool)($entry['rast_status'] ?? false);
+
+                        // Om rasten startar (rast_status=1) och vi inte redan räknar en period
+                        if ($isRast && $lastRastStart === null) {
+                            $lastRastStart = $entryTime;
+                        }
+                        // Om rasten slutar (rast_status=0) och vi räknar en period
+                        elseif (!$isRast && $lastRastStart !== null) {
+                            $diff = $lastRastStart->diff($entryTime);
+                            $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                            $totalRastMinutes += $periodMinutes;
+                            $lastRastStart = null;
+                        }
+                    }
+
+                    // Om personen fortfarande är på rast (senaste entry är rast_status=1)
+                    if ($lastRastStart !== null) {
+                        $isOnRast = true;
+                        $lastEntryTime = new DateTime($rastEntries[count($rastEntries) - 1]['datum']);
+                        // Räkna från när rasten startade till senaste entry
+                        $diff = $lastRastStart->diff($lastEntryTime);
+                        $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $totalRastMinutes += $periodMinutes;
+
+                        // Lägg till tiden från senaste entry till nu
+                        $diffSinceLast = $lastEntryTime->diff($now);
+                        $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                        $totalRastMinutes += $minutesSinceLastUpdate;
+                    }
+                }
+            } catch (Exception $e) {
+                // Ignorera fel vid hämtning av rastdata (tabellen kanske inte finns än)
+                error_log('Kunde inte hämta rastdata: ' . $e->getMessage());
+            }
+
             $response = [
                 'success' => true,
                 'data' => [
                     'ibcToday' => $ibcToday,
                     'ibcTarget' => $ibcTarget,
                     'productionPercentage' => $productionPercentage,
-                    'utetemperatur' => $utetemperatur
+                    'utetemperatur' => $utetemperatur,
+                    'rastTodayMinutes' => round($totalRastMinutes, 1),
+                    'isOnRast' => $isOnRast
                 ]
             ];
-            
+
             // Lägg till debug-info om productionPercentage är 0 eller saknas
             if ($productionPercentage === 0 || $productionPercentage === null) {
                 $response['debug'] = [
@@ -155,7 +212,7 @@ class TvattlinjeController {
                     ]
                 ];
             }
-            
+
             echo json_encode($response);
         } catch (Exception $e) {
             echo json_encode([

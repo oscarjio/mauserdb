@@ -16,6 +16,9 @@ yarn-error.log*
 # VS Code settings
 .vscode/
 
+# Claude / Cursor
+.claude/
+
 # OS-filer
 .DS_Store
 Thumbs.db

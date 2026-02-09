@@ -16,7 +16,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   intervalId: any;
   private isFetchingLiveStats = false;
   private isFetchingLineStatus = false;
-  
+
   // Rebotling data
   rebotlingToday: number = 0;
   rebotlingTarget: number = 0;
@@ -25,12 +25,12 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   ibcToday: number = 0;
   productionPercentage: number = 0;
   utetemperatur: number | null = null;
-  
+
   // Speedometer properties
   needleRotation: number = -150; // Start position
   statusText: string = 'Bra produktion';
   statusBadgeClass: string = 'bg-success';
-  
+
   // Line status
   isLineRunning: boolean = false;
   statusBarClass: string = 'status-bar-off';
@@ -122,13 +122,13 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     // Använd samma produktionsprocent som visas i "Produktion"
     // Max 200% för speedometern
     const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
-    
+
     // Convert percentage to needle rotation (-180 to 0 degrees)
     // -180 degrees är vänster (0%), 0 degrees är höger (200%)
     // Mappar 0-200% till -180 till 0 grader
     // Start position är -100 (ungefär 25% på speedometern)
     this.needleRotation = -100 + (percentage / 200) * 180;
-    
+
     // Update status based on performance
     if (percentage >= 120) {
       this.statusText = 'Mycket bra produktion';

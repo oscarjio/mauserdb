@@ -14,20 +14,20 @@ import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse } fr
 export class TvattlinjeLivePage implements OnInit, OnDestroy {
   now = new Date();
   intervalId: any;
-  
+
   private isFetchingLineStatus = false;
   private isFetchingLiveStats = false;
-  
+
   // Line status
   isLineRunning: boolean = false;
   statusBarClass: string = 'status-bar-off';
-  
+
   // Live stats
   ibcToday: number = 0;
   ibcTarget: number = 0;
   utetemperatur: number | null = null;
   productionPercentage: number = 0;
-  
+
   // Speedometer properties
   needleRotation: number = -150; // Start position
 
@@ -134,7 +134,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
     // Använd samma produktionsprocent som visas från backend
     // Max 200% för speedometern
     const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
-    
+
     // Convert percentage to needle rotation (-180 to 0 degrees)
     // -180 degrees är vänster (0%), 0 degrees är höger (200%)
     // Mappar 0-200% till -180 till 0 grader
