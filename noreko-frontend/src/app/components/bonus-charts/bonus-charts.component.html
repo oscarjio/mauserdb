@@ -1,0 +1,190 @@
+<div class="bonus-charts-container">
+  <!-- Row 1: Gauge Charts for Current KPIs -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h4 class="mb-3">
+        <i class="fas fa-tachometer-alt text-primary"></i>
+        Aktuella KPI:er
+      </h4>
+    </div>
+    <div class="col-md-4">
+      <div class="card gauge-card">
+        <div class="card-body text-center">
+          <canvas id="gauge_effektivitet" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card gauge-card">
+        <div class="card-body text-center">
+          <canvas id="gauge_produktivitet" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card gauge-card">
+        <div class="card-body text-center">
+          <canvas id="gauge_kvalitet" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Heatmap & Distribution -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-fire"></i>
+            Bonus Heatmap (Senaste 30 dagarna)
+          </h5>
+        </div>
+        <div class="card-body">
+          <div style="height: 300px;">
+            <canvas id="heatmapChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar"></i>
+            Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          <div style="height: 300px;">
+            <canvas id="distributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Multi-line Trend -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-line"></i>
+            KPI Trender över Tid
+          </h5>
+        </div>
+        <div class="card-body">
+          <div style="height: 350px;">
+            <canvas id="multiTrendChart"></canvas>
+          </div>
+          <div class="mt-3 text-center">
+            <span class="badge bg-primary me-2">
+              <i class="fas fa-circle"></i> Effektivitet
+            </span>
+            <span class="badge bg-info me-2">
+              <i class="fas fa-circle"></i> Produktivitet
+            </span>
+            <span class="badge bg-warning">
+              <i class="fas fa-circle"></i> Kvalitet
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Sparklines (Mini-trends) -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="card sparkline-card">
+        <div class="card-body">
+          <h6 class="text-muted">Bonus Trend</h6>
+          <div class="sparkline-value">{{ getCurrentBonus() }}</div>
+          <div class="sparkline-change" [class.positive]="isTrendPositive('bonus')" [class.negative]="!isTrendPositive('bonus')">
+            <i [class.fa-arrow-up]="isTrendPositive('bonus')" [class.fa-arrow-down]="!isTrendPositive('bonus')" class="fas"></i>
+            {{ getTrendPercentage('bonus') }}%
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card sparkline-card">
+        <div class="card-body">
+          <h6 class="text-muted">Effektivitet Trend</h6>
+          <div class="sparkline-value">{{ getCurrentEffectiveness() }}%</div>
+          <div class="sparkline-change" [class.positive]="isTrendPositive('effektivitet')" [class.negative]="!isTrendPositive('effektivitet')">
+            <i [class.fa-arrow-up]="isTrendPositive('effektivitet')" [class.fa-arrow-down]="!isTrendPositive('effektivitet')" class="fas"></i>
+            {{ getTrendPercentage('effektivitet') }}%
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card sparkline-card">
+        <div class="card-body">
+          <h6 class="text-muted">Produktivitet Trend</h6>
+          <div class="sparkline-value">{{ getCurrentProductivity() }}</div>
+          <div class="sparkline-change" [class.positive]="isTrendPositive('produktivitet')" [class.negative]="!isTrendPositive('produktivitet')">
+            <i [class.fa-arrow-up]="isTrendPositive('produktivitet')" [class.fa-arrow-down]="!isTrendPositive('produktivitet')" class="fas"></i>
+            {{ getTrendPercentage('produktivitet') }}%
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card sparkline-card">
+        <div class="card-body">
+          <h6 class="text-muted">Team Position</h6>
+          <div class="sparkline-value">
+            @if (getCurrentBonus() > teamAverage) {
+              <i class="fas fa-trophy text-warning"></i>
+              Över snitt
+            } @else {
+              Under snitt
+            }
+          </div>
+          <div class="sparkline-change">
+            {{ (getCurrentBonus() - teamAverage).toFixed(1) }} poäng
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Insights -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0">
+            <i class="fas fa-lightbulb"></i>
+            Prestationsinsikter
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="insight-box">
+                <h6><i class="fas fa-star text-success"></i> Starkaste KPI</h6>
+                <p>{{ getStrongestKPI() }}</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="insight-box">
+                <h6><i class="fas fa-chart-line text-primary"></i> Bästa Förbättring</h6>
+                <p>{{ getBestImprovement() }}</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="insight-box">
+                <h6><i class="fas fa-exclamation-triangle text-warning"></i> Förbättringsområde</h6>
+                <p>{{ getImprovementArea() }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,257 @@
+<div class="bonus-dashboard-page container-fluid p-4">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="display-4">
+        <i class="fas fa-trophy text-warning"></i>
+        Bonussystem Dashboard
+      </h1>
+      <p class="lead text-muted">Operatörsprestanda & KPI-översikt</p>
+    </div>
+  </div>
+
+  <!-- Loading & Error States -->
+  @if (loading()) {
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+      <div class="spinner-border spinner-border-sm me-2" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <div>Laddar data...</div>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      {{ error() }}
+      <button type="button" class="btn-close" (click)="error.set(null)"></button>
+    </div>
+  }
+
+  <!-- Dagens Sammanfattning -->
+  @if (dailySummary(); as summary) {
+    <div class="row mb-4">
+      <div class="col-12">
+        <h3 class="mb-3">📊 Dagens Översikt</h3>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center bg-primary text-white">
+          <div class="card-body">
+            <h5 class="card-title">Totalt Cykler</h5>
+            <h2 class="display-4">{{ summary.total_cycles }}</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center bg-success text-white">
+          <div class="card-body">
+            <h5 class="card-title">IBC OK</h5>
+            <h2 class="display-4">{{ summary.total_ibc_ok }}</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center bg-info text-white">
+          <div class="card-body">
+            <h5 class="card-title">Snitt Bonus</h5>
+            <h2 class="display-4">{{ summary.avg_bonus.toFixed(1) }}</h2>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card text-center bg-warning text-dark">
+          <div class="card-body">
+            <h5 class="card-title">Max Bonus</h5>
+            <h2 class="display-4">{{ summary.max_bonus.toFixed(1) }}</h2>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Filters -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <label class="form-label">Period</label>
+      <select class="form-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+        <option value="today">Idag</option>
+        <option value="week">Senaste veckan</option>
+        <option value="month">Senaste månaden</option>
+        <option value="year">Senaste året</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Position</label>
+      <select class="form-select" [(ngModel)]="selectedPosition" (change)="onPositionChange()">
+        <option value="all">Alla positioner</option>
+        <option value="1">Tvättplats</option>
+        <option value="2">Kontrollstation</option>
+        <option value="3">Truckförare</option>
+      </select>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Sök Operatör</label>
+      <div class="input-group">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Operatör-ID (anställningsnr)"
+          [(ngModel)]="searchOperatorId"
+          (keyup.enter)="onSearchOperator()"
+        />
+        <button class="btn btn-primary" (click)="onSearchOperator()">
+          <i class="fas fa-search"></i> Sök
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top 10 Ranking -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h3 class="mb-3">
+        <i class="fas fa-medal text-warning"></i>
+        Top 10 Operatörer ({{ selectedPeriod() }})
+      </h3>
+    </div>
+    <div class="col-12">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th>#</th>
+              <th>Operatör-ID</th>
+              <th>Position</th>
+              <th>Cykler</th>
+              <th>IBC OK</th>
+              <th>Timmar</th>
+              <th class="text-center">Effektivitet</th>
+              <th class="text-center">Produktivitet</th>
+              <th class="text-center">Kvalitet</th>
+              <th class="text-center">
+                <i class="fas fa-trophy"></i> Bonus
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (op of topOperators(); track op.rank) {
+              <tr [class]="op.rank <= 3 ? 'table-warning' : ''">
+                <td>
+                  @if (op.rank === 1) {
+                    <i class="fas fa-trophy text-warning fs-4"></i>
+                  } @else if (op.rank === 2) {
+                    <i class="fas fa-medal text-secondary fs-5"></i>
+                  } @else if (op.rank === 3) {
+                    <i class="fas fa-medal text-danger fs-5"></i>
+                  } @else {
+                    {{ op.rank }}
+                  }
+                </td>
+                <td><strong>{{ op.operator_id }}</strong></td>
+                <td>{{ op.position || '-' }}</td>
+                <td>{{ op.cycles }}</td>
+                <td>{{ op.total_ibc_ok }}</td>
+                <td>{{ op.total_hours }}h</td>
+                <td class="text-center">
+                  <span [class]="'badge bg-' + getKpiColor(op.effektivitet, 'effektivitet')">
+                    {{ op.effektivitet.toFixed(1) }}%
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span [class]="'badge bg-' + getKpiColor(op.produktivitet, 'produktivitet')">
+                    {{ op.produktivitet.toFixed(1) }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span [class]="'badge bg-' + getKpiColor(op.kvalitet, 'kvalitet')">
+                    {{ op.kvalitet.toFixed(1) }}%
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span [class]="'badge bg-' + getBonusColor(op.bonus_avg) + ' fs-6'">
+                    {{ op.bonus_avg.toFixed(1) }}
+                  </span>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="10" class="text-center text-muted py-4">
+                  Ingen data tillgänglig för vald period
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operatörs Detaljvy (Charts) -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-radar"></i>
+            KPI Översikt
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="kpiChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-line"></i>
+            Bonus Trend
+          </h5>
+        </div>
+        <div class="card-body">
+          <canvas id="trendChart" height="300"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help Section -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card bg-light">
+        <div class="card-body">
+          <h5 class="card-title">
+            <i class="fas fa-info-circle text-info"></i>
+            Bonussystem Förklaring
+          </h5>
+          <div class="row">
+            <div class="col-md-4">
+              <h6>Effektivitet (40%)</h6>
+              <p class="small">Andel godkända IBC av total produktion</p>
+              <code>(IBC_OK / (IBC_OK + IBC_EJ_OK)) × 100</code>
+            </div>
+            <div class="col-md-4">
+              <h6>Produktivitet (40%)</h6>
+              <p class="small">Antal IBC per timme</p>
+              <code>(IBC_OK × 60) / runtime_minuter</code>
+            </div>
+            <div class="col-md-4">
+              <h6>Kvalitet (20%)</h6>
+              <p class="small">Andel godkända utan burfel</p>
+              <code>((IBC_OK - BUR_EJ_OK) / IBC_OK) × 100</code>
+            </div>
+          </div>
+          <hr>
+          <p class="mb-0">
+            <strong>Bonus Poäng:</strong>
+            <code>Effektivitet × 0.4 + Produktivitet × 0.4 + Kvalitet × 0.2</code>
+            <span class="badge bg-success ms-2">Grön: ≥80</span>
+            <span class="badge bg-warning ms-1">Gul: 70-79</span>
+            <span class="badge bg-danger ms-1">Röd: <70</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

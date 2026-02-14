@@ -2,18 +2,15 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/BonusCalculator.php';
-
 class Rebotling {
     private WebhookProcessor $processor;
     public ModbusMaster $modbus;
     public PDO $db;
-    private BonusCalculator $bonusCalculator;
 
     public function __construct(WebhookProcessor $processor) {
         $this->processor = $processor;
         $this->db = $processor->db;
-        $this->bonusCalculator = new BonusCalculator();
+        
     }
     
     
@@ -21,53 +18,6 @@ class Rebotling {
         // Validera data
         if (!isset($_GET['count'])) {
             throw new InvalidArgumentException('Missing required fields for user.created');
-        }
-
-        // === MODBUS TCP - LÄS FX5 D4000-D4009 ===
-        try {
-            $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
-
-            // Läs alla 10 register från D4000-D4009 i ett anrop
-            $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 10);
-            $plc_data = $this->convert8to16bit($raw_data);
-
-            // Extrahera värden enligt FX5-mappning
-            $op1 = $plc_data[0];           // D4000 - Operatör 1
-            $op2 = $plc_data[1];           // D4001 - Operatör 2
-            $op3 = $plc_data[2];           // D4002 - Operatör 3
-            $produkt = $plc_data[3];       // D4003 - Produkt
-            $ibc_ok = $plc_data[4];        // D4004 - IBC OK
-            $ibc_ej_ok = $plc_data[5];     // D4005 - IBC Ej OK
-            $bur_ej_ok = $plc_data[6];     // D4006 - Bur Ej OK
-            $runtime_plc = $plc_data[7];   // D4007 - Runtime
-            $rasttime = $plc_data[8];      // D4008 - Rasttime
-            $lopnummer = $plc_data[9];     // D4009 - Löpnummer
-
-            // Validera PLC-data
-            $this->validatePLCData($ibc_ok, $ibc_ej_ok, $bur_ej_ok, $runtime_plc, $produkt);
-
-            // Beräkna KPI:er med förbättrad calculator
-            $kpis = $this->bonusCalculator->calculateAdvancedKPIs([
-                'ibc_ok' => $ibc_ok,
-                'ibc_ej_ok' => $ibc_ej_ok,
-                'bur_ej_ok' => $bur_ej_ok,
-                'runtime_plc' => $runtime_plc
-            ], $produkt);
-
-        } catch (Exception $e) {
-            error_log("ModbusTCP FX5 Error: " . $e->getMessage());
-            error_log("Stack trace: " . $e->getTraceAsString());
-
-            // Fallback: sätt default-värden om PLC inte svarar
-            $op1 = $op2 = $op3 = $produkt = 0;
-            $ibc_ok = $ibc_ej_ok = $bur_ej_ok = 0;
-            $runtime_plc = $rasttime = $lopnummer = 0;
-            $kpis = [
-                'effektivitet' => 0,
-                'produktivitet' => 0,
-                'kvalitet' => 0,
-                'bonus_poang' => 0
-            ];
         }
 
         // Hämta antal gjorda idag, rader i databasen
@@ -210,41 +160,17 @@ class Rebotling {
             }
         }
         
-        // Förbered och kör SQL-query med FX5-fält
+        // Förbered och kör SQL-query
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_ibc (
-                s_count, ibc_count, skiftraknare, produktion_procent,
-                op1, op2, op3, produkt, ibc_ok, ibc_ej_ok, bur_ej_ok,
-                runtime_plc, rasttime, lopnummer,
-                effektivitet, produktivitet, kvalitet, bonus_poang
-            )
-            VALUES (
-                :s_count, :ibc_count, :skiftraknare, :produktion_procent,
-                :op1, :op2, :op3, :produkt, :ibc_ok, :ibc_ej_ok, :bur_ej_ok,
-                :runtime_plc, :rasttime, :lopnummer,
-                :effektivitet, :produktivitet, :kvalitet, :bonus_poang
-            )
+            INSERT INTO rebotling_ibc (s_count, ibc_count, skiftraknare, produktion_procent)
+            VALUES (:s_count, :ibc_count, :skiftraknare, :produktion_procent)
         ');
-
+        
         $stmt->execute([
             's_count' => $_GET['count'],
             'ibc_count' => $ibc_count,
             'skiftraknare' => $skiftraknare,
-            'produktion_procent' => $produktion_procent,
-            'op1' => $op1,
-            'op2' => $op2,
-            'op3' => $op3,
-            'produkt' => $produkt,
-            'ibc_ok' => $ibc_ok,
-            'ibc_ej_ok' => $ibc_ej_ok,
-            'bur_ej_ok' => $bur_ej_ok,
-            'runtime_plc' => $runtime_plc,
-            'rasttime' => $rasttime,
-            'lopnummer' => $lopnummer,
-            'effektivitet' => $kpis['effektivitet'],
-            'produktivitet' => $kpis['produktivitet'],
-            'kvalitet' => $kpis['kvalitet'],
-            'bonus_poang' => $kpis['bonus_poang']
+            'produktion_procent' => $produktion_procent
         ]);
     }
 
@@ -556,80 +482,5 @@ class Rebotling {
             ]);
         }
     }
-
-    // === FX5 HELPER FUNCTIONS ===
-
-    /**
-     * Konvertera 8-bit Modbus data till 16-bit register-värden
-     * PHPModbus returnerar data som 8-bit bytes, men PLC D-register är 16-bit
-     */
-    private function convert8to16bit(array $data): array {
-        $result = [];
-        for ($i = 0; $i < (count($data) / 2); $i++) {
-            $result[$i] = ($data[$i * 2] << 8) + $data[$i * 2 + 1];
-        }
-        return $result;
-    }
-
-    /**
-     * Validera PLC-data för felaktiga värden
-     * @throws InvalidArgumentException om data är ogiltig
-     */
-    private function validatePLCData(
-        int $ibc_ok,
-        int $ibc_ej_ok,
-        int $bur_ej_ok,
-        int $runtime_plc,
-        int $produkt
-    ): void {
-        // 1. Negativa värden
-        if ($ibc_ok < 0 || $ibc_ej_ok < 0 || $bur_ej_ok < 0 || $runtime_plc < 0) {
-            throw new InvalidArgumentException(
-                "PLC data validation failed: Negativa värden detekterade " .
-                "(ibc_ok=$ibc_ok, ibc_ej_ok=$ibc_ej_ok, bur_ej_ok=$bur_ej_ok, runtime=$runtime_plc)"
-            );
-        }
-
-        // 2. Runtime måste vara rimlig (minst 1 minut, max 8 timmar)
-        if ($runtime_plc < 1 || $runtime_plc > 480) {
-            error_log("WARNING: Ovanlig runtime: $runtime_plc minuter");
-        }
-
-        // 3. Bur kan inte vara fler än godkända IBC
-        if ($bur_ej_ok > $ibc_ok) {
-            error_log("WARNING: bur_ej_ok ($bur_ej_ok) > ibc_ok ($ibc_ok) - data verkar felaktig!");
-            // Korrigera automatiskt
-            $bur_ej_ok = min($bur_ej_ok, $ibc_ok);
-        }
-
-        // 4. Produkt ID måste vara giltig (1, 4, eller 5)
-        $valid_products = [1, 4, 5];
-        if (!in_array($produkt, $valid_products)) {
-            error_log("WARNING: Ogiltig produkt-ID: $produkt (förväntat: 1, 4, eller 5)");
-        }
-
-        // 5. Sanity check på produktivitet (max 200 IBC/h är orimligt)
-        if ($ibc_ok > 0 && $runtime_plc > 0) {
-            $prod_check = ($ibc_ok * 60) / $runtime_plc;
-            if ($prod_check > 200) {
-                error_log("ALERT: Extremt hög produktivitet: $prod_check IBC/h - dubbelkolla PLC-data!");
-            }
-        }
-
-        // 6. Total produktion sanity check (max 500 IBC per cykel är orimligt)
-        $total = $ibc_ok + $ibc_ej_ok;
-        if ($total > 500) {
-            error_log("ALERT: Extremt hög total produktion: $total IBC - dubbelkolla PLC-data!");
-        }
-    }
-
-    /**
-     * DEPRECATED: Använd BonusCalculator istället
-     * Beräkna KPI:er för bonussystem (Gammal version - endast för bakåtkompatibilitet)
-     */
-    private function calculateKPIs(array $data): array {
-        // Redirect to new calculator
-        return $this->bonusCalculator->calculateAdvancedKPIs($data, 1);
-    }
-
+    
 }

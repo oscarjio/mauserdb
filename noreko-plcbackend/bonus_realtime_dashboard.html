@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Bonus Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: #f4f7fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .stat-value {
+            font-size: 42px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-connected {
+            background: #27ae60;
+        }
+
+        .status-disconnected {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .leaderboard-item {
+            background: white;
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .leaderboard-rank {
+            font-size: 24px;
+            font-weight: bold;
+            width: 40px;
+            text-align: center;
+        }
+
+        .rank-1 { color: #FFD700; }
+        .rank-2 { color: #C0C0C0; }
+        .rank-3 { color: #CD7F32; }
+
+        .activity-feed {
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .activity-item {
+            padding: 12px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .update-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #27ae60;
+            color: white;
+            border-radius: 10px;
+            font-size: 11px;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-0"><i class="fas fa-chart-line me-3"></i>Real-time Bonus Dashboard</h1>
+                    <p class="mb-0 mt-2">Live produktions- och bonusstatistik</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="connection-status">
+                        <span id="statusIndicator" class="status-indicator status-disconnected"></span>
+                        <span id="statusText">Ansluter...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Live Stats Row -->
+        <div class="row">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <i class="fas fa-sync fa-2x text-primary mb-3"></i>
+                    <div class="stat-label">Cykler Idag</div>
+                    <div class="stat-value text-primary" id="cyclesToday">-</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <i class="fas fa-users fa-2x text-success mb-3"></i>
+                    <div class="stat-label">Aktiva Operatörer</div>
+                    <div class="stat-value text-success" id="operatorsActive">-</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <i class="fas fa-star fa-2x text-warning mb-3"></i>
+                    <div class="stat-label">Snittbonus</div>
+                    <div class="stat-value text-warning" id="avgBonus">-</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card text-center">
+                    <i class="fas fa-trophy fa-2x text-danger mb-3"></i>
+                    <div class="stat-label">Max Bonus</div>
+                    <div class="stat-value text-danger" id="maxBonus">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard & Activity -->
+        <div class="row mt-4">
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h4 class="mb-4"><i class="fas fa-medal me-2 text-warning"></i>Leaderboard - Månad</h4>
+                    <div id="leaderboardContainer">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                            <p class="mt-3">Laddar leaderboard...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h4 class="mb-4"><i class="fas fa-bell me-2 text-info"></i>Live Aktivitet</h4>
+                    <div class="activity-feed" id="activityFeed">
+                        <div class="text-center text-muted py-5">
+                            <i class="fas fa-clock fa-2x"></i>
+                            <p class="mt-3">Väntar på uppdateringar...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Operator Tracking -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h4 class="mb-4"><i class="fas fa-user me-2 text-primary"></i>Spåra Operatör</h4>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="input-group mb-3">
+                                <input type="number"
+                                       class="form-control"
+                                       id="operatorIdInput"
+                                       placeholder="Operatör ID">
+                                <button class="btn btn-primary" id="trackOperatorBtn">
+                                    <i class="fas fa-search"></i> Spåra
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="operatorLiveData"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class BonusDashboard {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.activityLog = [];
+                this.connect();
+                this.setupEventListeners();
+            }
+
+            connect() {
+                try {
+                    this.ws = new WebSocket('ws://localhost:8080');
+
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.updateConnectionStatus(true);
+                        this.reconnectAttempts = 0;
+
+                        // Subscribe to all channels
+                        this.send({ action: 'subscribe', channel: 'all' });
+
+                        // Request initial data
+                        this.send({ action: 'get_stats' });
+                        this.send({ action: 'get_leaderboard', period: new Date().toISOString().slice(0, 7) });
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        const message = JSON.parse(event.data);
+                        this.handleMessage(message);
+                    };
+
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateConnectionStatus(false);
+                    };
+
+                    this.ws.onclose = () => {
+                        console.log('WebSocket disconnected');
+                        this.updateConnectionStatus(false);
+                        this.attemptReconnect();
+                    };
+
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    this.updateConnectionStatus(false);
+                }
+            }
+
+            attemptReconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+                    console.log(`Reconnecting in ${delay/1000} seconds...`);
+                    setTimeout(() => this.connect(), delay);
+                }
+            }
+
+            send(data) {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify(data));
+                }
+            }
+
+            handleMessage(message) {
+                console.log('Received:', message);
+
+                switch (message.type) {
+                    case 'welcome':
+                        this.addActivity('info', message.message);
+                        break;
+
+                    case 'current_stats':
+                    case 'stats_update':
+                        this.updateStats(message.data);
+                        break;
+
+                    case 'leaderboard':
+                        this.updateLeaderboard(message.data);
+                        break;
+
+                    case 'new_bonus':
+                        this.handleNewBonus(message.data);
+                        break;
+
+                    case 'operator_live':
+                        this.updateOperatorLive(message);
+                        break;
+
+                    case 'error':
+                        console.error('Server error:', message.message);
+                        this.addActivity('error', message.message);
+                        break;
+                }
+            }
+
+            updateConnectionStatus(connected) {
+                const indicator = document.getElementById('statusIndicator');
+                const text = document.getElementById('statusText');
+
+                if (connected) {
+                    indicator.className = 'status-indicator status-connected';
+                    text.textContent = 'Ansluten';
+                    text.className = 'text-success fw-bold';
+                } else {
+                    indicator.className = 'status-indicator status-disconnected';
+                    text.textContent = 'Frånkopplad';
+                    text.className = 'text-danger';
+                }
+            }
+
+            updateStats(data) {
+                document.getElementById('cyclesToday').textContent = data.cycles_today || 0;
+                document.getElementById('operatorsActive').textContent = data.operators_active || 0;
+                document.getElementById('avgBonus').textContent = (data.avg_bonus || 0) + ' p';
+                document.getElementById('maxBonus').textContent = (data.max_bonus || 0) + ' p';
+            }
+
+            updateLeaderboard(data) {
+                const container = document.getElementById('leaderboardContainer');
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">Ingen data tillgänglig</p>';
+                    return;
+                }
+
+                const html = data.map((item, index) => {
+                    const rank = index + 1;
+                    const rankClass = rank <= 3 ? `rank-${rank}` : '';
+
+                    return `
+                        <div class="leaderboard-item">
+                            <div class="d-flex align-items-center flex-grow-1">
+                                <div class="leaderboard-rank ${rankClass}">
+                                    ${rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank}
+                                </div>
+                                <div class="ms-3">
+                                    <strong>Operatör #${item.operator_id}</strong>
+                                    <div class="small text-muted">${item.cycles} cykler</div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-primary">${item.total_bonus} p</div>
+                                <div class="small text-muted">⌀ ${item.avg_bonus} p</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML = html;
+            }
+
+            handleNewBonus(data) {
+                this.addActivity('bonus', `Ny bonus: ${data.bonus_poang} p (Op #${data.operator_id})`);
+
+                // Refresh stats
+                this.send({ action: 'get_stats' });
+
+                // Flash update indicator
+                this.showUpdateIndicator();
+            }
+
+            updateOperatorLive(message) {
+                const container = document.getElementById('operatorLiveData');
+
+                if (!message.latest_cycle) {
+                    container.innerHTML = `
+                        <div class="alert alert-info">
+                            Ingen data hittades för operatör #${message.operator_id}
+                        </div>
+                    `;
+                    return;
+                }
+
+                const cycle = message.latest_cycle;
+                const today = message.today_stats;
+
+                container.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Senaste Cykel</h5>
+                            <table class="table table-sm">
+                                <tr><th>Datum:</th><td>${cycle.datum}</td></tr>
+                                <tr><th>IBC OK:</th><td>${cycle.ibc_ok}</td></tr>
+                                <tr><th>Effektivitet:</th><td>${cycle.effektivitet}%</td></tr>
+                                <tr><th>Produktivitet:</th><td>${cycle.produktivitet} IBC/h</td></tr>
+                                <tr><th>Kvalitet:</th><td>${cycle.kvalitet}%</td></tr>
+                                <tr><th>Bonus:</th><td class="fw-bold text-success">${cycle.bonus_poang} p</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Idag Totalt</h5>
+                            <table class="table table-sm">
+                                <tr><th>Cykler:</th><td>${today.cycles}</td></tr>
+                                <tr><th>IBC OK:</th><td>${today.ibc_ok}</td></tr>
+                                <tr><th>Snittbonus:</th><td class="fw-bold text-primary">${today.avg_bonus} p</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            addActivity(type, message) {
+                const now = new Date().toLocaleTimeString('sv-SE');
+                const icon = type === 'bonus' ? '💰' : type === 'error' ? '⚠️' : 'ℹ️';
+
+                this.activityLog.unshift({
+                    time: now,
+                    icon: icon,
+                    message: message
+                });
+
+                // Keep only last 50 items
+                if (this.activityLog.length > 50) {
+                    this.activityLog = this.activityLog.slice(0, 50);
+                }
+
+                this.renderActivityFeed();
+            }
+
+            renderActivityFeed() {
+                const feed = document.getElementById('activityFeed');
+
+                const html = this.activityLog.map(item => `
+                    <div class="activity-item">
+                        <div>${item.icon} ${item.message}</div>
+                        <div class="activity-time">${item.time}</div>
+                    </div>
+                `).join('');
+
+                feed.innerHTML = html || '<p class="text-muted text-center">Ingen aktivitet ännu</p>';
+            }
+
+            showUpdateIndicator() {
+                const indicators = document.querySelectorAll('.stat-value');
+                indicators.forEach(el => {
+                    el.style.animation = 'none';
+                    setTimeout(() => {
+                        el.style.animation = 'fadeIn 0.5s';
+                    }, 10);
+                });
+            }
+
+            setupEventListeners() {
+                document.getElementById('trackOperatorBtn').addEventListener('click', () => {
+                    const operatorId = document.getElementById('operatorIdInput').value;
+                    if (operatorId) {
+                        this.send({
+                            action: 'get_operator_live',
+                            operator_id: parseInt(operatorId)
+                        });
+                    }
+                });
+            }
+        }
+
+        // Initialize dashboard
+        const dashboard = new BonusDashboard();
+    </script>
+</body>
+</html>
