@@ -18,7 +18,8 @@ $action = $_GET['action'] ?? '';
 $classNameMap = [
     'rebotlingproduct' => 'RebotlingProductController',
     'skiftrapport' => 'SkiftrapportController',
-    'vpn' => 'VpnController'
+    'vpn' => 'VpnController',
+    'bonusadmin' => 'BonusAdminController'
 ];
 $className = $classNameMap[strtolower($action)] ?? ucfirst(strtolower($action)) . 'Controller';
 

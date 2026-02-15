@@ -1,59 +1,194 @@
-.bonus-dashboard-page {
+.bonus-dashboard-container {
+  padding: 1.5rem;
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #1a202c;
+  color: #e2e8f0;
 }
 
-.card {
+.dashboard-header h2 {
+  color: #e2e8f0;
+}
+
+.period-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+  width: auto;
+}
+
+/* KPI Cards */
+.kpi-card {
+  background: #2d3748;
   border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  margin-bottom: 1.5rem;
+  padding: 1.2rem;
+  text-align: center;
+  border-left: 4px solid #4299e1;
   transition: transform 0.2s;
 }
 
-.card:hover {
+.kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
-.table-warning {
-  --bs-table-bg: #fff3cd;
-  font-weight: 500;
+.kpi-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #a0aec0;
+  letter-spacing: 0.5px;
 }
 
-.display-4 {
+.kpi-value {
+  font-size: 2rem;
   font-weight: 700;
-  margin-bottom: 0;
+  margin: 0.3rem 0;
 }
 
-.badge {
-  font-size: 0.9rem;
-  padding: 0.5em 0.8em;
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #718096;
 }
 
-canvas {
-  max-height: 300px;
+/* Cards */
+.card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 10px;
+  color: #e2e8f0;
 }
 
-.fa-trophy {
-  animation: pulse 2s infinite;
+.card-header {
+  background-color: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
+.card-body {
+  background-color: #2d3748;
 }
 
-/* Responsive adjustments */
+.card-title {
+  color: #e2e8f0;
+}
+
+/* Mini stats */
+.mini-stat {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 0.8rem;
+  text-align: center;
+}
+
+.mini-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #a0aec0;
+}
+
+.mini-stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+/* KPI Progress bars */
+.kpi-bar {
+  padding: 0.5rem 0;
+}
+
+.progress {
+  background-color: #1a202c;
+  height: 8px;
+  border-radius: 4px;
+}
+
+/* Chart containers */
+.chart-container {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.chart-container canvas {
+  max-height: 280px;
+}
+
+/* Ranking */
+.top-three {
+  background-color: rgba(236, 201, 75, 0.1) !important;
+}
+
+.operator-link {
+  color: #63b3ed;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.operator-link:hover {
+  color: #90cdf4;
+}
+
+/* Nav pills */
+.nav-pills .nav-link {
+  color: #a0aec0;
+  background: transparent;
+  border: 1px solid #4a5568;
+  margin-right: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #4299e1;
+  border-color: #4299e1;
+  color: white;
+}
+
+/* Tables */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-border-color: #4a5568;
+  --bs-table-hover-bg: #374151;
+}
+
+/* Form inputs */
+.form-control {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.form-control:focus {
+  background-color: #374151;
+  border-color: #4299e1;
+  color: #e2e8f0;
+}
+
+.form-control::placeholder {
+  color: #718096;
+}
+
+/* Collapse header */
+.card-header[role="button"] {
+  cursor: pointer;
+}
+
+.card-header[role="button"]:hover {
+  background-color: #374151;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .display-4 {
-    font-size: 2rem;
+  .bonus-dashboard-container {
+    padding: 0.8rem;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .mini-stat-value {
+    font-size: 1.1rem;
   }
 
   .table {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
   }
 }

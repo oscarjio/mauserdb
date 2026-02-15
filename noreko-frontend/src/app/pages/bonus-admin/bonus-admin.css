@@ -1,0 +1,144 @@
+.bonus-admin-container {
+  padding: 1.5rem;
+  min-height: 100vh;
+  background-color: #1a202c;
+  color: #e2e8f0;
+}
+
+/* Cards */
+.card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 10px;
+  color: #e2e8f0;
+}
+
+.card-header {
+  background-color: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.card-body {
+  background-color: #2d3748;
+}
+
+/* Stat cards */
+.stat-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.2rem;
+  text-align: center;
+  border-left: 4px solid #4299e1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #a0aec0;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0.3rem 0;
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+/* Weight rows */
+.weight-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+.weight-value {
+  font-weight: 600;
+}
+
+/* Target cards */
+.target-card {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: center;
+}
+
+.target-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4299e1;
+  margin: 0.5rem 0;
+}
+
+.target-value small {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+/* Nav pills */
+.nav-pills .nav-link {
+  color: #a0aec0;
+  background: transparent;
+  border: 1px solid #4a5568;
+  margin-right: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #4299e1;
+  border-color: #4299e1;
+  color: white;
+}
+
+/* Tables */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-border-color: #4a5568;
+  --bs-table-hover-bg: #374151;
+}
+
+/* Progress */
+.progress {
+  background-color: #1a202c;
+  border-radius: 4px;
+}
+
+/* Forms */
+.form-control {
+  background-color: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.form-control:focus {
+  background-color: #374151;
+  border-color: #4299e1;
+  color: #e2e8f0;
+}
+
+.form-label {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bonus-admin-container {
+    padding: 0.8rem;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .target-value {
+    font-size: 1.5rem;
+  }
+}

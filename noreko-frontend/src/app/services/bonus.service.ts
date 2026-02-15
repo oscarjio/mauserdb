@@ -2,185 +2,194 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-/**
- * Interface för operatörs KPI-data
- */
-export interface OperatorDailyStats {
-  datum: string;
-  cycles: number;
-  total_ok: number;
-  total_ej_ok: number;
-  total_bur_ej_ok: number;
-  avg_effektivitet: number;
-  avg_produktivitet: number;
-  avg_kvalitet: number;
-  avg_bonus: number;
-  total_runtime: number;
-  total_rast: number;
-  produkt: number;
-}
+// ========== Interfaces som matchar BonusController API-svar ==========
 
-export interface OperatorTotalStats {
-  total_cycles: number;
-  total_ok: number;
-  total_ej_ok: number;
-  total_bur_ej_ok: number;
-  total_runtime: number;
-  total_rast: number;
-  avg_effektivitet: number;
-  avg_produktivitet: number;
-  avg_kvalitet: number;
-  avg_bonus: number;
-}
-
-export interface OperatorRanking {
-  rank: number | null;
-  bonus_poang: number | null;
+export interface BonusSummaryResponse {
+  success: boolean;
+  data?: {
+    date: string;
+    total_cycles: number;
+    shifts_today: number;
+    total_ibc_ok: number;
+    total_ibc_ej_ok: number;
+    avg_bonus: number;
+    max_bonus: number;
+    unique_operators: {
+      tvattplats: number;
+      kontroll: number;
+      truck: number;
+    };
+  };
+  error?: string;
 }
 
 export interface OperatorStatsResponse {
   success: boolean;
   data?: {
-    operatorId: string;
-    period: {
-      start: string;
-      end: string;
+    operator_id: number;
+    position: string;
+    period: string;
+    date_range: { from: string; to: string };
+    summary: {
+      total_cycles: number;
+      total_ibc_ok: number;
+      total_ibc_ej_ok: number;
+      total_bur_ej_ok: number;
+      total_hours: number;
+      total_rast_hours: number;
     };
-    dailyStats: OperatorDailyStats[];
-    totalStats: OperatorTotalStats;
-    ranking: OperatorRanking;
+    kpis: {
+      effektivitet: number;
+      produktivitet: number;
+      kvalitet: number;
+      bonus_avg: number;
+      bonus_max: number;
+      bonus_min: number;
+    };
+    daily_breakdown: DailyBreakdown[];
   };
   error?: string;
 }
 
-/**
- * Interface för ranking-data
- */
-export interface RankingEntry {
-  rank: number;
-  operator_id: string;
-  position: string;
-  total_cycles: number;
+export interface DailyBreakdown {
+  date: string;
+  cycles: number;
+  ibc_ok: number;
+  ibc_ej_ok: number;
   effektivitet: number;
   produktivitet: number;
   kvalitet: number;
   bonus_poang: number;
-  total_ok: number;
-  total_ej_ok: number;
+}
+
+export interface RankingEntry {
+  rank: number;
+  operator_id: number;
+  position?: string;
+  cycles?: number;
+  total_cycles?: number;
+  bonus_avg: number;
+  effektivitet: number;
+  produktivitet: number;
+  kvalitet: number;
+  total_ibc_ok: number;
+  total_hours: number;
 }
 
 export interface RankingResponse {
   success: boolean;
   data?: {
-    period: {
-      start: string;
-      end: string;
+    period: string;
+    limit: number;
+    rankings: {
+      position_1: RankingEntry[];
+      position_2: RankingEntry[];
+      position_3: RankingEntry[];
+      overall: RankingEntry[];
     };
-    ranking: RankingEntry[];
   };
   error?: string;
-}
-
-/**
- * Interface för team-statistik
- */
-export interface PositionStats {
-  position: string;
-  unique_operators: number;
-  total_cycles: number;
-  avg_effektivitet: number;
-  avg_produktivitet: number;
-  avg_kvalitet: number;
-  avg_bonus: number;
-  total_ok: number;
-  total_ej_ok: number;
-  total_bur_ej_ok: number;
-}
-
-export interface DailyTrend {
-  datum: string;
-  cycles: number;
-  avg_bonus: number;
-  total_ok: number;
-  total_ej_ok: number;
-}
-
-export interface ProductStats {
-  produkt: number;
-  cycles: number;
-  avg_bonus: number;
-  total_ok: number;
 }
 
 export interface TeamStatsResponse {
   success: boolean;
   data?: {
-    period: {
-      start: string;
-      end: string;
+    period: string;
+    aggregate: {
+      total_shifts: number;
+      total_cycles: number;
+      total_ibc_ok: number;
+      avg_bonus: number;
+      unique_operators: number;
     };
-    positionStats: PositionStats[];
-    dailyTrend: DailyTrend[];
-    productStats: ProductStats[];
+    shifts: ShiftStats[];
   };
   error?: string;
 }
 
-/**
- * Interface för operatörs historik
- */
-export interface OperatorHistoryEntry {
-  datum: string;
-  position: string;
-  produkt: number;
+export interface ShiftStats {
+  shift_number: number;
+  shift_start: string;
+  shift_end: string;
+  operators: number[];
+  operator_count: number;
   cycles: number;
-  effektivitet: number;
-  produktivitet: number;
-  kvalitet: number;
-  bonus_poang: number;
-  ibc_ok: number;
-  ibc_ej_ok: number;
-  runtime: number;
+  total_ibc_ok: number;
+  total_ibc_ej_ok: number;
+  total_bur_ej_ok: number;
+  total_hours: number;
+  kpis: {
+    effektivitet: number;
+    produktivitet: number;
+    kvalitet: number;
+    bonus_avg: number;
+  };
+}
+
+export interface KPIDetailsResponse {
+  success: boolean;
+  data?: {
+    operator_id: number;
+    period: string;
+    chart_data: {
+      labels: string[];
+      datasets: {
+        label: string;
+        data: number[];
+        borderColor: string;
+        backgroundColor: string;
+      }[];
+    };
+    raw_data: any[];
+  };
+  error?: string;
 }
 
 export interface OperatorHistoryResponse {
   success: boolean;
   data?: {
-    operatorId: string;
-    period: {
-      start: string;
-      end: string;
-    };
+    operator_id: number;
+    count: number;
     history: OperatorHistoryEntry[];
   };
   error?: string;
 }
 
-/**
- * Service för bonussystem API
- */
+export interface OperatorHistoryEntry {
+  datum: string;
+  lopnummer: number;
+  shift: number;
+  position: string;
+  produkt: number;
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  bur_ej_ok: number;
+  runtime: number;
+  kpis: {
+    effektivitet: number;
+    produktivitet: number;
+    kvalitet: number;
+    bonus: number;
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class BonusService {
   private readonly baseUrl = '/noreko-backend/api.php?action=bonus';
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Hämta operatörs KPI och statistik
-   */
-  getOperatorStats(
-    operatorId: string,
-    startDate?: string,
-    endDate?: string,
-    position?: 'op1' | 'op2' | 'op3',
-    produkt?: number
-  ): Observable<OperatorStatsResponse> {
-    let params = new HttpParams().set('run', 'operator').set('id', operatorId);
+  getDailySummary(): Observable<BonusSummaryResponse> {
+    return this.http.get<BonusSummaryResponse>(this.baseUrl + '&run=summary', {
+      withCredentials: true
+    });
+  }
 
-    if (startDate) params = params.set('start', startDate);
-    if (endDate) params = params.set('end', endDate);
-    if (position) params = params.set('position', position);
-    if (produkt) params = params.set('produkt', produkt.toString());
+  getOperatorStats(operatorId: string, period?: string, start?: string, end?: string): Observable<OperatorStatsResponse> {
+    let params = new HttpParams().set('run', 'operator').set('id', operatorId);
+    if (period) params = params.set('period', period);
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
 
     return this.http.get<OperatorStatsResponse>(this.baseUrl, {
       params,
@@ -188,24 +197,11 @@ export class BonusService {
     });
   }
 
-  /**
-   * Hämta top ranking (top 10 default)
-   */
-  getRanking(
-    startDate?: string,
-    endDate?: string,
-    position?: string,
-    produkt?: number,
-    limit: number = 10
-  ): Observable<RankingResponse> {
-    let params = new HttpParams()
-      .set('run', 'ranking')
-      .set('limit', limit.toString());
-
-    if (startDate) params = params.set('start', startDate);
-    if (endDate) params = params.set('end', endDate);
-    if (position) params = params.set('position', position);
-    if (produkt) params = params.set('produkt', produkt.toString());
+  getRanking(period?: string, limit: number = 10, start?: string, end?: string): Observable<RankingResponse> {
+    let params = new HttpParams().set('run', 'ranking').set('limit', limit.toString());
+    if (period) params = params.set('period', period);
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
 
     return this.http.get<RankingResponse>(this.baseUrl, {
       params,
@@ -213,14 +209,11 @@ export class BonusService {
     });
   }
 
-  /**
-   * Hämta team-översikt
-   */
-  getTeamStats(startDate?: string, endDate?: string): Observable<TeamStatsResponse> {
+  getTeamStats(period?: string, start?: string, end?: string): Observable<TeamStatsResponse> {
     let params = new HttpParams().set('run', 'team');
-
-    if (startDate) params = params.set('start', startDate);
-    if (endDate) params = params.set('end', endDate);
+    if (period) params = params.set('period', period);
+    if (start) params = params.set('start', start);
+    if (end) params = params.set('end', end);
 
     return this.http.get<TeamStatsResponse>(this.baseUrl, {
       params,
@@ -228,18 +221,18 @@ export class BonusService {
     });
   }
 
-  /**
-   * Hämta operatörs historik
-   */
-  getOperatorHistory(
-    operatorId: string,
-    startDate?: string,
-    endDate?: string
-  ): Observable<OperatorHistoryResponse> {
-    let params = new HttpParams().set('run', 'history').set('id', operatorId);
+  getKPIDetails(operatorId: string, period?: string): Observable<KPIDetailsResponse> {
+    let params = new HttpParams().set('run', 'kpis').set('id', operatorId);
+    if (period) params = params.set('period', period);
 
-    if (startDate) params = params.set('start', startDate);
-    if (endDate) params = params.set('end', endDate);
+    return this.http.get<KPIDetailsResponse>(this.baseUrl, {
+      params,
+      withCredentials: true
+    });
+  }
+
+  getOperatorHistory(operatorId: string, limit: number = 50): Observable<OperatorHistoryResponse> {
+    const params = new HttpParams().set('run', 'history').set('id', operatorId).set('limit', limit.toString());
 
     return this.http.get<OperatorHistoryResponse>(this.baseUrl, {
       params,

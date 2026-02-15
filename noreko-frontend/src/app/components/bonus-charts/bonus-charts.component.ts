@@ -103,7 +103,7 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges {
           tooltip: {
             callbacks: {
               label: (context) => {
-                return `Bonus: ${context.parsed.y.toFixed(1)} poäng`;
+                return `Bonus: ${(context.parsed.y ?? 0).toFixed(1)} poäng`;
               }
             }
           }

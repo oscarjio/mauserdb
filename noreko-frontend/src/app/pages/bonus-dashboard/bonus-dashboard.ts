@@ -1,33 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BonusService } from '../../services/bonus.service';
+import { AuthService } from '../../services/auth.service';
+import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
-
-interface DailySummary {
-  date: string;
-  total_cycles: number;
-  shifts_today: number;
-  total_ibc_ok: number;
-  total_ibc_ej_ok: number;
-  avg_bonus: number;
-  max_bonus: number;
-}
-
-interface RankingEntry {
-  rank: number;
-  operator_id: number;
-  cycles: number;
-  bonus_avg: number;
-  effektivitet: number;
-  produktivitet: number;
-  kvalitet: number;
-  total_ibc_ok: number;
-  total_hours: number;
-  position?: string;
-}
 
 @Component({
   standalone: true,
@@ -36,244 +14,267 @@ interface RankingEntry {
   styleUrl: './bonus-dashboard.css',
   imports: [CommonModule, FormsModule]
 })
-export class BonusDashboardPage implements OnInit {
-  // State signals
-  loading = signal(false);
-  error = signal<string | null>(null);
+export class BonusDashboardPage implements OnInit, OnDestroy {
+  loggedIn = false;
+  user: any = null;
+  isAdmin = false;
 
-  // Data signals
-  dailySummary = signal<DailySummary | null>(null);
-  topOperators = signal<RankingEntry[]>([]);
-  positionRankings = signal<{ [key: string]: RankingEntry[] }>({});
+  // State
+  loading = false;
+  error = '';
 
-  // Filter state
-  selectedPeriod = signal<string>('week');
-  selectedPosition = signal<string>('all');
-  searchOperatorId = signal<string>('');
+  // Period filter
+  selectedPeriod = 'week';
+
+  // Daily summary
+  summary: any = null;
+
+  // Rankings
+  overallRanking: RankingEntry[] = [];
+  positionRankings: { [key: string]: RankingEntry[] } = {};
+  activeRankingTab = 'overall';
+
+  // Team/shift stats
+  teamAggregate: any = null;
+  shifts: ShiftStats[] = [];
+  showTeamView = false;
+
+  // Operator search
+  searchOperatorId = '';
+  operatorData: any = null;
+  operatorKPIData: any = null;
 
   // Charts
-  private kpiChart: Chart | null = null;
   private trendChart: Chart | null = null;
+  private kpiRadarChart: Chart | null = null;
 
-  constructor(private bonusService: BonusService) {}
+  // Polling
+  private pollingInterval: any = null;
+
+  constructor(private auth: AuthService, private bonusService: BonusService) {
+    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
+    this.auth.user$.subscribe(val => {
+      this.user = val;
+      this.isAdmin = val?.role === 'admin';
+    });
+  }
 
   ngOnInit() {
-    this.loadDashboardData();
+    this.loadData();
+    // Poll var 30:e sekund
+    this.pollingInterval = setInterval(() => this.loadData(), 30000);
   }
 
-  loadDashboardData() {
-    this.loading.set(true);
-    this.error.set(null);
-
-    // Load daily summary
-    this.loadDailySummary();
-
-    // Load rankings
-    this.loadRankings();
+  ngOnDestroy() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    if (this.trendChart) this.trendChart.destroy();
+    if (this.kpiRadarChart) this.kpiRadarChart.destroy();
   }
 
-  loadDailySummary() {
-    // Mock for now - will be implemented when API endpoint exists
-    this.dailySummary.set({
-      date: new Date().toISOString().split('T')[0],
-      total_cycles: 0,
-      shifts_today: 0,
-      total_ibc_ok: 0,
-      total_ibc_ej_ok: 0,
-      avg_bonus: 0,
-      max_bonus: 0
-    });
-  }
+  loadData() {
+    this.loading = true;
+    this.error = '';
 
-  loadRankings() {
-    const period = this.selectedPeriod();
-
-    this.bonusService.getRanking(
-      this.getStartDate(period),
-      new Date().toISOString().split('T')[0],
-      this.selectedPosition() !== 'all' ? this.selectedPosition() : undefined,
-      undefined,
-      10
-    ).subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.topOperators.set(response.data.ranking);
-          this.loading.set(false);
-        } else {
-          this.error.set(response.error || 'Failed to load rankings');
-          this.loading.set(false);
+    // Ladda summary
+    this.bonusService.getDailySummary().subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.summary = res.data;
         }
       },
+      error: () => {}
+    });
+
+    // Ladda ranking
+    this.bonusService.getRanking(this.selectedPeriod).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.overallRanking = res.data.rankings.overall || [];
+          this.positionRankings = {
+            'Tvättplats': res.data.rankings.position_1 || [],
+            'Kontrollstation': res.data.rankings.position_2 || [],
+            'Truckförare': res.data.rankings.position_3 || []
+          };
+        }
+        this.loading = false;
+      },
       error: (err) => {
-        this.error.set('Network error: ' + err.message);
-        this.loading.set(false);
+        this.error = 'Kunde inte ladda ranking: ' + err.message;
+        this.loading = false;
       }
     });
   }
 
-  loadOperatorDetails(operatorId: string) {
-    if (!operatorId || !operatorId.trim()) {
-      this.error.set('Ange ett operatör-ID');
-      return;
-    }
+  loadTeamStats() {
+    this.showTeamView = !this.showTeamView;
+    if (!this.showTeamView) return;
 
-    this.loading.set(true);
-    const period = this.selectedPeriod();
-
-    this.bonusService.getOperatorStats(
-      operatorId,
-      this.getStartDate(period),
-      new Date().toISOString().split('T')[0]
-    ).subscribe({
-      next: (response) => {
-        if (response.success && response.data) {
-          this.renderOperatorCharts(response.data);
-          this.loading.set(false);
-        } else {
-          this.error.set(response.error || 'Ingen data hittades för operatör ' + operatorId);
-          this.loading.set(false);
+    this.loading = true;
+    this.bonusService.getTeamStats(this.selectedPeriod).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.teamAggregate = res.data.aggregate;
+          this.shifts = res.data.shifts || [];
         }
+        this.loading = false;
       },
       error: (err) => {
-        this.error.set('Fel vid hämtning av operatörsdata: ' + err.message);
-        this.loading.set(false);
+        this.error = 'Kunde inte ladda skiftdata: ' + err.message;
+        this.loading = false;
       }
     });
   }
 
-  renderOperatorCharts(data: any) {
-    // Destroy existing charts
-    if (this.kpiChart) {
-      this.kpiChart.destroy();
-    }
-    if (this.trendChart) {
-      this.trendChart.destroy();
-    }
+  searchOperator() {
+    if (!this.searchOperatorId.trim()) return;
 
-    // KPI Chart (Radar/Spider chart)
-    const kpiCanvas = document.getElementById('kpiChart') as HTMLCanvasElement;
-    if (kpiCanvas) {
-      this.kpiChart = new Chart(kpiCanvas, {
-        type: 'radar',
-        data: {
-          labels: ['Effektivitet', 'Produktivitet', 'Kvalitet'],
-          datasets: [{
-            label: 'KPI:er',
-            data: [
-              data.totalStats?.avg_effektivitet || 0,
-              Math.min(data.totalStats?.avg_produktivitet || 0, 100),
-              data.totalStats?.avg_kvalitet || 0
-            ],
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgb(54, 162, 235)',
-            pointBackgroundColor: 'rgb(54, 162, 235)',
-            pointBorderColor: '#fff',
-            pointHoverBackgroundColor: '#fff',
-            pointHoverBorderColor: 'rgb(54, 162, 235)'
-          }]
-        },
-        options: {
-          scales: {
-            r: {
-              beginAtZero: true,
-              max: 100
-            }
+    this.loading = true;
+    this.operatorData = null;
+    this.operatorKPIData = null;
+
+    this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.operatorData = res.data;
+          this.loadOperatorCharts();
+        } else {
+          this.error = res.error || 'Ingen data hittades';
+        }
+        this.loading = false;
+      },
+      error: (err) => {
+        this.error = 'Kunde inte hämta operatörsdata: ' + err.message;
+        this.loading = false;
+      }
+    });
+
+    // Ladda KPI chart data
+    this.bonusService.getKPIDetails(this.searchOperatorId, this.selectedPeriod).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.operatorKPIData = res.data;
+          this.renderTrendChart();
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  loadOperatorCharts() {
+    if (!this.operatorData) return;
+    this.renderRadarChart();
+  }
+
+  renderRadarChart() {
+    if (this.kpiRadarChart) this.kpiRadarChart.destroy();
+
+    const canvas = document.getElementById('kpiRadarChart') as HTMLCanvasElement;
+    if (!canvas || !this.operatorData) return;
+
+    const kpis = this.operatorData.kpis;
+    this.kpiRadarChart = new Chart(canvas, {
+      type: 'radar',
+      data: {
+        labels: ['Effektivitet', 'Produktivitet', 'Kvalitet'],
+        datasets: [{
+          label: 'KPI:er',
+          data: [kpis.effektivitet, Math.min(kpis.produktivitet, 100), kpis.kvalitet],
+          backgroundColor: 'rgba(54, 162, 235, 0.2)',
+          borderColor: 'rgb(54, 162, 235)',
+          pointBackgroundColor: 'rgb(54, 162, 235)'
+        }]
+      },
+      options: {
+        scales: {
+          r: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: 'rgba(255,255,255,0.1)' },
+            angleLines: { color: 'rgba(255,255,255,0.1)' },
+            pointLabels: { color: '#e2e8f0' },
+            ticks: { color: '#a0aec0', backdropColor: 'transparent' }
           }
-        }
-      });
-    }
-
-    // Trend Chart (Line chart)
-    const trendCanvas = document.getElementById('trendChart') as HTMLCanvasElement;
-    if (trendCanvas && data.dailyStats) {
-      const dates = data.dailyStats.map((d: any) => d.datum);
-      const bonusData = data.dailyStats.map((d: any) => d.avg_bonus);
-
-      this.trendChart = new Chart(trendCanvas, {
-        type: 'line',
-        data: {
-          labels: dates,
-          datasets: [{
-            label: 'Bonus Poäng',
-            data: bonusData,
-            borderColor: 'rgb(75, 192, 192)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.1
-          }]
         },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              display: true,
-              position: 'top'
-            }
+        plugins: { legend: { labels: { color: '#e2e8f0' } } }
+      }
+    });
+  }
+
+  renderTrendChart() {
+    if (this.trendChart) this.trendChart.destroy();
+
+    const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas || !this.operatorKPIData?.chart_data) return;
+
+    const chartData = this.operatorKPIData.chart_data;
+    this.trendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: chartData.labels,
+        datasets: chartData.datasets.map((ds: any) => ({
+          ...ds,
+          tension: 0.3,
+          fill: false
+        }))
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#a0aec0' }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100
-            }
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            ticks: { color: '#a0aec0' }
           }
         }
-      });
-    }
-  }
-
-  getStartDate(period: string): string {
-    const now = new Date();
-    switch(period) {
-      case 'today':
-        return now.toISOString().split('T')[0];
-      case 'week':
-        now.setDate(now.getDate() - 7);
-        return now.toISOString().split('T')[0];
-      case 'month':
-        now.setDate(now.getDate() - 30);
-        return now.toISOString().split('T')[0];
-      case 'year':
-        now.setDate(now.getDate() - 365);
-        return now.toISOString().split('T')[0];
-      default:
-        now.setDate(now.getDate() - 7);
-        return now.toISOString().split('T')[0];
-    }
-  }
-
-  getBonusColor(bonus: number): string {
-    if (bonus >= 80) return 'success';
-    if (bonus >= 70) return 'warning';
-    return 'danger';
-  }
-
-  getKpiColor(kpi: number, type: 'effektivitet' | 'produktivitet' | 'kvalitet'): string {
-    if (type === 'effektivitet') {
-      if (kpi >= 95) return 'success';
-      if (kpi >= 90) return 'warning';
-      return 'danger';
-    }
-    if (type === 'produktivitet') {
-      if (kpi >= 15) return 'success';
-      if (kpi >= 10) return 'warning';
-      return 'danger';
-    }
-    if (type === 'kvalitet') {
-      if (kpi >= 98) return 'success';
-      if (kpi >= 95) return 'warning';
-      return 'danger';
-    }
-    return 'secondary';
+      }
+    });
   }
 
   onPeriodChange() {
-    this.loadRankings();
+    this.loadData();
+    if (this.operatorData) this.searchOperator();
+    if (this.showTeamView) this.loadTeamStats();
   }
 
-  onPositionChange() {
-    this.loadRankings();
+  setRankingTab(tab: string) {
+    this.activeRankingTab = tab;
   }
 
-  onSearchOperator() {
-    this.loadOperatorDetails(this.searchOperatorId());
+  getActiveRanking(): RankingEntry[] {
+    if (this.activeRankingTab === 'overall') return this.overallRanking;
+    return this.positionRankings[this.activeRankingTab] || [];
+  }
+
+  clearOperatorSearch() {
+    this.operatorData = null;
+    this.operatorKPIData = null;
+    this.searchOperatorId = '';
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null; }
+    if (this.kpiRadarChart) { this.kpiRadarChart.destroy(); this.kpiRadarChart = null; }
+  }
+
+  getBonusClass(bonus: number): string {
+    if (bonus >= 80) return 'text-success';
+    if (bonus >= 70) return 'text-warning';
+    return 'text-danger';
+  }
+
+  getRankBadge(rank: number): string {
+    if (rank === 1) return 'badge bg-warning text-dark';
+    if (rank === 2) return 'badge bg-secondary';
+    if (rank === 3) return 'badge bg-danger';
+    return 'badge bg-dark';
+  }
+
+  getProductName(id: number): string {
+    const names: { [k: number]: string } = { 1: 'FoodGrade', 4: 'NonUN', 5: 'Tvättade' };
+    return names[id] || 'Okänd';
   }
 }
