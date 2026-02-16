@@ -1,0 +1,145 @@
+.exec-dashboard {
+  padding: 1rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* KPI Cards */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+  transition: transform 0.2s;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+.kpi-icon {
+  font-size: 1.5rem;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+}
+.kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  margin-bottom: 0.25rem;
+}
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.kpi-total {
+  font-size: 1.25rem;
+  font-weight: 400;
+  color: #718096;
+}
+.kpi-unit {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+/* Line Cards */
+.line-card {
+  background: #2d3748;
+  border-radius: 12px;
+  border: 1px solid #4a5568;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.line-card:hover {
+  border-color: #667eea;
+}
+.line-running {
+  border-left: 4px solid #48bb78;
+}
+.line-stopped {
+  border-left: 4px solid #e53e3e;
+}
+.line-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(0,0,0,0.15);
+}
+.line-icon {
+  font-size: 1.25rem;
+  color: #667eea;
+}
+.line-body {
+  padding: 1rem;
+}
+
+.production-bar-container {
+  margin-bottom: 0.5rem;
+}
+.production-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+/* Detail cards */
+.detail-card {
+  background: #2d3748 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 12px;
+}
+.detail-card .card-header {
+  background: rgba(0,0,0,0.15) !important;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+.detail-card .card-body {
+  color: #e2e8f0;
+}
+
+/* Mini stats */
+.mini-stat {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+}
+.mini-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  margin-bottom: 0.25rem;
+}
+.mini-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* Chart */
+.chart-container {
+  position: relative;
+  height: 250px;
+}
+
+/* Progress bar overrides for dark theme */
+.progress {
+  background-color: #1a202c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kpi-value { font-size: 1.25rem; }
+  .line-header { flex-direction: column; gap: 0.5rem; }
+}

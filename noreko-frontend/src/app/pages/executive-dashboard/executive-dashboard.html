@@ -1,0 +1,235 @@
+<div class="exec-dashboard" *ngIf="loggedIn && isAdmin">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2><i class="fas fa-tachometer-alt me-2"></i>Produktionsöversikt</h2>
+      <small class="text-muted">Alla produktionslinjer i realtid</small>
+    </div>
+    <div class="text-end">
+      <small class="text-muted d-block">Uppdaterad {{ lastRefresh | date:'HH:mm:ss' }}</small>
+      <small class="text-muted">Pollar var 15:e sekund</small>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-5">
+    <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+    <p class="text-muted mt-2">Hämtar data från alla linjer...</p>
+  </div>
+
+  <!-- ===== TOP KPI CARDS ===== -->
+  <div class="row g-3 mb-4" *ngIf="!loading">
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-industry"></i></div>
+        <div class="kpi-label">Linjer igång</div>
+        <div class="kpi-value">
+          <span [class]="getRunningCount() > 0 ? 'text-success' : 'text-danger'">{{ getRunningCount() }}</span>
+          <span class="kpi-total"> / {{ lines.length }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
+        <div class="kpi-label">Total produktion</div>
+        <div class="kpi-value">{{ getTotalProduction() }} <small class="kpi-unit">IBC</small></div>
+        <div class="kpi-sub">Mål: {{ getTotalTarget() }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-label">Måluppfyllnad</div>
+        <div class="kpi-value" [ngClass]="getStatusClass(getOverallPercentage())">{{ getOverallPercentage() }}%</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+        <div class="kpi-label">Snittbonus idag</div>
+        <div class="kpi-value" [ngClass]="getBonusClass(bonusSummary?.avg_bonus || 0)">
+          {{ bonusSummary?.avg_bonus || '-' }}
+        </div>
+        <div class="kpi-sub" *ngIf="bonusSummary">{{ bonusSummary.total_cycles }} cykler</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PRODUCTION LINES ===== -->
+  <div class="row g-3 mb-4" *ngIf="!loading">
+    <div class="col-md-6" *ngFor="let line of lines">
+      <div class="line-card" [class.line-running]="line.running" [class.line-stopped]="!line.running">
+        <div class="line-header">
+          <div class="d-flex align-items-center">
+            <i class="fas {{ line.icon }} me-2 line-icon"></i>
+            <h5 class="mb-0">{{ line.name }}</h5>
+          </div>
+          <span class="badge" [ngClass]="getStatusBadgeClass(line)">
+            <i class="fas fa-circle me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>
+            {{ getStatusText(line) }}
+          </span>
+        </div>
+        <div class="line-body">
+          <div class="row align-items-center">
+            <div class="col-8">
+              <div class="production-bar-container">
+                <div class="production-bar-label">
+                  <span>{{ line.production }} / {{ line.target }} IBC</span>
+                  <span [ngClass]="getStatusClass(line.percentage)">{{ line.percentage }}%</span>
+                </div>
+                <div class="progress" style="height: 10px;">
+                  <div class="progress-bar" [class.bg-success]="line.percentage >= 100"
+                       [class.bg-warning]="line.percentage >= 60 && line.percentage < 100"
+                       [class.bg-danger]="line.percentage < 60"
+                       [style.width.%]="Math.min(line.percentage, 100)">
+                  </div>
+                </div>
+              </div>
+              <small class="text-muted">{{ getTimeAgo(line.lastUpdate) }}</small>
+            </div>
+            <div class="col-4 text-end">
+              <a [routerLink]="line.route" class="btn btn-sm btn-outline-info">
+                <i class="fas fa-arrow-right me-1"></i>Detaljer
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BONUS + TREND ===== -->
+  <div class="row g-3" *ngIf="!loading">
+
+    <!-- Bonus sammanfattning -->
+    <div class="col-md-5" *ngIf="bonusSummary">
+      <div class="card detail-card">
+        <div class="card-header"><h6 class="mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Bonusöversikt idag</h6></div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="mini-stat">
+                <span class="mini-label">Cykler</span>
+                <span class="mini-value">{{ bonusSummary.total_cycles }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mini-stat">
+                <span class="mini-label">Skift idag</span>
+                <span class="mini-value">{{ bonusSummary.shifts_today }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mini-stat">
+                <span class="mini-label">IBC Godkända</span>
+                <span class="mini-value text-success">{{ bonusSummary.total_ibc_ok }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mini-stat">
+                <span class="mini-label">IBC Kasserade</span>
+                <span class="mini-value text-danger">{{ bonusSummary.total_ibc_ej_ok }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mini-stat">
+                <span class="mini-label">Max bonus</span>
+                <span class="mini-value text-success">{{ bonusSummary.max_bonus }}</span>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="mini-stat">
+                <span class="mini-label">Snittbonus</span>
+                <span class="mini-value" [ngClass]="getBonusClass(bonusSummary.avg_bonus)">{{ bonusSummary.avg_bonus }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <h6 class="text-muted mb-2" style="font-size: 0.8rem;">Operatörer aktiva</h6>
+            <div class="d-flex gap-3">
+              <div><i class="fas fa-shower me-1 text-info"></i>Tvätt: {{ bonusSummary.unique_operators?.tvattplats || 0 }}</div>
+              <div><i class="fas fa-search me-1 text-primary"></i>Kontroll: {{ bonusSummary.unique_operators?.kontroll || 0 }}</div>
+              <div><i class="fas fa-truck me-1 text-warning"></i>Truck: {{ bonusSummary.unique_operators?.truck || 0 }}</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a routerLink="/rebotling/bonus" class="btn btn-sm btn-outline-warning w-100">
+              <i class="fas fa-chart-bar me-1"></i>Till Bonus Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trend chart -->
+    <div class="col-md-7">
+      <div class="card detail-card">
+        <div class="card-header"><h6 class="mb-0"><i class="fas fa-chart-line me-2 text-info"></i>Skifttrend (senaste 10)</h6></div>
+        <div class="card-body">
+          <div class="chart-container">
+            <canvas id="execTrendChart"></canvas>
+          </div>
+          <div class="text-center mt-2" *ngIf="!teamStats">
+            <small class="text-muted">Ingen skiftdata tillgänglig</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Team overview -->
+  <div class="card detail-card mt-3" *ngIf="!loading && teamStats?.aggregate">
+    <div class="card-header"><h6 class="mb-0"><i class="fas fa-users me-2"></i>Teamöversikt (vecka)</h6></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-2 col-4">
+          <div class="mini-stat">
+            <span class="mini-label">Skift</span>
+            <span class="mini-value">{{ teamStats.aggregate.total_shifts }}</span>
+          </div>
+        </div>
+        <div class="col-md-2 col-4">
+          <div class="mini-stat">
+            <span class="mini-label">Cykler</span>
+            <span class="mini-value">{{ teamStats.aggregate.total_cycles }}</span>
+          </div>
+        </div>
+        <div class="col-md-2 col-4">
+          <div class="mini-stat">
+            <span class="mini-label">IBC OK</span>
+            <span class="mini-value text-success">{{ teamStats.aggregate.total_ibc_ok }}</span>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="mini-stat">
+            <span class="mini-label">Snittbonus</span>
+            <span class="mini-value" [ngClass]="getBonusClass(teamStats.aggregate.avg_bonus)">{{ teamStats.aggregate.avg_bonus }}</span>
+          </div>
+        </div>
+        <div class="col-md-3 col-6">
+          <div class="mini-stat">
+            <span class="mini-label">Unika operatörer</span>
+            <span class="mini-value">{{ teamStats.aggregate.unique_operators }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Not admin -->
+<div *ngIf="loggedIn && !isAdmin" class="text-center py-5">
+  <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+  <h4>Åtkomst nekad</h4>
+  <p class="text-muted">Denna sida kräver admin-behörighet.</p>
+</div>
+
+<div *ngIf="!loggedIn" class="text-center py-5">
+  <i class="fas fa-sign-in-alt fa-3x text-muted mb-3"></i>
+  <h4>Logga in</h4>
+  <p class="text-muted">Du behöver vara inloggad för att se denna sida.</p>
+</div>
