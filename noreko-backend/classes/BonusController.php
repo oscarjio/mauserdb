@@ -627,6 +627,10 @@ class BonusController {
     
     private function getDateFilter($period, $start = null, $end = null) {
         if ($start && $end) {
+            // Validera datumformat för att förhindra SQL injection
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+                return "1=0"; // Ogiltigt datumformat, returnera inga resultat
+            }
             return "DATE(datum) BETWEEN '{$start}' AND '{$end}'";
         }
         
