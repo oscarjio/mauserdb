@@ -241,4 +241,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       }
     });
   }
+
+  printDashboard(): void {
+    window.print();
+  }
 }

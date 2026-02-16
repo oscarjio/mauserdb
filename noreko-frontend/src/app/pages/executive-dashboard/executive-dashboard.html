@@ -6,9 +6,14 @@
       <h2><i class="fas fa-tachometer-alt me-2"></i>Produktionsöversikt</h2>
       <small class="text-muted">Alla produktionslinjer i realtid</small>
     </div>
-    <div class="text-end">
-      <small class="text-muted d-block">Uppdaterad {{ lastRefresh | date:'HH:mm:ss' }}</small>
-      <small class="text-muted">Pollar var 15:e sekund</small>
+    <div class="text-end d-flex align-items-center gap-3">
+      <div>
+        <small class="text-muted d-block">Uppdaterad {{ lastRefresh | date:'HH:mm:ss' }}</small>
+        <small class="text-muted">Pollar var 15:e sekund</small>
+      </div>
+      <button class="btn btn-sm btn-outline-light d-print-none" (click)="printDashboard()" title="Skriv ut rapport">
+        <i class="fas fa-print me-1"></i>Skriv ut
+      </button>
     </div>
   </div>
 

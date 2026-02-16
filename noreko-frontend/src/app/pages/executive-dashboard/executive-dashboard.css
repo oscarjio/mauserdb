@@ -165,3 +165,26 @@
   .kpi-value { font-size: 1.25rem; }
   .line-header { flex-direction: column; gap: 0.5rem; }
 }
+
+/* Print styles */
+@media print {
+  .exec-dashboard {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
+  }
+  .kpi-card, .line-card, .detail-card, .detail-card .card-header, .detail-card .card-body, .mini-stat {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #ccc !important;
+  }
+  .kpi-label, .kpi-sub, .kpi-unit, .mini-label, .oee-label, .oee-factor-label {
+    color: #555 !important;
+  }
+  .kpi-total { color: #888 !important; }
+  .progress { background-color: #e0e0e0 !important; }
+  .text-muted { color: #666 !important; }
+  .d-print-none { display: none !important; }
+  .line-running { border-left-color: #28a745 !important; }
+  .line-stopped { border-left-color: #dc3545 !important; }
+}
