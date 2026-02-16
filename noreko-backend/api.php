@@ -1,9 +1,22 @@
 <?php
 // api.php - Tar emot API-anrop och routar till rätt hantering
 
-// CORS-headers
+// CORS-headers - begränsa till tillåtna domäner
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin) {
+$allowedOrigins = [
+    'http://localhost:4200',
+    'http://localhost',
+    'https://localhost',
+];
+// Lägg till egna domäner via db_config om den finns
+$corsConfig = __DIR__ . '/cors_origins.php';
+if (file_exists($corsConfig)) {
+    $extraOrigins = require $corsConfig;
+    if (is_array($extraOrigins)) {
+        $allowedOrigins = array_merge($allowedOrigins, $extraOrigins);
+    }
+}
+if ($origin && in_array($origin, $allowedOrigins, true)) {
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');

@@ -113,18 +113,6 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
               ? res.data.productionPercentage
               : 0;
 
-          // Debug: logga om productionPercentage saknas
-          if (res.data.productionPercentage === undefined || res.data.productionPercentage === null) {
-            console.warn('productionPercentage saknas i backend response:', res);
-          }
-
-          this.updateSpeedometer();
-        } else if (res === null) {
-          // Vid fel behåller vi senaste värdena men loggning görs i catchError
-          this.updateSpeedometer();
-        } else {
-          console.error('Ogiltigt svar från backend:', res);
-          this.productionPercentage = 0;
           this.updateSpeedometer();
         }
       });
