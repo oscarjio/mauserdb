@@ -25,5 +25,6 @@ Thumbs.db
 *.ppk
 *.sql
 *.code-workspace
+noreko-backend/db_config.php
 
 gx*/
