@@ -151,16 +151,20 @@ GET  /noreko-backend/api.php?action=bonusadmin&run=get_stats      → Systemstat
 ## 5. Steg-för-steg checklista
 
 - [ ] Kör databas-migration `003_bonus_admin_tables.sql`
+- [ ] Kör databas-migration `004_add_performance_indexes.sql`
+- [ ] Kör databas-migration `005_bcrypt_password_column.sql`
 - [ ] Verifiera att PLC:n skickar operatörs-ID i D4000-D4002
 - [ ] Verifiera att produkt-ID i D4003 är korrekt (1, 4, eller 5)
 - [ ] Bygg Angular-frontend: `cd noreko-frontend && ng build`
-- [ ] Deploya frontend till webbservern
+- [ ] Deploya frontend till webbservern (kopiera `dist/noreko-frontend/browser/` till webroot)
 - [ ] Logga in som admin och navigera till Rebotling → Bonus
 - [ ] Kontrollera att KPI-kort och ranking visar data
 - [ ] Gå till Rebotling → Bonus Admin
 - [ ] Verifiera att konfiguration kan läsas och uppdateras
 - [ ] Testa CSV-export för en period
 - [ ] Testa godkännande av bonusperiod
+- [ ] Testa VD-Översikt (admin → Översikt i menyn)
+- [ ] Testa Min Bonus (Rebotling → Min Bonus)
 
 ---
 
@@ -175,8 +179,9 @@ GET  /noreko-backend/api.php?action=bonusadmin&run=get_stats      → Systemstat
 - Se `noreko-plcbackend/Rebotling.php` → `handleCycle()` rad 50-55
 
 ### Admin-API ger "Unauthorized"
-- `BonusAdminController::isAdmin()` returnerar `true` som default
-- Implementera riktig auth-check om så önskas
+- `BonusAdminController::isAdmin()` kontrollerar `$_SESSION['role'] === 'admin'`
+- Se till att användaren är inloggad med admin-roll
+- Bonus-dashboard (`BonusController`) kräver också inloggning
 
 ### Viktningar summerar inte till 1.0
 - Admin-gränssnittet validerar detta och visar felmeddelande
