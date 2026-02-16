@@ -935,4 +935,30 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
     if (efficiency >= 70) return 'text-warning';
     return 'text-danger';
   }
+
+  exportCSV() {
+    if (this.tableData.length === 0) return;
+
+    const header = ['Period', 'Cykler', 'Cykeltid (min)', 'Effektivitet (%)', 'Drifttid (min)'];
+    const rows = this.tableData.map(row => [
+      row.period,
+      row.cycles,
+      row.avgCycleTime,
+      row.efficiency,
+      row.runtime
+    ]);
+
+    const csvContent = [header, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(';'))
+      .join('\n');
+
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rebotling-statistik-${this.breadcrumb.join('-')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 }

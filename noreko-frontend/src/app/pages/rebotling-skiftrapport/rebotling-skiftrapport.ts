@@ -351,4 +351,34 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       this.showSuccessMessage = false;
     }, 3000);
   }
+
+  exportCSV() {
+    if (this.reports.length === 0) return;
+
+    const header = ['ID', 'Datum', 'Produkt', 'Användare', 'IBC OK', 'Bur ej OK', 'IBC ej OK', 'Totalt', 'Inlagd'];
+    const rows = this.reports.map((r: any) => [
+      r.id,
+      r.datum,
+      r.product_name || '-',
+      r.user_name || '-',
+      r.ibc_ok,
+      r.bur_ej_ok,
+      r.ibc_ej_ok,
+      r.totalt,
+      r.inlagd == 1 ? 'Ja' : 'Nej'
+    ]);
+
+    const csvContent = [header, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(';'))
+      .join('\n');
+
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `skiftrapport-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 }
