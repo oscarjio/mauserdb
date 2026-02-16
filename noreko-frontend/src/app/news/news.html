@@ -1,89 +1,145 @@
 <div class="dashboard-page">
   <div class="container-fluid">
     <h1 class="dashboard-title">Produktions-översikt</h1>
-    
+
     <div class="row g-4 dashboard-grid">
       <!-- Rebotling Card -->
       <div class="col-lg-6 col-xl-3">
-        <div class="dashboard-card" [class.running]="rebotlingStatus">
-          <div class="status-indicator" [class.active]="rebotlingStatus"></div>
-          <h3 class="line-name">Rebotling</h3>
-          <div class="line-stats">
-            <div class="stat-item">
-              <span class="stat-label">Idag</span>
-              <span class="stat-value">{{ rebotlingToday }}</span>
+        <a routerLink="/rebotling/live" class="card-link">
+          <div class="dashboard-card" [class.running]="rebotlingStatus">
+            <div class="status-indicator" [class.active]="rebotlingStatus"></div>
+            <h3 class="line-name">Rebotling</h3>
+            <div class="line-stats">
+              <div class="stat-item">
+                <span class="stat-label">IBC idag</span>
+                <span class="stat-value">{{ rebotlingToday }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Mål</span>
+                <span class="stat-value">{{ rebotlingTarget }}</span>
+              </div>
+            </div>
+            <div class="progress-section" *ngIf="rebotlingTarget > 0">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted">Måluppfyllnad</small>
+                <small [ngClass]="getPercentageClass(rebotlingPercentage)">{{ rebotlingPercentage }}%</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar" [ngClass]="getProgressClass(rebotlingPercentage)"
+                     [style.width.%]="rebotlingPercentage > 100 ? 100 : rebotlingPercentage"></div>
+              </div>
+            </div>
+            <div class="status-badge-container">
+              <span class="badge" [class]="rebotlingStatus ? 'bg-success' : 'bg-danger'">
+                {{ rebotlingStatus ? 'Igång' : 'Stoppad' }}
+              </span>
             </div>
           </div>
-          <div class="status-badge-container">
-            <span class="badge" [class]="rebotlingStatus ? 'bg-success' : 'bg-danger'">
-              {{ rebotlingStatus ? 'Igång' : 'Stoppad' }}
-            </span>
-          </div>
-        </div>
+        </a>
       </div>
 
       <!-- Tvättlinje Card -->
       <div class="col-lg-6 col-xl-3">
-        <div class="dashboard-card" [class.running]="tvattlinjeStatus">
-          <div class="status-indicator" [class.active]="tvattlinjeStatus"></div>
-          <h3 class="line-name">Tvättlinje</h3>
-          <div class="line-stats">
-            <div class="stat-item">
-              <span class="stat-label">IBC idag</span>
-              <span class="stat-value">{{ tvattlinjeToday }}</span>
+        <a routerLink="/tvattlinje/live" class="card-link">
+          <div class="dashboard-card" [class.running]="tvattlinjeStatus">
+            <div class="status-indicator" [class.active]="tvattlinjeStatus"></div>
+            <h3 class="line-name">Tvättlinje</h3>
+            <div class="line-stats">
+              <div class="stat-item">
+                <span class="stat-label">IBC idag</span>
+                <span class="stat-value">{{ tvattlinjeToday }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Mål</span>
+                <span class="stat-value">{{ tvattlinjeTarget }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Mål</span>
-              <span class="stat-value">{{ tvattlinjeTarget }}</span>
+            <div class="progress-section" *ngIf="tvattlinjeTarget > 0">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted">Måluppfyllnad</small>
+                <small [ngClass]="getPercentageClass(tvattlinjePercentage)">{{ tvattlinjePercentage }}%</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar" [ngClass]="getProgressClass(tvattlinjePercentage)"
+                     [style.width.%]="tvattlinjePercentage > 100 ? 100 : tvattlinjePercentage"></div>
+              </div>
+            </div>
+            <div class="status-badge-container">
+              <span class="badge" [class]="tvattlinjeStatus ? 'bg-success' : 'bg-danger'">
+                {{ tvattlinjeStatus ? 'Igång' : 'Stoppad' }}
+              </span>
             </div>
           </div>
-          <div class="status-badge-container">
-            <span class="badge" [class]="tvattlinjeStatus ? 'bg-success' : 'bg-danger'">
-              {{ tvattlinjeStatus ? 'Igång' : 'Stoppad' }}
-            </span>
-          </div>
-        </div>
+        </a>
       </div>
 
       <!-- Saglinje Card -->
       <div class="col-lg-6 col-xl-3">
-        <div class="dashboard-card" [class.running]="saglinjeStatus">
-          <div class="status-indicator" [class.active]="saglinjeStatus"></div>
-          <h3 class="line-name">Såglinje</h3>
-          <div class="line-stats">
-            <div class="stat-item">
-              <span class="stat-label">Idag</span>
-              <span class="stat-value">{{ saglinjeToday }}</span>
+        <a routerLink="/saglinje/live" class="card-link">
+          <div class="dashboard-card" [class.running]="saglinjeStatus">
+            <div class="status-indicator" [class.active]="saglinjeStatus"></div>
+            <h3 class="line-name">Såglinje</h3>
+            <div class="line-stats">
+              <div class="stat-item">
+                <span class="stat-label">Idag</span>
+                <span class="stat-value">{{ saglinjeToday }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Mål</span>
+                <span class="stat-value">{{ saglinjeTarget }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Mål</span>
-              <span class="stat-value">{{ saglinjeTarget }}</span>
+            <div class="status-badge-container">
+              <span class="badge bg-secondary">Kommer snart</span>
             </div>
           </div>
-          <div class="status-badge-container">
-            <span class="badge bg-secondary">Kommer snart</span>
-          </div>
-        </div>
+        </a>
       </div>
 
       <!-- Klassificeringslinje Card -->
       <div class="col-lg-6 col-xl-3">
-        <div class="dashboard-card" [class.running]="klassificeringslinjeStatus">
-          <div class="status-indicator" [class.active]="klassificeringslinjeStatus"></div>
-          <h3 class="line-name">Klassificeringslinje</h3>
-          <div class="line-stats">
-            <div class="stat-item">
-              <span class="stat-label">Idag</span>
-              <span class="stat-value">{{ klassificeringslinjeToday }}</span>
+        <a routerLink="/klassificeringslinje/live" class="card-link">
+          <div class="dashboard-card" [class.running]="klassificeringslinjeStatus">
+            <div class="status-indicator" [class.active]="klassificeringslinjeStatus"></div>
+            <h3 class="line-name">Klassificeringslinje</h3>
+            <div class="line-stats">
+              <div class="stat-item">
+                <span class="stat-label">Idag</span>
+                <span class="stat-value">{{ klassificeringslinjeToday }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Mål</span>
+                <span class="stat-value">{{ klassificeringslinjeTarget }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Mål</span>
-              <span class="stat-value">{{ klassificeringslinjeTarget }}</span>
+            <div class="status-badge-container">
+              <span class="badge bg-secondary">Kommer snart</span>
             </div>
           </div>
-          <div class="status-badge-container">
-            <span class="badge bg-secondary">Kommer snart</span>
-          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Quick links for logged-in users -->
+    <div class="quick-links mt-4" *ngIf="loggedIn">
+      <div class="row g-3 dashboard-grid">
+        <div class="col-md-4" *ngIf="isAdmin">
+          <a routerLink="/oversikt" class="quick-link-card">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>VD-Översikt</span>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a routerLink="/min-bonus" class="quick-link-card">
+            <i class="fas fa-star"></i>
+            <span>Min Bonus</span>
+          </a>
+        </div>
+        <div class="col-md-4" *ngIf="isAdmin">
+          <a routerLink="/rebotling/bonus" class="quick-link-card">
+            <i class="fas fa-trophy"></i>
+            <span>Bonus Dashboard</span>
+          </a>
         </div>
       </div>
     </div>

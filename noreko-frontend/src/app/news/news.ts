@@ -1,28 +1,33 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-news',
   standalone: true,
+  imports: [CommonModule, RouterModule],
   templateUrl: './news.html',
   styleUrl: './news.css'
 })
 export class News implements OnInit, OnDestroy {
   intervalId: any;
+  loggedIn = false;
+  isAdmin = false;
 
   // Rebotling data
   rebotlingStatus: boolean = false;
   rebotlingToday: number = 0;
+  rebotlingTarget: number = 0;
+  rebotlingPercentage: number = 0;
 
   // Tvättlinje data
   tvattlinjeStatus: boolean = false;
   tvattlinjeToday: number = 0;
   tvattlinjeTarget: number = 0;
-  tvattlinjeThisHour: number = 0;
-  tvattlinjeHourlyTarget: number = 0;
-  tvattlinjeNeedleRotation: number = -100;
-  tvattlinjeBadgeClass: string = 'bg-success';
+  tvattlinjePercentage: number = 0;
 
   // Saglinje data (placeholder)
   saglinjeStatus: boolean = false;
@@ -36,13 +41,19 @@ export class News implements OnInit, OnDestroy {
 
   constructor(
     private rebotlingService: RebotlingService,
-    private tvattlinjeService: TvattlinjeService
-  ) {}
+    private tvattlinjeService: TvattlinjeService,
+    private auth: AuthService
+  ) {
+    this.auth.loggedIn$.subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.user$.subscribe((val: any) => {
+      this.isAdmin = val?.role === 'admin';
+    });
+  }
 
   ngOnInit() {
     this.intervalId = setInterval(() => {
       this.fetchAllData();
-    }, 5000); // Update every 5 seconds
+    }, 5000);
     this.fetchAllData();
   }
 
@@ -58,15 +69,14 @@ export class News implements OnInit, OnDestroy {
   }
 
   private fetchRebotlingData() {
-    // Fetch live stats
     this.rebotlingService.getLiveStats().subscribe((res: RebotlingLiveStatsResponse) => {
       if (res && res.success && res.data) {
-        // Använd ibcToday (antal rader från rebotling_ibc idag) istället för rebotlingToday
         this.rebotlingToday = res.data.ibcToday || 0;
+        this.rebotlingTarget = res.data.rebotlingTarget || 0;
+        this.rebotlingPercentage = res.data.productionPercentage || 0;
       }
     });
 
-    // Fetch status
     this.rebotlingService.getRunningStatus().subscribe((res: LineStatusResponse) => {
       if (res && res.success && res.data) {
         this.rebotlingStatus = res.data.running;
@@ -75,15 +85,14 @@ export class News implements OnInit, OnDestroy {
   }
 
   private fetchTvattlinjeData() {
-    // Fetch live stats
     this.tvattlinjeService.getLiveStats().subscribe((res: TvattlinjeLiveStatsResponse) => {
       if (res && res.success && res.data) {
         this.tvattlinjeToday = res.data.ibcToday;
         this.tvattlinjeTarget = res.data.ibcTarget;
+        this.tvattlinjePercentage = res.data.productionPercentage || 0;
       }
     });
 
-    // Fetch status
     this.tvattlinjeService.getRunningStatus().subscribe((res: LineStatusResponse) => {
       if (res && res.success && res.data) {
         this.tvattlinjeStatus = res.data.running;
@@ -91,4 +100,15 @@ export class News implements OnInit, OnDestroy {
     });
   }
 
+  getPercentageClass(pct: number): string {
+    if (pct >= 100) return 'text-success';
+    if (pct >= 60) return 'text-warning';
+    return 'text-danger';
+  }
+
+  getProgressClass(pct: number): string {
+    if (pct >= 100) return 'bg-success';
+    if (pct >= 60) return 'bg-warning';
+    return 'bg-danger';
+  }
 }
