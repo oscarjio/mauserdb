@@ -16,7 +16,7 @@ class LoginController {
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && $user['password'] === $this->hashPassword($password)) {
+        if ($user && $this->verifyPassword($password, $user['password'], $pdo, $user['id'])) {
             // Uppdatera senaste inloggning
             $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
             // Sätt session
@@ -35,9 +35,20 @@ class LoginController {
         }
     }
 
-    private function hashPassword($password) {
-        // Kombinerad hashning (för demo, använd password_hash i produktion!)
-        return sha1(md5($password));
+    private function verifyPassword($password, $storedHash, $pdo, $userId) {
+        // Försök med bcrypt först (nya lösenord)
+        if (password_verify($password, $storedHash)) {
+            return true;
+        }
+
+        // Fallback: legacy sha1(md5()) hash - migrera till bcrypt vid lyckad inloggning
+        if ($storedHash === sha1(md5($password))) {
+            $newHash = password_hash($password, PASSWORD_BCRYPT);
+            $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newHash, $userId]);
+            return true;
+        }
+
+        return false;
     }
 
     private function logout() {

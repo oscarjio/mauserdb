@@ -81,7 +81,6 @@ export class RebotlingAdminPage implements OnInit {
             this.loadProducts(); // Reload products
             this.newProduct = { name: '', cycle_time_minutes: null }; // Reset form
             this.showAddProductForm = false; // Hide form after adding
-            console.log('Produkt tillagd');
             this.showSuccess('Produkt tillagd!');
           } else {
             console.error('Kunde inte lägga till produkt:', response.error);
@@ -129,7 +128,6 @@ export class RebotlingAdminPage implements OnInit {
             product.editing = false;
             product.originalName = product.name;
             product.originalCycleTime = product.cycle_time_minutes;
-            console.log('Produkt uppdaterad');
             this.showSuccess('Produkt uppdaterad!');
           } else {
             console.error('Kunde inte uppdatera produkt:', response.error);
@@ -161,7 +159,6 @@ export class RebotlingAdminPage implements OnInit {
         next: (response) => {
           if (response.success) {
             this.loadProducts(); // Reload products
-            console.log('Produkt borttagen');
             this.showSuccess('Produkt borttagen!');
           } else {
             console.error('Kunde inte ta bort produkt:', response.error);

@@ -64,7 +64,6 @@ export class TvattlinjeAdminPage implements OnInit {
       .subscribe({
         next: (response) => {
           if (response.success) {
-            console.log('Inställningar sparade');
             this.showSuccess('Inställningar sparade!');
             this.settings = response.data;
           } else {

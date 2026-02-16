@@ -43,8 +43,8 @@ class AdminController {
                     return;
                 }
                 
-                // Hasha lösenord
-                $hashedPassword = sha1(md5($password));
+                // Hasha lösenord med bcrypt
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
                 
                 // Kontrollera om active-kolumnen finns
                 try {
@@ -183,7 +183,7 @@ class AdminController {
             if ($username) { $fields[] = 'username = ?'; $params[] = $username; }
             if ($email) { $fields[] = 'email = ?'; $params[] = $email; }
             if ($phone !== null) { $fields[] = 'phone = ?'; $params[] = $phone; }
-            if ($password) { $fields[] = 'password = ?'; $params[] = sha1(md5($password)); }
+            if ($password) { $fields[] = 'password = ?'; $params[] = password_hash($password, PASSWORD_BCRYPT); }
             if ($admin !== null && $id != $_SESSION['user_id']) { 
                 $fields[] = 'admin = ?'; 
                 $params[] = $admin; 

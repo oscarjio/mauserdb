@@ -90,10 +90,6 @@ export class VpnAdminPage implements OnInit, OnDestroy {
             this.totalConnected = response.total_connected || 0;
             this.totalClients = response.total_clients || 0;
             
-            // Logga timings om de finns (för debugging)
-            if (response.timings) {
-              console.log('VPN Status Timings:', response.timings);
-            }
           } else {
             this.error = response.error || response.message || 'Kunde inte hämta VPN-status';
             this.clients = [];

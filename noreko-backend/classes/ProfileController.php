@@ -70,13 +70,13 @@ class ProfileController {
                 echo json_encode(['success' => false, 'message' => 'Nuvarande lösenord krävs för att ändra lösenord.']);
                 return;
             }
-            if ($user['password'] !== $this->hashPassword($currentPassword)) {
+            if (!$this->verifyPassword($currentPassword, $user['password'])) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Nuvarande lösenord är felaktigt.']);
                 return;
             }
             $fields[] = 'password = ?';
-            $params[] = $this->hashPassword($newPassword);
+            $params[] = password_hash($newPassword, PASSWORD_BCRYPT);
         }
 
         if (!$fields) {
@@ -110,8 +110,13 @@ class ProfileController {
         ]);
     }
 
-    private function hashPassword($password) {
-        return sha1(md5($password));
+    private function verifyPassword($password, $storedHash) {
+        // Försök bcrypt först
+        if (password_verify($password, $storedHash)) {
+            return true;
+        }
+        // Fallback: legacy sha1(md5())
+        return $storedHash === sha1(md5($password));
     }
 }
 

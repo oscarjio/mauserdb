@@ -727,16 +727,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit {
     
     if (currentPeriod) runningPeriods.push(currentPeriod);
 
-    console.log('✅ Tvättlinje Chart data FINAL:', { 
-      labels: labels.length,
-      cycleTime: cycleTime,
-      nonZeroValues: cycleTime.filter(v => v > 0).length,
-      avgCycleTime: overallAvg,
-      targetCycleTime: this.targetCycleTime,
-      runningPeriods: runningPeriods.length,
-      runningPeriodsDetail: runningPeriods
-    });
-
     return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods };
   }
 
