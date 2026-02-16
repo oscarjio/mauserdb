@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { of } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
-import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../../services/rebotling.service';
+import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse, OEEResponse } from '../../services/rebotling.service';
 
 @Component({
   standalone: true,
@@ -35,7 +35,16 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   isLineRunning: boolean = false;
   statusBarClass: string = 'status-bar-off';
 
+  // OEE
+  oee: number | null = null;
+  oeeAvailability: number = 0;
+  oeePerformance: number = 0;
+  oeeQuality: number = 0;
+  private isFetchingOEE = false;
+
   constructor(private rebotlingService: RebotlingService) {}
+
+  private oeeIntervalId: any;
 
   ngOnInit() {
     this.intervalId = setInterval(() => {
@@ -43,12 +52,17 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
       this.fetchLiveStats();
       this.fetchLineStatus();
     }, 2000);
+    this.oeeIntervalId = setInterval(() => {
+      this.fetchOEE();
+    }, 30000);
     this.fetchLiveStats();
     this.fetchLineStatus();
+    this.fetchOEE();
   }
 
   ngOnDestroy() {
     clearInterval(this.intervalId);
+    clearInterval(this.oeeIntervalId);
   }
 
   private fetchLiveStats() {
@@ -114,6 +128,34 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
         if (res && res.success && res.data) {
           this.isLineRunning = res.data.running;
           this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
+        }
+      });
+  }
+
+  private fetchOEE() {
+    if (this.isFetchingOEE) {
+      return;
+    }
+    this.isFetchingOEE = true;
+
+    this.rebotlingService
+      .getOEE('today')
+      .pipe(
+        timeout(5000),
+        catchError((err) => {
+          console.error('Fel vid hämtning av OEE:', err);
+          return of<OEEResponse | null>(null);
+        }),
+        finalize(() => {
+          this.isFetchingOEE = false;
+        })
+      )
+      .subscribe((res: OEEResponse | null) => {
+        if (res && res.success && res.data) {
+          this.oee = res.data.oee;
+          this.oeeAvailability = res.data.availability;
+          this.oeePerformance = res.data.performance;
+          this.oeeQuality = res.data.quality;
         }
       });
   }
