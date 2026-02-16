@@ -181,6 +181,74 @@
       </div>
     </div>
 
+    <!-- Nästa nivå -->
+    <div class="card chart-card mt-3" *ngIf="stats?.kpis">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-arrow-up me-2"></i>Nästa bonusnivå</h6>
+      </div>
+      <div class="card-body">
+        <div class="next-tier-info">
+          <div class="current-tier">
+            <span class="text-muted">Din nivå:</span>
+            <strong [ngClass]="getBonusClass(stats.kpis.bonus_avg)">{{ getBonusTier(stats.kpis.bonus_avg) }}</strong>
+          </div>
+          <div class="next-tier" *ngIf="getNextTierInfo(stats.kpis.bonus_avg) as next">
+            <span class="text-muted">Nästa nivå:</span>
+            <strong class="text-info">{{ next.name }}</strong>
+            <span class="text-muted ms-2">Behöver {{ next.pointsNeeded | number:'1.0-0' }} poäng till</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hur bonus beräknas -->
+    <div class="card chart-card mt-3">
+      <div class="card-header" style="cursor: pointer;" (click)="showFormula = !showFormula">
+        <h6 class="mb-0">
+          <i class="fas fa-info-circle me-2"></i>Hur beräknas bonusen?
+          <i class="fas fa-chevron-down float-end" [class.fa-chevron-up]="showFormula"></i>
+        </h6>
+      </div>
+      <div class="card-body" *ngIf="showFormula">
+        <div class="formula-section">
+          <h6>Tre KPI:er</h6>
+          <ul>
+            <li><strong>Effektivitet</strong> = Godkända IBC / Totala IBC</li>
+            <li><strong>Produktivitet</strong> = IBC per timme jämfört med mål</li>
+            <li><strong>Kvalitet</strong> = (Godkända IBC - defekta burar) / Godkända IBC</li>
+          </ul>
+
+          <h6>Viktning (beror på produkt)</h6>
+          <div class="table-responsive">
+            <table class="table table-dark table-sm">
+              <thead><tr><th>Produkt</th><th>Effektivitet</th><th>Produktivitet</th><th>Kvalitet</th><th>Mål (IBC/h)</th></tr></thead>
+              <tbody>
+                <tr><td>FoodGrade</td><td>30%</td><td>30%</td><td>40%</td><td>12</td></tr>
+                <tr><td>NonUN</td><td>35%</td><td>45%</td><td>20%</td><td>20</td></tr>
+                <tr><td>Tvättade</td><td>40%</td><td>35%</td><td>25%</td><td>15</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h6>Tier-multiplikatorer</h6>
+          <div class="table-responsive">
+            <table class="table table-dark table-sm">
+              <thead><tr><th>Nivå</th><th>Poäng</th><th>Multiplikator</th></tr></thead>
+              <tbody>
+                <tr class="text-success"><td>Outstanding</td><td>95+</td><td>x2.0</td></tr>
+                <tr class="text-info"><td>Excellent</td><td>90-94</td><td>x1.5</td></tr>
+                <tr><td>God prestanda</td><td>80-89</td><td>x1.25</td></tr>
+                <tr><td>Basbonus</td><td>70-79</td><td>x1.0</td></tr>
+                <tr class="text-danger"><td>Under förväntan</td><td>&lt;70</td><td>x0.75</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="text-muted mb-0"><small>Slutbonus = min(BasBonus × TierMultiplikator, 200)</small></p>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 </div>

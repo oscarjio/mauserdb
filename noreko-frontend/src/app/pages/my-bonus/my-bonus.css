@@ -83,3 +83,30 @@
 .table-dark {
   --bs-table-bg: transparent;
 }
+
+.next-tier-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.current-tier, .next-tier {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.formula-section h6 {
+  color: #e2e8f0;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.formula-section h6:first-child {
+  margin-top: 0;
+}
+.formula-section ul {
+  color: #a0aec0;
+  padding-left: 1.25rem;
+}
+.formula-section ul li {
+  margin-bottom: 0.25rem;
+}

@@ -24,6 +24,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   stats: any = null;
   history: any[] = [];
   selectedPeriod = 'week';
+  showFormula = false;
 
   private kpiChart: Chart | null = null;
   private historyChart: Chart | null = null;
@@ -123,6 +124,21 @@ export class MyBonusPage implements OnInit, OnDestroy {
       case 5: return 'Tvättade';
       default: return 'Produkt ' + id;
     }
+  }
+
+  getNextTierInfo(bonus: number): { name: string; pointsNeeded: number } | null {
+    const tiers = [
+      { name: 'Outstanding (x2.0)', threshold: 95 },
+      { name: 'Excellent (x1.5)', threshold: 90 },
+      { name: 'God prestanda (x1.25)', threshold: 80 },
+      { name: 'Basbonus (x1.0)', threshold: 70 }
+    ];
+    for (const tier of tiers) {
+      if (bonus < tier.threshold) {
+        return { name: tier.name, pointsNeeded: tier.threshold - bonus };
+      }
+    }
+    return null; // Already at top tier
   }
 
   getPositionName(pos: string): string {
