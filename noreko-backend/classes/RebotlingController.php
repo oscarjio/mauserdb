@@ -213,9 +213,10 @@ class RebotlingController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta statistik (getLiveStats): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta statistik'
             ]);
         }
     }
@@ -243,9 +244,10 @@ class RebotlingController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta status (getRunningStatus): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta status: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta status'
             ]);
         }
     }
@@ -268,9 +270,10 @@ class RebotlingController {
                 'data' => $settings
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta admin-inställningar: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta admin-inställningar: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta admin-inställningar'
             ]);
         }
     }
@@ -288,9 +291,10 @@ class RebotlingController {
                 'data' => $data
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte spara inställningar: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte spara inställningar: ' . $e->getMessage()
+                'error' => 'Kunde inte spara inställningar'
             ]);
         }
     }
@@ -441,9 +445,10 @@ class RebotlingController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta statistik (getStatistics): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta statistik'
             ]);
         }
     }
@@ -487,9 +492,10 @@ class RebotlingController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta dagsstatistik: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta dagsstatistik: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta dagsstatistik'
             ]);
         }
     }
@@ -585,9 +591,10 @@ class RebotlingController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte beräkna OEE: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte beräkna OEE: ' . $e->getMessage()
+                'error' => 'Kunde inte beräkna OEE'
             ]);
         }
     }

@@ -158,9 +158,10 @@ class TvattlinjeController {
             
             echo json_encode($response);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta statistik (tvattlinje getLiveStats): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta statistik'
             ]);
         }
     }
@@ -188,9 +189,10 @@ class TvattlinjeController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta status (tvattlinje getRunningStatus): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta status: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta status'
             ]);
         }
     }
@@ -204,9 +206,10 @@ class TvattlinjeController {
                 'data' => $settings
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta admin-inställningar (tvattlinje): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta admin-inställningar: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta admin-inställningar'
             ]);
         }
     }
@@ -245,9 +248,10 @@ class TvattlinjeController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte spara inställningar (tvattlinje): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte spara inställningar: ' . $e->getMessage()
+                'error' => 'Kunde inte spara inställningar'
             ]);
         }
     }
@@ -399,9 +403,10 @@ class TvattlinjeController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta statistik (tvattlinje getStatistics): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta statistik'
             ]);
         }
     }

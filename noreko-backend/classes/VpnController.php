@@ -179,10 +179,10 @@ class VpnController {
             echo json_encode($response);
 
         } catch (Exception $e) {
+            error_log('Fel vid hämtning av VPN-status: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Fel vid hämtning av VPN-status',
-                'message' => $e->getMessage()
+                'error' => 'Fel vid hämtning av VPN-status'
             ]);
         }
     }

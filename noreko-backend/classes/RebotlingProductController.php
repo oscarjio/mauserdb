@@ -44,9 +44,10 @@ class RebotlingProductController {
                 'data' => $products
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte hämta produkter: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte hämta produkter: ' . $e->getMessage()
+                'error' => 'Kunde inte hämta produkter'
             ]);
         }
     }
@@ -78,9 +79,10 @@ class RebotlingProductController {
                 ]
             ]);
         } catch (Exception $e) {
+            error_log('Kunde inte skapa produkt: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte skapa produkt: ' . $e->getMessage()
+                'error' => 'Kunde inte skapa produkt'
             ]);
         }
     }
@@ -117,9 +119,10 @@ class RebotlingProductController {
                 ]);
             }
         } catch (Exception $e) {
+            error_log('Kunde inte uppdatera produkt: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte uppdatera produkt: ' . $e->getMessage()
+                'error' => 'Kunde inte uppdatera produkt'
             ]);
         }
     }
@@ -152,9 +155,10 @@ class RebotlingProductController {
                 ]);
             }
         } catch (Exception $e) {
+            error_log('Kunde inte ta bort produkt: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'error' => 'Kunde inte ta bort produkt: ' . $e->getMessage()
+                'error' => 'Kunde inte ta bort produkt'
             ]);
         }
     }

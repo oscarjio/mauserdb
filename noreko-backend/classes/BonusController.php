@@ -183,7 +183,8 @@ class BonusController {
             $this->sendSuccess($response);
             
         } catch (PDOException $e) {
-            $this->sendError('Databasfel: ' . $e->getMessage());
+            error_log('Bonus getOperatorStats error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -324,7 +325,8 @@ class BonusController {
             ]);
             
         } catch (PDOException $e) {
-            $this->sendError('Databasfel: ' . $e->getMessage());
+            error_log('Bonus getRanking error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -427,7 +429,8 @@ class BonusController {
             ]);
             
         } catch (PDOException $e) {
-            $this->sendError('Databasfel: ' . $e->getMessage());
+            error_log('Bonus getTeamStats error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -502,7 +505,8 @@ class BonusController {
             ]);
             
         } catch (PDOException $e) {
-            $this->sendError('Databasfel: ' . $e->getMessage());
+            error_log('Bonus getKPIDetails error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -574,7 +578,8 @@ class BonusController {
             ]);
             
         } catch (PDOException $e) {
-            $this->sendError('Databasfel: ' . $e->getMessage());
+            error_log('Bonus getOperatorHistory error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -619,7 +624,8 @@ class BonusController {
             ]);
             
         } catch (PDOException $e) {
-            $this->sendError('Databasfel: ' . $e->getMessage());
+            error_log('Bonus getDailySummary error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 

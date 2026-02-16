@@ -15,9 +15,14 @@ class SkiftrapportController {
         if ($method === 'GET') {
             $this->getSkiftrapporter();
         } elseif ($method === 'POST') {
+            if (empty($_SESSION['user_id'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'message' => 'Ej inloggad']);
+                return;
+            }
             $data = json_decode(file_get_contents('php://input'), true);
             $action = $data['action'] ?? '';
-            
+
             if ($action === 'create') {
                 $this->createSkiftrapport($data);
             } elseif ($action === 'delete') {
@@ -156,10 +161,11 @@ class SkiftrapportController {
                 'data' => $results
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte hämta skiftrapporter: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte hämta skiftrapporter: ' . $e->getMessage()
+                'message' => 'Kunde inte hämta skiftrapporter'
             ]);
         }
     }
@@ -167,6 +173,11 @@ class SkiftrapportController {
     private function createSkiftrapport($data) {
         try {
             $datum = $data['datum'] ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Ogiltigt datumformat']);
+                return;
+            }
             $ibc_ok = intval($data['ibc_ok'] ?? 0);
             $bur_ej_ok = intval($data['bur_ej_ok'] ?? 0);
             $ibc_ej_ok = intval($data['ibc_ej_ok'] ?? 0);
@@ -183,10 +194,11 @@ class SkiftrapportController {
                 'id' => $this->pdo->lastInsertId()
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte skapa skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte skapa skiftrapport: ' . $e->getMessage()
+                'message' => 'Kunde inte skapa skiftrapport'
             ]);
         }
     }
@@ -208,10 +220,11 @@ class SkiftrapportController {
                 'message' => 'Skiftrapport borttagen'
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte ta bort skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte ta bort skiftrapport: ' . $e->getMessage()
+                'message' => 'Kunde inte ta bort skiftrapport'
             ]);
         }
     }
@@ -225,6 +238,7 @@ class SkiftrapportController {
                 return;
             }
 
+            $ids = array_map('intval', $ids);
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_skiftrapport WHERE id IN ($placeholders)");
             $stmt->execute($ids);
@@ -234,10 +248,11 @@ class SkiftrapportController {
                 'message' => count($ids) . ' skiftrapport(er) borttagna'
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte ta bort skiftrapporter: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte ta bort skiftrapporter: ' . $e->getMessage()
+                'message' => 'Kunde inte ta bort skiftrapporter'
             ]);
         }
     }
@@ -255,17 +270,18 @@ class SkiftrapportController {
 
             $stmt = $this->pdo->prepare("UPDATE rebotling_skiftrapport SET inlagd = ? WHERE id = ?");
             $stmt->execute([$inlagd, $id]);
-            
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Status uppdaterad',
                 'inlagd' => $inlagd
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte uppdatera status (updateInlagd): ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte uppdatera status: ' . $e->getMessage()
+                'message' => 'Kunde inte uppdatera status'
             ]);
         }
     }
@@ -281,21 +297,23 @@ class SkiftrapportController {
                 return;
             }
 
+            $ids = array_map('intval', $ids);
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $params = array_merge([$inlagd], $ids);
             $stmt = $this->pdo->prepare("UPDATE rebotling_skiftrapport SET inlagd = ? WHERE id IN ($placeholders)");
             $stmt->execute($params);
-            
+
             echo json_encode([
                 'success' => true,
                 'message' => count($ids) . ' skiftrapport(er) uppdaterade',
                 'inlagd' => $inlagd
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte uppdatera status (bulkUpdateInlagd): ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte uppdatera status: ' . $e->getMessage()
+                'message' => 'Kunde inte uppdatera status'
             ]);
         }
     }
@@ -319,6 +337,11 @@ class SkiftrapportController {
             $params = [];
             
             if ($datum) {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Ogiltigt datumformat']);
+                    return;
+                }
                 $fields[] = 'datum = ?';
                 $params[] = $datum;
             }
@@ -371,10 +394,11 @@ class SkiftrapportController {
                 'message' => 'Skiftrapport uppdaterad'
             ]);
         } catch (PDOException $e) {
+            error_log('Kunde inte uppdatera skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
-                'message' => 'Kunde inte uppdatera skiftrapport: ' . $e->getMessage()
+                'message' => 'Kunde inte uppdatera skiftrapport'
             ]);
         }
     }

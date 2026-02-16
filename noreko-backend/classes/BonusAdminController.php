@@ -112,7 +112,8 @@ class BonusAdminController {
             $this->sendSuccess($config);
 
         } catch (PDOException $e) {
-            $this->sendError('Database error: ' . $e->getMessage());
+            error_log('BonusAdmin getConfig error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -344,7 +345,8 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            $this->sendError('Database error: ' . $e->getMessage());
+            error_log('BonusAdmin getBonusPeriods error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
@@ -553,7 +555,8 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            $this->sendError('Database error: ' . $e->getMessage());
+            error_log('BonusAdmin getSystemStats error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
         }
     }
 
