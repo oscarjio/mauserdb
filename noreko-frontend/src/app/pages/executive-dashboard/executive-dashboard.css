@@ -138,6 +138,28 @@
   background-color: #1a202c;
 }
 
+/* OEE */
+.oee-score {
+  font-size: 2.5rem;
+  font-weight: 800;
+}
+.oee-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.oee-factor {
+  padding: 0.5rem;
+}
+.oee-factor-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .kpi-value { font-size: 1.25rem; }

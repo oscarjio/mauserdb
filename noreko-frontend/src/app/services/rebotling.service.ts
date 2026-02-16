@@ -93,6 +93,32 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getOEE(period: string = 'today'): Observable<OEEResponse> {
+    return this.http.get<OEEResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=oee&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+}
+
+export interface OEEResponse {
+  success: boolean;
+  data?: {
+    period: string;
+    oee: number;
+    availability: number;
+    performance: number;
+    quality: number;
+    total_ibc: number;
+    good_ibc: number;
+    rejected_ibc: number;
+    runtime_hours: number;
+    operating_hours: number;
+    cycles: number;
+    world_class_benchmark: number;
+  };
+  error?: string;
 }
 
 

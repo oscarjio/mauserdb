@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService } from '../../services/rebotling.service';
+import { RebotlingService, OEEResponse } from '../../services/rebotling.service';
 import { TvattlinjeService } from '../../services/tvattlinje.service';
 import { BonusService, BonusSummaryResponse, TeamStatsResponse } from '../../services/bonus.service';
 import { forkJoin, catchError, of, timeout } from 'rxjs';
@@ -37,6 +37,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   lines: LineStatus[] = [];
   bonusSummary: any = null;
   teamStats: any = null;
+  oeeData: any = null;
   lastRefresh: Date = new Date();
 
   private pollInterval: any;
@@ -71,7 +72,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       tvattlinjeLive: this.tvattlinjeService.getLiveStats().pipe(timeout(5000), catchError(() => of(null))),
       tvattlinjeStatus: this.tvattlinjeService.getRunningStatus().pipe(timeout(5000), catchError(() => of(null))),
       bonusSummary: this.bonusService.getDailySummary().pipe(timeout(5000), catchError(() => of(null))),
-      teamStats: this.bonusService.getTeamStats('week').pipe(timeout(5000), catchError(() => of(null)))
+      teamStats: this.bonusService.getTeamStats('week').pipe(timeout(5000), catchError(() => of(null))),
+      oee: this.rebotlingService.getOEE('today').pipe(timeout(5000), catchError(() => of(null)))
     }).subscribe(results => {
       this.lines = [];
 
@@ -113,6 +115,11 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       if (team?.success && team.data) {
         this.teamStats = team.data;
         this.buildTrendChart(team.data.shifts || []);
+      }
+
+      const oee = results.oee as OEEResponse;
+      if (oee?.success && oee.data) {
+        this.oeeData = oee.data;
       }
 
       this.lastRefresh = new Date();
@@ -163,6 +170,19 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     if (bonus >= 70) return 'text-info';
     if (bonus >= 50) return 'text-warning';
     return 'text-danger';
+  }
+
+  getOEEClass(oee: number): string {
+    if (oee >= 85) return 'text-success';  // World class
+    if (oee >= 60) return 'text-warning';
+    return 'text-danger';
+  }
+
+  getOEELabel(oee: number): string {
+    if (oee >= 85) return 'World Class';
+    if (oee >= 60) return 'Acceptabel';
+    if (oee >= 40) return 'Förbättring krävs';
+    return 'Kritiskt låg';
   }
 
   getTimeAgo(dateStr: string | null): string {

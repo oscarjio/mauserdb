@@ -20,6 +20,8 @@ class RebotlingController {
                 $this->getStatistics();
             } elseif ($action === 'day-stats') {
                 $this->getDayStats();
+            } elseif ($action === 'oee') {
+                $this->getOEE();
             } else {
                 $this->getLiveStats();
             }
@@ -488,6 +490,104 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta dagsstatistik: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Beräkna OEE (Overall Equipment Effectiveness) för rebotling-linjen
+     * OEE = Availability × Performance × Quality
+     *
+     * Availability = Operating Time / Planned Production Time
+     * Performance = (Total IBC / Operating Time) / Ideal Rate
+     * Quality = Good IBC / Total IBC
+     */
+    private function getOEE() {
+        $period = $_GET['period'] ?? 'today';
+
+        $dateFilter = match($period) {
+            'today' => "DATE(r.datum) = CURDATE()",
+            'week' => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
+            'month' => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+            default => "DATE(r.datum) = CURDATE()"
+        };
+
+        try {
+            // Hämta produktionsdata
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) as total_cycles,
+                    SUM(COALESCE(ibc_ok, 0)) as total_ibc_ok,
+                    SUM(COALESCE(ibc_ej_ok, 0)) as total_ibc_ej_ok,
+                    SUM(COALESCE(bur_ej_ok, 0)) as total_bur_ej_ok,
+                    SUM(COALESCE(runtime_plc, 0)) as total_runtime_min,
+                    SUM(COALESCE(rasttime, 0)) as total_rast_min
+                FROM rebotling_ibc r
+                WHERE $dateFilter
+                  AND ibc_ok IS NOT NULL
+            ");
+            $stmt->execute();
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Hämta planerad produktionstid från on/off-data
+            $stmt2 = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) as total_events,
+                    SUM(CASE WHEN running = 1 THEN 1 ELSE 0 END) as running_events,
+                    MIN(datum) as first_event,
+                    MAX(datum) as last_event
+                FROM rebotling_onoff
+                WHERE $dateFilter
+            ");
+            $stmt2->execute();
+            $onoff = $stmt2->fetch(PDO::FETCH_ASSOC);
+
+            $totalIBC = ($data['total_ibc_ok'] ?? 0) + ($data['total_ibc_ej_ok'] ?? 0);
+            $goodIBC = $data['total_ibc_ok'] ?? 0;
+            $runtimeMin = $data['total_runtime_min'] ?? 0;
+            $rastMin = $data['total_rast_min'] ?? 0;
+            $operatingMin = max($runtimeMin - $rastMin, 1);
+
+            // Planerad tid: runtime (inkl. rast)
+            $plannedMin = max($runtimeMin, 1);
+
+            // Ideal rate: 15 IBC/timme (snitt av alla produkter)
+            $idealRatePerMin = 15.0 / 60.0;
+
+            // Availability = Operating Time / Planned Time
+            $availability = min($operatingMin / $plannedMin, 1.0);
+
+            // Performance = Actual Rate / Ideal Rate
+            $actualRate = $totalIBC / max($operatingMin, 1);
+            $performance = min($actualRate / $idealRatePerMin, 1.0);
+
+            // Quality = Good Count / Total Count
+            $quality = $totalIBC > 0 ? $goodIBC / $totalIBC : 0;
+
+            // OEE = A × P × Q
+            $oee = $availability * $performance * $quality;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'period' => $period,
+                    'oee' => round($oee * 100, 1),
+                    'availability' => round($availability * 100, 1),
+                    'performance' => round($performance * 100, 1),
+                    'quality' => round($quality * 100, 1),
+                    'total_ibc' => $totalIBC,
+                    'good_ibc' => $goodIBC,
+                    'rejected_ibc' => $data['total_ibc_ej_ok'] ?? 0,
+                    'runtime_hours' => round($runtimeMin / 60, 1),
+                    'operating_hours' => round($operatingMin / 60, 1),
+                    'cycles' => $data['total_cycles'] ?? 0,
+                    'world_class_benchmark' => 85.0
+                ]
+            ]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'Kunde inte beräkna OEE: ' . $e->getMessage()
             ]);
         }
     }

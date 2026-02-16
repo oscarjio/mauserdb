@@ -100,6 +100,72 @@
     </div>
   </div>
 
+  <!-- ===== OEE (Rebotling) ===== -->
+  <div class="card detail-card mb-4" *ngIf="!loading && oeeData">
+    <div class="card-header">
+      <h6 class="mb-0"><i class="fas fa-cogs me-2 text-info"></i>OEE - Rebotling (idag)</h6>
+    </div>
+    <div class="card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-3 text-center">
+          <div class="oee-score" [ngClass]="getOEEClass(oeeData.oee)">
+            {{ oeeData.oee }}%
+          </div>
+          <div class="oee-label">OEE</div>
+          <small class="text-muted">{{ getOEELabel(oeeData.oee) }}</small>
+        </div>
+        <div class="col-md-9">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <div class="oee-factor">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="oee-factor-label">Tillgänglighet</span>
+                  <span>{{ oeeData.availability }}%</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar bg-info" [style.width.%]="oeeData.availability"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="oee-factor">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="oee-factor-label">Prestanda</span>
+                  <span>{{ oeeData.performance }}%</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar bg-primary" [style.width.%]="oeeData.performance"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="oee-factor">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="oee-factor-label">Kvalitet</span>
+                  <span>{{ oeeData.quality }}%</span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                  <div class="progress-bar bg-success" [style.width.%]="oeeData.quality"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row g-2 mt-2">
+            <div class="col-4">
+              <small class="text-muted">Körtid: {{ oeeData.operating_hours }}h / {{ oeeData.runtime_hours }}h</small>
+            </div>
+            <div class="col-4">
+              <small class="text-muted">IBC: {{ oeeData.good_ibc }} ok / {{ oeeData.rejected_ibc }} kass.</small>
+            </div>
+            <div class="col-4">
+              <small class="text-muted">Benchmark: {{ oeeData.world_class_benchmark }}% (World Class)</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== BONUS + TREND ===== -->
   <div class="row g-3" *ngIf="!loading">
 
