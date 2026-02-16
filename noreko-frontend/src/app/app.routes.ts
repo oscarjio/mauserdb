@@ -30,6 +30,7 @@ export const routes: Routes = [
       { path: 'admin/create-user', loadComponent: () => import('./pages/create-user/create-user').then(m => m.CreateUserPage) },
       { path: 'admin/vpn', loadComponent: () => import('./pages/vpn-admin/vpn-admin').then(m => m.VpnAdminPage) },
       { path: 'oversikt', loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
+      { path: 'min-bonus', loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'rebotling/bonus', loadComponent: () => import('./pages/bonus-dashboard/bonus-dashboard').then(m => m.BonusDashboardPage) },
       { path: 'rebotling/bonus-admin', loadComponent: () => import('./pages/bonus-admin/bonus-admin').then(m => m.BonusAdminPage) },
     ]

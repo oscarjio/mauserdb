@@ -1,0 +1,85 @@
+.my-bonus-container {
+  padding: 1rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.setup-card {
+  background: #2d3748 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 12px;
+  color: #e2e8f0;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+.kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  margin-bottom: 0.25rem;
+}
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+.kpi-sub {
+  font-size: 0.7rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+.mini-stat {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.75rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+.mini-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  margin-bottom: 0.25rem;
+}
+.mini-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.chart-card {
+  background: #2d3748 !important;
+  border: 1px solid #4a5568 !important;
+  border-radius: 12px;
+}
+.chart-card .card-header {
+  background: rgba(0,0,0,0.15) !important;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+.chart-card .card-body {
+  color: #e2e8f0;
+}
+
+.chart-container {
+  position: relative;
+  height: 250px;
+}
+
+.progress {
+  background-color: #1a202c;
+}
+
+.table-dark {
+  --bs-table-bg: transparent;
+}
