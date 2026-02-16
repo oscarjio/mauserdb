@@ -20,9 +20,17 @@ class BonusController {
     }
 
     public function handle() {
+        session_start();
+
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            return;
+        }
+
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run = $_GET['run'] ?? '';
-        
+
         if ($method !== 'GET') {
             $this->sendError('Endast GET-requests stöds');
             return;

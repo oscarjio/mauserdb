@@ -21,10 +21,11 @@ class BonusAdminController {
     }
 
     public function handle() {
+        session_start();
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run = $_GET['run'] ?? '';
 
-        // Check admin permissions (implement your auth logic)
+        // Admin-kontroll via session
         if (!$this->isAdmin()) {
             $this->sendError('Unauthorized - Admin access required', 403);
             return;
@@ -276,7 +277,7 @@ class BonusAdminController {
                 'foodgrade' => round($foodgrade, 2),
                 'nonun' => round($nonun, 2),
                 'tvattade' => round($tvattade, 2),
-                'updated_by' => $_SERVER['REMOTE_USER'] ?? 'admin'
+                'updated_by' => $_SESSION['username'] ?? 'admin'
             ]);
 
             // Log to audit trail
@@ -442,7 +443,7 @@ class BonusAdminController {
 
             // Sanitize approved_by
             $approved_by = filter_var(
-                $input['approved_by'] ?? $_SERVER['REMOTE_USER'] ?? 'admin',
+                $input['approved_by'] ?? $_SESSION['username'] ?? 'admin',
                 FILTER_SANITIZE_STRING
             );
             $approved_by = substr($approved_by, 0, 100); // Limit length
@@ -559,9 +560,7 @@ class BonusAdminController {
     // ============ HELPER FUNCTIONS ============
 
     private function isAdmin(): bool {
-        // Implement your authentication logic
-        // For now, return true (CHANGE THIS IN PRODUCTION!)
-        return true;
+        return !empty($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
     }
 
     private function exportCSV(array $data, string $filename) {
@@ -639,7 +638,7 @@ class BonusAdminController {
                 'entity_id' => $entity_id,
                 'old_value' => $old_value ? json_encode($old_value) : null,
                 'new_value' => $new_value ? json_encode($new_value) : null,
-                'user' => $_SERVER['REMOTE_USER'] ?? 'admin',
+                'user' => $_SESSION['username'] ?? 'admin',
                 'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null
             ]);
         } catch (PDOException $e) {
