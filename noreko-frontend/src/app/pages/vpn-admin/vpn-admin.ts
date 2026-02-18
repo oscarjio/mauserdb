@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
@@ -20,7 +20,7 @@ interface VpnClient {
 @Component({
   standalone: true,
   selector: 'app-vpn-admin',
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule],
   templateUrl: './vpn-admin.html',
   styleUrl: './vpn-admin.css'
 })

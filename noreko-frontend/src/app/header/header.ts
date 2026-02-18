@@ -1,13 +1,11 @@
 import { Component, Input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
-import { interval } from 'rxjs';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [FormsModule, HttpClientModule, CommonModule],
+  imports: [FormsModule, CommonModule],
   templateUrl: './header.html',
   styleUrl: './header.css'
 })
@@ -17,7 +15,4 @@ export class Header {
   loggedIn = false;
   user: any = null;
   showMenu = false;
-  http = new HttpClient(null as any);
-
-
 }
