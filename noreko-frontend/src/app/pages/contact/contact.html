@@ -1,0 +1,45 @@
+<div class="contact-page">
+  <div class="container-fluid py-5">
+
+    <div class="text-center mb-5">
+      <h1 class="contact-title"><i class="fas fa-envelope me-3"></i>Kontakt</h1>
+      <p class="contact-subtitle">Har du frågor eller behöver hjälp? Kontakta rätt avdelning nedan.</p>
+    </div>
+
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-4 col-md-6 mb-3" *ngFor="let c of contacts">
+        <div class="contact-card">
+          <div class="contact-icon"><i class="fas" [ngClass]="c.icon"></i></div>
+          <h5>{{ c.name }}</h5>
+          <p>{{ c.desc }}</p>
+          <a class="contact-email" [href]="'mailto:' + c.email">
+            <i class="fas fa-at me-1"></i>{{ c.email }}
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Plats</h5>
+          </div>
+          <div class="card-body">
+            <div class="location-info">
+              <div>
+                <strong>Noreko / Mauser Packaging Solutions</strong>
+                <p>Älvängen, Sverige</p>
+              </div>
+              <div class="location-note">
+                <i class="fas fa-info-circle me-2 text-info"></i>
+                Mauserdb är ett internt verktyg. Kontakta IT-avdelningen för åtkomst och support.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

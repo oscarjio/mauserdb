@@ -1,9 +1,17 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
   standalone: true,
   selector: 'app-contact',
-  template: `<div class="contact-page"><h2>Contact</h2></div>`,
-  styles: [`.contact-page { min-height: 80vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }`]
+  imports: [CommonModule],
+  templateUrl: './contact.html',
+  styleUrl: './contact.css'
 })
-export class ContactPage {}
+export class ContactPage {
+  contacts = [
+    { name: 'IT-support', desc: 'Tekniska frågor om Mauserdb', icon: 'fa-headset', email: 'it@noreko.com' },
+    { name: 'Produktion', desc: 'Frågor om produktionsdata och rapporter', icon: 'fa-industry', email: 'produktion@noreko.com' },
+    { name: 'Administration', desc: 'Användarkonton och behörigheter', icon: 'fa-user-shield', email: 'admin@noreko.com' },
+  ];
+}

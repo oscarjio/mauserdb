@@ -1,8 +1,82 @@
-/* Minimal placeholder for Contact page */
 .contact-page {
-  min-height: 80vh;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #e0e0e0;
+}
+
+.contact-title { font-size: 2.5rem; font-weight: 700; color: #fff; }
+.contact-subtitle { font-size: 1.1rem; color: #a0aec0; margin-top: 0.5rem; }
+
+.contact-card {
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(0, 212, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.contact-icon {
+  width: 56px;
+  height: 56px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), rgba(0, 102, 255, 0.15));
+  color: #00d4ff;
+  font-size: 1.5rem;
+  margin: 0 auto 1rem;
+}
+
+.contact-card h5 { color: #fff; font-weight: 600; margin-bottom: 0.5rem; }
+.contact-card p { color: #a0a0a0; font-size: 0.9rem; margin-bottom: 1rem; }
+
+.contact-email {
+  color: #00d4ff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.contact-email:hover { color: #00ffff; }
+
+.dark-card {
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.dark-card .card-header {
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.25rem;
+}
+
+.dark-card .card-header h5 { color: #fff; font-weight: 600; margin: 0; }
+.dark-card .card-body { padding: 1.5rem; }
+
+.location-info strong { color: #fff; font-size: 1.1rem; }
+.location-info p { color: #a0a0a0; margin-top: 0.25rem; }
+
+.location-note {
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 212, 255, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .contact-title { font-size: 1.8rem; }
 }

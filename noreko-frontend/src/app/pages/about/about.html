@@ -1,0 +1,86 @@
+<div class="about-page">
+  <div class="container-fluid py-5">
+
+    <!-- Hero -->
+    <div class="text-center mb-5">
+      <h1 class="about-title">
+        <i class="fas fa-database me-3"></i>Mauserdb
+      </h1>
+      <p class="about-subtitle">Produktionsanalys & Bonussystem</p>
+      <span class="version-badge">v{{ version }}</span>
+    </div>
+
+    <!-- Description -->
+    <div class="row justify-content-center mb-5">
+      <div class="col-lg-8">
+        <div class="dark-card">
+          <div class="card-body text-center">
+            <p class="about-desc">
+              Mauserdb är ett internt produktionsanalysverktyg byggt för Noreko/Mauser Packaging Solutions
+              i Älvängen. Systemet samlar in data från PLC-styrda produktionslinjer i realtid och
+              tillhandahåller analys, rapportering och ett automatiserat bonussystem.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Grid -->
+    <h3 class="section-title mb-4"><i class="fas fa-star me-2"></i>Funktioner</h3>
+    <div class="row mb-5">
+      <div class="col-lg-4 col-md-6 mb-3" *ngFor="let f of features">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="fas" [ngClass]="f.icon"></i></div>
+          <h5>{{ f.title }}</h5>
+          <p>{{ f.desc }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Lines -->
+    <h3 class="section-title mb-4"><i class="fas fa-industry me-2"></i>Produktionslinjer</h3>
+    <div class="row mb-5">
+      <div class="col-md-6 col-lg-3 mb-3" *ngFor="let l of lines">
+        <div class="line-card">
+          <h5>{{ l.name }}</h5>
+          <span class="line-status" [style.color]="l.color">
+            <i class="fas fa-circle me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>
+            {{ l.status }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-code me-2"></i>Teknisk plattform</h5>
+          </div>
+          <div class="card-body">
+            <div class="tech-grid">
+              <div class="tech-item">
+                <strong>Frontend</strong>
+                <span>Angular 20</span>
+              </div>
+              <div class="tech-item">
+                <strong>Backend</strong>
+                <span>PHP 8 / MySQL</span>
+              </div>
+              <div class="tech-item">
+                <strong>PLC-integration</strong>
+                <span>Python / Modbus TCP</span>
+              </div>
+              <div class="tech-item">
+                <strong>Grafik</strong>
+                <span>Chart.js</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
