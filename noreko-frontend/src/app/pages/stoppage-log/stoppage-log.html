@@ -1,0 +1,322 @@
+<div class="stoppage-page">
+
+  <!-- Header -->
+  <div class="stoppage-header">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Stopporsakslogg
+          </h2>
+          <small class="text-muted">Registrera och analysera produktionsstopp</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedLine" (change)="onFilterChange()">
+            <option value="rebotling">Rebotling</option>
+            <option value="tvattlinje">Tvättlinje</option>
+            <option value="saglinje">Såglinje</option>
+            <option value="klassificeringslinje">Klassificeringslinje</option>
+          </select>
+          <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()">
+            <option value="today">Idag</option>
+            <option value="week">Senaste 7 dagar</option>
+            <option value="month">Senaste 30 dagar</option>
+            <option value="year">Senaste året</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid py-4">
+
+    <!-- KPI Cards -->
+    <div class="row mb-4">
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fas fa-stop-circle"></i></div>
+          <div class="kpi-value">{{ stoppages.length }}</div>
+          <div class="kpi-label">Antal stopp</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-red"><i class="fas fa-clock"></i></div>
+          <div class="kpi-value">{{ formatDuration(getTotalDowntime()) }}</div>
+          <div class="kpi-label">Total stopptid</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-orange"><i class="fas fa-bolt"></i></div>
+          <div class="kpi-value">{{ getUnplannedCount() }}</div>
+          <div class="kpi-label">Oplanerade stopp</div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon kpi-icon-green"><i class="fas fa-wrench"></i></div>
+          <div class="kpi-value">{{ stoppages.length - getUnplannedCount() }}</div>
+          <div class="kpi-label">Planerade stopp</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    <div class="alert alert-success mb-3" *ngIf="successMessage">
+      <i class="fas fa-check-circle me-2"></i>{{ successMessage }}
+    </div>
+    <div class="alert alert-danger mb-3" *ngIf="errorMessage">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar mb-4">
+      <button class="tab-btn" [class.active]="activeTab === 'log'" (click)="switchTab('log')">
+        <i class="fas fa-list me-2"></i>Logg
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'stats'" (click)="switchTab('stats')">
+        <i class="fas fa-chart-bar me-2"></i>Statistik
+      </button>
+      <div class="tab-actions" *ngIf="loggedIn">
+        <button class="btn btn-sm btn-primary" (click)="showForm = !showForm" *ngIf="activeTab === 'log'">
+          <i class="fas fa-plus me-1"></i>Nytt stopp
+        </button>
+        <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="stoppages.length > 0">
+          <i class="fas fa-download me-1"></i>CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Add Stoppage Form -->
+    <div class="dark-card mb-4" *ngIf="showForm && loggedIn">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Registrera produktionsstopp</h5>
+      </div>
+      <div class="card-body">
+        <form (ngSubmit)="addStoppage()">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Stopporsak</label>
+              <select class="form-select" [(ngModel)]="newEntry.reason_id" name="reason_id">
+                <option [ngValue]="0" disabled>-- Välj orsak --</option>
+                <option *ngFor="let r of reasons" [ngValue]="r.id">
+                  {{ r.name }} ({{ r.category === 'planned' ? 'Planerat' : 'Oplanerat' }})
+                </option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Starttid</label>
+              <input type="datetime-local" class="form-control" [(ngModel)]="newEntry.start_time" name="start_time">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Sluttid</label>
+              <input type="datetime-local" class="form-control" [(ngModel)]="newEntry.end_time" name="end_time">
+              <small class="text-muted">Lämna tomt om stoppet pågår</small>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100">
+                <i class="fas fa-save me-1"></i>Spara
+              </button>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Kommentar</label>
+              <input type="text" class="form-control" [(ngModel)]="newEntry.comment" name="comment" placeholder="Valfri kommentar...">
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- LOG TAB -->
+    <div *ngIf="activeTab === 'log'">
+
+      <!-- Loading -->
+      <div class="text-center py-5" *ngIf="loading">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Laddar...</span>
+        </div>
+        <p class="mt-3 text-muted">Hämtar stopporsaker...</p>
+      </div>
+
+      <!-- Stoppage Table -->
+      <div class="dark-card" *ngIf="!loading && stoppages.length > 0">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-table me-2"></i>Stopporsaker ({{ stoppages.length }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="stoppage-table">
+              <thead>
+                <tr>
+                  <th>Orsak</th>
+                  <th>Kategori</th>
+                  <th>Start</th>
+                  <th>Slut</th>
+                  <th class="text-end">Varaktighet</th>
+                  <th>Kommentar</th>
+                  <th>Användare</th>
+                  <th *ngIf="loggedIn"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of stoppages">
+                  <td>
+                    <span class="reason-badge" [style.borderLeftColor]="s.color">
+                      {{ s.reason_name }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="category-tag" [class.planned]="s.category === 'planned'" [class.unplanned]="s.category === 'unplanned'">
+                      {{ s.category === 'planned' ? 'Planerat' : 'Oplanerat' }}
+                    </span>
+                  </td>
+                  <td class="text-nowrap">{{ s.start_time | date:'yyyy-MM-dd HH:mm' }}</td>
+                  <td class="text-nowrap">
+                    <span *ngIf="s.end_time">{{ s.end_time | date:'yyyy-MM-dd HH:mm' }}</span>
+                    <span *ngIf="!s.end_time" class="text-warning"><i class="fas fa-spinner fa-spin me-1"></i>Pågår</span>
+                  </td>
+                  <td class="text-end text-nowrap">
+                    <strong>{{ formatDuration(s.duration_minutes) }}</strong>
+                  </td>
+                  <td class="comment-cell">{{ s.comment }}</td>
+                  <td>{{ s.user_name }}</td>
+                  <td *ngIf="loggedIn">
+                    <button class="btn btn-sm btn-outline-danger" *ngIf="canEdit(s)" (click)="deleteStoppage(s.id)" title="Ta bort">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- No data -->
+      <div class="dark-card text-center py-5" *ngIf="!loading && stoppages.length === 0">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h5>Inga registrerade stopp</h5>
+        <p class="text-muted">Inga stopporsaker hittades för vald period och linje.</p>
+      </div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div *ngIf="activeTab === 'stats'">
+      <div class="row" *ngIf="stats">
+
+        <!-- Summary Cards -->
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="stat-card">
+            <div class="stat-label">Total stopptid</div>
+            <div class="stat-value">{{ formatDuration(stats.total_minutes) }}</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="stat-card">
+            <div class="stat-label">Totalt antal stopp</div>
+            <div class="stat-value">{{ stats.total_count }}</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="stat-card">
+            <div class="stat-label">Planerat</div>
+            <div class="stat-value text-info">{{ formatDuration(stats.planned_minutes) }}</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="stat-card">
+            <div class="stat-label">Oplanerat</div>
+            <div class="stat-value text-danger">{{ formatDuration(stats.unplanned_minutes) }}</div>
+          </div>
+        </div>
+
+        <!-- Pareto Chart -->
+        <div class="col-lg-6 mb-4">
+          <div class="dark-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Pareto-analys</h5>
+              <small>Stopptid per orsak, sorterad efter total tid</small>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="paretoChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Trend Chart -->
+        <div class="col-lg-6 mb-4">
+          <div class="dark-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Daglig trend</h5>
+              <small>Stopptid och antal stopp per dag</small>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="dailyChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reason breakdown table -->
+        <div class="col-12 mb-4" *ngIf="stats.reasons.length > 0">
+          <div class="dark-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Detaljerad uppdelning</h5>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="stoppage-table">
+                  <thead>
+                    <tr>
+                      <th>Orsak</th>
+                      <th>Kategori</th>
+                      <th class="text-end">Antal</th>
+                      <th class="text-end">Total tid</th>
+                      <th class="text-end">Snitt tid</th>
+                      <th>Andel</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of stats.reasons">
+                      <td>
+                        <span class="reason-badge" [style.borderLeftColor]="r.color">{{ r.name }}</span>
+                      </td>
+                      <td>
+                        <span class="category-tag" [class.planned]="r.category === 'planned'" [class.unplanned]="r.category === 'unplanned'">
+                          {{ r.category === 'planned' ? 'Planerat' : 'Oplanerat' }}
+                        </span>
+                      </td>
+                      <td class="text-end">{{ r.count }}</td>
+                      <td class="text-end"><strong>{{ formatDuration(r.total_minutes) }}</strong></td>
+                      <td class="text-end">{{ r.avg_minutes }} min</td>
+                      <td>
+                        <div class="progress-bar-wrapper">
+                          <div class="progress-bar-fill" [style.width.%]="stats.total_minutes > 0 ? (r.total_minutes / stats.total_minutes * 100) : 0" [style.backgroundColor]="r.color"></div>
+                          <span class="progress-bar-text">{{ stats.total_minutes > 0 ? (r.total_minutes / stats.total_minutes * 100 | number:'1.0-0') : 0 }}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No stats -->
+      <div class="dark-card text-center py-5" *ngIf="!stats">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Laddar...</span>
+        </div>
+        <p class="mt-3 text-muted">Hämtar statistik...</p>
+      </div>
+    </div>
+
+  </div>
+</div>
