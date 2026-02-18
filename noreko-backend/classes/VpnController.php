@@ -3,12 +3,24 @@ class VpnController {
     private $pdo;
     private $managementHost = '127.0.0.1';
     private $managementPort = 7505;
-    private $managementUser = 'admin';
-    private $managementPassword = 'secretpassword';
+    private $managementUser = '';
+    private $managementPassword = '';
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
+
+        // Load VPN config from app_config.php
+        $configFile = __DIR__ . '/../app_config.php';
+        if (file_exists($configFile)) {
+            $config = require $configFile;
+            if (isset($config['vpn'])) {
+                $this->managementHost = $config['vpn']['host'] ?? '127.0.0.1';
+                $this->managementPort = $config['vpn']['port'] ?? 7505;
+                $this->managementUser = $config['vpn']['user'] ?? '';
+                $this->managementPassword = $config['vpn']['password'] ?? '';
+            }
+        }
     }
 
     public function handle() {

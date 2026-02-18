@@ -36,15 +36,12 @@ header('X-Content-Type-Options: nosniff');
 global $pdo;
 try {
     $dbConfig = __DIR__ . '/db_config.php';
-    if (file_exists($dbConfig)) {
-        $db = require $dbConfig;
-    } else {
-        $db = [
-            'dsn' => 'mysql:host=localhost:33061;dbname=mauserdb;charset=utf8mb4',
-            'user' => 'aiab',
-            'pass' => 'Noreko2025'
-        ];
+    if (!file_exists($dbConfig)) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'error' => 'Databaskonfiguration saknas (db_config.php)']);
+        exit;
     }
+    $db = require $dbConfig;
     $pdo = new PDO($db['dsn'], $db['user'], $db['pass'], [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC

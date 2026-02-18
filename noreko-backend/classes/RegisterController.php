@@ -48,7 +48,14 @@ class RegisterController {
             $errors[] = 'Ogiltig e-postadress';
         }
         
-        if ($code != "Noreko2025") {
+        // Load registration code from config
+        $registrationCode = 'Noreko2025'; // fallback
+        $configFile = __DIR__ . '/../app_config.php';
+        if (file_exists($configFile)) {
+            $config = require $configFile;
+            $registrationCode = $config['registration_code'] ?? $registrationCode;
+        }
+        if ($code !== $registrationCode) {
             $errors[] = 'Fel Kontrollkod.';
         }
 

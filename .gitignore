@@ -27,5 +27,6 @@ Thumbs.db
 *.code-workspace
 noreko-backend/db_config.php
 noreko-backend/cors_origins.php
+noreko-backend/app_config.php
 
 gx*/
