@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 class AdminController {
     public function handle() {
         session_start();
@@ -8,6 +10,7 @@ class AdminController {
             return;
         }
         global $pdo;
+        AuditLogger::ensureTable($pdo);
         
         // POST - Skapa, uppdatera användare, ta bort, eller ändra status
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -63,11 +66,17 @@ class AdminController {
                     }
                     $stmt->execute([$username, $hashedPassword, $email, $phone ?: null]);
                     
+                    $newId = $pdo->lastInsertId();
+                    AuditLogger::log($pdo, 'create_user', 'user', (int)$newId,
+                        "Skapade användare: $username",
+                        null,
+                        ['username' => $username, 'email' => $email, 'phone' => $phone]
+                    );
                     echo json_encode([
                         'success' => true,
                         'message' => 'Användare skapad!',
                         'user' => [
-                            'id' => $pdo->lastInsertId(),
+                            'id' => $newId,
                             'username' => $username,
                             'email' => $email
                         ]
@@ -96,8 +105,17 @@ class AdminController {
                 }
                 
                 try {
+                    // Hämta användardata innan radering för audit
+                    $stmt = $pdo->prepare("SELECT username, email FROM users WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $deletedUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
                     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
                     $stmt->execute([$id]);
+                    AuditLogger::log($pdo, 'delete_user', 'user', (int)$id,
+                        "Tog bort användare: " . ($deletedUser['username'] ?? 'okänd'),
+                        $deletedUser, null
+                    );
                     echo json_encode(['success' => true, 'message' => 'Användare borttagen']);
                 } catch (PDOException $e) {
                     http_response_code(500);
@@ -121,6 +139,14 @@ class AdminController {
                         $newAdminStatus = $user['admin'] == 1 ? 0 : 1;
                         $stmt = $pdo->prepare("UPDATE users SET admin = ? WHERE id = ?");
                         $stmt->execute([$newAdminStatus, $id]);
+                        // Hämta username för audit
+                        $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $uname = $stmt->fetchColumn() ?: 'okänd';
+                        AuditLogger::log($pdo, 'toggle_admin', 'user', (int)$id,
+                            "Ändrade admin-status för $uname: " . ($newAdminStatus ? 'admin' : 'user'),
+                            ['admin' => $user['admin']], ['admin' => $newAdminStatus]
+                        );
                         echo json_encode(['success' => true, 'message' => 'Admin-status uppdaterad', 'admin' => $newAdminStatus]);
                     } else {
                         echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
@@ -160,6 +186,13 @@ class AdminController {
                         $newActiveStatus = ($user['active'] == 1) ? 0 : 1;
                         $stmt = $pdo->prepare("UPDATE users SET active = ? WHERE id = ?");
                         $stmt->execute([$newActiveStatus, $id]);
+                        $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $uname = $stmt->fetchColumn() ?: 'okänd';
+                        AuditLogger::log($pdo, 'toggle_active', 'user', (int)$id,
+                            ($newActiveStatus ? 'Aktiverade' : 'Inaktiverade') . " användare: $uname",
+                            ['active' => $user['active']], ['active' => $newActiveStatus]
+                        );
                         echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'active' => $newActiveStatus]);
                     } else {
                         echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
@@ -194,6 +227,16 @@ class AdminController {
                 $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute($params);
+                $changedFields = [];
+                if ($username) $changedFields['username'] = $username;
+                if ($email) $changedFields['email'] = $email;
+                if ($phone !== null) $changedFields['phone'] = $phone;
+                if ($password) $changedFields['password'] = '***';
+                if ($admin !== null) $changedFields['admin'] = $admin;
+                AuditLogger::log($pdo, 'update_user', 'user', (int)$id,
+                    "Uppdaterade användare (ID: $id): " . implode(', ', array_keys($changedFields)),
+                    null, $changedFields
+                );
                 echo json_encode(['success' => true, 'message' => 'Användare uppdaterad']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Inga fält att uppdatera']);

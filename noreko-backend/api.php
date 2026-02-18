@@ -69,7 +69,8 @@ $classNameMap = [
     'skiftrapport' => 'SkiftrapportController',
     'vpn' => 'VpnController',
     'bonusadmin' => 'BonusAdminController',
-    'stoppage' => 'StoppageController'
+    'stoppage' => 'StoppageController',
+    'audit' => 'AuditController'
 ];
 $className = $classNameMap[strtolower($action)] ?? ucfirst(strtolower($action)) . 'Controller';
 

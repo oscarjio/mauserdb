@@ -1,0 +1,216 @@
+<div class="audit-page">
+
+  <!-- Access denied -->
+  <div class="container-fluid py-5 text-center" *ngIf="!isAdmin">
+    <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+    <h4>Åtkomst nekad</h4>
+    <p class="text-muted">Endast administratörer kan se aktivitetsloggen.</p>
+  </div>
+
+  <div *ngIf="isAdmin">
+    <!-- Header -->
+    <div class="audit-header">
+      <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <div>
+            <h2 class="mb-1"><i class="fas fa-history me-2"></i>Aktivitetslogg</h2>
+            <small class="text-muted">Spåra alla admin-ändringar i systemet</small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()">
+              <option value="today">Idag</option>
+              <option value="week">Senaste 7 dagar</option>
+              <option value="month">Senaste 30 dagar</option>
+              <option value="year">Senaste året</option>
+            </select>
+            <input type="text" class="form-control form-control-sm filter-input" placeholder="Filtrera användare..." [(ngModel)]="filterUser" (keyup.enter)="onFilterChange()">
+            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()">
+              <option value="">Alla åtgärder</option>
+              <option value="create_user">Skapa användare</option>
+              <option value="delete_user">Ta bort användare</option>
+              <option value="toggle_admin">Ändra admin</option>
+              <option value="toggle_active">Ändra aktiv</option>
+              <option value="update_user">Uppdatera användare</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container-fluid py-4">
+
+      <!-- Tabs -->
+      <div class="tab-bar mb-4">
+        <button class="tab-btn" [class.active]="activeTab === 'log'" (click)="switchTab('log')">
+          <i class="fas fa-list me-2"></i>Logg ({{ totalCount }})
+        </button>
+        <button class="tab-btn" [class.active]="activeTab === 'stats'" (click)="switchTab('stats')">
+          <i class="fas fa-chart-bar me-2"></i>Statistik
+        </button>
+      </div>
+
+      <!-- LOG TAB -->
+      <div *ngIf="activeTab === 'log'">
+
+        <!-- Loading -->
+        <div class="text-center py-5" *ngIf="loading">
+          <div class="spinner-border" role="status"><span class="visually-hidden">Laddar...</span></div>
+          <p class="mt-3 text-muted">Hämtar loggar...</p>
+        </div>
+
+        <!-- Log entries -->
+        <div class="dark-card" *ngIf="!loading && logs.length > 0">
+          <div class="card-body p-0">
+            <div class="audit-list">
+              <div class="audit-entry" *ngFor="let log of logs" (click)="toggleExpand(log.id)">
+                <div class="audit-entry-main">
+                  <div class="audit-icon" [style.color]="getActionColor(log.action)">
+                    <i class="fas" [ngClass]="getActionIcon(log.action)"></i>
+                  </div>
+                  <div class="audit-content">
+                    <div class="audit-action">{{ getActionLabel(log.action) }}</div>
+                    <div class="audit-desc" *ngIf="log.description">{{ log.description }}</div>
+                  </div>
+                  <div class="audit-meta">
+                    <span class="audit-user"><i class="fas fa-user me-1"></i>{{ log.user }}</span>
+                    <span class="audit-time">{{ log.created_at | date:'yyyy-MM-dd HH:mm' }}</span>
+                    <span class="audit-ip" *ngIf="log.ip_address">{{ log.ip_address }}</span>
+                  </div>
+                  <div class="audit-expand">
+                    <i class="fas" [ngClass]="expandedId === log.id ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                  </div>
+                </div>
+
+                <!-- Expanded details -->
+                <div class="audit-details" *ngIf="expandedId === log.id">
+                  <div class="row">
+                    <div class="col-md-6" *ngIf="log.old_value">
+                      <div class="detail-label">Före</div>
+                      <div class="detail-json">
+                        <div *ngFor="let key of formatJsonKeys(parseJson(log.old_value))">
+                          <span class="json-key">{{ key }}:</span>
+                          <span class="json-value">{{ parseJson(log.old_value)[key] }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-6" *ngIf="log.new_value">
+                      <div class="detail-label">Efter</div>
+                      <div class="detail-json">
+                        <div *ngFor="let key of formatJsonKeys(parseJson(log.new_value))">
+                          <span class="json-key">{{ key }}:</span>
+                          <span class="json-value">{{ parseJson(log.new_value)[key] }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-12" *ngIf="!log.old_value && !log.new_value">
+                      <span class="text-muted">Ingen detaljdata tillgänglig.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-bar mt-3" *ngIf="totalPages > 1">
+          <button class="btn btn-sm btn-dark" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <span class="page-info">Sida {{ currentPage }} av {{ totalPages }}</span>
+          <button class="btn btn-sm btn-dark" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <!-- No data -->
+        <div class="dark-card text-center py-5" *ngIf="!loading && logs.length === 0">
+          <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
+          <h5>Inga loggar</h5>
+          <p class="text-muted">Inga aktiviteter hittades för vald period och filter.</p>
+        </div>
+      </div>
+
+      <!-- STATS TAB -->
+      <div *ngIf="activeTab === 'stats' && stats">
+        <div class="row">
+          <!-- Total -->
+          <div class="col-md-4 mb-3">
+            <div class="stat-card">
+              <div class="stat-label">Totalt aktiviteter</div>
+              <div class="stat-value">{{ stats.total }}</div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="stat-card">
+              <div class="stat-label">Unika användare</div>
+              <div class="stat-value">{{ stats.by_user.length }}</div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="stat-card">
+              <div class="stat-label">Unika åtgärder</div>
+              <div class="stat-value">{{ stats.by_action.length }}</div>
+            </div>
+          </div>
+
+          <!-- Activity chart -->
+          <div class="col-12 mb-4">
+            <div class="dark-card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Aktivitet per dag</h5>
+              </div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="activityChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- By action -->
+          <div class="col-md-6 mb-4">
+            <div class="dark-card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Per åtgärd</h5>
+              </div>
+              <div class="card-body p-0">
+                <table class="audit-stats-table">
+                  <tbody>
+                    <tr *ngFor="let item of stats.by_action">
+                      <td>
+                        <i class="fas me-2" [ngClass]="getActionIcon(item.action)" [style.color]="getActionColor(item.action)"></i>
+                        {{ getActionLabel(item.action) }}
+                      </td>
+                      <td class="text-end"><strong>{{ item.count }}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- By user -->
+          <div class="col-md-6 mb-4">
+            <div class="dark-card">
+              <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i>Per användare</h5>
+              </div>
+              <div class="card-body p-0">
+                <table class="audit-stats-table">
+                  <tbody>
+                    <tr *ngFor="let item of stats.by_user">
+                      <td><i class="fas fa-user me-2 text-muted"></i>{{ item.user }}</td>
+                      <td class="text-end"><strong>{{ item.count }}</strong></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
