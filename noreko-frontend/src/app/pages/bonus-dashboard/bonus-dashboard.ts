@@ -47,6 +47,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   // Charts
   private trendChart: Chart | null = null;
   private kpiRadarChart: Chart | null = null;
+  private shiftCompareChart: Chart | null = null;
 
   // Polling
   private pollingInterval: any = null;
@@ -69,6 +70,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (this.pollingInterval) clearInterval(this.pollingInterval);
     if (this.trendChart) this.trendChart.destroy();
     if (this.kpiRadarChart) this.kpiRadarChart.destroy();
+    if (this.shiftCompareChart) this.shiftCompareChart.destroy();
   }
 
   loadData() {
@@ -115,6 +117,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         if (res.success && res.data) {
           this.teamAggregate = res.data.aggregate;
           this.shifts = res.data.shifts || [];
+          setTimeout(() => this.buildShiftCompareChart(), 100);
         }
         this.loading = false;
       },
@@ -276,5 +279,56 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   getProductName(id: number): string {
     const names: { [k: number]: string } = { 1: 'FoodGrade', 4: 'NonUN', 5: 'Tvättade' };
     return names[id] || 'Okänd';
+  }
+
+  private buildShiftCompareChart(): void {
+    if (this.shiftCompareChart) this.shiftCompareChart.destroy();
+
+    const canvas = document.getElementById('shiftCompareChart') as HTMLCanvasElement;
+    if (!canvas || this.shifts.length === 0) return;
+
+    const recent = this.shifts.slice(-12);
+    const labels = recent.map(s => '#' + s.shift_number + ' (' + (s.shift_start?.substring(5, 10) || '') + ')');
+
+    this.shiftCompareChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Bonus (snitt)',
+            data: recent.map(s => s.kpis?.bonus_avg ?? 0),
+            backgroundColor: recent.map(s => {
+              const b = s.kpis?.bonus_avg ?? 0;
+              return b >= 80 ? 'rgba(72,187,120,0.7)' : b >= 70 ? 'rgba(236,201,75,0.7)' : 'rgba(229,62,62,0.7)';
+            }),
+            borderRadius: 4,
+            yAxisID: 'y'
+          },
+          {
+            label: 'IBC OK',
+            data: recent.map(s => s.total_ibc_ok),
+            type: 'line',
+            borderColor: '#63b3ed',
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            pointRadius: 4,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0' } }
+        },
+        scales: {
+          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Bonus', color: '#718096' }, min: 0 },
+          y1: { position: 'right', ticks: { color: '#718096' }, grid: { display: false }, title: { display: true, text: 'IBC OK', color: '#718096' }, min: 0 }
+        }
+      }
+    });
   }
 }
