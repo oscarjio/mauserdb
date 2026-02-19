@@ -94,12 +94,32 @@ export class RebotlingService {
     );
   }
 
+  getCycleTrend(days: number = 30): Observable<CycleTrendResponse> {
+    return this.http.get<CycleTrendResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
   getOEE(period: string = 'today'): Observable<OEEResponse> {
     return this.http.get<OEEResponse>(
       `/noreko-backend/api.php?action=rebotling&run=oee&period=${period}`,
       { withCredentials: true }
     );
   }
+}
+
+export interface CycleTrendResponse {
+  success: boolean;
+  data?: {
+    daily: { dag: string; cycles: number; avg_runtime: number; avg_ibc_per_hour: number; total_ibc_ok: number; total_ibc_ej_ok: number; total_bur_ej_ok: number }[];
+    moving_average: { dag: string; moving_avg: number }[];
+    trend: 'increasing' | 'decreasing' | 'stable';
+    avg_runtime: number;
+    total_cycles: number;
+    alert: { type: string; message: string; change_pct: number; current_avg: number; previous_avg: number } | null;
+  };
+  error?: string;
 }
 
 export interface OEEResponse {

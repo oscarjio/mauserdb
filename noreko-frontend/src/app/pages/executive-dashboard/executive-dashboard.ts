@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService, OEEResponse } from '../../services/rebotling.service';
+import { RebotlingService, OEEResponse, CycleTrendResponse } from '../../services/rebotling.service';
 import { TvattlinjeService } from '../../services/tvattlinje.service';
 import { BonusService, BonusSummaryResponse, TeamStatsResponse } from '../../services/bonus.service';
 import { forkJoin, catchError, of, timeout } from 'rxjs';
@@ -38,10 +38,13 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   bonusSummary: any = null;
   teamStats: any = null;
   oeeData: any = null;
+  cycleTrend: any = null;
+  cycleTrendAlert: any = null;
   lastRefresh: Date = new Date();
 
   private pollInterval: any;
   private trendChart: Chart | null = null;
+  private cycleTrendChart: Chart | null = null;
 
   constructor(
     private auth: AuthService,
@@ -63,6 +66,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.trendChart) this.trendChart.destroy();
+    if (this.cycleTrendChart) this.cycleTrendChart.destroy();
   }
 
   loadData(): void {
@@ -73,7 +77,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       tvattlinjeStatus: this.tvattlinjeService.getRunningStatus().pipe(timeout(5000), catchError(() => of(null))),
       bonusSummary: this.bonusService.getDailySummary().pipe(timeout(5000), catchError(() => of(null))),
       teamStats: this.bonusService.getTeamStats('week').pipe(timeout(5000), catchError(() => of(null))),
-      oee: this.rebotlingService.getOEE('today').pipe(timeout(5000), catchError(() => of(null)))
+      oee: this.rebotlingService.getOEE('today').pipe(timeout(5000), catchError(() => of(null))),
+      cycleTrend: this.rebotlingService.getCycleTrend(30).pipe(timeout(8000), catchError(() => of(null)))
     }).subscribe(results => {
       this.lines = [];
 
@@ -120,6 +125,13 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       const oee = results.oee as OEEResponse;
       if (oee?.success && oee.data) {
         this.oeeData = oee.data;
+      }
+
+      const ct = results.cycleTrend as CycleTrendResponse;
+      if (ct?.success && ct.data) {
+        this.cycleTrend = ct.data;
+        this.cycleTrendAlert = ct.data.alert;
+        setTimeout(() => this.buildCycleTrendChart(ct.data!), 100);
       }
 
       this.lastRefresh = new Date();
@@ -237,6 +249,95 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         scales: {
           x: { ticks: { color: '#718096' }, grid: { color: '#2d3748' } },
           y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, min: 0, max: 120 }
+        }
+      }
+    });
+  }
+
+  getTrendIcon(): string {
+    if (!this.cycleTrend) return 'fa-minus';
+    if (this.cycleTrend.trend === 'increasing') return 'fa-arrow-up';
+    if (this.cycleTrend.trend === 'decreasing') return 'fa-arrow-down';
+    return 'fa-minus';
+  }
+
+  getTrendClass(): string {
+    if (!this.cycleTrend) return 'text-muted';
+    if (this.cycleTrend.trend === 'increasing') return 'text-danger';
+    if (this.cycleTrend.trend === 'decreasing') return 'text-success';
+    return 'text-info';
+  }
+
+  getTrendLabel(): string {
+    if (!this.cycleTrend) return 'Ingen data';
+    if (this.cycleTrend.trend === 'increasing') return 'Ökande (kontrollera utrustning)';
+    if (this.cycleTrend.trend === 'decreasing') return 'Minskande (förbättring)';
+    return 'Stabil';
+  }
+
+  private buildCycleTrendChart(data: any): void {
+    if (this.cycleTrendChart) this.cycleTrendChart.destroy();
+    const canvas = document.getElementById('cycleTrendChart') as HTMLCanvasElement;
+    if (!canvas || !data.daily || data.daily.length === 0) return;
+
+    const labels = data.daily.map((d: any) => d.dag.substring(5)); // MM-DD
+    const runtimeData = data.daily.map((d: any) => d.avg_runtime);
+    const ibcPerHour = data.daily.map((d: any) => d.avg_ibc_per_hour);
+
+    const maLabels = data.moving_average?.map((d: any) => d.dag.substring(5)) || [];
+    const maData = data.moving_average?.map((d: any) => d.moving_avg) || [];
+
+    // Pad moving average to align with daily data
+    const padCount = labels.length - maLabels.length;
+    const paddedMA = new Array(padCount).fill(null).concat(maData);
+
+    this.cycleTrendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Snitt cykeltid (min)',
+            data: runtimeData,
+            borderColor: '#667eea',
+            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+            tension: 0.3,
+            fill: true,
+            pointRadius: 2
+          },
+          {
+            label: '7-dagars glidande medel',
+            data: paddedMA,
+            borderColor: '#e74c3c',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            tension: 0.3,
+            fill: false,
+            pointRadius: 0
+          },
+          {
+            label: 'IBC/timme',
+            data: ibcPerHour,
+            borderColor: '#38b2ac',
+            backgroundColor: 'rgba(56, 178, 172, 0.1)',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 2,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0' } },
+          title: { display: true, text: 'Cykeltidstrend (senaste 30 dagarna)', color: '#e2e8f0' }
+        },
+        scales: {
+          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Minuter', color: '#718096' } },
+          y1: { position: 'right', ticks: { color: '#718096' }, grid: { display: false }, title: { display: true, text: 'IBC/timme', color: '#718096' } }
         }
       }
     });

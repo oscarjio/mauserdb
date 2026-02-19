@@ -22,6 +22,8 @@ class RebotlingController {
                 $this->getDayStats();
             } elseif ($action === 'oee') {
                 $this->getOEE();
+            } elseif ($action === 'cycle-trend') {
+                $this->getCycleTrend();
             } else {
                 $this->getLiveStats();
             }
@@ -596,6 +598,97 @@ class RebotlingController {
                 'success' => false,
                 'error' => 'Kunde inte beräkna OEE'
             ]);
+        }
+    }
+
+    /**
+     * Cykeltids-trendanalys per dag (senaste 30 dagarna).
+     * Returnerar snitt cykeltid, antal cykler, och trendindikator.
+     */
+    private function getCycleTrend() {
+        try {
+            $days = min(90, max(7, intval($_GET['days'] ?? 30)));
+
+            // Daily average cycle time and count
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum) as dag,
+                    COUNT(*) as cycles,
+                    ROUND(AVG(runtime_plc), 1) as avg_runtime,
+                    ROUND(AVG(CASE WHEN runtime_plc > 0 THEN (ibc_ok * 60.0 / runtime_plc) ELSE NULL END), 1) as avg_ibc_per_hour,
+                    SUM(ibc_ok) as total_ibc_ok,
+                    SUM(ibc_ej_ok) as total_ibc_ej_ok,
+                    SUM(bur_ej_ok) as total_bur_ej_ok
+                FROM rebotling_ibc
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                GROUP BY DATE(datum)
+                ORDER BY dag
+            ");
+            $stmt->execute([$days]);
+            $daily = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calculate 7-day moving average and trend
+            $movingAvg = [];
+            $trend = 'stable';
+            if (count($daily) >= 7) {
+                for ($i = 6; $i < count($daily); $i++) {
+                    $window = array_slice($daily, $i - 6, 7);
+                    $avg = array_sum(array_column($window, 'avg_runtime')) / 7;
+                    $movingAvg[] = [
+                        'dag' => $daily[$i]['dag'],
+                        'moving_avg' => round($avg, 1)
+                    ];
+                }
+
+                // Detect trend: compare last 7 days avg vs previous 7 days avg
+                if (count($movingAvg) >= 2) {
+                    $recent = end($movingAvg)['moving_avg'];
+                    $older = $movingAvg[max(0, count($movingAvg) - 8)]['moving_avg'];
+                    $changePct = $older > 0 ? (($recent - $older) / $older) * 100 : 0;
+
+                    if ($changePct > 5) {
+                        $trend = 'increasing'; // cycle time going up = degradation
+                    } elseif ($changePct < -5) {
+                        $trend = 'decreasing'; // cycle time going down = improvement
+                    }
+                }
+            }
+
+            // Overall stats
+            $totalCycles = array_sum(array_column($daily, 'cycles'));
+            $avgRuntime = $totalCycles > 0
+                ? round(array_sum(array_map(fn($d) => $d['avg_runtime'] * $d['cycles'], $daily)) / $totalCycles, 1)
+                : 0;
+
+            // Alert if cycle time is trending up significantly
+            $alert = null;
+            if ($trend === 'increasing' && count($movingAvg) >= 2) {
+                $recent = end($movingAvg)['moving_avg'];
+                $older = $movingAvg[max(0, count($movingAvg) - 8)]['moving_avg'];
+                $alert = [
+                    'type' => 'cycle_time_increase',
+                    'message' => 'Cykeltiden ökar - kontrollera utrustningen',
+                    'change_pct' => round((($recent - $older) / $older) * 100, 1),
+                    'current_avg' => $recent,
+                    'previous_avg' => $older
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'daily' => $daily,
+                    'moving_average' => $movingAvg,
+                    'trend' => $trend,
+                    'avg_runtime' => $avgRuntime,
+                    'total_cycles' => $totalCycles,
+                    'alert' => $alert
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getCycleTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
         }
     }
 }
