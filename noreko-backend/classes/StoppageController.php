@@ -12,6 +12,9 @@
 class StoppageController {
     private $pdo;
 
+    // Vitlistade produktionslinjer
+    private const VALID_LINES = ['rebotling', 'tvattlinje', 'saglinje', 'klassificeringslinje'];
+
     // Standardorsakskoder
     private $defaultReasons = [
         ['code' => 'PLAN_MAINT', 'name' => 'Planerat underhåll', 'category' => 'planned', 'color' => '#3b82f6'],
@@ -137,6 +140,7 @@ class StoppageController {
     private function getStoppages() {
         try {
             $line = $_GET['line'] ?? 'rebotling';
+            if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
             $period = $_GET['period'] ?? 'week';
 
             $dateFilter = $this->getDateFilter($period);
@@ -166,6 +170,7 @@ class StoppageController {
     private function getStats() {
         try {
             $line = $_GET['line'] ?? 'rebotling';
+            if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
             $period = $_GET['period'] ?? 'month';
 
             $dateFilter = $this->getDateFilter($period);

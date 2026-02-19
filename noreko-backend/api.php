@@ -31,6 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
 // Databasanslutning
 global $pdo;
@@ -60,16 +64,32 @@ spl_autoload_register(function ($class) {
 
 $action = $_GET['action'] ?? '';
 
-// Mapping för actions som inte följer standardnamngivning
+// Vitlistade actions → controller-klasser
 $classNameMap = [
+    'rebotling' => 'RebotlingController',
     'rebotlingproduct' => 'RebotlingProductController',
+    'tvattlinje' => 'TvattlinjeController',
+    'saglinje' => 'SaglinjeController',
+    'klassificeringslinje' => 'KlassificeringslinjeController',
     'skiftrapport' => 'SkiftrapportController',
-    'vpn' => 'VpnController',
+    'login' => 'LoginController',
+    'register' => 'RegisterController',
+    'profile' => 'ProfileController',
+    'admin' => 'AdminController',
+    'bonus' => 'BonusController',
     'bonusadmin' => 'BonusAdminController',
+    'vpn' => 'VpnController',
     'stoppage' => 'StoppageController',
-    'audit' => 'AuditController'
+    'audit' => 'AuditController',
 ];
-$className = $classNameMap[strtolower($action)] ?? ucfirst(strtolower($action)) . 'Controller';
+
+$actionKey = strtolower($action);
+if (!isset($classNameMap[$actionKey])) {
+    http_response_code(404);
+    echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte']);
+    exit;
+}
+$className = $classNameMap[$actionKey];
 
 // Ladda klassen manuellt
 $file = __DIR__ . '/classes/' . $className . '.php';
