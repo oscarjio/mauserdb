@@ -42,6 +42,36 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   oeeQuality: number = 0;
   private isFetchingOEE = false;
 
+  // Goal tracker
+  dailyGoal: number = 120; // Will be calculated from hourlyTarget * shift hours
+  shiftHours: number = 8;
+
+  get ibcRemaining(): number {
+    return Math.max(0, this.dailyGoal - this.ibcToday);
+  }
+
+  get goalProgress(): number {
+    if (this.dailyGoal <= 0) return 0;
+    return Math.min(100, Math.round((this.ibcToday / this.dailyGoal) * 100));
+  }
+
+  get estimatedCompletion(): string {
+    if (this.ibcToday >= this.dailyGoal) return 'Mål uppnått!';
+    if (this.hourlyTarget <= 0 || !this.isLineRunning) return '--';
+    const hoursLeft = this.ibcRemaining / this.hourlyTarget;
+    const completionTime = new Date(Date.now() + hoursLeft * 3600000);
+    const h = completionTime.getHours().toString().padStart(2, '0');
+    const m = completionTime.getMinutes().toString().padStart(2, '0');
+    return `~${h}:${m}`;
+  }
+
+  get goalStatusClass(): string {
+    if (this.goalProgress >= 100) return 'goal-complete';
+    if (this.goalProgress >= 75) return 'goal-good';
+    if (this.goalProgress >= 50) return 'goal-mid';
+    return 'goal-low';
+  }
+
   constructor(private rebotlingService: RebotlingService) {}
 
   private oeeIntervalId: any;
@@ -94,8 +124,12 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.hourlyTarget = res.data.hourlyTarget;
           this.ibcToday = res.data.ibcToday || 0;
 
-          // Använd produktionsprocent från backend (beräknad baserat på runtime och antal cykler)
           this.productionPercentage = res.data.productionPercentage || 0;
+
+          // Calculate daily goal from hourly target * shift hours
+          if (this.hourlyTarget > 0) {
+            this.dailyGoal = Math.round(this.hourlyTarget * this.shiftHours);
+          }
 
           // Hämta utetemperatur
           this.utetemperatur = res.data.utetemperatur ?? null;

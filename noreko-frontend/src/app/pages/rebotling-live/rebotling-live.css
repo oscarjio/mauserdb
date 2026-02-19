@@ -300,3 +300,86 @@
     padding: 0.3em 0.6em;
   }
 }
+
+/* Goal Tracker */
+.goal-tracker {
+  position: relative;
+  overflow: hidden;
+}
+
+.goal-tracker.goal-complete {
+  border: 2px solid #27ae60 !important;
+  box-shadow: 0 0 20px rgba(39, 174, 96, 0.3);
+}
+
+.goal-tracker.goal-good {
+  border: 2px solid #2ecc71 !important;
+}
+
+.goal-tracker.goal-mid {
+  border: 2px solid #f1c40f !important;
+}
+
+.goal-tracker.goal-low {
+  border: 2px solid #e74c3c !important;
+}
+
+.goal-bar {
+  width: 80%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  margin: 0.75rem 0;
+  overflow: hidden;
+}
+
+.goal-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e74c3c, #f1c40f, #27ae60);
+  transition: width 1s ease;
+}
+
+.goal-detail {
+  font-size: 1.2rem;
+  color: #a0aec0;
+  text-align: center;
+}
+
+.goal-eta {
+  display: block;
+  font-size: 1rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+.goal-done {
+  color: #27ae60 !important;
+}
+
+.goal-message {
+  font-size: 1.5rem;
+  color: #27ae60;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  animation: goalPulse 2s ease-in-out infinite;
+}
+
+@keyframes goalPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@media (min-width: 992px) {
+  .goal-detail { font-size: 1.8rem; }
+  .goal-eta { font-size: 1.4rem; }
+  .goal-message { font-size: 2.5rem; }
+  .goal-bar { height: 16px; }
+}
+
+@media (max-width: 991px) {
+  .goal-detail { font-size: 0.85rem; }
+  .goal-eta { font-size: 0.75rem; }
+  .goal-message { font-size: 1.2rem; }
+  .goal-bar { height: 8px; }
+}

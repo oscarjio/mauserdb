@@ -25,11 +25,23 @@
       </div>
     </div>
     <div class="col-4 d-flex align-items-stretch">
-      <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center">
-        <div class="live-label">Utetemperatur</div>
-        <div class="live-value live-rebotling-target">
-          {{ utetemperatur !== null ? (utetemperatur | number:'1.1-1') + '°C' : '--' }}
-        </div>
+      <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center goal-tracker" [class]="goalStatusClass">
+        <div class="live-label">Dagsmål</div>
+        @if (ibcToday >= dailyGoal) {
+          <div class="live-value goal-done">{{ ibcToday }} / {{ dailyGoal }}</div>
+          <div class="goal-message">Mål uppnått!</div>
+        } @else {
+          <div class="live-value">{{ ibcRemaining }} kvar</div>
+          <div class="goal-bar">
+            <div class="goal-bar-fill" [style.width.%]="goalProgress"></div>
+          </div>
+          <div class="goal-detail">
+            {{ ibcToday }} / {{ dailyGoal }} ({{ goalProgress }}%)
+            @if (estimatedCompletion !== '--') {
+              <span class="goal-eta">Klart {{ estimatedCompletion }}</span>
+            }
+          </div>
+        }
       </div>
     </div>
     
