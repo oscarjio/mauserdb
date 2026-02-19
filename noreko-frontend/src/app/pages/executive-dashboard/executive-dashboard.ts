@@ -343,6 +343,10 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     });
   }
 
+  exportCSV(): void {
+    this.rebotlingService.downloadReportCSV('week');
+  }
+
   printDashboard(): void {
     window.print();
   }

@@ -101,6 +101,17 @@ export class RebotlingService {
     );
   }
 
+  getProductionReport(period: string = 'week'): Observable<any> {
+    return this.http.get(
+      `/noreko-backend/api.php?action=rebotling&run=report&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
+  downloadReportCSV(period: string = 'week'): void {
+    window.open(`/noreko-backend/api.php?action=rebotling&run=report&period=${period}&format=csv`, '_blank');
+  }
+
   getOEE(period: string = 'today'): Observable<OEEResponse> {
     return this.http.get<OEEResponse>(
       `/noreko-backend/api.php?action=rebotling&run=oee&period=${period}`,

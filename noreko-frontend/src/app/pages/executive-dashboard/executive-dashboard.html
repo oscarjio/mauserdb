@@ -11,9 +11,14 @@
         <small class="text-muted d-block">Uppdaterad {{ lastRefresh | date:'HH:mm:ss' }}</small>
         <small class="text-muted">Pollar var 15:e sekund</small>
       </div>
-      <button class="btn btn-sm btn-outline-light d-print-none" (click)="printDashboard()" title="Skriv ut rapport">
-        <i class="fas fa-print me-1"></i>Skriv ut
-      </button>
+      <div class="btn-group d-print-none">
+        <button class="btn btn-sm btn-outline-success" (click)="exportCSV()" title="Exportera veckorapport (CSV)">
+          <i class="fas fa-file-csv me-1"></i>Exportera
+        </button>
+        <button class="btn btn-sm btn-outline-light" (click)="printDashboard()" title="Skriv ut rapport">
+          <i class="fas fa-print me-1"></i>Skriv ut
+        </button>
+      </div>
     </div>
   </div>
 

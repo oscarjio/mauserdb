@@ -24,6 +24,8 @@ class RebotlingController {
                 $this->getOEE();
             } elseif ($action === 'cycle-trend') {
                 $this->getCycleTrend();
+            } elseif ($action === 'report') {
+                $this->getProductionReport();
             } else {
                 $this->getLiveStats();
             }
@@ -689,6 +691,129 @@ class RebotlingController {
             error_log('getCycleTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
+        }
+    }
+
+    private function getProductionReport() {
+        session_start();
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs']);
+            return;
+        }
+
+        $period = $_GET['period'] ?? 'week';
+        $format = $_GET['format'] ?? 'json';
+
+        $days = match($period) {
+            'today' => 1,
+            'week' => 7,
+            'month' => 30,
+            'year' => 365,
+            default => 7
+        };
+
+        $startDate = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            // Dagliga produktionssiffror
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum) as dag,
+                    COUNT(*) as cykler,
+                    SUM(CASE WHEN ibc_ok > 0 THEN ibc_ok ELSE 0 END) as ibc_ok,
+                    SUM(CASE WHEN ibc_ej_ok > 0 THEN ibc_ej_ok ELSE 0 END) as ibc_ej_ok,
+                    SUM(CASE WHEN bur_ej_ok > 0 THEN bur_ej_ok ELSE 0 END) as bur_ej_ok,
+                    ROUND(AVG(runtime), 1) as snitt_cykeltid,
+                    ROUND(AVG(produktion_procent), 1) as snitt_produktion_pct
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= ?
+                GROUP BY DATE(datum)
+                ORDER BY dag
+            ");
+            $stmt->execute([$startDate]);
+            $daily = $stmt->fetchAll();
+
+            // Körtidsdata
+            $stmtRuntime = $this->pdo->prepare("
+                SELECT
+                    DATE(datum) as dag,
+                    SUM(runtime_today) as kortid_minuter,
+                    COUNT(CASE WHEN running = 1 THEN 1 END) as starter,
+                    COUNT(CASE WHEN running = 0 THEN 1 END) as stopp
+                FROM rebotling_onoff
+                WHERE DATE(datum) >= ?
+                GROUP BY DATE(datum)
+                ORDER BY dag
+            ");
+            $stmtRuntime->execute([$startDate]);
+            $runtime = $stmtRuntime->fetchAll();
+            $runtimeMap = [];
+            foreach ($runtime as $r) {
+                $runtimeMap[$r['dag']] = $r;
+            }
+
+            // Sammanfattning
+            $totalIbcOk = array_sum(array_column($daily, 'ibc_ok'));
+            $totalIbcEjOk = array_sum(array_column($daily, 'ibc_ej_ok'));
+            $totalCykler = array_sum(array_column($daily, 'cykler'));
+            $daysWithProduction = count($daily);
+
+            $report = [];
+            foreach ($daily as $d) {
+                $rt = $runtimeMap[$d['dag']] ?? null;
+                $report[] = [
+                    'datum' => $d['dag'],
+                    'cykler' => (int)$d['cykler'],
+                    'ibc_ok' => (int)$d['ibc_ok'],
+                    'ibc_ej_ok' => (int)$d['ibc_ej_ok'],
+                    'bur_ej_ok' => (int)$d['bur_ej_ok'],
+                    'kvalitet_pct' => $d['ibc_ok'] > 0 ? round(($d['ibc_ok'] / ($d['ibc_ok'] + $d['ibc_ej_ok'])) * 100, 1) : 0,
+                    'snitt_cykeltid' => (float)$d['snitt_cykeltid'],
+                    'snitt_produktion_pct' => (float)$d['snitt_produktion_pct'],
+                    'kortid_h' => $rt ? round($rt['kortid_minuter'] / 60, 1) : 0,
+                    'starter' => $rt ? (int)$rt['starter'] : 0,
+                    'stopp' => $rt ? (int)$rt['stopp'] : 0,
+                ];
+            }
+
+            if ($format === 'csv') {
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename="produktionsrapport_rebotling_' . $startDate . '.csv"');
+                // BOM for Excel
+                echo "\xEF\xBB\xBF";
+                echo "Datum;Cykler;IBC OK;IBC Ej OK;Bur Ej OK;Kvalitet %;Snitt cykeltid (min);Produktion %;Körtid (h);Starter;Stopp\n";
+                foreach ($report as $r) {
+                    echo implode(';', [
+                        $r['datum'], $r['cykler'], $r['ibc_ok'], $r['ibc_ej_ok'],
+                        $r['bur_ej_ok'], $r['kvalitet_pct'], $r['snitt_cykeltid'],
+                        $r['snitt_produktion_pct'], $r['kortid_h'], $r['starter'], $r['stopp']
+                    ]) . "\n";
+                }
+                echo "\n;Totalt;{$totalIbcOk};{$totalIbcEjOk};;;;;;;\n";
+                return;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'period' => $period,
+                    'start_date' => $startDate,
+                    'daily' => $report,
+                    'summary' => [
+                        'total_cykler' => $totalCykler,
+                        'total_ibc_ok' => $totalIbcOk,
+                        'total_ibc_ej_ok' => $totalIbcEjOk,
+                        'dagar_med_produktion' => $daysWithProduction,
+                        'snitt_cykler_per_dag' => $daysWithProduction > 0 ? round($totalCykler / $daysWithProduction, 1) : 0,
+                        'kvalitet_pct' => ($totalIbcOk + $totalIbcEjOk) > 0 ? round(($totalIbcOk / ($totalIbcOk + $totalIbcEjOk)) * 100, 1) : 0,
+                    ]
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getProductionReport: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte generera rapport']);
         }
     }
 }
