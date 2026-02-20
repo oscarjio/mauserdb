@@ -23,6 +23,20 @@ export class CreateUserPage implements OnInit {
   isLoading = false;
   errorMessage = '';
   successMessage = '';
+
+  get isPasswordValid(): boolean {
+    const p = this.user.password;
+    return p.length >= 8 && /[a-zA-Z]/.test(p) && /[0-9]/.test(p);
+  }
+
+  get isEmailValid(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.user.email);
+  }
+
+  get canSubmit(): boolean {
+    return !!this.user.username.trim() && this.isPasswordValid && this.isEmailValid && !this.isLoading;
+  }
+
   constructor(
     private usersService: UsersService,
     private auth: AuthService,
@@ -42,9 +56,16 @@ export class CreateUserPage implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    // Enkel validering
-    if (!this.user.username || !this.user.password || !this.user.email) {
-      this.errorMessage = 'Användarnamn, lösenord och e-post är obligatoriska fält.';
+    if (!this.user.username.trim()) {
+      this.errorMessage = 'Användarnamn är obligatoriskt.';
+      return;
+    }
+    if (!this.isPasswordValid) {
+      this.errorMessage = 'Lösenordet måste vara minst 8 tecken med bokstav och siffra.';
+      return;
+    }
+    if (!this.isEmailValid) {
+      this.errorMessage = 'Ange en giltig e-postadress.';
       return;
     }
 

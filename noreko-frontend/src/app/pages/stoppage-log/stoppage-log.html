@@ -188,12 +188,21 @@
                   <td class="comment-cell">{{ s.comment }}</td>
                   <td>{{ s.user_name }}</td>
                   <td *ngIf="loggedIn">
-                    <button class="btn btn-sm btn-outline-danger" *ngIf="canEdit(s)" (click)="deleteStoppage(s.id)" title="Ta bort">
+                    <button class="btn btn-sm btn-outline-danger" *ngIf="canEdit(s)" (click)="deleteStoppage(s.id)" title="Ta bort"
+                            aria-label="Ta bort stoppost">
                       <i class="fas fa-trash-alt"></i>
                     </button>
                   </td>
                 </tr>
               </tbody>
+              <tfoot>
+                <tr class="summary-row">
+                  <td colspan="4"><strong>Totalt ({{ filteredStoppages.length }} poster)</strong></td>
+                  <td class="text-end"><strong>{{ formatDuration(getTotalDowntime()) }}</strong></td>
+                  <td colspan="2"></td>
+                  <td *ngIf="loggedIn"></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>

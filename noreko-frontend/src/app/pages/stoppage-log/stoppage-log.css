@@ -287,6 +287,15 @@
   color: #718096;
 }
 
+/* Summary row */
+.summary-row td {
+  background: rgba(0, 212, 255, 0.08);
+  border-top: 2px solid rgba(0, 212, 255, 0.3);
+  color: #e0e0e0;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
 /* Reason badge */
 .reason-badge {
   border-left: 4px solid #6b7280;

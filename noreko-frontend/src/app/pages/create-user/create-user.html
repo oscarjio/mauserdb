@@ -62,16 +62,24 @@
                 <i class="fas fa-lock me-2"></i>
                 Lösenord *
               </label>
-              <input 
-                id="password" 
-                name="password" 
-                type="password" 
-                class="form-control" 
-                required 
+              <input
+                id="password"
+                name="password"
+                type="password"
+                class="form-control"
+                required
                 [(ngModel)]="user.password"
                 [disabled]="isLoading"
-                placeholder="Ange lösenord"
+                placeholder="Minst 8 tecken, bokstav + siffra"
               />
+              <div class="mt-1" *ngIf="user.password.length > 0">
+                <small *ngIf="!isPasswordValid" class="text-danger">
+                  <i class="fas fa-times me-1"></i>Minst 8 tecken, bokstav och siffra
+                </small>
+                <small *ngIf="isPasswordValid" class="text-success">
+                  <i class="fas fa-check me-1"></i>Godkänt lösenord
+                </small>
+              </div>
             </div>
 
             <div class="mb-3">
@@ -79,16 +87,19 @@
                 <i class="fas fa-envelope me-2"></i>
                 E-post *
               </label>
-              <input 
-                id="email" 
-                name="email" 
-                type="email" 
-                class="form-control" 
-                required 
+              <input
+                id="email"
+                name="email"
+                type="email"
+                class="form-control"
+                required
                 [(ngModel)]="user.email"
                 [disabled]="isLoading"
                 placeholder="Ange e-postadress"
               />
+              <div class="mt-1" *ngIf="user.email.length > 0 && !isEmailValid">
+                <small class="text-danger"><i class="fas fa-times me-1"></i>Ogiltig e-postadress</small>
+              </div>
             </div>
 
             <div class="mb-3">
@@ -115,7 +126,7 @@
               <button 
                 class="btn btn-success" 
                 type="submit" 
-                [disabled]="isLoading || !createUserForm.form.valid"
+                [disabled]="!canSubmit"
               >
                 <i class="fas" [class.fa-spinner]="isLoading" [class.fa-user-plus]="!isLoading" [class.fa-spin]="isLoading" [class.me-2]="true"></i>
                 <span *ngIf="!isLoading">Skapa användare</span>
