@@ -81,6 +81,7 @@ $classNameMap = [
     'vpn' => 'VpnController',
     'stoppage' => 'StoppageController',
     'audit' => 'AuditController',
+    'status' => 'StatusController',
 ];
 
 $actionKey = strtolower($action);
