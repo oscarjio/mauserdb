@@ -141,6 +141,46 @@ export class MyBonusPage implements OnInit, OnDestroy {
     return null; // Already at top tier
   }
 
+  getProjectedBonus(): { weekly: number; monthly: number } | null {
+    if (!this.history || this.history.length < 3) return null;
+    const recent = this.history.slice(0, 7);
+    const avg = recent.reduce((sum: number, h: any) => sum + (h.kpis?.bonus ?? 0), 0) / recent.length;
+    return {
+      weekly: Math.round(avg * 10) / 10,
+      monthly: Math.round(avg * 10) / 10
+    };
+  }
+
+  getTrendDirection(): 'up' | 'down' | 'flat' {
+    if (!this.history || this.history.length < 6) return 'flat';
+    const recent3 = this.history.slice(0, 3).reduce((s: number, h: any) => s + (h.kpis?.bonus ?? 0), 0) / 3;
+    const prev3 = this.history.slice(3, 6).reduce((s: number, h: any) => s + (h.kpis?.bonus ?? 0), 0) / 3;
+    const diff = recent3 - prev3;
+    if (diff > 2) return 'up';
+    if (diff < -2) return 'down';
+    return 'flat';
+  }
+
+  exportBonusCSV(): void {
+    if (!this.stats?.daily_breakdown?.length) return;
+    const header = ['Datum', 'Cykler', 'IBC OK', 'IBC Ej OK', 'Effektivitet', 'Produktivitet', 'Kvalitet', 'Bonus'];
+    const rows = this.stats.daily_breakdown.map((d: any) => [
+      d.date, d.cycles, d.ibc_ok, d.ibc_ej_ok,
+      (d.effektivitet ?? 0).toFixed(1) + '%',
+      (d.produktivitet ?? 0).toFixed(1),
+      (d.kvalitet ?? 0).toFixed(1) + '%',
+      (d.bonus_poang ?? 0).toFixed(1)
+    ]);
+    const csv = [header, ...rows].map(r => r.map((c: any) => `"${c}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `min-bonus-${this.savedOperatorId}-${this.selectedPeriod}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   getPositionName(pos: string): string {
     switch (pos) {
       case 'position_1': return 'Tvättplats';
