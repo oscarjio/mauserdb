@@ -1,0 +1,294 @@
+.analysis-container {
+  padding: 1.5rem;
+  min-height: 100vh;
+  background-color: #1a202c;
+  color: #e2e8f0;
+}
+
+.dashboard-header h2 {
+  color: #e2e8f0;
+}
+
+.period-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+  width: auto;
+}
+
+/* KPI Cards */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.2rem;
+  text-align: center;
+  border-left: 4px solid #4299e1;
+  transition: transform 0.2s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-card-warn {
+  border-left-color: #e53e3e;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  color: #a0aec0;
+  letter-spacing: 0.5px;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.3rem 0;
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+/* Cards */
+.card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 10px;
+  color: #e2e8f0;
+}
+
+.card-header {
+  background-color: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.card-body {
+  background-color: #2d3748;
+}
+
+/* Chart containers */
+.chart-container {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.chart-container canvas {
+  max-height: 100%;
+}
+
+/* Nav pills */
+.nav-pills .nav-link {
+  color: #a0aec0;
+  background: transparent;
+  border: 1px solid #4a5568;
+  margin-right: 0.3rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.nav-pills .nav-link.active {
+  background-color: #4299e1;
+  border-color: #4299e1;
+  color: white;
+}
+
+.nav-pills .nav-link:hover:not(.active) {
+  background-color: #374151;
+}
+
+/* Tables */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-border-color: #4a5568;
+  --bs-table-hover-bg: #374151;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: #4299e1;
+}
+
+.sortable i {
+  font-size: 0.7rem;
+  margin-left: 2px;
+}
+
+/* Radar chip selector */
+.radar-chip {
+  display: inline-block;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid #4a5568;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #a0aec0;
+  transition: all 0.2s;
+}
+
+.radar-chip:hover {
+  border-color: #4299e1;
+  color: #e2e8f0;
+}
+
+.radar-chip-active {
+  background-color: #4299e1;
+  border-color: #4299e1;
+  color: white;
+}
+
+/* Heatmap */
+.heatmap-wrapper {
+  overflow-x: auto;
+}
+
+.heatmap-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.heatmap-label {
+  width: 60px;
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: #a0aec0;
+  text-align: right;
+  padding-right: 6px;
+}
+
+.heatmap-cell {
+  width: 40px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  color: #e2e8f0;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.15);
+  z-index: 1;
+}
+
+.heatmap-cell-header {
+  font-weight: 600;
+  color: #a0aec0;
+  background: transparent !important;
+  font-size: 0.7rem;
+}
+
+.heatmap-header {
+  margin-bottom: 4px;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.legend-box {
+  width: 16px;
+  height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+  border: 1px solid #4a5568;
+}
+
+/* Shift table */
+.shift-row {
+  cursor: pointer;
+}
+
+.shift-row:hover td {
+  background-color: #374151 !important;
+}
+
+.shift-detail-row td {
+  background-color: #1a202c !important;
+}
+
+.shift-detail {
+  padding: 0.5rem;
+}
+
+.operator-badge {
+  display: inline-block;
+  background: #4a5568;
+  color: #e2e8f0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  margin: 0.2rem 0.2rem;
+}
+
+/* Form inputs */
+.form-control {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.form-control:focus {
+  background-color: #374151;
+  border-color: #4299e1;
+  color: #e2e8f0;
+}
+
+/* Buttons */
+.btn-outline-secondary {
+  color: #a0aec0;
+  border-color: #4a5568;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .analysis-container {
+    padding: 0.8rem;
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .table {
+    font-size: 0.8rem;
+  }
+
+  .heatmap-cell {
+    width: 28px;
+    height: 24px;
+    font-size: 0.55rem;
+  }
+
+  .heatmap-label {
+    width: 45px;
+    font-size: 0.6rem;
+  }
+
+  .nav-pills .nav-link {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.6rem;
+  }
+}

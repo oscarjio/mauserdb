@@ -1,0 +1,381 @@
+<div class="analysis-container" *ngIf="loggedIn && isAdmin">
+
+  <!-- Header -->
+  <div class="dashboard-header mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <div>
+        <h2 class="mb-0"><i class="fas fa-chart-line me-2"></i>Produktionsanalys</h2>
+        <small class="text-muted">Visualisering av effektivitet per operatör, dag och tid</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm period-select" [(ngModel)]="selectedPeriod" (change)="onPeriodChange()">
+          <option value="week">Senaste 7 dagar</option>
+          <option value="month">Senaste 30 dagar</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center py-4">
+    <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+    <p class="text-muted mt-2">Laddar analysdata...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show">
+    {{ error }}
+    <button type="button" class="btn-close" (click)="error = ''"></button>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-pills mb-4">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'operators'" (click)="setTab('operators')">
+        <i class="fas fa-users me-1"></i>Operatörer
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'daily'" (click)="setTab('daily')">
+        <i class="fas fa-calendar-day me-1"></i>Dagsanalys
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'hourly'" (click)="setTab('hourly')">
+        <i class="fas fa-clock me-1"></i>Timanalys
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'shifts'" (click)="setTab('shifts')">
+        <i class="fas fa-layer-group me-1"></i>Skiftöversikt
+      </a>
+    </li>
+  </ul>
+
+  <!-- ============ TAB 1: OPERATÖRSJÄMFÖRELSE ============ -->
+  <div *ngIf="activeTab === 'operators'">
+
+    <!-- Position filter -->
+    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+      <span class="text-muted small">Filtrera position:</span>
+      <button class="btn btn-sm" [class.btn-info]="positionFilter === 'all'" [class.btn-outline-secondary]="positionFilter !== 'all'" (click)="positionFilter = 'all'; renderRankingChart()">Alla</button>
+      <button class="btn btn-sm" [class.btn-info]="positionFilter === 'Tvättplats'" [class.btn-outline-secondary]="positionFilter !== 'Tvättplats'" (click)="positionFilter = 'Tvättplats'; renderRankingChart()">Tvättplats</button>
+      <button class="btn btn-sm" [class.btn-info]="positionFilter === 'Kontroll'" [class.btn-outline-secondary]="positionFilter !== 'Kontroll'" (click)="positionFilter = 'Kontroll'; renderRankingChart()">Kontroll</button>
+      <button class="btn btn-sm" [class.btn-info]="positionFilter === 'Truck'" [class.btn-outline-secondary]="positionFilter !== 'Truck'" (click)="positionFilter = 'Truck'; renderRankingChart()">Truck</button>
+    </div>
+
+    <!-- Ranking bar chart -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Operatörsranking - Bonus</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 400px;">
+          <canvas id="rankingChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Radar comparison -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Radarjämförelse (välj 2-3 operatörer)</h5>
+      </div>
+      <div class="card-body">
+        <div class="d-flex gap-2 mb-3 flex-wrap">
+          <span *ngFor="let op of getFilteredRanking().slice(0, 10)"
+                class="radar-chip"
+                [class.radar-chip-active]="isRadarSelected(op.operator_id)"
+                (click)="toggleRadarSelect(op.operator_id)">
+            Op {{ op.operator_id }}
+          </span>
+        </div>
+        <div *ngIf="radarSelected.length >= 2" class="chart-container" style="height: 320px;">
+          <canvas id="radarCompareChart"></canvas>
+        </div>
+        <p *ngIf="radarSelected.length < 2" class="text-muted text-center py-3">
+          Välj minst 2 operatörer ovan för att visa radarjämförelse.
+        </p>
+      </div>
+    </div>
+
+    <!-- Operator table -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Alla operatörer</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-dark table-sm table-hover" *ngIf="getFilteredRanking().length > 0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Operatör</th>
+                <th>Position</th>
+                <th class="sortable" (click)="toggleSort('total_cycles')">Cykler <i [class]="getSortIcon('total_cycles')"></i></th>
+                <th class="sortable" (click)="toggleSort('total_ibc_ok')">IBC OK <i [class]="getSortIcon('total_ibc_ok')"></i></th>
+                <th class="sortable" (click)="toggleSort('effektivitet')">Eff. <i [class]="getSortIcon('effektivitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('produktivitet')">Prod. <i [class]="getSortIcon('produktivitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('kvalitet')">Kval. <i [class]="getSortIcon('kvalitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('bonus_avg')">Bonus <i [class]="getSortIcon('bonus_avg')"></i></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let op of getFilteredRanking(); let i = index">
+                <td>{{ i + 1 }}</td>
+                <td>{{ op.operator_id }}</td>
+                <td>{{ getPositionName(op.position) }}</td>
+                <td>{{ op.cycles || op.total_cycles }}</td>
+                <td>{{ op.total_ibc_ok }}</td>
+                <td>{{ op.effektivitet }}%</td>
+                <td>{{ op.produktivitet }}</td>
+                <td>{{ op.kvalitet }}%</td>
+                <td><span [ngClass]="getBonusBadge(op.bonus_avg)">{{ op.bonus_avg }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="text-muted text-center" *ngIf="getFilteredRanking().length === 0 && !loading">
+            Ingen data tillgänglig för vald period.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB 2: DAGSANALYS ============ -->
+  <div *ngIf="activeTab === 'daily'">
+
+    <!-- Summary cards -->
+    <div class="row g-3 mb-4" *ngIf="dailyData.length > 0">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Bästa dag</div>
+          <div class="kpi-value text-success">{{ bestDay?.bonus }}</div>
+          <div class="kpi-sub">{{ bestDay?.date }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card kpi-card-warn">
+          <div class="kpi-label">Sämsta dag</div>
+          <div class="kpi-value text-danger">{{ worstDay?.bonus }}</div>
+          <div class="kpi-sub">{{ worstDay?.date }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Snittbonus</div>
+          <div class="kpi-value" [ngClass]="getBonusClass(avgBonus)">{{ avgBonus }}</div>
+          <div class="kpi-sub">per dag</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Total IBC</div>
+          <div class="kpi-value">{{ totalIbc }}</div>
+          <div class="kpi-sub">godkända</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily trend chart -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-area me-2"></i>Daglig trend - Bonus &amp; IBC</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 320px;">
+          <canvas id="dailyTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekday average chart -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Veckodagssnitt - IBC per dag</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 260px;">
+          <canvas id="weekdayChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB 3: TIMANALYS ============ -->
+  <div *ngIf="activeTab === 'hourly'">
+
+    <!-- Heatmap -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-th me-2"></i>Produktions-heatmap (cykler per timme)</h5>
+      </div>
+      <div class="card-body">
+        <div class="heatmap-wrapper">
+          <!-- Header row: hours -->
+          <div class="heatmap-row heatmap-header">
+            <div class="heatmap-label"></div>
+            <div class="heatmap-cell heatmap-cell-header" *ngFor="let h of heatmapHours">{{ h }}</div>
+          </div>
+          <!-- Data rows -->
+          <div class="heatmap-row" *ngFor="let day of heatmapData">
+            <div class="heatmap-label">{{ day.date.substring(5) }}</div>
+            <div class="heatmap-cell"
+                 *ngFor="let h of heatmapHours"
+                 [style.backgroundColor]="getHeatmapColor(day.hours[h] || 0)"
+                 [title]="day.date + ' kl ' + h + ':00 — ' + (day.hours[h] || 0) + ' cykler'">
+              <span *ngIf="day.hours[h]">{{ day.hours[h] }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="heatmap-legend mt-2">
+          <span class="text-muted small me-2">Intensitet:</span>
+          <span class="legend-box" style="background:#1a202c;"></span> 0
+          <span class="legend-box" style="background:#1a365d;"></span> Låg
+          <span class="legend-box" style="background:#2b6cb0;"></span> Medel
+          <span class="legend-box" style="background:#3182ce;"></span> Hög
+          <span class="legend-box" style="background:#4299e1;"></span> Max
+        </div>
+      </div>
+    </div>
+
+    <!-- Hourly bar chart -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Genomsnittlig produktion per timme</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 280px;">
+          <canvas id="hourlyBarChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TAB 4: SKIFTÖVERSIKT ============ -->
+  <div *ngIf="activeTab === 'shifts'">
+
+    <!-- Aggregate KPIs -->
+    <div class="row g-3 mb-4" *ngIf="teamAggregate">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Totalt skift</div>
+          <div class="kpi-value">{{ teamAggregate.total_shifts }}</div>
+          <div class="kpi-sub">under perioden</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Totalt cykler</div>
+          <div class="kpi-value">{{ teamAggregate.total_cycles }}</div>
+          <div class="kpi-sub">{{ teamAggregate.total_ibc_ok }} IBC OK</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Snittbonus</div>
+          <div class="kpi-value" [ngClass]="getBonusClass(teamAggregate.avg_bonus)">{{ teamAggregate.avg_bonus }}</div>
+          <div class="kpi-sub">poäng</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Operatörer</div>
+          <div class="kpi-value">{{ teamAggregate.unique_operators }}</div>
+          <div class="kpi-sub">unika</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bubble chart -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-braille me-2"></i>Skift — Effektivitet vs Produktivitet</h5>
+        <small class="text-muted">Storlek = antal cykler, färg = bonus-tier (grön ≥90, gul ≥70, röd &lt;70)</small>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 360px;">
+          <canvas id="bubbleChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shift table -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Alla skift</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-dark table-sm table-hover" *ngIf="allShifts.length > 0">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Skift #</th>
+                <th>Datum</th>
+                <th>Operatörer</th>
+                <th>Cykler</th>
+                <th>IBC OK</th>
+                <th>Timmar</th>
+                <th>Eff.</th>
+                <th>Prod.</th>
+                <th>Kval.</th>
+                <th>Bonus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let shift of allShifts">
+                <tr class="shift-row" (click)="toggleShiftExpand(shift.shift_number)">
+                  <td><i class="fas" [class.fa-chevron-right]="expandedShift !== shift.shift_number" [class.fa-chevron-down]="expandedShift === shift.shift_number"></i></td>
+                  <td>{{ shift.shift_number }}</td>
+                  <td>{{ shift.shift_start?.substring(0, 10) }}</td>
+                  <td>{{ shift.operator_count }} st</td>
+                  <td>{{ shift.cycles }}</td>
+                  <td>{{ shift.total_ibc_ok }}</td>
+                  <td>{{ shift.total_hours }}h</td>
+                  <td>{{ shift.kpis?.effektivitet }}%</td>
+                  <td>{{ shift.kpis?.produktivitet }}</td>
+                  <td>{{ shift.kpis?.kvalitet }}%</td>
+                  <td><span [ngClass]="getBonusBadge(shift.kpis?.bonus_avg || 0)">{{ shift.kpis?.bonus_avg }}</span></td>
+                </tr>
+                <tr *ngIf="expandedShift === shift.shift_number" class="shift-detail-row">
+                  <td colspan="11">
+                    <div class="shift-detail">
+                      <strong>Operatörs-ID:</strong>
+                      <span *ngFor="let opId of shift.operators; let last = last" class="operator-badge">
+                        {{ opId }}{{ !last ? '' : '' }}
+                      </span>
+                      <div class="mt-2 d-flex gap-3 flex-wrap">
+                        <span><strong>Start:</strong> {{ shift.shift_start }}</span>
+                        <span><strong>Slut:</strong> {{ shift.shift_end }}</span>
+                        <span><strong>IBC Ej OK:</strong> {{ shift.total_ibc_ej_ok }}</span>
+                        <span><strong>Burfel:</strong> {{ shift.total_bur_ej_ok }}</span>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+          <p class="text-muted text-center" *ngIf="allShifts.length === 0 && !loading">
+            Ingen skiftdata tillgänglig för vald period.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Not admin -->
+<div *ngIf="loggedIn && !isAdmin" class="text-center py-5">
+  <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+  <h4>Åtkomst nekad</h4>
+  <p class="text-muted">Du behöver admin-behörighet för att se produktionsanalysen.</p>
+</div>
+
+<div *ngIf="!loggedIn" class="text-center py-5">
+  <i class="fas fa-sign-in-alt fa-3x text-muted mb-3"></i>
+  <h4>Logga in</h4>
+  <p class="text-muted">Du behöver vara inloggad för att se denna sida.</p>
+</div>
