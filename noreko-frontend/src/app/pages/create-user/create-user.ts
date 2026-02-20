@@ -1,7 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { UsersService } from '../../services/users.service';
@@ -9,7 +8,7 @@ import { UsersService } from '../../services/users.service';
 @Component({
   standalone: true,
   selector: 'app-create-user',
-  imports: [CommonModule, FormsModule, HttpClientModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './create-user.html',
   styleUrl: './create-user.css'
 })
@@ -24,8 +23,6 @@ export class CreateUserPage implements OnInit {
   isLoading = false;
   errorMessage = '';
   successMessage = '';
-  http = inject(HttpClient);
-
   constructor(
     private usersService: UsersService,
     private auth: AuthService,
