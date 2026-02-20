@@ -29,6 +29,54 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   showForm = false;
   activeTab: 'log' | 'stats' = 'log';
 
+  // Sorting & search
+  searchQuery: string = '';
+  sortColumn: string = 'start_time';
+  sortDirection: 'asc' | 'desc' = 'desc';
+
+  get filteredStoppages(): StoppageEntry[] {
+    let result = this.stoppages;
+
+    // Text search
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase();
+      result = result.filter(s =>
+        (s.reason_name || '').toLowerCase().includes(q) ||
+        (s.comment || '').toLowerCase().includes(q) ||
+        (s.user_name || '').toLowerCase().includes(q) ||
+        (s.category === 'planned' ? 'planerat' : 'oplanerat').includes(q)
+      );
+    }
+
+    // Sort
+    result = [...result].sort((a: any, b: any) => {
+      let valA = a[this.sortColumn];
+      let valB = b[this.sortColumn];
+      if (valA == null) valA = '';
+      if (valB == null) valB = '';
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+      const cmp = valA < valB ? -1 : valA > valB ? 1 : 0;
+      return this.sortDirection === 'asc' ? cmp : -cmp;
+    });
+
+    return result;
+  }
+
+  toggleSort(column: string) {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = column === 'start_time' ? 'desc' : 'asc';
+    }
+  }
+
+  getSortIcon(column: string): string {
+    if (this.sortColumn !== column) return 'fas fa-sort';
+    return this.sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+  }
+
   newEntry = {
     line: 'rebotling',
     reason_id: 0,

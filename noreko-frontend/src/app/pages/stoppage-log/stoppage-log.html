@@ -142,26 +142,31 @@
 
       <!-- Stoppage Table -->
       <div class="dark-card" *ngIf="!loading && stoppages.length > 0">
-        <div class="card-header">
-          <h5 class="mb-0"><i class="fas fa-table me-2"></i>Stopporsaker ({{ stoppages.length }})</h5>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="mb-0"><i class="fas fa-table me-2"></i>Stopporsaker ({{ filteredStoppages.length }}<span *ngIf="searchQuery"> av {{ stoppages.length }}</span>)</h5>
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="form-control form-control-sm" placeholder="Sök orsak, kommentar, användare..."
+                   [(ngModel)]="searchQuery">
+          </div>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="stoppage-table">
               <thead>
                 <tr>
-                  <th>Orsak</th>
-                  <th>Kategori</th>
-                  <th>Start</th>
-                  <th>Slut</th>
-                  <th class="text-end">Varaktighet</th>
+                  <th class="sortable" (click)="toggleSort('reason_name')">Orsak <i [class]="getSortIcon('reason_name')"></i></th>
+                  <th class="sortable" (click)="toggleSort('category')">Kategori <i [class]="getSortIcon('category')"></i></th>
+                  <th class="sortable" (click)="toggleSort('start_time')">Start <i [class]="getSortIcon('start_time')"></i></th>
+                  <th class="sortable" (click)="toggleSort('end_time')">Slut <i [class]="getSortIcon('end_time')"></i></th>
+                  <th class="sortable text-end" (click)="toggleSort('duration_minutes')">Varaktighet <i [class]="getSortIcon('duration_minutes')"></i></th>
                   <th>Kommentar</th>
-                  <th>Användare</th>
+                  <th class="sortable" (click)="toggleSort('user_name')">Användare <i [class]="getSortIcon('user_name')"></i></th>
                   <th *ngIf="loggedIn"></th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of stoppages">
+                <tr *ngFor="let s of filteredStoppages">
                   <td>
                     <span class="reason-badge" [style.borderLeftColor]="s.color">
                       {{ s.reason_name }}

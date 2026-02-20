@@ -229,6 +229,64 @@
   white-space: nowrap;
 }
 
+/* Sortable headers */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.sortable:hover {
+  color: #00d4ff;
+}
+
+.sortable i {
+  font-size: 0.7rem;
+  margin-left: 4px;
+  opacity: 0.5;
+}
+
+.sortable:hover i,
+.sortable i.fa-sort-up,
+.sortable i.fa-sort-down {
+  opacity: 1;
+}
+
+/* Search box */
+.search-box {
+  position: relative;
+  min-width: 220px;
+}
+
+.search-box .search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #718096;
+  font-size: 0.8rem;
+  z-index: 1;
+}
+
+.search-box .form-control {
+  padding-left: 32px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+  border-radius: 20px;
+  font-size: 0.85rem;
+}
+
+.search-box .form-control:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+}
+
+.search-box .form-control::placeholder {
+  color: #718096;
+}
+
 /* Reason badge */
 .reason-badge {
   border-left: 4px solid #6b7280;
