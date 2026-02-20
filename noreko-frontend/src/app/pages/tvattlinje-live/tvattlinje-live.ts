@@ -14,9 +14,27 @@ import { TvattlinjeService, LineStatusResponse, TvattlinjeLiveStatsResponse } fr
 export class TvattlinjeLivePage implements OnInit, OnDestroy {
   now = new Date();
   intervalId: any;
-  
+
   private isFetchingLineStatus = false;
   private isFetchingLiveStats = false;
+
+  // Data freshness
+  lastDataUpdate: Date | null = null;
+  dataAgeSec: number = 0;
+
+  get freshnessClass(): string {
+    if (this.lastDataUpdate === null) return 'freshness-unknown';
+    if (this.dataAgeSec > 60) return 'freshness-stale';
+    if (this.dataAgeSec > 15) return 'freshness-warning';
+    return 'freshness-ok';
+  }
+
+  get freshnessLabel(): string {
+    if (this.lastDataUpdate === null) return 'Väntar på data...';
+    if (this.dataAgeSec > 60) return `Ingen data på ${this.dataAgeSec}s`;
+    if (this.dataAgeSec > 15) return `Uppdaterad ${this.dataAgeSec}s sedan`;
+    return 'Live';
+  }
   
   // Line status
   isLineRunning: boolean = false;
@@ -41,6 +59,7 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   ngOnInit() {
     this.intervalId = setInterval(() => {
       this.now = new Date();
+      this.updateDataAge();
       this.fetchLineStatus();
       this.fetchLiveStats();
     }, 2000);
@@ -51,6 +70,12 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   ngOnDestroy() {
     if (this.intervalId) {
       clearInterval(this.intervalId);
+    }
+  }
+
+  private updateDataAge() {
+    if (this.lastDataUpdate) {
+      this.dataAgeSec = Math.round((Date.now() - this.lastDataUpdate.getTime()) / 1000);
     }
   }
 
@@ -103,6 +128,8 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
       )
       .subscribe((res: TvattlinjeLiveStatsResponse | null) => {
         if (res && res.success && res.data) {
+          this.lastDataUpdate = new Date();
+          this.dataAgeSec = 0;
           this.ibcToday = res.data.ibcToday;
           this.ibcTarget = res.data.ibcTarget;
           this.utetemperatur = res.data.utetemperatur;

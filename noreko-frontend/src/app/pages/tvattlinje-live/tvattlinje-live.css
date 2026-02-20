@@ -1,3 +1,64 @@
+/* Data freshness indicator */
+.freshness-indicator {
+  position: fixed;
+  top: 10px;
+  right: 16px;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(35, 39, 43, 0.9);
+  font-size: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.freshness-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.freshness-text {
+  color: #a0aec0;
+}
+
+.freshness-ok .freshness-dot {
+  background: #27ae60;
+  box-shadow: 0 0 6px rgba(39, 174, 96, 0.6);
+  animation: freshnessGlow 2s ease-in-out infinite;
+}
+.freshness-ok .freshness-text { color: #27ae60; }
+
+.freshness-warning .freshness-dot {
+  background: #f1c40f;
+  box-shadow: 0 0 6px rgba(241, 196, 15, 0.6);
+}
+.freshness-warning .freshness-text { color: #f1c40f; }
+
+.freshness-stale .freshness-dot {
+  background: #e74c3c;
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+  animation: freshnessBlink 1s ease-in-out infinite;
+}
+.freshness-stale .freshness-text { color: #e74c3c; }
+
+.freshness-unknown .freshness-dot {
+  background: #718096;
+}
+
+@keyframes freshnessGlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes freshnessBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
 /* Minimal placeholder for Tvattlinje Live page (standalone directory) */
 .tvattlinje-live-page {
   min-height: 100vh;

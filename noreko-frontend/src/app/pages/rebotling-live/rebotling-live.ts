@@ -16,6 +16,24 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   intervalId: any;
   private isFetchingLiveStats = false;
   private isFetchingLineStatus = false;
+
+  // Data freshness
+  lastDataUpdate: Date | null = null;
+  dataAgeSec: number = 0;
+
+  get freshnessClass(): string {
+    if (this.lastDataUpdate === null) return 'freshness-unknown';
+    if (this.dataAgeSec > 60) return 'freshness-stale';
+    if (this.dataAgeSec > 15) return 'freshness-warning';
+    return 'freshness-ok';
+  }
+
+  get freshnessLabel(): string {
+    if (this.lastDataUpdate === null) return 'Väntar på data...';
+    if (this.dataAgeSec > 60) return `Ingen data på ${this.dataAgeSec}s`;
+    if (this.dataAgeSec > 15) return `Uppdaterad ${this.dataAgeSec}s sedan`;
+    return 'Live';
+  }
   
   // Rebotling data
   rebotlingToday: number = 0;
@@ -79,6 +97,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   ngOnInit() {
     this.intervalId = setInterval(() => {
       this.now = new Date();
+      this.updateDataAge();
       this.fetchLiveStats();
       this.fetchLineStatus();
     }, 2000);
@@ -93,6 +112,12 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   ngOnDestroy() {
     clearInterval(this.intervalId);
     clearInterval(this.oeeIntervalId);
+  }
+
+  private updateDataAge() {
+    if (this.lastDataUpdate) {
+      this.dataAgeSec = Math.round((Date.now() - this.lastDataUpdate.getTime()) / 1000);
+    }
   }
 
   private fetchLiveStats() {
@@ -118,6 +143,8 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
       )
       .subscribe((res: RebotlingLiveStatsResponse | null) => {
         if (res && res.success && res.data) {
+          this.lastDataUpdate = new Date();
+          this.dataAgeSec = 0;
           this.rebotlingToday = res.data.rebotlingToday;
           this.rebotlingTarget = res.data.rebotlingTarget;
           this.rebotlingThisHour = res.data.rebotlingThisHour;

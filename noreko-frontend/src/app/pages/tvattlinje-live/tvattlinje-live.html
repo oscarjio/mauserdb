@@ -1,5 +1,9 @@
 <div class="tvattlinje-live-page container-fluid">
   <div class="status-bar" [class]="statusBarClass"></div>
+  <div class="freshness-indicator" [class]="freshnessClass">
+    <span class="freshness-dot"></span>
+    <span class="freshness-text">{{ freshnessLabel }}</span>
+  </div>
   <div class="row g-0 h-100">
     <div class="col-6 d-flex align-items-stretch">
       <div class="live-card flex-fill clock-card h-100 w-100 d-flex flex-column justify-content-center align-items-center">
