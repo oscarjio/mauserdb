@@ -2,14 +2,13 @@ import { Component, OnInit, OnDestroy, HostListener, HostBinding } from '@angula
 import { RouterOutlet, Router } from '@angular/router';
 import { Header } from '../header/header';
 import { Menu } from '../menu/menu';
-import { Submenu } from '../submenu/submenu';
 import { ToastComponent } from '../components/toast/toast';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [Header, Menu, Submenu, RouterOutlet, CommonModule, ToastComponent],
+  imports: [Header, Menu, RouterOutlet, CommonModule, ToastComponent],
   templateUrl: './layout.html',
   styleUrl: './layout.css'
 })
