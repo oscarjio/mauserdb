@@ -129,13 +129,19 @@
             <span>VD-Översikt</span>
           </a>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-4 col-6">
           <a routerLink="/min-bonus" class="quick-link-card">
             <i class="fas fa-star"></i>
             <span>Min Bonus</span>
           </a>
         </div>
-        <div class="col-md-4" *ngIf="isAdmin">
+        <div class="col-md-4 col-6">
+          <a routerLink="/stopporsaker" class="quick-link-card">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Stopporsaker</span>
+          </a>
+        </div>
+        <div class="col-md-4 col-6" *ngIf="isAdmin">
           <a routerLink="/rebotling/bonus" class="quick-link-card">
             <i class="fas fa-trophy"></i>
             <span>Bonus Dashboard</span>

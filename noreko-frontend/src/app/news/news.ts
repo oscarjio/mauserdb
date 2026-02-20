@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { of } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
 import { AuthService } from '../services/auth.service';
@@ -69,7 +71,9 @@ export class News implements OnInit, OnDestroy {
   }
 
   private fetchRebotlingData() {
-    this.rebotlingService.getLiveStats().subscribe((res: RebotlingLiveStatsResponse) => {
+    this.rebotlingService.getLiveStats().pipe(
+      timeout(5000), catchError(() => of(null))
+    ).subscribe((res: RebotlingLiveStatsResponse | null) => {
       if (res && res.success && res.data) {
         this.rebotlingToday = res.data.ibcToday || 0;
         this.rebotlingTarget = res.data.rebotlingTarget || 0;
@@ -77,7 +81,9 @@ export class News implements OnInit, OnDestroy {
       }
     });
 
-    this.rebotlingService.getRunningStatus().subscribe((res: LineStatusResponse) => {
+    this.rebotlingService.getRunningStatus().pipe(
+      timeout(5000), catchError(() => of(null))
+    ).subscribe((res: LineStatusResponse | null) => {
       if (res && res.success && res.data) {
         this.rebotlingStatus = res.data.running;
       }
@@ -85,7 +91,9 @@ export class News implements OnInit, OnDestroy {
   }
 
   private fetchTvattlinjeData() {
-    this.tvattlinjeService.getLiveStats().subscribe((res: TvattlinjeLiveStatsResponse) => {
+    this.tvattlinjeService.getLiveStats().pipe(
+      timeout(5000), catchError(() => of(null))
+    ).subscribe((res: TvattlinjeLiveStatsResponse | null) => {
       if (res && res.success && res.data) {
         this.tvattlinjeToday = res.data.ibcToday;
         this.tvattlinjeTarget = res.data.ibcTarget;
@@ -93,7 +101,9 @@ export class News implements OnInit, OnDestroy {
       }
     });
 
-    this.tvattlinjeService.getRunningStatus().subscribe((res: LineStatusResponse) => {
+    this.tvattlinjeService.getRunningStatus().pipe(
+      timeout(5000), catchError(() => of(null))
+    ).subscribe((res: LineStatusResponse | null) => {
       if (res && res.success && res.data) {
         this.tvattlinjeStatus = res.data.running;
       }
