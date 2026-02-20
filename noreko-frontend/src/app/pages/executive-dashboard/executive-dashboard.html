@@ -12,10 +12,16 @@
         <small class="text-muted">Pollar var 15:e sekund</small>
       </div>
       <div class="btn-group d-print-none">
-        <button class="btn btn-sm btn-outline-success" (click)="exportCSV()" title="Exportera veckorapport (CSV)">
+        <button class="btn btn-sm btn-outline-info" (click)="loadData()" title="Uppdatera data"
+                aria-label="Uppdatera data manuellt">
+          <i class="fas fa-sync-alt me-1"></i>Uppdatera
+        </button>
+        <button class="btn btn-sm btn-outline-success" (click)="exportCSV()" title="Exportera veckorapport (CSV)"
+                aria-label="Exportera veckorapport som CSV">
           <i class="fas fa-file-csv me-1"></i>Exportera
         </button>
-        <button class="btn btn-sm btn-outline-light" (click)="printDashboard()" title="Skriv ut rapport">
+        <button class="btn btn-sm btn-outline-light" (click)="printDashboard()" title="Skriv ut rapport"
+                aria-label="Skriv ut rapport">
           <i class="fas fa-print me-1"></i>Skriv ut
         </button>
       </div>
