@@ -63,18 +63,22 @@
                     <td>{{ user.last_login || '-' }}</td>
                     <td>
                       <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-outline-primary" (click)="toggleExpand(user.id)" title="Redigera">
+                        <button class="btn btn-outline-primary" (click)="toggleExpand(user.id)" title="Redigera"
+                                aria-label="Redigera användare">
                           <i class="fas" [class.fa-edit]="!expanded[user.id]" [class.fa-times]="expanded[user.id]"></i>
                         </button>
-                        <button class="btn btn-outline-info" (click)="toggleAdmin(user)" 
-                                [title]="user.admin === 1 ? 'Ta bort admin-status' : 'Sätt som admin'">
+                        <button class="btn btn-outline-info" (click)="toggleAdmin(user)"
+                                [title]="user.admin === 1 ? 'Ta bort admin-status' : 'Sätt som admin'"
+                                [attr.aria-label]="user.admin === 1 ? 'Ta bort admin-status' : 'Sätt som admin'">
                           <i class="fas" [class.fa-user-shield]="user.admin === 1" [class.fa-user]="user.admin === 0"></i>
                         </button>
                         <button class="btn btn-outline-warning" (click)="toggleActive(user)"
-                                [title]="user.active === 1 ? 'Inaktivera konto' : 'Aktivera konto'">
+                                [title]="user.active === 1 ? 'Inaktivera konto' : 'Aktivera konto'"
+                                [attr.aria-label]="user.active === 1 ? 'Inaktivera konto' : 'Aktivera konto'">
                           <i class="fas" [class.fa-ban]="user.active === 1" [class.fa-check-circle]="user.active === 0"></i>
                         </button>
-                        <button class="btn btn-outline-danger" (click)="deleteUser(user)" title="Ta bort användare">
+                        <button class="btn btn-outline-danger" (click)="deleteUser(user)" title="Ta bort användare"
+                                aria-label="Ta bort användare">
                           <i class="fas fa-trash"></i>
                         </button>
                       </div>

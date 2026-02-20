@@ -1,15 +1,15 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Router, RouterModule } from '@angular/router';
 import { UsersService } from '../../services/users.service';
 import { AuthService } from '../../services/auth.service';
+import { ToastService } from '../../services/toast.service';
 
 @Component({
   standalone: true,
   selector: 'app-users',
-  imports: [CommonModule, FormsModule, HttpClientModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './users.html',
   styleUrl: './users.css'
 })
@@ -22,7 +22,8 @@ export class UsersPage implements OnInit {
   constructor(
     private usersService: UsersService,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private toast: ToastService
   ) {}
 
   ngOnInit() {
@@ -57,13 +58,14 @@ export class UsersPage implements OnInit {
       next: (res) => {
         if (res.success) {
           this.expanded[user.id] = false;
-          this.fetchUsers(); // Uppdatera listan
+          this.toast.success('Användare sparad');
+          this.fetchUsers();
         } else {
-          alert('Kunde inte spara användare: ' + (res.message || 'Okänt fel'));
+          this.toast.error('Kunde inte spara användare: ' + (res.message || 'Okänt fel'));
         }
       },
       error: () => {
-        alert('Kunde inte spara användare.');
+        this.toast.error('Kunde inte spara användare.');
       }
     });
   }
@@ -76,13 +78,14 @@ export class UsersPage implements OnInit {
     this.usersService.deleteUser(user.id).subscribe({
       next: (res) => {
         if (res.success) {
-          this.fetchUsers(); // Uppdatera listan
+          this.toast.success('Användare borttagen');
+          this.fetchUsers();
         } else {
-          alert(res.message || 'Kunde inte ta bort användare');
+          this.toast.error(res.message || 'Kunde inte ta bort användare');
         }
       },
       error: (error) => {
-        alert(error.error?.message || 'Kunde inte ta bort användare');
+        this.toast.error(error.error?.message || 'Kunde inte ta bort användare');
       }
     });
   }
@@ -93,13 +96,13 @@ export class UsersPage implements OnInit {
         if (res.success) {
           user.admin = res.admin;
           user.role = res.admin === 1 ? 'admin' : 'user';
-          this.fetchUsers(); // Uppdatera listan
+          this.fetchUsers();
         } else {
-          alert(res.message || 'Kunde inte ändra admin-status');
+          this.toast.error(res.message || 'Kunde inte ändra admin-status');
         }
       },
       error: (error) => {
-        alert(error.error?.message || 'Kunde inte ändra admin-status');
+        this.toast.error(error.error?.message || 'Kunde inte ändra admin-status');
       }
     });
   }
@@ -109,13 +112,13 @@ export class UsersPage implements OnInit {
       next: (res) => {
         if (res.success) {
           user.active = res.active;
-          this.fetchUsers(); // Uppdatera listan
+          this.fetchUsers();
         } else {
-          alert(res.message || 'Kunde inte ändra status');
+          this.toast.error(res.message || 'Kunde inte ändra status');
         }
       },
       error: (error) => {
-        alert(error.error?.message || 'Kunde inte ändra status');
+        this.toast.error(error.error?.message || 'Kunde inte ändra status');
       }
     });
   }
