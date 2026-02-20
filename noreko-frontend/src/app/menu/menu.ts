@@ -4,6 +4,7 @@ import { NgIf, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
+import { forkJoin, catchError, of, timeout } from 'rxjs';
 
 @Component({
   selector: 'app-menu',
@@ -18,6 +19,8 @@ export class Menu implements OnInit, OnDestroy {
   showMenu = false;
   selectedMenu: string = 'Älvängen';
   vpnConnectedCount: number = 0;
+  rebotlingRunning = false;
+  tvattlinjeRunning = false;
   profileForm = {
     email: '',
     currentPassword: '',
@@ -28,6 +31,7 @@ export class Menu implements OnInit, OnDestroy {
   profileError: string | null = null;
   savingProfile = false;
   private refreshInterval: any;
+  private lineStatusInterval: any;
 
   constructor(
     private router: Router, 
@@ -60,6 +64,7 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.loadLineStatus();
     if (this.loggedIn && this.user?.role === 'admin') {
       this.loadVpnStatus();
     }
@@ -67,12 +72,30 @@ export class Menu implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.clearRefreshInterval();
+    if (this.lineStatusInterval) {
+      clearInterval(this.lineStatusInterval);
+      this.lineStatusInterval = null;
+    }
   }
 
   private clearRefreshInterval() {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+  }
+
+  loadLineStatus() {
+    forkJoin({
+      rebotling: this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
+      tvattlinje: this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
+    }).subscribe(res => {
+      this.rebotlingRunning = res.rebotling?.data?.running ?? false;
+      this.tvattlinjeRunning = res.tvattlinje?.data?.running ?? false;
+    });
+
+    if (!this.lineStatusInterval) {
+      this.lineStatusInterval = setInterval(() => this.loadLineStatus(), 30000);
     }
   }
 

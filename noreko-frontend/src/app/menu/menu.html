@@ -19,6 +19,7 @@
       </li>
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="rebotlingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="line-dot" [class.line-dot-on]="rebotlingRunning" [class.line-dot-off]="!rebotlingRunning"></span>
           Rebotling
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="rebotlingDropdown">
@@ -35,6 +36,7 @@
       </li>
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="tvattlinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="line-dot" [class.line-dot-on]="tvattlinjeRunning" [class.line-dot-off]="!tvattlinjeRunning"></span>
           Tvättlinje
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="tvattlinjeDropdown">
