@@ -1,119 +1,65 @@
-/* Minimal placeholder for Register page */
 .register-page {
   min-height: 80vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  padding: 1rem;
 }
 
-/* Registreringssida - modern och responsiv */
-.register-form {
-  max-width: 420px;
-  margin: 2.5rem auto;
+.register-card {
   background: #23272b;
-  padding: 2.2rem 2rem 1.5rem 2rem;
-  border-radius: 1.5rem;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.13);
-  color: #fff;
-}
-.register-form h2 {
-  text-align: center;
-  margin-bottom: 1.7rem;
-  color: #00d4ff;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-}
-.form-group {
-  margin-bottom: 1.2rem;
-}
-.form-group label {
-  display: block;
-  margin-bottom: 0.4rem;
-  color: #00d4ff;
-  font-size: 1.1rem;
-  font-weight: 500;
-}
-.form-control {
+  border-radius: 1rem;
+  padding: 2rem;
   width: 100%;
-  padding: 0.6em 1em;
-  border-radius: 0.8em;
-  border: 1.5px solid #00d4ff;
-  background: #181a1b;
-  color: #fff;
-  font-size: 1.1rem;
-  transition: border 0.2s, box-shadow 0.2s;
+  max-width: 420px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
+
+.register-card h2 {
+  color: #e2e8f0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.form-control {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
 .form-control:focus {
-  border-color: #00ff6a;
-  box-shadow: 0 0 0 2px #00ff6a33;
-  outline: none;
+  background: #2d3748;
+  border-color: #4299e1;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.3);
 }
-.btn-primary {
-  background: linear-gradient(90deg, #00d4ff 0%, #00ff6a 100%);
-  border: none;
-  color: #181a1b;
-  font-weight: 700;
-  font-size: 1.2rem;
-  border-radius: 1.2em;
-  padding: 0.7em 0;
-  margin-top: 1.2rem;
-  transition: background 0.2s, color 0.2s;
+
+.form-control::placeholder {
+  color: #718096;
 }
-.btn-primary:hover {
-  background: linear-gradient(90deg, #00ff6a 0%, #00d4ff 100%);
-  color: #23272b;
+
+.feedback-row {
+  margin-top: 0.3rem;
 }
-.password-strength {
-  margin-top: -0.7rem;
-  margin-bottom: 1.1rem;
-  font-size: 1.05rem;
-  font-weight: 500;
-  min-height: 1.5em;
-  color: #00d4ff;
-  transition: color 0.2s;
+
+.login-link {
+  color: #4299e1;
+  text-decoration: none;
 }
-.password-strength.weak {
-  color: #ff4d4d;
+
+.login-link:hover {
+  color: #63b3ed;
+  text-decoration: underline;
 }
-.password-strength.medium {
-  color: #ffb300;
-}
-.password-strength.strong {
-  color: #00ff6a;
-}
-.valid-feedback {
-  color: #00e676;
-  font-weight: 600;
-  font-size: 1.08rem;
-  margin-left: 0.2em;
-  display: block;
-}
-.match-warning {
-  color: #ffb300;
-  font-weight: 600;
-  font-size: 1.08rem;
-  margin-left: 0.2em;
-  display: block;
-}
-.pending-feedback {
-  color: #ffb300;
-  font-weight: 600;
-  font-size: 1.08rem;
-  margin-left: 0.2em;
-  display: block;
-}
-.invalid-feedback {
-  color: #ff4d4d;
-  font-weight: 600;
-  font-size: 1.08rem;
-  margin-left: 0.2em;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-@media (max-width: 600px) {
-  .register-form {
-    padding: 1.2rem 0.7rem 1rem 0.7rem;
+
+@media (max-width: 480px) {
+  .register-card {
+    padding: 1.5rem 1rem;
   }
 }

@@ -1,14 +1,14 @@
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   standalone: true,
   selector: 'app-login',
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, RouterModule],
   template: `
     <div class="login-page">
       <div class="login-card">
@@ -29,6 +29,9 @@ import { AuthService } from '../../services/auth.service';
             <span *ngIf="!loading">Logga in</span>
           </button>
           <div *ngIf="error" class="alert alert-danger mt-3 mb-0 py-2">{{ error }}</div>
+          <div class="text-center mt-3">
+            <small style="color: #718096;">Inget konto? <a routerLink="/register" style="color: #4299e1; text-decoration: none;">Registrera dig</a></small>
+          </div>
         </form>
       </div>
     </div>

@@ -1,12 +1,13 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { Router, RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   standalone: true,
   selector: 'app-register',
-  imports: [FormsModule, CommonModule, HttpClientModule],
+  imports: [FormsModule, CommonModule, RouterModule],
   templateUrl: './register.html',
   styleUrl: './register.css'
 })
@@ -30,7 +31,8 @@ export class RegisterPage {
   isLoading = false;
   errorMessage = '';
   successMessage = '';
-  http = inject(HttpClient);
+
+  constructor(private http: HttpClient, private router: Router) {}
 
   checkPasswordStrength() {
     const pwd = this.user.password;
@@ -44,16 +46,14 @@ export class RegisterPage {
   }
 
   checkEmail() {
-    // Enkel e-postvalidering
     const email = this.user.email;
     this.isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
   onSubmit() {
-    // Rensa tidigare meddelanden
     this.errorMessage = '';
     this.successMessage = '';
-    
+
     if (!this.passwordsMatch) {
       this.errorMessage = 'Lösenorden matchar inte!';
       return;
@@ -66,9 +66,9 @@ export class RegisterPage {
       this.errorMessage = 'Lösenordet uppfyller inte kraven!';
       return;
     }
-    
+
     this.isLoading = true;
-    
+
     this.http.post<any>('/noreko-backend/api.php?action=register', {
       username: this.user.username,
       password: this.user.password,
@@ -80,32 +80,17 @@ export class RegisterPage {
       next: (res) => {
         this.isLoading = false;
         if (res.success) {
-          this.successMessage = res.message || 'Registrering lyckades! Du kan nu logga in.';
-          // Rensa formuläret
-          this.user = {
-            username: '',
-            password: '',
-            password2: '',
-            email: '',
-            phone: '',
-            code: ''
-          };
+          this.successMessage = res.message || 'Registrering lyckades! Omdirigerar till inloggning...';
+          this.user = { username: '', password: '', password2: '', email: '', phone: '', code: '' };
           this.showFeedback = false;
-          // Omdirigera till login efter 2 sekunder
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 2000);
+          setTimeout(() => this.router.navigate(['/login']), 2000);
         } else {
           this.errorMessage = res.message || 'Registrering misslyckades. Försök igen.';
         }
       },
       error: (error) => {
         this.isLoading = false;
-        if (error.error && error.error.message) {
-          this.errorMessage = error.error.message;
-        } else {
-          this.errorMessage = 'Ett fel uppstod vid registrering. Försök igen senare.';
-        }
+        this.errorMessage = error.error?.message || 'Ett fel uppstod vid registrering. Försök igen senare.';
       }
     });
   }

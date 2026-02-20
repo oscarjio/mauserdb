@@ -1,66 +1,77 @@
-<form class="register-form" (ngSubmit)="onSubmit()" #registerForm="ngForm">
-  <h2>Registrera konto</h2>
-  
-  <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
-    {{ errorMessage }}
-  </div>
-  
-  <div *ngIf="successMessage" class="alert alert-success" role="alert">
-    {{ successMessage }}
-  </div>
-  <div class="form-group">
-    <label for="username">Användarnamn</label>
-    <input id="username" name="username" class="form-control" required [(ngModel)]="user.username" />
-  </div>
-  <div class="form-group">
-    <label for="password">Lösenord</label>
-    <input id="password" name="password" type="password" class="form-control" required [(ngModel)]="user.password" (ngModelChange)="checkPasswordStrength()" />
-    <div class="password-feedback" *ngIf="showFeedback">
-      <div *ngIf="!isAcceptable" class="invalid-feedback">
-        Lösenordet måste vara minst 8 tecken, innehålla bokstav och siffra.
+<div class="register-page">
+  <div class="register-card">
+    <h2><i class="fas fa-user-plus me-2"></i>Registrera konto</h2>
+
+    <div *ngIf="errorMessage" class="alert alert-danger py-2">{{ errorMessage }}</div>
+    <div *ngIf="successMessage" class="alert alert-success py-2">{{ successMessage }}</div>
+
+    <form (ngSubmit)="onSubmit()">
+      <div class="mb-3">
+        <label class="form-label">Användarnamn</label>
+        <input type="text" class="form-control" placeholder="Välj ett användarnamn"
+               [(ngModel)]="user.username" name="username" required [disabled]="isLoading" />
       </div>
-      <div *ngIf="isAcceptable" class="valid-feedback">
-        Godkänt lösenord
+
+      <div class="mb-3">
+        <label class="form-label">Lösenord</label>
+        <input type="password" class="form-control" placeholder="Minst 8 tecken, bokstav + siffra"
+               [(ngModel)]="user.password" name="password" required [disabled]="isLoading"
+               (ngModelChange)="checkPasswordStrength()" />
+        <div class="feedback-row" *ngIf="showFeedback">
+          <small *ngIf="!isAcceptable" class="text-danger">
+            <i class="fas fa-times me-1"></i>Minst 8 tecken, bokstav och siffra
+          </small>
+          <small *ngIf="isAcceptable" class="text-success">
+            <i class="fas fa-check me-1"></i>Godkänt lösenord
+          </small>
+        </div>
       </div>
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="password2">Upprepa lösenord</label>
-    <input id="password2" name="password2" type="password" class="form-control" required [(ngModel)]="user.password2" (ngModelChange)="checkPasswordStrength()" />
-    <div class="password-feedback" *ngIf="showFeedback && user.password2.length > 0">
-      <div *ngIf="isAcceptable && !passwordsMatch" class="match-warning">
-        Lösenorden matchar inte.
+
+      <div class="mb-3">
+        <label class="form-label">Upprepa lösenord</label>
+        <input type="password" class="form-control" placeholder="Skriv lösenordet igen"
+               [(ngModel)]="user.password2" name="password2" required [disabled]="isLoading"
+               (ngModelChange)="checkPasswordStrength()" />
+        <div class="feedback-row" *ngIf="showFeedback && user.password2.length > 0">
+          <small *ngIf="!passwordsMatch" class="text-warning">
+            <i class="fas fa-exclamation-triangle me-1"></i>Lösenorden matchar inte
+          </small>
+          <small *ngIf="passwordsMatch" class="text-success">
+            <i class="fas fa-check me-1"></i>Matchar
+          </small>
+        </div>
       </div>
-      <div *ngIf="isAcceptable && passwordsMatch" class="valid-feedback">
-        Lösenorden matchar
+
+      <div class="mb-3">
+        <label class="form-label">E-post</label>
+        <input type="email" class="form-control" placeholder="din@email.com"
+               [(ngModel)]="user.email" name="email" required [disabled]="isLoading"
+               (ngModelChange)="checkEmail()" />
+        <div class="feedback-row" *ngIf="user.email.length > 0 && !isEmailValid">
+          <small class="text-danger"><i class="fas fa-times me-1"></i>Ogiltig e-postadress</small>
+        </div>
       </div>
-    </div>
-    <div class="password-feedback" *ngIf="isAcceptable && user.password2.length === 0">
-      <div class="pending-feedback">
-        Fyll i båda fälten för att verifiera.
+
+      <div class="mb-3">
+        <label class="form-label">Telefonnummer</label>
+        <input type="tel" class="form-control" placeholder="070-123 45 67"
+               [(ngModel)]="user.phone" name="phone" required [disabled]="isLoading" />
       </div>
-    </div>
+
+      <div class="mb-3">
+        <label class="form-label">Kontrollkod</label>
+        <input type="text" class="form-control" placeholder="Kod från din arbetsgivare"
+               [(ngModel)]="user.code" name="code" required [disabled]="isLoading" />
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading">
+        <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin me-1"></i>Registrerar...</span>
+        <span *ngIf="!isLoading">Registrera</span>
+      </button>
+
+      <div class="text-center mt-3">
+        <small class="text-muted">Har du redan ett konto? <a routerLink="/login" class="login-link">Logga in</a></small>
+      </div>
+    </form>
   </div>
-  <div class="form-group">
-    <label for="email">E-post</label>
-    <input id="email" name="email" type="email" class="form-control" required [(ngModel)]="user.email" (ngModelChange)="checkEmail()" />
-    <div *ngIf="user.email.length > 0 && !isEmailValid" class="invalid-feedback">
-      Ogiltig e-postadress
-    </div>
-    <div *ngIf="user.email.length > 0 && isEmailValid" class="valid-feedback">
-      E-postadressen är giltig
-    </div>
-  </div>
-  <div class="form-group">
-    <label for="phone">Telefonnummer</label>
-    <input id="phone" name="phone" type="tel" class="form-control" required [(ngModel)]="user.phone" />
-  </div>
-  <div class="form-group">
-    <label for="code">Kontrollkod</label>
-    <input id="code" name="code" class="form-control" required [(ngModel)]="user.code" />
-  </div>
-  <button class="btn btn-primary w-100 mt-3" type="submit" [disabled]="isLoading">
-    <span *ngIf="!isLoading">Registrera</span>
-    <span *ngIf="isLoading">Registrerar...</span>
-  </button>
-</form>
+</div>
