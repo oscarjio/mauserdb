@@ -145,6 +145,15 @@
           <li><a class="dropdown-item" routerLink="/admin/audit"><i class="fas fa-history me-2"></i>Aktivitetslogg</a></li>
         </ul>
       </li>
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" href="#" id="infoDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Info
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="infoDropdown">
+          <li><a class="dropdown-item" routerLink="/about"><i class="fas fa-info-circle me-2"></i>Om systemet</a></li>
+          <li><a class="dropdown-item" routerLink="/contact"><i class="fas fa-envelope me-2"></i>Kontakt</a></li>
+        </ul>
+      </li>
       <li class="nav-item dropdown menu-selector-item">
         <select [(ngModel)]="selectedMenu" (change)="onMenuChange($event)" class="menu-selector">
           <option value="Älvängen">Älvängen</option>
