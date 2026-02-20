@@ -1,0 +1,30 @@
+{
+  "name": "Mauserdb - Produktionsanalys",
+  "short_name": "Mauserdb",
+  "description": "Produktionsanalys och bonussystem för Mauser Packaging Solutions",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a202c",
+  "theme_color": "#1a202c",
+  "orientation": "any",
+  "lang": "sv",
+  "icons": [
+    {
+      "src": "/db-logo-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/db-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["productivity", "business"]
+}
