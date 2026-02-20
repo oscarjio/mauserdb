@@ -133,10 +133,6 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   updateProfile() {
-    if (this.user?.role === 'admin') {
-      return;
-    }
-
     this.profileMessage = null;
     this.profileError = null;
 

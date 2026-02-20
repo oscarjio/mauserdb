@@ -35,7 +35,7 @@ export const routes: Routes = [
       { path: 'rebotling/bonus', loadComponent: () => import('./pages/bonus-dashboard/bonus-dashboard').then(m => m.BonusDashboardPage) },
       { path: 'rebotling/bonus-admin', loadComponent: () => import('./pages/bonus-admin/bonus-admin').then(m => m.BonusAdminPage) },
       { path: 'stopporsaker', loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
-      { path: '**', redirectTo: '' }
+      { path: '**', loadComponent: () => import('./pages/not-found/not-found').then(m => m.NotFoundPage) }
     ]
   }
 ];

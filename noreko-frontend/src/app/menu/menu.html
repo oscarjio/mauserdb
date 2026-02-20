@@ -82,8 +82,8 @@
           {{ user?.username }}
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="userDropdown">
-          <li class="dropdown-header" *ngIf="user?.role !== 'admin'">Mitt konto</li>
-          <li class="px-3 py-2 account-settings" *ngIf="user?.role !== 'admin'">
+          <li class="dropdown-header">Mitt konto</li>
+          <li class="px-3 py-2 account-settings">
             <form (ngSubmit)="updateProfile()" (click)="$event.stopPropagation()" novalidate>
               <div class="mb-2">
                 <label class="form-label account-label" for="accountEmail">E-post</label>
@@ -131,7 +131,7 @@
               </button>
             </form>
           </li>
-          <li *ngIf="user?.role !== 'admin'"><hr class="dropdown-divider" /></li>
+          <li><hr class="dropdown-divider" /></li>
           <li><a class="dropdown-item" (click)="logout()">Logga ut</a></li>
         </ul>
       </li>
