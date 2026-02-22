@@ -72,6 +72,8 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   oeeAvailability: number = 0;
   oeePerformance: number = 0;
   oeeQuality: number = 0;
+  oeeRastHours: number = 0;
+  oeeRuntimeHours: number = 0;
   private isFetchingOEE = false;
 
   // Goal tracker
@@ -255,6 +257,8 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.oeeAvailability = res.data.availability;
           this.oeePerformance = res.data.performance;
           this.oeeQuality = res.data.quality;
+          this.oeeRastHours = res.data.rast_hours ?? 0;
+          this.oeeRuntimeHours = res.data.runtime_hours ?? 0;
         }
       });
   }

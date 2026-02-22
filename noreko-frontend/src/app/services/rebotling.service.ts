@@ -169,7 +169,9 @@ export interface OEEResponse {
     good_ibc: number;
     rejected_ibc: number;
     runtime_hours: number;
+    rast_hours: number;
     operating_hours: number;
+    planned_hours: number;
     cycles: number;
     world_class_benchmark: number;
   };

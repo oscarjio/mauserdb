@@ -25,6 +25,11 @@
             <small>P: {{ oeePerformance | number:'1.0-0' }}%</small>
             <small>K: {{ oeeQuality | number:'1.0-0' }}%</small>
           </div>
+          <div class="oee-rast" *ngIf="oeeRastHours > 0">
+            <small class="text-warning">
+              <i class="fas fa-coffee me-1"></i>{{ oeeRastHours | number:'1.1-1' }}h rast
+            </small>
+          </div>
         } @else {
           <div class="live-value">--</div>
         }

@@ -571,22 +571,79 @@ class RebotlingController {
 
             // Hämta on/off events för dagen
             $stmt = $this->pdo->prepare('
-                SELECT 
+                SELECT
                     DATE_FORMAT(datum, "%H:%i") as time,
                     running
-                FROM rebotling_onoff 
+                FROM rebotling_onoff
                 WHERE DATE(datum) = :date
                 ORDER BY datum ASC
             ');
             $stmt->execute(['date' => $date]);
             $status_data = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Hämta rast-events för dagen (från Shelly-puck / PLC)
+            $rast_data = [];
+            $rast_total_min = 0;
+            try {
+                $rastStmt = $this->pdo->prepare('
+                    SELECT
+                        DATE_FORMAT(datum, "%H:%i") as time,
+                        datum as datum_full,
+                        rast_status
+                    FROM rebotling_runtime
+                    WHERE DATE(datum) = :date
+                    ORDER BY datum ASC
+                ');
+                $rastStmt->execute(['date' => $date]);
+                $rast_events = $rastStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // Beräkna total rasttid för dagen
+                $rastStart = null;
+                foreach ($rast_events as $ev) {
+                    if ((int)$ev['rast_status'] === 1 && $rastStart === null) {
+                        $rastStart = new DateTime($ev['datum_full']);
+                    } elseif ((int)$ev['rast_status'] === 0 && $rastStart !== null) {
+                        $end = new DateTime($ev['datum_full']);
+                        $diff = $rastStart->diff($end);
+                        $rast_total_min += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                        $rastStart = null;
+                    }
+                }
+                $rast_data = array_map(fn($e) => ['time' => $e['time'], 'rast_status' => (int)$e['rast_status']], $rast_events);
+            } catch (Exception $e) {
+                // Tabellen kanske saknas – ignorera tyst
+            }
+
+            // Hämta totalt rasttime från PLC (D4008) för dagen
+            $plc_rast_min = 0;
+            try {
+                $plcRastStmt = $this->pdo->prepare('
+                    SELECT SUM(COALESCE(rasttime, 0)) as total_rast_plc,
+                           SUM(COALESCE(runtime_plc, 0)) as total_runtime_plc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                ');
+                $plcRastStmt->execute(['date' => $date]);
+                $plcRast = $plcRastStmt->fetch(PDO::FETCH_ASSOC);
+                $plc_rast_min = round($plcRast['total_rast_plc'] ?? 0, 1);
+                $plc_runtime_min = round($plcRast['total_runtime_plc'] ?? 0, 1);
+            } catch (Exception $e) {
+                $plc_rast_min = 0;
+                $plc_runtime_min = 0;
+            }
+
             echo json_encode([
                 'success' => true,
                 'data' => [
                     'date' => $date,
                     'hourly_data' => $hourly_data,
-                    'status_data' => $status_data
+                    'status_data' => $status_data,
+                    'rast_events' => $rast_data,
+                    'rast_summary' => [
+                        'total_rast_min_shelly' => round($rast_total_min, 1),
+                        'total_rast_min_plc'    => $plc_rast_min,
+                        'total_runtime_min_plc' => $plc_runtime_min
+                    ]
                 ]
             ]);
         } catch (Exception $e) {
@@ -648,12 +705,14 @@ class RebotlingController {
 
             $totalIBC = ($data['total_ibc_ok'] ?? 0) + ($data['total_ibc_ej_ok'] ?? 0);
             $goodIBC = $data['total_ibc_ok'] ?? 0;
-            $runtimeMin = $data['total_runtime_min'] ?? 0;
-            $rastMin = $data['total_rast_min'] ?? 0;
-            $operatingMin = max($runtimeMin - $rastMin, 1);
+            $runtimeMin = $data['total_runtime_min'] ?? 0;  // Ren produktionstid (exkl. rast)
+            $rastMin = $data['total_rast_min'] ?? 0;        // Rasttid från PLC D4008
 
-            // Planerad tid: runtime (inkl. rast)
-            $plannedMin = max($runtimeMin, 1);
+            // runtime_plc exkluderar redan rast – det är den faktiska driftstiden
+            $operatingMin = max($runtimeMin, 1);
+
+            // Planerad tid = driftstid + rasttid (total tid operatörerna var på plats)
+            $plannedMin = max($runtimeMin + $rastMin, 1);
 
             // Ideal rate: 15 IBC/timme (snitt av alla produkter)
             $idealRatePerMin = 15.0 / 60.0;
@@ -683,7 +742,9 @@ class RebotlingController {
                     'good_ibc' => $goodIBC,
                     'rejected_ibc' => $data['total_ibc_ej_ok'] ?? 0,
                     'runtime_hours' => round($runtimeMin / 60, 1),
+                    'rast_hours' => round($rastMin / 60, 1),
                     'operating_hours' => round($operatingMin / 60, 1),
+                    'planned_hours' => round($plannedMin / 60, 1),
                     'cycles' => $data['total_cycles'] ?? 0,
                     'world_class_benchmark' => 85.0
                 ]
