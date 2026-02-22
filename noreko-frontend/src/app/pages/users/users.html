@@ -38,6 +38,7 @@
                   <th>Användarnamn</th>
                   <th>Email</th>
                   <th>Telefon</th>
+                  <th>Op-ID</th>
                   <th>Status</th>
                   <th>Admin</th>
                   <th>Senaste inloggning</th>
@@ -50,6 +51,10 @@
                     <td><strong>{{ user.username }}</strong></td>
                     <td>{{ user.email }}</td>
                     <td>{{ user.phone || '-' }}</td>
+                    <td>
+                      <span *ngIf="user.operator_id" class="badge bg-info">{{ user.operator_id }}</span>
+                      <span *ngIf="!user.operator_id" class="text-muted">-</span>
+                    </td>
                     <td>
                       <span class="badge" [class.bg-success]="user.active === 1" [class.bg-secondary]="user.active === 0">
                         {{ user.active === 1 ? 'Aktiv' : 'Inaktiv' }}
@@ -85,12 +90,12 @@
                     </td>
                   </tr>
                   <tr *ngIf="expanded[user.id]" class="edit-row">
-                    <td colspan="7">
+                    <td colspan="8">
                       <div class="card border-primary">
                         <div class="card-body">
                           <form (ngSubmit)="saveUser(user)" class="edit-form">
                             <div class="row g-2 align-items-end">
-                              <div class="col-md-3">
+                              <div class="col-md-2">
                                 <label class="form-label">Användarnamn</label>
                                 <input class="form-control form-control-sm" [(ngModel)]="user.username" name="username-{{user.id}}" placeholder="Användarnamn" required />
                               </div>
@@ -101,6 +106,10 @@
                               <div class="col-md-2">
                                 <label class="form-label">Telefon</label>
                                 <input class="form-control form-control-sm" [(ngModel)]="user.phone" name="phone-{{user.id}}" placeholder="Telefon" />
+                              </div>
+                              <div class="col-md-1">
+                                <label class="form-label">Op-ID</label>
+                                <input class="form-control form-control-sm" [(ngModel)]="user.operator_id" name="operator_id-{{user.id}}" placeholder="12345" type="number" min="1" />
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Nytt lösenord</label>

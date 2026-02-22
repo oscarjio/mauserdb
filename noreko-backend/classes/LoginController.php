@@ -32,7 +32,7 @@ class LoginController {
             return;
         }
 
-        $stmt = $pdo->prepare("SELECT id, username, email, password, admin FROM users WHERE username = ?");
+        $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE username = ?");
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -48,6 +48,7 @@ class LoginController {
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = ($user['admin'] == 1) ? 'admin' : 'user';
             $_SESSION['email'] = $user['email'] ?? null;
+            $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
 
             // Audit log
             AuditLogger::log($pdo, 'login', 'user', $user['id'], "Inloggning: {$user['username']}");
@@ -56,7 +57,8 @@ class LoginController {
                 'id' => $user['id'],
                 'username' => $user['username'],
                 'email' => $user['email'] ?? null,
-                'role' => $_SESSION['role']
+                'role' => $_SESSION['role'],
+                'operator_id' => $_SESSION['operator_id']
             ]]);
         } else {
             AuthHelper::recordAttempt($pdo, $ip, $username, false);

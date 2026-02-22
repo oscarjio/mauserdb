@@ -97,6 +97,20 @@
                   [(ngModel)]="profileForm.email" />
               </div>
               <div class="mb-2">
+                <label class="form-label account-label" for="accountOperatorId">
+                  Operatör-ID
+                  <small class="text-muted ms-1">(för Min Bonus)</small>
+                </label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  id="accountOperatorId"
+                  name="accountOperatorId"
+                  placeholder="T.ex. 12345"
+                  min="1"
+                  [(ngModel)]="profileForm.operatorId" />
+              </div>
+              <div class="mb-2">
                 <label class="form-label account-label" for="newPassword">Nytt lösenord</label>
                 <input
                   type="password"

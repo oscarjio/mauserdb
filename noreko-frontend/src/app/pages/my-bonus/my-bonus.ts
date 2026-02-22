@@ -20,6 +20,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
   savedOperatorId = '';
   loading = false;
   error = '';
+  // Om operatör-ID är kopplat till kontot (kan inte manuellt ändras av användaren)
+  operatorIdFromAccount = false;
 
   stats: any = null;
   history: any[] = [];
@@ -34,12 +36,24 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    const saved = localStorage.getItem('myOperatorId');
-    if (saved) {
-      this.operatorId = saved;
-      this.savedOperatorId = saved;
-      this.loadStats();
-    }
+    this.auth.user$.subscribe((user: any) => {
+      if (user?.operator_id) {
+        // Operatör-ID är kopplat till kontot – använd det automatiskt
+        this.operatorId = String(user.operator_id);
+        this.savedOperatorId = String(user.operator_id);
+        this.operatorIdFromAccount = true;
+        this.loadStats();
+      } else {
+        // Fallback: använd localStorage
+        this.operatorIdFromAccount = false;
+        const saved = localStorage.getItem('myOperatorId');
+        if (saved) {
+          this.operatorId = saved;
+          this.savedOperatorId = saved;
+          this.loadStats();
+        }
+      }
+    });
   }
 
   ngOnDestroy(): void {

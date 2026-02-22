@@ -12,7 +12,7 @@ class ProfileController {
 
         global $pdo;
 
-        $stmt = $pdo->prepare("SELECT id, username, email, password, admin FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE id = ?");
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -31,7 +31,8 @@ class ProfileController {
                     'id' => $user['id'],
                     'username' => $user['username'],
                     'email' => $user['email'],
-                    'role' => ($user['admin'] == 1) ? 'admin' : 'user'
+                    'role' => ($user['admin'] == 1) ? 'admin' : 'user',
+                    'operator_id' => $user['operator_id'] ? (int)$user['operator_id'] : null
                 ]
             ]);
             return;
@@ -47,6 +48,7 @@ class ProfileController {
         $email = isset($data['email']) ? trim($data['email']) : null;
         $currentPassword = $data['currentPassword'] ?? '';
         $newPassword = $data['newPassword'] ?? '';
+        $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';
 
         $fields = [];
         $params = [];
@@ -81,6 +83,20 @@ class ProfileController {
             $params[] = password_hash($newPassword, PASSWORD_BCRYPT);
         }
 
+        // Operator ID (kan sättas till null för att ta bort kopplingen)
+        if ($operatorId !== 'SKIP') {
+            if ($operatorId === null || $operatorId === '') {
+                $fields[] = 'operator_id = ?';
+                $params[] = null;
+            } else {
+                $oid = (int)$operatorId;
+                if ($oid > 0) {
+                    $fields[] = 'operator_id = ?';
+                    $params[] = $oid;
+                }
+            }
+        }
+
         if (!$fields) {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Inga ändringar att spara.']);
@@ -92,13 +108,14 @@ class ProfileController {
         $updateStmt = $pdo->prepare($sql);
         $updateStmt->execute($params);
 
-        $stmt = $pdo->prepare("SELECT id, username, email, admin FROM users WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT id, username, email, admin, operator_id FROM users WHERE id = ?");
         $stmt->execute([$user['id']]);
         $updatedUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
         $_SESSION['username'] = $updatedUser['username'];
         $_SESSION['email'] = $updatedUser['email'];
         $_SESSION['role'] = ($updatedUser['admin'] == 1) ? 'admin' : 'user';
+        $_SESSION['operator_id'] = $updatedUser['operator_id'] ? (int)$updatedUser['operator_id'] : null;
 
         echo json_encode([
             'success' => true,
@@ -107,7 +124,8 @@ class ProfileController {
                 'id' => $updatedUser['id'],
                 'username' => $updatedUser['username'],
                 'email' => $updatedUser['email'],
-                'role' => $_SESSION['role']
+                'role' => $_SESSION['role'],
+                'operator_id' => $_SESSION['operator_id']
             ]
         ]);
     }

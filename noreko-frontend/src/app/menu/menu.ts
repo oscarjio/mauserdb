@@ -23,6 +23,7 @@ export class Menu implements OnInit, OnDestroy {
   tvattlinjeRunning = false;
   profileForm = {
     email: '',
+    operatorId: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -53,6 +54,9 @@ export class Menu implements OnInit, OnDestroy {
       this.user = val;
       if (val?.email) {
         this.profileForm.email = val.email;
+      }
+      if (val?.operator_id) {
+        this.profileForm.operatorId = String(val.operator_id);
       }
       if (val?.role === 'admin' && this.loggedIn) {
         this.loadVpnStatus();
@@ -153,7 +157,10 @@ export class Menu implements OnInit, OnDestroy {
       }
     }
 
-    const payload: any = { email: trimmedEmail };
+    const payload: any = {
+      email: trimmedEmail,
+      operator_id: this.profileForm.operatorId ? parseInt(this.profileForm.operatorId, 10) : null
+    };
     if (this.profileForm.newPassword) {
       payload.currentPassword = this.profileForm.currentPassword;
       payload.newPassword = this.profileForm.newPassword;

@@ -211,16 +211,21 @@ class AdminController {
             $phone = $data['phone'] ?? null;
             $password = $data['password'] ?? null;
             $admin = isset($data['admin']) ? ($data['admin'] ? 1 : 0) : null;
-            
+            $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';
+
             $fields = [];
             $params = [];
             if ($username) { $fields[] = 'username = ?'; $params[] = $username; }
             if ($email) { $fields[] = 'email = ?'; $params[] = $email; }
             if ($phone !== null) { $fields[] = 'phone = ?'; $params[] = $phone; }
             if ($password) { $fields[] = 'password = ?'; $params[] = password_hash($password, PASSWORD_BCRYPT); }
-            if ($admin !== null && $id != $_SESSION['user_id']) { 
-                $fields[] = 'admin = ?'; 
-                $params[] = $admin; 
+            if ($admin !== null && $id != $_SESSION['user_id']) {
+                $fields[] = 'admin = ?';
+                $params[] = $admin;
+            }
+            if ($operatorId !== 'SKIP') {
+                $fields[] = 'operator_id = ?';
+                $params[] = ($operatorId === null || $operatorId === '') ? null : (int)$operatorId;
             }
             if ($fields) {
                 $params[] = $id;
@@ -233,6 +238,7 @@ class AdminController {
                 if ($phone !== null) $changedFields['phone'] = $phone;
                 if ($password) $changedFields['password'] = '***';
                 if ($admin !== null) $changedFields['admin'] = $admin;
+                if ($operatorId !== 'SKIP') $changedFields['operator_id'] = $operatorId;
                 AuditLogger::log($pdo, 'update_user', 'user', (int)$id,
                     "Uppdaterade användare (ID: $id): " . implode(', ', array_keys($changedFields)),
                     null, $changedFields
@@ -251,9 +257,9 @@ class AdminController {
             $activeExists = $stmt->rowCount() > 0;
             
             if ($activeExists) {
-                $stmt = $pdo->query("SELECT id, username, email, phone, code, last_login, admin, active FROM users");
+                $stmt = $pdo->query("SELECT id, username, email, phone, code, last_login, admin, active, operator_id FROM users");
             } else {
-                $stmt = $pdo->query("SELECT id, username, email, phone, code, last_login, admin FROM users");
+                $stmt = $pdo->query("SELECT id, username, email, phone, code, last_login, admin, operator_id FROM users");
             }
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($users as &$u) { 
