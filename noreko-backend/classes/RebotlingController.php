@@ -16,6 +16,8 @@ class RebotlingController {
                 $this->getAdminSettings();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
+            } elseif ($action === 'rast') {
+                $this->getRastStatus();
             } elseif ($action === 'statistics') {
                 $this->getStatistics();
             } elseif ($action === 'day-stats') {
@@ -230,20 +232,34 @@ class RebotlingController {
             // Hämta senaste running status för rebotling
             $stmt = $this->pdo->prepare('
                 SELECT running, datum
-                FROM rebotling_onoff 
-                ORDER BY datum DESC 
+                FROM rebotling_onoff
+                ORDER BY datum DESC
                 LIMIT 1
             ');
             $stmt->execute();
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             $isRunning = $result && isset($result['running']) ? (bool)$result['running'] : false;
             $lastUpdate = $result && isset($result['datum']) ? $result['datum'] : null;
+
+            // Hämta aktuell raststatus
+            $onRast = false;
+            try {
+                $rastStmt = $this->pdo->query("
+                    SELECT rast_status FROM rebotling_runtime
+                    ORDER BY datum DESC LIMIT 1
+                ");
+                $rastRow = $rastStmt->fetch(PDO::FETCH_ASSOC);
+                $onRast = $rastRow ? (bool)$rastRow['rast_status'] : false;
+            } catch (Exception $e) {
+                // Tabellen kanske inte finns ännu
+            }
 
             echo json_encode([
                 'success' => true,
                 'data' => [
-                    'running' => $isRunning,
+                    'running'    => $isRunning,
+                    'on_rast'    => $onRast,
                     'lastUpdate' => $lastUpdate
                 ]
             ]);
@@ -253,6 +269,84 @@ class RebotlingController {
                 'success' => false,
                 'error' => 'Kunde inte hämta status'
             ]);
+        }
+    }
+
+    /**
+     * GET /api.php?action=rebotling&run=rast
+     *
+     * Hämtar aktuell raststatus och beräknar total rasttid idag.
+     * Tabellen rebotling_runtime innehåller rader med (datum, rast_status)
+     * där rast_status=1 = rast börjar, rast_status=0 = rast slutar.
+     */
+    private function getRastStatus() {
+        try {
+            // Säkerställ att tabellen finns
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS `rebotling_runtime` (
+                    `id` INT NOT NULL AUTO_INCREMENT,
+                    `datum` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `rast_status` TINYINT(1) NOT NULL DEFAULT 0,
+                    PRIMARY KEY (`id`),
+                    KEY `idx_datum` (`datum`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
+            // Hämta dagens alla rast-events sorterade stigande
+            $stmt = $this->pdo->prepare("
+                SELECT id, datum, rast_status
+                FROM rebotling_runtime
+                WHERE DATE(datum) = CURDATE()
+                ORDER BY datum ASC
+            ");
+            $stmt->execute();
+            $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna total rasttid genom att para ihop start(1) och slut(0)
+            $totalRastMinutes = 0;
+            $rastStart = null;
+            $now = new DateTime();
+            $currentlyOnRast = false;
+
+            foreach ($events as $event) {
+                if ((int)$event['rast_status'] === 1 && $rastStart === null) {
+                    $rastStart = new DateTime($event['datum']);
+                    $currentlyOnRast = true;
+                } elseif ((int)$event['rast_status'] === 0 && $rastStart !== null) {
+                    $end = new DateTime($event['datum']);
+                    $diff = $rastStart->diff($end);
+                    $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $rastStart = null;
+                    $currentlyOnRast = false;
+                }
+            }
+
+            // Om rast pågår just nu, räkna in till nu
+            if ($rastStart !== null) {
+                $currentlyOnRast = true;
+                $diff = $rastStart->diff($now);
+                $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+            }
+
+            // Hämta senaste event för tidsstämpel
+            $latestEvent = !empty($events) ? end($events) : null;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'on_rast'           => $currentlyOnRast,
+                    'rast_minutes_today' => round($totalRastMinutes, 1),
+                    'rast_count_today'   => count(array_filter($events, fn($e) => (int)$e['rast_status'] === 1)),
+                    'last_event'         => $latestEvent ? $latestEvent['datum'] : null,
+                    'events'             => array_map(fn($e) => [
+                        'datum'       => $e['datum'],
+                        'rast_status' => (int)$e['rast_status']
+                    ], $events)
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getRastStatus error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus']);
         }
     }
 

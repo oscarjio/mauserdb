@@ -19,7 +19,24 @@ export interface LineStatusResponse {
   success: boolean;
   data: {
     running: boolean;
+    on_rast?: boolean;
     lastUpdate: string | null;
+  };
+}
+
+export interface RastEvent {
+  datum: string;
+  rast_status: number; // 1 = rast börjar, 0 = rast slutar
+}
+
+export interface RastStatusResponse {
+  success: boolean;
+  data: {
+    on_rast: boolean;
+    rast_minutes_today: number;
+    rast_count_today: number;
+    last_event: string | null;
+    events: RastEvent[];
   };
 }
 
@@ -76,6 +93,13 @@ export class RebotlingService {
   getRunningStatus(): Observable<LineStatusResponse> {
     return this.http.get<LineStatusResponse>(
       '/noreko-backend/api.php?action=rebotling&run=status',
+      { withCredentials: true }
+    );
+  }
+
+  getRastStatus(): Observable<RastStatusResponse> {
+    return this.http.get<RastStatusResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=rast',
       { withCredentials: true }
     );
   }

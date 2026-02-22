@@ -1,13 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgClass, NgIf } from '@angular/common';
 import { of } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
-import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse, OEEResponse } from '../../services/rebotling.service';
+import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse, OEEResponse, RastStatusResponse } from '../../services/rebotling.service';
 
 @Component({
   standalone: true,
   selector: 'app-rebotling-live',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, NgClass, NgIf],
   templateUrl: './rebotling-live.html',
   styleUrl: './rebotling-live.css'
 })
@@ -52,6 +52,20 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   // Line status
   isLineRunning: boolean = false;
   statusBarClass: string = 'status-bar-off';
+
+  // Rast
+  onRast: boolean = false;
+  rastMinutesToday: number = 0;
+  rastCountToday: number = 0;
+  private isFetchingRast = false;
+  private rastIntervalId: any;
+
+  get rastTimeLabel(): string {
+    const h = Math.floor(this.rastMinutesToday / 60);
+    const m = Math.round(this.rastMinutesToday % 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m} min`;
+  }
 
   // OEE
   oee: number | null = null;
@@ -104,14 +118,19 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.oeeIntervalId = setInterval(() => {
       this.fetchOEE();
     }, 30000);
+    this.rastIntervalId = setInterval(() => {
+      this.fetchRastStatus();
+    }, 10000);
     this.fetchLiveStats();
     this.fetchLineStatus();
     this.fetchOEE();
+    this.fetchRastStatus();
   }
 
   ngOnDestroy() {
     clearInterval(this.intervalId);
     clearInterval(this.oeeIntervalId);
+    clearInterval(this.rastIntervalId);
   }
 
   private updateDataAge() {
@@ -189,6 +208,25 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
         if (res && res.success && res.data) {
           this.isLineRunning = res.data.running;
           this.statusBarClass = this.isLineRunning ? 'status-bar-on' : 'status-bar-off';
+        }
+      });
+  }
+
+  private fetchRastStatus() {
+    if (this.isFetchingRast) return;
+    this.isFetchingRast = true;
+    this.rebotlingService
+      .getRastStatus()
+      .pipe(
+        timeout(5000),
+        catchError(() => of<RastStatusResponse | null>(null)),
+        finalize(() => { this.isFetchingRast = false; })
+      )
+      .subscribe((res: RastStatusResponse | null) => {
+        if (res && res.success && res.data) {
+          this.onRast = res.data.on_rast;
+          this.rastMinutesToday = res.data.rast_minutes_today;
+          this.rastCountToday = res.data.rast_count_today;
         }
       });
   }

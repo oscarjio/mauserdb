@@ -6,6 +6,7 @@ export interface LineStatusResponse {
   success: boolean;
   data: {
     running: boolean;
+    on_rast?: boolean;
     lastUpdate: string | null;
   };
 }

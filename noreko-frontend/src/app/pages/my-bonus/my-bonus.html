@@ -119,8 +119,14 @@
       </div>
       <div class="col-md-2 col-4">
         <div class="mini-stat">
-          <span class="mini-label">Timmar</span>
+          <span class="mini-label">Arbetstimmar</span>
           <span class="mini-value">{{ stats.summary?.total_hours || 0 | number:'1.1-1' }}</span>
+        </div>
+      </div>
+      <div class="col-md-2 col-4">
+        <div class="mini-stat">
+          <span class="mini-label">Rasttid (h)</span>
+          <span class="mini-value text-warning">{{ (stats.summary?.total_rast_hours || 0) | number:'1.1-1' }}</span>
         </div>
       </div>
       <div class="col-md-2 col-4">

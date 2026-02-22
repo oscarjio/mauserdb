@@ -1,5 +1,13 @@
 <div class="rebotling-live-page container-fluid">
-  <div class="status-bar" [class]="statusBarClass"></div>
+  <div class="status-bar" [ngClass]="[statusBarClass, onRast ? 'status-bar-rast' : '']"></div>
+
+  <!-- Rast-banner -->
+  <div class="rast-banner" *ngIf="onRast">
+    <i class="fas fa-coffee me-2"></i>
+    <strong>PÅ RAST</strong>
+    <span class="ms-3 rast-time-badge">{{ rastTimeLabel }} idag</span>
+  </div>
+
   <div class="freshness-indicator" [class]="freshnessClass">
     <span class="freshness-dot"></span>
     <span class="freshness-text">{{ freshnessLabel }}</span>
@@ -57,8 +65,25 @@
     </div>
     <div class="col-4 d-flex align-items-stretch">
       <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center">
-        <div class="live-label">Per timme</div>
+        <div class="live-label">Per timme (mål)</div>
         <div class="live-value live-rebotling-hour-target">{{ hourlyTarget | number:'1.1-1' }}</div>
+      </div>
+    </div>
+    <div class="col-4 d-flex align-items-stretch">
+      <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center"
+           [ngClass]="onRast ? 'rast-card-active' : ''">
+        <div class="live-label">Rasttid idag</div>
+        <div class="live-value" [ngClass]="onRast ? 'text-warning' : ''">
+          {{ rastTimeLabel }}
+        </div>
+        <div class="rast-meta">
+          <span *ngIf="onRast" class="badge bg-warning text-dark me-1">
+            <i class="fas fa-coffee me-1"></i>Pågår
+          </span>
+          <small class="text-muted" *ngIf="rastCountToday > 0">
+            {{ rastCountToday }} {{ rastCountToday === 1 ? 'rast' : 'raster' }}
+          </small>
+        </div>
       </div>
     </div>
     <div class="col-4 d-flex align-items-stretch">
