@@ -10,29 +10,17 @@ class AuthHelper {
     private const LOCKOUT_MINUTES = 15;
 
     /**
-     * Verify password against stored hash.
-     * Supports bcrypt (current) and legacy sha1(md5()) with auto-migration.
+     * Verify password against stored sha1(md5()) hash.
      */
     public static function verifyPassword(string $password, string $storedHash, ?PDO $pdo = null, ?int $userId = null): bool {
-        // Bcrypt (current standard)
-        if (password_verify($password, $storedHash)) {
-            return true;
-        }
+        return $storedHash === sha1(md5($password));
+    }
 
-        // Legacy sha1(md5()) - migrate to bcrypt on successful match
-        if ($storedHash === sha1(md5($password))) {
-            if ($pdo && $userId) {
-                try {
-                    $newHash = password_hash($password, PASSWORD_BCRYPT);
-                    $pdo->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newHash, $userId]);
-                } catch (PDOException $e) {
-                    error_log('AuthHelper: Failed to migrate password hash: ' . $e->getMessage());
-                }
-            }
-            return true;
-        }
-
-        return false;
+    /**
+     * Hash a password using sha1(md5()) – samma som befintlig produktion.
+     */
+    public static function hashPassword(string $password): string {
+        return sha1(md5($password));
     }
 
     /**

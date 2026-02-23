@@ -463,65 +463,142 @@ class Rebotling {
     }
 
     public function handleSkiftrapport(array $data): void {
-        // Anropa Modbus!
-        /*
-        $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
+        // Läs D4000-D4009 via Modbus – dessa innehåller skiftets kumulativa totaler
+        // när PLC triggar skiftrapporten vid skiftets slut.
+        $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
+        $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 10);
+        $plc_data = $this->convert8to16bit($raw_data);
 
+        $op1         = $plc_data[0]; // D4000 - Operatör Tvättplats
+        $op2         = $plc_data[1]; // D4001 - Operatör Kontrollstation
+        $op3         = $plc_data[2]; // D4002 - Operatör Truckförare
+        $produkt     = $plc_data[3]; // D4003 - Produkt
+        $ibc_ok      = $plc_data[4]; // D4004 - IBC OK
+        $ibc_ej_ok   = $plc_data[5]; // D4005 - IBC Ej OK
+        $bur_ej_ok   = $plc_data[6]; // D4006 - Bur Ej OK
+        $drifttid    = $plc_data[7]; // D4007 - Runtime PLC (exkl rast)
+        $rasttime    = $plc_data[8]; // D4008 - Rasttid PLC
+        $lopnummer   = $plc_data[9]; // D4009 - Högsta löpnummer i skiftet
 
-        // Återföring för att PLC ska kunna larma om data inte hämtas.
-        $this->modbus->writeMultipleRegister(0, 199, array(0), array("INT"));
-        sleep(1);
-
-        // Hämta data från PLC (D210-D216 = 7 registers, starting at address 210)
-        $PLC_data = $this->modbus->readMultipleRegisters(0, 210, 7);
-        
-        // Gör om 8bitars värden till 16bitar PLC D register är 16bit
-        $PLC_data16 = array();
-        for($i=0;$i<(count($PLC_data) / 2);$i++){
-            $PLC_data16[$i] = $PLC_data[$i*2] << 8;
-            $PLC_data16[$i] += $PLC_data[$i*2+1];
-        }    
-        */
-        /*
-        D210 ibc_ok
-        D211 bur_ej_ok
-        D212 ibc_ej_ok
-        D213 totalt
-        D214 operator (user_id)
-        D215 produkt (product_id)
-        D216 drifttid
-        */
+        $totalt = $ibc_ok + $ibc_ej_ok + $bur_ej_ok;
 
         // Hämta nuvarande skifträknare från rebotling_onoff
         $stmt = $this->db->prepare('
             SELECT skiftraknare
-            FROM rebotling_onoff 
+            FROM rebotling_onoff
             WHERE skiftraknare IS NOT NULL
-            ORDER BY datum DESC 
+            ORDER BY datum DESC
             LIMIT 1
         ');
         $stmt->execute();
         $skiftraknareResult = $stmt->fetch(PDO::FETCH_ASSOC);
-        $skiftraknare = $skiftraknareResult && isset($skiftraknareResult['skiftraknare']) 
-            ? (int)$skiftraknareResult['skiftraknare'] 
-            : null; // Null om inga rader finns
+        $skiftraknare = $skiftraknareResult ? (int)$skiftraknareResult['skiftraknare'] : null;
 
-        // Förbered och kör SQL-query
+        // Säkerställ att nya kolumner finns (migration 007)
+        $this->ensureSkiftrapportColumns();
+
         $stmt = $this->db->prepare('
-            INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, user_id, product_id, drifttid, skiftraknare)
-            VALUES (CURDATE(), :ibc_ok, :bur_ej_ok, :ibc_ej_ok, :totalt, :operator, :produkt, :drifttid, :skiftraknare)
+            INSERT INTO rebotling_skiftrapport
+                (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id,
+                 op1, op2, op3, drifttid, rasttime, lopnummer, skiftraknare)
+            VALUES
+                (CURDATE(), :ibc_ok, :bur_ej_ok, :ibc_ej_ok, :totalt, :product_id, :user_id,
+                 :op1, :op2, :op3, :drifttid, :rasttime, :lopnummer, :skiftraknare)
         ');
-        
+
         $stmt->execute([
-            'ibc_ok' => $PLC_data16[0],
-            'bur_ej_ok' => $PLC_data16[1],
-            'ibc_ej_ok' => $PLC_data16[2],
-            'totalt' => $PLC_data16[3],
-            'operator' => $PLC_data16[4],
-            'produkt' => $PLC_data16[5],
-            'drifttid' => $PLC_data16[6],
-            'skiftraknare' => $skiftraknare
+            'ibc_ok'      => $ibc_ok,
+            'bur_ej_ok'   => $bur_ej_ok,
+            'ibc_ej_ok'   => $ibc_ej_ok,
+            'totalt'      => $totalt,
+            'product_id'  => $produkt,
+            'user_id'     => $op1,   // Primäroperatör (Tvättplats) som user_id för bakåtkompatibilitet
+            'op1'         => $op1,
+            'op2'         => $op2,
+            'op3'         => $op3,
+            'drifttid'    => $drifttid,
+            'rasttime'    => $rasttime,
+            'lopnummer'   => $lopnummer,
+            'skiftraknare' => $skiftraknare,
         ]);
+
+        error_log("handleSkiftrapport: Skiftrapport sparad – ibc_ok=$ibc_ok, produkt=$produkt, skiftraknare=$skiftraknare");
+
+        // Återföring till PLC – skriv 1 till D4016 för att kvittera att datan tagits emot
+        $this->modbus->writeMultipleRegister(0, 4016, [1], ["INT"]);
+    }
+
+    /**
+     * handleCommand – triggas av Y337 (Läs kommando).
+     * Läser D4015 för att avgöra kommando:
+     *   1 = Skicka skiftrapport (läser D4000-D4009 och sparar)
+     *   2 = Ändra Löpnummer (läser D4010 och uppdaterar lopnummer)
+     */
+    public function handleCommand(array $data): void {
+        $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
+
+        // Läs kommandoregister D4015 (1 register)
+        $raw_cmd = $this->modbus->readMultipleRegisters(0, 4015, 1);
+        $cmd_data = $this->convert8to16bit($raw_cmd);
+        $kommando = $cmd_data[0]; // D4015
+
+        error_log("handleCommand: D4015 kommando=$kommando");
+
+        switch ($kommando) {
+            case 1:
+                // Skicka skiftrapport – läs D4000-D4009 och spara
+                $this->handleSkiftrapport($data);
+                break;
+
+            case 2:
+                // Ändra Löpnummer – läs nytt nummer från D4010
+                $raw_nr = $this->modbus->readMultipleRegisters(0, 4010, 1);
+                $nr_data = $this->convert8to16bit($raw_nr);
+                $nyttLopnummer = $nr_data[0]; // D4010
+
+                // Logga löpnummerändringen i rebotling_ibc (uppdatera senaste raden idag)
+                $stmt = $this->db->prepare('
+                    UPDATE rebotling_ibc
+                    SET lopnummer = :lopnummer
+                    WHERE DATE(datum) = CURDATE()
+                    ORDER BY datum DESC
+                    LIMIT 1
+                ');
+                $stmt->execute(['lopnummer' => $nyttLopnummer]);
+
+                error_log("handleCommand: Löpnummer ändrat till $nyttLopnummer");
+                break;
+
+            default:
+                error_log("handleCommand: Okänt kommando D4015=$kommando, ignorerar.");
+                break;
+        }
+    }
+
+    /**
+     * Säkerställ att migration 007-kolumner finns i rebotling_skiftrapport.
+     * Körs vid varje skiftrapport-insert – PDO SHOW COLUMNS är billigt.
+     */
+    private function ensureSkiftrapportColumns(): void {
+        $columns = ['op1', 'op2', 'op3', 'drifttid', 'rasttime', 'lopnummer'];
+        $existing = [];
+        $stmt = $this->db->query("SHOW COLUMNS FROM rebotling_skiftrapport");
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $col) {
+            $existing[] = $col['Field'];
+        }
+        $definitions = [
+            'op1'       => 'INT DEFAULT NULL',
+            'op2'       => 'INT DEFAULT NULL',
+            'op3'       => 'INT DEFAULT NULL',
+            'drifttid'  => 'INT DEFAULT NULL',
+            'rasttime'  => 'INT DEFAULT NULL',
+            'lopnummer' => 'INT DEFAULT NULL',
+        ];
+        foreach ($columns as $col) {
+            if (!in_array($col, $existing)) {
+                $this->db->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `$col` {$definitions[$col]}");
+            }
+        }
     }
 
     public function handleRast(array $data): void {

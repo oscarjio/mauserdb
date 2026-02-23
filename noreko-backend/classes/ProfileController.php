@@ -80,7 +80,7 @@ class ProfileController {
                 return;
             }
             $fields[] = 'password = ?';
-            $params[] = password_hash($newPassword, PASSWORD_BCRYPT);
+            $params[] = sha1(md5($newPassword));
         }
 
         // Operator ID (kan sättas till null för att ta bort kopplingen)

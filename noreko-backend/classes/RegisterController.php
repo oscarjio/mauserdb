@@ -80,8 +80,8 @@ class RegisterController {
             return;
         }
         
-        // Hasha lösenord med bcrypt
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        // Hasha lösenord med sha1(md5()) – samma som befintlig produktion
+        $hashedPassword = sha1(md5($password));
         
         // Spara användare i databasen
         try {

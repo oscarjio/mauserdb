@@ -51,6 +51,10 @@ class WebhookProcessor {
                         case 'skiftrapport':
                             $rebotling->handleSkiftrapport($data);
                             break;
+                        case 'command':
+                            // Y337 – läser D4015 och rotar till rätt handler
+                            $rebotling->handleCommand($data);
+                            break;
                         default:
                             throw new InvalidArgumentException('Unsupported webhook type: ' . $type);
                     }
