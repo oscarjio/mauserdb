@@ -524,8 +524,8 @@ class Rebotling {
 
         error_log("handleSkiftrapport: Skiftrapport sparad – ibc_ok=$ibc_ok, produkt=$produkt, skiftraknare=$skiftraknare");
 
-        // Återföring till PLC – skriv 1 till D4016 för att kvittera att datan tagits emot
-        $this->modbus->writeMultipleRegister(0, 4016, [1], ["INT"]);
+        // Återföring till PLC – skriv 0 till D4014 för att kvittera att datan tagits emot
+        $this->modbus->writeMultipleRegister(0, 4014, [0], ["INT"]);
     }
 
     /**
