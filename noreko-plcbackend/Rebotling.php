@@ -326,16 +326,46 @@ class Rebotling {
             // Kontrollera om det finns några rader idag med running=1
             $stmt = $this->db->prepare('
                 SELECT COUNT(*) as running_count
-                FROM rebotling_onoff 
-                WHERE DATE(datum) = CURDATE() 
+                FROM rebotling_onoff
+                WHERE DATE(datum) = CURDATE()
                 AND running = 1
             ');
             $stmt->execute();
             $runningCountResult = $stmt->fetch(PDO::FETCH_ASSOC);
             $running_count_today = (int)($runningCountResult['running_count'] ?? 0);
-            
+
             // Om det inte finns några running-rader idag, är detta första gången
             $is_first_running_today = ($running_count_today == 0);
+        }
+
+        // Kontrollera om det aktiva skiftet redan sparats som skiftrapport.
+        // Om ja och maskinen startar om (running=1), ska ett nytt skift påbörjas –
+        // även om det är samma dag (t.ex. byta produkt/operatörer mitt i dagen).
+        $is_shift_already_saved = false;
+        if ($is_running == 1 && !$is_first_running_today) {
+            // Hämta aktiv skiftraknare (senaste entry idag, annars senaste totalt)
+            $activeSkiftraknare = null;
+            if ($lastEntry && isset($lastEntry['skiftraknare'])) {
+                $activeSkiftraknare = (int)$lastEntry['skiftraknare'];
+            } else {
+                $stmt = $this->db->prepare('
+                    SELECT skiftraknare FROM rebotling_onoff
+                    WHERE skiftraknare IS NOT NULL
+                    ORDER BY datum DESC LIMIT 1
+                ');
+                $stmt->execute();
+                $r = $stmt->fetch(PDO::FETCH_ASSOC);
+                $activeSkiftraknare = $r ? (int)$r['skiftraknare'] : null;
+            }
+
+            if ($activeSkiftraknare !== null) {
+                $stmt = $this->db->prepare('
+                    SELECT COUNT(*) FROM rebotling_skiftrapport
+                    WHERE skiftraknare = ?
+                ');
+                $stmt->execute([$activeSkiftraknare]);
+                $is_shift_already_saved = ((int)$stmt->fetchColumn() > 0);
+            }
         }
 
         // Kontrollera om det är en flankändring
@@ -374,8 +404,9 @@ class Rebotling {
         }
 
         // Hantera skiftraknare
-        // Om det är första gången running idag, öka skifträknaren automatiskt
-        if ($is_first_running_today) {
+        // Nytt skift startas om: (1) första running idag, ELLER (2) föregående skift
+        // redan sparats som skiftrapport och maskinen startar om (byte av produkt/operatör)
+        if ($is_first_running_today || $is_shift_already_saved) {
             // Hämta senaste skiftraknare från alla rader (total räknare)
             $stmt = $this->db->prepare('
                 SELECT skiftraknare
