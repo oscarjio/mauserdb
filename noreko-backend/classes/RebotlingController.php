@@ -404,21 +404,22 @@ class RebotlingController {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) $end = date('Y-m-d');
 
-            // Hämta cykler för perioden med FAKTISK beräknad cykeltid och target från produkt
+            // Hämta cykler för perioden med FAKTISK beräknad cykeltid och target från produkt.
+            // OBS: Joina direkt på i.produkt → rebotling_products för att undvika
+            // många-till-många-duplikat via rebotling_onoff (ett skift har många onoff-rader).
             $stmt = $this->pdo->prepare('
-                SELECT 
+                SELECT
                     i.datum,
                     i.ibc_count,
                     i.produktion_procent,
                     i.skiftraknare,
-                    TIMESTAMPDIFF(MINUTE, 
-                        LAG(i.datum) OVER (ORDER BY i.datum), 
+                    TIMESTAMPDIFF(MINUTE,
+                        LAG(i.datum) OVER (PARTITION BY i.skiftraknare ORDER BY i.datum),
                         i.datum
                     ) as cycle_time,
                     p.cycle_time_minutes as target_cycle_time
                 FROM rebotling_ibc i
-                LEFT JOIN rebotling_onoff o ON i.skiftraknare = o.skiftraknare
-                LEFT JOIN rebotling_products p ON o.produkt = p.id
+                LEFT JOIN rebotling_products p ON i.produkt = p.id
                 WHERE DATE(i.datum) BETWEEN :start AND :end
                 ORDER BY i.datum ASC
             ');
@@ -667,46 +668,55 @@ class RebotlingController {
      * Availability = Operating Time / Planned Production Time
      * Performance = (Total IBC / Operating Time) / Ideal Rate
      * Quality = Good IBC / Total IBC
+     *
+     * OBS: ibc_ok, runtime_plc m.fl. är kumulativa PLC-värden per skift.
+     * Korrekt aggregering: MAX() per skiftraknare, sedan SUM() över skift.
      */
     private function getOEE() {
         $period = $_GET['period'] ?? 'today';
 
+        // Notera: alias "r" används i dateFilter och måste matcha yttre queryn
         $dateFilter = match($period) {
             'today' => "DATE(r.datum) = CURDATE()",
-            'week' => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
+            'week'  => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
             'month' => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
             default => "DATE(r.datum) = CURDATE()"
         };
 
         try {
-            // Hämta produktionsdata
+            // Steg 1: per skiftraknare MAX (kumulativa värden)
+            // Steg 2: summera korrekt över skift
             $stmt = $this->pdo->prepare("
                 SELECT
                     COUNT(*) as total_cycles,
-                    SUM(COALESCE(ibc_ok, 0)) as total_ibc_ok,
-                    SUM(COALESCE(ibc_ej_ok, 0)) as total_ibc_ej_ok,
-                    SUM(COALESCE(bur_ej_ok, 0)) as total_bur_ej_ok,
-                    MAX(COALESCE(runtime_plc, 0)) as total_runtime_min,
-                    MAX(COALESCE(rasttime, 0)) as total_rast_min
-                FROM rebotling_ibc r
-                WHERE $dateFilter
-                  AND ibc_ok IS NOT NULL
+                    SUM(shift_ibc_ok)    as total_ibc_ok,
+                    SUM(shift_ibc_ej_ok) as total_ibc_ej_ok,
+                    SUM(shift_bur_ej_ok) as total_bur_ej_ok,
+                    SUM(shift_runtime)   as total_runtime_min,
+                    SUM(shift_rast)      as total_rast_min
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        COUNT(*)              AS total_cycles,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc r
+                    WHERE $dateFilter
+                      AND ibc_ok IS NOT NULL
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
             ");
             $stmt->execute();
             $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Hämta planerad produktionstid från on/off-data
-            $stmt2 = $this->pdo->prepare("
-                SELECT
-                    COUNT(*) as total_events,
-                    SUM(CASE WHEN running = 1 THEN 1 ELSE 0 END) as running_events,
-                    MIN(datum) as first_event,
-                    MAX(datum) as last_event
-                FROM rebotling_onoff
-                WHERE $dateFilter
-            ");
-            $stmt2->execute();
-            $onoff = $stmt2->fetch(PDO::FETCH_ASSOC);
+            // Rå cykelräkning (ej aggregerad per skift)
+            $stmtCycles = $this->pdo->prepare("SELECT COUNT(*) FROM rebotling_ibc r WHERE $dateFilter");
+            $stmtCycles->execute();
+            $rawCycles = (int)$stmtCycles->fetchColumn();
 
             $totalIBC = ($data['total_ibc_ok'] ?? 0) + ($data['total_ibc_ej_ok'] ?? 0);
             $goodIBC = $data['total_ibc_ok'] ?? 0;
@@ -750,7 +760,7 @@ class RebotlingController {
                     'rast_hours' => round($rastMin / 60, 1),
                     'operating_hours' => round($operatingMin / 60, 1),
                     'planned_hours' => round($plannedMin / 60, 1),
-                    'cycles' => $data['total_cycles'] ?? 0,
+                    'cycles' => $rawCycles,
                     'world_class_benchmark' => 85.0
                 ]
             ]);
@@ -771,19 +781,33 @@ class RebotlingController {
         try {
             $days = min(90, max(7, intval($_GET['days'] ?? 30)));
 
-            // Daily average cycle time and count
+            // Daglig statistik. ibc_ok/ej_ok/bur_ej_ok är kumulativa PLC-värden per skift –
+            // aggregera korrekt med per-skift-subquery (MAX per skiftraknare → SUM per dag).
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) as dag,
-                    COUNT(*) as cycles,
-                    ROUND(AVG(runtime_plc), 1) as avg_runtime,
-                    ROUND(AVG(CASE WHEN runtime_plc > 0 THEN (ibc_ok * 60.0 / runtime_plc) ELSE NULL END), 1) as avg_ibc_per_hour,
-                    SUM(ibc_ok) as total_ibc_ok,
-                    SUM(ibc_ej_ok) as total_ibc_ej_ok,
-                    SUM(bur_ej_ok) as total_bur_ej_ok
-                FROM rebotling_ibc
-                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
-                GROUP BY DATE(datum)
+                    dag,
+                    SUM(cykler)          AS cycles,
+                    ROUND(AVG(avg_runtime), 1) AS avg_runtime,
+                    ROUND(SUM(shift_ibc_ok) * 60.0 / NULLIF(SUM(shift_runtime), 0), 1) AS avg_ibc_per_hour,
+                    SUM(shift_ibc_ok)    AS total_ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS total_ibc_ej_ok,
+                    SUM(shift_bur_ej_ok) AS total_bur_ej_ok
+                FROM (
+                    SELECT
+                        DATE(datum)          AS dag,
+                        skiftraknare,
+                        COUNT(*)             AS cykler,
+                        AVG(runtime_plc)     AS avg_runtime,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
                 ORDER BY dag
             ");
             $stmt->execute([$days]);
@@ -876,21 +900,36 @@ class RebotlingController {
         $startDate = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            // Dagliga produktionssiffror
-            // MAX(runtime_plc) används istället för SUM – runtime_plc är ett kumulativt PLC-värde per skift
+            // Dagliga produktionssiffror.
+            // ibc_ok, ibc_ej_ok, bur_ej_ok och runtime_plc är KUMULATIVA per skift.
+            // Aggregera korrekt: MAX() per skiftraknare (inner), sedan SUM() per dag (outer).
             $stmt = $this->pdo->prepare("
                 SELECT
-                    DATE(datum) as dag,
-                    COUNT(*) as cykler,
-                    SUM(CASE WHEN ibc_ok > 0 THEN ibc_ok ELSE 0 END) as ibc_ok,
-                    SUM(CASE WHEN ibc_ej_ok > 0 THEN ibc_ej_ok ELSE 0 END) as ibc_ej_ok,
-                    SUM(CASE WHEN bur_ej_ok > 0 THEN bur_ej_ok ELSE 0 END) as bur_ej_ok,
-                    ROUND(AVG(runtime), 1) as snitt_cykeltid,
-                    ROUND(AVG(produktion_procent), 1) as snitt_produktion_pct,
-                    MAX(COALESCE(runtime_plc, 0)) as kortid_minuter
-                FROM rebotling_ibc
-                WHERE DATE(datum) >= ?
-                GROUP BY DATE(datum)
+                    dag,
+                    SUM(cykler)          AS cykler,
+                    SUM(shift_ibc_ok)    AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_bur_ej_ok) AS bur_ej_ok,
+                    ROUND(AVG(avg_prod_pct), 1)  AS snitt_produktion_pct,
+                    ROUND(AVG(avg_runtime_plc), 1) AS snitt_cykeltid,
+                    SUM(shift_runtime)   AS kortid_minuter
+                FROM (
+                    SELECT
+                        DATE(datum)          AS dag,
+                        skiftraknare,
+                        COUNT(*)             AS cykler,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        AVG(produktion_procent)  AS avg_prod_pct,
+                        AVG(runtime_plc)         AS avg_runtime_plc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= ?
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
                 ORDER BY dag
             ");
             $stmt->execute([$startDate]);
