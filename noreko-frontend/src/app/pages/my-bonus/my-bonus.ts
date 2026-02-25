@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, OperatorStatsResponse, KPIDetailsResponse, OperatorHistoryResponse } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
@@ -30,13 +32,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   private kpiChart: Chart | null = null;
   private historyChart: Chart | null = null;
+  private destroy$ = new Subject<void>();
 
   constructor(private auth: AuthService, private bonusService: BonusService) {
-    this.auth.loggedIn$.subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
   }
 
   ngOnInit(): void {
-    this.auth.user$.subscribe((user: any) => {
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((user: any) => {
       if (user?.operator_id) {
         // Operatör-ID är kopplat till kontot – använd det automatiskt
         this.operatorId = String(user.operator_id);
@@ -57,6 +60,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.kpiChart) this.kpiChart.destroy();
     if (this.historyChart) this.historyChart.destroy();
   }

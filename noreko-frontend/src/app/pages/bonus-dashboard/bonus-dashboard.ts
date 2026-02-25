@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
@@ -51,10 +53,11 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   // Polling
   private pollingInterval: any = null;
+  private destroy$ = new Subject<void>();
 
   constructor(private auth: AuthService, private bonusService: BonusService) {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
@@ -67,6 +70,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.pollingInterval) clearInterval(this.pollingInterval);
     if (this.trendChart) this.trendChart.destroy();
     if (this.kpiRadarChart) this.kpiRadarChart.destroy();

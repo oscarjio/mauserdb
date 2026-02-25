@@ -254,9 +254,9 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
       .subscribe((res: OEEResponse | null) => {
         if (res && res.success && res.data) {
           this.oee = res.data.oee;
-          this.oeeAvailability = res.data.availability;
-          this.oeePerformance = res.data.performance;
-          this.oeeQuality = res.data.quality;
+          this.oeeAvailability = res.data.availability ?? 0;
+          this.oeePerformance = res.data.performance ?? 0;
+          this.oeeQuality = res.data.quality ?? 0;
           this.oeeRastHours = res.data.rast_hours ?? 0;
           this.oeeRuntimeHours = res.data.runtime_hours ?? 0;
         }

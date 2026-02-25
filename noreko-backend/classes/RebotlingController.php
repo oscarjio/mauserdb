@@ -401,6 +401,8 @@ class RebotlingController {
         try {
             $start = $_GET['start'] ?? date('Y-m-d');
             $end = $_GET['end'] ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) $end = date('Y-m-d');
 
             // Hämta cykler för perioden med FAKTISK beräknad cykeltid och target från produkt
             $stmt = $this->pdo->prepare('
@@ -554,6 +556,9 @@ class RebotlingController {
     private function getDayStats() {
         try {
             $date = $_GET['date'] ?? date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+                $date = date('Y-m-d');
+            }
 
             // Hämta detaljerad statistik för en specifik dag
             $stmt = $this->pdo->prepare('
@@ -872,6 +877,7 @@ class RebotlingController {
 
         try {
             // Dagliga produktionssiffror
+            // MAX(runtime_plc) används istället för SUM – runtime_plc är ett kumulativt PLC-värde per skift
             $stmt = $this->pdo->prepare("
                 SELECT
                     DATE(datum) as dag,
@@ -880,7 +886,8 @@ class RebotlingController {
                     SUM(CASE WHEN ibc_ej_ok > 0 THEN ibc_ej_ok ELSE 0 END) as ibc_ej_ok,
                     SUM(CASE WHEN bur_ej_ok > 0 THEN bur_ej_ok ELSE 0 END) as bur_ej_ok,
                     ROUND(AVG(runtime), 1) as snitt_cykeltid,
-                    ROUND(AVG(produktion_procent), 1) as snitt_produktion_pct
+                    ROUND(AVG(produktion_procent), 1) as snitt_produktion_pct,
+                    MAX(COALESCE(runtime_plc, 0)) as kortid_minuter
                 FROM rebotling_ibc
                 WHERE DATE(datum) >= ?
                 GROUP BY DATE(datum)
@@ -889,11 +896,10 @@ class RebotlingController {
             $stmt->execute([$startDate]);
             $daily = $stmt->fetchAll();
 
-            // Körtidsdata
+            // Starter/stopp-data från on/off-events
             $stmtRuntime = $this->pdo->prepare("
                 SELECT
                     DATE(datum) as dag,
-                    SUM(runtime_today) as kortid_minuter,
                     COUNT(CASE WHEN running = 1 THEN 1 END) as starter,
                     COUNT(CASE WHEN running = 0 THEN 1 END) as stopp
                 FROM rebotling_onoff
@@ -926,7 +932,7 @@ class RebotlingController {
                     'kvalitet_pct' => $d['ibc_ok'] > 0 ? round(($d['ibc_ok'] / ($d['ibc_ok'] + $d['ibc_ej_ok'])) * 100, 1) : 0,
                     'snitt_cykeltid' => (float)$d['snitt_cykeltid'],
                     'snitt_produktion_pct' => (float)$d['snitt_produktion_pct'],
-                    'kortid_h' => $rt ? round($rt['kortid_minuter'] / 60, 1) : 0,
+                    'kortid_h' => round((float)$d['kortid_minuter'] / 60, 1),
                     'starter' => $rt ? (int)$rt['starter'] : 0,
                     'stopp' => $rt ? (int)$rt['stopp'] : 0,
                 ];
