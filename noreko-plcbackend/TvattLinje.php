@@ -33,24 +33,28 @@ class TvattLinje {
         $stmt->execute();
         $dbcount =  (int)$stmt->fetchColumn();
         
-        if($dbcount < 1){
-            // Om inga IBCer är registrerade idag, starta på noll
+        $shellyCount = (int)$_GET['count'];
+
+        if ($dbcount < 1) {
+            // Inga IBCer registrerade idag – starta på 1
             $ibc_count = 1;
-        }elseif ($dbcount > 0) {
-            // Om vi har IBCer registrerade idag, hämta vad räknaren på pucken stod på vid IBC nr1
+        } else {
+            // Hämta vad räknaren på pucken stod på vid IBC nr 1 idag
             $stmt = $this->db->prepare("
-                SELECT * 
-                FROM tvattlinje_ibc 
+                SELECT s_count
+                FROM tvattlinje_ibc
                 WHERE DATE(datum) = CURDATE()
                 AND ibc_count = 1
                 LIMIT 1
             ");
             $stmt->execute();
             $res = $stmt->fetch(PDO::FETCH_ASSOC);
-            if($res["s_count"] < $_GET["count"]){
-                // Allt ser normalt ut, räkna ut dagens IBCer
-                $ibc_count = ($_GET["count"] - $res["s_count"]) + 1; // + 1 för att bli rätt med antalet räknade
-            }elseif ($res["s_count"] >= $_GET["count"]) {
+
+            if ($res && (int)$res['s_count'] < $shellyCount) {
+                // Normalt förlopp – räkna ut dagens IBCer
+                $ibc_count = ($shellyCount - (int)$res['s_count']) + 1;
+            } else {
+                // Räknaren har resettat eller $res saknas
                 $ibc_count = $dbcount + 1;
             }
         }
@@ -80,7 +84,7 @@ class TvattLinje {
         ');
         
         $stmt->execute([
-            's_count' => $_GET['count'],
+            's_count' => $shellyCount,
             'ibc_count' => $ibc_count
         ]);
     }
@@ -93,7 +97,8 @@ class TvattLinje {
 
         $high = (int)$_GET['high'];
         $low = (int)$_GET['low'];
-        $is_running = $_GET["running"] == "true" ? 1 : 0;
+        $running_param = $_GET["running"] ?? "0";
+        $is_running = ($running_param == "true" || $running_param == "1" || $running_param == 1) ? 1 : 0;
         $runtime_today = 0;
 
         // Hämta senaste entry från idag för att jämföra state changes

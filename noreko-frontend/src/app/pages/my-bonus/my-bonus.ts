@@ -161,7 +161,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     const avg = recent.reduce((sum: number, h: any) => sum + (h.kpis?.bonus ?? 0), 0) / recent.length;
     return {
       weekly: Math.round(avg * 10) / 10,
-      monthly: Math.round(avg * 10) / 10
+      monthly: Math.round(avg * 4 * 10) / 10
     };
   }
 

@@ -321,14 +321,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.skiftrapportService.updateSkiftrapport(report.id, {
       datum: datum,
       product_id: report.product_id,
-      ibc_ok: parseInt(report.ibc_ok) || 0,
-      bur_ej_ok: parseInt(report.bur_ej_ok) || 0,
-      ibc_ej_ok: parseInt(report.ibc_ej_ok) || 0
+      ibc_ok: parseInt(report.ibc_ok, 10) || 0,
+      bur_ej_ok: parseInt(report.bur_ej_ok, 10) || 0,
+      ibc_ej_ok: parseInt(report.ibc_ej_ok, 10) || 0
     }).subscribe({
       next: (res) => {
         if (res.success) {
           // Räkna om totalt
-          report.totalt = (parseInt(report.ibc_ok) || 0) + (parseInt(report.bur_ej_ok) || 0) + (parseInt(report.ibc_ej_ok) || 0);
+          report.totalt = (parseInt(report.ibc_ok, 10) || 0) + (parseInt(report.bur_ej_ok, 10) || 0) + (parseInt(report.ibc_ej_ok, 10) || 0);
           report.datum = datum; // Säkerställ korrekt format
           this.expanded[report.id] = false;
           this.fetchReports();

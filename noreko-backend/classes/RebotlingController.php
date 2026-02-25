@@ -618,8 +618,8 @@ class RebotlingController {
             $plc_rast_min = 0;
             try {
                 $plcRastStmt = $this->pdo->prepare('
-                    SELECT SUM(COALESCE(rasttime, 0)) as total_rast_plc,
-                           SUM(COALESCE(runtime_plc, 0)) as total_runtime_plc
+                    SELECT MAX(COALESCE(rasttime, 0)) as total_rast_plc,
+                           MAX(COALESCE(runtime_plc, 0)) as total_runtime_plc
                     FROM rebotling_ibc
                     WHERE DATE(datum) = :date
                 ');
@@ -681,8 +681,8 @@ class RebotlingController {
                     SUM(COALESCE(ibc_ok, 0)) as total_ibc_ok,
                     SUM(COALESCE(ibc_ej_ok, 0)) as total_ibc_ej_ok,
                     SUM(COALESCE(bur_ej_ok, 0)) as total_bur_ej_ok,
-                    SUM(COALESCE(runtime_plc, 0)) as total_runtime_min,
-                    SUM(COALESCE(rasttime, 0)) as total_rast_min
+                    MAX(COALESCE(runtime_plc, 0)) as total_runtime_min,
+                    MAX(COALESCE(rasttime, 0)) as total_rast_min
                 FROM rebotling_ibc r
                 WHERE $dateFilter
                   AND ibc_ok IS NOT NULL

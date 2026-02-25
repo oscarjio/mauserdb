@@ -577,6 +577,9 @@ class Rebotling {
                 error_log("handleCommand: Okänt kommando D4015=$kommando, ignorerar.");
                 break;
         }
+
+        // Rensa D4015 så att nästa Y337-trigger inte kör samma kommando igen
+        $this->modbus->writeMultipleRegister(0, 4015, [0], ["INT"]);
     }
 
     /**
