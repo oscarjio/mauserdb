@@ -108,7 +108,7 @@
             <i class="fas fa-spinner fa-spin me-2"></i>
             Laddar skiftrapporter...
           </div>
-          
+
           <div class="table-responsive" *ngIf="!loading">
             <table class="table table-striped table-hover">
               <thead class="table-dark">
@@ -159,8 +159,10 @@
                     </td>
                     <td>
                       <div class="btn-group btn-group-sm" role="group">
-                        <button *ngIf="canEdit(report)" class="btn btn-outline-primary" (click)="toggleExpand(report.id)" [title]="expanded[report.id] ? 'Stäng' : 'Redigera'">
-                          <i class="fas" [class.fa-edit]="!expanded[report.id]" [class.fa-times]="expanded[report.id]"></i>
+                        <!-- Detaljknapp synlig för alla inloggade -->
+                        <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
+                          [title]="expanded[report.id] ? 'Dölj detaljer' : 'Visa detaljer'">
+                          <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
                         </button>
                         <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort">
                           <i class="fas fa-trash"></i>
@@ -168,33 +170,97 @@
                       </div>
                     </td>
                   </tr>
-                  <tr *ngIf="expanded[report.id]" class="edit-row">
-                    <td [attr.colspan]="isAdmin ? 11 : 10">
-                      <div class="card border-primary">
-                        <div class="card-body">
+
+                  <!-- Expanderad detaljrad -->
+                  <tr *ngIf="expanded[report.id]" class="expand-row">
+                    <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
+                      <div class="p-3" style="background:#1e2a3a;">
+
+                        <!-- PLC-data från skiftet -->
+                        <div class="mb-3">
+                          <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-microchip text-info me-2"></i>
+                            <span class="text-info fw-semibold">PLC-data från skiftet</span>
+                          </div>
+                          <div class="row g-3">
+                            <!-- Operatörer -->
+                            <div class="col-auto">
+                              <div class="small text-muted mb-1">Tvättplats (op1)</div>
+                              <span class="badge bg-secondary px-3 py-2 fs-6">
+                                {{ report.op1 || '–' }}
+                              </span>
+                            </div>
+                            <div class="col-auto">
+                              <div class="small text-muted mb-1">Kontrollstation (op2)</div>
+                              <span class="badge bg-secondary px-3 py-2 fs-6">
+                                {{ report.op2 || '–' }}
+                              </span>
+                            </div>
+                            <div class="col-auto">
+                              <div class="small text-muted mb-1">Truckförare (op3)</div>
+                              <span class="badge bg-secondary px-3 py-2 fs-6">
+                                {{ report.op3 || '–' }}
+                              </span>
+                            </div>
+
+                            <!-- Tider -->
+                            <div class="col-auto border-start border-secondary ps-3">
+                              <div class="small text-muted mb-1">Drifttid (D4007)</div>
+                              <span class="text-success fw-bold fs-6">
+                                {{ report.drifttid != null ? report.drifttid + ' min' : '–' }}
+                              </span>
+                            </div>
+                            <div class="col-auto">
+                              <div class="small text-muted mb-1">Rasttid (D4008)</div>
+                              <span class="text-warning fw-bold fs-6">
+                                {{ report.rasttime != null ? report.rasttime + ' min' : '–' }}
+                              </span>
+                            </div>
+
+                            <!-- Löp/Skift -->
+                            <div class="col-auto border-start border-secondary ps-3">
+                              <div class="small text-muted mb-1">Löpnummer (D4009)</div>
+                              <span class="fw-bold fs-6">{{ report.lopnummer || '–' }}</span>
+                            </div>
+                            <div class="col-auto">
+                              <div class="small text-muted mb-1">Skifträknare</div>
+                              <span class="fw-bold fs-6 text-info">{{ report.skiftraknare || '–' }}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Redigera (bara för admin/ägare) -->
+                        <div *ngIf="canEdit(report)" class="border-top border-secondary pt-3">
+                          <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-edit text-primary me-2"></i>
+                            <span class="text-primary fw-semibold">Redigera</span>
+                          </div>
                           <form (ngSubmit)="saveReport(report)" class="edit-form">
                             <div class="row g-2 align-items-end">
                               <div class="col-md-2">
-                                <label class="form-label">Datum</label>
-                                <input type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" name="datum-{{report.id}}" />
+                                <label class="form-label small">Datum</label>
+                                <input type="date" class="form-control form-control-sm"
+                                  [value]="report.datum"
+                                  (input)="report.datum = $any($event.target).value"
+                                  name="datum-{{report.id}}" />
                               </div>
                               <div class="col-md-3">
-                                <label class="form-label">Produkt</label>
+                                <label class="form-label small">Produkt</label>
                                 <select class="form-control form-control-sm" [(ngModel)]="report.product_id" name="product_id-{{report.id}}">
                                   <option [value]="null">Välj produkt...</option>
                                   <option *ngFor="let product of products" [value]="product.id">{{ product.name }}</option>
                                 </select>
                               </div>
                               <div class="col-md-2">
-                                <label class="form-label">IBC OK</label>
+                                <label class="form-label small">IBC OK</label>
                                 <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ok" name="ibc_ok-{{report.id}}" min="0" />
                               </div>
                               <div class="col-md-2">
-                                <label class="form-label">Bur ej OK</label>
+                                <label class="form-label small">Bur ej OK</label>
                                 <input type="number" class="form-control form-control-sm" [(ngModel)]="report.bur_ej_ok" name="bur_ej_ok-{{report.id}}" min="0" />
                               </div>
                               <div class="col-md-2">
-                                <label class="form-label">IBC ej OK</label>
+                                <label class="form-label small">IBC ej OK</label>
                                 <input type="number" class="form-control form-control-sm" [(ngModel)]="report.ibc_ej_ok" name="ibc_ej_ok-{{report.id}}" min="0" />
                               </div>
                               <div class="col-md-1">
@@ -206,10 +272,12 @@
                             </div>
                           </form>
                         </div>
+
                       </div>
                     </td>
                   </tr>
                 </ng-container>
+
                 <tr *ngIf="reports.length === 0">
                   <td [attr.colspan]="isAdmin ? 11 : 10" class="text-center text-muted">
                     <i class="fas fa-info-circle me-2"></i>

@@ -139,6 +139,22 @@ class SkiftrapportController {
                     $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `skiftraknare` int DEFAULT NULL AFTER `user_id`");
                     $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD INDEX `idx_skiftraknare` (`skiftraknare`)");
                 }
+
+                // Migration 007 – PLC-fält från FX5
+                $plcCols = [
+                    'op1'       => 'INT DEFAULT NULL',
+                    'op2'       => 'INT DEFAULT NULL',
+                    'op3'       => 'INT DEFAULT NULL',
+                    'drifttid'  => 'INT DEFAULT NULL',
+                    'rasttime'  => 'INT DEFAULT NULL',
+                    'lopnummer' => 'INT DEFAULT NULL',
+                ];
+                foreach ($plcCols as $col => $def) {
+                    $chk = $this->pdo->query("SHOW COLUMNS FROM rebotling_skiftrapport LIKE '$col'");
+                    if ($chk->rowCount() === 0) {
+                        $this->pdo->exec("ALTER TABLE rebotling_skiftrapport ADD COLUMN `$col` $def");
+                    }
+                }
             }
         } catch (PDOException $e) {
             // Ignorera om tabellen redan finns
@@ -147,7 +163,9 @@ class SkiftrapportController {
 
     private function getSkiftrapporter() {
         try {
-            $stmt = $this->pdo->query("SELECT s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt, s.inlagd, s.product_id, s.user_id, s.skiftraknare, s.created_at, s.updated_at,
+            $stmt = $this->pdo->query("SELECT s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt, s.inlagd,
+                s.product_id, s.user_id, s.skiftraknare, s.created_at, s.updated_at,
+                s.op1, s.op2, s.op3, s.drifttid, s.rasttime, s.lopnummer,
                 u.username as user_name,
                 p.name as product_name
                 FROM rebotling_skiftrapport s
