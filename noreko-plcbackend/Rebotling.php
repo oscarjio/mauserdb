@@ -15,7 +15,38 @@ class Rebotling {
         $this->db = $processor->db;
         $this->bonusCalculator = new BonusCalculator();
     }
-    
+
+    /**
+     * Säkerställ tabell för aktuellt löpnummer (en enda rad som uppdateras).
+     */
+    private function ensureCurrentLopnummerTable(): void
+    {
+        $this->db->exec("
+            CREATE TABLE IF NOT EXISTS rebotling_lopnummer_current (
+                id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+                lopnummer INT NOT NULL,
+                updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+    }
+
+    /**
+     * Uppdatera aktuellt löpnummer (från D4010) i singel-raden.
+     */
+    private function updateCurrentLopnummer(int $lopnummer): void
+    {
+        $this->ensureCurrentLopnummerTable();
+        $stmt = $this->db->prepare("
+            INSERT INTO rebotling_lopnummer_current (id, lopnummer, updated_at)
+            VALUES (1, :lopnummer, NOW())
+            ON DUPLICATE KEY UPDATE
+                lopnummer = VALUES(lopnummer),
+                updated_at = VALUES(updated_at)
+        ");
+        $stmt->execute(['lopnummer' => $lopnummer]);
+    }
+
     
     public function handleCycle(array $data): void {
         // Validera data
@@ -25,7 +56,7 @@ class Rebotling {
 
         // === MODBUS TCP - LÄS FX5 D4000-D4009 ===
         try {
-            $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
+            $this->modbus = new ModbusMaster("192.168.10.100", "TCP");
 
             // Läs alla 10 register från D4000-D4009 i ett anrop
             $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 10);
@@ -250,6 +281,15 @@ class Rebotling {
             'kvalitet' => $kpis['kvalitet'],
             'bonus_poang' => $kpis['bonus_poang']
         ]);
+
+        // Kvittera till PLC efter varje cykel (D4014 = 0)
+        try {
+            // Vänta 500ms innan Modbus-write
+            usleep(500000);
+            $this->modbus->writeMultipleRegister(0, 4014, [0], ["INT"]);
+        } catch (Exception $e) {
+            error_log("Rebotling handleCycle: kunde inte nolla D4014: " . $e->getMessage());
+        }
     }
 
     public function handleRunning(array $data): void {
@@ -258,36 +298,37 @@ class Rebotling {
             throw new InvalidArgumentException('Missing required fields high and low for handleRunning');
         }
 
-        // Anropa Modbus!
-        /*
-        $this->modbus = new ModbusMaster("192.168.0.200", "TCP"); // PLC IP
+        // Läs operatörs- och produktdata från FX5 (D200-D206)
+        // D200 Program, D201 Op1, D202 Op2, D203 Op3, D204 Produkt, D205 Antal, D206 Runtime PLC
+        $program = 0;
+        $op1 = 0;
+        $op2 = 0;
+        $op3 = 0;
+        $produkt = 1;
+        $antal = 0;
+        $runtime_plc = 0;
 
+        try {
+            $this->modbus = new ModbusMaster("192.168.10.100", "TCP"); // FX5 IP
 
-        // Återföring till PLC att data hämtats.
-        $this->modbus->writeMultipleRegister(0, 199, array(0), array("INT"));
-        sleep(1);
-        // Hämta data från PLC
-        
-        $PLC_data = $this->modbus->readMultipleRegisters(0, 200, 7);
-        // Gör om 8bitars värden till 16bitar PLC D register är 16bit
-        $PLC_data16 = array();
-        for($i=0;$i<(count($PLC_data) / 2);$i++){
-            $PLC_data16[$i] = $PLC_data[$i*2] << 8;
-            $PLC_data16[$i] += $PLC_data[$i*2+1];
-        }    
+            $PLC_data = $this->modbus->readMultipleRegisters(0, 200, 7);
+            $PLC_data16 = [];
+            for ($i = 0; $i < (count($PLC_data) / 2); $i++) {
+                $PLC_data16[$i]  = $PLC_data[$i * 2] << 8;
+                $PLC_data16[$i] += $PLC_data[$i * 2 + 1];
+            }
 
-
-        */
-        /*
-        D200 Program
-        D201 Op1
-        D202 Op2
-        D203 Op3
-        D204 Produkt
-        D205 Antal
-        D206 Runtime PLC
-        */
-        
+            $program     = (int)($PLC_data16[0] ?? 0);
+            $op1         = (int)($PLC_data16[1] ?? 0);
+            $op2         = (int)($PLC_data16[2] ?? 0);
+            $op3         = (int)($PLC_data16[3] ?? 0);
+            $produkt     = (int)($PLC_data16[4] ?? 1);
+            $antal       = (int)($PLC_data16[5] ?? 0);
+            $runtime_plc = (int)($PLC_data16[6] ?? 0);
+        } catch (Exception $e) {
+            error_log("Rebotling handleRunning: kunde inte läsa D200-D206: " . $e->getMessage());
+            // Faller tillbaka till default-värdena ovan (0/1)
+        }
 
         $high = (int)$_GET['high'];
         $low = (int)$_GET['low'];
@@ -479,28 +520,33 @@ class Rebotling {
             's_count_l' => $low,
             'runtime_today' => $runtime_today,
             'running' => $is_running,
-            /*'program' => $PLC_data16[0],
-            'op1' => $PLC_data16[1],
-            'op2' => $PLC_data16[2],
-            'op3' => $PLC_data16[3],
-            'produkt' => $PLC_data16[4],
-            'antal' => $PLC_data16[5],
-            'runtime_plc' => $PLC_data16[6],*/
-            'program' => 0,
-            'op1' => 0,
-            'op2' => 0,
-            'op3' => 0,
-            'produkt' => 1,
-            'antal' => 0,
-            'runtime_plc' => 0,
+            'program' => $program,
+            'op1' => $op1,
+            'op2' => $op2,
+            'op3' => $op3,
+            'produkt' => $produkt,
+            'antal' => $antal,
+            'runtime_plc' => $runtime_plc,
             'skiftraknare' => $skiftraknare
         ]);
+
+        // Kvittera till PLC efter varje running-uppdatering (D4014 = 0)
+        try {
+            usleep(500000);
+            $this->modbus->writeMultipleRegister(0, 4014, [0], ["INT"]);
+        } catch (Exception $e) {
+            error_log("Rebotling handleRunning: kunde inte nolla D4014: " . $e->getMessage());
+        }
     }
 
     public function handleSkiftrapport(array $data): void {
+        
+        error_log("handleSkiftrapport: Skiftrapport ---");
         // Läs D4000-D4009 via Modbus – dessa innehåller skiftets kumulativa totaler
         // när PLC triggar skiftrapporten vid skiftets slut.
-        $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
+        //$this->modbus = new ModbusMaster("192.168.10.100", "TCP");
+        // Vänta 500ms sedan senaste Modbus-read innan vi läser skiftrapport
+        usleep(500000);
         $raw_data = $this->modbus->readMultipleRegisters(0, 4000, 10);
         $plc_data = $this->convert8to16bit($raw_data);
 
@@ -514,6 +560,20 @@ class Rebotling {
         $drifttid    = $plc_data[7]; // D4007 - Runtime PLC (exkl rast)
         $rasttime    = $plc_data[8]; // D4008 - Rasttid PLC
         $lopnummer   = $plc_data[9]; // D4009 - Högsta löpnummer i skiftet
+
+        // Läs även D4010 när skiftrapport skickas – uppdatera aktuellt löpnummer
+        try {
+            // Vänta 500ms innan nästa Modbus-read
+            usleep(500000);
+            $raw_lop = $this->modbus->readMultipleRegisters(0, 4010, 1);
+            $lop_data = $this->convert8to16bit($raw_lop);
+            $currentLopFromD4010 = (int)$lop_data[0];
+            if ($currentLopFromD4010 > 0) {
+                //$this->updateCurrentLopnummer($currentLopFromD4010);
+            }
+        } catch (Exception $e) {
+            error_log("Rebotling handleSkiftrapport: kunde inte läsa D4010: " . $e->getMessage());
+        }
 
         $totalt = $ibc_ok + $ibc_ej_ok + $bur_ej_ok;
 
@@ -530,8 +590,9 @@ class Rebotling {
         $skiftraknare = $skiftraknareResult ? (int)$skiftraknareResult['skiftraknare'] : null;
 
         // Säkerställ att nya kolumner finns (migration 007)
-        $this->ensureSkiftrapportColumns();
+        //$this->ensureSkiftrapportColumns();
 
+        error_log("handleSkiftrapport: ---------");
         $stmt = $this->db->prepare('
             INSERT INTO rebotling_skiftrapport
                 (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id,
@@ -541,6 +602,7 @@ class Rebotling {
                  :op1, :op2, :op3, :drifttid, :rasttime, :lopnummer, :skiftraknare)
         ');
 
+        error_log("handleSkiftrapport: ---------");
         $stmt->execute([
             'ibc_ok'      => $ibc_ok,
             'bur_ej_ok'   => $bur_ej_ok,
@@ -557,9 +619,12 @@ class Rebotling {
             'skiftraknare' => $skiftraknare,
         ]);
 
+        error_log("handleSkiftrapport: ---------");
         error_log("handleSkiftrapport: Skiftrapport sparad – ibc_ok=$ibc_ok, produkt=$produkt, skiftraknare=$skiftraknare");
 
         // Återföring till PLC – skriv 0 till D4014 för att kvittera att datan tagits emot
+        // Vänta 500ms innan vi gör en Modbus-write för att undvika fel
+        usleep(500000);
         $this->modbus->writeMultipleRegister(0, 4014, [0], ["INT"]);
     }
 
@@ -570,14 +635,14 @@ class Rebotling {
      *   2 = Ändra Löpnummer (läser D4010 och uppdaterar lopnummer)
      */
     public function handleCommand(array $data): void {
-        $this->modbus = new ModbusMaster("192.168.0.200", "TCP");
-
+        $this->modbus = new ModbusMaster("192.168.10.100", "TCP");
+        
         // Läs kommandoregister D4015 (1 register)
         $raw_cmd = $this->modbus->readMultipleRegisters(0, 4015, 1);
         $cmd_data = $this->convert8to16bit($raw_cmd);
-        $kommando = $cmd_data[0]; // D4015
+        $kommando = $cmd_data[0]; // D4015 
 
-        error_log("handleCommand: D4015 kommando=$kommando");
+        error_log("handleCommand: D4015 kommando=$kommando" . $this->modbus->status);
 
         switch ($kommando) {
             case 1:
@@ -587,21 +652,20 @@ class Rebotling {
 
             case 2:
                 // Ändra Löpnummer – läs nytt nummer från D4010
+                // Vänta 500ms efter läsning av D4015 innan vi läser D4010
+                usleep(500000);
                 $raw_nr = $this->modbus->readMultipleRegisters(0, 4010, 1);
                 $nr_data = $this->convert8to16bit($raw_nr);
                 $nyttLopnummer = $nr_data[0]; // D4010
 
-                // Logga löpnummerändringen i rebotling_ibc (uppdatera senaste raden idag)
-                $stmt = $this->db->prepare('
-                    UPDATE rebotling_ibc
-                    SET lopnummer = :lopnummer
-                    WHERE DATE(datum) = CURDATE()
-                    ORDER BY datum DESC
-                    LIMIT 1
-                ');
-                $stmt->execute(['lopnummer' => $nyttLopnummer]);
+                // Uppdatera aktuellt löpnummer-tabell för live-vyn
+                try {
+                    $this->updateCurrentLopnummer((int)$nyttLopnummer);
+                } catch (Exception $e) {
+                    error_log("Rebotling handleCommand: kunde inte uppdatera current lopnummer: " . $e->getMessage());
+                }
 
-                error_log("handleCommand: Löpnummer ändrat till $nyttLopnummer");
+                error_log("handleCommand: Löpnummer ändrat – current lopnummer uppdaterat till $nyttLopnummer");
                 break;
 
             default:
@@ -610,7 +674,18 @@ class Rebotling {
         }
 
         // Rensa D4015 så att nästa Y337-trigger inte kör samma kommando igen
+        // Vänta 500ms innan Modbus-write
+        usleep(500000);
         $this->modbus->writeMultipleRegister(0, 4015, [0], ["INT"]);
+        
+        // Kvittera till PLC efter varje cykel (D4014 = 0)
+        try {
+            // Vänta 500ms innan Modbus-write
+            usleep(500000);
+            $this->modbus->writeMultipleRegister(0, 4014, [0], ["INT"]);
+        } catch (Exception $e) {
+            error_log("Rebotling handleCycle: kunde inte nolla D4014: " . $e->getMessage());
+        }
     }
 
     /**

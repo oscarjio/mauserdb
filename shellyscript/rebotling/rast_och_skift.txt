@@ -1,0 +1,176 @@
+// ========================================
+// Noreko - Rebotling: Rast + Kommando (Skift)
+// ========================================
+
+let CONFIG = {
+  // Rast
+  rastInputPin: 3,  // Ingång för rast (hög = på rast)
+  rastDebounceTime: 500, // ms
+  rastWebhookUrl: "http://192.168.0.100/api/v1.php?type=rast&line=rebotling",
+  kvsKeyRastStatus: "rastStatus",
+
+  // Kommando (spara skift / ändra löpnummer via D4015 på PLC)
+  commandInputPin: 0,   // Ingång för PLC-kommando (t.ex. knapp / relä)
+  commandDebounceTime: 50, // ms
+  commandWebhookUrl: "http://192.168.0.100/api/v1.php?type=command&line=rebotling"
+};
+
+// =======================
+// Rast-variabler/KVS
+// =======================
+let lastRastState = false;
+let lastRastChangeTime = 0;
+
+function loadRastStatus() {
+  Shelly.call("KVS.Get", { key: CONFIG.kvsKeyRastStatus }, function (res) {
+    if (res && res.value !== undefined) {
+      lastRastState = res.value === "1";
+      print("Laddade rast-status från KVS: ", lastRastState);
+    } else {
+      print("Ingen tidigare rast-status i KVS, startar från false");
+    }
+  });
+}
+
+function saveRastStatus(status) {
+  let v = status ? "1" : "0";
+  Shelly.call("KVS.Set", {
+    key: CONFIG.kvsKeyRastStatus,
+    value: v
+  }, function (res, error_code, error_message) {
+    if (error_code === 0) {
+      print("Rast-status sparad i KVS: ", status);
+    } else {
+      print("Kunde inte spara rast-status: ", error_message);
+    }
+  });
+}
+
+function sendRastWebhook(rastStatus) {
+  let url = CONFIG.rastWebhookUrl + "&rast=" + (rastStatus ? 1 : 0);
+
+  Shelly.call("HTTP.GET", { url: url }, function (result, error_code, error_message) {
+    if (error_code === 0) {
+      print("✓ RAST-webhook skickad: ", rastStatus ? "PÅ RAST" : "ARBETAR");
+      if (result && result.body) {
+        print("  Svar: ", result.body);
+      }
+    } else {
+      print("✗ RAST-webhook-fel: ", error_code, " - ", error_message);
+    }
+  });
+}
+
+function handleRastChange(state) {
+  let now = Date.now();
+
+  if (now - lastRastChangeTime < CONFIG.rastDebounceTime) {
+    print("⏱ Rast debounce - ignorerar ändring");
+    return;
+  }
+
+  if (state !== lastRastState) {
+    print("═══════════════════════════════════════");
+    print("🔄 RAST-STATUS ÄNDRAD!");
+    print("   Tidigare: ", lastRastState ? "PÅ RAST" : "ARBETAR");
+    print("   Ny:       ", state ? "PÅ RAST" : "ARBETAR");
+    print("   Tid:      ", new Date().toISOString());
+    print("═══════════════════════════════════════");
+
+    lastRastState = state;
+    lastRastChangeTime = now;
+
+    saveRastStatus(state);
+    sendRastWebhook(state);
+  }
+}
+
+// =======================
+// Kommando-variabler
+// =======================
+let lastCommandState = false;
+let lastCommandChangeTime = 0;
+
+function sendCommandWebhook() {
+  let url = CONFIG.commandWebhookUrl;
+
+  Shelly.call("HTTP.GET", { url: url }, function (result, error_code, error_message) {
+    if (error_code === 0) {
+      print("✓ COMMAND-webhook skickad: ", url);
+      if (result && result.body) {
+        print("  Svar: ", result.body);
+      }
+    } else {
+      print("✗ COMMAND-webhook-fel: ", error_code, " - ", error_message);
+    }
+  });
+}
+
+function handleCommandInput(state) {
+  let now = Date.now();
+
+  // Puls på stigande flank
+  if (state && !lastCommandState && (now - lastCommandChangeTime > CONFIG.commandDebounceTime)) {
+    print("🔔 Kommando-puls på ingång ", CONFIG.commandInputPin, " – skickar type=command");
+    sendCommandWebhook();
+  }
+
+  lastCommandState = state;
+  lastCommandChangeTime = now;
+}
+
+// =======================
+// Event handlers
+// =======================
+Shelly.addEventHandler(function (event) {
+  if (!event || !event.component || !event.info) return;
+
+  // Rast
+  if (event.component === "input:" + CONFIG.rastInputPin &&
+      event.info.state !== undefined) {
+    handleRastChange(event.info.state);
+  }
+
+  // Kommando (spara skift / ändra löpnummer)
+  if (event.component === "input:" + CONFIG.commandInputPin &&
+      event.info.state !== undefined) {
+    handleCommandInput(event.info.state);
+  }
+});
+
+// Extra säkerhet – pollar rast-ingång var 30:e sekund
+Timer.set(30000, true, function () {
+  let status = Shelly.getComponentStatus("input:" + CONFIG.rastInputPin);
+  if (status && status.state !== undefined && status.state !== lastRastState) {
+    print("⚠️ Rast-status-avvikelse upptäckt av timer!");
+    handleRastChange(status.state);
+  }
+});
+
+// =======================
+// START
+// =======================
+print("╔════════════════════════════════════════╗");
+print("║  NOREKO - REBOTLING RAST + KOMMANDO   ║");
+print("╚════════════════════════════════════════╝");
+print("  Rast-ingång:     Pin ", CONFIG.rastInputPin);
+print("  Command-ingång:  Pin ", CONFIG.commandInputPin);
+print("  Rast backend:    ", CONFIG.rastWebhookUrl);
+print("  Cmd backend:     ", CONFIG.commandWebhookUrl);
+print("════════════════════════════════════════");
+
+loadRastStatus();
+
+// Läs initial rast-status efter 1 sekund
+Timer.set(1000, false, function () {
+  let status = Shelly.getComponentStatus("input:" + CONFIG.rastInputPin);
+  if (status && status.state !== undefined) {
+    print("📊 Initial rast-status: ", status.state ? "PÅ RAST" : "ARBETAR");
+    if (status.state !== lastRastState) {
+      handleRastChange(status.state);
+    }
+  }
+});
+
+print("✅ Script aktivt: rast + kommando på samma Shelly-script");
+

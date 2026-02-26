@@ -66,6 +66,24 @@ class RebotlingController {
             $stmt->execute();
             $ibcToday = (int)$stmt->fetchColumn();
 
+            // Hämta aktuellt löpnummer från PLC-tabellen (en rad som uppdateras av PLC-backend)
+            $nextLopnummer = null;
+            try {
+                $stmt = $this->pdo->query('
+                    SELECT lopnummer
+                    FROM rebotling_lopnummer_current
+                    WHERE id = 1
+                    LIMIT 1
+                ');
+                $lopRow = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($lopRow && isset($lopRow['lopnummer'])) {
+                    $nextLopnummer = (int)$lopRow['lopnummer'];
+                }
+            } catch (Exception $e) {
+                // Tabellen kanske inte finns ännu – ignorera tyst i live-vyn
+                error_log('RebotlingController getLiveStats: kunde inte läsa rebotling_lopnummer_current: ' . $e->getMessage());
+            }
+
             // Hämta antal IBCer från senaste timmen för nuvarande skift
             $rebotlingThisHour = 0;
             if ($currentSkift !== null) {
@@ -215,6 +233,7 @@ class RebotlingController {
                     'hourlyTarget' => $hourlyTarget,
                     'ibcToday' => $ibcToday,
                     'productionPercentage' => $productionPercentage,
+                    'nextLopnummer' => $nextLopnummer,
                     'utetemperatur' => $utetemperatur
                 ]
             ]);

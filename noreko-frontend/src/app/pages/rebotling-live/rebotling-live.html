@@ -15,24 +15,10 @@
   <div class="row g-4 align-items-stretch justify-content-center" style="min-height: 250px;">
     <div class="col-4 d-flex align-items-stretch">
       <div class="live-card flex-fill clock-card h-100 w-100 d-flex flex-column justify-content-center align-items-center">
-        <div class="live-label">OEE idag</div>
-        @if (oee !== null) {
-          <div class="live-value" [style.color]="oee >= 85 ? '#27ae60' : oee >= 60 ? '#f1c40f' : '#e74c3c'">
-            {{ oee | number:'1.1-1' }}%
-          </div>
-          <div class="oee-factors">
-            <small>T: {{ oeeAvailability | number:'1.0-0' }}%</small>
-            <small>P: {{ oeePerformance | number:'1.0-0' }}%</small>
-            <small>K: {{ oeeQuality | number:'1.0-0' }}%</small>
-          </div>
-          <div class="oee-rast" *ngIf="oeeRastHours > 0">
-            <small class="text-warning">
-              <i class="fas fa-coffee me-1"></i>{{ oeeRastHours | number:'1.1-1' }}h rast
-            </small>
-          </div>
-        } @else {
-          <div class="live-value">--</div>
-        }
+        <div class="live-label">Löpnummer</div>
+        <div class="live-value live-rebotling-today">
+          {{ nextLopnummer !== null && nextLopnummer !== 999 ? nextLopnummer : 'EJ OK' }}
+        </div>
       </div>
     </div>
     <div class="col-4 d-flex align-items-stretch">
@@ -42,23 +28,11 @@
       </div>
     </div>
     <div class="col-4 d-flex align-items-stretch">
-      <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center goal-tracker" [class]="goalStatusClass">
-        <div class="live-label">Dagsmål</div>
-        @if (ibcToday >= dailyGoal) {
-          <div class="live-value goal-done">{{ ibcToday }} / {{ dailyGoal }}</div>
-          <div class="goal-message">Mål uppnått!</div>
-        } @else {
-          <div class="live-value">{{ ibcRemaining }} kvar</div>
-          <div class="goal-bar">
-            <div class="goal-bar-fill" [style.width.%]="goalProgress"></div>
-          </div>
-          <div class="goal-detail">
-            {{ ibcToday }} / {{ dailyGoal }} ({{ goalProgress }}%)
-            @if (estimatedCompletion !== '--') {
-              <span class="goal-eta">Klart {{ estimatedCompletion }}</span>
-            }
-          </div>
-        }
+      <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center">
+        <div class="live-label">Utetemperatur</div>
+        <div class="live-value">
+          {{ utetemperatur !== null ? (utetemperatur | number:'1.1-1') + '°C' : '--' }}
+        </div>
       </div>
     </div>
     
@@ -72,23 +46,6 @@
       <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center">
         <div class="live-label">Per timme (mål)</div>
         <div class="live-value live-rebotling-hour-target">{{ hourlyTarget | number:'1.1-1' }}</div>
-      </div>
-    </div>
-    <div class="col-4 d-flex align-items-stretch">
-      <div class="live-card flex-fill h-100 w-100 d-flex flex-column justify-content-center align-items-center"
-           [ngClass]="onRast ? 'rast-card-active' : ''">
-        <div class="live-label">Rasttid idag</div>
-        <div class="live-value" [ngClass]="onRast ? 'text-warning' : ''">
-          {{ rastTimeLabel }}
-        </div>
-        <div class="rast-meta">
-          <span *ngIf="onRast" class="badge bg-warning text-dark me-1">
-            <i class="fas fa-coffee me-1"></i>Pågår
-          </span>
-          <small class="text-muted" *ngIf="rastCountToday > 0">
-            {{ rastCountToday }} {{ rastCountToday === 1 ? 'rast' : 'raster' }}
-          </small>
-        </div>
       </div>
     </div>
     <div class="col-4 d-flex align-items-stretch">

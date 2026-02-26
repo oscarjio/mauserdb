@@ -58,9 +58,10 @@ class ModbusMaster {
    * @param String $host An IP address of a Modbus TCP device. E.g. "192.168.1.1"
    * @param String $protocol Socket protocol (TCP, UDP)   
    */         
-  function ModbusMaster($host, $protocol){
+  function __construct($host, $protocol){
     $this->socket_protocol = $protocol;
     $this->host = $host;
+    $this->port = 502;
   }
 
   /**
@@ -80,18 +81,16 @@ class ModbusMaster {
    * @return bool
    */
   private function connect(){
-    // Create a protocol specific socket 
-    if ($this->socket_protocol == "TCP"){ 
-        // TCP socket
-        $this->sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);      
+    // Create a protocol specific socket
+    if ($this->socket_protocol == "TCP"){
+        $this->sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
     } elseif ($this->socket_protocol == "UDP"){
-        // UDP socket
         $this->sock = socket_create(AF_INET, SOCK_DGRAM, SOL_UDP);
     } else {
         throw new Exception("Unknown socket protocol, should be 'TCP' or 'UDP'");
     }
     // Bind the client socket to a specific local port
-    if (strlen($this->client)>0){
+    if (strlen($this->client) > 0){
         $result = socket_bind($this->sock, $this->client, $this->client_port);
         if ($result === false) {
             throw new Exception("socket_bind() failed.</br>Reason: ($result)".
@@ -100,17 +99,40 @@ class ModbusMaster {
             $this->status .= "Bound\n";
         }
     }
-    // Socket settings
-    socket_set_option($this->sock, SOL_SOCKET, SO_SNDTIMEO, array('sec' => 1, 'usec' => 0));
-    // Connect the socket
+    // FIX: Sätt non-blocking INNAN socket_connect().
+    // På Linux returnerar socket_connect() EINPROGRESS (errno 115) om SO_SNDTIMEO
+    // är satt på en blockerande socket — kärnan behandlar den internt som non-blocking.
+    // Korrekt mönster: non-blocking connect + socket_select() för connection timeout.
+    socket_set_nonblock($this->sock);
     $result = @socket_connect($this->sock, $this->host, $this->port);
-    if ($result === false) {
-        throw new Exception("socket_connect() failed.</br>Reason: ($result)".
-            socket_strerror(socket_last_error($this->sock)));
-    } else {
-        $this->status .= "Connected\n";
-        return true;        
-    }    
+    $errno  = socket_last_error($this->sock);
+    // EINPROGRESS (115) = anslutning pågår, det är förväntat för non-blocking TCP
+    if ($result === false && $errno !== SOCKET_EINPROGRESS && $errno !== 115) {
+        throw new Exception("socket_connect() failed.</br>Reason: ".
+            socket_strerror($errno));
+    }
+    // Vänta på att anslutningen etableras (write-ready = connected)
+    $write  = [$this->sock];
+    $read   = null;
+    $except = null;
+    $selected = socket_select($read, $write, $except, $this->timeout_sec);
+    if ($selected === false) {
+        throw new Exception("socket_select() failed during connect to {$this->host}:{$this->port}");
+    }
+    if ($selected === 0) {
+        throw new Exception("Connection to {$this->host}:{$this->port} timed out after {$this->timeout_sec}s");
+    }
+    // Kontrollera att anslutningen faktiskt lyckades (SO_ERROR == 0)
+    $sockErr = socket_get_option($this->sock, SOL_SOCKET, SO_ERROR);
+    if ($sockErr !== 0) {
+        throw new Exception("socket_connect() failed.</br>Reason: ".socket_strerror($sockErr));
+    }
+    // Återställ till blocking-läge och sätt timeouts för datatransfer
+    socket_set_block($this->sock);
+    socket_set_option($this->sock, SOL_SOCKET, SO_SNDTIMEO, ['sec' => $this->timeout_sec, 'usec' => 0]);
+    socket_set_option($this->sock, SOL_SOCKET, SO_RCVTIMEO, ['sec' => $this->timeout_sec, 'usec' => 0]);
+    $this->status .= "Connected\n";
+    return true;
   }
 
   /**
@@ -144,32 +166,37 @@ class ModbusMaster {
    */
   private function rec(){
     socket_set_nonblock($this->sock);
-    $readsocks[] = $this->sock;     
-    $writesocks = NULL;
-    $exceptsocks = NULL;
-    $rec = "";
-    $lastAccess = time();
-    while (socket_select($readsocks, 
-            $writesocks, 
-            $exceptsocks,
-            0, 
-            300000) !== FALSE) {
-            $this->status .= "Wait data ... \n";
-        if (in_array($this->sock, $readsocks)) {
-            while (@socket_recv($this->sock, $rec, 2000, 0)) {
-                $this->status .= "Data received\n";
-                return $rec;
-            }
-            $lastAccess = time();
-        } else {             
-            if (time()-$lastAccess >= $this->timeout_sec) {
-                throw new Exception( "Watchdog time expired [ " .
-                  $this->timeout_sec . " sec]!!! Connection to " . 
-                  $this->host . " is not established.");
-            }
+    // FIX: Använd absolut deadline istf $lastAccess som resetades felaktigt
+    // när socket_recv() returnerade 0 bytes (TCP-koppling stängd/RST),
+    // vilket skapade en tight oändlig loop tills PHP:s max_execution_time slog till.
+    $deadline = time() + $this->timeout_sec;
+    while (time() < $deadline) {
+        // Återinitialisera arrayen varje iteration (socket_select modifierar den)
+        $read   = [$this->sock];
+        $write  = null;
+        $except = null;
+        $remaining = $deadline - time();
+        if ($remaining <= 0) break;
+        $selected = socket_select($read, $write, $except, $remaining, 0);
+        if ($selected === false) {
+            throw new Exception("socket_select() failed in rec() for " . $this->host);
         }
-        $readsocks[] = $this->sock;
+        if ($selected === 0) {
+            // Timeout – ingen data kom inom timeout_sec sekunder
+            break;
+        }
+        if (!empty($read)) {
+            $rec   = '';
+            $bytes = @socket_recv($this->sock, $rec, 2000, 0);
+            // bytes=0 eller false = anslutning stängd av PLC (EOF/RST)
+            if ($bytes === false || $bytes === 0) {
+                throw new Exception("Connection to {$this->host}:{$this->port} closed unexpectedly");
+            }
+            $this->status .= "Data received\n";
+            return $rec;
+        }
     }
+    throw new Exception("Watchdog time expired [{$this->timeout_sec} sec]!!! Connection to {$this->host} is not established.");
   } 
   
   /**
