@@ -135,7 +135,7 @@
           <div class="card-body">
             <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
               <div 
-                *ngFor="let cell of periodCells"
+                *ngFor="let cell of getVisiblePeriodCells()"
                 class="period-cell"
                 [class.has-data]="cell.hasData"
                 [class.selected]="cell.isSelected"
@@ -159,6 +159,17 @@
             </div>
             
             <div class="mt-3" *ngIf="viewMode !== 'day'">
+              <!-- I månadsvy: växla visa alla dagar / bara dagar med cykler -->
+              <div class="d-grid gap-2 mb-2" *ngIf="viewMode === 'month'">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="showOnlyDaysWithCycles = !showOnlyDaysWithCycles">
+                  <i class="fas fa-filter me-2"></i>
+                  <span *ngIf="showOnlyDaysWithCycles">Visa alla dagar</span>
+                  <span *ngIf="!showOnlyDaysWithCycles">Visa bara dagar med data</span>
+                </button>
+              </div>
               <!-- Action Buttons -->
               <div class="d-grid gap-2 mb-3">
                 <button 
@@ -215,14 +226,22 @@
       <!-- Chart -->
       <div class="col-lg-9 mb-4">
         <div class="dark-card">
-          <div class="card-header">
-            <h5 class="mb-0">
-              <i class="fas fa-chart-line me-2"></i>
-              Produktionsanalys
-            </h5>
-            <small class="text-muted">
-              Bakgrund: Grön = Kör, Röd = Stoppad | Gul = Snitt | Orange = Mål
-            </small>
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <h5 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>
+                Produktionsanalys
+              </h5>
+              <small class="text-muted d-block">
+                Bakgrund: Grön = Kör, Röd = Stoppad | Gul = Snitt | Orange = Mål
+              </small>
+            </div>
+            <button
+              *ngIf="viewMode === 'day' && chartHasSelection()"
+              class="btn btn-outline-light btn-sm"
+              (click)="resetChartZoom()">
+              Återställ
+            </button>
           </div>
           <div class="card-body">
             <div class="chart-container">

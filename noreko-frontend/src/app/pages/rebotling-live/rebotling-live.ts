@@ -49,6 +49,9 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
   statusText: string = 'Bra produktion';
   statusBadgeClass: string = 'bg-success';
   
+  // Löpnummer (nästa IBC-nummer)
+  nextLopnummer: number | null = null;
+
   // Line status
   isLineRunning: boolean = false;
   statusBarClass: string = 'status-bar-off';
