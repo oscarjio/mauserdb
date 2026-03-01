@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { SkiftrapportService } from '../../services/skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -24,7 +26,15 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   user: any = null;
   showAddReportForm = false;
   loggedIn = false;
+
+  // Date filter
+  filterFrom = '';
+  filterTo = '';
+
+  private destroy$ = new Subject<void>();
+  private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
+  private successTimerId: any = null;
 
   constructor(
     private skiftrapportService: SkiftrapportService,
@@ -40,20 +50,66 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   };
 
   ngOnInit() {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(user => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
       this.user = user;
       this.isAdmin = user?.role === 'admin';
     });
     this.fetchReports();
     this.fetchProducts();
-    
+
     // Uppdatera tabellen var 10:e sekund
     this.updateInterval = setInterval(() => {
-      this.fetchReports(true); // true = sömlös uppdatering
+      if (!this.destroy$.closed) this.fetchReports(true);
     }, 10000);
   }
 
+  ngOnDestroy() {
+    clearInterval(this.updateInterval);
+    clearTimeout(this.successTimerId);
+    this.fetchSub?.unsubscribe();
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ========== Date filter ==========
+  get filteredReports(): any[] {
+    return this.reports.filter(r => {
+      const d = (r.datum || '').substring(0, 10);
+      if (this.filterFrom && d < this.filterFrom) return false;
+      if (this.filterTo && d > this.filterTo) return false;
+      return true;
+    });
+  }
+
+  clearFilter() {
+    this.filterFrom = '';
+    this.filterTo = '';
+  }
+
+  // ========== Computed KPIs ==========
+  getQualityPct(r: any): number | null {
+    if (!r.totalt) return null;
+    return Math.round((r.ibc_ok / r.totalt) * 100);
+  }
+
+  getEfficiencyPct(r: any): number | null {
+    const total = (r.drifttid || 0) + (r.rasttime || 0);
+    if (!total) return null;
+    return Math.round((r.drifttid / total) * 100);
+  }
+
+  getIbcPerHour(r: any): number | null {
+    if (!r.drifttid) return null;
+    return Math.round((r.ibc_ok / (r.drifttid / 60)) * 10) / 10;
+  }
+
+  getDefectPct(r: any): number | null {
+    if (!r.totalt) return null;
+    return Math.round(((r.bur_ej_ok + r.ibc_ej_ok) / r.totalt) * 100);
+  }
+
+  // ========== Fetch ==========
   fetchProducts() {
     this.skiftrapportService.getProducts().subscribe({
       next: (res) => {
@@ -67,75 +123,58 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
   }
 
-  ngOnDestroy() {
-    // Rensa interval när komponenten förstörs
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-    }
-  }
-
   fetchReports(silent: boolean = false) {
-    // Visa inte loading-spinner vid automatiska uppdateringar
     if (!silent) {
       this.loading = true;
     }
     this.errorMessage = '';
-    
-    // Spara scroll-position och befintliga rader för sömlös uppdatering
+
     const tableContainer = document.querySelector('.table-responsive');
     const scrollTop = tableContainer ? tableContainer.scrollTop : 0;
-    const oldReportIds = new Set(this.reports.map(r => r.id));
-    
-    this.skiftrapportService.getSkiftrapporter().subscribe({
-      next: (res) => {
-        if (!silent) {
-          this.loading = false;
-        }
-        if (res.success) {
-          const newReports = res.data || [];
-          
-          // Om det är en sömlös uppdatering, behåll expanderade rader och val
-          if (silent) {
-            // Behåll expanderade rader
-            const expandedCopy = { ...this.expanded };
-            // Behåll valda rader
-            const selectedIdsCopy = new Set(this.selectedIds);
-            
-            // Uppdatera rapporterna
-            this.reports = newReports;
-            
-            // Återställ expanderade rader
-            this.expanded = expandedCopy;
-            // Återställ valda rader (bara de som fortfarande finns)
-            this.selectedIds = new Set(
-              Array.from(selectedIdsCopy).filter(id => 
-                newReports.some((r: any) => r.id === id)
-              )
-            );
-            
-            // Återställ scroll-position
-            if (tableContainer) {
-              setTimeout(() => {
-                tableContainer.scrollTop = scrollTop;
-              }, 0);
+
+    this.fetchSub?.unsubscribe();
+    this.fetchSub = this.skiftrapportService.getSkiftrapporter()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          if (!silent) {
+            this.loading = false;
+          }
+          if (res.success) {
+            const newReports = res.data || [];
+
+            if (silent) {
+              const expandedCopy = { ...this.expanded };
+              const selectedIdsCopy = new Set(this.selectedIds);
+              this.reports = newReports;
+              this.expanded = expandedCopy;
+              this.selectedIds = new Set(
+                Array.from(selectedIdsCopy).filter(id =>
+                  newReports.some((r: any) => r.id === id)
+                )
+              );
+              if (tableContainer) {
+                setTimeout(() => {
+                  if (!this.destroy$.closed) tableContainer.scrollTop = scrollTop;
+                }, 0);
+              }
+            } else {
+              this.reports = newReports;
             }
           } else {
-            // Normal uppdatering - ersätt allt
-            this.reports = newReports;
+            this.errorMessage = res.message || 'Kunde inte hämta skiftrapporter';
           }
-        } else {
-          this.errorMessage = res.message || 'Kunde inte hämta skiftrapporter';
+        },
+        error: (error) => {
+          if (!silent) {
+            this.loading = false;
+          }
+          this.errorMessage = error.error?.message || 'Ett fel uppstod vid hämtning av skiftrapporter';
         }
-      },
-      error: (error) => {
-        if (!silent) {
-          this.loading = false;
-        }
-        this.errorMessage = error.error?.message || 'Ett fel uppstod vid hämtning av skiftrapporter';
-      }
-    });
+      });
   }
 
+  // ========== Selection ==========
   toggleSelect(id: number) {
     if (this.selectedIds.has(id)) {
       this.selectedIds.delete(id);
@@ -145,10 +184,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   toggleSelectAll() {
-    if (this.selectedIds.size === this.reports.length) {
+    const visible = this.filteredReports;
+    if (this.selectedIds.size === visible.length && visible.length > 0) {
       this.selectedIds.clear();
     } else {
-      this.reports.forEach(r => this.selectedIds.add(r.id));
+      visible.forEach(r => this.selectedIds.add(r.id));
     }
   }
 
@@ -164,6 +204,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return this.isAdmin || this.isOwner(report);
   }
 
+  // ========== Inlagd ==========
   toggleInlagd(report: any) {
     const newInlagd = !report.inlagd;
     this.skiftrapportService.updateInlagd(report.id, newInlagd).subscribe({
@@ -208,6 +249,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
   }
 
+  // ========== CRUD ==========
   deleteReport(id: number) {
     if (!confirm('Är du säker på att du vill ta bort denna skiftrapport?')) {
       return;
@@ -258,7 +300,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   addReport() {
     this.errorMessage = '';
-    
+
     if (!this.newReport.datum) {
       this.errorMessage = 'Datum är obligatoriskt';
       return;
@@ -270,7 +312,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }
 
     const totalt = this.newReport.ibc_ok + this.newReport.bur_ej_ok + this.newReport.ibc_ej_ok;
-    
+
     this.loading = true;
     this.skiftrapportService.createSkiftrapport({
       datum: this.newReport.datum,
@@ -291,7 +333,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
             bur_ej_ok: 0,
             ibc_ej_ok: 0
           };
-          this.showAddReportForm = false; // Hide form after adding
+          this.showAddReportForm = false;
           this.showSuccess('Skiftrapport tillagd');
         } else {
           this.errorMessage = res.message || 'Kunde inte lägga till skiftrapport';
@@ -309,15 +351,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   saveReport(report: any) {
-    // Säkerställ att datum är i rätt format (YYYY-MM-DD)
     let datum = report.datum;
     if (datum instanceof Date) {
       datum = datum.toISOString().split('T')[0];
     } else if (typeof datum === 'string') {
-      // Om datum är en sträng, ta bort eventuella extra delar
       datum = datum.split(' ')[0];
     }
-    
+
     this.skiftrapportService.updateSkiftrapport(report.id, {
       datum: datum,
       product_id: report.product_id,
@@ -327,9 +367,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }).subscribe({
       next: (res) => {
         if (res.success) {
-          // Räkna om totalt
           report.totalt = (parseInt(report.ibc_ok, 10) || 0) + (parseInt(report.bur_ej_ok, 10) || 0) + (parseInt(report.ibc_ej_ok, 10) || 0);
-          report.datum = datum; // Säkerställ korrekt format
+          report.datum = datum;
           this.expanded[report.id] = false;
           this.fetchReports();
           this.showSuccess('Skiftrapport uppdaterad');
@@ -343,19 +382,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
   }
 
-  showSuccess(message: string) {
-    this.successMessage = message;
-    this.showSuccessMessage = true;
-    setTimeout(() => {
-      this.showSuccessMessage = false;
-    }, 3000);
-  }
-
+  // ========== Export ==========
   exportCSV() {
-    if (this.reports.length === 0) return;
+    if (this.filteredReports.length === 0) return;
 
     const header = ['ID', 'Datum', 'Produkt', 'Användare', 'IBC OK', 'Bur ej OK', 'IBC ej OK', 'Totalt', 'Inlagd'];
-    const rows = this.reports.map((r: any) => [
+    const rows = this.filteredReports.map((r: any) => [
       r.id,
       r.datum,
       r.product_name || '-',
@@ -379,5 +411,159 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     link.download = `skiftrapport-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  exportExcel() {
+    if (this.filteredReports.length === 0) return;
+    import('xlsx').then(XLSX => {
+      const data = this.filteredReports.map(r => ({
+        'ID':              r.id,
+        'Datum':           r.datum,
+        'Produkt':         r.product_name || '-',
+        'Användare':       r.user_name || '-',
+        'IBC OK':          r.ibc_ok,
+        'Bur ej OK':       r.bur_ej_ok,
+        'IBC ej OK':       r.ibc_ej_ok,
+        'Totalt':          r.totalt,
+        'Kvalitet %':      this.getQualityPct(r) ?? '',
+        'Effektivitet %':  this.getEfficiencyPct(r) ?? '',
+        'IBC/timme':       this.getIbcPerHour(r) ?? '',
+        'Op1':             r.op1 ?? '',
+        'Op2':             r.op2 ?? '',
+        'Op3':             r.op3 ?? '',
+        'Drifttid (min)':  r.drifttid ?? '',
+        'Rasttid (min)':   r.rasttime ?? '',
+        'Löpnummer':       r.lopnummer ?? '',
+        'Skifträknare':    r.skiftraknare ?? '',
+        'Inlagd':          r.inlagd == 1 ? 'Ja' : 'Nej'
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
+      XLSX.writeFile(wb, `skiftrapporter-${new Date().toISOString().split('T')[0]}.xlsx`);
+    });
+  }
+
+  exportPDF(report: any) {
+    import('pdfmake/build/pdfmake').then((pdfMakeModule: any) => {
+      import('pdfmake/build/vfs_fonts').then((vfsFontsModule: any) => {
+        const pdfMake = pdfMakeModule.default || pdfMakeModule;
+        const vfsFonts = vfsFontsModule.default || vfsFontsModule;
+        pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
+        const docDef = this.buildPDFDocDef(report);
+        pdfMake.createPdf(docDef).download(`skiftrapport-${report.datum}-${report.id}.pdf`);
+      });
+    });
+  }
+
+  private buildPDFDocDef(r: any): any {
+    const qualPct = this.getQualityPct(r);
+    const effPct  = this.getEfficiencyPct(r);
+    const ibcH    = this.getIbcPerHour(r);
+    const defPct  = this.getDefectPct(r);
+
+    return {
+      content: [
+        { text: 'Skiftrapport', style: 'header' },
+        {
+          text: `${r.datum}  |  ${r.product_name || '-'}  |  Skift #${r.skiftraknare || '-'}`,
+          style: 'subheader'
+        },
+        { text: '\n' },
+        { text: 'Produktion', style: 'sectionHeader' },
+        {
+          table: {
+            widths: ['*', '*', '*', '*'],
+            body: [
+              [
+                { text: 'IBC OK', bold: true, fillColor: '#eeeeee' },
+                { text: 'Bur ej OK', bold: true, fillColor: '#eeeeee' },
+                { text: 'IBC ej OK', bold: true, fillColor: '#eeeeee' },
+                { text: 'Totalt', bold: true, fillColor: '#eeeeee' }
+              ],
+              [
+                { text: String(r.ibc_ok), alignment: 'center' },
+                { text: String(r.bur_ej_ok), alignment: 'center' },
+                { text: String(r.ibc_ej_ok), alignment: 'center' },
+                { text: String(r.totalt), bold: true, alignment: 'center' }
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines'
+        },
+        { text: '\n' },
+        { text: 'Nyckeltal', style: 'sectionHeader' },
+        {
+          table: {
+            widths: ['*', '*', '*', '*'],
+            body: [
+              [
+                { text: 'Kvalitet', bold: true, fillColor: '#eeeeee' },
+                { text: 'Effektivitet', bold: true, fillColor: '#eeeeee' },
+                { text: 'IBC/timme', bold: true, fillColor: '#eeeeee' },
+                { text: 'Kassation', bold: true, fillColor: '#eeeeee' }
+              ],
+              [
+                { text: qualPct != null ? qualPct + '%' : '–', alignment: 'center', color: qualPct != null && qualPct >= 90 ? 'green' : 'black' },
+                { text: effPct  != null ? effPct + '%'  : '–', alignment: 'center' },
+                { text: ibcH    != null ? ibcH + ' st/h': '–', alignment: 'center' },
+                { text: defPct  != null ? defPct + '%'  : '–', alignment: 'center', color: defPct != null && defPct > 10 ? 'red' : 'black' }
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines'
+        },
+        { text: '\n' },
+        { text: 'PLC-data', style: 'sectionHeader' },
+        {
+          table: {
+            widths: ['*', '*', '*', '*', '*', '*', '*'],
+            body: [
+              [
+                { text: 'Tvättplats', bold: true, fillColor: '#eeeeee' },
+                { text: 'Kontroll', bold: true, fillColor: '#eeeeee' },
+                { text: 'Truck', bold: true, fillColor: '#eeeeee' },
+                { text: 'Drifttid', bold: true, fillColor: '#eeeeee' },
+                { text: 'Rasttid', bold: true, fillColor: '#eeeeee' },
+                { text: 'Löpnr', bold: true, fillColor: '#eeeeee' },
+                { text: 'Skift#', bold: true, fillColor: '#eeeeee' }
+              ],
+              [
+                { text: String(r.op1 ?? '–'), alignment: 'center' },
+                { text: String(r.op2 ?? '–'), alignment: 'center' },
+                { text: String(r.op3 ?? '–'), alignment: 'center' },
+                { text: r.drifttid != null ? r.drifttid + ' min' : '–', alignment: 'center' },
+                { text: r.rasttime != null ? r.rasttime + ' min' : '–', alignment: 'center' },
+                { text: String(r.lopnummer ?? '–'), alignment: 'center' },
+                { text: String(r.skiftraknare ?? '–'), alignment: 'center' }
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines'
+        },
+        { text: '\n' },
+        { text: 'Skiftansvarig: ' + (r.user_name || '-'), style: 'meta' },
+        { text: 'Inlagd i system: ' + (r.inlagd == 1 ? 'Ja' : 'Nej'), style: 'meta' },
+        { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'meta' }
+      ],
+      styles: {
+        header:        { fontSize: 22, bold: true, margin: [0, 0, 0, 4] },
+        subheader:     { fontSize: 12, color: '#555555', margin: [0, 0, 0, 10] },
+        sectionHeader: { fontSize: 13, bold: true, margin: [0, 10, 0, 4] },
+        meta:          { fontSize: 10, color: '#777777', margin: [0, 2, 0, 0] }
+      },
+      defaultStyle: { fontSize: 11 },
+      pageMargins: [40, 50, 40, 50]
+    };
+  }
+
+  // ========== Toast ==========
+  showSuccess(message: string) {
+    this.successMessage = message;
+    this.showSuccessMessage = true;
+    clearTimeout(this.successTimerId);
+    this.successTimerId = setTimeout(() => {
+      if (!this.destroy$.closed) this.showSuccessMessage = false;
+    }, 3000);
   }
 }

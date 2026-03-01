@@ -75,32 +75,54 @@
         </div>
       </div>
 
+      <!-- Date filter bar -->
+      <div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
+        <div>
+          <label class="form-label small mb-1">Från datum</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" style="width:150px;" />
+        </div>
+        <div>
+          <label class="form-label small mb-1">Till datum</label>
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="width:150px;" />
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()" *ngIf="filterFrom || filterTo">
+          <i class="fas fa-times me-1"></i>Rensa filter
+        </button>
+        <span class="text-muted small align-self-end pb-1" *ngIf="reports.length > 0">
+          {{ filteredReports.length }} av {{ reports.length }} skift
+        </span>
+      </div>
+
       <!-- Reports Table Card -->
       <div class="card mb-4">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
           <h5 class="card-title mb-0">
             <i class="fas fa-table me-2"></i>
             Skiftrapporter
           </h5>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="reports.length > 0" title="Exportera till CSV">
+          <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="filteredReports.length > 0" title="Exportera till CSV">
               <i class="fas fa-download me-1"></i>
               CSV
             </button>
-          </div>
-          <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
-            <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(true)" title="Markera valda som inlagda">
-              <i class="fas fa-check me-1"></i>
-              Markera inlagda
+            <button class="btn btn-sm btn-outline-light" (click)="exportExcel()" *ngIf="filteredReports.length > 0" title="Exportera till Excel">
+              <i class="fas fa-file-excel me-1"></i>
+              Excel
             </button>
-            <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(false)" title="Markera valda som ej inlagda">
-              <i class="fas fa-times me-1"></i>
-              Markera ej inlagda
-            </button>
-            <button class="btn btn-sm btn-outline-danger" (click)="bulkDelete()" title="Ta bort valda">
-              <i class="fas fa-trash me-1"></i>
-              Ta bort ({{ selectedIds.size }})
-            </button>
+            <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
+              <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(true)" title="Markera valda som inlagda">
+                <i class="fas fa-check me-1"></i>
+                Markera inlagda
+              </button>
+              <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(false)" title="Markera valda som ej inlagda">
+                <i class="fas fa-times me-1"></i>
+                Markera ej inlagda
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="bulkDelete()" title="Ta bort valda">
+                <i class="fas fa-trash me-1"></i>
+                Ta bort ({{ selectedIds.size }})
+              </button>
+            </div>
           </div>
         </div>
         <div class="card-body">
@@ -114,7 +136,9 @@
               <thead class="table-dark">
                 <tr>
                   <th width="40" *ngIf="isAdmin">
-                    <input type="checkbox" [checked]="selectedIds.size === reports.length && reports.length > 0" (change)="toggleSelectAll()" />
+                    <input type="checkbox"
+                      [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0"
+                      (change)="toggleSelectAll()" />
                   </th>
                   <th>ID</th>
                   <th>Datum</th>
@@ -129,7 +153,7 @@
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let report of reports">
+                <ng-container *ngFor="let report of filteredReports">
                   <tr [class.inlagd-row]="report.inlagd == 1">
                     <td *ngIf="isAdmin">
                       <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
@@ -159,10 +183,12 @@
                     </td>
                     <td>
                       <div class="btn-group btn-group-sm" role="group">
-                        <!-- Detaljknapp synlig för alla inloggade -->
                         <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
                           [title]="expanded[report.id] ? 'Dölj detaljer' : 'Visa detaljer'">
                           <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
+                        </button>
+                        <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF">
+                          <i class="fas fa-file-pdf"></i>
                         </button>
                         <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort">
                           <i class="fas fa-trash"></i>
@@ -174,7 +200,54 @@
                   <!-- Expanderad detaljrad -->
                   <tr *ngIf="expanded[report.id]" class="expand-row">
                     <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
-                      <div class="p-3" style="background:#1e2a3a;">
+                      <div class="expand-panel p-3">
+
+                        <!-- KPI-kort -->
+                        <div class="row g-2 mb-3">
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Kvalitet</div>
+                              <div class="kpi-value"
+                                [class.text-success]="(getQualityPct(report) ?? 0) >= 90"
+                                [class.text-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
+                                [class.text-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
+                                [class.text-muted]="getQualityPct(report) == null">
+                                {{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Effektivitet</div>
+                              <div class="kpi-value"
+                                [class.text-info]="getEfficiencyPct(report) != null"
+                                [class.text-muted]="getEfficiencyPct(report) == null">
+                                {{ getEfficiencyPct(report) != null ? (getEfficiencyPct(report) + '%') : '–' }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">IBC / timme</div>
+                              <div class="kpi-value"
+                                [class.text-warning]="getIbcPerHour(report) != null"
+                                [class.text-muted]="getIbcPerHour(report) == null">
+                                {{ getIbcPerHour(report) != null ? (getIbcPerHour(report) + ' st/h') : '–' }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Kassation</div>
+                              <div class="kpi-value"
+                                [class.text-danger]="(getDefectPct(report) ?? 0) > 10"
+                                [class.text-success]="(getDefectPct(report) ?? 101) <= 10 && getDefectPct(report) != null"
+                                [class.text-muted]="getDefectPct(report) == null">
+                                {{ getDefectPct(report) != null ? (getDefectPct(report) + '%') : '–' }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
 
                         <!-- PLC-data från skiftet -->
                         <div class="mb-3">
@@ -278,10 +351,10 @@
                   </tr>
                 </ng-container>
 
-                <tr *ngIf="reports.length === 0">
+                <tr *ngIf="filteredReports.length === 0">
                   <td [attr.colspan]="isAdmin ? 11 : 10" class="text-center text-muted">
                     <i class="fas fa-info-circle me-2"></i>
-                    Inga skiftrapporter hittades.
+                    {{ reports.length === 0 ? 'Inga skiftrapporter hittades.' : 'Inga skift matchar det valda datumintervallet.' }}
                   </td>
                 </tr>
               </tbody>

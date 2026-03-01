@@ -202,3 +202,37 @@
 .border-primary {
   border-color: #0d6efd !important;
 }
+
+/* Expanded panel */
+.expand-panel {
+  background: #1e2535;
+  border-top: 2px solid #3182ce;
+}
+
+/* KPI cards in expanded row */
+.kpi-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.kpi-card:hover {
+  border-color: #4a90e2;
+}
+
+.kpi-label {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
