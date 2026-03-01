@@ -7,7 +7,7 @@ import { BehaviorSubject, interval } from 'rxjs';
 })
 export class AuthService {
   loggedIn$ = new BehaviorSubject<boolean>(false);
-  user$ = new BehaviorSubject<any>(null);
+  user$ = new BehaviorSubject<any>(undefined);
 
   constructor(private http: HttpClient) {
     this.fetchStatus();

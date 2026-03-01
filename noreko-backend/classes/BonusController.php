@@ -119,12 +119,12 @@ class BonusController {
      * GET /api.php?action=bonus&run=operator&id=<op_id>&period=week|month|all
      */
     private function getOperatorStats() {
-        $op_id      = $_GET['id']     ?? null;
+        $op_id      = isset($_GET['id']) ? intval($_GET['id']) : null;
         $period     = $_GET['period'] ?? 'week';
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
 
-        if (!$op_id) {
+        if (!$op_id || $op_id <= 0) {
             $this->sendError('Operatör-ID saknas (id)');
             return;
         }
@@ -499,10 +499,10 @@ class BonusController {
      * KPI-trenddata per datum (för Chart.js). Kumulativa fält fixas per skift.
      */
     private function getKPIDetails() {
-        $op_id  = $_GET['id']     ?? null;
+        $op_id  = isset($_GET['id']) ? intval($_GET['id']) : null;
         $period = $_GET['period'] ?? 'week';
 
-        if (!$op_id) {
+        if (!$op_id || $op_id <= 0) {
             $this->sendError('Operatör-ID saknas');
             return;
         }
@@ -591,10 +591,10 @@ class BonusController {
      * här eftersom det är enskilda cyklar som visas.
      */
     private function getOperatorHistory() {
-        $op_id = $_GET['id']    ?? null;
+        $op_id = isset($_GET['id']) ? intval($_GET['id']) : null;
         $limit = min((int)($_GET['limit'] ?? 50), 500);
 
-        if (!$op_id) {
+        if (!$op_id || $op_id <= 0) {
             $this->sendError('Operatör-ID saknas');
             return;
         }

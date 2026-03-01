@@ -82,6 +82,7 @@ $classNameMap = [
     'stoppage' => 'StoppageController',
     'audit' => 'AuditController',
     'status' => 'StatusController',
+    'operators' => 'OperatorController',
 ];
 
 $actionKey = strtolower($action);

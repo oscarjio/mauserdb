@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { Subject, Subscription } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { RebotlingService, OEEResponse, CycleTrendResponse } from '../../services/rebotling.service';
 import { TvattlinjeService } from '../../services/tvattlinje.service';
@@ -43,8 +45,10 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   lastRefresh: Date = new Date();
 
   private pollInterval: any;
+  private loadDataSub: Subscription | null = null;
   private trendChart: Chart | null = null;
   private cycleTrendChart: Chart | null = null;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private auth: AuthService,
@@ -52,8 +56,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     private tvattlinjeService: TvattlinjeService,
     private bonusService: BonusService
   ) {
-    this.auth.loggedIn$.subscribe((val: boolean) => this.loggedIn = val);
-    this.auth.user$.subscribe((val: any) => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.isAdmin = val?.role === 'admin';
     });
   }
@@ -64,13 +68,19 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.pollInterval) clearInterval(this.pollInterval);
+    this.loadDataSub?.unsubscribe();
     if (this.trendChart) this.trendChart.destroy();
     if (this.cycleTrendChart) this.cycleTrendChart.destroy();
   }
 
   loadData(): void {
-    forkJoin({
+    // Cancel any in-flight request before starting a new one
+    this.loadDataSub?.unsubscribe();
+
+    this.loadDataSub = forkJoin({
       rebotlingLive: this.rebotlingService.getLiveStats().pipe(timeout(5000), catchError(() => of(null))),
       rebotlingStatus: this.rebotlingService.getRunningStatus().pipe(timeout(5000), catchError(() => of(null))),
       tvattlinjeLive: this.tvattlinjeService.getLiveStats().pipe(timeout(5000), catchError(() => of(null))),
@@ -79,63 +89,68 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       teamStats: this.bonusService.getTeamStats('week').pipe(timeout(5000), catchError(() => of(null))),
       oee: this.rebotlingService.getOEE('today').pipe(timeout(5000), catchError(() => of(null))),
       cycleTrend: this.rebotlingService.getCycleTrend(30).pipe(timeout(8000), catchError(() => of(null)))
-    }).subscribe(results => {
-      this.lines = [];
+    }).subscribe({
+      next: (results) => {
+        this.lines = [];
 
-      // Rebotling
-      const rebLive = results.rebotlingLive as any;
-      const rebStatus = results.rebotlingStatus as any;
-      this.lines.push({
-        name: 'Rebotling',
-        icon: 'fa-recycle',
-        running: rebStatus?.data?.running ?? false,
-        lastUpdate: rebStatus?.data?.lastUpdate ?? null,
-        production: rebLive?.data?.rebotlingToday ?? 0,
-        target: rebLive?.data?.rebotlingTarget ?? 0,
-        percentage: rebLive?.data?.productionPercentage ?? 0,
-        route: '/rebotling/live'
-      });
+        // Rebotling
+        const rebLive = results.rebotlingLive as any;
+        const rebStatus = results.rebotlingStatus as any;
+        this.lines.push({
+          name: 'Rebotling',
+          icon: 'fa-recycle',
+          running: rebStatus?.data?.running ?? false,
+          lastUpdate: rebStatus?.data?.lastUpdate ?? null,
+          production: rebLive?.data?.rebotlingToday ?? 0,
+          target: rebLive?.data?.rebotlingTarget ?? 0,
+          percentage: rebLive?.data?.productionPercentage ?? 0,
+          route: '/rebotling/live'
+        });
 
-      // Tvattlinje
-      const tvLive = results.tvattlinjeLive as any;
-      const tvStatus = results.tvattlinjeStatus as any;
-      this.lines.push({
-        name: 'Tvattlinje',
-        icon: 'fa-shower',
-        running: tvStatus?.data?.running ?? false,
-        lastUpdate: tvStatus?.data?.lastUpdate ?? null,
-        production: tvLive?.data?.ibcToday ?? 0,
-        target: tvLive?.data?.ibcTarget ?? 0,
-        percentage: tvLive?.data?.productionPercentage ?? 0,
-        route: '/tvattlinje/live'
-      });
+        // Tvattlinje
+        const tvLive = results.tvattlinjeLive as any;
+        const tvStatus = results.tvattlinjeStatus as any;
+        this.lines.push({
+          name: 'Tvattlinje',
+          icon: 'fa-shower',
+          running: tvStatus?.data?.running ?? false,
+          lastUpdate: tvStatus?.data?.lastUpdate ?? null,
+          production: tvLive?.data?.ibcToday ?? 0,
+          target: tvLive?.data?.ibcTarget ?? 0,
+          percentage: tvLive?.data?.productionPercentage ?? 0,
+          route: '/tvattlinje/live'
+        });
 
-      // Bonus
-      const bonus = results.bonusSummary as BonusSummaryResponse;
-      if (bonus?.success && bonus.data) {
-        this.bonusSummary = bonus.data;
-      }
+        // Bonus
+        const bonus = results.bonusSummary as BonusSummaryResponse;
+        if (bonus?.success && bonus.data) {
+          this.bonusSummary = bonus.data;
+        }
 
-      const team = results.teamStats as TeamStatsResponse;
-      if (team?.success && team.data) {
-        this.teamStats = team.data;
-        this.buildTrendChart(team.data.shifts || []);
-      }
+        const team = results.teamStats as TeamStatsResponse;
+        if (team?.success && team.data) {
+          this.teamStats = team.data;
+          this.buildTrendChart(team.data.shifts || []);
+        }
 
-      const oee = results.oee as OEEResponse;
-      if (oee?.success && oee.data) {
-        this.oeeData = oee.data;
-      }
+        const oee = results.oee as OEEResponse;
+        if (oee?.success && oee.data) {
+          this.oeeData = oee.data;
+        }
 
-      const ct = results.cycleTrend as CycleTrendResponse;
-      if (ct?.success && ct.data) {
-        this.cycleTrend = ct.data;
-        this.cycleTrendAlert = ct.data.alert;
-        setTimeout(() => this.buildCycleTrendChart(ct.data!), 100);
-      }
+        const ct = results.cycleTrend as CycleTrendResponse;
+        if (ct?.success && ct.data) {
+          this.cycleTrend = ct.data;
+          this.cycleTrendAlert = ct.data.alert;
+          setTimeout(() => {
+            if (!this.destroy$.closed) this.buildCycleTrendChart(ct.data!);
+          }, 100);
+        }
 
-      this.lastRefresh = new Date();
-      this.loading = false;
+        this.lastRefresh = new Date();
+        this.loading = false;
+      },
+      error: () => { this.loading = false; }
     });
   }
 

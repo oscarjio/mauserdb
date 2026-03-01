@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 
@@ -11,7 +13,8 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './rebotling-admin.html',
   styleUrl: './rebotling-admin.css'
 })
-export class RebotlingAdminPage implements OnInit {
+export class RebotlingAdminPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
   isAdmin = false;
@@ -29,11 +32,16 @@ export class RebotlingAdminPage implements OnInit {
   showAddProductForm = false;
 
   constructor(private auth: AuthService, private http: HttpClient) {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngOnInit() {

@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, distinctUntilChanged } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, OperatorStatsResponse, KPIDetailsResponse, OperatorHistoryResponse } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
@@ -30,6 +30,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   selectedPeriod = 'week';
   showFormula = false;
 
+  Math = Math;
   private kpiChart: Chart | null = null;
   private historyChart: Chart | null = null;
   private destroy$ = new Subject<void>();
@@ -39,7 +40,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((user: any) => {
+    this.auth.user$.pipe(
+      takeUntil(this.destroy$),
+      distinctUntilChanged((a: any, b: any) => a?.operator_id === b?.operator_id)
+    ).subscribe((user: any) => {
       if (user?.operator_id) {
         // Operatör-ID är kopplat till kontot – använd det automatiskt
         this.operatorId = String(user.operator_id);

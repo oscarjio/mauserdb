@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { AuditService, AuditEntry, AuditStats } from '../../services/audit.service';
 import { Chart, registerables } from 'chart.js';
@@ -14,7 +16,8 @@ Chart.register(...registerables);
   templateUrl: './audit-log.html',
   styleUrl: './audit-log.css'
 })
-export class AuditLogPage implements OnInit {
+export class AuditLogPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   loggedIn = false;
   isAdmin = false;
   user: any = null;
@@ -44,14 +47,21 @@ export class AuditLogPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.auth.loggedIn$.subscribe((val: boolean) => this.loggedIn = val);
-    this.auth.user$.subscribe((val: any) => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.user = val;
+      const wasAdmin = this.isAdmin;
       this.isAdmin = val?.role === 'admin';
-      if (this.isAdmin) {
+      if (this.isAdmin && !wasAdmin) {
         this.loadLogs();
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    if (this.activityChart) this.activityChart.destroy();
   }
 
   loadLogs() {
@@ -81,7 +91,8 @@ export class AuditLogPage implements OnInit {
           this.stats = res.data;
           setTimeout(() => this.buildActivityChart(), 100);
         }
-      }
+      },
+      error: () => {}
     });
   }
 

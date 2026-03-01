@@ -8,9 +8,20 @@ class RebotlingProductController {
     }
 
     public function handle() {
+        session_start();
+
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $action = $_GET['run'] ?? '';
-        
+
+        // Write operations require admin
+        if ($method !== 'GET') {
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                return;
+            }
+        }
+
         switch ($method) {
             case 'GET':
                 $this->getProducts();
@@ -29,6 +40,7 @@ class RebotlingProductController {
                 $this->deleteProduct();
                 break;
             default:
+                http_response_code(405);
                 echo json_encode(['error' => 'Metod inte tillåten']);
         }
     }

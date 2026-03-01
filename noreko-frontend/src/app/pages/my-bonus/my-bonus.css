@@ -1,112 +1,375 @@
+/* ============================================================
+   MY BONUS — Dark premium theme
+   ============================================================ */
+
 .my-bonus-container {
-  padding: 1rem;
-  background: #1a202c;
+  padding: 1.25rem;
+  background: #0f1117;
   min-height: 100vh;
   color: #e2e8f0;
 }
 
+/* --- Page header --- */
+.page-header { border-bottom: 1px solid #2d3748; padding-bottom: 0.75rem; }
+.page-title  { font-size: 1.5rem; font-weight: 700; color: #f7fafc; margin: 0; }
+.page-subtitle { font-size: 0.85rem; color: #718096; margin: 0.2rem 0 0; }
+
+/* --- Setup card --- */
 .setup-card {
-  background: #2d3748 !important;
-  border: 1px solid #4a5568 !important;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  border: 1px solid #4a5568;
+  border-radius: 16px;
+  padding: 2.5rem;
+  text-align: center;
+  max-width: 480px;
+  margin: 2rem auto;
+}
+.setup-icon  { font-size: 3rem; color: #4299e1; margin-bottom: 1rem; }
+.setup-title { color: #f7fafc; font-weight: 600; margin-bottom: 0.5rem; }
+.setup-desc  { color: #a0aec0; font-size: 0.875rem; margin-bottom: 1.5rem; }
+.setup-input-row {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+.setup-input {
+  max-width: 200px;
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+.setup-input:focus {
+  background: #1a202c;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 2px rgba(66,153,225,0.25);
   color: #e2e8f0;
 }
 
-.kpi-card {
+/* --- Operator badge --- */
+.badge-operator {
+  background: linear-gradient(135deg, #4299e1, #667eea);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+}
+.badge-linked { font-size: 0.75rem; }
+
+/* --- Period group --- */
+.period-group {
+  display: inline-flex;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.period-group button {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.period-group button:hover { background: #2d3748; color: #e2e8f0; }
+.period-group button.active {
+  background: #4299e1;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ============================================================
+   BONUS HERO
+   ============================================================ */
+.bonus-hero {
+  background: linear-gradient(135deg, #1a202c 0%, #2a2f42 100%);
+  border: 1px solid #3a4560;
+  border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.bonus-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(66,153,225,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Score dial */
+.score-dial {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid #4a5568;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  flex-shrink: 0;
+}
+.dial-num  { font-size: 2rem; font-weight: 800; line-height: 1; }
+.dial-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: #a0aec0; }
+
+.score-dial.dial-danger  { border-color: #e53e3e; box-shadow: 0 0 20px rgba(229,62,62,0.25); }
+.score-dial.dial-warning { border-color: #ed8936; box-shadow: 0 0 20px rgba(237,137,54,0.25); }
+.score-dial.dial-primary { border-color: #4299e1; box-shadow: 0 0 20px rgba(66,153,225,0.25); }
+.score-dial.dial-info    { border-color: #38b2ac; box-shadow: 0 0 20px rgba(56,178,172,0.25); }
+.score-dial.dial-gold    { border-color: #f6e05e; box-shadow: 0 0 20px rgba(246,224,94,0.30); }
+
+.hero-details { min-width: 0; }
+
+/* Tier badge in hero */
+.tier-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+/* Trend pill */
+.trend-pill {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.trend-up   { background: rgba(72,187,120,0.15); color: #68d391; }
+.trend-down { background: rgba(229,62,62,0.15); color: #fc8181; }
+.trend-flat { background: rgba(113,128,150,0.15); color: #a0aec0; }
+
+/* Tier progress track */
+.tier-track { position: relative; }
+.tier-bar-bg {
+  height: 8px;
   background: #2d3748;
+  border-radius: 4px;
+  overflow: visible;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+.tier-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.fill-danger  { background: linear-gradient(90deg, #e53e3e, #fc8181); }
+.fill-warning { background: linear-gradient(90deg, #ed8936, #f6ad55); }
+.fill-primary { background: linear-gradient(90deg, #4299e1, #63b3ed); }
+.fill-info    { background: linear-gradient(90deg, #38b2ac, #4fd1c5); }
+.fill-gold    { background: linear-gradient(90deg, #d69e2e, #f6e05e); }
+
+.tier-tick {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  background: #4a5568;
+  border-radius: 1px;
+  transform: translateX(-50%);
+}
+.tier-labels-row {
+  position: absolute;
+  top: 10px;
+  left: 0; right: 0;
+  display: flex;
+  font-size: 0.6rem;
+  color: #718096;
+}
+.tier-labels-row span { position: absolute; transform: translateX(-50%); }
+.tier-labels-row span:first-child { left: 0; transform: none; }
+.tier-labels-row span:last-child  { right: 0; left: auto; transform: none; }
+
+/* Hero quick stats */
+.hero-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.hero-qs { display: flex; flex-direction: column; }
+.qs-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; }
+.qs-val   { font-size: 1rem; font-weight: 700; }
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+.kpi-card {
+  background: #1e2535;
   border-radius: 12px;
   padding: 1.25rem;
   text-align: center;
-  border: 1px solid #4a5568;
+  border: 1px solid #2d3748;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+}
+.kpi-bonus::before { background: linear-gradient(90deg, #d69e2e, #f6e05e); }
+.kpi-eff::before   { background: linear-gradient(90deg, #2b6cb0, #4299e1); }
+.kpi-prod::before  { background: linear-gradient(90deg, #553c9a, #667eea); }
+.kpi-qual::before  { background: linear-gradient(90deg, #276749, #48bb78); }
+
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.6;
 }
 .kpi-label {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a0aec0;
+  letter-spacing: 0.8px;
+  color: #718096;
   margin-bottom: 0.25rem;
 }
 .kpi-value {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.1;
 }
 .kpi-sub {
   font-size: 0.7rem;
   color: #718096;
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
 }
 
-.mini-stat {
-  background: #2d3748;
-  border-radius: 8px;
-  padding: 0.75rem;
-  text-align: center;
-  border: 1px solid #4a5568;
+/* ============================================================
+   CHART CARDS
+   ============================================================ */
+.chart-card {
+  background: #1e2535;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100%;
 }
-.mini-label {
-  display: block;
+.chart-card-header {
+  background: #161c29;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  border-bottom: 1px solid #2d3748;
+  display: flex;
+  align-items: center;
+}
+.chart-card-header.clickable {
+  cursor: pointer;
+  user-select: none;
+}
+.chart-card-header.clickable:hover { background: #1a2132; }
+.chart-body { padding: 1rem; }
+.chart-container { position: relative; height: 250px; }
+
+/* ============================================================
+   PROJECTION CARD
+   ============================================================ */
+.projection-card {
+  background: #1e2535;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.projection-icon { font-size: 2rem; flex-shrink: 0; }
+.projection-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; }
+.projection-value { font-size: 1.6rem; font-weight: 800; }
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.stats-table { font-size: 0.83rem; }
+.stats-table thead th {
+  background: #161c29;
+  color: #718096;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #a0aec0;
-  margin-bottom: 0.25rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #2d3748;
 }
-.mini-value {
-  display: block;
-  font-size: 1.1rem;
+.stats-table tbody td { padding: 0.5rem 0.75rem; border-color: #2d3748; vertical-align: middle; }
+.stats-table tbody tr:hover { background: rgba(66,153,225,0.05); }
+
+.bonus-badge {
+  font-size: 0.8rem;
   font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.05);
 }
 
-.chart-card {
-  background: #2d3748 !important;
-  border: 1px solid #4a5568 !important;
-  border-radius: 12px;
-}
-.chart-card .card-header {
-  background: rgba(0,0,0,0.15) !important;
-  border-bottom: 1px solid #4a5568;
-  color: #e2e8f0;
-}
-.chart-card .card-body {
-  color: #e2e8f0;
-}
-
-.chart-container {
-  position: relative;
-  height: 250px;
-}
-
-.progress {
-  background-color: #1a202c;
-}
-
-.table-dark {
-  --bs-table-bg: transparent;
-}
-
-.next-tier-info {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-}
-.current-tier, .next-tier {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
+/* ============================================================
+   FORMULA SECTION
+   ============================================================ */
 .formula-section h6 {
-  color: #e2e8f0;
+  color: #cbd5e0;
+  font-size: 0.85rem;
+  font-weight: 600;
   margin-top: 1rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
-.formula-section h6:first-child {
-  margin-top: 0;
+.formula-section h6:first-child { margin-top: 0; }
+.formula-section ul { color: #a0aec0; padding-left: 1.2rem; font-size: 0.85rem; }
+.formula-section ul li { margin-bottom: 0.3rem; }
+
+.formula-table { font-size: 0.8rem; }
+.formula-table thead th {
+  background: #161c29;
+  color: #718096;
+  font-size: 0.7rem;
+  text-transform: uppercase;
 }
-.formula-section ul {
-  color: #a0aec0;
-  padding-left: 1.25rem;
+
+.tier-table-wrap { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem; }
+.tier-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  align-items: center;
 }
-.formula-section ul li {
-  margin-bottom: 0.25rem;
+.tier-multi { font-weight: 700; font-size: 0.9rem; }
+.tier-outstanding { background: rgba(246,224,94,0.1); color: #f6e05e; }
+.tier-excellent   { background: rgba(56,178,172,0.1); color: #4fd1c5; }
+.tier-good        { background: rgba(66,153,225,0.1); color: #63b3ed; }
+.tier-base        { background: rgba(160,174,192,0.08); color: #a0aec0; }
+.tier-below       { background: rgba(229,62,62,0.08); color: #fc8181; }
+
+/* Bootstrap overrides */
+.table-dark { --bs-table-bg: transparent; --bs-table-border-color: #2d3748; }
+.progress   { background-color: #161c29; }
+.alert-warning { background: rgba(237,137,54,0.12); border-color: rgba(237,137,54,0.3); color: #fbd38d; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .bonus-hero { padding: 1rem; }
+  .score-dial { width: 80px; height: 80px; }
+  .dial-num   { font-size: 1.5rem; }
+  .hero-quick-row { gap: 0.75rem; }
+  .kpi-value  { font-size: 1.5rem; }
+  .projection-card { flex-direction: column; text-align: center; }
 }

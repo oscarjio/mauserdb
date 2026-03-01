@@ -82,7 +82,7 @@ class SkiftrapportController {
                 exit;
             }
 
-            if ($report['user_id'] != $_SESSION['user_id']) {
+            if ((int)$report['user_id'] !== (int)$_SESSION['user_id']) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'Du kan bara ändra dina egna skiftrapporter']);
                 exit;

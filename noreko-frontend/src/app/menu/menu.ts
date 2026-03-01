@@ -4,7 +4,8 @@ import { NgIf, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../services/auth.service';
-import { forkJoin, catchError, of, timeout } from 'rxjs';
+import { forkJoin, catchError, of, timeout, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-menu',
@@ -31,6 +32,7 @@ export class Menu implements OnInit, OnDestroy {
   profileMessage: string | null = null;
   profileError: string | null = null;
   savingProfile = false;
+  private destroy$ = new Subject<void>();
   private refreshInterval: any;
   private lineStatusInterval: any;
 
@@ -41,7 +43,7 @@ export class Menu implements OnInit, OnDestroy {
   ) {
     const saved = localStorage.getItem('selectedMenu');
     if (saved) this.selectedMenu = saved;
-    this.auth.loggedIn$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.loggedIn = val;
       if (val && this.user?.role === 'admin') {
         this.loadVpnStatus();
@@ -50,7 +52,7 @@ export class Menu implements OnInit, OnDestroy {
         this.clearRefreshInterval();
       }
     });
-    this.auth.user$.subscribe(val => {
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       if (val?.email) {
         this.profileForm.email = val.email;
@@ -75,6 +77,8 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     this.clearRefreshInterval();
     if (this.lineStatusInterval) {
       clearInterval(this.lineStatusInterval);

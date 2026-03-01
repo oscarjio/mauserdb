@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { of } from 'rxjs';
-import { catchError, timeout } from 'rxjs/operators';
+import { of, Subject } from 'rxjs';
+import { catchError, timeout, takeUntil } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
 import { AuthService } from '../services/auth.service';
@@ -15,6 +15,7 @@ import { AuthService } from '../services/auth.service';
   styleUrl: './news.css'
 })
 export class News implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   intervalId: any;
   loggedIn = false;
   isAdmin = false;
@@ -46,8 +47,8 @@ export class News implements OnInit, OnDestroy {
     private tvattlinjeService: TvattlinjeService,
     private auth: AuthService
   ) {
-    this.auth.loggedIn$.subscribe((val: boolean) => this.loggedIn = val);
-    this.auth.user$.subscribe((val: any) => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.isAdmin = val?.role === 'admin';
     });
   }
@@ -60,6 +61,8 @@ export class News implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.intervalId) {
       clearInterval(this.intervalId);
     }

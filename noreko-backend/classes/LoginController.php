@@ -43,6 +43,9 @@ class LoginController {
             // Update last login
             $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
 
+            // Regenerate session ID to prevent session fixation attacks
+            session_regenerate_id(true);
+
             // Set session
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];

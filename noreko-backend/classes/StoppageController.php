@@ -374,7 +374,7 @@ class StoppageController {
         $stmt = $this->pdo->prepare("SELECT user_id FROM stoppage_log WHERE id = ?");
         $stmt->execute([$id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$row || $row['user_id'] != $_SESSION['user_id']) {
+        if (!$row || (int)$row['user_id'] !== (int)$_SESSION['user_id']) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Åtkomst nekad']);
             exit;

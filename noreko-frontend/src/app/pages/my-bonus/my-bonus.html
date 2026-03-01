@@ -1,32 +1,32 @@
 <div class="my-bonus-container" *ngIf="loggedIn">
 
   <!-- Header -->
-  <div class="mb-4">
-    <h2><i class="fas fa-star me-2"></i>Min Bonus</h2>
-    <small class="text-muted">Se din prestanda och bonushistorik</small>
+  <div class="page-header mb-4">
+    <div>
+      <h2 class="page-title"><i class="fas fa-star me-2"></i>Min Bonus</h2>
+      <p class="page-subtitle">Din prestanda och bonushistorik</p>
+    </div>
   </div>
 
-  <!-- Operator ID input -->
-  <div class="card setup-card mb-4" *ngIf="!savedOperatorId">
-    <div class="card-body text-center py-4">
-      <i class="fas fa-id-badge fa-3x text-info mb-3"></i>
-      <h5>Ange ditt anställningsnummer</h5>
-      <p class="text-muted">Ditt anställningsnummer sparas lokalt i webbläsaren så du slipper ange det varje gång.</p>
-      <div class="d-flex justify-content-center gap-2" style="max-width: 300px; margin: 0 auto;">
-        <input type="text" class="form-control" placeholder="T.ex. 12345" [(ngModel)]="operatorId"
-               (keyup.enter)="saveAndLoad()">
-        <button class="btn btn-info" (click)="saveAndLoad()" [disabled]="!operatorId.trim()">
-          <i class="fas fa-arrow-right"></i>
-        </button>
-      </div>
+  <!-- Operator ID input (not yet set) -->
+  <div class="setup-card mb-4" *ngIf="!savedOperatorId">
+    <div class="setup-icon"><i class="fas fa-id-badge"></i></div>
+    <h5 class="setup-title">Ange ditt anställningsnummer</h5>
+    <p class="setup-desc">Sparas lokalt i webbläsaren — slipper anges igen nästa gång.</p>
+    <div class="setup-input-row">
+      <input type="text" class="form-control setup-input" placeholder="T.ex. 12345"
+             [(ngModel)]="operatorId" (keyup.enter)="saveAndLoad()">
+      <button class="btn btn-primary" (click)="saveAndLoad()" [disabled]="!operatorId.trim()">
+        <i class="fas fa-arrow-right"></i>
+      </button>
     </div>
   </div>
 
   <!-- Operator header when set -->
-  <div class="d-flex justify-content-between align-items-center mb-3" *ngIf="savedOperatorId">
-    <div>
-      <span class="badge bg-info me-2">Operatör {{ savedOperatorId }}</span>
-      <span class="badge bg-success me-2" *ngIf="operatorIdFromAccount" title="Kopplat till ditt konto">
+  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2" *ngIf="savedOperatorId">
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge-operator">Op. {{ savedOperatorId }}</span>
+      <span class="badge bg-success badge-linked" *ngIf="operatorIdFromAccount">
         <i class="fas fa-link me-1"></i>Kopplat konto
       </span>
       <button class="btn btn-sm btn-outline-secondary" (click)="clearOperator()" *ngIf="!operatorIdFromAccount">
@@ -34,36 +34,110 @@
       </button>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <div class="btn-group btn-group-sm">
-        <button class="btn" [class.btn-info]="selectedPeriod === 'today'" [class.btn-outline-secondary]="selectedPeriod !== 'today'" (click)="changePeriod('today')">Idag</button>
-        <button class="btn" [class.btn-info]="selectedPeriod === 'week'" [class.btn-outline-secondary]="selectedPeriod !== 'week'" (click)="changePeriod('week')">Vecka</button>
-        <button class="btn" [class.btn-info]="selectedPeriod === 'month'" [class.btn-outline-secondary]="selectedPeriod !== 'month'" (click)="changePeriod('month')">Månad</button>
-        <button class="btn" [class.btn-info]="selectedPeriod === 'year'" [class.btn-outline-secondary]="selectedPeriod !== 'year'" (click)="changePeriod('year')">År</button>
+      <div class="period-group">
+        <button [class.active]="selectedPeriod === 'today'" (click)="changePeriod('today')">Idag</button>
+        <button [class.active]="selectedPeriod === 'week'" (click)="changePeriod('week')">Vecka</button>
+        <button [class.active]="selectedPeriod === 'month'" (click)="changePeriod('month')">Månad</button>
+        <button [class.active]="selectedPeriod === 'year'" (click)="changePeriod('year')">År</button>
       </div>
-      <button class="btn btn-sm btn-outline-success" (click)="exportBonusCSV()" *ngIf="stats?.daily_breakdown?.length"
-              title="Exportera bonushistorik som CSV" aria-label="Exportera CSV">
+      <button class="btn btn-sm btn-outline-success" (click)="exportBonusCSV()"
+              *ngIf="stats?.daily_breakdown?.length" title="Exportera som CSV">
         <i class="fas fa-file-csv me-1"></i>CSV
       </button>
     </div>
   </div>
 
   <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-4">
-    <i class="fas fa-spinner fa-spin fa-lg text-info"></i>
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
+    <p class="text-muted mt-2">Hämtar bonusdata...</p>
   </div>
 
   <!-- Error -->
-  <div class="alert alert-warning" *ngIf="error && !loading">
-    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+  <div class="alert alert-warning d-flex align-items-center gap-2" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-triangle"></i>{{ error }}
   </div>
 
   <!-- Stats -->
   <div *ngIf="stats && !loading">
 
+    <!-- ===== BONUS HERO ===== -->
+    <div class="bonus-hero mb-4">
+      <div class="row g-0 align-items-center">
+        <!-- Score dial -->
+        <div class="col-auto">
+          <div class="score-dial"
+               [class.dial-danger]="(stats.kpis?.bonus_avg || 0) < 70"
+               [class.dial-warning]="(stats.kpis?.bonus_avg || 0) >= 70 && (stats.kpis?.bonus_avg || 0) < 80"
+               [class.dial-primary]="(stats.kpis?.bonus_avg || 0) >= 80 && (stats.kpis?.bonus_avg || 0) < 90"
+               [class.dial-info]="(stats.kpis?.bonus_avg || 0) >= 90 && (stats.kpis?.bonus_avg || 0) < 95"
+               [class.dial-gold]="(stats.kpis?.bonus_avg || 0) >= 95">
+            <div class="dial-num">{{ stats.kpis?.bonus_avg || 0 | number:'1.0-0' }}</div>
+            <div class="dial-label">poäng</div>
+          </div>
+        </div>
+        <!-- Details -->
+        <div class="col hero-details ps-4">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="tier-badge" [ngClass]="getBonusClass(stats.kpis?.bonus_avg || 0)">
+              {{ getBonusTier(stats.kpis?.bonus_avg || 0) }}
+            </span>
+            <span class="trend-pill" *ngIf="getTrendDirection() !== 'flat'"
+                  [class.trend-up]="getTrendDirection() === 'up'"
+                  [class.trend-down]="getTrendDirection() === 'down'">
+              <i class="fas" [class.fa-arrow-up]="getTrendDirection() === 'up'"
+                 [class.fa-arrow-down]="getTrendDirection() === 'down'"></i>
+              {{ getTrendDirection() === 'up' ? 'Stigande' : 'Sjunkande' }}
+            </span>
+          </div>
+
+          <!-- Tier progress track -->
+          <div class="tier-track mb-3">
+            <div class="tier-bar-bg">
+              <div class="tier-bar-fill"
+                   [style.width]="Math.min((stats.kpis?.bonus_avg || 0) / 120 * 100, 100) + '%'"
+                   [class.fill-danger]="(stats.kpis?.bonus_avg || 0) < 70"
+                   [class.fill-warning]="(stats.kpis?.bonus_avg || 0) >= 70 && (stats.kpis?.bonus_avg || 0) < 80"
+                   [class.fill-primary]="(stats.kpis?.bonus_avg || 0) >= 80 && (stats.kpis?.bonus_avg || 0) < 90"
+                   [class.fill-info]="(stats.kpis?.bonus_avg || 0) >= 90 && (stats.kpis?.bonus_avg || 0) < 95"
+                   [class.fill-gold]="(stats.kpis?.bonus_avg || 0) >= 95">
+              </div>
+              <span class="tier-tick" style="left:58.3%" title="70 — Basbonus"></span>
+              <span class="tier-tick" style="left:66.7%" title="80 — God prestanda"></span>
+              <span class="tier-tick" style="left:75%" title="90 — Excellent"></span>
+              <span class="tier-tick" style="left:79.2%" title="95 — Outstanding"></span>
+            </div>
+            <div class="tier-labels-row">
+              <span>0</span>
+              <span style="left:58.3%">70</span>
+              <span style="left:66.7%">80</span>
+              <span style="left:75%">90</span>
+              <span style="left:79.2%">95</span>
+              <span style="right:0">120+</span>
+            </div>
+          </div>
+
+          <!-- Quick stats row -->
+          <div class="hero-quick-row">
+            <div class="hero-qs"><span class="qs-label">Position</span><span class="qs-val">{{ getPositionName(stats.position) }}</span></div>
+            <div class="hero-qs"><span class="qs-label">Cykler</span><span class="qs-val">{{ stats.summary?.total_cycles || 0 }}</span></div>
+            <div class="hero-qs"><span class="qs-label">IBC OK</span><span class="qs-val text-success">{{ stats.summary?.total_ibc_ok || 0 }}</span></div>
+            <div class="hero-qs"><span class="qs-label">Timmar</span><span class="qs-val">{{ stats.summary?.total_hours || 0 | number:'1.1-1' }}</span></div>
+            <div class="hero-qs"><span class="qs-label">Max bonus</span><span class="qs-val" [ngClass]="getBonusClass(stats.kpis?.bonus_max || 0)">{{ stats.kpis?.bonus_max || 0 | number:'1.0-0' }}</span></div>
+            <div class="hero-qs" *ngIf="getNextTierInfo(stats.kpis?.bonus_avg || 0) as next">
+              <span class="qs-label">Till nästa nivå</span>
+              <span class="qs-val text-info">+{{ next.pointsNeeded | number:'1.0-0' }} p</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
       <div class="col-md-3 col-6">
-        <div class="kpi-card">
+        <div class="kpi-card kpi-bonus">
+          <div class="kpi-icon"><i class="fas fa-star"></i></div>
           <div class="kpi-label">Snittbonus</div>
           <div class="kpi-value" [ngClass]="getBonusClass(stats.kpis?.bonus_avg || 0)">
             {{ stats.kpis?.bonus_avg || 0 | number:'1.1-1' }}
@@ -72,67 +146,27 @@
         </div>
       </div>
       <div class="col-md-3 col-6">
-        <div class="kpi-card">
+        <div class="kpi-card kpi-eff">
+          <div class="kpi-icon"><i class="fas fa-bolt"></i></div>
           <div class="kpi-label">Effektivitet</div>
           <div class="kpi-value text-info">{{ stats.kpis?.effektivitet || 0 | number:'1.1-1' }}%</div>
+          <div class="kpi-sub">Godkänd / Total IBC</div>
         </div>
       </div>
       <div class="col-md-3 col-6">
-        <div class="kpi-card">
+        <div class="kpi-card kpi-prod">
+          <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
           <div class="kpi-label">Produktivitet</div>
           <div class="kpi-value text-primary">{{ stats.kpis?.produktivitet || 0 | number:'1.1-1' }}</div>
+          <div class="kpi-sub">IBC per timme</div>
         </div>
       </div>
       <div class="col-md-3 col-6">
-        <div class="kpi-card">
+        <div class="kpi-card kpi-qual">
+          <div class="kpi-icon"><i class="fas fa-check-double"></i></div>
           <div class="kpi-label">Kvalitet</div>
           <div class="kpi-value text-success">{{ stats.kpis?.kvalitet || 0 | number:'1.1-1' }}%</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Summary row -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">Position</span>
-          <span class="mini-value">{{ getPositionName(stats.position) }}</span>
-        </div>
-      </div>
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">Cykler</span>
-          <span class="mini-value">{{ stats.summary?.total_cycles || 0 }}</span>
-        </div>
-      </div>
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">IBC OK</span>
-          <span class="mini-value text-success">{{ stats.summary?.total_ibc_ok || 0 }}</span>
-        </div>
-      </div>
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">IBC Kasserade</span>
-          <span class="mini-value text-danger">{{ stats.summary?.total_ibc_ej_ok || 0 }}</span>
-        </div>
-      </div>
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">Arbetstimmar</span>
-          <span class="mini-value">{{ stats.summary?.total_hours || 0 | number:'1.1-1' }}</span>
-        </div>
-      </div>
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">Rasttid (h)</span>
-          <span class="mini-value text-warning">{{ (stats.summary?.total_rast_hours || 0) | number:'1.1-1' }}</span>
-        </div>
-      </div>
-      <div class="col-md-2 col-4">
-        <div class="mini-stat">
-          <span class="mini-label">Max Bonus</span>
-          <span class="mini-value text-warning">{{ stats.kpis?.bonus_max || 0 | number:'1.0-0' }}</span>
+          <div class="kpi-sub">Godkänd / Rättade</div>
         </div>
       </div>
     </div>
@@ -140,9 +174,11 @@
     <!-- Charts row -->
     <div class="row g-3 mb-4">
       <div class="col-md-5">
-        <div class="card chart-card">
-          <div class="card-header"><h6 class="mb-0">KPI-profil</h6></div>
-          <div class="card-body">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <i class="fas fa-spider me-2 text-info"></i>KPI-profil
+          </div>
+          <div class="chart-body">
             <div class="chart-container">
               <canvas id="myKpiChart"></canvas>
             </div>
@@ -150,9 +186,11 @@
         </div>
       </div>
       <div class="col-md-7">
-        <div class="card chart-card">
-          <div class="card-header"><h6 class="mb-0">Bonushistorik</h6></div>
-          <div class="card-body">
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <i class="fas fa-chart-bar me-2 text-warning"></i>Bonushistorik (senaste 15)
+          </div>
+          <div class="chart-body">
             <div class="chart-container">
               <canvas id="myHistoryChart"></canvas>
             </div>
@@ -162,42 +200,42 @@
     </div>
 
     <!-- Bonus Projection -->
-    <div class="card chart-card mb-3" *ngIf="getProjectedBonus() as proj">
-      <div class="card-body">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-          <div class="d-flex align-items-center gap-3">
-            <i class="fas fa-chart-line fa-2x" [class.text-success]="getTrendDirection() === 'up'"
-               [class.text-danger]="getTrendDirection() === 'down'"
-               [class.text-muted]="getTrendDirection() === 'flat'"></i>
-            <div>
-              <div class="text-muted" style="font-size: 0.8rem;">Prognos baserad på senaste 7 dagarna</div>
-              <div class="d-flex align-items-baseline gap-2">
-                <strong [ngClass]="getBonusClass(proj.weekly)" style="font-size: 1.3rem;">{{ proj.weekly | number:'1.1-1' }}</strong>
-                <span class="text-muted">förväntad snittbonus</span>
-              </div>
-            </div>
-          </div>
-          <div class="d-flex align-items-center gap-2">
+    <div class="projection-card mb-4" *ngIf="getProjectedBonus() as proj">
+      <div class="projection-icon"
+           [class.text-success]="getTrendDirection() === 'up'"
+           [class.text-danger]="getTrendDirection() === 'down'"
+           [class.text-muted]="getTrendDirection() === 'flat'">
+        <i class="fas fa-2x" [class.fa-chart-line]="getTrendDirection() !== 'flat'"
+           [class.fa-minus]="getTrendDirection() === 'flat'"></i>
+      </div>
+      <div>
+        <div class="projection-label">Prognos (baserat på senaste 7 dagarna)</div>
+        <div class="d-flex align-items-baseline gap-2 mt-1">
+          <span class="projection-value" [ngClass]="getBonusClass(proj.weekly)">
+            {{ proj.weekly | number:'1.1-1' }}
+          </span>
+          <span class="text-muted">förväntad snittbonus</span>
+          <span class="trend-pill ms-2"
+                [class.trend-up]="getTrendDirection() === 'up'"
+                [class.trend-down]="getTrendDirection() === 'down'"
+                [class.trend-flat]="getTrendDirection() === 'flat'">
             <i class="fas" [class.fa-arrow-up]="getTrendDirection() === 'up'"
                [class.fa-arrow-down]="getTrendDirection() === 'down'"
-               [class.fa-minus]="getTrendDirection() === 'flat'"
-               [class.text-success]="getTrendDirection() === 'up'"
-               [class.text-danger]="getTrendDirection() === 'down'"
-               [class.text-muted]="getTrendDirection() === 'flat'"></i>
-            <span class="text-muted" style="font-size: 0.85rem;">
-              {{ getTrendDirection() === 'up' ? 'Stigande trend' : getTrendDirection() === 'down' ? 'Sjunkande trend' : 'Stabil trend' }}
-            </span>
-          </div>
+               [class.fa-minus]="getTrendDirection() === 'flat'"></i>
+            {{ getTrendDirection() === 'up' ? 'Stigande' : getTrendDirection() === 'down' ? 'Sjunkande' : 'Stabil' }}
+          </span>
         </div>
       </div>
     </div>
 
     <!-- Daily breakdown table -->
-    <div class="card chart-card" *ngIf="stats.daily_breakdown?.length > 0">
-      <div class="card-header"><h6 class="mb-0"><i class="fas fa-table me-2"></i>Daglig uppdelning</h6></div>
-      <div class="card-body">
+    <div class="chart-card mb-4" *ngIf="stats.daily_breakdown?.length > 0">
+      <div class="chart-card-header">
+        <i class="fas fa-table me-2 text-primary"></i>Daglig uppdelning
+      </div>
+      <div class="chart-body p-0">
         <div class="table-responsive">
-          <table class="table table-dark table-sm table-hover">
+          <table class="table table-dark table-sm table-hover mb-0 stats-table">
             <thead>
               <tr>
                 <th>Datum</th>
@@ -212,14 +250,18 @@
             </thead>
             <tbody>
               <tr *ngFor="let day of stats.daily_breakdown">
-                <td>{{ day.date }}</td>
+                <td class="text-muted">{{ day.date }}</td>
                 <td>{{ day.cycles }}</td>
                 <td class="text-success">{{ day.ibc_ok }}</td>
                 <td class="text-danger">{{ day.ibc_ej_ok }}</td>
                 <td>{{ day.effektivitet | number:'1.1-1' }}%</td>
                 <td>{{ day.produktivitet | number:'1.1-1' }}</td>
                 <td>{{ day.kvalitet | number:'1.1-1' }}%</td>
-                <td [ngClass]="getBonusClass(day.bonus_poang)"><strong>{{ day.bonus_poang | number:'1.1-1' }}</strong></td>
+                <td>
+                  <span class="bonus-badge" [ngClass]="getBonusClass(day.bonus_poang)">
+                    {{ day.bonus_poang | number:'1.0-0' }}
+                  </span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -227,46 +269,24 @@
       </div>
     </div>
 
-    <!-- Nästa nivå -->
-    <div class="card chart-card mt-3" *ngIf="stats?.kpis">
-      <div class="card-header">
-        <h6 class="mb-0"><i class="fas fa-arrow-up me-2"></i>Nästa bonusnivå</h6>
-      </div>
-      <div class="card-body">
-        <div class="next-tier-info">
-          <div class="current-tier">
-            <span class="text-muted">Din nivå:</span>
-            <strong [ngClass]="getBonusClass(stats.kpis.bonus_avg)">{{ getBonusTier(stats.kpis.bonus_avg) }}</strong>
-          </div>
-          <div class="next-tier" *ngIf="getNextTierInfo(stats.kpis.bonus_avg) as next">
-            <span class="text-muted">Nästa nivå:</span>
-            <strong class="text-info">{{ next.name }}</strong>
-            <span class="text-muted ms-2">Behöver {{ next.pointsNeeded | number:'1.0-0' }} poäng till</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Hur bonus beräknas -->
-    <div class="card chart-card mt-3">
-      <div class="card-header" style="cursor: pointer;" (click)="showFormula = !showFormula">
-        <h6 class="mb-0">
-          <i class="fas fa-info-circle me-2"></i>Hur beräknas bonusen?
-          <i class="fas fa-chevron-down float-end" [class.fa-chevron-up]="showFormula"></i>
-        </h6>
+    <div class="chart-card">
+      <div class="chart-card-header clickable" (click)="showFormula = !showFormula">
+        <span><i class="fas fa-info-circle me-2 text-muted"></i>Hur beräknas bonusen?</span>
+        <i class="fas float-end mt-1" [class.fa-chevron-down]="!showFormula" [class.fa-chevron-up]="showFormula"></i>
       </div>
-      <div class="card-body" *ngIf="showFormula">
+      <div class="chart-body" *ngIf="showFormula">
         <div class="formula-section">
           <h6>Tre KPI:er</h6>
           <ul>
             <li><strong>Effektivitet</strong> = Godkända IBC / Totala IBC</li>
             <li><strong>Produktivitet</strong> = IBC per timme jämfört med mål</li>
-            <li><strong>Kvalitet</strong> = (Godkända IBC - defekta burar) / Godkända IBC</li>
+            <li><strong>Kvalitet</strong> = (Godkända IBC – defekta) / Godkända IBC</li>
           </ul>
 
-          <h6>Viktning (beror på produkt)</h6>
+          <h6>Viktning per produkt</h6>
           <div class="table-responsive">
-            <table class="table table-dark table-sm">
+            <table class="table table-dark table-sm formula-table">
               <thead><tr><th>Produkt</th><th>Effektivitet</th><th>Produktivitet</th><th>Kvalitet</th><th>Mål (IBC/h)</th></tr></thead>
               <tbody>
                 <tr><td>FoodGrade</td><td>30%</td><td>30%</td><td>40%</td><td>12</td></tr>
@@ -277,20 +297,15 @@
           </div>
 
           <h6>Tier-multiplikatorer</h6>
-          <div class="table-responsive">
-            <table class="table table-dark table-sm">
-              <thead><tr><th>Nivå</th><th>Poäng</th><th>Multiplikator</th></tr></thead>
-              <tbody>
-                <tr class="text-success"><td>Outstanding</td><td>95+</td><td>x2.0</td></tr>
-                <tr class="text-info"><td>Excellent</td><td>90-94</td><td>x1.5</td></tr>
-                <tr><td>God prestanda</td><td>80-89</td><td>x1.25</td></tr>
-                <tr><td>Basbonus</td><td>70-79</td><td>x1.0</td></tr>
-                <tr class="text-danger"><td>Under förväntan</td><td>&lt;70</td><td>x0.75</td></tr>
-              </tbody>
-            </table>
+          <div class="tier-table-wrap">
+            <div class="tier-row tier-outstanding"><span>Outstanding</span><span>95+</span><span class="tier-multi">×2.0</span></div>
+            <div class="tier-row tier-excellent"><span>Excellent</span><span>90–94</span><span class="tier-multi">×1.5</span></div>
+            <div class="tier-row tier-good"><span>God prestanda</span><span>80–89</span><span class="tier-multi">×1.25</span></div>
+            <div class="tier-row tier-base"><span>Basbonus</span><span>70–79</span><span class="tier-multi">×1.0</span></div>
+            <div class="tier-row tier-below"><span>Under förväntan</span><span>&lt;70</span><span class="tier-multi">×0.75</span></div>
           </div>
 
-          <p class="text-muted mb-0"><small>Slutbonus = min(BasBonus × TierMultiplikator, 200)</small></p>
+          <p class="text-muted mt-2 mb-0"><small><i class="fas fa-info-circle me-1"></i>Slutbonus = min(Basbonus × Multiplikator, 200)</small></p>
         </div>
       </div>
     </div>
@@ -301,7 +316,6 @@
 
 <!-- Not logged in -->
 <div *ngIf="!loggedIn" class="text-center py-5">
-  <i class="fas fa-sign-in-alt fa-3x text-muted mb-3"></i>
-  <h4>Logga in</h4>
-  <p class="text-muted">Du behöver vara inloggad för att se denna sida.</p>
+  <i class="fas fa-sign-in-alt fa-3x text-muted mb-3 d-block"></i>
+  <h4 class="text-muted">Logga in för att se din bonus</h4>
 </div>

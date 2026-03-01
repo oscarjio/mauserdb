@@ -30,6 +30,11 @@ class AdminController {
                     echo json_encode(['success' => false, 'message' => 'Användarnamn, lösenord och e-post krävs']);
                     return;
                 }
+                if (strlen($password) < 8) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Lösenordet måste vara minst 8 tecken']);
+                    return;
+                }
                 
                 // Kontrollera om användarnamn redan finns
                 try {
@@ -91,6 +96,7 @@ class AdminController {
             $id = $data['id'] ?? null;
             
             if (!$id) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID saknas']);
                 return;
             }
@@ -128,6 +134,7 @@ class AdminController {
             if ($action === 'toggleAdmin') {
                 // Förhindra att admin tar bort sin egen admin-status
                 if ($id == $_SESSION['user_id']) {
+                    http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'Du kan inte ändra din egen admin-status']);
                     return;
                 }
@@ -161,6 +168,7 @@ class AdminController {
             if ($action === 'toggleActive') {
                 // Förhindra att admin inaktiverar sig själv
                 if ($id == $_SESSION['user_id']) {
+                    http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'Du kan inte inaktivera ditt eget konto']);
                     return;
                 }

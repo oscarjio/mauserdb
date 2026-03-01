@@ -36,6 +36,13 @@ class AuditController {
 
     private function getLogs() {
         try {
+            // Verify table exists (ensureTable may have failed silently)
+            $check = $this->pdo->query("SHOW TABLES LIKE 'audit_log'");
+            if (!$check || $check->rowCount() === 0) {
+                echo json_encode(['success' => true, 'data' => [], 'total' => 0, 'page' => 1, 'pages' => 0]);
+                return;
+            }
+
             $page = max(1, intval($_GET['page'] ?? 1));
             $limit = min(100, max(10, intval($_GET['limit'] ?? 50)));
             $offset = ($page - 1) * $limit;
@@ -111,9 +118,9 @@ class AuditController {
 
             // Actions per user
             $stmt = $this->pdo->prepare("
-                SELECT user, COUNT(*) as count
+                SELECT `user`, COUNT(*) as count
                 FROM audit_log WHERE created_at >= ?
-                GROUP BY user ORDER BY count DESC
+                GROUP BY `user` ORDER BY count DESC
             ");
             $stmt->execute([$dateFilter]);
             $byUser = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -184,7 +191,29 @@ class AuditLogger {
                 KEY `idx_created_at` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
         } catch (PDOException $e) {
-            error_log('AuditLogger ensureTable: ' . $e->getMessage());
+            error_log('AuditLogger ensureTable (json): ' . $e->getMessage());
+            // Fallback for MySQL < 5.7.8 that lacks native JSON type
+            try {
+                $pdo->exec("CREATE TABLE IF NOT EXISTS `audit_log` (
+                    `id` int NOT NULL AUTO_INCREMENT,
+                    `action` varchar(100) NOT NULL,
+                    `entity_type` varchar(50) NOT NULL,
+                    `entity_id` int DEFAULT NULL,
+                    `description` varchar(500) DEFAULT NULL,
+                    `old_value` LONGTEXT DEFAULT NULL,
+                    `new_value` LONGTEXT DEFAULT NULL,
+                    `user` varchar(100) NOT NULL,
+                    `ip_address` varchar(45) DEFAULT NULL,
+                    `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    KEY `idx_action` (`action`),
+                    KEY `idx_entity` (`entity_type`, `entity_id`),
+                    KEY `idx_user` (`user`),
+                    KEY `idx_created_at` (`created_at`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
+            } catch (PDOException $e2) {
+                error_log('AuditLogger ensureTable (longtext fallback): ' . $e2->getMessage());
+            }
         }
     }
 

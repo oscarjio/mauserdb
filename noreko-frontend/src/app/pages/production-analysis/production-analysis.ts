@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
 import { RebotlingService } from '../../services/rebotling.service';
@@ -50,12 +52,14 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   heatmapData: { date: string; hours: { [hour: number]: number } }[] = [];
   hourlyAvg: { hour: number; avg: number }[] = [];
   heatmapHours = Array.from({ length: 17 }, (_, i) => i + 6); // 06-22
+  private heatmapMax = 1; // Cached max for color calculations
 
   // Tab 4: Skiftöversikt
   allShifts: ShiftStats[] = [];
   expandedShift: number | null = null;
 
   // Charts
+  private destroy$ = new Subject<void>();
   private rankingChart: Chart | null = null;
   private radarChart: Chart | null = null;
   private dailyTrendChart: Chart | null = null;
@@ -63,13 +67,18 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   private hourlyBarChart: Chart | null = null;
   private bubbleChart: Chart | null = null;
 
+  // Timeout IDs
+  private tabTimeout: any = null;
+  private chartTimeout: any = null;
+  private radarTimeout: any = null;
+
   constructor(
     private auth: AuthService,
     private bonusService: BonusService,
     private rebotlingService: RebotlingService
   ) {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
@@ -80,6 +89,11 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    clearTimeout(this.tabTimeout);
+    clearTimeout(this.chartTimeout);
+    clearTimeout(this.radarTimeout);
     this.destroyAllCharts();
   }
 
@@ -97,7 +111,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   setTab(tab: string) {
     this.activeTab = tab;
     this.error = '';
-    setTimeout(() => this.loadTabData(), 50);
+    clearTimeout(this.tabTimeout);
+    this.tabTimeout = setTimeout(() => this.loadTabData(), 50);
   }
 
   onPeriodChange() {
@@ -119,6 +134,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.loading = true;
     this.bonusService.getRanking(this.selectedPeriod, 20).pipe(
       timeout(8000),
+      takeUntil(this.destroy$),
       catchError(err => { this.error = 'Kunde inte ladda rankingdata'; this.loading = false; return of(null); })
     ).subscribe(res => {
       if (res?.success && res.data) {
@@ -128,7 +144,10 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           'Kontroll': res.data.rankings.position_2 || [],
           'Truck': res.data.rankings.position_3 || []
         };
-        setTimeout(() => this.renderRankingChart(), 100);
+        clearTimeout(this.chartTimeout);
+        this.chartTimeout = setTimeout(() => {
+          if (!this.destroy$.closed) this.renderRankingChart();
+        }, 100);
       }
       this.loading = false;
     });
@@ -169,7 +188,10 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       this.radarSelected.push(opId);
     }
     if (this.radarSelected.length >= 2) {
-      setTimeout(() => this.renderRadarChart(), 50);
+      clearTimeout(this.radarTimeout);
+      this.radarTimeout = setTimeout(() => {
+        if (!this.destroy$.closed) this.renderRadarChart();
+      }, 50);
     }
   }
 
@@ -259,15 +281,19 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.loading = true;
     this.bonusService.getTeamStats(this.selectedPeriod === 'week' ? 'week' : 'month').pipe(
       timeout(8000),
+      takeUntil(this.destroy$),
       catchError(err => { this.error = 'Kunde inte ladda dagsdata'; this.loading = false; return of(null); })
     ).subscribe(res => {
       if (res?.success && res.data) {
         this.teamAggregate = res.data.aggregate;
         this.shifts = res.data.shifts || [];
         this.aggregateDailyData();
-        setTimeout(() => {
-          this.renderDailyTrendChart();
-          this.renderWeekdayChart();
+        clearTimeout(this.chartTimeout);
+        this.chartTimeout = setTimeout(() => {
+          if (!this.destroy$.closed) {
+            this.renderDailyTrendChart();
+            this.renderWeekdayChart();
+          }
         }, 100);
       }
       this.loading = false;
@@ -412,7 +438,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       );
     }
 
-    forkJoin(requests).subscribe((results: any) => {
+    forkJoin(requests).pipe(takeUntil(this.destroy$)).subscribe((results: any) => {
       this.heatmapData = [];
       const hourTotals: { [hour: number]: { sum: number; count: number } } = {};
 
@@ -421,7 +447,6 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         const hourData: { [hour: number]: number } = {};
 
         if (res?.success && res.data) {
-          // day-stats returns cycles/events for that day
           const cycles = res.data.cycles || res.data || [];
           if (Array.isArray(cycles)) {
             cycles.forEach((c: any) => {
@@ -436,7 +461,6 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
 
         this.heatmapData.push({ date, hours: hourData });
 
-        // Aggregate hourly
         this.heatmapHours.forEach(h => {
           if (!hourTotals[h]) hourTotals[h] = { sum: 0, count: 0 };
           hourTotals[h].sum += hourData[h] || 0;
@@ -444,35 +468,40 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         });
       });
 
+      // Cache the heatmap max once after data loads
+      this.updateHeatmapMax();
+
       this.hourlyAvg = this.heatmapHours.map(h => ({
         hour: h,
         avg: hourTotals[h]?.count ? Math.round(hourTotals[h].sum / hourTotals[h].count * 10) / 10 : 0
       }));
 
-      setTimeout(() => this.renderHourlyBarChart(), 100);
+      clearTimeout(this.chartTimeout);
+      this.chartTimeout = setTimeout(() => {
+        if (!this.destroy$.closed) this.renderHourlyBarChart();
+      }, 100);
       this.loading = false;
     });
   }
 
-  getHeatmapColor(value: number): string {
-    if (!value) return '#1a202c';
-    const maxVal = this.getHeatmapMax();
-    if (maxVal === 0) return '#1a202c';
-    const intensity = Math.min(value / maxVal, 1);
-    if (intensity < 0.25) return '#1a365d';
-    if (intensity < 0.5) return '#2b6cb0';
-    if (intensity < 0.75) return '#3182ce';
-    return '#4299e1';
-  }
-
-  getHeatmapMax(): number {
+  private updateHeatmapMax() {
     let max = 0;
     this.heatmapData.forEach(d => {
       this.heatmapHours.forEach(h => {
         if ((d.hours[h] || 0) > max) max = d.hours[h];
       });
     });
-    return max || 1;
+    this.heatmapMax = max || 1;
+  }
+
+  getHeatmapColor(value: number): string {
+    if (!value) return '#1a202c';
+    if (this.heatmapMax === 0) return '#1a202c';
+    const intensity = Math.min(value / this.heatmapMax, 1);
+    if (intensity < 0.25) return '#1a365d';
+    if (intensity < 0.5) return '#2b6cb0';
+    if (intensity < 0.75) return '#3182ce';
+    return '#4299e1';
   }
 
   private renderHourlyBarChart() {
@@ -513,12 +542,16 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.loading = true;
     this.bonusService.getTeamStats(this.selectedPeriod === 'week' ? 'week' : 'month').pipe(
       timeout(8000),
+      takeUntil(this.destroy$),
       catchError(err => { this.error = 'Kunde inte ladda skiftdata'; this.loading = false; return of(null); })
     ).subscribe(res => {
       if (res?.success && res.data) {
         this.allShifts = res.data.shifts || [];
         this.teamAggregate = res.data.aggregate;
-        setTimeout(() => this.renderBubbleChart(), 100);
+        clearTimeout(this.chartTimeout);
+        this.chartTimeout = setTimeout(() => {
+          if (!this.destroy$.closed) this.renderBubbleChart();
+        }, 100);
       }
       this.loading = false;
     });
@@ -544,6 +577,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       return b >= 90 ? 'rgba(72,187,120,0.6)' : b >= 70 ? 'rgba(236,201,75,0.6)' : 'rgba(229,62,62,0.6)';
     });
 
+    const shifts = this.allShifts; // Capture for closure
     this.bubbleChart = new Chart(canvas, {
       type: 'bubble',
       data: {
@@ -563,7 +597,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           tooltip: {
             callbacks: {
               label: (ctx: any) => {
-                const s = this.allShifts[ctx.dataIndex];
+                const s = shifts[ctx.dataIndex];
+                if (!s) return 'Ingen data';
                 return `Skift #${s.shift_number}: Eff ${s.kpis?.effektivitet}%, Prod ${s.kpis?.produktivitet}, Bonus ${s.kpis?.bonus_avg}`;
               }
             }

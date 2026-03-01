@@ -52,7 +52,9 @@
                     <td>{{ user.email }}</td>
                     <td>{{ user.phone || '-' }}</td>
                     <td>
-                      <span *ngIf="user.operator_id" class="badge bg-info">{{ user.operator_id }}</span>
+                      <span *ngIf="user.operator_id" class="badge bg-info">
+                        {{ getOperatorName(user.operator_id) || user.operator_id }}
+                      </span>
                       <span *ngIf="!user.operator_id" class="text-muted">-</span>
                     </td>
                     <td>
@@ -107,9 +109,14 @@
                                 <label class="form-label">Telefon</label>
                                 <input class="form-control form-control-sm" [(ngModel)]="user.phone" name="phone-{{user.id}}" placeholder="Telefon" />
                               </div>
-                              <div class="col-md-1">
+                              <div class="col-md-2">
                                 <label class="form-label">Op-ID</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="user.operator_id" name="operator_id-{{user.id}}" placeholder="12345" type="number" min="1" />
+                                <select class="form-select form-select-sm" [(ngModel)]="user.operator_id" name="operator_id-{{user.id}}">
+                                  <option [ngValue]="null">Ingen</option>
+                                  <option *ngFor="let op of operators" [ngValue]="op.number">
+                                    {{ op.name }} (#{{ op.number }})
+                                  </option>
+                                </select>
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Nytt lösenord</label>

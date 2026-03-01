@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
@@ -51,8 +51,11 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   private kpiRadarChart: Chart | null = null;
   private shiftCompareChart: Chart | null = null;
 
-  // Polling
+  // Subscription tracking
   private pollingInterval: any = null;
+  private loadDataSub: Subscription | null = null;
+  private searchSub: Subscription | null = null;
+  private teamStatsSub: Subscription | null = null;
   private destroy$ = new Subject<void>();
 
   constructor(private auth: AuthService, private bonusService: BonusService) {
@@ -65,7 +68,6 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadData();
-    // Poll var 30:e sekund
     this.pollingInterval = setInterval(() => this.loadData(), 30000);
   }
 
@@ -73,12 +75,18 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.loadDataSub?.unsubscribe();
+    this.searchSub?.unsubscribe();
+    this.teamStatsSub?.unsubscribe();
     if (this.trendChart) this.trendChart.destroy();
     if (this.kpiRadarChart) this.kpiRadarChart.destroy();
     if (this.shiftCompareChart) this.shiftCompareChart.destroy();
   }
 
   loadData() {
+    // Cancel any in-flight request before starting a new one
+    this.loadDataSub?.unsubscribe();
+
     this.loading = true;
     this.error = '';
 
@@ -92,8 +100,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       error: () => {}
     });
 
-    // Ladda ranking
-    this.bonusService.getRanking(this.selectedPeriod).subscribe({
+    // Ladda ranking (controls loading flag)
+    this.loadDataSub = this.bonusService.getRanking(this.selectedPeriod).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.overallRanking = res.data.rankings.overall || [];
@@ -112,17 +120,23 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     });
   }
 
-  loadTeamStats() {
+  toggleTeamView() {
     this.showTeamView = !this.showTeamView;
-    if (!this.showTeamView) return;
+    if (this.showTeamView) this.reloadTeamStats();
+  }
+
+  private reloadTeamStats() {
+    this.teamStatsSub?.unsubscribe();
 
     this.loading = true;
-    this.bonusService.getTeamStats(this.selectedPeriod).subscribe({
+    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.teamAggregate = res.data.aggregate;
           this.shifts = res.data.shifts || [];
-          setTimeout(() => this.buildShiftCompareChart(), 100);
+          setTimeout(() => {
+            if (!this.destroy$.closed) this.buildShiftCompareChart();
+          }, 100);
         }
         this.loading = false;
       },
@@ -136,11 +150,18 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   searchOperator() {
     if (!this.searchOperatorId.trim()) return;
 
+    // Cancel any pending search
+    this.searchSub?.unsubscribe();
+
     this.loading = true;
     this.operatorData = null;
     this.operatorKPIData = null;
 
-    this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).subscribe({
+    // Use a counter to handle the two parallel calls
+    let pending = 2;
+    const done = () => { if (--pending === 0) this.loading = false; };
+
+    this.searchSub = this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.operatorData = res.data;
@@ -148,11 +169,11 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         } else {
           this.error = res.error || 'Ingen data hittades';
         }
-        this.loading = false;
+        done();
       },
       error: (err) => {
         this.error = 'Kunde inte hämta operatörsdata: ' + err.message;
-        this.loading = false;
+        done();
       }
     });
 
@@ -163,8 +184,9 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
           this.operatorKPIData = res.data;
           this.renderTrendChart();
         }
+        done();
       },
-      error: () => {}
+      error: () => { done(); }
     });
   }
 
@@ -248,7 +270,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   onPeriodChange() {
     this.loadData();
     if (this.operatorData) this.searchOperator();
-    if (this.showTeamView) this.loadTeamStats();
+    if (this.showTeamView) this.reloadTeamStats();
   }
 
   setRankingTab(tab: string) {
@@ -261,6 +283,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   clearOperatorSearch() {
+    // Cancel any pending search request
+    this.searchSub?.unsubscribe();
     this.operatorData = null;
     this.operatorKPIData = null;
     this.searchOperatorId = '';

@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { UsersService } from '../../services/users.service';
 
@@ -12,7 +14,8 @@ import { UsersService } from '../../services/users.service';
   templateUrl: './create-user.html',
   styleUrl: './create-user.css'
 })
-export class CreateUserPage implements OnInit {
+export class CreateUserPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   user = {
     username: '',
     password: '',
@@ -44,11 +47,16 @@ export class CreateUserPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.auth.user$.subscribe(user => {
-      if (!user || user.role !== 'admin') {
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+      if (user !== undefined && (!user || user.role !== 'admin')) {
         this.router.navigate(['/']);
       }
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   onSubmit() {

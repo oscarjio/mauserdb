@@ -14,7 +14,7 @@
           <option value="month">Senaste 30 dagar</option>
           <option value="year">Senaste året</option>
         </select>
-        <button class="btn btn-sm btn-outline-info" (click)="loadTeamStats()">
+        <button class="btn btn-sm btn-outline-info" (click)="toggleTeamView()">
           <i class="fas fa-users me-1"></i>{{ showTeamView ? 'Dölj skift' : 'Visa skift' }}
         </button>
       </div>
@@ -36,28 +36,32 @@
   <!-- Daglig sammanfattning -->
   <div class="row g-3 mb-4" *ngIf="summary">
     <div class="col-6 col-md-3">
-      <div class="kpi-card">
-        <div class="kpi-label">Cykler idag</div>
+      <div class="kpi-card kpi-cycles">
+        <div class="kpi-icon"><i class="fas fa-sync-alt"></i></div>
+        <div class="kpi-label">Cykler</div>
         <div class="kpi-value">{{ summary.total_cycles }}</div>
         <div class="kpi-sub">{{ summary.shifts_today }} skift</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="kpi-card">
+      <div class="kpi-card kpi-ibc">
+        <div class="kpi-icon"><i class="fas fa-box-open"></i></div>
         <div class="kpi-label">IBC Godkända</div>
         <div class="kpi-value text-success">{{ summary.total_ibc_ok }}</div>
         <div class="kpi-sub">{{ summary.total_ibc_ej_ok }} kasserade</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="kpi-card">
+      <div class="kpi-card kpi-avg">
+        <div class="kpi-icon"><i class="fas fa-star-half-alt"></i></div>
         <div class="kpi-label">Snittbonus</div>
         <div class="kpi-value" [ngClass]="getBonusClass(summary.avg_bonus)">{{ summary.avg_bonus }}</div>
-        <div class="kpi-sub">poäng</div>
+        <div class="kpi-sub">poäng snitt</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="kpi-card">
+      <div class="kpi-card kpi-max">
+        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
         <div class="kpi-label">Max Bonus</div>
         <div class="kpi-value" [ngClass]="getBonusClass(summary.max_bonus)">{{ summary.max_bonus }}</div>
         <div class="kpi-sub">
@@ -272,10 +276,15 @@
           </thead>
           <tbody>
             <tr *ngFor="let op of getActiveRanking()" [class.top-three]="op.rank <= 3">
-              <td><span [ngClass]="getRankBadge(op.rank)">{{ op.rank }}</span></td>
+              <td>
+                <span class="rank-medal" *ngIf="op.rank === 1">🥇</span>
+                <span class="rank-medal" *ngIf="op.rank === 2">🥈</span>
+                <span class="rank-medal" *ngIf="op.rank === 3">🥉</span>
+                <span class="rank-num" *ngIf="op.rank > 3" [ngClass]="getRankBadge(op.rank)">{{ op.rank }}</span>
+              </td>
               <td>
                 <a class="operator-link" (click)="searchOperatorId = '' + op.operator_id; searchOperator()">
-                  {{ op.operator_id }}
+                  <i class="fas fa-user-circle me-1 opacity-50"></i>{{ op.operator_id }}
                 </a>
               </td>
               <td *ngIf="activeRankingTab === 'overall'">{{ op.position || '-' }}</td>

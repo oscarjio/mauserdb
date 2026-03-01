@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { BonusAdminService, BonusPeriod } from '../../services/bonus-admin.service';
@@ -12,7 +14,8 @@ import { BonusAdminService, BonusPeriod } from '../../services/bonus-admin.servi
   styleUrl: './bonus-admin.css',
   imports: [CommonModule, FormsModule]
 })
-export class BonusAdminPage implements OnInit {
+export class BonusAdminPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
   isAdmin = false;
@@ -40,15 +43,26 @@ export class BonusAdminPage implements OnInit {
   // Active tab
   activeTab = 'overview';
 
+  // Toast timer IDs
+  private successTimerId: any = null;
+  private errorTimerId: any = null;
+
   constructor(
     private auth: AuthService,
     private bonusAdmin: BonusAdminService
   ) {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+    clearTimeout(this.successTimerId);
+    clearTimeout(this.errorTimerId);
   }
 
   ngOnInit() {
@@ -228,12 +242,14 @@ export class BonusAdminPage implements OnInit {
   private showSuccess(msg: string) {
     this.successMessage = msg;
     this.errorMessage = '';
-    setTimeout(() => this.successMessage = '', 4000);
+    clearTimeout(this.successTimerId);
+    this.successTimerId = setTimeout(() => this.successMessage = '', 4000);
   }
 
   private showError(msg: string) {
     this.errorMessage = msg;
     this.successMessage = '';
-    setTimeout(() => this.errorMessage = '', 6000);
+    clearTimeout(this.errorTimerId);
+    this.errorTimerId = setTimeout(() => this.errorMessage = '', 6000);
   }
 }

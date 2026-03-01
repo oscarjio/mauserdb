@@ -1,144 +1,259 @@
+/* ============================================================
+   BONUS ADMIN — Dark professional theme
+   ============================================================ */
+
 .bonus-admin-container {
-  padding: 1.5rem;
+  padding: 1.25rem;
   min-height: 100vh;
-  background-color: #1a202c;
+  background: #0f1117;
   color: #e2e8f0;
 }
 
-/* Cards */
-.card {
-  background-color: #2d3748;
-  border: 1px solid #4a5568;
-  border-radius: 10px;
-  color: #e2e8f0;
-}
-
-.card-header {
-  background-color: #2d3748;
-  border-bottom: 1px solid #4a5568;
-  color: #e2e8f0;
-}
-
-.card-body {
-  background-color: #2d3748;
-}
-
-/* Stat cards */
-.stat-card {
-  background: #2d3748;
-  border-radius: 10px;
-  padding: 1.2rem;
-  text-align: center;
-  border-left: 4px solid #4299e1;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: #a0aec0;
-  letter-spacing: 0.5px;
-}
-
-.stat-value {
-  font-size: 1.8rem;
+/* ============================================================
+   HEADER
+   ============================================================ */
+.bonus-admin-container > div:first-child h2 {
+  color: #f7fafc;
   font-weight: 700;
-  margin: 0.3rem 0;
 }
 
-.stat-sub {
-  font-size: 0.75rem;
-  color: #718096;
+/* ============================================================
+   ALERTS
+   ============================================================ */
+.alert-success {
+  background: rgba(72,187,120,0.12);
+  border-color: rgba(72,187,120,0.3);
+  color: #9ae6b4;
+}
+.alert-danger {
+  background: rgba(229,62,62,0.12);
+  border-color: rgba(229,62,62,0.3);
+  color: #feb2b2;
 }
 
-/* Weight rows */
-.weight-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.3rem;
-  font-size: 0.9rem;
+/* ============================================================
+   NAV PILLS
+   ============================================================ */
+.nav-pills .nav-link {
+  color: #a0aec0;
+  background: #161c29;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  margin-right: 0.4rem;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.85rem;
+  transition: all 0.15s;
 }
-
-.weight-value {
+.nav-pills .nav-link:hover { background: #2d3748; color: #e2e8f0; }
+.nav-pills .nav-link.active {
+  background: #4299e1;
+  border-color: #4299e1;
+  color: #fff;
   font-weight: 600;
 }
 
-/* Target cards */
-.target-card {
-  background: #1a202c;
-  border-radius: 8px;
-  padding: 1.2rem;
+/* ============================================================
+   GENERIC CARDS
+   ============================================================ */
+.card {
+  background: #1e2535;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  color: #e2e8f0;
+}
+.card-header {
+  background: #161c29;
+  border-bottom: 1px solid #2d3748;
+  color: #e2e8f0;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 0.75rem 1.1rem;
+}
+.card-header h6 { color: #cbd5e0; font-size: 0.85rem; font-weight: 600; }
+.card-body { background: #1e2535; border-radius: 0 0 12px 12px; }
+
+/* ============================================================
+   STAT CARDS (overview)
+   ============================================================ */
+.stat-card {
+  background: #1e2535;
+  border-radius: 12px;
+  padding: 1.25rem;
   text-align: center;
+  border: 1px solid #2d3748;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, #2b6cb0, #4299e1);
+}
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, #276749, #48bb78); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, #c05621, #ed8936); }
+.stat-card:nth-child(4)::before { background: linear-gradient(90deg, #553c9a, #667eea); }
 
-.target-value {
+.stat-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-bottom: 0.3rem;
+}
+.stat-value {
   font-size: 2rem;
-  font-weight: 700;
-  color: #4299e1;
-  margin: 0.5rem 0;
+  font-weight: 800;
+  line-height: 1;
+  margin: 0.25rem 0;
+}
+.stat-sub {
+  font-size: 0.72rem;
+  color: #718096;
+  margin-top: 0.25rem;
 }
 
+/* ============================================================
+   MINI BONUS CARDS (max/min/avg row)
+   ============================================================ */
+.card .display-6 {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+/* ============================================================
+   WEIGHT ROWS
+   ============================================================ */
+.weight-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  color: #cbd5e0;
+}
+.weight-value {
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* ============================================================
+   TARGET CARDS
+   ============================================================ */
+.target-card {
+  background: #161c29;
+  border-radius: 10px;
+  padding: 1.35rem;
+  text-align: center;
+  border: 1px solid #2d3748;
+  transition: border-color 0.2s;
+}
+.target-card:hover { border-color: #4299e1; }
+.target-card h6 { color: #a0aec0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 0.5rem; }
+.target-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #4299e1;
+  line-height: 1;
+  margin: 0.4rem 0;
+}
 .target-value small {
   font-size: 0.8rem;
-  color: #a0aec0;
+  color: #718096;
+  font-weight: 400;
 }
 
-/* Nav pills */
-.nav-pills .nav-link {
-  color: #a0aec0;
-  background: transparent;
-  border: 1px solid #4a5568;
-  margin-right: 0.3rem;
-  font-size: 0.85rem;
-}
-
-.nav-pills .nav-link.active {
-  background-color: #4299e1;
-  border-color: #4299e1;
-  color: white;
-}
-
-/* Tables */
+/* ============================================================
+   TIER TABLE
+   ============================================================ */
 .table-dark {
-  --bs-table-bg: #2d3748;
-  --bs-table-border-color: #4a5568;
-  --bs-table-hover-bg: #374151;
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #2d3748;
+  --bs-table-hover-bg: rgba(66,153,225,0.05);
 }
+.table-dark thead th {
+  background: #161c29;
+  color: #718096;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #2d3748;
+}
+.table-dark tbody tr:hover td { background: rgba(66,153,225,0.05); }
 
-/* Progress */
+/* ============================================================
+   PROGRESS BARS
+   ============================================================ */
 .progress {
-  background-color: #1a202c;
+  background: #161c29;
   border-radius: 4px;
 }
+.progress-bar { border-radius: 4px; }
 
-/* Forms */
-.form-control {
-  background-color: #1a202c;
-  border-color: #4a5568;
+/* ============================================================
+   FORM CONTROLS
+   ============================================================ */
+.form-control, .form-control-sm {
+  background: #161c29;
+  border-color: #2d3748;
   color: #e2e8f0;
+  border-radius: 8px;
 }
-
-.form-control:focus {
-  background-color: #374151;
+.form-control:focus, .form-control-sm:focus {
+  background: #161c29;
   border-color: #4299e1;
+  box-shadow: 0 0 0 2px rgba(66,153,225,0.2);
   color: #e2e8f0;
 }
-
 .form-label {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   color: #a0aec0;
+  margin-bottom: 0.3rem;
 }
 
-/* Responsive */
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn-outline-info {
+  color: #63b3ed;
+  border-color: #2d3748;
+}
+.btn-outline-info:hover {
+  background: rgba(66,153,225,0.15);
+  border-color: #4299e1;
+  color: #90cdf4;
+}
+.btn-outline-secondary {
+  color: #a0aec0;
+  border-color: #2d3748;
+}
+.btn-outline-secondary:hover {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+.btn-outline-success {
+  color: #68d391;
+  border-color: #2d3748;
+}
+.btn-outline-success:hover {
+  background: rgba(72,187,120,0.15);
+  border-color: #48bb78;
+  color: #9ae6b4;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 @media (max-width: 768px) {
-  .bonus-admin-container {
-    padding: 0.8rem;
-  }
-
-  .stat-value {
-    font-size: 1.3rem;
-  }
-
-  .target-value {
-    font-size: 1.5rem;
-  }
+  .bonus-admin-container { padding: 0.75rem; }
+  .stat-value  { font-size: 1.5rem; }
+  .target-value { font-size: 1.6rem; }
+  .nav-pills .nav-link { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
 }

@@ -1,10 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { UsersService } from '../../services/users.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { OperatorsService } from '../../services/operators.service';
 
 @Component({
   standalone: true,
@@ -13,8 +16,10 @@ import { ToastService } from '../../services/toast.service';
   templateUrl: './users.html',
   styleUrl: './users.css'
 })
-export class UsersPage implements OnInit {
+export class UsersPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   users: any[] = [];
+  operators: any[] = [];
   expanded: { [id: number]: boolean } = {};
   loading = false;
   error = '';
@@ -23,16 +28,35 @@ export class UsersPage implements OnInit {
     private usersService: UsersService,
     private auth: AuthService,
     private router: Router,
-    private toast: ToastService
+    private toast: ToastService,
+    private operatorsService: OperatorsService
   ) {}
 
   ngOnInit() {
-    this.auth.user$.subscribe(user => {
-      if (!user || user.role !== 'admin') {
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
+      if (user !== undefined && (!user || user.role !== 'admin')) {
         this.router.navigate(['/']);
       }
     });
     this.fetchUsers();
+    this.fetchOperators();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  fetchOperators() {
+    this.operatorsService.getOperators().subscribe({
+      next: (res) => { this.operators = res.operators || []; },
+      error: () => {}
+    });
+  }
+
+  getOperatorName(num: number): string | null {
+    const op = this.operators.find(o => o.number == num);
+    return op ? op.name : null;
   }
 
   fetchUsers() {

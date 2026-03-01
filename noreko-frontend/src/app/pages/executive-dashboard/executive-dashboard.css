@@ -1,188 +1,225 @@
+/* ============================================================
+   EXECUTIVE DASHBOARD — Premium dark theme
+   ============================================================ */
+
 .exec-dashboard {
-  padding: 1rem;
-  background: #1a202c;
+  padding: 1.25rem;
+  background: #0f1117;
   min-height: 100vh;
   color: #e2e8f0;
 }
 
-/* KPI Cards */
+/* ============================================================
+   TOP KPI CARDS
+   ============================================================ */
 .kpi-card {
-  background: #2d3748;
-  border-radius: 12px;
-  padding: 1.25rem;
+  background: #1e2535;
+  border-radius: 14px;
+  padding: 1.35rem;
   text-align: center;
-  border: 1px solid #4a5568;
-  transition: transform 0.2s;
+  border: 1px solid #2d3748;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 .kpi-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+}
+.kpi-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
+  pointer-events: none;
 }
 .kpi-icon {
-  font-size: 1.5rem;
-  color: #667eea;
+  font-size: 1.6rem;
   margin-bottom: 0.5rem;
+  opacity: 0.65;
 }
 .kpi-label {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a0aec0;
-  margin-bottom: 0.25rem;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-bottom: 0.3rem;
 }
 .kpi-value {
-  font-size: 1.75rem;
-  font-weight: 700;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
 }
 .kpi-total {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 400;
-  color: #718096;
+  color: #4a5568;
 }
 .kpi-unit {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #a0aec0;
   font-weight: 400;
 }
 .kpi-sub {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: #718096;
-  margin-top: 0.25rem;
+  margin-top: 0.35rem;
 }
 
-/* Line Cards */
+/* ============================================================
+   PRODUCTION LINE CARDS
+   ============================================================ */
 .line-card {
-  background: #2d3748;
+  background: #1e2535;
   border-radius: 12px;
-  border: 1px solid #4a5568;
+  border: 1px solid #2d3748;
   overflow: hidden;
-  transition: all 0.3s;
+  transition: border-color 0.25s, box-shadow 0.25s;
 }
-.line-card:hover {
-  border-color: #667eea;
-}
+.line-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
 .line-running {
   border-left: 4px solid #48bb78;
+  box-shadow: -2px 0 12px rgba(72,187,120,0.12);
 }
 .line-stopped {
   border-left: 4px solid #e53e3e;
+  box-shadow: -2px 0 12px rgba(229,62,62,0.08);
 }
 .line-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba(0,0,0,0.15);
+  padding: 0.7rem 1rem;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid #2d3748;
 }
 .line-icon {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   color: #667eea;
 }
-.line-body {
-  padding: 1rem;
-}
-
-.production-bar-container {
-  margin-bottom: 0.5rem;
-}
+.line-body { padding: 0.9rem 1rem; }
+.production-bar-container { margin-bottom: 0.5rem; }
 .production-bar-label {
   display: flex;
   justify-content: space-between;
-  font-size: 0.85rem;
-  margin-bottom: 0.25rem;
+  font-size: 0.82rem;
+  color: #a0aec0;
+  margin-bottom: 0.3rem;
 }
 
-/* Detail cards */
+/* ============================================================
+   DETAIL / SECTION CARDS
+   ============================================================ */
 .detail-card {
-  background: #2d3748 !important;
-  border: 1px solid #4a5568 !important;
+  background: #1e2535 !important;
+  border: 1px solid #2d3748 !important;
   border-radius: 12px;
 }
 .detail-card .card-header {
-  background: rgba(0,0,0,0.15) !important;
-  border-bottom: 1px solid #4a5568;
+  background: #161c29 !important;
+  border-bottom: 1px solid #2d3748;
   color: #e2e8f0;
+  border-radius: 12px 12px 0 0 !important;
 }
-.detail-card .card-body {
-  color: #e2e8f0;
-}
+.detail-card .card-body { color: #e2e8f0; background: #1e2535; border-radius: 0 0 12px 12px; }
 
-/* Mini stats */
+/* ============================================================
+   MINI STATS
+   ============================================================ */
 .mini-stat {
-  background: #1a202c;
-  border-radius: 8px;
-  padding: 0.75rem;
+  background: #161c29;
+  border-radius: 10px;
+  padding: 0.8rem;
   text-align: center;
+  border: 1px solid #2d3748;
 }
 .mini-label {
   display: block;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #a0aec0;
+  letter-spacing: 0.8px;
+  color: #718096;
   margin-bottom: 0.25rem;
 }
 .mini-value {
   display: block;
-  font-size: 1.25rem;
+  font-size: 1.3rem;
   font-weight: 700;
 }
 
-/* Chart */
-.chart-container {
-  position: relative;
-  height: 250px;
-}
-
-/* Progress bar overrides for dark theme */
-.progress {
-  background-color: #1a202c;
-}
-
-/* OEE */
+/* ============================================================
+   OEE SECTION
+   ============================================================ */
 .oee-score {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 800;
+  letter-spacing: -1px;
 }
 .oee-label {
-  font-size: 0.85rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: #a0aec0;
+  color: #718096;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
-.oee-factor {
-  padding: 0.5rem;
-}
+.oee-factor { padding: 0.4rem 0; }
 .oee-factor-label {
-  font-size: 0.75rem;
-  color: #a0aec0;
+  font-size: 0.7rem;
+  color: #718096;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .kpi-value { font-size: 1.25rem; }
-  .line-header { flex-direction: column; gap: 0.5rem; }
+/* ============================================================
+   CHARTS
+   ============================================================ */
+.chart-container { position: relative; height: 260px; }
+
+/* ============================================================
+   PROGRESS BARS
+   ============================================================ */
+.progress {
+  background: #161c29;
+  border-radius: 4px;
+}
+.progress-bar { border-radius: 4px; }
+
+/* Table */
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #2d3748;
+  --bs-table-hover-bg: rgba(66,153,225,0.05);
 }
 
-/* Print styles */
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .exec-dashboard  { padding: 0.75rem; }
+  .kpi-value       { font-size: 1.5rem; }
+  .oee-score       { font-size: 2rem; }
+  .line-header     { flex-direction: column; gap: 0.5rem; }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
 @media print {
   .exec-dashboard {
     background: #fff !important;
     color: #000 !important;
     padding: 0 !important;
   }
-  .kpi-card, .line-card, .detail-card, .detail-card .card-header, .detail-card .card-body, .mini-stat {
+  .kpi-card, .line-card, .detail-card,
+  .detail-card .card-header, .detail-card .card-body, .mini-stat {
     background: #fff !important;
     color: #000 !important;
     border-color: #ccc !important;
   }
-  .kpi-label, .kpi-sub, .kpi-unit, .mini-label, .oee-label, .oee-factor-label {
-    color: #555 !important;
-  }
+  .kpi-label, .kpi-sub, .kpi-unit, .mini-label, .oee-label, .oee-factor-label { color: #555 !important; }
   .kpi-total { color: #888 !important; }
-  .progress { background-color: #e0e0e0 !important; }
+  .progress  { background: #e0e0e0 !important; }
   .text-muted { color: #666 !important; }
   .d-print-none { display: none !important; }
   .line-running { border-left-color: #28a745 !important; }

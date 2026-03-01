@@ -1,6 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { StoppageService, StoppageReason, StoppageEntry, StoppageStats } from '../../services/stoppage.service';
 import { Chart, registerables } from 'chart.js';
@@ -87,6 +89,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   successMessage = '';
   errorMessage = '';
+  private destroy$ = new Subject<void>();
   private refreshInterval: any;
   private paretoChart: Chart | null = null;
   private dailyChart: Chart | null = null;
@@ -97,8 +100,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.auth.loggedIn$.subscribe((val: boolean) => this.loggedIn = val);
-    this.auth.user$.subscribe((val: any) => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
@@ -115,6 +118,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     if (this.paretoChart) this.paretoChart.destroy();
     if (this.dailyChart) this.dailyChart.destroy();

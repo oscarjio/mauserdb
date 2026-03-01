@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 
@@ -11,7 +13,8 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './tvattlinje-admin.html',
   styleUrl: './tvattlinje-admin.css'
 })
-export class TvattlinjeAdminPage implements OnInit {
+export class TvattlinjeAdminPage implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
   isAdmin = false;
@@ -24,11 +27,16 @@ export class TvattlinjeAdminPage implements OnInit {
   successMessage = '';
 
   constructor(private auth: AuthService, private http: HttpClient) {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   ngOnInit() {

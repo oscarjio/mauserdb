@@ -1,5 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
@@ -39,17 +41,18 @@ export class VpnAdminPage implements OnInit, OnDestroy {
   disconnectError: string | null = null;
   
   private refreshInterval: any;
+  private destroy$ = new Subject<void>();
 
   constructor(
-    private auth: AuthService, 
+    private auth: AuthService,
     private http: HttpClient,
     private router: Router
   ) {
-    this.auth.loggedIn$.subscribe(val => this.loggedIn = val);
-    this.auth.user$.subscribe(val => {
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
-      
+
       if (!this.isAdmin && val) {
         this.router.navigate(['/']);
       }
@@ -69,6 +72,8 @@ export class VpnAdminPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
