@@ -1,4 +1,4 @@
-/* Minimal placeholder for Klassificeringslinje Live page */
+/* Klassificeringslinje Live page */
 .klassificeringslinje-live-page {
   min-height: 100vh;
   display: flex;
@@ -6,6 +6,45 @@
   justify-content: center;
   background: #181a1b;
   padding: 2vw 0;
+  position: relative;
+}
+
+.freshness-indicator {
+  position: fixed;
+  top: 10px;
+  right: 16px;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(35, 39, 43, 0.9);
+  font-size: 0.75rem;
+}
+
+.freshness-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.freshness-ok .freshness-dot { background: #27ae60; box-shadow: 0 0 6px rgba(39,174,96,0.6); animation: fGlowK 2s ease-in-out infinite; }
+.freshness-ok .freshness-text { color: #27ae60; }
+.freshness-warning .freshness-dot { background: #f1c40f; }
+.freshness-warning .freshness-text { color: #f1c40f; }
+.freshness-stale .freshness-dot { background: #e74c3c; animation: fBlinkK 1s ease-in-out infinite; }
+.freshness-stale .freshness-text { color: #e74c3c; }
+.freshness-unknown .freshness-dot { background: #718096; }
+
+@keyframes fGlowK { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes fBlinkK { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.live-sub {
+  font-size: 1rem;
+  margin-top: 0.3rem;
+  opacity: 0.75;
 }
 
 .row.g-4.align-items-stretch.justify-content-center {

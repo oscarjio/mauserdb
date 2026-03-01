@@ -91,6 +91,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   errorMessage = '';
   private destroy$ = new Subject<void>();
   private refreshInterval: any;
+  private successTimerId: any = null;
   private paretoChart: Chart | null = null;
   private dailyChart: Chart | null = null;
 
@@ -118,11 +119,12 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.destroy$.next();
-    this.destroy$.complete();
+    clearTimeout(this.successTimerId);
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     if (this.paretoChart) this.paretoChart.destroy();
     if (this.dailyChart) this.dailyChart.destroy();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadReasons() {
@@ -256,7 +258,10 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   private showSuccess(msg: string) {
     this.successMessage = msg;
-    setTimeout(() => this.successMessage = '', 3000);
+    clearTimeout(this.successTimerId);
+    this.successTimerId = setTimeout(() => {
+      if (!this.destroy$.closed) this.successMessage = '';
+    }, 3000);
   }
 
   private buildParetoChart() {
