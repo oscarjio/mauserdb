@@ -1,2 +1,97 @@
-<div class="klassificeringslinje-statistik-page"><h2>Klassificeringslinje Statistik</h2></div>
+<div class="container-fluid mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="h3 mb-0">
+      <i class="fas fa-chart-line me-2 text-success"></i>Klassificeringslinje Statistik
+    </h1>
+    <div class="d-flex gap-2 align-items-center">
+      <label class="form-label small mb-0 text-muted">Period:</label>
+      <select class="form-select form-select-sm" [(ngModel)]="period" (change)="onPeriodChange()" style="width:auto;">
+        <option value="30">Senaste 30 dagarna</option>
+        <option value="90">Senaste 90 dagarna</option>
+        <option value="365">Senaste året</option>
+        <option value="all">Alla</option>
+      </select>
+    </div>
+  </div>
 
+  <div *ngIf="errorMessage" class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
+  <div *ngIf="loading" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin me-2"></i>Laddar statistik...</div>
+
+  <ng-container *ngIf="!loading && !errorMessage">
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Genomsnittlig kvalitet</div>
+          <div class="kpi-value" [class]="getQualityClass(avgQuality)">{{ avgQuality }}%</div>
+          <div class="kpi-sub">{{ reportsCount }} skift</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Totalt producerat</div>
+          <div class="kpi-value text-info">{{ totalProduced | number }}</div>
+          <div class="kpi-sub">enheter</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Antal OK</div>
+          <div class="kpi-value text-success">{{ totalOk | number }}</div>
+          <div class="kpi-sub text-muted">godkända</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Kassation</div>
+          <div class="kpi-value text-danger">{{ totalEjOk | number }}</div>
+          <div class="kpi-sub text-muted" *ngIf="totalProduced > 0">{{ (100 - avgQuality) }}% kassation</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-xl-8">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Kvalitetstrend</h5>
+          </div>
+          <div class="card-body" style="height:300px;">
+            <canvas #qualityChart></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-xl-4">
+        <div class="card h-100">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-star me-2"></i>Bästa skift</h5>
+          </div>
+          <div class="card-body d-flex flex-column justify-content-center align-items-center text-center">
+            <div *ngIf="bestQualityDay" class="mb-2">
+              <div class="kpi-label">Datum</div>
+              <div class="kpi-value text-success">{{ bestQualityDay }}</div>
+            </div>
+            <div *ngIf="bestQualityPct > 0">
+              <div class="kpi-label">Kvalitet</div>
+              <div class="kpi-value text-success">{{ bestQualityPct }}%</div>
+            </div>
+            <div *ngIf="!bestQualityDay" class="text-muted">Ingen data i perioden</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Produktion per månad</h5>
+          </div>
+          <div class="card-body" style="height:260px;">
+            <canvas #monthlyChart></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="reports.length === 0" class="text-center text-muted py-5">
+      <i class="fas fa-info-circle me-2"></i>Inga rapporter att visa ännu.
+    </div>
+  </ng-container>
+</div>
