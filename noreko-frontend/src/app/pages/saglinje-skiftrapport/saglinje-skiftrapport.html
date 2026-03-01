@@ -1,2 +1,126 @@
-<div class="saglinje-skiftrapport-page"><h2>Såglinje Skiftrapport</h2></div>
+<div class="container-fluid mt-4">
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1050;">
+    <div class="toast show" *ngIf="showSuccessMessage" role="alert">
+      <div class="toast-header bg-warning text-dark">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong class="me-auto">Framgång</strong>
+        <button type="button" class="btn-close" (click)="showSuccessMessage=false"></button>
+      </div>
+      <div class="toast-body bg-dark text-white">{{ successMessage }}</div>
+    </div>
+  </div>
 
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">
+      <i class="fas fa-clipboard-list me-2 text-warning"></i>Såglinje Skiftrapport
+    </h1>
+    <button *ngIf="loggedIn" class="btn btn-warning text-dark" (click)="showAddForm = !showAddForm">
+      <i class="fas" [class.fa-minus]="showAddForm" [class.fa-plus]="!showAddForm"></i>
+      {{ showAddForm ? 'Dölj' : 'Lägg till rapport' }}
+    </button>
+  </div>
+
+  <div *ngIf="errorMessage" class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
+
+  <div class="card mb-4" *ngIf="showAddForm">
+    <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="fas fa-plus me-2"></i>Ny skiftrapport</h5></div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-2"><label class="form-label">Datum</label><input type="date" class="form-control" [(ngModel)]="newReport.datum" /></div>
+        <div class="col-md-2"><label class="form-label">Antal OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0" /></div>
+        <div class="col-md-2"><label class="form-label">Antal ej OK</label><input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0" /></div>
+        <div class="col-md-5"><label class="form-label">Kommentar</label><input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." /></div>
+        <div class="col-md-1 d-flex align-items-end"><button class="btn btn-warning text-dark w-100" (click)="addReport()"><i class="fas fa-plus"></i></button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
+    <div><label class="form-label small mb-1">Från datum</label><input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" style="width:150px;" /></div>
+    <div><label class="form-label small mb-1">Till datum</label><input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="width:150px;" /></div>
+    <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()" *ngIf="filterFrom || filterTo"><i class="fas fa-times me-1"></i>Rensa</button>
+    <span class="text-muted small align-self-end pb-1" *ngIf="reports.length > 0">{{ filteredReports.length }} av {{ reports.length }} skift</span>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h5 class="mb-0"><i class="fas fa-table me-2"></i>Skiftrapporter</h5>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <button class="btn btn-sm btn-outline-dark" (click)="exportCSV()" *ngIf="filteredReports.length > 0"><i class="fas fa-download me-1"></i>CSV</button>
+        <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
+          <button class="btn btn-sm btn-outline-dark" (click)="bulkMarkInlagd(true)"><i class="fas fa-check me-1"></i>Markera inlagda</button>
+          <button class="btn btn-sm btn-outline-dark" (click)="bulkMarkInlagd(false)"><i class="fas fa-times me-1"></i>Ej inlagda</button>
+          <button class="btn btn-sm btn-outline-danger" (click)="bulkDelete()"><i class="fas fa-trash me-1"></i>Ta bort ({{ selectedIds.size }})</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div *ngIf="loading" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Laddar...</div>
+      <div class="table-responsive" *ngIf="!loading">
+        <table class="table table-striped table-hover">
+          <thead class="table-dark">
+            <tr>
+              <th width="40" *ngIf="isAdmin"><input type="checkbox" [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0" (change)="toggleSelectAll()" /></th>
+              <th>ID</th><th>Datum</th><th>Antal OK</th><th>Antal ej OK</th><th>Totalt</th><th>Kvalitet</th><th>Kommentar</th><th>Användare</th><th>Inlagd</th><th>Åtgärder</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let report of filteredReports">
+              <tr [class.inlagd-row]="report.inlagd == 1">
+                <td *ngIf="isAdmin"><input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" /></td>
+                <td>{{ report.id }}</td>
+                <td>{{ report.datum | date:'yyyy-MM-dd' }}</td>
+                <td><span class="text-success fw-semibold">{{ report.antal_ok }}</span></td>
+                <td><span class="text-danger fw-semibold">{{ report.antal_ej_ok }}</span></td>
+                <td><strong>{{ report.totalt }}</strong></td>
+                <td>
+                  <span class="badge" [class.bg-success]="(getQualityPct(report) ?? 0) >= 90" [class.bg-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90" [class.bg-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null" [class.bg-secondary]="getQualityPct(report) == null">
+                    {{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}
+                  </span>
+                </td>
+                <td class="text-truncate" style="max-width:150px;" [title]="report.kommentar">{{ report.kommentar || '–' }}</td>
+                <td><span class="badge bg-secondary">{{ report.user_name || '-' }}</span></td>
+                <td>
+                  <div class="form-check form-switch" *ngIf="isAdmin"><input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" /><label class="form-check-label">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</label></div>
+                  <span *ngIf="!isAdmin" class="badge" [class.bg-success]="report.inlagd == 1" [class.bg-secondary]="!report.inlagd">{{ report.inlagd == 1 ? 'Ja' : 'Nej' }}</span>
+                </td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"><i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i></button>
+                    <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)"><i class="fas fa-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="expanded[report.id]" class="expand-row">
+                <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
+                  <div class="expand-panel p-3">
+                    <div class="row g-2 mb-3">
+                      <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Kvalitet</div><div class="kpi-value" [class.text-success]="(getQualityPct(report) ?? 0) >= 90" [class.text-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90" [class.text-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null" [class.text-muted]="getQualityPct(report) == null">{{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}</div></div></div>
+                      <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Antal OK</div><div class="kpi-value text-success">{{ report.antal_ok }}</div></div></div>
+                      <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Kassation</div><div class="kpi-value text-danger">{{ report.antal_ej_ok }}</div></div></div>
+                      <div class="col-6 col-md-3"><div class="kpi-card"><div class="kpi-label">Totalt</div><div class="kpi-value text-info">{{ report.totalt }}</div></div></div>
+                    </div>
+                    <div class="mb-3" *ngIf="report.kommentar"><i class="fas fa-comment text-muted me-2"></i><span class="text-light">{{ report.kommentar }}</span></div>
+                    <div *ngIf="canEdit(report)" class="border-top border-secondary pt-3">
+                      <div class="d-flex align-items-center mb-2"><i class="fas fa-edit text-warning me-2"></i><span class="text-warning fw-semibold">Redigera</span></div>
+                      <form (ngSubmit)="saveReport(report)">
+                        <div class="row g-2 align-items-end">
+                          <div class="col-md-2"><label class="form-label small">Datum</label><input type="date" class="form-control form-control-sm" [value]="report.datum" (input)="report.datum = $any($event.target).value" name="datum-{{report.id}}" /></div>
+                          <div class="col-md-2"><label class="form-label small">Antal OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ok" name="ok-{{report.id}}" min="0" /></div>
+                          <div class="col-md-2"><label class="form-label small">Antal ej OK</label><input type="number" class="form-control form-control-sm" [(ngModel)]="report.antal_ej_ok" name="ejok-{{report.id}}" min="0" /></div>
+                          <div class="col-md-4"><label class="form-label small">Kommentar</label><input type="text" class="form-control form-control-sm" [(ngModel)]="report.kommentar" name="kom-{{report.id}}" /></div>
+                          <div class="col-md-2"><button class="btn btn-warning btn-sm text-dark w-100" type="submit"><i class="fas fa-save me-1"></i>Spara</button></div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+            <tr *ngIf="filteredReports.length === 0"><td [attr.colspan]="isAdmin ? 11 : 10" class="text-center text-muted py-3"><i class="fas fa-info-circle me-2"></i>{{ reports.length === 0 ? 'Inga rapporter hittades.' : 'Inga skift matchar det valda datumintervallet.' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

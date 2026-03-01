@@ -83,6 +83,7 @@ $classNameMap = [
     'audit' => 'AuditController',
     'status' => 'StatusController',
     'operators' => 'OperatorController',
+    'lineskiftrapport' => 'LineSkiftrapportController',
 ];
 
 $actionKey = strtolower($action);
