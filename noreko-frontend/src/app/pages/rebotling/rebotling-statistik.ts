@@ -1,7 +1,9 @@
-import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { RebotlingService } from '../../services/rebotling.service';
 
@@ -37,7 +39,7 @@ interface TableRow {
   styleUrls: ['./rebotling-statistik.css'],
   imports: [CommonModule, FormsModule]
 })
-export class RebotlingStatistikPage implements OnInit, AfterViewInit {
+export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;
 
   viewMode: ViewMode = 'month';
@@ -75,6 +77,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
   showOnlyDaysWithCycles: boolean = true;
 
   isDragging: boolean = false;
+
+  private destroy$ = new Subject<void>();
+  private chartUpdateTimer: any = null;
 
   constructor(
     private rebotlingService: RebotlingService,
@@ -150,6 +155,16 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {}
+
+  ngOnDestroy() {
+    clearTimeout(this.chartUpdateTimer);
+    if (this.productionChart) {
+      this.productionChart.destroy();
+      this.productionChart = null;
+    }
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   updateBreadcrumb() {
     this.breadcrumb = [];
@@ -403,7 +418,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
 
     const { start, end } = this.getDateRange();
 
-    this.rebotlingService.getStatistics(start, end).subscribe({
+    this.rebotlingService.getStatistics(start, end).pipe(takeUntil(this.destroy$)).subscribe({
       next: (response) => {
         if (response.success) {
           // Spara senaste data så vi kan göra zoom/markering i grafen utan att hämta om
@@ -700,7 +715,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit {
       this.productionChart = null;
     }
 
-    setTimeout(() => {
+    clearTimeout(this.chartUpdateTimer);
+    this.chartUpdateTimer = setTimeout(() => {
+      if (this.destroy$.closed) return;
       if (!this.productionChartRef?.nativeElement) {
         return;
       }

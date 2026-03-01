@@ -174,6 +174,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.rebotlingThisHour = res.data.rebotlingThisHour;
           this.hourlyTarget = res.data.hourlyTarget;
           this.ibcToday = res.data.ibcToday || 0;
+          this.nextLopnummer = res.data.nextLopnummer ?? null;
 
           this.productionPercentage = res.data.productionPercentage || 0;
 

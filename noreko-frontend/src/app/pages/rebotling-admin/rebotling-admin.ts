@@ -29,6 +29,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   loading = false;
   showSuccessMessage = false;
   successMessage = '';
+  private successTimerId: any = null;
   showAddProductForm = false;
 
   constructor(private auth: AuthService, private http: HttpClient) {
@@ -40,6 +41,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    clearTimeout(this.successTimerId);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -187,8 +189,9 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   private showSuccess(message: string) {
     this.successMessage = message;
     this.showSuccessMessage = true;
-    setTimeout(() => {
-      this.showSuccessMessage = false;
+    clearTimeout(this.successTimerId);
+    this.successTimerId = setTimeout(() => {
+      if (!this.destroy$.closed) this.showSuccessMessage = false;
     }, 3000);
   }
 }

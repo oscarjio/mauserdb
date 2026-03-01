@@ -11,6 +11,7 @@ export interface RebotlingLiveStatsResponse {
     hourlyTarget: number;
     ibcToday: number;
     productionPercentage: number;
+    nextLopnummer: number | null;
     utetemperatur: number | null;
   };
 }
