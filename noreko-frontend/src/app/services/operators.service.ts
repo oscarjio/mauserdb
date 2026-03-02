@@ -27,4 +27,8 @@ export class OperatorsService {
   toggleActive(id: number): Observable<any> {
     return this.http.post<any>(this.apiUrl, { action: 'toggleActive', id }, { withCredentials: true });
   }
+
+  getStats(): Observable<any> {
+    return this.http.get<any>(this.apiUrl + '&run=stats', { withCredentials: true });
+  }
 }

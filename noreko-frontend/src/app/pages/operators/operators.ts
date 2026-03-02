@@ -23,6 +23,10 @@ export class OperatorsPage implements OnInit, OnDestroy {
   showAddForm = false;
   addForm: { name: string; number: number | null } = { name: '', number: null };
 
+  showRanking = false;
+  opStats: any[] = [];
+  opStatsLoading = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -112,6 +116,26 @@ export class OperatorsPage implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.toast.error(err.error?.message || 'Kunde inte ändra status');
+      }
+    });
+  }
+
+  toggleRanking() {
+    this.showRanking = !this.showRanking;
+    if (this.showRanking && this.opStats.length === 0) {
+      this.loadOpStats();
+    }
+  }
+
+  loadOpStats() {
+    this.opStatsLoading = true;
+    this.operatorsService.getStats().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.opStats = res.stats || [];
+        this.opStatsLoading = false;
+      },
+      error: () => {
+        this.opStatsLoading = false;
       }
     });
   }

@@ -97,6 +97,17 @@
           <div class="kpi-label">Total Körtid</div>
         </div>
       </div>
+
+      <div class="col-lg-3 col-md-6 mb-3" *ngIf="totalRastMinutes > 0">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: rgba(255,193,7,0.15); color: #ffc107;">
+            <i class="fas fa-coffee"></i>
+          </div>
+          <div class="kpi-value text-warning">{{ totalRastMinutes | number:'1.0-0' }} min</div>
+          <div class="kpi-label">Rasttid</div>
+          <div class="kpi-sub text-muted" style="font-size:0.8rem;margin-top:0.25rem;">exkl. från effektivitet</div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -233,7 +244,11 @@
                 Produktionsanalys
               </h5>
               <small class="text-muted d-block">
-                Bakgrund: Grön = Kör, Röd = Stoppad | Gul = Snitt | Orange = Mål
+                Bakgrund: <span style="color:#27ae60">&#9632;</span> Kör &nbsp;
+                <span style="color:#ffc107">&#9632;</span> Rast (exkl. från effektivitet) &nbsp;
+                <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
+                <span style="color:#ffc107">- -</span> Snitt &nbsp;
+                <span style="color:#ff8800">- -</span> Mål
               </small>
             </div>
             <button
@@ -246,6 +261,47 @@
           <div class="card-body">
             <div class="chart-container">
               <canvas #productionChart></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tidslinje (dag-vy) -->
+        <div *ngIf="viewMode === 'day' && timelineSegments.length > 0" class="rast-timeline mt-2 mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Tidslinje (00:00)</small>
+            <small class="text-muted">(24:00)</small>
+          </div>
+          <div class="timeline-bar position-relative">
+            <div *ngFor="let seg of timelineSegments"
+                 class="timeline-seg"
+                 [class.seg-running]="seg.type === 'running'"
+                 [class.seg-rast]="seg.type === 'rast'"
+                 [class.seg-stopped]="seg.type === 'stopped'"
+                 [style.left.%]="seg.startPct"
+                 [style.width.%]="seg.widthPct">
+            </div>
+          </div>
+          <div class="d-flex gap-3 mt-1">
+            <small><span class="tl-dot running"></span> Kör</small>
+            <small><span class="tl-dot rast"></span> Rast</small>
+            <small><span class="tl-dot stopped"></span> Stopp</small>
+          </div>
+        </div>
+
+        <!-- Skiftöversikt (dag-vy) -->
+        <div *ngIf="viewMode === 'day' && shiftSummaries.length > 0" class="row g-2 mb-4">
+          <div class="col-12">
+            <h6 class="text-muted">
+              <i class="fas fa-layer-group me-2"></i>Skiftöversikt
+            </h6>
+          </div>
+          <div class="col-auto" *ngFor="let s of shiftSummaries">
+            <div class="shift-summary-card">
+              <div class="shift-nr">Skift #{{ s.nr }}</div>
+              <div class="shift-stat"><i class="fas fa-box text-info me-1"></i>{{ s.ibcCount }} IBC</div>
+              <div class="shift-stat" *ngIf="s.avgCycleTime > 0">
+                <i class="fas fa-clock text-warning me-1"></i>{{ s.avgCycleTime | number:'1.1-1' }} min/cykel
+              </div>
             </div>
           </div>
         </div>

@@ -2,6 +2,13 @@
 require_once __DIR__ . '/AuditController.php';
 
 class OperatorController {
+    private $pdo;
+
+    public function __construct() {
+        global $pdo;
+        $this->pdo = $pdo;
+    }
+
     public function handle() {
         session_start();
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -146,6 +153,13 @@ class OperatorController {
             return;
         }
 
+        // GET - dispatch based on run param
+        $run = $_GET['run'] ?? '';
+        if ($run === 'stats') {
+            $this->getStats();
+            return;
+        }
+
         // GET - Hämta alla operatörer
         try {
             $stmt = $pdo->query("SELECT * FROM operators ORDER BY number");
@@ -155,6 +169,42 @@ class OperatorController {
             error_log('OperatorController GET: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'Kunde inte hämta operatörer']);
+        }
+    }
+
+    private function getStats() {
+        try {
+            $stmt = $this->pdo->prepare('
+                SELECT
+                    o.id,
+                    o.name,
+                    o.number,
+                    COUNT(DISTINCT s.id) AS shifts,
+                    ROUND(
+                        SUM(COALESCE(s.ibc_ok, 0)) /
+                        NULLIF(SUM(COALESCE(s.drifttid, 0)) / 60.0, 0),
+                    1) AS ibc_per_hour,
+                    ROUND(AVG(
+                        CASE WHEN s.totalt > 0
+                             THEN s.ibc_ok * 100.0 / s.totalt
+                             ELSE NULL END
+                    ), 1) AS avg_quality,
+                    MAX(s.datum) AS last_shift
+                FROM operators o
+                LEFT JOIN rebotling_skiftrapport s
+                    ON (s.op1 = o.number OR s.op2 = o.number OR s.op3 = o.number)
+                    AND DATE(s.datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                WHERE o.active = 1
+                GROUP BY o.id, o.name, o.number
+                ORDER BY ibc_per_hour DESC
+            ');
+            $stmt->execute();
+            $stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'stats' => $stats]);
+        } catch (Exception $e) {
+            error_log('OperatorController getStats: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatistik']);
         }
     }
 }

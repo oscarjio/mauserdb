@@ -73,6 +73,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   error: string | null = null;
   breadcrumb: string[] = [];
 
+  totalRastMinutes: number = 0;
+  timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' }[] = [];
+  shiftSummaries: { nr: number; ibcCount: number; avgCycleTime: number; rastMinutes: number }[] = [];
+
   /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
   showOnlyDaysWithCycles: boolean = true;
 
@@ -623,6 +627,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.avgEfficiency = Math.round(data.summary.avg_production_percent || 0);
     this.totalRuntimeHours = Math.round(data.summary.total_runtime_hours * 10) / 10;
     this.targetCycleTime = data.summary.target_cycle_time || 0;
+    this.totalRastMinutes = data.summary.total_rast_minutes || 0;
+
+    this.buildTimelineSegments(data);
+    this.buildShiftSummaries(data.cycles || []);
 
     this.updatePeriodCellsData(data.cycles);
   }
@@ -942,7 +950,30 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     if (currentPeriod) runningPeriods.push(currentPeriod);
 
-    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods };
+    // Bygg rastPeriods (startIndex/endIndex i labels-arrayen)
+    const rast: any[] = data.rast_events || [];
+    const rastPeriods: { startIndex: number; endIndex: number }[] = [];
+    let rastStartKey: string | null = null;
+
+    rast.forEach((ev: any) => {
+      const d = new Date(ev.datum);
+      const key = this.viewMode === 'day'
+        ? `${d.getHours().toString().padStart(2, '0')}:${(Math.floor(d.getMinutes() / 10) * 10).toString().padStart(2, '0')}`
+        : `${d.getDate()}`;
+      if (ev.rast_status == 1) { rastStartKey = key; }
+      else if (ev.rast_status == 0 && rastStartKey !== null) {
+        const si = labels.indexOf(rastStartKey);
+        const ei = labels.indexOf(key);
+        if (si >= 0) rastPeriods.push({ startIndex: si, endIndex: Math.max(ei >= 0 ? ei : si, si) });
+        rastStartKey = null;
+      }
+    });
+    if (rastStartKey !== null) {
+      const si = labels.indexOf(rastStartKey);
+      if (si >= 0) rastPeriods.push({ startIndex: si, endIndex: labels.length - 1 });
+    }
+
+    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods };
   }
 
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
@@ -1053,6 +1084,23 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               } catch (e) {
                 console.error('Background draw error:', e);
               }
+            });
+
+            // Rita rast (gul) ovanpå kör/stopp-bakgrunden
+            (chartData.rastPeriods || []).forEach((period: any) => {
+              try {
+                const xStart = scales.x.getPixelForValue(period.startIndex);
+                const xEnd   = scales.x.getPixelForValue(period.endIndex + 1);
+                ctx.fillStyle = 'rgba(255, 193, 7, 0.42)';
+                ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
+                // Övre kant-linje för synlighet
+                ctx.strokeStyle = 'rgba(255, 193, 7, 0.85)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(xStart, top);
+                ctx.lineTo(xEnd, top);
+                ctx.stroke();
+              } catch (e) {}
             });
 
             // Rita förhandsvisning av markerat intervall i ljusblått när man drar i dags-vy
@@ -1167,6 +1215,65 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.chartSelectionPreviewEndIndex = idx;
       chart.update('none');
     };
+  }
+
+  private buildTimelineSegments(data: any) {
+    if (this.viewMode !== 'day') { this.timelineSegments = []; return; }
+    const dayEnd = 1440;
+    const segments: typeof this.timelineSegments = [];
+    const onoff: any[] = data.onoff_events || [];
+    const rast: any[] = data.rast_events || [];
+
+    const events: { min: number; type: 'run_start' | 'run_end' | 'rast_start' | 'rast_end' }[] = [];
+    onoff.forEach((e: any) => {
+      const d = new Date(e.datum);
+      const min = d.getHours() * 60 + d.getMinutes();
+      events.push({ min, type: e.running ? 'run_start' : 'run_end' });
+    });
+    rast.forEach((e: any) => {
+      const d = new Date(e.datum);
+      const min = d.getHours() * 60 + d.getMinutes();
+      events.push({ min, type: e.rast_status == 1 ? 'rast_start' : 'rast_end' });
+    });
+    events.sort((a, b) => a.min - b.min);
+
+    let running = false, onRast = false, lastMin = 0;
+    const push = (end: number, r: boolean, rs: boolean) => {
+      if (end > lastMin) {
+        const type: 'running' | 'rast' | 'stopped' = rs ? 'rast' : r ? 'running' : 'stopped';
+        segments.push({ startPct: lastMin / 14.4, widthPct: (end - lastMin) / 14.4, type });
+      }
+    };
+    for (const ev of events) {
+      push(ev.min, running, onRast);
+      lastMin = ev.min;
+      if (ev.type === 'run_start') running = true;
+      else if (ev.type === 'run_end') running = false;
+      else if (ev.type === 'rast_start') onRast = true;
+      else if (ev.type === 'rast_end') onRast = false;
+    }
+    push(dayEnd, running, onRast);
+    this.timelineSegments = segments;
+  }
+
+  private buildShiftSummaries(cycles: any[]) {
+    if (this.viewMode !== 'day') { this.shiftSummaries = []; return; }
+    const map = new Map<number, { ibcCount: number; times: number[]; rastMin: number }>();
+    cycles.forEach((c: any) => {
+      if (!c.skiftraknare) return;
+      if (!map.has(c.skiftraknare)) map.set(c.skiftraknare, { ibcCount: 0, times: [], rastMin: 0 });
+      const s = map.get(c.skiftraknare)!;
+      s.ibcCount += (c.ibc_count || 1);
+      if (c.cycle_time != null && c.cycle_time > 0 && c.cycle_time <= 30) s.times.push(parseFloat(c.cycle_time));
+    });
+    this.shiftSummaries = Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([nr, s]) => ({
+        nr,
+        ibcCount: s.ibcCount,
+        avgCycleTime: s.times.length ? Math.round(s.times.reduce((a, b) => a + b, 0) / s.times.length * 10) / 10 : 0,
+        rastMinutes: 0
+      }));
   }
 
   updateTable(data: any) {

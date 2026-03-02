@@ -487,6 +487,33 @@ class RebotlingController {
             $stmt->execute(['start' => $start, 'end' => $end]);
             $onoff_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Hämta rast events för perioden
+            $rast_events = [];
+            $totalRastMinutes = 0;
+            try {
+                $rastStmt = $this->pdo->prepare(
+                    'SELECT datum, rast_status FROM rebotling_runtime
+                     WHERE DATE(datum) BETWEEN :start AND :end
+                     ORDER BY datum ASC'
+                );
+                $rastStmt->execute(['start' => $start, 'end' => $end]);
+                $rast_events = $rastStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // Beräkna total rasttid
+                $rs = null;
+                foreach ($rast_events as $ev) {
+                    if ((int)$ev['rast_status'] === 1) {
+                        $rs = new DateTime($ev['datum']);
+                    } elseif ((int)$ev['rast_status'] === 0 && $rs !== null) {
+                        $d = $rs->diff(new DateTime($ev['datum']));
+                        $totalRastMinutes += ($d->days * 1440) + ($d->h * 60) + $d->i + ($d->s / 60);
+                        $rs = null;
+                    }
+                }
+            } catch (Exception $e) {
+                // Tabellen saknas eller fel – ignorera
+            }
+
             // Beräkna sammanfattning
             $total_cycles = count($cycles);
             $avg_production_percent = 0;
@@ -569,13 +596,15 @@ class RebotlingController {
                 'data' => [
                     'cycles' => $cycles,
                     'onoff_events' => $onoff_events,
+                    'rast_events' => $rast_events,
                     'summary' => [
                         'total_cycles' => $total_cycles,
                         'avg_production_percent' => round($avg_production_percent, 1),
                         'avg_cycle_time' => round($avg_cycle_time, 1),
                         'target_cycle_time' => round($target_cycle_time, 1),
                         'total_runtime_hours' => round($total_runtime_hours, 1),
-                        'days_with_production' => $days_with_production
+                        'days_with_production' => $days_with_production,
+                        'total_rast_minutes' => round($totalRastMinutes, 1)
                     ]
                 ]
             ]);
