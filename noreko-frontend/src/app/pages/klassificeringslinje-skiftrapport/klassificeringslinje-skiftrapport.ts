@@ -144,6 +144,62 @@ export class KlassificeringslinjeSkiftrapportPage implements OnInit, OnDestroy {
     const a = document.createElement('a'); a.href = url; a.download = `klassificeringslinje-skiftrapport-${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
   }
 
+  exportExcel() {
+    if (!this.filteredReports.length) return;
+    import('xlsx').then(XLSX => {
+      const data = this.filteredReports.map(r => ({
+        'ID': r.id, 'Datum': r.datum, 'Antal OK': r.antal_ok,
+        'Antal ej OK': r.antal_ej_ok, 'Totalt': r.totalt,
+        'Kvalitet %': this.getQualityPct(r) ?? '',
+        'Kommentar': r.kommentar || '', 'Användare': r.user_name || '',
+        'Inlagd': r.inlagd == 1 ? 'Ja' : 'Nej'
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
+      XLSX.writeFile(wb, `klassificeringslinje-skiftrapport-${new Date().toISOString().split('T')[0]}.xlsx`);
+    });
+  }
+
+  exportPDF(report: any) {
+    import('pdfmake/build/pdfmake').then((pdfMakeModule: any) => {
+      import('pdfmake/build/vfs_fonts').then((vfsFontsModule: any) => {
+        const pdfMake = pdfMakeModule.default || pdfMakeModule;
+        const vfsFonts = vfsFontsModule.default || vfsFontsModule;
+        pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
+        const q = this.getQualityPct(report);
+        pdfMake.createPdf({
+          content: [
+            { text: 'Skiftrapport – ' + this.lineName, style: 'header' },
+            { text: report.datum + '  |  Skift av ' + (report.user_name || '-'), style: 'subheader' },
+            { text: '\n' },
+            { text: 'Produktion', style: 'sectionHeader' },
+            {
+              table: { widths: ['*', '*', '*', '*'],
+                body: [
+                  [{ text: 'Antal OK', bold: true, fillColor: '#eeeeee' }, { text: 'Antal ej OK', bold: true, fillColor: '#eeeeee' }, { text: 'Totalt', bold: true, fillColor: '#eeeeee' }, { text: 'Kvalitet', bold: true, fillColor: '#eeeeee' }],
+                  [{ text: String(report.antal_ok), alignment: 'center' }, { text: String(report.antal_ej_ok), alignment: 'center' }, { text: String(report.totalt), bold: true, alignment: 'center' }, { text: q != null ? q + '%' : '–', alignment: 'center', color: q != null && q >= 90 ? 'green' : (q != null && q < 70 ? 'red' : 'black') }]
+                ]
+              }, layout: 'lightHorizontalLines'
+            },
+            { text: '\n' },
+            ...(report.kommentar ? [{ text: 'Kommentar: ' + report.kommentar, style: 'meta' }, { text: '\n' }] : []),
+            { text: 'Skiftansvarig: ' + (report.user_name || '-'), style: 'meta' },
+            { text: 'Inlagd: ' + (report.inlagd == 1 ? 'Ja' : 'Nej'), style: 'meta' },
+            { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'meta' }
+          ],
+          styles: {
+            header: { fontSize: 20, bold: true, margin: [0, 0, 0, 4] },
+            subheader: { fontSize: 12, color: '#555', margin: [0, 0, 0, 10] },
+            sectionHeader: { fontSize: 13, bold: true, margin: [0, 8, 0, 4] },
+            meta: { fontSize: 10, color: '#777', margin: [0, 2, 0, 0] }
+          },
+          defaultStyle: { fontSize: 11 }
+        }).download(`klassificeringslinje-skiftrapport-${report.datum}-${report.id}.pdf`);
+      });
+    });
+  }
+
   showSuccess(msg: string) {
     this.successMessage = msg; this.showSuccessMessage = true;
     clearTimeout(this.successTimerId);

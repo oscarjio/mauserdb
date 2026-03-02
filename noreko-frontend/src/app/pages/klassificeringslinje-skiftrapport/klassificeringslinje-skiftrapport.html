@@ -47,6 +47,7 @@
       <h5 class="mb-0"><i class="fas fa-table me-2"></i>Skiftrapporter</h5>
       <div class="d-flex gap-2 align-items-center flex-wrap">
         <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="filteredReports.length > 0"><i class="fas fa-download me-1"></i>CSV</button>
+        <button class="btn btn-sm btn-outline-light" (click)="exportExcel()" *ngIf="filteredReports.length > 0"><i class="fas fa-file-excel me-1"></i>Excel</button>
         <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
           <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(true)"><i class="fas fa-check me-1"></i>Markera inlagda</button>
           <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(false)"><i class="fas fa-times me-1"></i>Ej inlagda</button>
@@ -87,6 +88,7 @@
                 <td>
                   <div class="btn-group btn-group-sm">
                     <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"><i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i></button>
+                    <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF"><i class="fas fa-file-pdf"></i></button>
                     <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)"><i class="fas fa-trash"></i></button>
                   </div>
                 </td>
