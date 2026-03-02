@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, AfterViewInit, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit, AfterViewInit, OnChanges, OnDestroy, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables, ChartConfiguration } from 'chart.js';
 
@@ -26,7 +26,7 @@ interface DailyData {
   styleUrl: './bonus-charts.component.css',
   imports: [CommonModule]
 })
-export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges {
+export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
   @Input() dailyData: DailyData[] = [];
   @Input() currentKPIs: KPIData | null = null;
   @Input() teamAverage: number = 0;
@@ -50,6 +50,15 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges {
     if (changes['dailyData'] || changes['currentKPIs']) {
       setTimeout(() => this.updateAllCharts(), 100);
     }
+  }
+
+  ngOnDestroy() {
+    if (this.heatmapChart) { this.heatmapChart.destroy(); this.heatmapChart = null; }
+    Object.keys(this.gaugeCharts).forEach(k => {
+      if (this.gaugeCharts[k]) { this.gaugeCharts[k]!.destroy(); this.gaugeCharts[k] = null; }
+    });
+    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null; }
+    if (this.distributionChart) { this.distributionChart.destroy(); this.distributionChart = null; }
   }
 
   private initializeCharts() {

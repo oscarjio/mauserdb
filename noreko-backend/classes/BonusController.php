@@ -279,7 +279,7 @@ class BonusController {
                     GROUP BY operator_id
                     HAVING shifts >= 1
                     ORDER BY avg_bonus DESC
-                    LIMIT {$limit}
+                    LIMIT " . (int)$limit . "
                 ");
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -345,7 +345,7 @@ class BonusController {
                 GROUP BY operator_id
                 HAVING total_shifts >= 2
                 ORDER BY avg_bonus DESC
-                LIMIT {$limit}
+                LIMIT " . (int)$limit . "
             ");
             $stmt->execute();
             $combined = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -613,7 +613,7 @@ class BonusController {
                 FROM rebotling_ibc
                 WHERE op1 = :op_id OR op2 = :op_id OR op3 = :op_id
                 ORDER BY datum DESC
-                LIMIT {$limit}
+                LIMIT " . (int)$limit . "
             ");
             $stmt->execute(['op_id' => $op_id]);
             $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -722,7 +722,8 @@ class BonusController {
                 !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
                 return "1=0";
             }
-            return "DATE(datum) BETWEEN '{$start}' AND '{$end}'";
+            // $start/$$end validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
+            return "DATE(datum) BETWEEN '" . $start . "' AND '" . $end . "'";
         }
 
         switch ($period) {

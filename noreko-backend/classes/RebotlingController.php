@@ -35,6 +35,12 @@ class RebotlingController {
         }
 
         if ($method === 'POST' && $action === 'admin-settings') {
+            session_start();
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                return;
+            }
             $this->saveAdminSettings();
             return;
         }
