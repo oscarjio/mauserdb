@@ -23,7 +23,7 @@ export class AboutPage {
   lines = [
     { name: 'Rebotling', status: 'Fullt implementerad', color: '#22c55e' },
     { name: 'Tvättlinje', status: 'Fullt implementerad', color: '#22c55e' },
-    { name: 'Såglinje', status: 'Under utveckling', color: '#f97316' },
-    { name: 'Klassificeringslinje', status: 'Under utveckling', color: '#f97316' },
+    { name: 'Såglinje', status: 'Fullt implementerad', color: '#22c55e' },
+    { name: 'Klassificeringslinje', status: 'Fullt implementerad', color: '#22c55e' },
   ];
 }
