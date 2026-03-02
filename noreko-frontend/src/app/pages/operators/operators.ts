@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { OperatorsService } from '../../services/operators.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -13,13 +15,15 @@ import { ToastService } from '../../services/toast.service';
   templateUrl: './operators.html',
   styleUrl: './operators.css'
 })
-export class OperatorsPage implements OnInit {
+export class OperatorsPage implements OnInit, OnDestroy {
   operators: any[] = [];
   expanded: { [id: number]: boolean } = {};
   loading = false;
   error = '';
   showAddForm = false;
   addForm: { name: string; number: number | null } = { name: '', number: null };
+
+  private destroy$ = new Subject<void>();
 
   constructor(
     private operatorsService: OperatorsService,
@@ -29,12 +33,17 @@ export class OperatorsPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.auth.user$.subscribe(user => {
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
       if (!user || user.role !== 'admin') {
         this.router.navigate(['/']);
       }
     });
     this.fetchOperators();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   fetchOperators() {
