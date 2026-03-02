@@ -751,7 +751,7 @@ class BonusController {
     /**
      * Returnerar den position en operatör jobbat mest på under perioden.
      */
-    private function getOperatorPrimaryPosition(string $op_id, string $dateFilter): string {
+    private function getOperatorPrimaryPosition(int $op_id, string $dateFilter): string {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
@@ -773,6 +773,7 @@ class BonusController {
             if ($c2 >= $c1 && $c2 >= $c3) return 'Kontrollstation';
             return 'Truckförare';
         } catch (PDOException $e) {
+            error_log('BonusController getOperatorPrimaryPosition: ' . $e->getMessage());
             return 'Okänd';
         }
     }

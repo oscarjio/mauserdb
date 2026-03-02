@@ -240,6 +240,7 @@ class StoppageController {
     private function createStoppage($data) {
         try {
             $line = $data['line'] ?? 'rebotling';
+            if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
             $reasonId = intval($data['reason_id'] ?? 0);
             $startTime = $data['start_time'] ?? '';
             $endTime = $data['end_time'] ?? null;

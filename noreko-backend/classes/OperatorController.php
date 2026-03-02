@@ -92,6 +92,12 @@ class OperatorController {
                     $stmt->execute([$id]);
                     $op = $stmt->fetch(PDO::FETCH_ASSOC);
 
+                    if (!$op) {
+                        http_response_code(404);
+                        echo json_encode(['success' => false, 'message' => 'Operatör hittades inte']);
+                        return;
+                    }
+
                     $stmt = $pdo->prepare("DELETE FROM operators WHERE id = ?");
                     $stmt->execute([$id]);
                     AuditLogger::log($pdo, 'delete_operator', 'operator', $id,

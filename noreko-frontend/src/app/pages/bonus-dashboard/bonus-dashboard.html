@@ -380,11 +380,11 @@
               <td>{{ shift.cycles }}</td>
               <td>{{ shift.total_ibc_ok }}</td>
               <td>{{ shift.total_hours }}h</td>
-              <td>{{ shift.kpis.effektivitet }}%</td>
-              <td>{{ shift.kpis.produktivitet }}</td>
-              <td>{{ shift.kpis.kvalitet }}%</td>
-              <td [ngClass]="getBonusClass(shift.kpis.bonus_avg)">
-                <strong>{{ shift.kpis.bonus_avg }}</strong>
+              <td>{{ shift.kpis?.effektivitet }}%</td>
+              <td>{{ shift.kpis?.produktivitet }}</td>
+              <td>{{ shift.kpis?.kvalitet }}%</td>
+              <td [ngClass]="getBonusClass(shift.kpis?.bonus_avg ?? 0)">
+                <strong>{{ shift.kpis?.bonus_avg }}</strong>
               </td>
             </tr>
           </tbody>
