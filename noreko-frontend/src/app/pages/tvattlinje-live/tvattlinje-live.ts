@@ -50,8 +50,21 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   needleRotation: number = -150; // Start position
 
   get isGoalAchieved(): boolean {
-    // Grön om produktion är >= 100%, annars röd
     return this.productionPercentage >= 100;
+  }
+
+  get statusText(): string {
+    if (!this.isLineRunning) return 'Stoppad';
+    if (this.productionPercentage >= 100) return 'Bra produktion';
+    if (this.productionPercentage >= 60) return 'Under mål';
+    return 'Låg produktion';
+  }
+
+  get statusBadgeClass(): string {
+    if (!this.isLineRunning) return 'badge bg-secondary fs-3 w-100 text-center';
+    if (this.productionPercentage >= 100) return 'badge bg-success fs-3 w-100 text-center';
+    if (this.productionPercentage >= 60) return 'badge bg-warning text-dark fs-3 w-100 text-center';
+    return 'badge bg-danger fs-3 w-100 text-center';
   }
 
   constructor(private tvattlinjeService: TvattlinjeService) {}
