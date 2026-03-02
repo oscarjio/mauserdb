@@ -204,6 +204,92 @@ export class MyBonusPage implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
+  exportBonusPDF(): void {
+    if (!this.stats) return;
+    import('pdfmake/build/pdfmake').then((pdfMakeModule: any) => {
+      import('pdfmake/build/vfs_fonts').then((vfsFontsModule: any) => {
+        const pdfMake = pdfMakeModule.default || pdfMakeModule;
+        const vfsFonts = vfsFontsModule.default || vfsFontsModule;
+        pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
+        const s = this.stats;
+        const opName = s.operator_name || ('Operatör ' + this.savedOperatorId);
+        const trend = this.getTrendDirection();
+        const trendText = trend === 'up' ? '↑ Uppåtgående' : trend === 'down' ? '↓ Nedåtgående' : '→ Stabil';
+        const projected = this.getProjectedBonus();
+        const breakdownRows = (s.daily_breakdown || []).slice(0, 20).map((d: any) => [
+          d.date || '',
+          String(d.cycles || 0),
+          (d.effektivitet ?? 0).toFixed(1) + '%',
+          (d.produktivitet ?? 0).toFixed(1),
+          (d.kvalitet ?? 0).toFixed(1) + '%',
+          { text: (d.bonus_poang ?? 0).toFixed(1), bold: true }
+        ]);
+        pdfMake.createPdf({
+          content: [
+            { text: 'Bonusrapport', style: 'header' },
+            { text: opName + '  |  ' + this.getPositionName(s.position) + '  |  Period: ' + s.period, style: 'subheader' },
+            { text: ' ' },
+            { text: 'Sammanfattning', style: 'sectionHeader' },
+            {
+              table: { widths: ['*', '*', '*', '*'],
+                body: [
+                  [{ text: 'Snittbonus', bold: true, fillColor: '#eeeeee' }, { text: 'Maxbonus', bold: true, fillColor: '#eeeeee' }, { text: 'Minbonus', bold: true, fillColor: '#eeeeee' }, { text: 'Trend', bold: true, fillColor: '#eeeeee' }],
+                  [
+                    { text: (s.kpis?.bonus_avg ?? 0).toFixed(1), alignment: 'center' },
+                    { text: (s.kpis?.bonus_max ?? 0).toFixed(1), alignment: 'center' },
+                    { text: (s.kpis?.bonus_min ?? 0).toFixed(1), alignment: 'center' },
+                    { text: trendText, alignment: 'center' }
+                  ]
+                ]
+              }, layout: 'lightHorizontalLines'
+            },
+            { text: ' ' },
+            { text: 'KPI:er', style: 'sectionHeader' },
+            {
+              table: { widths: ['*', '*', '*'],
+                body: [
+                  [{ text: 'Effektivitet', bold: true, fillColor: '#eeeeee' }, { text: 'Produktivitet', bold: true, fillColor: '#eeeeee' }, { text: 'Kvalitet', bold: true, fillColor: '#eeeeee' }],
+                  [
+                    { text: (s.kpis?.effektivitet ?? 0).toFixed(1) + '%', alignment: 'center' },
+                    { text: (s.kpis?.produktivitet ?? 0).toFixed(1), alignment: 'center' },
+                    { text: (s.kpis?.kvalitet ?? 0).toFixed(1) + '%', alignment: 'center' }
+                  ]
+                ]
+              }, layout: 'lightHorizontalLines'
+            },
+            ...(projected ? [
+              { text: ' ' },
+              { text: 'Prognos (baserat på senaste skift)', style: 'meta' },
+              { text: 'Vecka: ' + projected.weekly + ' p  |  Månad: ' + projected.monthly + ' p', style: 'meta' }
+            ] : []),
+            ...(breakdownRows.length > 0 ? [
+              { text: ' ' },
+              { text: 'Daglig uppdelning (senaste ' + breakdownRows.length + ' skift)', style: 'sectionHeader' },
+              {
+                table: {
+                  widths: ['*', 'auto', 'auto', 'auto', 'auto', 'auto'],
+                  body: [
+                    [{ text: 'Datum', bold: true, fillColor: '#eeeeee' }, { text: 'Cykler', bold: true, fillColor: '#eeeeee' }, { text: 'Effektivitet', bold: true, fillColor: '#eeeeee' }, { text: 'Produktivitet', bold: true, fillColor: '#eeeeee' }, { text: 'Kvalitet', bold: true, fillColor: '#eeeeee' }, { text: 'Bonus', bold: true, fillColor: '#eeeeee' }],
+                    ...breakdownRows
+                  ]
+                }, layout: 'lightHorizontalLines'
+              }
+            ] : []),
+            { text: ' ' },
+            { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'meta' }
+          ],
+          styles: {
+            header: { fontSize: 20, bold: true, margin: [0, 0, 0, 4] },
+            subheader: { fontSize: 12, color: '#555', margin: [0, 0, 0, 10] },
+            sectionHeader: { fontSize: 13, bold: true, margin: [0, 8, 0, 4] },
+            meta: { fontSize: 10, color: '#777', margin: [0, 2, 0, 0] }
+          },
+          defaultStyle: { fontSize: 11 }
+        }).download(`bonusrapport-${this.savedOperatorId}-${this.selectedPeriod}.pdf`);
+      });
+    });
+  }
+
   getPositionName(pos: string): string {
     switch (pos) {
       case 'position_1': return 'Tvättplats';

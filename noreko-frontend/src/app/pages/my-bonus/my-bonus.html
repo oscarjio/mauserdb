@@ -44,6 +44,10 @@
               *ngIf="stats?.daily_breakdown?.length" title="Exportera som CSV">
         <i class="fas fa-file-csv me-1"></i>CSV
       </button>
+      <button class="btn btn-sm btn-outline-danger" (click)="exportBonusPDF()"
+              *ngIf="stats" title="Ladda ner PDF-rapport">
+        <i class="fas fa-file-pdf me-1"></i>PDF
+      </button>
     </div>
   </div>
 
