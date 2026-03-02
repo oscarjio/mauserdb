@@ -247,6 +247,27 @@ export class RebotlingStatistikPage implements OnInit, OnDestroy {
     return 'text-danger';
   }
 
+  exportExcel() {
+    const data = this.filteredReports;
+    if (data.length === 0) return;
+    import('xlsx').then(XLSX => {
+      const rows = data.map((r: any) => ({
+        'Datum': (r.datum || '').substring(0, 10),
+        'Produkt': r.product_name || '',
+        'IBC OK': r.ibc_ok || 0,
+        'Bur ej OK': r.bur_ej_ok || 0,
+        'IBC ej OK': r.ibc_ej_ok || 0,
+        'Totalt': r.totalt || 0,
+        'Kvalitet %': r.totalt > 0 ? Math.round((r.ibc_ok / r.totalt) * 100) : 0,
+        'Användare': r.user_name || ''
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Statistik');
+      XLSX.writeFile(wb, `rebotling-statistik-${new Date().toISOString().split('T')[0]}.xlsx`);
+    });
+  }
+
   exportCSV() {
     const data = this.filteredReports;
     if (data.length === 0) return;

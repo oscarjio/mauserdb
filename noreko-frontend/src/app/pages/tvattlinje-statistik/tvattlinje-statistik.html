@@ -268,8 +268,10 @@
               </small>
             </div>
             <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="tableData.length > 0" title="Exportera till CSV">
-              <i class="fas fa-download me-1"></i>
-              CSV
+              <i class="fas fa-download me-1"></i>CSV
+            </button>
+            <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="tableData.length > 0" title="Exportera till Excel">
+              <i class="fas fa-file-excel me-1"></i>Excel
             </button>
           </div>
           <div class="card-body p-0">

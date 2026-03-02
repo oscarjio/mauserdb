@@ -242,4 +242,24 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
     link.click();
     URL.revokeObjectURL(url);
   }
+
+  exportExcel() {
+    const data = this.filteredReports;
+    if (data.length === 0) return;
+    import('xlsx').then(XLSX => {
+      const rows = data.map((r: any) => ({
+        'Datum': (r.datum || '').substring(0, 10),
+        'Antal OK': r.antal_ok || 0,
+        'Antal ej OK': r.antal_ej_ok || 0,
+        'Totalt': r.totalt || 0,
+        'Kvalitet %': r.totalt > 0 ? Math.round((r.antal_ok / r.totalt) * 100) : 0,
+        'Kommentar': r.kommentar || '',
+        'Användare': r.user_name || ''
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Statistik');
+      XLSX.writeFile(wb, `saglinje-statistik-${new Date().toISOString().split('T')[0]}.xlsx`);
+    });
+  }
 }
