@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 class RegisterController {
     public function handle() {
         global $pdo;
@@ -87,12 +89,14 @@ class RegisterController {
         try {
             $stmt = $pdo->prepare("INSERT INTO users (username, password, email, phone, code, admin, created_at) VALUES (?, ?, ?, ?, ?, 0, NOW())");
             $stmt->execute([$username, $hashedPassword, $email, $phone ?: null, $code ?: null]);
-            
+            $newUserId = (int)$pdo->lastInsertId();
+            AuditLogger::log($pdo, 'register', 'users', $newUserId, "Ny användare registrerad: $username");
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Registrering lyckades! Du kan nu logga in.',
                 'user' => [
-                    'id' => $pdo->lastInsertId(),
+                    'id' => $newUserId,
                     'username' => $username,
                     'email' => $email
                 ]

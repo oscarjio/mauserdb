@@ -164,7 +164,12 @@ export class AuditLogPage implements OnInit, OnDestroy {
       'vpn_update': 'Uppdatera VPN',
       'product_create': 'Skapa produkt',
       'product_update': 'Uppdatera produkt',
-      'product_delete': 'Ta bort produkt'
+      'product_delete': 'Ta bort produkt',
+      'register': 'Registrering',
+      'update_profile': 'Uppdatera profil',
+      'update_tvattlinje_settings': 'Uppdatera tvättlinjeinst.',
+      'update_inlagd': 'Markera inlagd',
+      'bulk_update_inlagd': 'Massmarkera inlagd'
     };
     return labels[action] || action;
   }
@@ -193,7 +198,12 @@ export class AuditLogPage implements OnInit, OnDestroy {
       'vpn_update': 'fa-network-wired',
       'product_create': 'fa-box',
       'product_update': 'fa-box',
-      'product_delete': 'fa-box'
+      'product_delete': 'fa-box',
+      'register': 'fa-user-plus',
+      'update_profile': 'fa-id-card',
+      'update_tvattlinje_settings': 'fa-sliders-h',
+      'update_inlagd': 'fa-check-circle',
+      'bulk_update_inlagd': 'fa-check-double'
     };
     return icons[action] || 'fa-cog';
   }

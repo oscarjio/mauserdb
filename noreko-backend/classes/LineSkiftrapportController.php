@@ -293,6 +293,7 @@ class LineSkiftrapportController {
             }
             $stmt = $this->pdo->prepare("UPDATE `$table` SET inlagd = ? WHERE id = ?");
             $stmt->execute([$inlagd, $id]);
+            AuditLogger::log($this->pdo, 'update_inlagd', $table, $id, 'inlagd=' . $inlagd);
             echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'inlagd' => $inlagd]);
         } catch (PDOException $e) {
             error_log("updateInlagd($table): " . $e->getMessage());
@@ -338,6 +339,8 @@ class LineSkiftrapportController {
             $params = array_merge([$inlagd], $ids);
             $stmt = $this->pdo->prepare("UPDATE `$table` SET inlagd = ? WHERE id IN ($placeholders)");
             $stmt->execute($params);
+            AuditLogger::log($this->pdo, 'bulk_update_inlagd', $table, null,
+                count($ids) . ' rader, inlagd=' . $inlagd . ', ids=' . implode(',', $ids));
             echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) uppdaterade']);
         } catch (PDOException $e) {
             error_log("bulkUpdateInlagd($table): " . $e->getMessage());

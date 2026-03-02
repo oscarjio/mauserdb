@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 class TvattlinjeController {
     private $pdo;
 
@@ -246,6 +248,8 @@ class TvattlinjeController {
                 $stmt->execute([$data['antal_per_dag']]);
             }
             
+            AuditLogger::log($this->pdo, 'update_tvattlinje_settings', 'tvattlinje_settings', 1,
+                "antal_per_dag={$data['antal_per_dag']}");
             echo json_encode([
                 'success' => true,
                 'message' => 'Inställningar sparade',

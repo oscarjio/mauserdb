@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/AuthHelper.php';
+require_once __DIR__ . '/AuditController.php';
 
 class ProfileController {
     public function handle() {
@@ -107,6 +108,9 @@ class ProfileController {
         $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
         $updateStmt = $pdo->prepare($sql);
         $updateStmt->execute($params);
+        $changedFields = array_map(fn($f) => strtok($f, ' '), $fields);
+        AuditLogger::log($pdo, 'update_profile', 'users', (int)$user['id'],
+            'Profil uppdaterad: ' . implode(', ', $changedFields));
 
         $stmt = $pdo->prepare("SELECT id, username, email, admin, operator_id FROM users WHERE id = ?");
         $stmt->execute([$user['id']]);

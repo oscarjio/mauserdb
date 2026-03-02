@@ -301,6 +301,8 @@ class SkiftrapportController {
 
             $stmt = $this->pdo->prepare("UPDATE rebotling_skiftrapport SET inlagd = ? WHERE id = ?");
             $stmt->execute([$inlagd, $id]);
+            AuditLogger::log($this->pdo, 'update_inlagd', 'rebotling_skiftrapport', $id,
+                'inlagd=' . $inlagd);
 
             echo json_encode([
                 'success' => true,
@@ -333,6 +335,8 @@ class SkiftrapportController {
             $params = array_merge([$inlagd], $ids);
             $stmt = $this->pdo->prepare("UPDATE rebotling_skiftrapport SET inlagd = ? WHERE id IN ($placeholders)");
             $stmt->execute($params);
+            AuditLogger::log($this->pdo, 'bulk_update_inlagd', 'rebotling_skiftrapport', null,
+                count($ids) . ' rader, inlagd=' . $inlagd . ', ids=' . implode(',', $ids));
 
             echo json_encode([
                 'success' => true,
