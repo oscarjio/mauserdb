@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 class RebotlingProductController {
     private $pdo;
 
@@ -80,7 +82,9 @@ class RebotlingProductController {
             $stmt->execute([$data['name'], $data['cycle_time_minutes']]);
             
             $productId = $this->pdo->lastInsertId();
-            
+            AuditLogger::log($this->pdo, 'product_create', 'rebotling_products', (int)$productId,
+                "Skapad: name={$data['name']}, cycle_time={$data['cycle_time_minutes']}");
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Produkt skapad',
@@ -115,6 +119,8 @@ class RebotlingProductController {
             $stmt->execute([$data['name'], $data['cycle_time_minutes'], $data['id']]);
             
             if ($stmt->rowCount() > 0) {
+                AuditLogger::log($this->pdo, 'product_update', 'rebotling_products', (int)$data['id'],
+                    "Uppdaterad: name={$data['name']}, cycle_time={$data['cycle_time_minutes']}");
                 echo json_encode([
                     'success' => true,
                     'message' => 'Produkt uppdaterad',
@@ -156,6 +162,8 @@ class RebotlingProductController {
             $stmt->execute([$data['id']]);
             
             if ($stmt->rowCount() > 0) {
+                AuditLogger::log($this->pdo, 'product_delete', 'rebotling_products', (int)$data['id'],
+                    'Produkt borttagen');
                 echo json_encode([
                     'success' => true,
                     'message' => 'Produkt borttagen'
