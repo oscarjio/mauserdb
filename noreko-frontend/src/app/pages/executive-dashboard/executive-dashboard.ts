@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { RebotlingService, OEEResponse, CycleTrendResponse } from '../../services/rebotling.service';
 import { TvattlinjeService } from '../../services/tvattlinje.service';
 import { BonusService, BonusSummaryResponse, TeamStatsResponse } from '../../services/bonus.service';
+import { LineSkiftrapportService } from '../../services/line-skiftrapport.service';
 import { forkJoin, catchError, of, timeout } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 
@@ -21,6 +22,7 @@ interface LineStatus {
   target: number;
   percentage: number;
   route: string;
+  unit: string;
 }
 
 @Component({
@@ -54,7 +56,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     private auth: AuthService,
     private rebotlingService: RebotlingService,
     private tvattlinjeService: TvattlinjeService,
-    private bonusService: BonusService
+    private bonusService: BonusService,
+    private lineSkiftrapportService: LineSkiftrapportService
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
@@ -88,7 +91,9 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       bonusSummary: this.bonusService.getDailySummary().pipe(timeout(5000), catchError(() => of(null))),
       teamStats: this.bonusService.getTeamStats('week').pipe(timeout(5000), catchError(() => of(null))),
       oee: this.rebotlingService.getOEE('today').pipe(timeout(5000), catchError(() => of(null))),
-      cycleTrend: this.rebotlingService.getCycleTrend(30).pipe(timeout(8000), catchError(() => of(null)))
+      cycleTrend: this.rebotlingService.getCycleTrend(30).pipe(timeout(8000), catchError(() => of(null))),
+      saglinjeReports: this.lineSkiftrapportService.getReports('saglinje').pipe(timeout(5000), catchError(() => of(null))),
+      klassReports: this.lineSkiftrapportService.getReports('klassificeringslinje').pipe(timeout(5000), catchError(() => of(null)))
     }).subscribe({
       next: (results) => {
         this.lines = [];
@@ -104,7 +109,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           production: rebLive?.data?.rebotlingToday ?? 0,
           target: rebLive?.data?.rebotlingTarget ?? 0,
           percentage: rebLive?.data?.productionPercentage ?? 0,
-          route: '/rebotling/live'
+          route: '/rebotling/live',
+          unit: 'IBC'
         });
 
         // Tvattlinje
@@ -118,8 +124,58 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           production: tvLive?.data?.ibcToday ?? 0,
           target: tvLive?.data?.ibcTarget ?? 0,
           percentage: tvLive?.data?.productionPercentage ?? 0,
-          route: '/tvattlinje/live'
+          route: '/tvattlinje/live',
+          unit: 'IBC'
         });
+
+        // Såglinje
+        const today = new Date().toISOString().split('T')[0];
+        const sagRes = results.saglinjeReports as any;
+        {
+          let antalOk = 0, totalt = 0, skiftCount = 0;
+          if (sagRes?.success && sagRes.data) {
+            const reps = (sagRes.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
+            skiftCount = reps.length;
+            antalOk = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
+            totalt = antalOk + reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0);
+          }
+          const sagPct = totalt > 0 ? Math.round((antalOk / totalt) * 100) : 0;
+          this.lines.push({
+            name: 'Såglinje',
+            icon: 'fa-cut',
+            running: skiftCount > 0,
+            lastUpdate: skiftCount > 0 ? new Date().toISOString() : null,
+            production: antalOk,
+            target: totalt,
+            percentage: sagPct,
+            route: '/saglinje/live',
+            unit: 'st OK'
+          });
+        }
+
+        // Klassificeringslinje
+        const klassRes = results.klassReports as any;
+        {
+          let antalOk = 0, totalt = 0, skiftCount = 0;
+          if (klassRes?.success && klassRes.data) {
+            const reps = (klassRes.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
+            skiftCount = reps.length;
+            antalOk = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
+            totalt = antalOk + reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0);
+          }
+          const klassPct = totalt > 0 ? Math.round((antalOk / totalt) * 100) : 0;
+          this.lines.push({
+            name: 'Klassificeringslinje',
+            icon: 'fa-tags',
+            running: skiftCount > 0,
+            lastUpdate: skiftCount > 0 ? new Date().toISOString() : null,
+            production: antalOk,
+            target: totalt,
+            percentage: klassPct,
+            route: '/klassificeringslinje/live',
+            unit: 'st OK'
+          });
+        }
 
         // Bonus
         const bonus = results.bonusSummary as BonusSummaryResponse;

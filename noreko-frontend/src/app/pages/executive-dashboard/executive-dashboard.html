@@ -92,7 +92,7 @@
             <div class="col-8">
               <div class="production-bar-container">
                 <div class="production-bar-label">
-                  <span>{{ line.production }} / {{ line.target }} IBC</span>
+                  <span>{{ line.production }} / {{ line.target }} {{ line.unit }}</span>
                   <span [ngClass]="getStatusClass(line.percentage)">{{ line.percentage }}%</span>
                 </div>
                 <div class="progress" style="height: 10px;">
