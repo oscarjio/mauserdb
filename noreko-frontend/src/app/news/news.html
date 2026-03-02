@@ -81,16 +81,28 @@
             <h3 class="line-name">Såglinje</h3>
             <div class="line-stats">
               <div class="stat-item">
-                <span class="stat-label">Idag</span>
+                <span class="stat-label">OK idag</span>
                 <span class="stat-value">{{ saglinjeToday }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Mål</span>
+                <span class="stat-label">Totalt</span>
                 <span class="stat-value">{{ saglinjeTarget }}</span>
               </div>
             </div>
+            <div class="progress-section" *ngIf="saglinjeTarget > 0">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted">Kvalitet</small>
+                <small [ngClass]="getPercentageClass(saglinjeKvalitetPct)">{{ saglinjeKvalitetPct }}%</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar" [ngClass]="getProgressClass(saglinjeKvalitetPct)"
+                     [style.width.%]="saglinjeKvalitetPct > 100 ? 100 : saglinjeKvalitetPct"></div>
+              </div>
+            </div>
             <div class="status-badge-container">
-              <span class="badge bg-secondary">Kommer snart</span>
+              <span class="badge" [class]="saglinjeStatus ? 'bg-success' : 'bg-secondary'">
+                {{ saglinjeStatus ? (saglinjeSkiftCount + ' skift') : 'Inget rapporterat' }}
+              </span>
             </div>
           </div>
         </a>
@@ -104,16 +116,28 @@
             <h3 class="line-name">Klassificeringslinje</h3>
             <div class="line-stats">
               <div class="stat-item">
-                <span class="stat-label">Idag</span>
+                <span class="stat-label">OK idag</span>
                 <span class="stat-value">{{ klassificeringslinjeToday }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Mål</span>
+                <span class="stat-label">Totalt</span>
                 <span class="stat-value">{{ klassificeringslinjeTarget }}</span>
               </div>
             </div>
+            <div class="progress-section" *ngIf="klassificeringslinjeTarget > 0">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted">Kvalitet</small>
+                <small [ngClass]="getPercentageClass(klassificeringslinjeKvalitetPct)">{{ klassificeringslinjeKvalitetPct }}%</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar" [ngClass]="getProgressClass(klassificeringslinjeKvalitetPct)"
+                     [style.width.%]="klassificeringslinjeKvalitetPct > 100 ? 100 : klassificeringslinjeKvalitetPct"></div>
+              </div>
+            </div>
             <div class="status-badge-container">
-              <span class="badge bg-secondary">Kommer snart</span>
+              <span class="badge" [class]="klassificeringslinjeStatus ? 'bg-success' : 'bg-secondary'">
+                {{ klassificeringslinjeStatus ? (klassificeringslinjeSkiftCount + ' skift') : 'Inget rapporterat' }}
+              </span>
             </div>
           </div>
         </a>

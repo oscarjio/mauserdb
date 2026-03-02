@@ -5,6 +5,7 @@ import { of, Subject } from 'rxjs';
 import { catchError, timeout, takeUntil } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
+import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService } from '../services/auth.service';
 
 @Component({
@@ -32,19 +33,24 @@ export class News implements OnInit, OnDestroy {
   tvattlinjeTarget: number = 0;
   tvattlinjePercentage: number = 0;
 
-  // Saglinje data (placeholder)
+  // Saglinje data
   saglinjeStatus: boolean = false;
   saglinjeToday: number = 0;
   saglinjeTarget: number = 0;
+  saglinjeKvalitetPct: number = 0;
+  saglinjeSkiftCount: number = 0;
 
-  // Klassificeringslinje data (placeholder)
+  // Klassificeringslinje data
   klassificeringslinjeStatus: boolean = false;
   klassificeringslinjeToday: number = 0;
   klassificeringslinjeTarget: number = 0;
+  klassificeringslinjeKvalitetPct: number = 0;
+  klassificeringslinjeSkiftCount: number = 0;
 
   constructor(
     private rebotlingService: RebotlingService,
     private tvattlinjeService: TvattlinjeService,
+    private lineSkiftrapportService: LineSkiftrapportService,
     private auth: AuthService
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
@@ -71,6 +77,8 @@ export class News implements OnInit, OnDestroy {
   private fetchAllData() {
     this.fetchRebotlingData();
     this.fetchTvattlinjeData();
+    this.fetchSaglinjeData();
+    this.fetchKlassificeringslinjeData();
   }
 
   private fetchRebotlingData() {
@@ -109,6 +117,40 @@ export class News implements OnInit, OnDestroy {
     ).subscribe((res: LineStatusResponse | null) => {
       if (res && res.success && res.data) {
         this.tvattlinjeStatus = res.data.running;
+      }
+    });
+  }
+
+  private fetchSaglinjeData() {
+    this.lineSkiftrapportService.getReports('saglinje').pipe(
+      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe((res: any) => {
+      if (res?.success && res.data) {
+        const today = new Date().toISOString().split('T')[0];
+        const reps = (res.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
+        this.saglinjeSkiftCount = reps.length;
+        this.saglinjeToday = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
+        this.saglinjeTarget = reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0) + this.saglinjeToday;
+        this.saglinjeKvalitetPct = this.saglinjeTarget > 0
+          ? Math.round((this.saglinjeToday / this.saglinjeTarget) * 100) : 0;
+        this.saglinjeStatus = reps.length > 0;
+      }
+    });
+  }
+
+  private fetchKlassificeringslinjeData() {
+    this.lineSkiftrapportService.getReports('klassificeringslinje').pipe(
+      timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe((res: any) => {
+      if (res?.success && res.data) {
+        const today = new Date().toISOString().split('T')[0];
+        const reps = (res.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
+        this.klassificeringslinjeSkiftCount = reps.length;
+        this.klassificeringslinjeToday = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
+        this.klassificeringslinjeTarget = reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0) + this.klassificeringslinjeToday;
+        this.klassificeringslinjeKvalitetPct = this.klassificeringslinjeTarget > 0
+          ? Math.round((this.klassificeringslinjeToday / this.klassificeringslinjeTarget) * 100) : 0;
+        this.klassificeringslinjeStatus = reps.length > 0;
       }
     });
   }

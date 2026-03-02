@@ -117,7 +117,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         const tvLive = results.tvattlinjeLive as any;
         const tvStatus = results.tvattlinjeStatus as any;
         this.lines.push({
-          name: 'Tvattlinje',
+          name: 'Tvättlinje',
           icon: 'fa-shower',
           running: tvStatus?.data?.running ?? false,
           lastUpdate: tvStatus?.data?.lastUpdate ?? null,
