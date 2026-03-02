@@ -8,6 +8,8 @@ import { BehaviorSubject, interval } from 'rxjs';
 export class AuthService {
   loggedIn$ = new BehaviorSubject<boolean>(false);
   user$ = new BehaviorSubject<any>(undefined);
+  /** Sätts till true när första status-anropet är klart (oavsett resultat). */
+  initialized$ = new BehaviorSubject<boolean>(false);
 
   constructor(private http: HttpClient) {
     this.fetchStatus();
@@ -15,9 +17,17 @@ export class AuthService {
   }
 
   fetchStatus() {
-    this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).subscribe(res => {
-      this.loggedIn$.next(res.loggedIn);
-      this.user$.next(res.user || null);
+    this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).subscribe({
+      next: (res) => {
+        this.loggedIn$.next(res.loggedIn);
+        this.user$.next(res.user || null);
+        this.initialized$.next(true);
+      },
+      error: () => {
+        this.loggedIn$.next(false);
+        this.user$.next(null);
+        this.initialized$.next(true);
+      }
     });
   }
 
