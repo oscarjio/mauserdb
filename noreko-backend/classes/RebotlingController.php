@@ -28,6 +28,8 @@ class RebotlingController {
                 $this->getCycleTrend();
             } elseif ($action === 'report') {
                 $this->getProductionReport();
+            } elseif ($action === 'heatmap') {
+                $this->getHeatmap();
             } else {
                 $this->getLiveStats();
             }
@@ -1110,6 +1112,43 @@ class RebotlingController {
             error_log('getProductionReport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte generera rapport']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=heatmap&days=30
+     * Returnerar produktionsintensitet per timme och dag som
+     * { date: "YYYY-MM-DD", hour: 0-23, count: N }[]
+     * Används av statistiksidans heatmap-vy.
+     */
+    private function getHeatmap() {
+        $days = isset($_GET['days']) ? max(7, min(90, intval($_GET['days']))) : 30;
+        $end   = date('Y-m-d');
+        $start = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT DATE(datum) AS date, HOUR(datum) AS hour, COUNT(*) AS count
+                 FROM rebotling_ibc
+                 WHERE datum >= :start AND datum <= :end
+                 GROUP BY DATE(datum), HOUR(datum)
+                 ORDER BY date ASC, hour ASC'
+            );
+            $stmt->execute([
+                'start' => $start . ' 00:00:00',
+                'end'   => $end   . ' 23:59:59'
+            ]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $data = array_map(function($r) {
+                return ['date' => $r['date'], 'hour' => (int)$r['hour'], 'count' => (int)$r['count']];
+            }, $rows);
+
+            echo json_encode(['success' => true, 'data' => $data, 'start' => $start, 'end' => $end]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getHeatmap: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta heatmap-data']);
         }
     }
 }

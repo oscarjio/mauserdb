@@ -1,8 +1,0 @@
-/* Minimal placeholder for Rebotling Statistik page (standalone directory) */
-.rebotling-statistik-page {
-  min-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}

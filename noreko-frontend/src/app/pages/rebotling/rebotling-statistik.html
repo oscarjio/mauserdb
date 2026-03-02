@@ -39,21 +39,101 @@
         </div>
         
         <!-- Navigation Controls -->
-        <div class="nav-controls">
-          <button class="btn btn-dark btn-sm" (click)="navigatePrevious()">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <span class="mx-3 view-mode-label">{{ getViewModeLabel() }}</span>
-          <button class="btn btn-dark btn-sm" (click)="navigateNext()">
-            <i class="fas fa-chevron-right"></i>
+        <div class="nav-controls d-flex align-items-center gap-2">
+          <ng-container *ngIf="viewMode !== 'heatmap'">
+            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="mx-2 view-mode-label">{{ getViewModeLabel() }}</span>
+            <button class="btn btn-dark btn-sm" (click)="navigateNext()">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </ng-container>
+          <ng-container *ngIf="viewMode === 'heatmap'">
+            <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
+                    [(ngModel)]="heatmapDays" (change)="onHeatmapDaysChange()">
+              <option [value]="7">7 dagar</option>
+              <option [value]="14">14 dagar</option>
+              <option [value]="30">30 dagar</option>
+              <option [value]="60">60 dagar</option>
+              <option [value]="90">90 dagar</option>
+            </select>
+            <button class="btn btn-outline-secondary btn-sm" (click)="exitHeatmapMode()">
+              <i class="fas fa-arrow-left me-1"></i>Tillbaka
+            </button>
+          </ng-container>
+          <button class="btn btn-sm ms-1"
+                  [class.btn-warning]="viewMode === 'heatmap'"
+                  [class.btn-outline-warning]="viewMode !== 'heatmap'"
+                  (click)="enterHeatmapMode()"
+                  title="Produktionsintensitet per timme och dag">
+            <i class="fas fa-th me-1"></i>Heatmap
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="container-fluid py-4">
-    
+  <!-- ============ HEATMAP-VY ============ -->
+  <div class="container-fluid py-4" *ngIf="viewMode === 'heatmap'">
+    <div class="row">
+      <div class="col-12">
+        <div class="dark-card">
+          <div class="card-header-dark d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">
+              <i class="fas fa-th me-2 text-warning"></i>
+              Produktionsintensitet per timme och dag
+            </h5>
+            <small class="text-muted">Antal IBC-cykler per timme</small>
+          </div>
+
+          <div *ngIf="loading" class="text-center py-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <div class="mt-2 text-muted">Laddar heatmap...</div>
+          </div>
+
+          <div *ngIf="!loading && heatmapRows.length > 0" class="heatmap-container">
+            <!-- Timme-etiketter (vänster) + rutnät -->
+            <div class="heatmap-grid">
+              <!-- Tomma hörncellen + datum-labels (x-axel) -->
+              <div class="heatmap-corner"></div>
+              <div class="heatmap-date-label" *ngFor="let row of heatmapRows">
+                {{ row.label }}
+              </div>
+
+              <!-- En rad per timme -->
+              <ng-container *ngFor="let hour of heatmapHours; let hi = index">
+                <div class="heatmap-hour-label">{{ hour }}:00</div>
+                <div class="heatmap-cell"
+                     *ngFor="let row of heatmapRows; let di = index"
+                     [style.background-color]="getHeatmapColor(row.counts[hi])"
+                     [title]="row.date + ' ' + hour + ':00 — ' + row.counts[hi] + ' cykler'">
+                  <span class="heatmap-cell-val" *ngIf="row.counts[hi] > 0">{{ row.counts[hi] }}</span>
+                </div>
+              </ng-container>
+            </div>
+
+            <!-- Legend -->
+            <div class="heatmap-legend mt-3 d-flex align-items-center gap-2">
+              <small class="text-muted me-1">Låg</small>
+              <div class="heatmap-legend-bar"></div>
+              <small class="text-muted ms-1">Hög (max: {{ heatmapMax }} cykler/h)</small>
+            </div>
+          </div>
+
+          <div *ngIf="!loading && heatmapRows.length === 0 && !error" class="text-center py-4 text-muted">
+            <i class="fas fa-inbox fa-2x mb-2"></i>
+            <div>Ingen produktionsdata hittades för perioden</div>
+          </div>
+          <div *ngIf="error" class="alert alert-danger mt-3">{{ error }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NORMAL VY (år/månad/dag) ============ -->
+  <div class="container-fluid py-4" *ngIf="viewMode !== 'heatmap'">
+
     <!-- KPI Cards -->
     <div class="row mb-4">
       <div class="col-lg-3 col-md-6 mb-3">
@@ -429,6 +509,6 @@
       </div>
     </div>
 
-  </div>
+  </div><!-- /normal vy -->
 
 </div>

@@ -119,6 +119,13 @@ export class RebotlingService {
     );
   }
 
+  getHeatmap(days: number = 30): Observable<any> {
+    return this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=heatmap&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
   getCycleTrend(days: number = 30): Observable<CycleTrendResponse> {
     return this.http.get<CycleTrendResponse>(
       `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}`,

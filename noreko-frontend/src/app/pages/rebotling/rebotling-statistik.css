@@ -665,3 +665,86 @@
     color: black;
   }
 }
+
+/* ============================================
+   HEATMAP-VY
+   ============================================ */
+
+.heatmap-container {
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.heatmap-grid {
+  display: grid;
+  /* 1 kolumn för timme-label + N kolumner för dagar */
+  grid-template-columns: 50px repeat(var(--hm-cols, 30), minmax(22px, 1fr));
+  gap: 2px;
+  min-width: max-content;
+}
+
+.heatmap-corner {
+  /* tom hörncell (rad 0, kol 0) */
+}
+
+.heatmap-date-label {
+  font-size: 0.6rem;
+  color: #718096;
+  text-align: center;
+  padding: 2px 0;
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  height: 56px;
+  line-height: 22px;
+}
+
+.heatmap-hour-label {
+  font-size: 0.65rem;
+  color: #718096;
+  text-align: right;
+  padding-right: 6px;
+  line-height: 22px;
+}
+
+.heatmap-cell {
+  height: 22px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  cursor: default;
+  transition: transform 0.1s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.4);
+  z-index: 10;
+  border-color: rgba(255,255,255,0.3);
+}
+
+.heatmap-cell-val {
+  font-size: 0.5rem;
+  color: rgba(0,0,0,0.6);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.heatmap-legend {
+  font-size: 0.75rem;
+}
+
+.heatmap-legend-bar {
+  width: 120px;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(to right,
+    hsl(220, 70%, 55%),
+    hsl(160, 80%, 48%),
+    hsl(80, 85%, 50%),
+    hsl(60, 90%, 45%)
+  );
+}

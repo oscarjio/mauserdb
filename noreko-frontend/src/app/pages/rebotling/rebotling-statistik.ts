@@ -9,7 +9,7 @@ import { RebotlingService } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
 
-type ViewMode = 'year' | 'month' | 'day';
+type ViewMode = 'year' | 'month' | 'day' | 'heatmap';
 
 interface PeriodCell {
   label: string;
@@ -87,6 +87,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
   showOnlyDaysWithCycles: boolean = true;
+
+  // Heatmap-vy
+  heatmapDays: number = 30;
+  heatmapRows: { date: string; label: string; counts: number[] }[] = [];
+  heatmapHours: number[] = Array.from({ length: 18 }, (_, i) => i + 5); // 05–22
+  heatmapMax: number = 1;
+  private isLoadingHeatmap = false;
 
   isDragging: boolean = false;
 
@@ -1495,7 +1502,92 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   getViewModeLabel(): string {
     if (this.viewMode === 'year') return 'Månader';
     if (this.viewMode === 'month') return 'Dagar';
+    if (this.viewMode === 'heatmap') return `Senaste ${this.heatmapDays} dagarna`;
     return '10-min intervall';
+  }
+
+  // ======== HEATMAP ========
+
+  enterHeatmapMode() {
+    this.viewMode = 'heatmap';
+    this.resetChartSelection();
+    this.productionChart?.destroy();
+    this.productionChart = null;
+    this.loadHeatmap();
+  }
+
+  exitHeatmapMode() {
+    this.navigateToYear();
+  }
+
+  loadHeatmap() {
+    if (this.isLoadingHeatmap) return;
+    this.isLoadingHeatmap = true;
+    this.loading = true;
+    this.error = null;
+    this.rebotlingService.getHeatmap(this.heatmapDays).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res: any) => {
+        this.isLoadingHeatmap = false;
+        this.loading = false;
+        if (res?.success && Array.isArray(res.data)) {
+          this.buildHeatmapRows(res.data);
+        } else {
+          this.error = 'Kunde inte ladda heatmap-data';
+        }
+      },
+      error: () => {
+        this.isLoadingHeatmap = false;
+        this.loading = false;
+        this.error = 'Nätverksfel vid hämtning av heatmap';
+      }
+    });
+  }
+
+  private buildHeatmapRows(data: { date: string; hour: number; count: number }[]) {
+    // Bygg en map: date → { hour → count }
+    const map = new Map<string, Map<number, number>>();
+    data.forEach(({ date, hour, count }) => {
+      if (!map.has(date)) map.set(date, new Map());
+      map.get(date)!.set(hour, count);
+    });
+
+    // Skapa sorterad lista av unika datum (senaste 30 dagarna, nyast sist)
+    const today = new Date();
+    const rows: typeof this.heatmapRows = [];
+    this.heatmapMax = 1;
+
+    for (let i = this.heatmapDays - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayMap = map.get(dateStr) || new Map();
+
+      const counts = this.heatmapHours.map(h => dayMap.get(h) || 0);
+      const maxVal = Math.max(...counts);
+      if (maxVal > this.heatmapMax) this.heatmapMax = maxVal;
+
+      const weekdays = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
+      const label = `${weekdays[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+      rows.push({ date: dateStr, label, counts });
+    }
+
+    this.heatmapRows = rows;
+  }
+
+  getHeatmapColor(count: number): string {
+    if (count === 0) return 'transparent';
+    const ratio = Math.min(count / this.heatmapMax, 1);
+    // Blå (kall) → grön → gul (varm): hsl 220→120→60
+    const hue = Math.round(220 - ratio * 160);
+    const sat = 70 + Math.round(ratio * 20);
+    const light = 55 - Math.round(ratio * 15);
+    return `hsl(${hue}, ${sat}%, ${light}%)`;
+  }
+
+  onHeatmapDaysChange() {
+    if (this.viewMode === 'heatmap') this.loadHeatmap();
   }
 
   getEfficiencyClass(efficiency: number): string {

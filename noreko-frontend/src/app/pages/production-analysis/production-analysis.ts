@@ -6,7 +6,7 @@ import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
 import { RebotlingService } from '../../services/rebotling.service';
-import { forkJoin, catchError, of, timeout } from 'rxjs';
+import { catchError, of, timeout } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -51,8 +51,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   // Tab 3: Timanalys
   heatmapData: { date: string; hours: { [hour: number]: number } }[] = [];
   hourlyAvg: { hour: number; avg: number }[] = [];
-  heatmapHours = Array.from({ length: 17 }, (_, i) => i + 6); // 06-22
-  private heatmapMax = 1; // Cached max for color calculations
+  heatmapHours = Array.from({ length: 18 }, (_, i) => i + 5); // 05-22
+  private heatmapMax = 1;
 
   // Tab 4: Skiftöversikt
   allShifts: ShiftStats[] = [];
@@ -424,51 +424,34 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
 
   loadHourlyData() {
     this.loading = true;
-    const today = new Date();
     const days = this.selectedPeriod === 'week' ? 7 : 30;
-    const requests: { [key: string]: any } = {};
 
-    for (let i = 0; i < days; i++) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().substring(0, 10);
-      requests[dateStr] = this.rebotlingService.getDayStats(dateStr).pipe(
-        timeout(8000),
-        catchError(() => of(null))
-      );
-    }
+    // Använd den aggregerade heatmap-endpointen (1 anrop istället för N)
+    this.rebotlingService.getHeatmap(days).pipe(
+      timeout(10000),
+      takeUntil(this.destroy$),
+      catchError(() => { this.error = 'Kunde inte ladda timdata'; this.loading = false; return of(null); })
+    ).subscribe((res: any) => {
+      if (!res?.success) { this.loading = false; return; }
 
-    forkJoin(requests).pipe(takeUntil(this.destroy$)).subscribe((results: any) => {
-      this.heatmapData = [];
+      const rows: { [date: string]: { [hour: number]: number } } = {};
       const hourTotals: { [hour: number]: { sum: number; count: number } } = {};
 
-      Object.keys(results).sort().forEach(date => {
-        const res = results[date];
-        const hourData: { [hour: number]: number } = {};
+      (res.data as { date: string; hour: number; count: number }[]).forEach(({ date, hour, count }) => {
+        if (!rows[date]) rows[date] = {};
+        rows[date][hour] = count;
+      });
 
-        if (res?.success && res.data) {
-          const cycles = res.data.cycles || res.data || [];
-          if (Array.isArray(cycles)) {
-            cycles.forEach((c: any) => {
-              const ts = c.datum || c.timestamp || '';
-              if (ts) {
-                const hour = new Date(ts).getHours();
-                hourData[hour] = (hourData[hour] || 0) + 1;
-              }
-            });
-          }
-        }
+      this.heatmapData = Object.keys(rows).sort().map(date => ({ date, hours: rows[date] }));
 
-        this.heatmapData.push({ date, hours: hourData });
-
+      this.heatmapData.forEach(({ hours }) => {
         this.heatmapHours.forEach(h => {
           if (!hourTotals[h]) hourTotals[h] = { sum: 0, count: 0 };
-          hourTotals[h].sum += hourData[h] || 0;
+          hourTotals[h].sum += hours[h] || 0;
           hourTotals[h].count++;
         });
       });
 
-      // Cache the heatmap max once after data loads
       this.updateHeatmapMax();
 
       this.hourlyAvg = this.heatmapHours.map(h => ({
