@@ -68,7 +68,7 @@ class LoginController {
             $attemptsLeft = 5 - AuthHelper::getFailedAttemptCount($pdo, $ip);
             $msg = 'Felaktigt användarnamn eller lösenord';
             if ($attemptsLeft <= 2 && $attemptsLeft > 0) {
-                $msg .= ". {$attemptsLeft} försök kvar.";
+                $msg .= '. Kontot låses snart tillfälligt vid ytterligare misslyckade försök.';
             }
 
             AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
