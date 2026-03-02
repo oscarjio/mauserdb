@@ -25,6 +25,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   loading = false;
   showSuccessMessage = false;
   successMessage = '';
+  private successTimerId: any = null;
 
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
@@ -35,6 +36,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    clearTimeout(this.successTimerId);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -46,6 +48,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   private loadSettings() {
     this.loading = true;
     this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=admin-settings', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -69,6 +72,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
 
     this.loading = true;
     this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=admin-settings', this.settings, { withCredentials: true })
+      .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -89,8 +93,9 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   private showSuccess(message: string) {
     this.successMessage = message;
     this.showSuccessMessage = true;
-    setTimeout(() => {
-      this.showSuccessMessage = false;
+    clearTimeout(this.successTimerId);
+    this.successTimerId = setTimeout(() => {
+      if (!this.destroy$.closed) this.showSuccessMessage = false;
     }, 3000);
   }
 }
