@@ -251,6 +251,27 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
+  exportExcel() {
+    if (this.stoppages.length === 0) return;
+    import('xlsx').then(XLSX => {
+      const data = this.stoppages.map(s => ({
+        'ID': s.id,
+        'Linje': s.line,
+        'Orsak': s.reason_name,
+        'Kategori': s.category === 'planned' ? 'Planerat' : 'Oplanerat',
+        'Start': s.start_time,
+        'Slut': s.end_time || 'Pågår',
+        'Varaktighet (min)': s.duration_minutes ?? '',
+        'Kommentar': s.comment || '',
+        'Användare': s.user_name || ''
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Stopporsaker');
+      XLSX.writeFile(wb, `stopporsaker-${this.selectedLine}-${this.selectedPeriod}.xlsx`);
+    });
+  }
+
   private formatDateTime(d: Date): string {
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
