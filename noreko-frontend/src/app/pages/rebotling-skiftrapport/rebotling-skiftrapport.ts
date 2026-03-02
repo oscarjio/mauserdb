@@ -113,6 +113,15 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return Math.round(((r.bur_ej_ok + r.ibc_ej_ok) / r.totalt) * 100);
   }
 
+  getDeltaIbc(index: number): number | null {
+    const reports = this.filteredReports;
+    if (index >= reports.length - 1) return null;
+    const current = reports[index]?.totalt;
+    const previous = reports[index + 1]?.totalt;
+    if (current == null || previous == null) return null;
+    return current - previous;
+  }
+
   getOpLabel(r: any, field: 'op1' | 'op2' | 'op3'): string {
     const nameField = field + '_name';
     return r[nameField] || (r[field] ? String(r[field]) : '–');

@@ -148,12 +148,13 @@
                   <th>Bur ej OK</th>
                   <th>IBC ej OK</th>
                   <th>Totalt</th>
+                  <th title="Jämfört med föregående skift">Vs. föreg.</th>
                   <th>Inlagd</th>
                   <th>Åtgärder</th>
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let report of filteredReports">
+                <ng-container *ngFor="let report of filteredReports; let i = index">
                   <tr [class.inlagd-row]="report.inlagd == 1">
                     <td *ngIf="isAdmin">
                       <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
@@ -170,6 +171,21 @@
                     <td>{{ report.bur_ej_ok }}</td>
                     <td>{{ report.ibc_ej_ok }}</td>
                     <td><strong>{{ report.totalt }}</strong></td>
+                    <td>
+                      <ng-container *ngIf="getDeltaIbc(i) !== null">
+                        <span class="badge"
+                              [class.bg-success]="getDeltaIbc(i)! > 0"
+                              [class.bg-danger]="getDeltaIbc(i)! < 0"
+                              [class.bg-secondary]="getDeltaIbc(i) === 0">
+                          <i class="fas me-1"
+                             [class.fa-arrow-up]="getDeltaIbc(i)! > 0"
+                             [class.fa-arrow-down]="getDeltaIbc(i)! < 0"
+                             [class.fa-minus]="getDeltaIbc(i) === 0"></i>
+                          {{ getDeltaIbc(i)! > 0 ? '+' : '' }}{{ getDeltaIbc(i) }}
+                        </span>
+                      </ng-container>
+                      <span *ngIf="getDeltaIbc(i) === null" class="text-muted">–</span>
+                    </td>
                     <td>
                       <div class="form-check form-switch" *ngIf="isAdmin">
                         <input class="form-check-input" type="checkbox" [checked]="report.inlagd == 1" (change)="toggleInlagd(report)" />
@@ -199,7 +215,7 @@
 
                   <!-- Expanderad detaljrad -->
                   <tr *ngIf="expanded[report.id]" class="expand-row">
-                    <td [attr.colspan]="isAdmin ? 11 : 10" class="p-0">
+                    <td [attr.colspan]="isAdmin ? 12 : 11" class="p-0">
                       <div class="expand-panel p-3">
 
                         <!-- KPI-kort -->

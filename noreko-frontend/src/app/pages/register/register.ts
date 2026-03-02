@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
@@ -11,7 +11,8 @@ import { HttpClient } from '@angular/common/http';
   templateUrl: './register.html',
   styleUrl: './register.css'
 })
-export class RegisterPage {
+export class RegisterPage implements OnDestroy {
+  private redirectTimerId: any = null;
   user = {
     username: '',
     password: '',
@@ -33,6 +34,10 @@ export class RegisterPage {
   successMessage = '';
 
   constructor(private http: HttpClient, private router: Router) {}
+
+  ngOnDestroy() {
+    clearTimeout(this.redirectTimerId);
+  }
 
   checkPasswordStrength() {
     const pwd = this.user.password;
@@ -83,7 +88,7 @@ export class RegisterPage {
           this.successMessage = res.message || 'Registrering lyckades! Omdirigerar till inloggning...';
           this.user = { username: '', password: '', password2: '', email: '', phone: '', code: '' };
           this.showFeedback = false;
-          setTimeout(() => this.router.navigate(['/login']), 2000);
+          this.redirectTimerId = setTimeout(() => this.router.navigate(['/login']), 2000);
         } else {
           this.errorMessage = res.message || 'Registrering misslyckades. Försök igen.';
         }

@@ -77,6 +77,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   timelineSegments: { startPct: number; widthPct: number; type: 'running' | 'rast' | 'stopped' }[] = [];
   shiftSummaries: { nr: number; ibcCount: number; avgCycleTime: number; rastMinutes: number }[] = [];
 
+  // Dag-vy: längsta stopp (min) och utnyttjandegrad (%)
+  dayLongestStopMinutes: number = 0;
+  dayUtilizationPct: number = 0;
+
+  // Spårar vilket fönster (start-slot-index i 144-slots-arrayen) som visas i dag-grafen
+  // Används för att korrekt mappa chartSelection-index till absoluta slot-index i tabellen
+  private chartWindowFrom: number = 0;
+
   /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
   showOnlyDaysWithCycles: boolean = true;
 
@@ -631,6 +639,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     this.buildTimelineSegments(data);
     this.buildShiftSummaries(data.cycles || []);
+    this.computeDayMetrics(data);
 
     this.updatePeriodCellsData(data.cycles);
   }
@@ -888,9 +897,50 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const entries = Array.from(grouped.entries());
 
+    // --- Smart tidsfönster för dag-vy ---
+    // Istället för att visa alla 144 slots (00:00-23:50) beräknar vi ett snävare
+    // fönster baserat på var faktisk data finns, med 1 timmes marginal på varje sida.
+    // Minimiintervall är alltid 06:00-18:00 (slot-index 36-108).
+    let windowFrom = 0;
+    let windowTo = entries.length - 1;
+    this.chartWindowFrom = 0; // Reset, sätts nedan för dag-vy
+
+    if (this.viewMode === 'day' && this.chartSelectionStartIndex === null) {
+      // Slot-index: 00:00 = 0, 06:00 = 36, 18:00 = 108, 23:50 = 143
+      const MIN_FROM = 36;  // 06:00
+      const MIN_TO   = 108; // 18:00
+      const PADDING  = 6;   // 1 timme = 6 slots à 10 min
+
+      let firstDataSlot = -1;
+      let lastDataSlot  = -1;
+
+      entries.forEach(([key, value], idx) => {
+        if (value.cycles.length > 0 || value.running) {
+          if (firstDataSlot === -1) { firstDataSlot = idx; }
+          lastDataSlot = idx;
+        }
+      });
+
+      if (firstDataSlot !== -1) {
+        // Utvidga med padding och tillämpa minimitider
+        const paddedFrom = Math.max(0, firstDataSlot - PADDING);
+        const paddedTo   = Math.min(entries.length - 1, lastDataSlot + PADDING);
+        windowFrom = Math.min(paddedFrom, MIN_FROM);
+        windowTo   = Math.max(paddedTo, MIN_TO);
+      } else {
+        // Ingen data alls: visa standardfönstret 06:00-18:00
+        windowFrom = MIN_FROM;
+        windowTo   = MIN_TO;
+      }
+      // Spara för updateTable
+      this.chartWindowFrom = windowFrom;
+    }
+
     // Om vi är i dagsvy och har en markering i grafen, begränsa till valt intervall
-    let fromIndex = 0;
-    let toIndex = entries.length - 1;
+    // (markeringen är relativ till det redan fönster-begränsade label-indexet)
+    let fromIndex = windowFrom;
+    let toIndex   = windowTo;
+
     if (
       this.viewMode === 'day' &&
       this.chartSelectionStartIndex !== null &&
@@ -899,8 +949,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     ) {
       const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
       const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-      fromIndex = Math.max(0, minSel);
-      toIndex = Math.min(entries.length - 1, maxSel);
+      // chartSelection är relativt det visade fönstret
+      fromIndex = Math.max(windowFrom, windowFrom + minSel);
+      toIndex   = Math.min(windowTo, windowFrom + maxSel);
     }
 
     const slicedEntries = entries.slice(fromIndex, toIndex + 1);
@@ -1276,6 +1327,80 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }));
   }
 
+  /**
+   * Beräknar dag-specifika nyckeltal: längsta stopp och utnyttjandegrad.
+   * Körs bara i dag-vy; nollställer annars.
+   */
+  private computeDayMetrics(data: any) {
+    if (this.viewMode !== 'day') {
+      this.dayLongestStopMinutes = 0;
+      this.dayUtilizationPct = 0;
+      return;
+    }
+
+    const onoff: any[] = data.onoff_events || [];
+    if (onoff.length === 0) {
+      this.dayLongestStopMinutes = 0;
+      this.dayUtilizationPct = 0;
+      return;
+    }
+
+    // Sortera händelser kronologiskt
+    const events = onoff
+      .map((e: any) => ({ min: new Date(e.datum).getHours() * 60 + new Date(e.datum).getMinutes(), running: !!e.running }))
+      .sort((a: any, b: any) => a.min - b.min);
+
+    // Hitta tidsspannet som maskinen var aktiv (från första start till sista stopp/slut)
+    let firstRunMin: number | null = null;
+    let lastEventMin: number | null = null;
+    for (const ev of events) {
+      if (firstRunMin === null && ev.running) { firstRunMin = ev.min; }
+      lastEventMin = ev.min;
+    }
+
+    if (firstRunMin === null) {
+      this.dayLongestStopMinutes = 0;
+      this.dayUtilizationPct = 0;
+      return;
+    }
+
+    // Beräkna total körtid och längsta stopp
+    let totalRunMinutes = 0;
+    let longestStop = 0;
+    let currentRunning = false;
+    let lastMin = 0;
+    let stopStart: number | null = null;
+
+    for (const ev of events) {
+      if (currentRunning && !ev.running) {
+        // Maskinen stannar
+        totalRunMinutes += ev.min - lastMin;
+        stopStart = ev.min;
+        currentRunning = false;
+      } else if (!currentRunning && ev.running) {
+        // Maskinen startar
+        if (stopStart !== null) {
+          const stopDur = ev.min - stopStart;
+          if (stopDur > longestStop) { longestStop = stopDur; }
+        }
+        currentRunning = true;
+      }
+      lastMin = ev.min;
+    }
+
+    // Om maskinen fortfarande körde vid sista händelse: lägg till tid fram till sista händelse
+    if (currentRunning) {
+      totalRunMinutes += lastMin - (events.find((e: any) => e.running)?.min ?? lastMin);
+    }
+
+    // Utnyttjandegrad = körtid / (sista - första) händelse * 100
+    const spanMin = (lastEventMin ?? 0) - firstRunMin;
+    const utilization = spanMin > 0 ? Math.min(100, Math.round((totalRunMinutes / spanMin) * 100)) : 0;
+
+    this.dayLongestStopMinutes = longestStop;
+    this.dayUtilizationPct = utilization;
+  }
+
   updateTable(data: any) {
     this.tableData = [];
     const grouped = new Map<string, any[]>();
@@ -1293,14 +1418,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
 
-        // Om användaren har markerat ett intervall i dag-vyn, filtrera bort cykler utanför
+        // Om användaren har markerat ett intervall i dag-vyn, filtrera bort cykler utanför.
+        // chartSelectionStart/EndIndex är relativa till det visade fönstret (börjar vid chartWindowFrom).
         if (
           this.chartSelectionStartIndex !== null &&
           this.chartSelectionEndIndex !== null
         ) {
           const bucketIndex = hour * 6 + minute / 10;
-          const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-          const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          const minSel = this.chartWindowFrom + Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          const maxSel = this.chartWindowFrom + Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
           if (bucketIndex < minSel || bucketIndex > maxSel) {
             return;
           }

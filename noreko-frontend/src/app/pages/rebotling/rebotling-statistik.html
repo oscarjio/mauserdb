@@ -251,8 +251,37 @@
                 <span style="color:#ff8800">- -</span> Mål
               </small>
             </div>
+            <!-- Dag-vy: utnyttjandegrad och längsta stopp -->
+            <div *ngIf="viewMode === 'day'" class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
+              <span
+                *ngIf="dayUtilizationPct > 0"
+                class="day-metric-badge"
+                [class.badge-good]="dayUtilizationPct >= 75"
+                [class.badge-warn]="dayUtilizationPct >= 50 && dayUtilizationPct < 75"
+                [class.badge-bad]="dayUtilizationPct < 50"
+                title="Utnyttjandegrad = körtid / (första start till sista händelse)">
+                <i class="fas fa-tachometer-alt me-1"></i>
+                Utnyttjande {{ dayUtilizationPct }}%
+              </span>
+              <span
+                *ngIf="dayLongestStopMinutes > 0"
+                class="day-metric-badge"
+                [class.badge-good]="dayLongestStopMinutes < 15"
+                [class.badge-warn]="dayLongestStopMinutes >= 15 && dayLongestStopMinutes < 30"
+                [class.badge-bad]="dayLongestStopMinutes >= 30"
+                title="Längsta sammanhängande stopp under dagen">
+                <i class="fas fa-pause-circle me-1"></i>
+                Längsta stopp {{ dayLongestStopMinutes }} min
+              </span>
+              <button
+                *ngIf="chartHasSelection()"
+                class="btn btn-outline-light btn-sm"
+                (click)="resetChartZoom()">
+                Återställ
+              </button>
+            </div>
             <button
-              *ngIf="viewMode === 'day' && chartHasSelection()"
+              *ngIf="viewMode !== 'day' && chartHasSelection()"
               class="btn btn-outline-light btn-sm"
               (click)="resetChartZoom()">
               Återställ

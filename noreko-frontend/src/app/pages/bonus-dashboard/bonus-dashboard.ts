@@ -53,6 +53,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   // Subscription tracking
   private pollingInterval: any = null;
+  private shiftChartTimeout: any = null;
   private loadDataSub: Subscription | null = null;
   private searchSub: Subscription | null = null;
   private teamStatsSub: Subscription | null = null;
@@ -75,6 +76,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollingInterval) clearInterval(this.pollingInterval);
+    clearTimeout(this.shiftChartTimeout);
     this.loadDataSub?.unsubscribe();
     this.searchSub?.unsubscribe();
     this.teamStatsSub?.unsubscribe();
@@ -134,7 +136,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         if (res.success && res.data) {
           this.teamAggregate = res.data.aggregate;
           this.shifts = res.data.shifts || [];
-          setTimeout(() => {
+          clearTimeout(this.shiftChartTimeout);
+          this.shiftChartTimeout = setTimeout(() => {
             if (!this.destroy$.closed) this.buildShiftCompareChart();
           }, 100);
         }

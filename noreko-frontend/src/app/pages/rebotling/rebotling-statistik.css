@@ -612,6 +612,39 @@
 .shift-stat { font-size:.85rem; color:#a0aec0; }
 
 /* ============================================
+   Dag-vy: nyckeltalsbadgar (utnyttjandegrad, längsta stopp)
+   ============================================ */
+
+.day-metric-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.day-metric-badge.badge-good {
+  background: rgba(39, 174, 96, 0.18);
+  border-color: rgba(39, 174, 96, 0.45);
+  color: #27ae60;
+}
+
+.day-metric-badge.badge-warn {
+  background: rgba(255, 193, 7, 0.18);
+  border-color: rgba(255, 193, 7, 0.45);
+  color: #ffc107;
+}
+
+.day-metric-badge.badge-bad {
+  background: rgba(220, 53, 69, 0.18);
+  border-color: rgba(220, 53, 69, 0.45);
+  color: #ff4444;
+}
+
+/* ============================================
    Print Styles
    ============================================ */
 

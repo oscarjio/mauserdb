@@ -88,7 +88,9 @@ export class News implements OnInit, OnDestroy {
       if (res && res.success && res.data) {
         this.rebotlingToday = res.data.ibcToday || 0;
         this.rebotlingTarget = res.data.rebotlingTarget || 0;
-        this.rebotlingPercentage = res.data.productionPercentage || 0;
+        // Visa daglig måluppfyllnad (idag vs dagsmål), inte timeffektivitet
+        this.rebotlingPercentage = this.rebotlingTarget > 0
+          ? Math.round((this.rebotlingToday / this.rebotlingTarget) * 100) : 0;
       }
     });
 

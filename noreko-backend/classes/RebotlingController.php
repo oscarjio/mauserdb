@@ -200,16 +200,16 @@ class RebotlingController {
                 $productionPercentage = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
             }
 
-            // TODO: Hämta verklig data från PLC/DB
-            // Placeholdervärden för nu
-            /*
-            $nowHour = (int)date('G');
-            $working = $nowHour >= 6 && $nowHour <= 18;
-            $rebotlingToday = rand(40, 85);
-            $rebotlingTarget = 120;
-            */
-            $rebotlingToday = 50;
-            $rebotlingTarget = 120;
+            // Använd verklig IBC-räknare och hämta dagsmål från settings
+            $rebotlingToday = $ibcToday;
+            $rebotlingTarget = 1000; // fallback
+            try {
+                $this->ensureSettingsTable();
+                $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sRow) $rebotlingTarget = (int)$sRow['rebotling_target'];
+            } catch (Exception $e) {
+                error_log('getLiveStats: kunde inte läsa rebotling_settings: ' . $e->getMessage());
+            }
 
             // Hämta senaste utetemperatur
             $utetemperatur = null;
@@ -384,50 +384,83 @@ class RebotlingController {
         }
     }
 
+    private function ensureSettingsTable() {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS `rebotling_settings` (
+                `id`               INT          NOT NULL DEFAULT 1,
+                `rebotling_target` INT          NOT NULL DEFAULT 1000,
+                `hourly_target`    INT          NOT NULL DEFAULT 50,
+                `auto_start`       TINYINT(1)   NOT NULL DEFAULT 0,
+                `maintenance_mode` TINYINT(1)   NOT NULL DEFAULT 0,
+                `alert_threshold`  INT          NOT NULL DEFAULT 80,
+                `shift_hours`      DECIMAL(4,1) NOT NULL DEFAULT 8.0,
+                `updated_at`       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $this->pdo->exec(
+            "INSERT IGNORE INTO `rebotling_settings` (id) VALUES (1)"
+        );
+    }
+
     private function getAdminSettings() {
         try {
-            // Hämta admin-inställningar från databasen eller returnera standardvärden
+            $this->ensureSettingsTable();
+            $row = $this->pdo->query("SELECT * FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+
             $settings = [
-                'rebotlingTarget' => 1000,
-                'hourlyTarget' => 50,
-                'systemSettings' => [
-                    'autoStart' => false,
-                    'maintenanceMode' => false,
-                    'alertThreshold' => 80
+                'rebotlingTarget' => (int)($row['rebotling_target'] ?? 1000),
+                'hourlyTarget'    => (int)($row['hourly_target']    ?? 50),
+                'shiftHours'      => (float)($row['shift_hours']    ?? 8.0),
+                'systemSettings'  => [
+                    'autoStart'        => (bool)($row['auto_start']       ?? false),
+                    'maintenanceMode'  => (bool)($row['maintenance_mode'] ?? false),
+                    'alertThreshold'   => (int)($row['alert_threshold']   ?? 80)
                 ]
             ];
 
-            echo json_encode([
-                'success' => true,
-                'data' => $settings
-            ]);
+            echo json_encode(['success' => true, 'data' => $settings]);
         } catch (Exception $e) {
             error_log('Kunde inte hämta admin-inställningar: ' . $e->getMessage());
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte hämta admin-inställningar'
-            ]);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta admin-inställningar']);
         }
     }
 
     private function saveAdminSettings() {
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         try {
-            // TODO: Spara inställningar i databasen
-            // För nu bara returnera success
-            
-            echo json_encode([
-                'success' => true,
-                'message' => 'Inställningar sparade',
-                'data' => $data
-            ]);
+            $this->ensureSettingsTable();
+
+            $rebotlingTarget = isset($data['rebotlingTarget']) ? max(1, intval($data['rebotlingTarget'])) : null;
+            $hourlyTarget    = isset($data['hourlyTarget'])    ? max(1, intval($data['hourlyTarget']))    : null;
+            $shiftHours      = isset($data['shiftHours'])      ? max(1.0, min(24.0, floatval($data['shiftHours']))) : null;
+            $sys             = $data['systemSettings'] ?? [];
+            $autoStart       = isset($sys['autoStart'])       ? ($sys['autoStart']       ? 1 : 0) : null;
+            $maintenanceMode = isset($sys['maintenanceMode']) ? ($sys['maintenanceMode'] ? 1 : 0) : null;
+            $alertThreshold  = isset($sys['alertThreshold'])  ? max(0, min(100, intval($sys['alertThreshold']))) : null;
+
+            $fields = [];
+            $params = [];
+            if ($rebotlingTarget !== null) { $fields[] = 'rebotling_target = ?'; $params[] = $rebotlingTarget; }
+            if ($hourlyTarget    !== null) { $fields[] = 'hourly_target = ?';    $params[] = $hourlyTarget; }
+            if ($shiftHours      !== null) { $fields[] = 'shift_hours = ?';      $params[] = $shiftHours; }
+            if ($autoStart       !== null) { $fields[] = 'auto_start = ?';       $params[] = $autoStart; }
+            if ($maintenanceMode !== null) { $fields[] = 'maintenance_mode = ?'; $params[] = $maintenanceMode; }
+            if ($alertThreshold  !== null) { $fields[] = 'alert_threshold = ?';  $params[] = $alertThreshold; }
+
+            if (!empty($fields)) {
+                $params[] = 1; // id
+                $stmt = $this->pdo->prepare(
+                    'UPDATE rebotling_settings SET ' . implode(', ', $fields) . ' WHERE id = ?'
+                );
+                $stmt->execute($params);
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
         } catch (Exception $e) {
             error_log('Kunde inte spara inställningar: ' . $e->getMessage());
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte spara inställningar'
-            ]);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar']);
         }
     }
 

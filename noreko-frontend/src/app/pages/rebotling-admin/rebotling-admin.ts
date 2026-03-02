@@ -32,6 +32,21 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   private successTimerId: any = null;
   showAddProductForm = false;
 
+  // Admin settings
+  settings = {
+    rebotlingTarget: 1000,
+    hourlyTarget: 50,
+    shiftHours: 8.0,
+    systemSettings: {
+      autoStart: false,
+      maintenanceMode: false,
+      alertThreshold: 80
+    }
+  };
+  settingsLoading = false;
+  settingsSaving = false;
+  settingsError = '';
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -47,8 +62,51 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    // Load products when component initializes
     this.loadProducts();
+    this.loadSettings();
+  }
+
+  loadSettings() {
+    this.settingsLoading = true;
+    this.settingsError = '';
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', { withCredentials: true })
+      .subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.settings.rebotlingTarget = res.data.rebotlingTarget;
+            this.settings.hourlyTarget = res.data.hourlyTarget;
+            this.settings.shiftHours = res.data.shiftHours;
+            if (res.data.systemSettings) {
+              this.settings.systemSettings = { ...res.data.systemSettings };
+            }
+          }
+          this.settingsLoading = false;
+        },
+        error: () => {
+          this.settingsError = 'Kunde inte ladda inställningar';
+          this.settingsLoading = false;
+        }
+      });
+  }
+
+  saveSettings() {
+    this.settingsSaving = true;
+    this.settingsError = '';
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', this.settings, { withCredentials: true })
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.showSuccess('Inställningar sparade!');
+          } else {
+            this.settingsError = res.error || 'Kunde inte spara inställningar';
+          }
+          this.settingsSaving = false;
+        },
+        error: () => {
+          this.settingsError = 'Serverfel vid sparning';
+          this.settingsSaving = false;
+        }
+      });
   }
 
   private loadProducts() {
