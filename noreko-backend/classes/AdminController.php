@@ -46,6 +46,7 @@ class AdminController {
                         return;
                     }
                 } catch (PDOException $e) {
+                    error_log('AdminController create_user check: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn']);
                     return;
@@ -87,6 +88,7 @@ class AdminController {
                         ]
                     ]);
                 } catch (PDOException $e) {
+                    error_log('AdminController create_user insert: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'message' => 'Kunde inte skapa användare']);
                 }
@@ -124,6 +126,7 @@ class AdminController {
                     );
                     echo json_encode(['success' => true, 'message' => 'Användare borttagen']);
                 } catch (PDOException $e) {
+                    error_log('AdminController delete_user: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort användare']);
                 }
@@ -159,6 +162,8 @@ class AdminController {
                         echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
                     }
                 } catch (PDOException $e) {
+                    error_log('AdminController toggle_admin: ' . $e->getMessage());
+                    http_response_code(500);
                     echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera admin-status']);
                 }
                 return;
@@ -278,6 +283,7 @@ class AdminController {
             }
             echo json_encode(['users' => $users]);
         } catch (PDOException $e) {
+            error_log('AdminController get_users: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'Kunde inte hämta användare']);
         }

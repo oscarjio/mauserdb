@@ -40,6 +40,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
   expandedId: number | null = null;
 
   private activityChart: Chart | null = null;
+  private chartTimer: any = null;
 
   constructor(
     private auth: AuthService,
@@ -61,6 +62,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    clearTimeout(this.chartTimer);
     if (this.activityChart) this.activityChart.destroy();
   }
 
@@ -85,11 +87,14 @@ export class AuditLogPage implements OnInit, OnDestroy {
   }
 
   loadStats() {
-    this.auditService.getStats(this.selectedPeriod).subscribe({
+    this.auditService.getStats(this.selectedPeriod).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.stats = res.data;
-          setTimeout(() => this.buildActivityChart(), 100);
+          clearTimeout(this.chartTimer);
+          this.chartTimer = setTimeout(() => {
+            if (!this.destroy$.closed) this.buildActivityChart();
+          }, 100);
         }
       },
       error: () => {}
