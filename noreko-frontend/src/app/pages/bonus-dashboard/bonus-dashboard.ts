@@ -360,4 +360,30 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       }
     });
   }
+
+  exportRankingCSV() {
+    const data = this.activeRankingTab === 'overall'
+      ? this.overallRanking
+      : (this.positionRankings[this.activeRankingTab] || []);
+    if (data.length === 0) return;
+    const header = ['Rank', 'Operatör', 'Bonus Snitt', 'Effektivitet', 'Produktivitet', 'Kvalitet', 'IBC OK', 'Timmar'];
+    const rows = data.map((r: RankingEntry) => [
+      r.rank,
+      r.operator_name || ('Op ' + r.operator_id),
+      (r.bonus_avg ?? 0).toFixed(1),
+      (r.effektivitet ?? 0).toFixed(1) + '%',
+      (r.produktivitet ?? 0).toFixed(1),
+      (r.kvalitet ?? 0).toFixed(1) + '%',
+      r.total_ibc_ok ?? 0,
+      (r.total_hours ?? 0).toFixed(1)
+    ]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bonus-ranking-${this.selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
