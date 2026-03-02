@@ -87,7 +87,7 @@
                 class="radar-chip"
                 [class.radar-chip-active]="isRadarSelected(op.operator_id)"
                 (click)="toggleRadarSelect(op.operator_id)">
-            Op {{ op.operator_id }}
+            {{ op.operator_name || ('Op ' + op.operator_id) }}
           </span>
         </div>
         <div *ngIf="radarSelected.length >= 2" class="chart-container" style="height: 320px;">
@@ -123,7 +123,7 @@
             <tbody>
               <tr *ngFor="let op of getFilteredRanking(); let i = index">
                 <td>{{ i + 1 }}</td>
-                <td>{{ op.operator_id }}</td>
+                <td>{{ op.operator_name || op.operator_id }}</td>
                 <td>{{ getPositionName(op.position) }}</td>
                 <td>{{ op.cycles || op.total_cycles }}</td>
                 <td>{{ op.total_ibc_ok }}</td>

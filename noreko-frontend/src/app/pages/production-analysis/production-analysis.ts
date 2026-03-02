@@ -205,7 +205,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     if (!canvas) return;
 
     const data = this.getFilteredRanking().slice(0, 15);
-    const labels = data.map(d => 'Op ' + d.operator_id);
+    const labels = data.map((d: any) => d.operator_name || ('Op ' + d.operator_id));
     const values = data.map(d => d.bonus_avg);
     const colors = values.map(v => v >= 90 ? 'rgba(72,187,120,0.8)' : v >= 70 ? 'rgba(236,201,75,0.8)' : 'rgba(229,62,62,0.8)');
 
@@ -245,7 +245,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       const op = this.overallRanking.find(r => r.operator_id === opId);
       if (!op) return null;
       return {
-        label: 'Op ' + opId,
+        label: (op as any).operator_name || ('Op ' + opId),
         data: [op.effektivitet, Math.min(op.produktivitet, 100), op.kvalitet],
         backgroundColor: radarColors[i],
         borderColor: radarBorders[i],

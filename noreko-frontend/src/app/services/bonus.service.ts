@@ -27,6 +27,7 @@ export interface OperatorStatsResponse {
   success: boolean;
   data?: {
     operator_id: number;
+    operator_name?: string | null;
     position: string;
     period: string;
     date_range: { from: string; to: string };
@@ -65,9 +66,11 @@ export interface DailyBreakdown {
 export interface RankingEntry {
   rank: number;
   operator_id: number;
+  operator_name?: string | null;
   position?: string;
   cycles?: number;
   total_cycles?: number;
+  total_shifts?: number;
   bonus_avg: number;
   effektivitet: number;
   produktivitet: number;

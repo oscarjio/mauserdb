@@ -198,12 +198,18 @@ class BonusController {
             // Primärposition (den position operatören jobbat mest)
             $position = $this->getOperatorPrimaryPosition($op_id, $dateFilter);
 
+            // Hämta operatörens namn
+            $opNameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $opNameStmt->execute([$op_id]);
+            $opName = $opNameStmt->fetchColumn() ?: null;
+
             $total_hours      = round(($stats['total_runtime']  ?? 0) / 60, 1);
             $total_rast_hours = round(($stats['total_rasttime'] ?? 0) / 60, 1);
 
             $this->sendSuccess([
-                'operator_id' => (int)$op_id,
-                'position'    => $position,
+                'operator_id'   => (int)$op_id,
+                'operator_name' => $opName,
+                'position'      => $position,
                 'period'      => $period,
                 'date_range'  => [
                     'from' => $stats['first_date'],
@@ -260,6 +266,9 @@ class BonusController {
         $dateFilter = $this->getDateFilter($period, $start_date, $end_date);
 
         try {
+            // Hämta operatörsnamn för lookup
+            $opRows = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+
             $rankings = [];
 
             // Per-position ranking
@@ -284,14 +293,16 @@ class BonusController {
                 $stmt->execute();
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                $rankings["position_{$pos}"] = array_map(function ($row, $index) use ($pos) {
+                $rankings["position_{$pos}"] = array_map(function ($row, $index) use ($pos, $opRows) {
+                    $opId = (int)$row['operator_id'];
                     return [
-                        'rank'        => $index + 1,
-                        'operator_id' => (int)$row['operator_id'],
-                        'position'    => $this->getPositionName($pos),
-                        'shifts'      => (int)$row['shifts'],
-                        'cycles'      => (int)$row['shifts'],
-                        'bonus_avg'   => round($row['avg_bonus']        ?? 0, 2),
+                        'rank'          => $index + 1,
+                        'operator_id'   => $opId,
+                        'operator_name' => $opRows[$opId] ?? null,
+                        'position'      => $this->getPositionName($pos),
+                        'shifts'        => (int)$row['shifts'],
+                        'cycles'        => (int)$row['shifts'],
+                        'bonus_avg'     => round($row['avg_bonus']        ?? 0, 2),
                         'effektivitet'  => round($row['avg_effektivitet']  ?? 0, 2),
                         'produktivitet' => round($row['avg_produktivitet'] ?? 0, 2),
                         'kvalitet'      => round($row['avg_kvalitet']      ?? 0, 2),
@@ -350,10 +361,12 @@ class BonusController {
             $stmt->execute();
             $combined = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $rankings['overall'] = array_map(function ($row, $index) {
+            $rankings['overall'] = array_map(function ($row, $index) use ($opRows) {
+                $opId = (int)$row['operator_id'];
                 return [
                     'rank'          => $index + 1,
-                    'operator_id'   => (int)$row['operator_id'],
+                    'operator_id'   => $opId,
+                    'operator_name' => $opRows[$opId] ?? null,
                     'total_shifts'  => (int)$row['total_shifts'],
                     'total_cycles'  => (int)$row['total_shifts'],
                     'bonus_avg'     => round($row['avg_bonus']        ?? 0, 2),
