@@ -1296,4 +1296,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     link.click();
     URL.revokeObjectURL(url);
   }
+
+  exportExcel() {
+    if (this.tableData.length === 0) return;
+    import('xlsx').then(XLSX => {
+      const data = this.tableData.map((row: any) => ({
+        'Period': row.period,
+        'Cykler': row.cycles,
+        'Cykeltid (min)': row.avgCycleTime,
+        'Effektivitet (%)': row.efficiency,
+        'Drifttid (min)': row.runtime
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Statistik');
+      XLSX.writeFile(wb, `rebotling-statistik-${this.breadcrumb.join('-')}.xlsx`);
+    });
+  }
 }
