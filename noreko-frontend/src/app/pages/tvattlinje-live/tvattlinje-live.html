@@ -24,7 +24,6 @@
     </div>
     <div class="col-6 d-flex align-items-stretch">
       <div class="live-card flex-fill speedometer-wrapper h-100 w-100 d-flex flex-column justify-content-center align-items-center">
-        <div class="goal-status-indicator" [class.goal-achieved]="isGoalAchieved" [class.goal-not-achieved]="!isGoalAchieved"></div>
         <div class="speedometer speedometer-modern w-100">
           <svg viewBox="0 0 300 180" width="100%" height="100%">
             <defs>
@@ -57,9 +56,6 @@
               <feDropShadow dx="0" dy="4" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/>
             </filter>
           </svg>
-          <div class="speedometer-status mt-3 w-100 d-flex justify-content-center">
-            <span [class]="statusBadgeClass">{{ productionPercentage > 0 ? (productionPercentage + '% – ' + statusText) : statusText }}</span>
-          </div>
         </div>
       </div>
     </div>
