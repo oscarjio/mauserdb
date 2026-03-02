@@ -217,4 +217,29 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
     if (pct >= 80) return 'text-warning';
     return 'text-danger';
   }
+
+  exportCSV() {
+    const data = this.filteredReports;
+    if (data.length === 0) return;
+    const header = ['Datum', 'Antal OK', 'Antal ej OK', 'Totalt', 'Kvalitet %', 'Kommentar', 'Användare'];
+    const rows = data.map((r: any) => [
+      (r.datum || '').substring(0, 10),
+      r.antal_ok || 0,
+      r.antal_ej_ok || 0,
+      r.totalt || 0,
+      r.totalt > 0 ? Math.round((r.antal_ok / r.totalt) * 100) : 0,
+      r.kommentar || '',
+      r.user_name || ''
+    ]);
+    const csvContent = [header, ...rows]
+      .map(row => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `saglinje-statistik-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 }
