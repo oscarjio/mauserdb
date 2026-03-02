@@ -15,6 +15,11 @@ class SkiftrapportController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         
         if ($method === 'GET') {
+            $run = $_GET['run'] ?? '';
+            if ($run === 'lopnummer') {
+                $this->getLopnummerForSkift();
+                return;
+            }
             $this->getSkiftrapporter();
         } elseif ($method === 'POST') {
             if (empty($_SESSION['user_id'])) {
@@ -169,10 +174,16 @@ class SkiftrapportController {
                 s.product_id, s.user_id, s.skiftraknare, s.created_at, s.updated_at,
                 s.op1, s.op2, s.op3, s.drifttid, s.rasttime, s.lopnummer,
                 u.username as user_name,
-                p.name as product_name
+                p.name as product_name,
+                o1.name as op1_name,
+                o2.name as op2_name,
+                o3.name as op3_name
                 FROM rebotling_skiftrapport s
                 LEFT JOIN users u ON s.user_id = u.id
                 LEFT JOIN rebotling_products p ON s.product_id = p.id
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
                 ORDER BY s.datum DESC, s.id DESC");
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
@@ -440,6 +451,50 @@ class SkiftrapportController {
                 'message' => 'Kunde inte uppdatera skiftrapport'
             ]);
         }
+    }
+
+    private function getLopnummerForSkift() {
+        $skiftraknare = isset($_GET['skiftraknare']) ? intval($_GET['skiftraknare']) : 0;
+        if ($skiftraknare <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Ogiltigt skifträknare']);
+            return;
+        }
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT lopnummer FROM rebotling_ibc WHERE skiftraknare = ? ORDER BY lopnummer"
+            );
+            $stmt->execute([$skiftraknare]);
+            $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $nums = array_map('intval', $rows);
+            echo json_encode([
+                'success' => true,
+                'ranges'  => $this->buildRanges($nums),
+                'count'   => count($nums)
+            ]);
+        } catch (PDOException $e) {
+            error_log('getLopnummerForSkift: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta löpnummer']);
+        }
+    }
+
+    private function buildRanges(array $nums): string {
+        if (empty($nums)) return '–';
+        sort($nums);
+        $ranges = [];
+        $start = $nums[0];
+        $prev  = $nums[0];
+        for ($i = 1; $i < count($nums); $i++) {
+            if ($nums[$i] === $prev + 1) {
+                $prev = $nums[$i];
+            } else {
+                $ranges[] = $start === $prev ? (string)$start : "$start–$prev";
+                $start = $prev = $nums[$i];
+            }
+        }
+        $ranges[] = $start === $prev ? (string)$start : "$start–$prev";
+        return implode(', ', $ranges);
     }
 }
 

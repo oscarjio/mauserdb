@@ -58,5 +58,12 @@ export class SkiftrapportService {
       ...data
     }, { withCredentials: true });
   }
+
+  getLopnummer(skiftraknare: number): Observable<any> {
+    return this.http.get<any>(
+      `/noreko-backend/api.php?action=skiftrapport&run=lopnummer&skiftraknare=${skiftraknare}`,
+      { withCredentials: true }
+    );
+  }
 }
 

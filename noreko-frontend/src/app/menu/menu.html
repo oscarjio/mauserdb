@@ -11,12 +11,7 @@
       <li class="nav-item">
         <a class="nav-link active" aria-current="page" routerLink="/">Hem</a>
       </li>
-      <li class="nav-item" *ngIf="loggedIn && user?.role === 'admin'">
-        <a class="nav-link text-info" routerLink="/oversikt"><i class="fas fa-tachometer-alt me-1"></i>Översikt</a>
-      </li>
-      <li class="nav-item" *ngIf="loggedIn">
-        <a class="nav-link" routerLink="/stopporsaker"><i class="fas fa-exclamation-triangle me-1"></i>Stopporsaker</a>
-      </li>
+
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="rebotlingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="line-dot" [class.line-dot-on]="rebotlingRunning" [class.line-dot-off]="!rebotlingRunning"></span>
@@ -155,6 +150,9 @@
           Admin
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
+          <li><a class="dropdown-item text-info" routerLink="/oversikt"><i class="fas fa-tachometer-alt me-2"></i>Översikt</a></li>
+          <li><a class="dropdown-item" routerLink="/stopporsaker"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker</a></li>
+          <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item" routerLink="/admin/users">Användare</a></li>
           <li><a class="dropdown-item" routerLink="/admin/create-user">Skapa användare</a></li>
           <li><a class="dropdown-item" routerLink="/admin/operators"><i class="fas fa-id-badge me-2"></i>Operatörer</a></li>

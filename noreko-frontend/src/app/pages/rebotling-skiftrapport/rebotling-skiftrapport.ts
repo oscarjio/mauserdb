@@ -31,6 +31,10 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   filterFrom = '';
   filterTo = '';
 
+  // Löpnummer lazy-load
+  lopnummerMap: { [reportId: number]: string } = {};
+  lopnummerLoading: { [reportId: number]: boolean } = {};
+
   private destroy$ = new Subject<void>();
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
@@ -107,6 +111,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   getDefectPct(r: any): number | null {
     if (!r.totalt) return null;
     return Math.round(((r.bur_ej_ok + r.ibc_ej_ok) / r.totalt) * 100);
+  }
+
+  getOpLabel(r: any, field: 'op1' | 'op2' | 'op3'): string {
+    const nameField = field + '_name';
+    return r[nameField] || (r[field] ? String(r[field]) : '–');
   }
 
   // ========== Fetch ==========
@@ -348,6 +357,29 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   toggleExpand(id: number) {
     this.expanded[id] = !this.expanded[id];
+    if (this.expanded[id]) {
+      const report = this.reports.find(r => r.id === id);
+      if (report && report.skiftraknare && this.lopnummerMap[id] === undefined) {
+        this.loadLopnummer(report);
+      }
+    }
+  }
+
+  private loadLopnummer(report: any) {
+    const id = report.id;
+    this.lopnummerLoading[id] = true;
+    this.skiftrapportService.getLopnummer(report.skiftraknare)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          this.lopnummerLoading[id] = false;
+          this.lopnummerMap[id] = res.success ? res.ranges : '–';
+        },
+        error: () => {
+          this.lopnummerLoading[id] = false;
+          this.lopnummerMap[id] = '–';
+        }
+      });
   }
 
   saveReport(report: any) {
@@ -466,7 +498,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       content: [
         { text: 'Skiftrapport', style: 'header' },
         {
-          text: `${r.datum}  |  ${r.product_name || '-'}  |  Skift #${r.skiftraknare || '-'}`,
+          text: `${r.datum}  |  ${r.product_name || '-'}`,
           style: 'subheader'
         },
         { text: '\n' },
@@ -517,31 +549,30 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         { text: 'PLC-data', style: 'sectionHeader' },
         {
           table: {
-            widths: ['*', '*', '*', '*', '*', '*', '*'],
+            widths: ['*', '*', '*', '*', '*', '*'],
             body: [
               [
                 { text: 'Tvättplats', bold: true, fillColor: '#eeeeee' },
-                { text: 'Kontroll', bold: true, fillColor: '#eeeeee' },
-                { text: 'Truck', bold: true, fillColor: '#eeeeee' },
+                { text: 'Kontrollstation', bold: true, fillColor: '#eeeeee' },
+                { text: 'Truckförare', bold: true, fillColor: '#eeeeee' },
                 { text: 'Drifttid', bold: true, fillColor: '#eeeeee' },
                 { text: 'Rasttid', bold: true, fillColor: '#eeeeee' },
-                { text: 'Löpnr', bold: true, fillColor: '#eeeeee' },
-                { text: 'Skift#', bold: true, fillColor: '#eeeeee' }
+                { text: 'Löpnr (sista)', bold: true, fillColor: '#eeeeee' }
               ],
               [
-                { text: String(r.op1 ?? '–'), alignment: 'center' },
-                { text: String(r.op2 ?? '–'), alignment: 'center' },
-                { text: String(r.op3 ?? '–'), alignment: 'center' },
+                { text: this.getOpLabel(r, 'op1'), alignment: 'center' },
+                { text: this.getOpLabel(r, 'op2'), alignment: 'center' },
+                { text: this.getOpLabel(r, 'op3'), alignment: 'center' },
                 { text: r.drifttid != null ? r.drifttid + ' min' : '–', alignment: 'center' },
                 { text: r.rasttime != null ? r.rasttime + ' min' : '–', alignment: 'center' },
-                { text: String(r.lopnummer ?? '–'), alignment: 'center' },
-                { text: String(r.skiftraknare ?? '–'), alignment: 'center' }
+                { text: String(r.lopnummer ?? '–'), alignment: 'center' }
               ]
             ]
           },
           layout: 'lightHorizontalLines'
         },
         { text: '\n' },
+        { text: 'Löpnummer detta skift: ' + (this.lopnummerMap[r.id] ?? '–'), style: 'meta' },
         { text: 'Skiftansvarig: ' + (r.user_name || '-'), style: 'meta' },
         { text: 'Inlagd i system: ' + (r.inlagd == 1 ? 'Ja' : 'Nej'), style: 'meta' },
         { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'meta' }

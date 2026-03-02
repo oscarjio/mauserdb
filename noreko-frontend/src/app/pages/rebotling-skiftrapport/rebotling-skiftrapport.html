@@ -260,19 +260,19 @@
                             <div class="col-auto">
                               <div class="small text-muted mb-1">Tvättplats (op1)</div>
                               <span class="badge bg-secondary px-3 py-2 fs-6">
-                                {{ report.op1 || '–' }}
+                                {{ getOpLabel(report, 'op1') }}
                               </span>
                             </div>
                             <div class="col-auto">
                               <div class="small text-muted mb-1">Kontrollstation (op2)</div>
                               <span class="badge bg-secondary px-3 py-2 fs-6">
-                                {{ report.op2 || '–' }}
+                                {{ getOpLabel(report, 'op2') }}
                               </span>
                             </div>
                             <div class="col-auto">
                               <div class="small text-muted mb-1">Truckförare (op3)</div>
                               <span class="badge bg-secondary px-3 py-2 fs-6">
-                                {{ report.op3 || '–' }}
+                                {{ getOpLabel(report, 'op3') }}
                               </span>
                             </div>
 
@@ -295,10 +295,20 @@
                               <div class="small text-muted mb-1">Löpnummer (D4009)</div>
                               <span class="fw-bold fs-6">{{ report.lopnummer || '–' }}</span>
                             </div>
-                            <div class="col-auto">
-                              <div class="small text-muted mb-1">Skifträknare</div>
-                              <span class="fw-bold fs-6 text-info">{{ report.skiftraknare || '–' }}</span>
-                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Löpnummer detta skift -->
+                        <div class="mb-3" *ngIf="report.skiftraknare">
+                          <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-list-ol text-warning me-2"></i>
+                            <span class="text-warning fw-semibold">Löpnummer detta skift</span>
+                          </div>
+                          <div *ngIf="lopnummerLoading[report.id]" class="text-muted small">
+                            <i class="fas fa-spinner fa-spin me-1"></i>Hämtar...
+                          </div>
+                          <div *ngIf="!lopnummerLoading[report.id]" class="fw-bold">
+                            {{ lopnummerMap[report.id] ?? '–' }}
                           </div>
                         </div>
 
