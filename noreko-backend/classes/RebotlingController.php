@@ -317,40 +317,49 @@ class RebotlingController {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ");
 
-            // Hämta dagens alla rast-events sorterade stigande
+            // Tidszon för jämförbara tider (samma som vid insättning från plc-backend)
+            $tz = new DateTimeZone('Europe/Stockholm');
+            $now = new DateTime('now', $tz);
+            $todayStr = $now->format('Y-m-d');
+
+            // Hämta dagens alla rast-events (använd samma "idag" som PHP så klockan stämmer)
             $stmt = $this->pdo->prepare("
                 SELECT id, datum, rast_status
                 FROM rebotling_runtime
-                WHERE DATE(datum) = CURDATE()
+                WHERE DATE(datum) = :today
                 ORDER BY datum ASC
             ");
-            $stmt->execute();
+            $stmt->execute(['today' => $todayStr]);
             $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Beräkna total rasttid genom att para ihop start(1) och slut(0)
             $totalRastMinutes = 0;
             $rastStart = null;
-            $now = new DateTime();
             $currentlyOnRast = false;
 
             foreach ($events as $event) {
                 if ((int)$event['rast_status'] === 1 && $rastStart === null) {
-                    $rastStart = new DateTime($event['datum']);
+                    $rastStart = new DateTime($event['datum'], $tz);
                     $currentlyOnRast = true;
                 } elseif ((int)$event['rast_status'] === 0 && $rastStart !== null) {
-                    $end = new DateTime($event['datum']);
+                    $end = new DateTime($event['datum'], $tz);
                     $diff = $rastStart->diff($end);
-                    $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $minutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalRastMinutes += max(0, (int)round($minutes));
                     $rastStart = null;
                     $currentlyOnRast = false;
                 }
             }
 
-            // Om rast pågår just nu, räkna in till nu
+            // Om rast pågår just nu, räkna in till nu – ignorera bara om rast=1 är uppenbart gammal
             if ($rastStart !== null) {
-                $currentlyOnRast = true;
                 $diff = $rastStart->diff($now);
-                $totalRastMinutes += ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                $minutesOpen = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                $minutesOpen = max(0, (int)round($minutesOpen)); // undvik negativ tid vid klockavvikelse
+                if ($minutesOpen <= 480) { // 8 timmar – endast ignorerar kvarvarande från föregående skift/dag
+                    $currentlyOnRast = true;
+                    $totalRastMinutes += $minutesOpen;
+                } else {
+                    $currentlyOnRast = false;
+                }
             }
 
             // Hämta senaste event för tidsstämpel

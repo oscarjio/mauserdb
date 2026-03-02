@@ -177,6 +177,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.nextLopnummer = res.data.nextLopnummer ?? null;
 
           this.productionPercentage = res.data.productionPercentage || 0;
+          this.nextLopnummer = res.data.nextLopnummer ?? null;
 
           // Calculate daily goal from hourly target * shift hours
           if (this.hourlyTarget > 0) {
