@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { DatePipe, DecimalPipe, NgClass, NgIf } from '@angular/common';
+import { DecimalPipe, NgClass, NgIf } from '@angular/common';
 import { of } from 'rxjs';
 import { catchError, finalize, timeout } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse, OEEResponse, RastStatusResponse } from '../../services/rebotling.service';
@@ -7,7 +7,7 @@ import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse, OEERe
 @Component({
   standalone: true,
   selector: 'app-rebotling-live',
-  imports: [DatePipe, DecimalPipe, NgClass, NgIf],
+  imports: [DecimalPipe, NgClass, NgIf],
   templateUrl: './rebotling-live.html',
   styleUrl: './rebotling-live.css'
 })
@@ -175,9 +175,7 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.hourlyTarget = res.data.hourlyTarget;
           this.ibcToday = res.data.ibcToday || 0;
           this.nextLopnummer = res.data.nextLopnummer ?? null;
-
           this.productionPercentage = res.data.productionPercentage || 0;
-          this.nextLopnummer = res.data.nextLopnummer ?? null;
 
           // Calculate daily goal from hourly target * shift hours
           if (this.hourlyTarget > 0) {
