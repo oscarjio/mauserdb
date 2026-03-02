@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 class SkiftrapportController {
     private $pdo;
 
@@ -205,11 +207,16 @@ class SkiftrapportController {
 
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_skiftrapport (datum, ibc_ok, bur_ej_ok, ibc_ej_ok, totalt, product_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([$datum, $ibc_ok, $bur_ej_ok, $ibc_ej_ok, $totalt, $product_id, $user_id]);
-            
+            $newId = (int)$this->pdo->lastInsertId();
+
+            AuditLogger::log($this->pdo, 'create_skiftrapport', 'rebotling_skiftrapport', $newId,
+                'Skapad: datum=' . $datum . ', ibc_ok=' . $ibc_ok . ', totalt=' . $totalt,
+                null, ['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok, 'totalt' => $totalt]);
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport skapad',
-                'id' => $this->pdo->lastInsertId()
+                'id' => $newId
             ]);
         } catch (PDOException $e) {
             error_log('Kunde inte skapa skiftrapport: ' . $e->getMessage());
@@ -232,7 +239,10 @@ class SkiftrapportController {
 
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_skiftrapport WHERE id = ?");
             $stmt->execute([$id]);
-            
+
+            AuditLogger::log($this->pdo, 'delete_skiftrapport', 'rebotling_skiftrapport', $id,
+                'Skiftrapport borttagen');
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport borttagen'
@@ -260,7 +270,10 @@ class SkiftrapportController {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_skiftrapport WHERE id IN ($placeholders)");
             $stmt->execute($ids);
-            
+
+            AuditLogger::log($this->pdo, 'bulk_delete_skiftrapport', 'rebotling_skiftrapport', null,
+                count($ids) . ' skiftrapporter borttagna (ID: ' . implode(', ', $ids) . ')');
+
             echo json_encode([
                 'success' => true,
                 'message' => count($ids) . ' skiftrapport(er) borttagna'
@@ -406,7 +419,11 @@ class SkiftrapportController {
             $sql = 'UPDATE rebotling_skiftrapport SET ' . implode(', ', $fields) . ' WHERE id = ?';
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
-            
+
+            AuditLogger::log($this->pdo, 'update_skiftrapport', 'rebotling_skiftrapport', $id,
+                'Skiftrapport uppdaterad',
+                null, array_filter(['datum' => $datum, 'ibc_ok' => $ibc_ok, 'bur_ej_ok' => $bur_ej_ok, 'ibc_ej_ok' => $ibc_ej_ok]));
+
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport uppdaterad'

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
 /**
  * LineSkiftrapportController – generisk skiftrapport för tvattlinje, saglinje, klassificeringslinje.
  * Endpoint: GET/POST /api.php?action=lineskiftrapport&line={tvattlinje|saglinje|klassificeringslinje}
@@ -184,7 +185,10 @@ class LineSkiftrapportController {
                 VALUES (?, ?, ?, ?, ?, ?)
             ");
             $stmt->execute([$datum, $antal_ok, $antal_ej_ok, $totalt, $kommentar, $user_id]);
-            echo json_encode(['success' => true, 'message' => 'Rapport skapad', 'id' => $this->pdo->lastInsertId()]);
+            $newId = (int)$this->pdo->lastInsertId();
+            AuditLogger::log($this->pdo, 'create_rapport', $table, $newId,
+                "Skapad: datum=$datum, antal_ok=$antal_ok, totalt=$totalt");
+            echo json_encode(['success' => true, 'message' => 'Rapport skapad', 'id' => $newId]);
         } catch (PDOException $e) {
             error_log("createReport($table): " . $e->getMessage());
             http_response_code(500);
@@ -248,6 +252,8 @@ class LineSkiftrapportController {
             $sql = "UPDATE `$table` SET " . implode(', ', $fields) . " WHERE id = ?";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute($params);
+            AuditLogger::log($this->pdo, 'update_rapport', $table, $id,
+                'Rapport uppdaterad');
             echo json_encode(['success' => true, 'message' => 'Rapport uppdaterad']);
         } catch (PDOException $e) {
             error_log("updateReport($table): " . $e->getMessage());
@@ -266,6 +272,8 @@ class LineSkiftrapportController {
             }
             $stmt = $this->pdo->prepare("DELETE FROM `$table` WHERE id = ?");
             $stmt->execute([$id]);
+            AuditLogger::log($this->pdo, 'delete_rapport', $table, $id,
+                'Rapport borttagen');
             echo json_encode(['success' => true, 'message' => 'Rapport borttagen']);
         } catch (PDOException $e) {
             error_log("deleteReport($table): " . $e->getMessage());
@@ -306,6 +314,8 @@ class LineSkiftrapportController {
             $placeholders = implode(',', array_fill(0, count($ids), '?'));
             $stmt = $this->pdo->prepare("DELETE FROM `$table` WHERE id IN ($placeholders)");
             $stmt->execute(array_values($ids));
+            AuditLogger::log($this->pdo, 'bulk_delete_rapport', $table, null,
+                count($ids) . ' rapporter borttagna (ID: ' . implode(', ', $ids) . ')');
             echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) borttagna']);
         } catch (PDOException $e) {
             error_log("bulkDelete($table): " . $e->getMessage());
