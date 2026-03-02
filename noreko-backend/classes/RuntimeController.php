@@ -110,10 +110,8 @@ class RuntimeController {
                 ]);
             }
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte registrera rast: ' . $e->getMessage()
-            ]);
+            error_log('registerBreakFromShelly: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast']);
         }
     }
 
@@ -160,10 +158,8 @@ class RuntimeController {
                 ]
             ]);
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte registrera rast: ' . $e->getMessage()
-            ]);
+            error_log('registerBreak: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast']);
         }
     }
 
@@ -204,10 +200,8 @@ class RuntimeController {
                 ]
             ]);
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte hämta rasttid: ' . $e->getMessage()
-            ]);
+            error_log('getTodayBreakTime: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rasttid']);
         }
     }
 
@@ -249,10 +243,8 @@ class RuntimeController {
                 ]
             ]);
         } catch (Exception $e) {
-            echo json_encode([
-                'success' => false,
-                'error' => 'Kunde inte hämta statistik: ' . $e->getMessage()
-            ]);
+            error_log('getBreakStats: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik']);
         }
     }
 

@@ -1,8 +1,10 @@
-/* Minimal placeholder for Rebotling Statistik page (standalone directory) */
-.rebotling-statistik-page {
-  min-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
+.card { background-color: #2d3748; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; }
+.card-header { border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; background-color: #2d3748; }
+.card-body { background-color: #2d3748; color: #e2e8f0; }
+.form-select { background-color: #4a5568; border-color: #718096; color: #e2e8f0; }
+.form-select:focus { background-color: #4a5568; border-color: #38b2ac; color: #e2e8f0; box-shadow: 0 0 0 0.25rem rgba(56,178,172,0.25); }
+.kpi-card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 14px 16px; text-align: center; }
+.kpi-label { font-size: 0.68rem; color: #718096; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+.kpi-sub { font-size: 0.75rem; color: #718096; margin-top: 2px; }
+.alert-danger { background-color: #e53e3e; border-color: #c53030; color: #fff; }

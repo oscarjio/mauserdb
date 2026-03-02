@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/AuditController.php';
+
 /**
  * StoppageController - Hanterar stopporsakslogg för produktionslinjer
  *
@@ -270,10 +272,13 @@ class StoppageController {
             ");
             $stmt->execute([$line, $reasonId, $startTime, $endTime, $durationMinutes, $comment, $userId]);
 
+            $newId = (int)$this->pdo->lastInsertId();
+            AuditLogger::log($this->pdo, 'create_stoppage', 'stoppage_log', $newId,
+                "Skapad: line=$line, reason_id=$reasonId, start=$startTime");
             echo json_encode([
                 'success' => true,
                 'message' => 'Stoppost registrerad',
-                'id' => $this->pdo->lastInsertId()
+                'id' => $newId
             ]);
         } catch (PDOException $e) {
             error_log('createStoppage: ' . $e->getMessage());
@@ -339,6 +344,8 @@ class StoppageController {
             $sql = 'UPDATE stoppage_log SET ' . implode(', ', $fields) . ' WHERE id = ?';
             $this->pdo->prepare($sql)->execute($params);
 
+            AuditLogger::log($this->pdo, 'update_stoppage', 'stoppage_log', $id,
+                'Uppdaterad: fields=' . implode(',', array_map(fn($f) => strtok($f, ' '), $fields)));
             echo json_encode(['success' => true, 'message' => 'Stoppost uppdaterad']);
         } catch (PDOException $e) {
             error_log('updateStoppage: ' . $e->getMessage());
@@ -359,6 +366,7 @@ class StoppageController {
             $this->checkAccess($id);
 
             $this->pdo->prepare("DELETE FROM stoppage_log WHERE id = ?")->execute([$id]);
+            AuditLogger::log($this->pdo, 'delete_stoppage', 'stoppage_log', $id, 'Stoppost borttagen');
             echo json_encode(['success' => true, 'message' => 'Stoppost borttagen']);
         } catch (PDOException $e) {
             error_log('deleteStoppage: ' . $e->getMessage());
