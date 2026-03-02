@@ -31,7 +31,16 @@
               <option value="toggle_admin">Ändra admin</option>
               <option value="toggle_active">Ändra aktiv</option>
               <option value="update_user">Uppdatera användare</option>
+              <option value="create_skiftrapport">Skapa skiftrapport</option>
+              <option value="delete_skiftrapport">Ta bort skiftrapport</option>
+              <option value="create_rapport">Skapa linjerapport</option>
+              <option value="delete_rapport">Ta bort linjerapport</option>
+              <option value="create_stoppage">Registrera stoppost</option>
+              <option value="delete_stoppage">Ta bort stoppost</option>
             </select>
+            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" *ngIf="logs.length > 0" title="Exportera sida till CSV">
+              <i class="fas fa-download me-1"></i>CSV
+            </button>
           </div>
         </div>
       </div>

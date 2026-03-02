@@ -117,6 +117,29 @@ export class AuditLogPage implements OnInit, OnDestroy {
     this.expandedId = this.expandedId === id ? null : id;
   }
 
+  exportCSV() {
+    if (this.logs.length === 0) return;
+    const header = ['ID', 'Tidpunkt', 'Användare', 'Åtgärd', 'Entitet', 'Entitet-ID', 'Beskrivning', 'IP'];
+    const rows = this.logs.map(e => [
+      e.id,
+      (e.created_at || '').substring(0, 19).replace('T', ' '),
+      e.user,
+      this.getActionLabel(e.action),
+      e.entity_type,
+      e.entity_id ?? '',
+      e.description || '',
+      e.ip_address || ''
+    ]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   getActionLabel(action: string): string {
     const labels: Record<string, string> = {
       'create_user': 'Skapa användare',
@@ -126,7 +149,22 @@ export class AuditLogPage implements OnInit, OnDestroy {
       'update_user': 'Uppdatera användare',
       'update_weights': 'Uppdatera vikter',
       'set_targets': 'Ändra mål',
-      'approve_bonuses': 'Godkänn bonus'
+      'approve_bonuses': 'Godkänn bonus',
+      'create_skiftrapport': 'Skapa skiftrapport',
+      'delete_skiftrapport': 'Ta bort skiftrapport',
+      'bulk_delete_skiftrapport': 'Massbort skiftrapporter',
+      'update_skiftrapport': 'Uppdatera skiftrapport',
+      'create_rapport': 'Skapa linjerapport',
+      'update_rapport': 'Uppdatera linjerapport',
+      'delete_rapport': 'Ta bort linjerapport',
+      'bulk_delete_rapport': 'Massbort linjerapporter',
+      'create_stoppage': 'Registrera stoppost',
+      'update_stoppage': 'Uppdatera stoppost',
+      'delete_stoppage': 'Ta bort stoppost',
+      'vpn_update': 'Uppdatera VPN',
+      'product_create': 'Skapa produkt',
+      'product_update': 'Uppdatera produkt',
+      'product_delete': 'Ta bort produkt'
     };
     return labels[action] || action;
   }
@@ -140,7 +178,22 @@ export class AuditLogPage implements OnInit, OnDestroy {
       'update_user': 'fa-user-edit',
       'update_weights': 'fa-balance-scale',
       'set_targets': 'fa-bullseye',
-      'approve_bonuses': 'fa-check-double'
+      'approve_bonuses': 'fa-check-double',
+      'create_skiftrapport': 'fa-plus-circle',
+      'delete_skiftrapport': 'fa-trash',
+      'bulk_delete_skiftrapport': 'fa-trash-alt',
+      'update_skiftrapport': 'fa-edit',
+      'create_rapport': 'fa-plus-circle',
+      'update_rapport': 'fa-edit',
+      'delete_rapport': 'fa-trash',
+      'bulk_delete_rapport': 'fa-trash-alt',
+      'create_stoppage': 'fa-exclamation-triangle',
+      'update_stoppage': 'fa-edit',
+      'delete_stoppage': 'fa-trash',
+      'vpn_update': 'fa-network-wired',
+      'product_create': 'fa-box',
+      'product_update': 'fa-box',
+      'product_delete': 'fa-box'
     };
     return icons[action] || 'fa-cog';
   }
