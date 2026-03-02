@@ -159,6 +159,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
     if (this.productionChart) {
+      const canvas = this.productionChart.canvas;
+      if (canvas) {
+        canvas.onmousedown = null;
+        canvas.onmouseup = null;
+        canvas.onmousemove = null;
+        canvas.ondblclick = null;
+      }
       this.productionChart.destroy();
       this.productionChart = null;
     }
