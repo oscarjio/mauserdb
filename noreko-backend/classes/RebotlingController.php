@@ -62,6 +62,10 @@ class RebotlingController {
                 $this->getMaintenanceIndicator();
             } elseif ($action === 'annotations') {
                 $this->getAnnotations();
+            } elseif ($action === 'quality-trend') {
+                $this->getQualityTrend();
+            } elseif ($action === 'oee-waterfall') {
+                $this->getOeeWaterfall();
             } else {
                 $this->getLiveStats();
             }
@@ -3503,5 +3507,174 @@ class RebotlingController {
         });
 
         echo json_encode(['success' => true, 'annotations' => $annotations]);
+    }
+
+    // ----------------------------------------------------------------
+    // Kvalitetstrendkort
+    // GET ?action=rebotling&run=quality-trend&days=30
+    // ----------------------------------------------------------------
+    private function getQualityTrend() {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT dag,
+                       ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_totalt), 0), 1) AS quality_pct,
+                       SUM(ibc_ok) AS ibc_ok,
+                       SUM(ibc_totalt) AS ibc_totalt
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0)) AS ibc_totalt
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmt->execute([':days' => $days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna 7-dagars rullande medelvärde
+            $rolling = [];
+            for ($i = 0; $i < count($rows); $i++) {
+                $window = array_slice($rows, max(0, $i - 6), min(7, $i + 1));
+                $validValues = array_filter(array_column($window, 'quality_pct'), function($v) { return $v !== null; });
+                if (count($validValues) > 0) {
+                    $avg = array_sum($validValues) / count($validValues);
+                } else {
+                    $avg = null;
+                }
+                $rolling[] = $avg !== null ? round($avg, 1) : null;
+            }
+
+            // Beräkna KPI-värden
+            $validPcts = array_filter(array_column($rows, 'quality_pct'), function($v) { return $v !== null; });
+            $avgQuality = count($validPcts) > 0 ? round(array_sum($validPcts) / count($validPcts), 1) : null;
+            $minQuality = count($validPcts) > 0 ? round(min($validPcts), 1) : null;
+            $maxQuality = count($validPcts) > 0 ? round(max($validPcts), 1) : null;
+
+            // Trend: jämför snitt av sista 7 dagar mot snitt av perioden dessförinnan
+            $trend = 'stable';
+            if (count($rows) >= 14) {
+                $last7 = array_slice($rows, -7);
+                $prev7 = array_slice($rows, -14, 7);
+                $last7vals = array_filter(array_column($last7, 'quality_pct'), function($v) { return $v !== null; });
+                $prev7vals = array_filter(array_column($prev7, 'quality_pct'), function($v) { return $v !== null; });
+                if (count($last7vals) > 0 && count($prev7vals) > 0) {
+                    $lastAvg = array_sum($last7vals) / count($last7vals);
+                    $prevAvg = array_sum($prev7vals) / count($prev7vals);
+                    if ($lastAvg > $prevAvg + 0.5) $trend = 'up';
+                    elseif ($lastAvg < $prevAvg - 0.5) $trend = 'down';
+                }
+            }
+
+            // Bygg svar
+            $days_data = [];
+            foreach ($rows as $i => $row) {
+                $days_data[] = [
+                    'date'        => $row['dag'],
+                    'quality_pct' => $row['quality_pct'] !== null ? (float)$row['quality_pct'] : null,
+                    'rolling_avg' => $rolling[$i],
+                    'ibc_ok'      => (int)$row['ibc_ok'],
+                    'ibc_totalt'  => (int)$row['ibc_totalt'],
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days_data,
+                'kpi'     => [
+                    'avg'   => $avgQuality,
+                    'min'   => $minQuality,
+                    'max'   => $maxQuality,
+                    'trend' => $trend,
+                ],
+            ]);
+        } catch (Exception $e) {
+            error_log('getQualityTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kvalitetstrend.']);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Waterfalldiagram OEE
+    // GET ?action=rebotling&run=oee-waterfall&days=30
+    // ----------------------------------------------------------------
+    private function getOeeWaterfall() {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT SUM(shift_runtime) AS total_runtime,
+                       SUM(shift_rast) AS total_rast,
+                       SUM(shift_ibc_ok) AS ibc_ok,
+                       SUM(shift_ibc_ej_ok) AS ibc_ej_ok
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                           MAX(COALESCE(rasttime, 0)) AS shift_rast,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+            ");
+            $stmt->execute([':days' => $days]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $runtime     = (float)($row['total_runtime'] ?? 0);  // minuter
+            $rast        = (float)($row['total_rast'] ?? 0);     // minuter
+            $ibcOk       = (int)($row['ibc_ok'] ?? 0);
+            $ibcEjOk     = (int)($row['ibc_ej_ok'] ?? 0);
+            $ibcTotalt   = $ibcOk + $ibcEjOk;
+            $available   = $runtime + $rast;                      // minuter
+
+            // Tillgänglighet
+            $availability = $available > 0 ? round($runtime / $available * 100, 1) : 0.0;
+
+            // Kvalitet
+            $quality = $ibcTotalt > 0 ? round($ibcOk / $ibcTotalt * 100, 1) : 0.0;
+
+            // Prestanda: 15 IBC/h = standard => ideal_cycle = 60/15 = 4 min/IBC
+            $idealCycleMin = 60.0 / 15.0; // 4 min per IBC
+            $performance = 0.0;
+            if ($runtime > 0) {
+                $performance = round(($ibcOk * $idealCycleMin) / $runtime * 100, 1);
+                if ($performance > 100) $performance = 100.0;
+            }
+
+            // OEE
+            $oee = round($availability * $performance * $quality / 10000, 1);
+
+            // Förluster
+            $availabilityLoss = round(100 - $availability, 1);
+            $performanceLoss  = round($availability - ($availability * $performance / 100), 1);
+            $qualityLoss      = round(($availability * $performance / 100) - $oee, 1);
+
+            echo json_encode([
+                'success'           => true,
+                'availability'      => $availability,
+                'performance'       => $performance,
+                'quality'           => $quality,
+                'oee'               => $oee,
+                'availability_loss' => $availabilityLoss,
+                'performance_loss'  => $performanceLoss,
+                'quality_loss'      => $qualityLoss,
+                'runtime_h'         => round($runtime / 60, 1),
+                'rast_h'            => round($rast / 60, 1),
+                'ibc_ok'            => $ibcOk,
+                'ibc_ej_ok'         => $ibcEjOk,
+            ]);
+        } catch (Exception $e) {
+            error_log('getOeeWaterfall: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av OEE-waterfall.']);
+        }
     }
 }

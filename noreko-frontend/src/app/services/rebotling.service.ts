@@ -206,6 +206,20 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getQualityTrend(days: number = 30): Observable<QualityTrendResponse> {
+    return this.http.get<QualityTrendResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=quality-trend&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getOeeWaterfall(days: number = 30): Observable<OeeWaterfallResponse> {
+    return this.http.get<OeeWaterfallResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=oee-waterfall&days=${days}`,
+      { withCredentials: true }
+    );
+  }
 }
 
 export interface CycleTrendResponse {
@@ -424,6 +438,42 @@ export interface ChartAnnotation {
 export interface AnnotationsResponse {
   success: boolean;
   annotations?: { date: string; type: string; label: string }[];
+  error?: string;
+}
+
+export interface QualityTrendDay {
+  date: string;
+  quality_pct: number | null;
+  rolling_avg: number | null;
+  ibc_ok: number;
+  ibc_totalt: number;
+}
+
+export interface QualityTrendResponse {
+  success: boolean;
+  days?: QualityTrendDay[];
+  kpi?: {
+    avg: number | null;
+    min: number | null;
+    max: number | null;
+    trend: 'up' | 'down' | 'stable';
+  };
+  error?: string;
+}
+
+export interface OeeWaterfallResponse {
+  success: boolean;
+  availability?: number;
+  performance?: number;
+  quality?: number;
+  oee?: number;
+  availability_loss?: number;
+  performance_loss?: number;
+  quality_loss?: number;
+  runtime_h?: number;
+  rast_h?: number;
+  ibc_ok?: number;
+  ibc_ej_ok?: number;
   error?: string;
 }
 

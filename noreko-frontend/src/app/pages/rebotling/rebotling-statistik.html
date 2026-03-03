@@ -962,4 +962,215 @@
     </div>
   </div>
 
+  <!-- ====================================================
+       KVALITETSTRENDKORT
+       ==================================================== -->
+  <div class="row mt-4 mb-4">
+    <div class="col-12">
+      <div class="dark-card">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <h5 class="mb-0" style="color:#e2e8f0;">
+            <i class="fas fa-star me-2" style="color:#ecc94b;"></i>Kvalitetstrendkort
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Period:</label>
+            <select
+              class="form-select form-select-sm"
+              style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:110px;"
+              [(ngModel)]="qualityTrendDays"
+              (change)="loadQualityTrend()"
+            >
+              <option [value]="14">14 dagar</option>
+              <option [value]="30">30 dagar</option>
+              <option [value]="90">90 dagar</option>
+            </select>
+            <button
+              class="btn btn-sm btn-outline-warning"
+              (click)="loadQualityTrend()"
+              [disabled]="qualityTrendLoading"
+            >
+              <i class="fas fa-sync-alt me-1" [class.fa-spin]="qualityTrendLoading"></i>
+              Hämta
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI-brickor -->
+        <div class="row g-2 mb-3" *ngIf="qualityTrendLoaded && qualityTrendData.length > 0">
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Snitt kvalitet</div>
+              <div class="fw-bold" style="color:#ecc94b;font-size:1.1rem;">
+                {{ qualityTrendKpi.avg !== null ? (qualityTrendKpi.avg | number:'1.1-1') + '%' : '–' }}
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Lägsta dag</div>
+              <div class="fw-bold" style="color:#fc8181;font-size:1.1rem;">
+                {{ qualityTrendKpi.min !== null ? (qualityTrendKpi.min | number:'1.1-1') + '%' : '–' }}
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Bästa dag</div>
+              <div class="fw-bold" style="color:#48bb78;font-size:1.1rem;">
+                {{ qualityTrendKpi.max !== null ? (qualityTrendKpi.max | number:'1.1-1') + '%' : '–' }}
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Trend (7d)</div>
+              <div class="fw-bold" style="font-size:1.1rem;"
+                [style.color]="qualityTrendKpi.trend === 'up' ? '#48bb78' : qualityTrendKpi.trend === 'down' ? '#fc8181' : '#a0aec0'">
+                <i class="fas"
+                  [class.fa-arrow-up]="qualityTrendKpi.trend === 'up'"
+                  [class.fa-arrow-down]="qualityTrendKpi.trend === 'down'"
+                  [class.fa-minus]="qualityTrendKpi.trend === 'stable'">
+                </i>
+                {{ qualityTrendKpi.trend === 'up' ? 'Stigande' : qualityTrendKpi.trend === 'down' ? 'Fallande' : 'Stabil' }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Laddningsindikator -->
+        <div class="text-center py-4" *ngIf="qualityTrendLoading">
+          <div class="spinner-border text-warning" role="status"></div>
+          <div class="text-muted mt-2 small">Hämtar kvalitetsdata...</div>
+        </div>
+
+        <!-- Ingen data -->
+        <div class="text-center py-4" *ngIf="qualityTrendLoaded && !qualityTrendLoading && qualityTrendData.length === 0">
+          <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+          <p class="text-muted">Ingen kvalitetsdata för vald period.</p>
+        </div>
+
+        <!-- Graf -->
+        <div style="height:300px;position:relative;" *ngIf="qualityTrendLoaded && !qualityTrendLoading && qualityTrendData.length > 0">
+          <canvas id="qualityTrendChart"></canvas>
+        </div>
+
+        <p class="small text-muted mt-2 mb-0" *ngIf="qualityTrendLoaded && qualityTrendData.length > 0">
+          <i class="fas fa-info-circle me-1" style="color:#ecc94b;"></i>
+          Gul linje = daglig kvalitet%. Orange tjock linje = 7-dagars rullande snitt. Röd streckad linje = kvalitetsmål 90%.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       WATERFALLDIAGRAM OEE
+       ==================================================== -->
+  <div class="row mt-4 mb-4">
+    <div class="col-12">
+      <div class="dark-card">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <h5 class="mb-0" style="color:#e2e8f0;">
+            <i class="fas fa-chart-bar me-2" style="color:#48bb78;"></i>Waterfalldiagram OEE &mdash; förlustkällor
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small mb-0">Period:</label>
+            <select
+              class="form-select form-select-sm"
+              style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:110px;"
+              [(ngModel)]="oeeWaterfallDays"
+              (change)="loadOeeWaterfall()"
+            >
+              <option [value]="7">7 dagar</option>
+              <option [value]="30">30 dagar</option>
+              <option [value]="90">90 dagar</option>
+            </select>
+            <button
+              class="btn btn-sm btn-outline-success"
+              (click)="loadOeeWaterfall()"
+              [disabled]="oeeWaterfallLoading"
+            >
+              <i class="fas fa-sync-alt me-1" [class.fa-spin]="oeeWaterfallLoading"></i>
+              Hämta
+            </button>
+          </div>
+        </div>
+
+        <!-- OEE-summering -->
+        <div class="mb-3" *ngIf="oeeWaterfallLoaded && oeeWaterfallData && oeeWaterfallData.success">
+          <span class="text-muted small">
+            Snitt senaste {{ oeeWaterfallDays }} dagar:
+            <strong style="color:#48bb78;font-size:1.1rem;"> OEE {{ oeeWaterfallData.oee | number:'1.1-1' }}%</strong>
+          </span>
+        </div>
+
+        <!-- KPI-brickor -->
+        <div class="row g-2 mb-3" *ngIf="oeeWaterfallLoaded && oeeWaterfallData && oeeWaterfallData.success">
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Tillgänglighet</div>
+              <div class="fw-bold" style="font-size:1.1rem;"
+                [style.color]="(oeeWaterfallData.availability ?? 0) >= 85 ? '#48bb78' : (oeeWaterfallData.availability ?? 0) >= 65 ? '#ecc94b' : '#fc8181'">
+                {{ oeeWaterfallData.availability | number:'1.1-1' }}%
+              </div>
+              <div class="small" style="color:#fc8181;">-{{ oeeWaterfallData.availability_loss | number:'1.1-1' }}%</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Prestanda</div>
+              <div class="fw-bold" style="font-size:1.1rem;"
+                [style.color]="(oeeWaterfallData.performance ?? 0) >= 85 ? '#48bb78' : (oeeWaterfallData.performance ?? 0) >= 65 ? '#ecc94b' : '#fc8181'">
+                {{ oeeWaterfallData.performance | number:'1.1-1' }}%
+              </div>
+              <div class="small" style="color:#fc8181;">-{{ oeeWaterfallData.performance_loss | number:'1.1-1' }}%</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">Kvalitet</div>
+              <div class="fw-bold" style="font-size:1.1rem;"
+                [style.color]="(oeeWaterfallData.quality ?? 0) >= 85 ? '#48bb78' : (oeeWaterfallData.quality ?? 0) >= 65 ? '#ecc94b' : '#fc8181'">
+                {{ oeeWaterfallData.quality | number:'1.1-1' }}%
+              </div>
+              <div class="small" style="color:#fc8181;">-{{ oeeWaterfallData.quality_loss | number:'1.1-1' }}%</div>
+            </div>
+          </div>
+          <div class="col-6 col-sm-3">
+            <div class="p-2 rounded text-center" style="background:#2d3748;">
+              <div class="small text-muted">OEE (A&times;P&times;Q)</div>
+              <div class="fw-bold" style="font-size:1.2rem;"
+                [style.color]="(oeeWaterfallData.oee ?? 0) >= 65 ? '#48bb78' : (oeeWaterfallData.oee ?? 0) >= 45 ? '#ecc94b' : '#fc8181'">
+                {{ oeeWaterfallData.oee | number:'1.1-1' }}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Laddningsindikator -->
+        <div class="text-center py-4" *ngIf="oeeWaterfallLoading">
+          <div class="spinner-border text-success" role="status"></div>
+          <div class="text-muted mt-2 small">Beräknar OEE-förluster...</div>
+        </div>
+
+        <!-- Ingen data -->
+        <div class="text-center py-4" *ngIf="oeeWaterfallLoaded && !oeeWaterfallLoading && (!oeeWaterfallData || !oeeWaterfallData.success)">
+          <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+          <p class="text-muted">Ingen OEE-data för vald period.</p>
+        </div>
+
+        <!-- Graf -->
+        <div style="height:260px;position:relative;" *ngIf="oeeWaterfallLoaded && !oeeWaterfallLoading && oeeWaterfallData && oeeWaterfallData.success">
+          <canvas id="oeeWaterfallChart"></canvas>
+        </div>
+
+        <p class="small text-muted mt-2 mb-0" *ngIf="oeeWaterfallLoaded && oeeWaterfallData && oeeWaterfallData.success">
+          <i class="fas fa-info-circle me-1" style="color:#48bb78;"></i>
+          Grön = uppnådd andel, grå = förlust. OEE = Tillgänglighet &times; Prestanda &times; Kvalitet.
+          Standard: 15 IBC/h.
+        </p>
+      </div>
+    </div>
+  </div>
+
+
 </div>

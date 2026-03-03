@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation } from '../../services/rebotling.service';
+import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation, QualityTrendDay, QualityTrendResponse, OeeWaterfallResponse } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
 
@@ -213,6 +213,22 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   // Annotations i OEE- och cykeltrend-grafer
   chartAnnotations: ChartAnnotation[] = [];
 
+  // Kvalitetstrendkort
+  qualityTrendDays: number = 30;
+  qualityTrendLoaded: boolean = false;
+  qualityTrendLoading: boolean = false;
+  qualityTrendDays$ = [14, 30, 90];
+  qualityTrendData: QualityTrendDay[] = [];
+  qualityTrendKpi: { avg: number | null; min: number | null; max: number | null; trend: 'up' | 'down' | 'stable' } = { avg: null, min: null, max: null, trend: 'stable' };
+  private qualityTrendChart: Chart | null = null;
+
+  // Waterfalldiagram OEE
+  oeeWaterfallDays: number = 30;
+  oeeWaterfallLoaded: boolean = false;
+  oeeWaterfallLoading: boolean = false;
+  oeeWaterfallData: OeeWaterfallResponse | null = null;
+  private oeeWaterfallChart: Chart | null = null;
+
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
 
@@ -235,6 +251,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.loadStatistics();
     this.loadCycleHistogram();
     this.loadSPC();
+    this.loadQualityTrend();
+    this.loadOeeWaterfall();
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -316,6 +334,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.histogramChart = null;
     this.spcChart?.destroy();
     this.spcChart = null;
+    this.qualityTrendChart?.destroy();
+    this.qualityTrendChart = null;
+    this.oeeWaterfallChart?.destroy();
+    this.oeeWaterfallChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -2397,6 +2419,239 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
         if (this.cycleTrendLoaded && this.cycleTrendData.length) {
           setTimeout(() => this.renderCycleTrendChart(), 0);
+        }
+      }
+    });
+  }
+
+  // ======== KVALITETSTRENDKORT ========
+
+  loadQualityTrend() {
+    if (this.qualityTrendLoading) return;
+    this.qualityTrendLoading = true;
+    this.qualityTrendLoaded = false;
+
+    this.rebotlingService.getQualityTrend(this.qualityTrendDays).pipe(
+      timeout(10000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe((res: QualityTrendResponse | null) => {
+      this.qualityTrendLoading = false;
+      if (res?.success && res.days) {
+        this.qualityTrendData = res.days;
+        this.qualityTrendKpi = res.kpi ?? { avg: null, min: null, max: null, trend: 'stable' };
+        this.qualityTrendLoaded = true;
+        setTimeout(() => this.renderQualityTrendChart(), 100);
+      } else {
+        this.qualityTrendLoaded = true;
+      }
+    });
+  }
+
+  private renderQualityTrendChart() {
+    this.qualityTrendChart?.destroy();
+    const canvas = document.getElementById('qualityTrendChart') as HTMLCanvasElement;
+    if (!canvas || !this.qualityTrendData.length) return;
+
+    const labels = this.qualityTrendData.map(d => d.date.substring(5));
+    const dailyData = this.qualityTrendData.map(d => d.quality_pct);
+    const rollingData = this.qualityTrendData.map(d => d.rolling_avg);
+
+    // Mållinje vid 90%
+    const targetLine = this.qualityTrendData.map(() => 90);
+
+    this.qualityTrendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Daglig kvalitet %',
+            data: dailyData,
+            borderColor: 'rgba(236,201,75,0.9)',
+            backgroundColor: 'rgba(236,201,75,0.12)',
+            tension: 0.3,
+            pointRadius: 3,
+            borderWidth: 2,
+            fill: true,
+            spanGaps: true,
+            yAxisID: 'y'
+          },
+          {
+            label: '7-dagars rullande snitt',
+            data: rollingData,
+            borderColor: 'rgba(237,137,54,1)',
+            backgroundColor: 'transparent',
+            tension: 0.4,
+            pointRadius: 1,
+            borderWidth: 3,
+            fill: false,
+            spanGaps: true,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Kvalitetsmål 90%',
+            data: targetLine,
+            borderColor: 'rgba(252,129,129,0.8)',
+            backgroundColor: 'transparent',
+            borderDash: [6, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            spanGaps: true,
+            yAxisID: 'y'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#ecc94b',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx: any) => {
+                const v = ctx.parsed.y;
+                return v !== null ? `${ctx.dataset.label}: ${v}%` : '';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: {
+              color: '#718096',
+              callback: (v: any) => v + '%'
+            },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            title: { display: true, text: 'Kvalitet %', color: '#a0aec0', font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+
+  // ======== WATERFALLDIAGRAM OEE ========
+
+  loadOeeWaterfall() {
+    if (this.oeeWaterfallLoading) return;
+    this.oeeWaterfallLoading = true;
+    this.oeeWaterfallLoaded = false;
+
+    this.rebotlingService.getOeeWaterfall(this.oeeWaterfallDays).pipe(
+      timeout(10000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe((res: OeeWaterfallResponse | null) => {
+      this.oeeWaterfallLoading = false;
+      if (res?.success) {
+        this.oeeWaterfallData = res;
+        this.oeeWaterfallLoaded = true;
+        setTimeout(() => this.renderOeeWaterfallChart(), 100);
+      } else {
+        this.oeeWaterfallLoaded = true;
+      }
+    });
+  }
+
+  private renderOeeWaterfallChart() {
+    this.oeeWaterfallChart?.destroy();
+    const canvas = document.getElementById('oeeWaterfallChart') as HTMLCanvasElement;
+    if (!canvas || !this.oeeWaterfallData) return;
+
+    const d = this.oeeWaterfallData;
+    const avail = d.availability ?? 0;
+    const perf = d.performance ?? 0;
+    const qual = d.quality ?? 0;
+    const oee = d.oee ?? 0;
+
+    const labels = ['Tillgänglighet', 'Prestanda', 'Kvalitet', 'OEE'];
+    const achieved = [avail, perf, qual, oee];
+    const losses = [
+      100 - avail,
+      100 - perf,
+      100 - qual,
+      100 - oee
+    ];
+
+    this.oeeWaterfallChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Uppnått',
+            data: achieved,
+            backgroundColor: achieved.map(v =>
+              v >= 85 ? 'rgba(72,187,120,0.85)'
+              : v >= 65 ? 'rgba(236,201,75,0.85)'
+              : 'rgba(252,129,129,0.85)'
+            ),
+            borderColor: achieved.map(v =>
+              v >= 85 ? 'rgba(72,187,120,1)'
+              : v >= 65 ? 'rgba(236,201,75,1)'
+              : 'rgba(252,129,129,1)'
+            ),
+            borderWidth: 1,
+            borderRadius: 4,
+            stack: 'oee'
+          },
+          {
+            label: 'Förlust',
+            data: losses,
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1,
+            borderRadius: 4,
+            stack: 'oee'
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y' as any,
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#48bb78',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx: any) => {
+                const v = ctx.parsed.x;
+                if (ctx.datasetIndex === 0) return `Uppnått: ${v.toFixed(1)}%`;
+                return `Förlust: ${v.toFixed(1)}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            min: 0,
+            max: 100,
+            ticks: { color: '#718096', callback: (v: any) => v + '%' },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          },
+          y: {
+            stacked: true,
+            ticks: { color: '#e2e8f0', font: { size: 13 } },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          }
         }
       }
     });
