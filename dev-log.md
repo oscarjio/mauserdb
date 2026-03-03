@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-03-03 — Benchmarking-vy: Denna vecka vs Rekordveckan — commit 9001021
+
+### Nytt: `/rebotling/benchmarking` — rekordtavla och historik
+
+**Syfte:** VD och operatörer motiveras av att se rekord och kunna jämföra innevaranda vecka mot den bästa veckan någonsin. Skapar tävlingsanda och ger historisk kontext.
+
+**Backend — `noreko-backend/classes/RebotlingController.php`:**
+- Ny metod `getBenchmarking()` + dispatch `elseif ($action === 'benchmarking')`.
+- Returnerar ett objekt med fem nycklar: `current_week`, `best_week_ever`, `best_day_ever`, `top_weeks` (topp-10 veckor), `monthly_totals` (senaste 13 månader).
+- Korrekt aggregering: `MAX() per (DATE, skiftraknare)` → `SUM() per vecka/månad` (hanterar kumulativa PLC-fält).
+- OEE beräknas inline (Availability × Performance × Quality) med `idealRatePerMin = 15/60`.
+- Veckoetiketter: `V{wk} {yr}` med ISO-veckonummer (`WEEK(datum, 1)`).
+
+**Service — `noreko-frontend/src/app/services/rebotling.service.ts`:**
+- Ny metod `getBenchmarking()` → `GET ?action=rebotling&run=benchmarking`.
+- Nya interfaces: `BenchmarkingWeek`, `BenchmarkingTopWeek`, `BenchmarkingMonthly`, `BenchmarkingBestDay`, `BenchmarkingResponse`.
+
+**Frontend — `noreko-frontend/src/app/pages/benchmarking/` (3 nya filer):**
+- `benchmarking.ts`: Standalone Angular 20 component, `OnInit + OnDestroy + destroy$ + takeUntil + clearInterval`, 60s polling.
+- `benchmarking.html`: Fyra sektioner — KPI-kort, bästa dag, topp-10 tabell, månadsöversikt bar chart.
+- `benchmarking.css`: Dark theme (`#1a202c`/`#2d3748`/`#e2e8f0`), guld-/blå-accenter, pulse-animation för nytt rekord.
+
+**Sektion 1 — KPI-jämförelse:**
+- Vänster kort (blå): innevar. vecka — IBC totalt, IBC/dag, Kvalitet%, OEE%, aktiva dagar.
+- Höger kort (guld): rekordveckan — samma KPI:er.
+- Diff-badge: "X IBC kvar till rekordet" eller "NYTT REKORD DENNA VECKA!" (pulserar).
+- Progress-bar 0–100% med färgkodning (röd/orange/blå/grön).
+
+**Sektion 2 — Bästa dagen:** Guldkort med datum, IBC-total, Kvalitet%.
+
+**Sektion 3 — Topp-10 tabell:** Rank-ikoner (trophy/medal/award), guld-rad för rekordveckan, blå rad för innevarnade vecka, procentkolumn "Vs. rekord".
+
+**Sektion 4 — Månadsöversikt Chart.js:** Bar chart, guld=bästa månaden, blå=innevarnade, röd streckad snittlinje. Tooltip visar Kvalitet%.
+
+**Routing:** `app.routes.ts` — `{ path: 'rebotling/benchmarking', canActivate: [authGuard], loadComponent: ... }`.
+
+**Nav:** `menu.html` — "Benchmarking"-länk (med trophy-ikon) under Rebotling-dropdown, synlig för inloggade användare.
+
+---
+
 ## 2026-03-03 — Adaptiv grafgranularitet (per-skift toggle) — commit 28dae83
 
 ### Nytt: Per-skift granularitet i rebotling-statistik
