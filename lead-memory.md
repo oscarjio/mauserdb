@@ -114,7 +114,7 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 ### 🔴 Hög prioritet
 - [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring/försämring vecka för vecka (bonus-dashboard eller my-bonus)
 - [ ] **Stopporsaksanalys**: Kategorisera och visualisera stopp/raster i production-analysis — varför stannar linjen?
-- [ ] **Executive dashboard — VD-vy**: Ombygg till ren chefsöversikt: idag vs mål, veckostatus, topp-operatör, senaste skift KPIs. Ska ge svar på 10 sekunder.
+- [x] **Executive dashboard — VD-vy**: Levererat `fb05cce` — SVG-cirkulär progress, prognos, OEE-trendpil, 7-dagars bar chart (grön/röd vs mål), veckokort, operatörstabell. Enda HTTP-anrop via ny endpoint `exec-dashboard`.
 
 ### 🟡 Medium prioritet
 - [ ] **Förbättrad heatmap i statistik**: Interaktiv hover-tooltip, val av KPI (IBC/h, kvalitet%, OEE)
@@ -143,6 +143,7 @@ Tre agenter startades parallellt:
 - `d4db30b` — lead-agent.sh + lead-memory.md: orchestrator-system etablerat
 - `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista. Nya endpoints: week-comparison, oee-trend, best-shifts.
 - **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål mån–sön i admin, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
+- `fb05cce` — **VD-dashboard-agent**: Executive dashboard ombyggd — SVG-cirkulär progress, prognos, OEE-trendpil vs igår, 7-dagars bar chart (grön/röd), veckokort, operatörstabell. Ny endpoint exec-dashboard (ett anrop för allt).
 - `82173ec` — **Bonus-agent**: My-bonus: statusbricka (rekordnivå/uppåt/etc.), IBC/h-trendgraf 7 skift med glidande snitt, skiftprognos-banner, PDF-export. Bonus-dashboard: trendpilar ↑↓→ vs föregående period, veckobonusmål-progressbar för team + per operatör. Bonus-admin: ny Prognos-flik (sök operatör → snittbonus/tier/IBC/h), veckobonusmål-konfiguration. Backend: operator_forecast endpoint, set_weekly_goal endpoint. Migration: `2026-03-03_bonus_weekly_goal.sql`.
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
 
@@ -151,7 +152,7 @@ Tre agenter startades parallellt:
 ## TEKNISKA OBSERVATIONER
 - `rebotling_ibc` tabell har kumulativa fält per skift — aggregering med MAX() per skiftraknare
 - BonusController endpoints: operator, ranking, team, kpis, history, summary
-- RebotlingController GET-endpoints: admin-settings, status, rast, statistics, day-stats, oee, cycle-trend, report, heatmap, getLiveStats, **week-comparison**, **oee-trend**, **best-shifts** (tillagda av statistik-agent)
+- RebotlingController GET-endpoints: admin-settings, status, rast, statistics, day-stats, oee, cycle-trend, report, heatmap, getLiveStats, week-comparison, oee-trend, best-shifts, **exec-dashboard**, **weekday-goals**, **shift-times**, **system-status**
 - rebotling-statistik.ts är nu **ännu längre** (veckojämförelse, prediktor, OEE deep-dive tillagda) — läs noggrant
 - RebotlingService har nya interfaces: WeekComparisonResponse, OEETrendResponse, BestShiftsResponse
 - Angular routing finns i app.routes.ts — nya sidor måste registreras där
