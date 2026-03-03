@@ -4,6 +4,26 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ---
 
+## 2026-03-03 — Bug Hunting Session (commit `92cbcb1`)
+
+### Angular — Minnesläckor fixade
+- `bonus-dashboard.ts`: `loadWeeklyGoal()`, `getDailySummary()`, `loadPrevPeriodRanking()` saknades `takeUntil(destroy$)`
+- `bonus-dashboard.ts`: `loadData()` i setInterval-callback körde utan `destroy$.closed`-check
+- `my-bonus.ts`: Alla tre HTTP-anrop i `loadStats()` saknade `timeout(8000)` + `catchError` + `takeUntil`
+- `my-bonus.ts`: Borttagna oanvända imports (`KPIDetailsResponse`, `OperatorStatsResponse`, `OperatorHistoryResponse`)
+
+### Angular — Race conditions fixade
+- `rebotling-admin.ts`: `loadSystemStatus()` fick `isFetching`-guard → förhindrar anropsstaplar under 30s polling
+
+### Angular — Logikbugg fixad
+- `production-analysis.ts`: `catchError` i `getRastStatus` satte `stopAnalysisLoading=false` för tidigt medan övriga anrop pågick
+
+### PHP — Säkerhet/korrekthet
+- `BonusController.php`: `sendError()` satte nu `http_response_code($code)` — returnade tidigare alltid HTTP 200
+- `BonusAdminController.php`: Deprecated `FILTER_SANITIZE_STRING` (borttagen PHP 8.2) ersatt med `strip_tags()`
+
+---
+
 ## 2026-03-03
 
 ### Operatörsprestanda-trend + Stopporsaksanalys

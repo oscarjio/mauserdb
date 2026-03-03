@@ -81,7 +81,32 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
-- Inget känt just nu — bug hunting-agent har ej körts ännu
+
+### Åtgärdat `92cbcb1` — 2026-03-03 (Bug Hunting Agent)
+
+**Angular — Minnesläckor (takeUntil saknas):**
+- `bonus-dashboard.ts`: `loadWeeklyGoal()` saknade `takeUntil(destroy$)` → subscription läckte
+- `bonus-dashboard.ts`: `getDailySummary()` saknade `takeUntil(destroy$)` → läckte vid navigering
+- `bonus-dashboard.ts`: `loadPrevPeriodRanking()` saknade `takeUntil(destroy$)` → läckte vid navigering
+- `my-bonus.ts`: Tre HTTP-anrop i `loadStats()` saknade `timeout()` och `takeUntil(destroy$)` → kunde hänga oändligt
+
+**Angular — Race conditions:**
+- `bonus-dashboard.ts`: `loadData()` i `setInterval`-callback körde utan `destroy$.closed`-check → kunde trigga HTTP efter destroy
+- `rebotling-admin.ts`: `loadSystemStatus()` saknade isFetching-guard → kunde stapla anrop under 30s polling
+
+**Angular — Oanvända imports:**
+- `my-bonus.ts`: `KPIDetailsResponse`, `OperatorStatsResponse`, `OperatorHistoryResponse` importerades men aldrig användes
+
+**Angular — Logikbugg:**
+- `production-analysis.ts`: `catchError` i `getRastStatus`-anropet satte `stopAnalysisLoading=false` för tidigt (den tredje requesten var fortfarande pending)
+
+**PHP — Säkerhet/korrekthet:**
+- `BonusController.php`: `sendError()` saknade `http_response_code()` — returnerade alltid HTTP 200 vid fel (klienter kunde inte detektera fel korrekt)
+- `BonusAdminController.php`: `FILTER_SANITIZE_STRING` användes i `approveBonuses()` — deprecated sedan PHP 8.1, borttagen i PHP 8.2. Ersatt med `strip_tags()`.
+
+### Kvarstående observerat (ej buggar, men noteringar):
+- `rebotling-statistik.ts` hade **pre-existing uncommitted changes** när bug-hunting kördes — ett heatmap-KPI-val feature i progress. Ej påverkat av bug-hunting-committen.
+- GET-endpoints i RebotlingController saknar auth-check — detta är by design (produktionsgolvet ska kunna se live-data utan inloggning)
 
 ---
 
