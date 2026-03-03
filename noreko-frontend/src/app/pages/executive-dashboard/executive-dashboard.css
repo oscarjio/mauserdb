@@ -1,60 +1,174 @@
 /* ============================================================
-   EXECUTIVE DASHBOARD — Premium dark theme
+   EXECUTIVE DASHBOARD — VD-vy, mork tema
    ============================================================ */
 
 .exec-dashboard {
-  padding: 1.25rem;
-  background: #0f1117;
+  padding: 1.5rem;
+  background: #1a202c;
   min-height: 100vh;
   color: #e2e8f0;
 }
 
+/* ---- Header ---- */
+.exec-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
 /* ============================================================
-   TOP KPI CARDS
+   SEKTION 1 — IDAG-KORT (stor status-panel)
+   ============================================================ */
+.section-card {
+  border-radius: 16px;
+  border: 2px solid #2d3748;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+.section-card.status-green { border-color: #48bb78; box-shadow: 0 0 28px rgba(72,187,120,0.15); }
+.section-card.status-yellow { border-color: #f6c90e; box-shadow: 0 0 28px rgba(246,201,14,0.15); }
+.section-card.status-red { border-color: #e53e3e; box-shadow: 0 0 28px rgba(229,62,62,0.15); }
+
+.section-card-inner {
+  background: #2d3748;
+  padding: 1.75rem;
+}
+
+/* Status badge */
+.status-badge {
+  display: inline-block;
+  padding: 0.4rem 1.2rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.status-green-badge  { background: rgba(72,187,120,0.2);  color: #48bb78; border: 1px solid #48bb78; }
+.status-yellow-badge { background: rgba(246,201,14,0.2);  color: #f6c90e; border: 1px solid #f6c90e; }
+.status-red-badge    { background: rgba(229,62,62,0.2);   color: #e53e3e; border: 1px solid #e53e3e; }
+
+/* Cirkulär progress */
+.circle-progress-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.circle-progress {
+  width: 160px;
+  height: 160px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+}
+
+/* IBC-räknare */
+.ibc-counter {
+  font-size: 1rem;
+  color: #a0aec0;
+  margin-top: 0.25rem;
+}
+.ibc-big {
+  font-size: 2.6rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.ibc-sep {
+  font-size: 1.6rem;
+  color: #4a5568;
+}
+.ibc-target {
+  font-size: 1.2rem;
+  color: #718096;
+  font-weight: 600;
+}
+
+/* Prognos-kort */
+.forecast-card {
+  background: #1a202c;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #2d3748;
+}
+.forecast-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-bottom: 0.3rem;
+}
+.forecast-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+.forecast-sub {
+  font-size: 0.78rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+/* OEE-block */
+.oee-row {
+  display: flex;
+  gap: 1rem;
+}
+.oee-block {
+  background: #1a202c;
+  border-radius: 10px;
+  padding: 0.9rem 1.2rem;
+  border: 1px solid #2d3748;
+  flex: 1;
+}
+.oee-block-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-bottom: 0.2rem;
+}
+.oee-block-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.oee-trend {
+  font-size: 0.78rem;
+}
+
+/* ============================================================
+   SEKTION 2 — KPI-KORT
    ============================================================ */
 .kpi-card {
-  background: #1e2535;
+  background: #2d3748;
   border-radius: 14px;
   padding: 1.35rem;
   text-align: center;
-  border: 1px solid #2d3748;
+  border: 1px solid #3a4a61;
   position: relative;
   overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
 }
 .kpi-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-}
-.kpi-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
-  pointer-events: none;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
 .kpi-icon {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   margin-bottom: 0.5rem;
-  opacity: 0.65;
+  opacity: 0.8;
 }
 .kpi-label {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: #718096;
   margin-bottom: 0.3rem;
 }
 .kpi-value {
-  font-size: 2rem;
+  font-size: 1.7rem;
   font-weight: 800;
-  line-height: 1;
-}
-.kpi-total {
-  font-size: 1.1rem;
-  font-weight: 400;
-  color: #4a5568;
+  line-height: 1.1;
 }
 .kpi-unit {
   font-size: 0.8rem;
@@ -62,144 +176,106 @@
   font-weight: 400;
 }
 .kpi-sub {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: #718096;
   margin-top: 0.35rem;
 }
 
 /* ============================================================
-   PRODUCTION LINE CARDS
+   SEKTION 3 + 4 — DETALJ-CARDS
    ============================================================ */
-.line-card {
-  background: #1e2535;
+.detail-card {
+  background: #2d3748;
   border-radius: 12px;
-  border: 1px solid #2d3748;
+  border: 1px solid #3a4a61;
   overflow: hidden;
-  transition: border-color 0.25s, box-shadow 0.25s;
 }
-.line-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
-.line-running {
-  border-left: 4px solid #48bb78;
-  box-shadow: -2px 0 12px rgba(72,187,120,0.12);
-}
-.line-stopped {
-  border-left: 4px solid #e53e3e;
-  box-shadow: -2px 0 12px rgba(229,62,62,0.08);
-}
-.line-header {
+.detail-card-header {
+  background: #1a202c;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #3a4a61;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.7rem 1rem;
-  background: rgba(0,0,0,0.2);
-  border-bottom: 1px solid #2d3748;
-}
-.line-icon {
-  font-size: 1.2rem;
-  color: #667eea;
-}
-.line-body { padding: 0.9rem 1rem; }
-.production-bar-container { margin-bottom: 0.5rem; }
-.production-bar-label {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.82rem;
-  color: #a0aec0;
-  margin-bottom: 0.3rem;
-}
-
-/* ============================================================
-   DETAIL / SECTION CARDS
-   ============================================================ */
-.detail-card {
-  background: #1e2535 !important;
-  border: 1px solid #2d3748 !important;
-  border-radius: 12px;
-}
-.detail-card .card-header {
-  background: #161c29 !important;
-  border-bottom: 1px solid #2d3748;
   color: #e2e8f0;
-  border-radius: 12px 12px 0 0 !important;
 }
-.detail-card .card-body { color: #e2e8f0; background: #1e2535; border-radius: 0 0 12px 12px; }
+.detail-card-body {
+  padding: 1.25rem;
+  background: #2d3748;
+  color: #e2e8f0;
+}
 
-/* ============================================================
-   MINI STATS
-   ============================================================ */
-.mini-stat {
-  background: #161c29;
-  border-radius: 10px;
-  padding: 0.8rem;
-  text-align: center;
-  border: 1px solid #2d3748;
+/* Chart */
+.chart-container {
+  position: relative;
+  height: 260px;
 }
-.mini-label {
-  display: block;
-  font-size: 0.65rem;
+
+/* Dag-mini under chart */
+.day-mini {
+  border-radius: 8px;
+  padding: 0.4rem 0.2rem;
+  text-align: center;
+  border: 1px solid transparent;
+}
+.day-mini-green { background: rgba(72,187,120,0.12); border-color: rgba(72,187,120,0.3); }
+.day-mini-red   { background: rgba(229,62,62,0.12);  border-color: rgba(229,62,62,0.3); }
+.day-mini-grey  { background: rgba(113,128,150,0.1); border-color: rgba(113,128,150,0.2); }
+.day-mini-date  { font-size: 0.6rem; color: #718096; }
+.day-mini-ibc   { font-size: 0.9rem; font-weight: 700; color: #e2e8f0; }
+
+/* ---- Ops-tabell ---- */
+.ops-table {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #3a4a61;
+  --bs-table-hover-bg: rgba(66,153,225,0.06);
+  font-size: 0.9rem;
+}
+.ops-table th {
+  color: #718096;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  color: #718096;
-  margin-bottom: 0.25rem;
-}
-.mini-value {
-  display: block;
-  font-size: 1.3rem;
-  font-weight: 700;
-}
-
-/* ============================================================
-   OEE SECTION
-   ============================================================ */
-.oee-score {
-  font-size: 3rem;
-  font-weight: 800;
-  letter-spacing: -1px;
-}
-.oee-label {
-  font-size: 0.78rem;
   font-weight: 600;
-  color: #718096;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
+  border-bottom: 1px solid #3a4a61;
 }
-.oee-factor { padding: 0.4rem 0; }
-.oee-factor-label {
-  font-size: 0.7rem;
-  color: #718096;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.ops-table td { vertical-align: middle; }
+
+.position-badge {
+  display: inline-block;
+  background: rgba(102,126,234,0.2);
+  color: #a0aec0;
+  border-radius: 6px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
 }
 
-/* ============================================================
-   CHARTS
-   ============================================================ */
-.chart-container { position: relative; height: 260px; }
-
-/* ============================================================
-   PROGRESS BARS
-   ============================================================ */
+/* ---- Progress bars ---- */
 .progress {
-  background: #161c29;
+  background: #1a202c;
   border-radius: 4px;
 }
 .progress-bar { border-radius: 4px; }
 
-/* Table */
+/* ---- Bootstrap table dark override ---- */
 .table-dark {
   --bs-table-bg: transparent;
-  --bs-table-border-color: #2d3748;
-  --bs-table-hover-bg: rgba(66,153,225,0.05);
+  --bs-table-border-color: #3a4a61;
+  color: #e2e8f0;
 }
 
 /* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
-  .exec-dashboard  { padding: 0.75rem; }
-  .kpi-value       { font-size: 1.5rem; }
-  .oee-score       { font-size: 2rem; }
-  .line-header     { flex-direction: column; gap: 0.5rem; }
+  .exec-dashboard { padding: 0.75rem; }
+  .ibc-big { font-size: 2rem; }
+  .circle-progress { width: 120px; height: 120px; }
+  .oee-block-value { font-size: 1.6rem; }
+  .forecast-value { font-size: 1.4rem; }
+  .kpi-value { font-size: 1.4rem; }
+  .section-card-inner { padding: 1.1rem; }
+  .detail-card-header { flex-direction: column; align-items: flex-start; gap: 0.3rem; }
 }
 
 /* ============================================================
@@ -211,17 +287,19 @@
     color: #000 !important;
     padding: 0 !important;
   }
-  .kpi-card, .line-card, .detail-card,
-  .detail-card .card-header, .detail-card .card-body, .mini-stat {
+  .section-card, .section-card-inner, .kpi-card, .detail-card,
+  .detail-card-header, .detail-card-body, .oee-block, .forecast-card {
     background: #fff !important;
     color: #000 !important;
     border-color: #ccc !important;
+    box-shadow: none !important;
   }
-  .kpi-label, .kpi-sub, .kpi-unit, .mini-label, .oee-label, .oee-factor-label { color: #555 !important; }
-  .kpi-total { color: #888 !important; }
-  .progress  { background: #e0e0e0 !important; }
+  .kpi-label, .kpi-sub, .kpi-unit, .forecast-label, .forecast-sub,
+  .oee-block-label, .oee-trend, .day-mini-date { color: #555 !important; }
   .text-muted { color: #666 !important; }
   .d-print-none { display: none !important; }
-  .line-running { border-left-color: #28a745 !important; }
-  .line-stopped { border-left-color: #dc3545 !important; }
+  .progress { background: #e0e0e0 !important; }
+  .status-green { border-color: #28a745 !important; }
+  .status-yellow { border-color: #ffc107 !important; }
+  .status-red { border-color: #dc3545 !important; }
 }

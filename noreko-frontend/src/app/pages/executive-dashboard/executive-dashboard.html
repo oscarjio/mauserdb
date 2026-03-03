@@ -1,349 +1,298 @@
+<!-- ===== VD-VY: Executive Dashboard ===== -->
+
 <div class="exec-dashboard" *ngIf="loggedIn && isAdmin">
 
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <!-- ---- Header ---- -->
+  <div class="exec-header d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2><i class="fas fa-tachometer-alt me-2"></i>Produktionsöversikt</h2>
-      <small class="text-muted">Alla produktionslinjer i realtid</small>
+      <h2 class="exec-title mb-0">
+        <i class="fas fa-tachometer-alt me-2 text-info"></i>Produktionsöversikt
+      </h2>
+      <small class="text-muted">Uppdateras automatiskt var 30:e sekund</small>
     </div>
-    <div class="text-end d-flex align-items-center gap-3">
-      <div>
-        <small class="text-muted d-block">Uppdaterad {{ lastRefresh | date:'HH:mm:ss' }}</small>
-        <small class="text-muted">Pollar var 15:e sekund</small>
+    <div class="d-flex align-items-center gap-3 d-print-none">
+      <div class="text-end">
+        <small class="text-muted d-block">Senast uppdaterad</small>
+        <small class="text-info fw-bold">{{ lastRefresh | date:'HH:mm:ss' }}</small>
       </div>
-      <div class="btn-group d-print-none">
-        <button class="btn btn-sm btn-outline-info" (click)="loadData()" title="Uppdatera data"
-                aria-label="Uppdatera data manuellt">
-          <i class="fas fa-sync-alt me-1"></i>Uppdatera
-        </button>
-        <button class="btn btn-sm btn-outline-success" (click)="exportCSV()" title="Exportera veckorapport (CSV)"
-                aria-label="Exportera veckorapport som CSV">
-          <i class="fas fa-file-csv me-1"></i>Exportera
-        </button>
-        <button class="btn btn-sm btn-outline-light" (click)="printDashboard()" title="Skriv ut rapport"
-                aria-label="Skriv ut rapport">
-          <i class="fas fa-print me-1"></i>Skriv ut
-        </button>
-      </div>
+      <button class="btn btn-sm btn-outline-info" (click)="loadData()" [disabled]="isFetching">
+        <i class="fas fa-sync-alt me-1" [class.fa-spin]="isFetching"></i>Uppdatera
+      </button>
+      <button class="btn btn-sm btn-outline-light" (click)="printDashboard()">
+        <i class="fas fa-print me-1"></i>Skriv ut
+      </button>
     </div>
   </div>
 
-  <!-- Loading -->
+  <!-- ---- Loading ---- -->
   <div *ngIf="loading" class="text-center py-5">
     <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
-    <p class="text-muted mt-2">Hämtar data från alla linjer...</p>
+    <p class="text-muted mt-3">Hämtar produktionsdata...</p>
   </div>
 
-  <!-- ===== TOP KPI CARDS ===== -->
-  <div class="row g-3 mb-4" *ngIf="!loading">
-    <div class="col-md-3 col-6">
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-industry"></i></div>
-        <div class="kpi-label">Linjer igång</div>
-        <div class="kpi-value">
-          <span [class]="getRunningCount() > 0 ? 'text-success' : 'text-danger'">{{ getRunningCount() }}</span>
-          <span class="kpi-total"> / {{ lines.length }}</span>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3 col-6">
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-boxes"></i></div>
-        <div class="kpi-label">Total produktion</div>
-        <div class="kpi-value">{{ getTotalProduction() }} <small class="kpi-unit">IBC</small></div>
-        <div class="kpi-sub">Mål: {{ getTotalTarget() }}</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-6">
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
-        <div class="kpi-label">Måluppfyllnad</div>
-        <div class="kpi-value" [ngClass]="getStatusClass(getOverallPercentage())">{{ getOverallPercentage() }}%</div>
-      </div>
-    </div>
-    <div class="col-md-3 col-6">
-      <div class="kpi-card">
-        <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
-        <div class="kpi-label">Snittbonus idag</div>
-        <div class="kpi-value" [ngClass]="getBonusClass(bonusSummary?.avg_bonus || 0)">
-          {{ bonusSummary?.avg_bonus || '-' }}
-        </div>
-        <div class="kpi-sub" *ngIf="bonusSummary">{{ bonusSummary.total_cycles }} cykler</div>
-      </div>
-    </div>
-  </div>
+  <ng-container *ngIf="!loading && dashData">
 
-  <!-- ===== PRODUCTION LINES ===== -->
-  <div class="row g-3 mb-4" *ngIf="!loading">
-    <div class="col-md-6" *ngFor="let line of lines">
-      <div class="line-card" [class.line-running]="line.running" [class.line-stopped]="!line.running">
-        <div class="line-header">
-          <div class="d-flex align-items-center">
-            <i class="fas {{ line.icon }} me-2 line-icon"></i>
-            <h5 class="mb-0">{{ line.name }}</h5>
-          </div>
-          <span class="badge" [ngClass]="getStatusBadgeClass(line)">
-            <i class="fas fa-circle me-1" style="font-size: 0.5rem; vertical-align: middle;"></i>
-            {{ getStatusText(line) }}
+    <!-- ============================================================
+         SEKTION 1 — IDAG (stor, ovanför mitten)
+    ============================================================ -->
+    <div class="section-card mb-4" [ngClass]="getTodayStatusClass()">
+      <div class="section-card-inner">
+
+        <!-- Status badge -->
+        <div class="text-center mb-3">
+          <span class="status-badge" [ngClass]="getTodayStatusClass() + '-badge'">
+            <i class="fas fa-circle me-2" style="font-size: 0.5rem; vertical-align: middle;"></i>
+            {{ getTodayStatusText() }}
           </span>
         </div>
-        <div class="line-body">
-          <div class="row align-items-center">
-            <div class="col-8">
-              <div class="production-bar-container">
-                <div class="production-bar-label">
-                  <span>{{ line.production }} / {{ line.target }} {{ line.unit }}</span>
-                  <span [ngClass]="getStatusClass(line.percentage)">{{ line.percentage }}%</span>
-                </div>
-                <div class="progress" style="height: 10px;">
-                  <div class="progress-bar" [class.bg-success]="line.percentage >= 100"
-                       [class.bg-warning]="line.percentage >= 60 && line.percentage < 100"
-                       [class.bg-danger]="line.percentage < 60"
-                       [style.width.%]="Math.min(line.percentage, 100)">
-                  </div>
-                </div>
-              </div>
-              <small class="text-muted">{{ getTimeAgo(line.lastUpdate) }}</small>
+
+        <div class="row align-items-center g-4">
+
+          <!-- Cirkulär progress -->
+          <div class="col-md-4 text-center">
+            <div class="circle-progress-wrapper">
+              <svg class="circle-progress" viewBox="0 0 120 120">
+                <!-- Bakgrundscirkel -->
+                <circle cx="60" cy="60" r="54"
+                        fill="none" stroke="#2d3748" stroke-width="10"/>
+                <!-- Progress-cirkel -->
+                <circle cx="60" cy="60" r="54"
+                        fill="none"
+                        [attr.stroke]="getCircleColor()"
+                        stroke-width="10"
+                        stroke-linecap="round"
+                        stroke-dasharray="339.3"
+                        [attr.stroke-dashoffset]="getCircleOffset()"
+                        transform="rotate(-90 60 60)"
+                        style="transition: stroke-dashoffset 0.8s ease, stroke 0.4s ease;"/>
+                <!-- Procent-text -->
+                <text x="60" y="55" text-anchor="middle"
+                      [attr.fill]="getCircleColor()"
+                      font-size="18" font-weight="800">{{ dashData.today.pct | number:'1.0-0' }}%</text>
+                <text x="60" y="72" text-anchor="middle"
+                      fill="#718096" font-size="8">AV MAL</text>
+              </svg>
             </div>
-            <div class="col-4 text-end">
-              <a [routerLink]="line.route" class="btn btn-sm btn-outline-info">
-                <i class="fas fa-arrow-right me-1"></i>Detaljer
-              </a>
+            <!-- IBC-räknare -->
+            <div class="ibc-counter mt-2">
+              <span class="ibc-big" [ngClass]="getCircleColor() === '#48bb78' ? 'text-success' : getCircleColor() === '#f6c90e' ? 'text-warning' : 'text-danger'">
+                {{ dashData.today.ibc }}
+              </span>
+              <span class="ibc-sep"> / </span>
+              <span class="ibc-target">{{ dashData.today.target }} IBC</span>
             </div>
           </div>
+
+          <!-- Prognos + OEE -->
+          <div class="col-md-8">
+            <!-- Prognos-rad -->
+            <div class="forecast-card mb-3">
+              <div class="forecast-label">
+                <i class="fas fa-chart-line me-2 text-info"></i>Prognos vid skiftslut
+              </div>
+              <div class="forecast-value">{{ dashData.today.forecast }} IBC</div>
+              <div class="forecast-sub">
+                Takt: {{ dashData.today.rate_per_h }} IBC/h
+                &nbsp;·&nbsp; Skiftstart: {{ dashData.today.shift_start | slice:0:5 }}
+              </div>
+              <!-- Progress mot mål -->
+              <div class="progress mt-2" style="height: 8px;">
+                <div class="progress-bar"
+                     [class.bg-success]="dashData.today.pct >= 80"
+                     [class.bg-warning]="dashData.today.pct >= 60 && dashData.today.pct < 80"
+                     [class.bg-danger]="dashData.today.pct < 60"
+                     [style.width.%]="Math.min(dashData.today.pct, 100)">
+                </div>
+              </div>
+            </div>
+
+            <!-- OEE idag -->
+            <div class="oee-row">
+              <div class="oee-block">
+                <div class="oee-block-label">OEE Idag</div>
+                <div class="oee-block-value" [ngClass]="getOeeClass(dashData.today.oee_today)">
+                  {{ dashData.today.oee_today }}%
+                </div>
+                <div class="oee-trend mt-1">
+                  <i class="fas" [ngClass]="[getOeeTrendIcon(), getOeeTrendClass()]"></i>
+                  <span [ngClass]="getOeeTrendClass()" class="ms-1" style="font-size: 0.75rem;">
+                    vs igår ({{ dashData.today.oee_yesterday }}%)
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ===== OEE (Rebotling) ===== -->
-  <div class="card detail-card mb-4" *ngIf="!loading && oeeData">
-    <div class="card-header">
-      <h6 class="mb-0"><i class="fas fa-cogs me-2 text-info"></i>OEE - Rebotling (idag)</h6>
-    </div>
-    <div class="card-body">
-      <div class="row g-3 align-items-center">
-        <div class="col-md-3 text-center">
-          <div class="oee-score" [ngClass]="getOEEClass(oeeData.oee)">
-            {{ oeeData.oee }}%
-          </div>
-          <div class="oee-label">OEE</div>
-          <small class="text-muted">{{ getOEELabel(oeeData.oee) }}</small>
-        </div>
-        <div class="col-md-9">
-          <div class="row g-2">
-            <div class="col-md-4">
-              <div class="oee-factor">
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="oee-factor-label">Tillgänglighet</span>
-                  <span>{{ oeeData.availability }}%</span>
-                </div>
-                <div class="progress" style="height: 8px;">
-                  <div class="progress-bar bg-info" [style.width.%]="oeeData.availability"></div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="oee-factor">
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="oee-factor-label">Prestanda</span>
-                  <span>{{ oeeData.performance }}%</span>
-                </div>
-                <div class="progress" style="height: 8px;">
-                  <div class="progress-bar bg-primary" [style.width.%]="oeeData.performance"></div>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="oee-factor">
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="oee-factor-label">Kvalitet</span>
-                  <span>{{ oeeData.quality }}%</span>
-                </div>
-                <div class="progress" style="height: 8px;">
-                  <div class="progress-bar bg-success" [style.width.%]="oeeData.quality"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="row g-2 mt-2">
-            <div class="col-4">
-              <small class="text-muted">Körtid: {{ oeeData.operating_hours }}h / {{ oeeData.runtime_hours }}h</small>
-            </div>
-            <div class="col-4">
-              <small class="text-muted">IBC: {{ oeeData.good_ibc }} ok / {{ oeeData.rejected_ibc }} kass.</small>
-            </div>
-            <div class="col-4">
-              <small class="text-muted">Benchmark: {{ oeeData.world_class_benchmark }}% (World Class)</small>
-            </div>
+    <!-- ============================================================
+         SEKTION 2 — VECKANS STATUS (4 KPI-kort)
+    ============================================================ -->
+    <div class="row g-3 mb-4">
+
+      <!-- IBC denna vecka vs förra -->
+      <div class="col-md-3 col-6">
+        <div class="kpi-card">
+          <div class="kpi-icon text-info"><i class="fas fa-boxes"></i></div>
+          <div class="kpi-label">Denna vecka</div>
+          <div class="kpi-value">{{ dashData.week.this_week_ibc }} <small class="kpi-unit">IBC</small></div>
+          <div class="kpi-sub">
+            <i class="fas" [ngClass]="getWeekDiffIcon()" style="font-size: 0.7rem;"></i>
+            <span [ngClass]="getWeekDiffClass()">
+              {{ dashData.week.week_diff_pct > 0 ? '+' : '' }}{{ dashData.week.week_diff_pct }}%
+            </span>
+            vs förra veckan ({{ dashData.week.prev_week_ibc }})
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ===== CYCLE TREND ===== -->
-  <div class="card detail-card mb-4" *ngIf="!loading && cycleTrend">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <h6 class="mb-0"><i class="fas fa-stopwatch me-2 text-primary"></i>Cykeltidsanalys (30 dagar)</h6>
-      <div class="d-flex align-items-center gap-3">
-        <span class="badge bg-dark">
-          <i class="fas" [ngClass]="getTrendIcon()"></i>
-          <span [ngClass]="getTrendClass()" class="ms-1">{{ getTrendLabel() }}</span>
-        </span>
-        <span class="text-muted" style="font-size: 0.8rem;">
-          Snitt: {{ cycleTrend.avg_runtime | number:'1.1-1' }} min | {{ cycleTrend.total_cycles }} cykler
-        </span>
-      </div>
-    </div>
-    <div class="card-body">
-      <!-- Alert -->
-      <div *ngIf="cycleTrendAlert" class="alert alert-warning d-flex align-items-center mb-3" style="background: rgba(241,196,15,0.15); border-color: #f1c40f; color: #f1c40f;">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        <div>
-          <strong>{{ cycleTrendAlert.message }}</strong>
-          <small class="d-block mt-1">
-            Förändring: {{ cycleTrendAlert.change_pct | number:'1.1-1' }}%
-            ({{ cycleTrendAlert.previous_avg | number:'1.1-1' }} → {{ cycleTrendAlert.current_avg | number:'1.1-1' }} min)
-          </small>
+      <!-- Genomsnittlig kvalitet% -->
+      <div class="col-md-3 col-6">
+        <div class="kpi-card">
+          <div class="kpi-icon text-success"><i class="fas fa-check-circle"></i></div>
+          <div class="kpi-label">Kvalitet denna vecka</div>
+          <div class="kpi-value" [ngClass]="getQualityClass(dashData.week.quality_pct)">
+            {{ dashData.week.quality_pct }}%
+          </div>
+          <div class="kpi-sub">Andel godkända IBC</div>
         </div>
       </div>
-      <div class="chart-container" style="height: 280px;">
-        <canvas id="cycleTrendChart"></canvas>
+
+      <!-- OEE denna vecka -->
+      <div class="col-md-3 col-6">
+        <div class="kpi-card">
+          <div class="kpi-icon text-warning"><i class="fas fa-cogs"></i></div>
+          <div class="kpi-label">OEE denna vecka</div>
+          <div class="kpi-value" [ngClass]="getOeeClass(dashData.week.oee_pct)">
+            {{ dashData.week.oee_pct }}%
+          </div>
+          <div class="kpi-sub">Övergripande utrustningseffektivitet</div>
+        </div>
       </div>
+
+      <!-- Bästa operatör -->
+      <div class="col-md-3 col-6">
+        <div class="kpi-card">
+          <div class="kpi-icon text-warning"><i class="fas fa-trophy"></i></div>
+          <div class="kpi-label">Bästa operatör</div>
+          <div class="kpi-value" *ngIf="dashData.week.best_operator" style="font-size: 1.1rem; font-weight: 700;">
+            {{ dashData.week.best_operator.name }}
+          </div>
+          <div class="kpi-value text-muted" *ngIf="!dashData.week.best_operator" style="font-size: 1.1rem;">
+            Ingen data
+          </div>
+          <div class="kpi-sub" *ngIf="dashData.week.best_operator">
+            {{ dashData.week.best_operator.ibc_h }} IBC/h denna vecka
+          </div>
+        </div>
+      </div>
+
     </div>
-  </div>
 
-  <!-- ===== BONUS + TREND ===== -->
-  <div class="row g-3" *ngIf="!loading">
-
-    <!-- Bonus sammanfattning -->
-    <div class="col-md-5" *ngIf="bonusSummary">
-      <div class="card detail-card">
-        <div class="card-header"><h6 class="mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Bonusöversikt idag</h6></div>
-        <div class="card-body">
-          <div class="row g-2">
-            <div class="col-6">
-              <div class="mini-stat">
-                <span class="mini-label">Cykler</span>
-                <span class="mini-value">{{ bonusSummary.total_cycles }}</span>
-              </div>
+    <!-- ============================================================
+         SEKTION 3 — SENASTE 7 DAGARNA (bar chart)
+    ============================================================ -->
+    <div class="detail-card mb-4">
+      <div class="detail-card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-chart-bar me-2 text-primary"></i>IBC per dag — senaste 7 dagarna
+        </h6>
+        <small class="text-muted">Grönt = over dagsmål, Rött = under dagsmål</small>
+      </div>
+      <div class="detail-card-body">
+        <div class="chart-container">
+          <canvas id="days7Chart"></canvas>
+        </div>
+        <!-- Mini-tabell under graf -->
+        <div class="row g-2 mt-2" *ngIf="dashData.days7.length">
+          <div class="col text-center" *ngFor="let d of dashData.days7">
+            <div class="day-mini"
+                 [class.day-mini-green]="d.ibc >= d.target"
+                 [class.day-mini-red]="d.ibc < d.target && d.ibc > 0"
+                 [class.day-mini-grey]="d.ibc === 0">
+              <div class="day-mini-date">{{ formatDate(d.date) }}</div>
+              <div class="day-mini-ibc">{{ d.ibc }}</div>
             </div>
-            <div class="col-6">
-              <div class="mini-stat">
-                <span class="mini-label">Skift idag</span>
-                <span class="mini-value">{{ bonusSummary.shifts_today }}</span>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-stat">
-                <span class="mini-label">IBC Godkända</span>
-                <span class="mini-value text-success">{{ bonusSummary.total_ibc_ok }}</span>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-stat">
-                <span class="mini-label">IBC Kasserade</span>
-                <span class="mini-value text-danger">{{ bonusSummary.total_ibc_ej_ok }}</span>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-stat">
-                <span class="mini-label">Max bonus</span>
-                <span class="mini-value text-success">{{ bonusSummary.max_bonus }}</span>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="mini-stat">
-                <span class="mini-label">Snittbonus</span>
-                <span class="mini-value" [ngClass]="getBonusClass(bonusSummary.avg_bonus)">{{ bonusSummary.avg_bonus }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="mt-3">
-            <h6 class="text-muted mb-2" style="font-size: 0.8rem;">Operatörer aktiva</h6>
-            <div class="d-flex gap-3">
-              <div><i class="fas fa-shower me-1 text-info"></i>Tvätt: {{ bonusSummary.unique_operators?.tvattplats || 0 }}</div>
-              <div><i class="fas fa-search me-1 text-primary"></i>Kontroll: {{ bonusSummary.unique_operators?.kontroll || 0 }}</div>
-              <div><i class="fas fa-truck me-1 text-warning"></i>Truck: {{ bonusSummary.unique_operators?.truck || 0 }}</div>
-            </div>
-          </div>
-          <div class="mt-3">
-            <a routerLink="/rebotling/bonus" class="btn btn-sm btn-outline-warning w-100">
-              <i class="fas fa-chart-bar me-1"></i>Till Bonus Dashboard
-            </a>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Trend chart -->
-    <div class="col-md-7">
-      <div class="card detail-card">
-        <div class="card-header"><h6 class="mb-0"><i class="fas fa-chart-line me-2 text-info"></i>Skifttrend (senaste 10)</h6></div>
-        <div class="card-body">
-          <div class="chart-container">
-            <canvas id="execTrendChart"></canvas>
-          </div>
-          <div class="text-center mt-2" *ngIf="!teamStats">
-            <small class="text-muted">Ingen skiftdata tillgänglig</small>
-          </div>
+    <!-- ============================================================
+         SEKTION 4 — AKTIVA OPERATÖRER SENASTE SKIFTET
+    ============================================================ -->
+    <div class="detail-card mb-4" *ngIf="dashData.last_shift_operators.length > 0">
+      <div class="detail-card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-users me-2 text-teal"></i>Operatörer — senaste skiftet
+        </h6>
+      </div>
+      <div class="detail-card-body">
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0 ops-table">
+            <thead>
+              <tr>
+                <th>Operatör</th>
+                <th>Position</th>
+                <th class="text-end">IBC/h</th>
+                <th class="text-end">Kvalitet%</th>
+                <th class="text-end">Bonus</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let op of dashData.last_shift_operators">
+                <td class="fw-semibold">{{ op.name }}</td>
+                <td>
+                  <span class="position-badge">{{ op.position }}</span>
+                </td>
+                <td class="text-end fw-bold">{{ op.ibc_h }}</td>
+                <td class="text-end" [ngClass]="getQualityClass(op.kvalitet)">
+                  {{ op.kvalitet }}%
+                </td>
+                <td class="text-end" [ngClass]="getBonusClass(op.bonus)">
+                  {{ op.bonus | number:'1.0-0' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
 
-  </div>
-
-  <!-- Team overview -->
-  <div class="card detail-card mt-3" *ngIf="!loading && teamStats?.aggregate">
-    <div class="card-header"><h6 class="mb-0"><i class="fas fa-users me-2"></i>Teamöversikt (vecka)</h6></div>
-    <div class="card-body">
-      <div class="row g-3">
-        <div class="col-md-2 col-4">
-          <div class="mini-stat">
-            <span class="mini-label">Skift</span>
-            <span class="mini-value">{{ teamStats.aggregate.total_shifts }}</span>
-          </div>
-        </div>
-        <div class="col-md-2 col-4">
-          <div class="mini-stat">
-            <span class="mini-label">Cykler</span>
-            <span class="mini-value">{{ teamStats.aggregate.total_cycles }}</span>
-          </div>
-        </div>
-        <div class="col-md-2 col-4">
-          <div class="mini-stat">
-            <span class="mini-label">IBC OK</span>
-            <span class="mini-value text-success">{{ teamStats.aggregate.total_ibc_ok }}</span>
-          </div>
-        </div>
-        <div class="col-md-3 col-6">
-          <div class="mini-stat">
-            <span class="mini-label">Snittbonus</span>
-            <span class="mini-value" [ngClass]="getBonusClass(teamStats.aggregate.avg_bonus)">{{ teamStats.aggregate.avg_bonus }}</span>
-          </div>
-        </div>
-        <div class="col-md-3 col-6">
-          <div class="mini-stat">
-            <span class="mini-label">Unika operatörer</span>
-            <span class="mini-value">{{ teamStats.aggregate.unique_operators }}</span>
-          </div>
-        </div>
+    <!-- Placeholder om inga operatörer -->
+    <div class="detail-card mb-4" *ngIf="dashData.last_shift_operators.length === 0">
+      <div class="detail-card-header">
+        <h6 class="mb-0"><i class="fas fa-users me-2 text-teal"></i>Operatörer — senaste skiftet</h6>
+      </div>
+      <div class="detail-card-body text-center py-3 text-muted">
+        <i class="fas fa-info-circle me-1"></i>Ingen operatörsdata registrerad för senaste skiftet.
       </div>
     </div>
+
+  </ng-container>
+
+  <!-- Ingen data -->
+  <div *ngIf="!loading && !dashData" class="text-center py-5 text-muted">
+    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+    <p>Kunde inte hämta produktionsdata. Kontrollera anslutningen.</p>
+    <button class="btn btn-outline-info" (click)="loadData()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
   </div>
 
 </div>
 
-<!-- Not admin -->
+<!-- Ej inloggad / ej admin -->
 <div *ngIf="loggedIn && !isAdmin" class="text-center py-5">
   <i class="fas fa-lock fa-3x text-muted mb-3"></i>
-  <h4>Åtkomst nekad</h4>
-  <p class="text-muted">Denna sida kräver admin-behörighet.</p>
+  <h4>Atkomst nekad</h4>
+  <p class="text-muted">Denna sida kraver admin-behorighet.</p>
 </div>
 
 <div *ngIf="!loggedIn" class="text-center py-5">
   <i class="fas fa-sign-in-alt fa-3x text-muted mb-3"></i>
   <h4>Logga in</h4>
-  <p class="text-muted">Du behöver vara inloggad för att se denna sida.</p>
+  <p class="text-muted">Du behover vara inloggad for att se denna sida.</p>
 </div>

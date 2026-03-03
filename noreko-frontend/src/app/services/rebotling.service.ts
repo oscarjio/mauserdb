@@ -165,6 +165,13 @@ export class RebotlingService {
     );
   }
 
+  getExecDashboard(): Observable<ExecDashboardResponse> {
+    return this.http.get<ExecDashboardResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=exec-dashboard`,
+      { withCredentials: true }
+    );
+  }
+
   getOEE(period: string = 'today'): Observable<OEEResponse> {
     return this.http.get<OEEResponse>(
       `/noreko-backend/api.php?action=rebotling&run=oee&period=${period}`,
@@ -252,6 +259,42 @@ export interface OEEResponse {
     planned_hours: number;
     cycles: number;
     world_class_benchmark: number;
+  };
+  error?: string;
+}
+
+export interface ExecDashboardOperator {
+  id: number;
+  name: string;
+  position: string;
+  ibc_h: number;
+  kvalitet: number;
+  bonus: number;
+}
+
+export interface ExecDashboardResponse {
+  success: boolean;
+  data?: {
+    today: {
+      ibc: number;
+      target: number;
+      pct: number;
+      forecast: number;
+      oee_today: number;
+      oee_yesterday: number;
+      rate_per_h: number;
+      shift_start: string;
+    };
+    week: {
+      this_week_ibc: number;
+      prev_week_ibc: number;
+      week_diff_pct: number;
+      quality_pct: number;
+      oee_pct: number;
+      best_operator: { id: number; name: string; ibc_h: number } | null;
+    };
+    days7: { date: string; ibc: number; target: number }[];
+    last_shift_operators: ExecDashboardOperator[];
   };
   error?: string;
 }

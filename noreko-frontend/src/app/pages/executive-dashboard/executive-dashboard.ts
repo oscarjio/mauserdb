@@ -2,28 +2,13 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService, OEEResponse, CycleTrendResponse } from '../../services/rebotling.service';
-import { TvattlinjeService } from '../../services/tvattlinje.service';
-import { BonusService, BonusSummaryResponse, TeamStatsResponse } from '../../services/bonus.service';
-import { LineSkiftrapportService } from '../../services/line-skiftrapport.service';
-import { forkJoin, catchError, of, timeout } from 'rxjs';
+import { RebotlingService, ExecDashboardResponse } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
-
-interface LineStatus {
-  name: string;
-  icon: string;
-  running: boolean;
-  lastUpdate: string | null;
-  production: number;
-  target: number;
-  percentage: number;
-  route: string;
-  unit: string;
-}
 
 @Component({
   selector: 'app-executive-dashboard',
@@ -37,27 +22,19 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   loggedIn = false;
   isAdmin = false;
   loading = true;
+  isFetching = false;
 
-  lines: LineStatus[] = [];
-  bonusSummary: any = null;
-  teamStats: any = null;
-  oeeData: any = null;
-  cycleTrend: any = null;
-  cycleTrendAlert: any = null;
+  dashData: ExecDashboardResponse['data'] | null = null;
   lastRefresh: Date = new Date();
 
   private pollInterval: any;
-  private loadDataSub: Subscription | null = null;
-  private trendChart: Chart | null = null;
-  private cycleTrendChart: Chart | null = null;
+  private dataSub: Subscription | null = null;
+  private barChart: Chart | null = null;
   private destroy$ = new Subject<void>();
 
   constructor(
     private auth: AuthService,
-    private rebotlingService: RebotlingService,
-    private tvattlinjeService: TvattlinjeService,
-    private bonusService: BonusService,
-    private lineSkiftrapportService: LineSkiftrapportService
+    private rebotlingService: RebotlingService
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
@@ -67,185 +44,110 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadData();
-    this.pollInterval = setInterval(() => this.loadData(), 15000);
+    this.pollInterval = setInterval(() => this.loadData(), 30000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollInterval) clearInterval(this.pollInterval);
-    this.loadDataSub?.unsubscribe();
-    if (this.trendChart) this.trendChart.destroy();
-    if (this.cycleTrendChart) this.cycleTrendChart.destroy();
+    this.dataSub?.unsubscribe();
+    if (this.barChart) this.barChart.destroy();
   }
 
   loadData(): void {
-    // Cancel any in-flight request before starting a new one
-    this.loadDataSub?.unsubscribe();
+    if (this.isFetching) return;
+    this.isFetching = true;
 
-    this.loadDataSub = forkJoin({
-      rebotlingLive: this.rebotlingService.getLiveStats().pipe(timeout(5000), catchError(() => of(null))),
-      rebotlingStatus: this.rebotlingService.getRunningStatus().pipe(timeout(5000), catchError(() => of(null))),
-      tvattlinjeLive: this.tvattlinjeService.getLiveStats().pipe(timeout(5000), catchError(() => of(null))),
-      tvattlinjeStatus: this.tvattlinjeService.getRunningStatus().pipe(timeout(5000), catchError(() => of(null))),
-      bonusSummary: this.bonusService.getDailySummary().pipe(timeout(5000), catchError(() => of(null))),
-      teamStats: this.bonusService.getTeamStats('week').pipe(timeout(5000), catchError(() => of(null))),
-      oee: this.rebotlingService.getOEE('today').pipe(timeout(5000), catchError(() => of(null))),
-      cycleTrend: this.rebotlingService.getCycleTrend(30).pipe(timeout(8000), catchError(() => of(null))),
-      saglinjeReports: this.lineSkiftrapportService.getReports('saglinje').pipe(timeout(5000), catchError(() => of(null))),
-      klassReports: this.lineSkiftrapportService.getReports('klassificeringslinje').pipe(timeout(5000), catchError(() => of(null)))
-    }).subscribe({
-      next: (results) => {
-        this.lines = [];
-
-        // Rebotling
-        const rebLive = results.rebotlingLive as any;
-        const rebStatus = results.rebotlingStatus as any;
-        this.lines.push({
-          name: 'Rebotling',
-          icon: 'fa-recycle',
-          running: rebStatus?.data?.running ?? false,
-          lastUpdate: rebStatus?.data?.lastUpdate ?? null,
-          production: rebLive?.data?.rebotlingToday ?? 0,
-          target: rebLive?.data?.rebotlingTarget ?? 0,
-          percentage: rebLive?.data?.productionPercentage ?? 0,
-          route: '/rebotling/live',
-          unit: 'IBC'
-        });
-
-        // Tvattlinje
-        const tvLive = results.tvattlinjeLive as any;
-        const tvStatus = results.tvattlinjeStatus as any;
-        this.lines.push({
-          name: 'Tvättlinje',
-          icon: 'fa-shower',
-          running: tvStatus?.data?.running ?? false,
-          lastUpdate: tvStatus?.data?.lastUpdate ?? null,
-          production: tvLive?.data?.ibcToday ?? 0,
-          target: tvLive?.data?.ibcTarget ?? 0,
-          percentage: tvLive?.data?.productionPercentage ?? 0,
-          route: '/tvattlinje/live',
-          unit: 'IBC'
-        });
-
-        // Såglinje
-        const today = new Date().toISOString().split('T')[0];
-        const sagRes = results.saglinjeReports as any;
-        {
-          let antalOk = 0, totalt = 0, skiftCount = 0;
-          if (sagRes?.success && sagRes.data) {
-            const reps = (sagRes.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
-            skiftCount = reps.length;
-            antalOk = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
-            totalt = antalOk + reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0);
+    this.dataSub?.unsubscribe();
+    this.dataSub = this.rebotlingService.getExecDashboard()
+      .pipe(timeout(8000), catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          if (res?.success && res.data) {
+            this.dashData = res.data;
+            this.lastRefresh = new Date();
+            setTimeout(() => this.buildBarChart(), 100);
           }
-          const sagPct = totalt > 0 ? Math.round((antalOk / totalt) * 100) : 0;
-          this.lines.push({
-            name: 'Såglinje',
-            icon: 'fa-cut',
-            running: skiftCount > 0,
-            lastUpdate: skiftCount > 0 ? new Date().toISOString() : null,
-            production: antalOk,
-            target: totalt,
-            percentage: sagPct,
-            route: '/saglinje/live',
-            unit: 'st OK'
-          });
+          this.loading = false;
+          this.isFetching = false;
+        },
+        error: () => {
+          this.loading = false;
+          this.isFetching = false;
         }
-
-        // Klassificeringslinje
-        const klassRes = results.klassReports as any;
-        {
-          let antalOk = 0, totalt = 0, skiftCount = 0;
-          if (klassRes?.success && klassRes.data) {
-            const reps = (klassRes.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
-            skiftCount = reps.length;
-            antalOk = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
-            totalt = antalOk + reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0);
-          }
-          const klassPct = totalt > 0 ? Math.round((antalOk / totalt) * 100) : 0;
-          this.lines.push({
-            name: 'Klassificeringslinje',
-            icon: 'fa-tags',
-            running: skiftCount > 0,
-            lastUpdate: skiftCount > 0 ? new Date().toISOString() : null,
-            production: antalOk,
-            target: totalt,
-            percentage: klassPct,
-            route: '/klassificeringslinje/live',
-            unit: 'st OK'
-          });
-        }
-
-        // Bonus
-        const bonus = results.bonusSummary as BonusSummaryResponse;
-        if (bonus?.success && bonus.data) {
-          this.bonusSummary = bonus.data;
-        }
-
-        const team = results.teamStats as TeamStatsResponse;
-        if (team?.success && team.data) {
-          this.teamStats = team.data;
-          this.buildTrendChart(team.data.shifts || []);
-        }
-
-        const oee = results.oee as OEEResponse;
-        if (oee?.success && oee.data) {
-          this.oeeData = oee.data;
-        }
-
-        const ct = results.cycleTrend as CycleTrendResponse;
-        if (ct?.success && ct.data) {
-          this.cycleTrend = ct.data;
-          this.cycleTrendAlert = ct.data.alert;
-          setTimeout(() => {
-            if (!this.destroy$.closed) this.buildCycleTrendChart(ct.data!);
-          }, 100);
-        }
-
-        this.lastRefresh = new Date();
-        this.loading = false;
-      },
-      error: () => { this.loading = false; }
-    });
+      });
   }
 
-  getTotalProduction(): number {
-    return this.lines.reduce((sum, l) => sum + l.production, 0);
+  // ---- Status helpers ----
+
+  getTodayStatusClass(): string {
+    const pct = this.dashData?.today?.pct ?? 0;
+    if (pct >= 80) return 'status-green';
+    if (pct >= 60) return 'status-yellow';
+    return 'status-red';
   }
 
-  getTotalTarget(): number {
-    return this.lines.reduce((sum, l) => sum + l.target, 0);
+  getTodayStatusText(): string {
+    const pct = this.dashData?.today?.pct ?? 0;
+    if (pct >= 80) return 'Bra produktion';
+    if (pct >= 60) return 'Under mål';
+    return 'Kritiskt lag';
   }
 
-  getOverallPercentage(): number {
-    const target = this.getTotalTarget();
-    if (target === 0) return 0;
-    return Math.round((this.getTotalProduction() / target) * 100);
+  getCircleOffset(): number {
+    // SVG circle: r=54, circumference = 2*PI*54 ≈ 339.3
+    const circumference = 339.3;
+    const pct = Math.min(this.dashData?.today?.pct ?? 0, 100);
+    return circumference - (pct / 100) * circumference;
   }
 
-  getRunningCount(): number {
-    return this.lines.filter(l => l.running).length;
+  getCircleColor(): string {
+    const pct = this.dashData?.today?.pct ?? 0;
+    if (pct >= 80) return '#48bb78';
+    if (pct >= 60) return '#f6c90e';
+    return '#e53e3e';
   }
 
-  getStatusClass(percentage: number): string {
-    if (percentage >= 100) return 'text-success';
-    if (percentage >= 60) return 'text-warning';
+  getOeeTrendIcon(): string {
+    const today = this.dashData?.today?.oee_today ?? 0;
+    const yesterday = this.dashData?.today?.oee_yesterday ?? 0;
+    if (today > yesterday + 1) return 'fa-arrow-up';
+    if (today < yesterday - 1) return 'fa-arrow-down';
+    return 'fa-minus';
+  }
+
+  getOeeTrendClass(): string {
+    const today = this.dashData?.today?.oee_today ?? 0;
+    const yesterday = this.dashData?.today?.oee_yesterday ?? 0;
+    if (today > yesterday + 1) return 'text-success';
+    if (today < yesterday - 1) return 'text-danger';
+    return 'text-muted';
+  }
+
+  getOeeClass(oee: number): string {
+    if (oee >= 80) return 'text-success';
+    if (oee >= 60) return 'text-warning';
     return 'text-danger';
   }
 
-  getStatusText(line: LineStatus): string {
-    if (!line.running) return 'Stoppad';
-    if (line.percentage >= 100) return 'Bra produktion';
-    if (line.percentage >= 60) return 'Under mål';
-    return 'Låg produktion';
+  getWeekDiffClass(): string {
+    const diff = this.dashData?.week?.week_diff_pct ?? 0;
+    if (diff >= 0) return 'text-success';
+    return 'text-danger';
   }
 
-  getStatusBadgeClass(line: LineStatus): string {
-    if (!line.running) return 'bg-secondary';
-    if (line.percentage >= 100) return 'bg-success';
-    if (line.percentage >= 60) return 'bg-warning text-dark';
-    return 'bg-danger';
+  getWeekDiffIcon(): string {
+    const diff = this.dashData?.week?.week_diff_pct ?? 0;
+    if (diff > 1) return 'fa-arrow-up';
+    if (diff < -1) return 'fa-arrow-down';
+    return 'fa-minus';
+  }
+
+  getQualityClass(q: number): string {
+    if (q >= 95) return 'text-success';
+    if (q >= 85) return 'text-warning';
+    return 'text-danger';
   }
 
   getBonusClass(bonus: number): string {
@@ -255,167 +157,86 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     return 'text-danger';
   }
 
-  getOEEClass(oee: number): string {
-    if (oee >= 85) return 'text-success';  // World class
-    if (oee >= 60) return 'text-warning';
-    return 'text-danger';
+  formatDate(dateStr: string): string {
+    const d = new Date(dateStr);
+    const days = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
+    return days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
   }
 
-  getOEELabel(oee: number): string {
-    if (oee >= 85) return 'World Class';
-    if (oee >= 60) return 'Acceptabel';
-    if (oee >= 40) return 'Förbättring krävs';
-    return 'Kritiskt låg';
-  }
+  // ---- Bar chart ----
 
-  getTimeAgo(dateStr: string | null): string {
-    if (!dateStr) return 'Ingen data';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just nu';
-    if (mins < 60) return mins + ' min sedan';
-    const hours = Math.floor(mins / 60);
-    return hours + ' h sedan';
-  }
+  private buildBarChart(): void {
+    if (this.barChart) {
+      this.barChart.destroy();
+      this.barChart = null;
+    }
+    const canvas = document.getElementById('days7Chart') as HTMLCanvasElement;
+    if (!canvas || !this.dashData?.days7?.length) return;
 
-  private buildTrendChart(shifts: any[]): void {
-    if (this.trendChart) this.trendChart.destroy();
+    const days = this.dashData.days7;
+    const labels = days.map(d => this.formatDate(d.date));
+    const ibc = days.map(d => d.ibc);
+    const target = days[0]?.target ?? 1000;
+    const colors = days.map(d => d.ibc >= target ? '#48bb78' : '#e53e3e');
+    const dimColors = days.map(d => d.ibc >= target ? 'rgba(72,187,120,0.75)' : 'rgba(229,62,62,0.75)');
 
-    const canvas = document.getElementById('execTrendChart') as HTMLCanvasElement;
-    if (!canvas || shifts.length === 0) return;
-
-    const labels = shifts.slice(-10).map((s: any, i: number) => 'Skift ' + (i + 1));
-    const bonusData = shifts.slice(-10).map((s: any) => s.kpis?.bonus_avg ?? 0);
-    const effData = shifts.slice(-10).map((s: any) => s.kpis?.effektivitet ?? 0);
-
-    this.trendChart = new Chart(canvas, {
-      type: 'line',
+    this.barChart = new Chart(canvas, {
+      type: 'bar',
       data: {
         labels,
         datasets: [
           {
-            label: 'Bonus (snitt)',
-            data: bonusData,
-            borderColor: '#38b2ac',
-            backgroundColor: 'rgba(56, 178, 172, 0.1)',
-            tension: 0.3,
-            fill: true
-          },
-          {
-            label: 'Effektivitet',
-            data: effData,
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            tension: 0.3,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#a0aec0' } }
-        },
-        scales: {
-          x: { ticks: { color: '#718096' }, grid: { color: '#2d3748' } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, min: 0, max: 120 }
-        }
-      }
-    });
-  }
-
-  getTrendIcon(): string {
-    if (!this.cycleTrend) return 'fa-minus';
-    if (this.cycleTrend.trend === 'increasing') return 'fa-arrow-up';
-    if (this.cycleTrend.trend === 'decreasing') return 'fa-arrow-down';
-    return 'fa-minus';
-  }
-
-  getTrendClass(): string {
-    if (!this.cycleTrend) return 'text-muted';
-    if (this.cycleTrend.trend === 'increasing') return 'text-danger';
-    if (this.cycleTrend.trend === 'decreasing') return 'text-success';
-    return 'text-info';
-  }
-
-  getTrendLabel(): string {
-    if (!this.cycleTrend) return 'Ingen data';
-    if (this.cycleTrend.trend === 'increasing') return 'Ökande (kontrollera utrustning)';
-    if (this.cycleTrend.trend === 'decreasing') return 'Minskande (förbättring)';
-    return 'Stabil';
-  }
-
-  private buildCycleTrendChart(data: any): void {
-    if (this.cycleTrendChart) this.cycleTrendChart.destroy();
-    const canvas = document.getElementById('cycleTrendChart') as HTMLCanvasElement;
-    if (!canvas || !data.daily || data.daily.length === 0) return;
-
-    const labels = data.daily.map((d: any) => d.dag.substring(5)); // MM-DD
-    const runtimeData = data.daily.map((d: any) => d.avg_runtime);
-    const ibcPerHour = data.daily.map((d: any) => d.avg_ibc_per_hour);
-
-    const maLabels = data.moving_average?.map((d: any) => d.dag.substring(5)) || [];
-    const maData = data.moving_average?.map((d: any) => d.moving_avg) || [];
-
-    // Pad moving average to align with daily data
-    const padCount = labels.length - maLabels.length;
-    const paddedMA = new Array(padCount).fill(null).concat(maData);
-
-    this.cycleTrendChart = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Snitt cykeltid (min)',
-            data: runtimeData,
-            borderColor: '#667eea',
-            backgroundColor: 'rgba(102, 126, 234, 0.1)',
-            tension: 0.3,
-            fill: true,
-            pointRadius: 2
-          },
-          {
-            label: '7-dagars glidande medel',
-            data: paddedMA,
-            borderColor: '#e74c3c',
+            label: 'IBC',
+            data: ibc,
+            backgroundColor: dimColors,
+            borderColor: colors,
             borderWidth: 2,
-            borderDash: [5, 5],
-            tension: 0.3,
-            fill: false,
-            pointRadius: 0
+            borderRadius: 6
           },
           {
-            label: 'IBC/timme',
-            data: ibcPerHour,
-            borderColor: '#38b2ac',
-            backgroundColor: 'rgba(56, 178, 172, 0.1)',
-            tension: 0.3,
+            label: 'Dagsmål',
+            data: new Array(days.length).fill(target),
+            type: 'line',
+            borderColor: '#667eea',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 0,
             fill: false,
-            pointRadius: 2,
-            yAxisID: 'y1'
-          }
+            tension: 0
+          } as any
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: '#a0aec0' } },
-          title: { display: true, text: 'Cykeltidstrend (senaste 30 dagarna)', color: '#e2e8f0' }
+          legend: {
+            labels: { color: '#a0aec0', font: { size: 12 } }
+          },
+          tooltip: {
+            callbacks: {
+              afterBody: (items: any[]) => {
+                const idx = items[0]?.dataIndex ?? 0;
+                const d = days[idx];
+                const pct = d.target > 0 ? Math.round(d.ibc / d.target * 100) : 0;
+                return [`${pct}% av dagsmål`];
+              }
+            }
+          }
         },
         scales: {
-          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Minuter', color: '#718096' } },
-          y1: { position: 'right', ticks: { color: '#718096' }, grid: { display: false }, title: { display: true, text: 'IBC/timme', color: '#718096' } }
+          x: {
+            ticks: { color: '#718096' },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            ticks: { color: '#718096' },
+            grid: { color: '#2d3748' },
+            beginAtZero: true
+          }
         }
       }
     });
-  }
-
-  exportCSV(): void {
-    this.rebotlingService.downloadReportCSV('week');
   }
 
   printDashboard(): void {

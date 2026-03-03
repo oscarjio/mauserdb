@@ -42,6 +42,8 @@ class RebotlingController {
                 $this->getOEETrend();
             } elseif ($action === 'best-shifts') {
                 $this->getBestShifts();
+            } elseif ($action === 'exec-dashboard') {
+                $this->getExecDashboard();
             } else {
                 $this->getLiveStats();
             }
@@ -1487,6 +1489,389 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('saveShiftTimes: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara skifttider']);
+        }
+    }
+
+    // =========================================================
+    // Executive Dashboard — samlad endpoint för VD-vyn
+    // =========================================================
+
+    /**
+     * GET ?action=rebotling&run=exec-dashboard
+     *
+     * Returnerar allt som executive dashboard behöver i ett anrop:
+     *   - today: ibcToday, ibcTarget, pct, prognos, oee (idag vs igår)
+     *   - week: total IBC denna vecka, förra veckan, diff, snitt kvalitet%, snitt OEE%, bästa operatör
+     *   - days7: IBC per dag senaste 7 dagarna + dagsmål per rad
+     *   - lastShiftOperators: aktiva operatörer senaste skiftet (namn, ibc/h, kvalitet%, bonus)
+     */
+    private function getExecDashboard() {
+        try {
+            $tz  = new DateTimeZone('Europe/Stockholm');
+            $now = new DateTime('now', $tz);
+
+            // ---- Dagsmål (från rebotling_settings) ----
+            $dailyTarget = 1000;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
+            } catch (Exception $e) { /* ignorera */ }
+
+            // ---- IBC idag ----
+            $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
+
+            // ---- Skiftstart (används för prognos). Standard 06:00 ----
+            $shiftStart = '06:00:00';
+            try {
+                $this->ensureShiftTimesTable();
+                $st = $this->pdo->query("SELECT start_time FROM rebotling_shift_times WHERE shift_name='förmiddag' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                if ($st) $shiftStart = $st['start_time'];
+            } catch (Exception $e) { /* ignorera */ }
+
+            $shiftStartDt = new DateTime($now->format('Y-m-d') . ' ' . $shiftStart, $tz);
+            if ($shiftStartDt > $now) {
+                // Kan hända om skiftet inte startat — räkna ändå från 06:00
+                $shiftStartDt->modify('-1 day');
+            }
+            $minutesSinceShiftStart = max(1, ($now->getTimestamp() - $shiftStartDt->getTimestamp()) / 60);
+
+            // Prognos: om vi producerat X IBC på Y minuter, hur många till skiftets slut (480 min)?
+            $shiftLengthMin = 480;
+            try {
+                $st2 = $this->pdo->query("SELECT shift_hours FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($st2) $shiftLengthMin = (float)$st2['shift_hours'] * 60;
+            } catch (Exception $e) { /* ignorera */ }
+
+            $rate = $minutesSinceShiftStart > 0 ? $ibcToday / $minutesSinceShiftStart : 0;
+            $remainingMin = max(0, $shiftLengthMin - $minutesSinceShiftStart);
+            $forecast = (int)round($ibcToday + $rate * $remainingMin);
+
+            // ---- OEE idag ----
+            $oeeToday = 0;
+            try {
+                $oRow = $this->pdo->query("
+                    SELECT
+                        SUM(shift_ibc_ok)    AS ibc_ok,
+                        SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                        SUM(shift_runtime)   AS runtime_min,
+                        SUM(shift_rast)      AS rast_min
+                    FROM (
+                        SELECT
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                            MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                            MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                            MAX(COALESCE(rasttime,   0)) AS shift_rast
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = CURDATE()
+                          AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) AS ps
+                ")->fetch(PDO::FETCH_ASSOC);
+                if ($oRow && $oRow['runtime_min'] > 0) {
+                    $ibcOk   = (float)$oRow['ibc_ok'];
+                    $ibcEjOk = (float)$oRow['ibc_ej_ok'];
+                    $total   = $ibcOk + $ibcEjOk;
+                    $opMin   = max((float)$oRow['runtime_min'], 1);
+                    $planMin = max($opMin + (float)$oRow['rast_min'], 1);
+                    $avail   = min($opMin / $planMin, 1.0);
+                    $perf    = min(($total / $opMin) / (15.0 / 60.0), 1.0);
+                    $qual    = $total > 0 ? $ibcOk / $total : 0;
+                    $oeeToday = round($avail * $perf * $qual * 100, 1);
+                }
+            } catch (Exception $e) { error_log('exec-dashboard OEE today: ' . $e->getMessage()); }
+
+            // ---- OEE igår ----
+            $oeeYesterday = 0;
+            try {
+                $oRow2 = $this->pdo->query("
+                    SELECT
+                        SUM(shift_ibc_ok)    AS ibc_ok,
+                        SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                        SUM(shift_runtime)   AS runtime_min,
+                        SUM(shift_rast)      AS rast_min
+                    FROM (
+                        SELECT
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                            MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                            MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                            MAX(COALESCE(rasttime,   0)) AS shift_rast
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
+                          AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) AS ps
+                ")->fetch(PDO::FETCH_ASSOC);
+                if ($oRow2 && $oRow2['runtime_min'] > 0) {
+                    $ibcOk2   = (float)$oRow2['ibc_ok'];
+                    $ibcEjOk2 = (float)$oRow2['ibc_ej_ok'];
+                    $total2   = $ibcOk2 + $ibcEjOk2;
+                    $opMin2   = max((float)$oRow2['runtime_min'], 1);
+                    $planMin2 = max($opMin2 + (float)$oRow2['rast_min'], 1);
+                    $avail2   = min($opMin2 / $planMin2, 1.0);
+                    $perf2    = min(($total2 / $opMin2) / (15.0 / 60.0), 1.0);
+                    $qual2    = $total2 > 0 ? $ibcOk2 / $total2 : 0;
+                    $oeeYesterday = round($avail2 * $perf2 * $qual2 * 100, 1);
+                }
+            } catch (Exception $e) { error_log('exec-dashboard OEE yesterday: ' . $e->getMessage()); }
+
+            // ---- Senaste 7 dagarna (IBC/dag) ----
+            $stmt7 = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    SUM(shift_ibc_ok) AS ibc_ok
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS ps
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmt7->execute();
+            $rows7 = $stmt7->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fyll i tomma dagar (inga produktionsdagar ger 0)
+            $map7 = [];
+            foreach ($rows7 as $r) { $map7[$r['dag']] = (int)$r['ibc_ok']; }
+            $days7 = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $d = date('Y-m-d', strtotime("-{$i} days"));
+                $days7[] = ['date' => $d, 'ibc' => $map7[$d] ?? 0, 'target' => $dailyTarget];
+            }
+
+            // ---- Veckototaler (mon–idag vs förra veckan mån–sön) ----
+            // ISO vecka: måndag = weekday 1
+            $stmt14 = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    SUM(shift_ibc_ok) AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS ps
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmt14->execute();
+            $rows14 = $stmt14->fetchAll(PDO::FETCH_ASSOC);
+
+            $map14 = [];
+            foreach ($rows14 as $r) { $map14[$r['dag']] = ['ibc' => (int)$r['ibc_ok'], 'ej' => (int)$r['ibc_ej_ok']]; }
+
+            $thisWeekIbc = 0; $prevWeekIbc = 0;
+            $thisWeekOkSum = 0; $thisWeekEjSum = 0;
+            for ($i = 13; $i >= 7; $i--) {
+                $d = date('Y-m-d', strtotime("-{$i} days"));
+                $prevWeekIbc += $map14[$d]['ibc'] ?? 0;
+            }
+            for ($i = 6; $i >= 0; $i--) {
+                $d = date('Y-m-d', strtotime("-{$i} days"));
+                $thisWeekIbc  += $map14[$d]['ibc'] ?? 0;
+                $thisWeekOkSum += $map14[$d]['ibc'] ?? 0;
+                $thisWeekEjSum += $map14[$d]['ej']  ?? 0;
+            }
+            $weekDiff = $prevWeekIbc > 0 ? round((($thisWeekIbc - $prevWeekIbc) / $prevWeekIbc) * 100, 1) : 0;
+            $thisWeekQuality = ($thisWeekOkSum + $thisWeekEjSum) > 0
+                ? round($thisWeekOkSum / ($thisWeekOkSum + $thisWeekEjSum) * 100, 1)
+                : 0;
+
+            // ---- OEE denna vecka (snitt per dag) ----
+            $weekOeeRows = $this->pdo->query("
+                SELECT
+                    SUM(shift_ibc_ok)    AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_runtime)   AS runtime_min,
+                    SUM(shift_rast)      AS rast_min
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                      AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS ps
+            ")->fetch(PDO::FETCH_ASSOC);
+            $weekOee = 0;
+            if ($weekOeeRows && $weekOeeRows['runtime_min'] > 0) {
+                $wOk   = (float)$weekOeeRows['ibc_ok'];
+                $wEj   = (float)$weekOeeRows['ibc_ej_ok'];
+                $wTot  = $wOk + $wEj;
+                $wOp   = max((float)$weekOeeRows['runtime_min'], 1);
+                $wPlan = max($wOp + (float)$weekOeeRows['rast_min'], 1);
+                $wA    = min($wOp / $wPlan, 1.0);
+                $wP    = min(($wTot / $wOp) / (15.0 / 60.0), 1.0);
+                $wQ    = $wTot > 0 ? $wOk / $wTot : 0;
+                $weekOee = round($wA * $wP * $wQ * 100, 1);
+            }
+
+            // ---- Bästa operatör denna vecka (IBC/h, position 1 = tvättplats) ----
+            $bestOperator = null;
+            try {
+                $boStmt = $this->pdo->query("
+                    SELECT
+                        op1 AS operator_id,
+                        SUM(shift_ibc_ok) AS ibc_ok,
+                        SUM(shift_runtime) AS runtime_min
+                    FROM (
+                        SELECT
+                            op1,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                            MAX(COALESCE(runtime_plc,0)) AS shift_runtime
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+                          AND op1 IS NOT NULL AND op1 > 0
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY op1, skiftraknare
+                    ) AS ps
+                    GROUP BY op1
+                    HAVING runtime_min > 0
+                    ORDER BY (ibc_ok * 60.0 / runtime_min) DESC
+                    LIMIT 1
+                ");
+                $boRow = $boStmt->fetch(PDO::FETCH_ASSOC);
+                if ($boRow) {
+                    $opId = (int)$boRow['operator_id'];
+                    $ibcH = $boRow['runtime_min'] > 0
+                        ? round($boRow['ibc_ok'] * 60.0 / $boRow['runtime_min'], 1)
+                        : 0;
+                    // Hämta namn från users-tabellen
+                    $nameRow = null;
+                    try {
+                        $ns = $this->pdo->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+                        $ns->execute([$opId]);
+                        $nameRow = $ns->fetch(PDO::FETCH_ASSOC);
+                    } catch (Exception $e) { /* ignorera */ }
+                    $bestOperator = [
+                        'id'    => $opId,
+                        'name'  => $nameRow ? ($nameRow['name'] ?? 'Okänd') : 'Op #' . $opId,
+                        'ibc_h' => $ibcH
+                    ];
+                }
+            } catch (Exception $e) { error_log('exec-dashboard bestOp: ' . $e->getMessage()); }
+
+            // ---- Aktiva operatörer senaste skiftet ----
+            $lastShiftOps = [];
+            try {
+                // Hitta senaste skiftraknare
+                $lastShiftRow = $this->pdo->query("
+                    SELECT skiftraknare FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                    ORDER BY datum DESC LIMIT 1
+                ")->fetch(PDO::FETCH_ASSOC);
+
+                if ($lastShiftRow) {
+                    $lastShift = (int)$lastShiftRow['skiftraknare'];
+                    // Hämta alla operatörer i skiftet (pos 1,2,3)
+                    $opRows = $this->pdo->prepare("
+                        SELECT
+                            pos,
+                            operator_id,
+                            MAX(ibc_ok)      AS ibc_ok,
+                            MAX(ibc_ej_ok)   AS ibc_ej_ok,
+                            MAX(runtime_plc) AS runtime_min,
+                            SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS bonus
+                        FROM (
+                            SELECT 'op1' AS pos, op1 AS operator_id, ibc_ok, ibc_ej_ok, runtime_plc, bonus_poang, datum
+                            FROM rebotling_ibc
+                            WHERE skiftraknare = ? AND op1 IS NOT NULL AND op1 > 0
+                            UNION ALL
+                            SELECT 'op2', op2, ibc_ok, ibc_ej_ok, runtime_plc, bonus_poang, datum
+                            FROM rebotling_ibc
+                            WHERE skiftraknare = ? AND op2 IS NOT NULL AND op2 > 0
+                            UNION ALL
+                            SELECT 'op3', op3, ibc_ok, ibc_ej_ok, runtime_plc, bonus_poang, datum
+                            FROM rebotling_ibc
+                            WHERE skiftraknare = ? AND op3 IS NOT NULL AND op3 > 0
+                        ) AS all_ops
+                        GROUP BY pos, operator_id
+                    ");
+                    $opRows->execute([$lastShift, $lastShift, $lastShift]);
+                    $opData = $opRows->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Hämta namn för alla operatörer
+                    $opIds = array_unique(array_column($opData, 'operator_id'));
+                    $nameMap = [];
+                    if (!empty($opIds)) {
+                        $placeholders = implode(',', array_fill(0, count($opIds), '?'));
+                        $ns2 = $this->pdo->prepare("SELECT id, name FROM users WHERE id IN ($placeholders)");
+                        $ns2->execute($opIds);
+                        foreach ($ns2->fetchAll(PDO::FETCH_ASSOC) as $nr) {
+                            $nameMap[(int)$nr['id']] = $nr['name'] ?? 'Okänd';
+                        }
+                    }
+
+                    $posLabels = ['op1' => 'Tvätt', 'op2' => 'Kontroll', 'op3' => 'Truck'];
+                    foreach ($opData as $op) {
+                        $opId  = (int)$op['operator_id'];
+                        $ok    = (float)$op['ibc_ok'];
+                        $ej    = (float)$op['ibc_ej_ok'];
+                        $rtMin = max((float)$op['runtime_min'], 1);
+                        $ibcH  = round($ok * 60.0 / $rtMin, 1);
+                        $qual  = ($ok + $ej) > 0 ? round($ok / ($ok + $ej) * 100, 1) : 0;
+                        $lastShiftOps[] = [
+                            'id'       => $opId,
+                            'name'     => $nameMap[$opId] ?? 'Op #' . $opId,
+                            'position' => $posLabels[$op['pos']] ?? $op['pos'],
+                            'ibc_h'    => $ibcH,
+                            'kvalitet' => $qual,
+                            'bonus'    => round((float)$op['bonus'], 1)
+                        ];
+                    }
+                }
+            } catch (Exception $e) { error_log('exec-dashboard lastShiftOps: ' . $e->getMessage()); }
+
+            // Produktionsprocent idag
+            $pct = $dailyTarget > 0 ? round($ibcToday / $dailyTarget * 100, 1) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'today' => [
+                        'ibc'         => $ibcToday,
+                        'target'      => $dailyTarget,
+                        'pct'         => $pct,
+                        'forecast'    => $forecast,
+                        'oee_today'   => $oeeToday,
+                        'oee_yesterday' => $oeeYesterday,
+                        'rate_per_h'  => round($rate * 60, 1),
+                        'shift_start' => $shiftStart
+                    ],
+                    'week' => [
+                        'this_week_ibc'  => $thisWeekIbc,
+                        'prev_week_ibc'  => $prevWeekIbc,
+                        'week_diff_pct'  => $weekDiff,
+                        'quality_pct'    => $thisWeekQuality,
+                        'oee_pct'        => $weekOee,
+                        'best_operator'  => $bestOperator
+                    ],
+                    'days7'              => $days7,
+                    'last_shift_operators' => $lastShiftOps
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getExecDashboard: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta executive dashboard-data']);
         }
     }
 

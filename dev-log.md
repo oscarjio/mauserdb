@@ -6,6 +6,51 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ## 2026-03-03
 
+### Executive Dashboard — Fullständig VD-vy (commit TBD)
+
+**Mål:** VD öppnar sidan och ser på 10 sekunder om produktionen går bra eller dåligt.
+
+**Sektion 1 — Idag (stor status-panel):**
+- Färgkodad ram (grön >80% av mål, gul 60–80%, röd <60%) med SVG-cirkulär progress
+- Stor IBC-räknare "142 / 200 IBC" med procent inuti cirkeln
+- Prognos-rad: "Prognos: 178 IBC vid skiftslut" (takt beräknad sedan skiftstart)
+- OEE idag som stor siffra med trend-pil vs igår
+
+**Sektion 2 — Veckans status (4 KPI-kort):**
+- Denna veckas totala IBC vs förra veckans (diff i %)
+- Genomsnittlig kvalitet% denna vecka
+- Genomsnittlig OEE denna vecka
+- Bästa operatör (namn + IBC/h)
+
+**Sektion 3 — Senaste 7 dagarna (bar chart):**
+- IBC per dag senaste 7 dagarna (grön = over mål, röd = under mål)
+- Dagsmål som horisontell referenslinje (Chart.js line dataset)
+- Mini-tabell under grafen med datum och IBC per dag
+
+**Sektion 4 — Aktiva operatörer senaste skiftet:**
+- Lista operatörer: namn, position, IBC/h, kvalitet%, bonusestimering
+- Hämtas live från rebotling_ibc för senaste skiftraknare
+
+**Backend (RebotlingController.php):**
+- `GET ?run=exec-dashboard` — ny samlad endpoint, returnerar alla 4 sektioners data i ett anrop:
+  - `today`: ibc, target, pct, forecast, oee_today, oee_yesterday, rate_per_h, shift_start
+  - `week`: this_week_ibc, prev_week_ibc, week_diff_pct, quality_pct, oee_pct, best_operator
+  - `days7`: array med 7 dagars {date, ibc, target}
+  - `last_shift_operators`: array med {id, name, position, ibc_h, kvalitet, bonus}
+- Korrekt OEE-beräkning (MAX per skiftraknare → SUM) för idag och igår
+- Prognos beräknad som: nuvarande IBC / minuter sedan skiftstart × resterande minuter
+
+**Frontend:**
+- `ExecDashboardResponse` interface i `rebotling.service.ts` + ny `getExecDashboard()` metod
+- Komplett omskrivning av executive-dashboard.ts/.html/.css
+- Polling var 30:e sekund med isFetching-guard (ingen dubbelförfrågan)
+- `implements OnInit, OnDestroy` + `destroy$` + `clearInterval` i ngOnDestroy
+- SVG-cirkel med smooth CSS-transition på stroke-dashoffset
+- Chart.js bar chart med dynamiska färger (grön/röd per dag)
+- All UI-text på svenska
+
+---
+
 ### Rebotling-skiftrapport + Admin förbättringar (commit cbfc3d4)
 
 **Rebotling-skiftrapport (`pages/rebotling-skiftrapport/`):**
