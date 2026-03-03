@@ -1,0 +1,252 @@
+<div class="benchmarking-page">
+
+  <!-- Laddning -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar…</span>
+    </div>
+    <p class="text-muted mt-3">Hämtar benchmarking-data…</p>
+  </div>
+
+  <!-- Fel -->
+  <div *ngIf="!loading && error" class="alert alert-danger mx-3">
+    {{ error }}
+  </div>
+
+  <div *ngIf="!loading && !error">
+
+    <!-- ============================================================
+         Sidhuvud
+    ============================================================ -->
+    <div class="page-header mb-4">
+      <h1 class="page-title">
+        <i class="fas fa-trophy me-2 text-warning"></i>
+        Benchmarking — Rekord & Historik
+      </h1>
+      <p class="page-subtitle">Jämför innevarande vecka mot rekordveckan och se historiska trender.</p>
+    </div>
+
+    <!-- ============================================================
+         Sektion 1: Denna vecka vs Rekordveckan
+    ============================================================ -->
+    <section class="section mb-4">
+      <h2 class="section-title">
+        <i class="fas fa-calendar-week me-2"></i>
+        Denna vecka vs Rekordveckan
+      </h2>
+
+      <div class="row g-3 mb-3">
+        <!-- Denna vecka -->
+        <div class="col-md-6">
+          <div class="kpi-card kpi-card--blue">
+            <div class="kpi-card__label">
+              <span class="badge bg-primary me-2">DENNA VECKA</span>
+              <span class="text-muted small">{{ currentWeek?.week_label }}</span>
+            </div>
+            <div class="kpi-grid mt-3">
+              <div class="kpi-item">
+                <span class="kpi-value">{{ currentWeek?.ibc_total | number:'1.0-0' }}</span>
+                <span class="kpi-label">IBC totalt</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">{{ currentWeek?.ibc_per_day | number:'1.1-1' }}</span>
+                <span class="kpi-label">IBC / dag</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">
+                  {{ currentWeek?.avg_quality != null ? (currentWeek?.avg_quality | number:'1.1-1') + '%' : '—' }}
+                </span>
+                <span class="kpi-label">Kvalitet</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">
+                  {{ currentWeek?.avg_oee != null ? (currentWeek?.avg_oee | number:'1.1-1') + '%' : '—' }}
+                </span>
+                <span class="kpi-label">OEE</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">{{ currentWeek?.days_active }}</span>
+                <span class="kpi-label">Aktiva dagar</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rekordveckan -->
+        <div class="col-md-6">
+          <div class="kpi-card kpi-card--gold">
+            <div class="kpi-card__label">
+              <span class="badge badge-gold me-2">REKORDVECKAN</span>
+              <span class="text-muted small">{{ bestWeekEver?.week_label }}</span>
+            </div>
+            <div class="kpi-grid mt-3">
+              <div class="kpi-item">
+                <span class="kpi-value text-warning">{{ bestWeekEver?.ibc_total | number:'1.0-0' }}</span>
+                <span class="kpi-label">IBC totalt</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">{{ bestWeekEver?.ibc_per_day | number:'1.1-1' }}</span>
+                <span class="kpi-label">IBC / dag</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">
+                  {{ bestWeekEver?.avg_quality != null ? (bestWeekEver?.avg_quality | number:'1.1-1') + '%' : '—' }}
+                </span>
+                <span class="kpi-label">Kvalitet</span>
+              </div>
+              <div class="kpi-item">
+                <span class="kpi-value">
+                  {{ bestWeekEver?.avg_oee != null ? (bestWeekEver?.avg_oee | number:'1.1-1') + '%' : '—' }}
+                </span>
+                <span class="kpi-label">OEE</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diff-brickor -->
+      <div class="diff-section mb-3">
+        <div *ngIf="isNewRecord" class="diff-badge diff-badge--record">
+          <i class="fas fa-trophy me-2"></i>NYTT REKORD DENNA VECKA!
+        </div>
+        <div *ngIf="!isNewRecord" class="diff-badge diff-badge--behind">
+          <i class="fas fa-arrow-up me-2"></i>
+          {{ ibcDiffToRecord | number:'1.0-0' }} IBC kvar till rekordet
+        </div>
+      </div>
+
+      <!-- Progress-bar -->
+      <div class="progress-section">
+        <div class="d-flex justify-content-between mb-1">
+          <span class="progress-label">Framsteg mot rekordveckan</span>
+          <span class="progress-pct">{{ progressPct }}%</span>
+        </div>
+        <div class="progress" style="height: 14px; border-radius: 7px;">
+          <div
+            class="progress-bar"
+            [class.bg-success]="progressPct >= 100"
+            [class.bg-primary]="progressPct >= 70 && progressPct < 100"
+            [class.bg-warning]="progressPct >= 40 && progressPct < 70"
+            [class.bg-danger]="progressPct < 40"
+            role="progressbar"
+            [style.width]="progressPct + '%'"
+            [attr.aria-valuenow]="progressPct"
+            aria-valuemin="0"
+            aria-valuemax="100">
+          </div>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+          <span class="progress-label-small">0 IBC</span>
+          <span class="progress-label-small">{{ bestWeekEver?.ibc_total | number:'1.0-0' }} IBC (rekord)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Sektion 2: Bästa dagen någonsin
+    ============================================================ -->
+    <section class="section mb-4" *ngIf="bestDayEver">
+      <h2 class="section-title">
+        <i class="fas fa-star me-2 text-warning"></i>
+        Bästa dagen någonsin
+      </h2>
+
+      <div class="best-day-card">
+        <div class="best-day-icon">
+          <i class="fas fa-star text-warning"></i>
+        </div>
+        <div class="best-day-info">
+          <div class="best-day-date">{{ formatDate(bestDayEver.date) }}</div>
+          <div class="best-day-stats">
+            <span class="best-day-kpi">
+              <span class="best-day-value text-warning">{{ bestDayEver.ibc_total | number:'1.0-0' }}</span>
+              <span class="best-day-label">IBC</span>
+            </span>
+            <span class="best-day-sep">|</span>
+            <span class="best-day-kpi">
+              <span class="best-day-value text-success">{{ bestDayEver.quality | number:'1.1-1' }}%</span>
+              <span class="best-day-label">Kvalitet</span>
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Sektion 3: Topp 10 veckor
+    ============================================================ -->
+    <section class="section mb-4">
+      <h2 class="section-title">
+        <i class="fas fa-medal me-2"></i>
+        Topp {{ topWeeks.length }} veckor — historiskt
+      </h2>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-hover benchmark-table">
+          <thead>
+            <tr>
+              <th style="width:56px">Rank</th>
+              <th>Vecka</th>
+              <th class="text-end">IBC totalt</th>
+              <th class="text-end">Kvalitet%</th>
+              <th class="text-end">OEE%</th>
+              <th class="text-end">Akt. dagar</th>
+              <th class="text-end">Vs. rekord</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let w of topWeeks; let i = index"
+              [class.row-gold]="i === 0"
+              [class.row-current]="w.week_label === currentWeekLabel && i !== 0">
+              <td>
+                <span class="rank-badge" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1" [class.rank-bronze]="i === 2">
+                  <span *ngIf="i === 0"><i class="fas fa-trophy"></i></span>
+                  <span *ngIf="i === 1"><i class="fas fa-medal"></i></span>
+                  <span *ngIf="i === 2"><i class="fas fa-award"></i></span>
+                  <span *ngIf="i > 2">{{ i + 1 }}</span>
+                </span>
+              </td>
+              <td>
+                <span class="fw-semibold">{{ w.week_label }}</span>
+                <span *ngIf="w.week_label === currentWeekLabel" class="badge bg-primary ms-2 small">Innevar.</span>
+                <span *ngIf="i === 0 && w.week_label !== currentWeekLabel" class="badge badge-gold ms-2 small">Rekord</span>
+              </td>
+              <td class="text-end fw-bold">{{ w.ibc_total | number:'1.0-0' }}</td>
+              <td class="text-end">{{ w.avg_quality | number:'1.1-1' }}%</td>
+              <td class="text-end">{{ w.avg_oee != null ? (w.avg_oee | number:'1.1-1') + '%' : '—' }}</td>
+              <td class="text-end">{{ w.days_active }}</td>
+              <td class="text-end">
+                <span *ngIf="i === 0" class="text-warning fw-bold">100%</span>
+                <span *ngIf="i > 0">{{ recordDiffPct(w.ibc_total) }}%</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Sektion 4: Månadsöversikt (bar chart)
+    ============================================================ -->
+    <section class="section mb-4">
+      <h2 class="section-title">
+        <i class="fas fa-chart-bar me-2"></i>
+        Månadsöversikt — IBC de senaste 12 månaderna
+      </h2>
+      <div class="chart-legend mb-2">
+        <span class="legend-dot" style="background:rgba(214,158,46,0.85)"></span>
+        <span class="legend-text me-3">Bästa månaden</span>
+        <span class="legend-dot" style="background:rgba(66,153,225,0.85)"></span>
+        <span class="legend-text me-3">Innevarande månad</span>
+        <span class="legend-line"></span>
+        <span class="legend-text">Genomsnitt</span>
+      </div>
+      <div class="chart-wrapper">
+        <canvas #monthlyChart></canvas>
+      </div>
+    </section>
+
+  </div>
+</div>

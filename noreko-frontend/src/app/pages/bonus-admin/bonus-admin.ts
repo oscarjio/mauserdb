@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
@@ -52,19 +53,43 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // Active tab
   activeTab = 'overview';
 
+  // ========== What-if Simulator ==========
+  simPeriodStart = '';
+  simPeriodEnd = '';
+  simIbcGoal = 45;
+  simTiers = [
+    { label: 'Brons',    min_ibc_per_hour: 4.0, bonus_sek: 500  },
+    { label: 'Silver',   min_ibc_per_hour: 5.0, bonus_sek: 1000 },
+    { label: 'Guld',     min_ibc_per_hour: 6.0, bonus_sek: 1800 },
+    { label: 'Platinum', min_ibc_per_hour: 7.0, bonus_sek: 2800 },
+  ];
+  simLoading = false;
+  simResult: any = null;
+  simError = '';
+
   // Toast timer IDs
   private successTimerId: any = null;
   private errorTimerId: any = null;
 
   constructor(
     private auth: AuthService,
-    private bonusAdmin: BonusAdminService
+    private bonusAdmin: BonusAdminService,
+    private http: HttpClient
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
     });
+
+    // Default: förra månaden
+    const now = new Date();
+    const firstThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastLastMonth  = new Date(firstThisMonth.getTime() - 86400000);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    this.simPeriodStart = firstLastMonth.getFullYear() + '-' + pad(firstLastMonth.getMonth() + 1) + '-01';
+    this.simPeriodEnd   = lastLastMonth.getFullYear()  + '-' + pad(lastLastMonth.getMonth()  + 1) + '-' + pad(lastLastMonth.getDate());
   }
 
   ngOnDestroy() {
@@ -305,6 +330,49 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   exportPeriod(period: string) {
     this.bonusAdmin.exportReport(period, 'csv');
     this.showSuccess(`Exporterar ${period}...`);
+  }
+
+  // ========== What-if Simulator ==========
+  runSimulation() {
+    this.simLoading = true;
+    this.simResult  = null;
+    this.simError   = '';
+
+    const payload = {
+      period_start:       this.simPeriodStart,
+      period_end:         this.simPeriodEnd,
+      ibc_goal_per_shift: this.simIbcGoal,
+      bonus_tiers:        this.simTiers,
+    };
+
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonus&run=simulate',
+      payload,
+      { withCredentials: true }
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.simResult = res.data;
+        } else {
+          this.simError = res.error || 'Okänt fel vid simulering';
+        }
+        this.simLoading = false;
+      },
+      error: () => {
+        this.simError   = 'Nätverksfel vid simulering';
+        this.simLoading = false;
+      }
+    });
+  }
+
+  getSimTierColor(tier: string): string {
+    switch (tier?.toLowerCase()) {
+      case 'brons':    return '#cd7f32';
+      case 'silver':   return '#a8a9ad';
+      case 'guld':     return '#ffd700';
+      case 'platinum': return '#e5e4e2';
+      default:         return '#6c757d';
+    }
   }
 
   // ========== Helpers ==========

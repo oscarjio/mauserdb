@@ -39,8 +39,17 @@ class BonusController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run    = $_GET['run'] ?? '';
 
+        // POST-endpoints
+        if ($method === 'POST') {
+            switch ($run) {
+                case 'simulate': $this->simulate(); break;
+                default: $this->sendError('Ogiltig POST-action: ' . $run);
+            }
+            return;
+        }
+
         if ($method !== 'GET') {
-            $this->sendError('Endast GET-requests stöds');
+            $this->sendError('Endast GET- och POST-requests stöds');
             return;
         }
 
@@ -843,6 +852,206 @@ class BonusController {
             error_log('Bonus getWeeklyHistory error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
+    }
+
+    /**
+     * POST /api.php?action=bonus&run=simulate
+     *
+     * What-if bonussimulator. Hämtar faktiska skiftdata för perioden
+     * och beräknar hypotetisk bonus per operatör med de simulerade tier-parametrarna.
+     *
+     * Body (JSON):
+     * {
+     *   "period_start": "2026-02-01",
+     *   "period_end": "2026-02-28",
+     *   "ibc_goal_per_shift": 45,
+     *   "bonus_tiers": [
+     *     { "label": "Brons",    "min_ibc_per_hour": 4.0, "bonus_sek": 500  },
+     *     { "label": "Silver",   "min_ibc_per_hour": 5.0, "bonus_sek": 1000 },
+     *     { "label": "Guld",     "min_ibc_per_hour": 6.0, "bonus_sek": 1800 },
+     *     { "label": "Platinum", "min_ibc_per_hour": 7.0, "bonus_sek": 2800 }
+     *   ]
+     * }
+     */
+    private function simulate(): void {
+        $body = json_decode(file_get_contents('php://input'), true);
+
+        if (!is_array($body)) {
+            $this->sendError('Ogiltig JSON i request-body');
+            return;
+        }
+
+        $periodStart = $body['period_start'] ?? '';
+        $periodEnd   = $body['period_end']   ?? '';
+        $tiers       = $body['bonus_tiers']  ?? [];
+
+        // Validera datumformat
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $periodStart) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $periodEnd)) {
+            $this->sendError('Ogiltigt datumformat. Använd YYYY-MM-DD.');
+            return;
+        }
+
+        if (empty($tiers) || !is_array($tiers)) {
+            $this->sendError('bonus_tiers måste vara en icke-tom array');
+            return;
+        }
+
+        // Validera och sanera tiers
+        $cleanTiers = [];
+        foreach ($tiers as $t) {
+            if (!isset($t['label'], $t['min_ibc_per_hour'], $t['bonus_sek'])) {
+                $this->sendError('Varje tier måste ha label, min_ibc_per_hour och bonus_sek');
+                return;
+            }
+            $cleanTiers[] = [
+                'label'            => substr(strip_tags((string)$t['label']), 0, 50),
+                'min_ibc_per_hour' => (float)$t['min_ibc_per_hour'],
+                'bonus_sek'        => (int)$t['bonus_sek'],
+            ];
+        }
+
+        // Sortera tiers fallande efter min_ibc_per_hour så vi matchar bästa tier först
+        usort($cleanTiers, fn($a, $b) => $b['min_ibc_per_hour'] <=> $a['min_ibc_per_hour']);
+
+        $dateFilter = "DATE(datum) BETWEEN '" . $periodStart . "' AND '" . $periodEnd . "'";
+
+        try {
+            // Hämta operatörsnamn för lookup
+            $opRows = $this->pdo->query("SELECT id, name FROM operators")
+                                ->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Hämta per-skift-data för varje position och slå ihop
+            $perShiftRows = [];
+
+            for ($pos = 1; $pos <= 3; $pos++) {
+                $inner = $this->perShiftByPosition($pos, $dateFilter);
+                $stmt  = $this->pdo->prepare("
+                    SELECT
+                        operator_id,
+                        skiftraknare,
+                        shift_ibc_ok,
+                        shift_runtime
+                    FROM ($inner) AS ps
+                    WHERE shift_runtime > 0
+                ");
+                $stmt->execute();
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $key = $row['operator_id'] . '_' . $row['skiftraknare'] . '_' . $pos;
+                    $perShiftRows[$key] = $row;
+                }
+            }
+
+            // Aggregera per operatör
+            $opData = [];
+            foreach ($perShiftRows as $row) {
+                $opId = (int)$row['operator_id'];
+                if (!isset($opData[$opId])) {
+                    $opData[$opId] = [
+                        'op_number'     => $opId,
+                        'op_name'       => $opRows[$opId] ?? 'Operatör ' . $opId,
+                        'shifts'        => 0,
+                        'total_ibc_ok'  => 0,
+                        'total_runtime' => 0,
+                    ];
+                }
+                $opData[$opId]['shifts']++;
+                $opData[$opId]['total_ibc_ok']  += (int)$row['shift_ibc_ok'];
+                $opData[$opId]['total_runtime']  += (int)$row['shift_runtime'];
+            }
+
+            if (empty($opData)) {
+                $this->sendSuccess([
+                    'results'               => [],
+                    'total_cost'            => 0,
+                    'avg_bonus_per_operator'=> 0,
+                    'period'                => $this->formatPeriodLabel($periodStart, $periodEnd),
+                ]);
+                return;
+            }
+
+            // Beräkna tier och bonus per operatör
+            $results   = [];
+            $totalCost = 0;
+
+            foreach ($opData as $op) {
+                $shifts       = $op['shifts'];
+                $totalIbcOk   = $op['total_ibc_ok'];
+                $totalRuntime = $op['total_runtime']; // minuter
+
+                $totalHours       = $totalRuntime > 0 ? $totalRuntime / 60.0 : 0;
+                $avgIbcPerHour    = ($totalHours > 0 && $shifts > 0)
+                    ? round($totalIbcOk / $totalHours, 2)
+                    : 0.0;
+
+                // Matcha bästa tier (tiers är sorterade fallande)
+                $matchedTier  = null;
+                $bonusPerShift = 0;
+                foreach ($cleanTiers as $tier) {
+                    if ($avgIbcPerHour >= $tier['min_ibc_per_hour']) {
+                        $matchedTier   = $tier['label'];
+                        $bonusPerShift = $tier['bonus_sek'];
+                        break;
+                    }
+                }
+
+                $totalBonus = $bonusPerShift * $shifts;
+                $totalCost += $totalBonus;
+
+                $results[] = [
+                    'op_name'          => $op['op_name'],
+                    'op_number'        => $op['op_number'],
+                    'shifts'           => $shifts,
+                    'avg_ibc_per_hour' => $avgIbcPerHour,
+                    'tier'             => $matchedTier ?? 'Ingen',
+                    'bonus_sek'        => $bonusPerShift,
+                    'total_bonus'      => $totalBonus,
+                ];
+            }
+
+            // Sortera på total_bonus fallande
+            usort($results, fn($a, $b) => $b['total_bonus'] <=> $a['total_bonus']);
+
+            $numOps = count($results);
+            $avgBonusPerOp = $numOps > 0 ? round($totalCost / $numOps) : 0;
+
+            $this->sendSuccess([
+                'results'               => $results,
+                'total_cost'            => $totalCost,
+                'avg_bonus_per_operator'=> $avgBonusPerOp,
+                'period'                => $this->formatPeriodLabel($periodStart, $periodEnd),
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController simulate error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * Formaterar ett datumintervall till en läsbar periodlabel, t.ex. "Feb 2026".
+     * Om start och slut är i samma månad visas månadsnamn + år.
+     * Annars visas "YYYY-MM-DD – YYYY-MM-DD".
+     */
+    private function formatPeriodLabel(string $start, string $end): string {
+        $monthNames = [
+            1  => 'Jan', 2  => 'Feb', 3  => 'Mar', 4  => 'Apr',
+            5  => 'Maj', 6  => 'Jun', 7  => 'Jul', 8  => 'Aug',
+            9  => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Dec',
+        ];
+        $ts = strtotime($start);
+        $te = strtotime($end);
+        if ($ts && $te) {
+            $startMonth = (int)date('n', $ts);
+            $startYear  = (int)date('Y', $ts);
+            $endMonth   = (int)date('n', $te);
+            $endYear    = (int)date('Y', $te);
+            if ($startMonth === $endMonth && $startYear === $endYear) {
+                return ($monthNames[$startMonth] ?? $startMonth) . ' ' . $startYear;
+            }
+        }
+        return $start . ' – ' . $end;
     }
 
     // ================================================================

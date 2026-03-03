@@ -192,6 +192,13 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getBenchmarking(): Observable<BenchmarkingResponse> {
+    return this.http.get<BenchmarkingResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=benchmarking',
+      { withCredentials: true }
+    );
+  }
 }
 
 export interface CycleTrendResponse {
@@ -355,6 +362,48 @@ export interface SPCResponse {
     n: number;
     days: number;
   };
+  error?: string;
+}
+
+export interface BenchmarkingWeek {
+  week_label: string;
+  ibc_total: number;
+  ibc_per_day: number;
+  avg_quality: number;
+  avg_oee: number | null;
+  days_active?: number;
+}
+
+export interface BenchmarkingTopWeek {
+  week_label: string;
+  yr: number;
+  wk: number;
+  ibc_total: number;
+  avg_quality: number;
+  avg_oee: number | null;
+  days_active: number;
+}
+
+export interface BenchmarkingMonthly {
+  month: string;
+  ibc_total: number;
+  avg_quality: number;
+  avg_oee: number | null;
+}
+
+export interface BenchmarkingBestDay {
+  date: string;
+  ibc_total: number;
+  quality: number;
+}
+
+export interface BenchmarkingResponse {
+  success: boolean;
+  current_week?: BenchmarkingWeek;
+  best_week_ever?: BenchmarkingWeek;
+  best_day_ever?: BenchmarkingBestDay;
+  top_weeks?: BenchmarkingTopWeek[];
+  monthly_totals?: BenchmarkingMonthly[];
   error?: string;
 }
 

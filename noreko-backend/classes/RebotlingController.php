@@ -54,6 +54,8 @@ class RebotlingController {
                 $this->getSPC();
             } elseif ($action === 'year-calendar') {
                 $this->getYearCalendar();
+            } elseif ($action === 'benchmarking') {
+                $this->getBenchmarking();
             } else {
                 $this->getLiveStats();
             }
@@ -2645,6 +2647,348 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getYearCalendar: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kalenderdata']);
+        }
+    }
+
+    // =========================================================
+    // Benchmarking — denna vecka vs rekordveckan
+    // =========================================================
+
+    /**
+     * GET ?action=rebotling&run=benchmarking
+     *
+     * Returnerar:
+     *   - current_week: IBC totalt, IBC/dag, snitt kvalitet%, snitt OEE%, aktiva dagar för innevarande vecka
+     *   - best_week_ever: rekordveckan (höst IBC totalt)
+     *   - best_day_ever: dag med flest IBC
+     *   - top_weeks: topp-10 veckor sorterade på ibc_total DESC
+     *   - monthly_totals: IBC per månad senaste 12 månaderna
+     */
+    private function getBenchmarking() {
+        try {
+            $tz = new DateTimeZone('Europe/Stockholm');
+            $now = new DateTime('now', $tz);
+
+            // ---- Ideal rate för OEE-beräkning ----
+            $idealRatePerMin = 15.0 / 60.0;
+
+            // ---- Hjälpfunktion: beräkna OEE% för en mängd skift-aggregat ----
+            // Används inline nedan.
+
+            // ================================================================
+            // 1. Topp-10 veckor (aggregerat korrekt: MAX per skift → SUM per vecka)
+            // ================================================================
+            $stmtTop = $this->pdo->query("
+                SELECT
+                    YEAR(datum)     AS yr,
+                    WEEK(datum, 1)  AS wk,
+                    SUM(shift_ibc)  AS ibc_total,
+                    ROUND(AVG(shift_quality), 1) AS avg_quality,
+                    COUNT(DISTINCT DATE(datum))  AS days_active
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        ROUND(
+                            MAX(ibc_ok) * 100.0
+                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                        1) AS shift_quality
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY YEAR(datum), WEEK(datum, 1)
+                ORDER BY ibc_total DESC
+                LIMIT 10
+            ");
+            $topWeeksRaw = $stmtTop->fetchAll(PDO::FETCH_ASSOC);
+
+            // ---- OEE per vecka (topp-10 veckor) ----
+            // För OEE behöver vi runtime_plc och rasttime per skift per vecka.
+            $stmtOeeWeeks = $this->pdo->query("
+                SELECT
+                    YEAR(datum)    AS yr,
+                    WEEK(datum, 1) AS wk,
+                    SUM(shift_ibc_ok)    AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_runtime)   AS runtime_min,
+                    SUM(shift_rast)      AS rast_min
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS ps
+                GROUP BY YEAR(datum), WEEK(datum, 1)
+            ");
+            $oeeByWeek = [];
+            foreach ($stmtOeeWeeks->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $key = $row['yr'] . '-' . $row['wk'];
+                $totalIBC  = (float)$row['ibc_ok'] + (float)$row['ibc_ej_ok'];
+                $goodIBC   = (float)$row['ibc_ok'];
+                $runtimeM  = max((float)$row['runtime_min'], 1);
+                $plannedM  = max((float)$row['runtime_min'] + (float)$row['rast_min'], 1);
+                $avail     = min($runtimeM / $plannedM, 1.0);
+                $perf      = min(($totalIBC / $runtimeM) / $idealRatePerMin, 1.0);
+                $qual      = $totalIBC > 0 ? $goodIBC / $totalIBC : 0;
+                $oeeByWeek[$key] = round($avail * $perf * $qual * 100, 1);
+            }
+
+            // ---- Bygg topp-10-lista ----
+            $topWeeks = [];
+            $bestWeekYr = null;
+            $bestWeekWk = null;
+            foreach ($topWeeksRaw as $i => $row) {
+                $yr  = (int)$row['yr'];
+                $wk  = (int)$row['wk'];
+                $key = $yr . '-' . $wk;
+                $oee = $oeeByWeek[$key] ?? null;
+                // ISO veckonummer → veckoetiketten
+                $weekLabel = 'V' . $wk . ' ' . $yr;
+                $entry = [
+                    'week_label'  => $weekLabel,
+                    'yr'          => $yr,
+                    'wk'          => $wk,
+                    'ibc_total'   => (int)$row['ibc_total'],
+                    'avg_quality' => (float)$row['avg_quality'],
+                    'avg_oee'     => $oee,
+                    'days_active' => (int)$row['days_active'],
+                ];
+                if ($i === 0) {
+                    $bestWeekYr = $yr;
+                    $bestWeekWk = $wk;
+                }
+                $topWeeks[] = $entry;
+            }
+
+            // ================================================================
+            // 2. Bästa veckan — första raden i topWeeks
+            // ================================================================
+            $bestWeekEver = null;
+            if (!empty($topWeeks)) {
+                $bw = $topWeeks[0];
+                $ipcDay = $bw['days_active'] > 0 ? round($bw['ibc_total'] / $bw['days_active'], 1) : 0.0;
+                $bestWeekEver = [
+                    'week_label'  => $bw['week_label'],
+                    'ibc_total'   => $bw['ibc_total'],
+                    'ibc_per_day' => $ipcDay,
+                    'avg_quality' => $bw['avg_quality'],
+                    'avg_oee'     => $bw['avg_oee'],
+                ];
+            }
+
+            // ================================================================
+            // 3. Innevarande vecka
+            // ================================================================
+            $curYr = (int)$now->format('Y');
+            $curWk = (int)$now->format('W'); // ISO 8601 veckonummer
+
+            $stmtCur = $this->pdo->prepare("
+                SELECT
+                    SUM(shift_ibc)  AS ibc_total,
+                    ROUND(AVG(shift_quality), 1) AS avg_quality,
+                    COUNT(DISTINCT DATE(datum))   AS days_active
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        ROUND(
+                            MAX(ibc_ok) * 100.0
+                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                        1) AS shift_quality
+                    FROM rebotling_ibc
+                    WHERE YEAR(datum) = ?
+                      AND WEEK(datum, 1) = ?
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+            ");
+            $stmtCur->execute([$curYr, $curWk]);
+            $curRow = $stmtCur->fetch(PDO::FETCH_ASSOC);
+
+            // OEE innevarande vecka
+            $stmtCurOee = $this->pdo->prepare("
+                SELECT
+                    SUM(shift_ibc_ok)    AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_runtime)   AS runtime_min,
+                    SUM(shift_rast)      AS rast_min
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE YEAR(datum) = ?
+                      AND WEEK(datum, 1) = ?
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS ps
+            ");
+            $stmtCurOee->execute([$curYr, $curWk]);
+            $curOeeRow = $stmtCurOee->fetch(PDO::FETCH_ASSOC);
+
+            $curOee = null;
+            if ($curOeeRow && $curOeeRow['runtime_min'] > 0) {
+                $totalIBC = (float)$curOeeRow['ibc_ok'] + (float)$curOeeRow['ibc_ej_ok'];
+                $goodIBC  = (float)$curOeeRow['ibc_ok'];
+                $runtimeM = max((float)$curOeeRow['runtime_min'], 1);
+                $plannedM = max((float)$curOeeRow['runtime_min'] + (float)$curOeeRow['rast_min'], 1);
+                $avail    = min($runtimeM / $plannedM, 1.0);
+                $perf     = min(($totalIBC / $runtimeM) / $idealRatePerMin, 1.0);
+                $qual     = $totalIBC > 0 ? $goodIBC / $totalIBC : 0;
+                $curOee   = round($avail * $perf * $qual * 100, 1);
+            }
+
+            $curIbcTotal = (int)($curRow['ibc_total'] ?? 0);
+            $curDaysActive = (int)($curRow['days_active'] ?? 0);
+            $curIbcPerDay  = $curDaysActive > 0 ? round($curIbcTotal / $curDaysActive, 1) : 0.0;
+            $weekLabel = 'V' . $curWk . ' ' . $curYr;
+
+            $currentWeek = [
+                'week_label'  => $weekLabel,
+                'ibc_total'   => $curIbcTotal,
+                'ibc_per_day' => $curIbcPerDay,
+                'avg_quality' => (float)($curRow['avg_quality'] ?? 0),
+                'avg_oee'     => $curOee,
+                'days_active' => $curDaysActive,
+            ];
+
+            // ================================================================
+            // 4. Bästa dagen någonsin
+            // ================================================================
+            $stmtBestDay = $this->pdo->query("
+                SELECT
+                    DATE(datum) AS datum,
+                    SUM(shift_ibc) AS ibc_total,
+                    ROUND(AVG(shift_quality), 1) AS quality
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        ROUND(
+                            MAX(ibc_ok) * 100.0
+                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                        1) AS shift_quality
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY DATE(datum)
+                ORDER BY ibc_total DESC
+                LIMIT 1
+            ");
+            $bestDayRow = $stmtBestDay->fetch(PDO::FETCH_ASSOC);
+            $bestDayEver = $bestDayRow ? [
+                'date'      => $bestDayRow['datum'],
+                'ibc_total' => (int)$bestDayRow['ibc_total'],
+                'quality'   => (float)$bestDayRow['quality'],
+            ] : null;
+
+            // ================================================================
+            // 5. Månadsöversikt senaste 13 månader (innevar. månad + 12 bakåt)
+            // ================================================================
+            $stmtMonthly = $this->pdo->query("
+                SELECT
+                    DATE_FORMAT(datum, '%Y-%m') AS month,
+                    SUM(shift_ibc)  AS ibc_total,
+                    ROUND(AVG(shift_quality), 1) AS avg_quality
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        ROUND(
+                            MAX(ibc_ok) * 100.0
+                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                        1) AS shift_quality
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 13 MONTH)
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                ORDER BY month ASC
+            ");
+            $monthlyRaw = $stmtMonthly->fetchAll(PDO::FETCH_ASSOC);
+
+            // OEE per månad
+            $stmtMonthlyOee = $this->pdo->query("
+                SELECT
+                    DATE_FORMAT(datum, '%Y-%m') AS month,
+                    SUM(shift_ibc_ok)    AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_runtime)   AS runtime_min,
+                    SUM(shift_rast)      AS rast_min
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 13 MONTH)
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS ps
+                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+            ");
+            $oeeByMonth = [];
+            foreach ($stmtMonthlyOee->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $totalIBC = (float)$row['ibc_ok'] + (float)$row['ibc_ej_ok'];
+                $goodIBC  = (float)$row['ibc_ok'];
+                $runtimeM = max((float)$row['runtime_min'], 1);
+                $plannedM = max((float)$row['runtime_min'] + (float)$row['rast_min'], 1);
+                $avail    = min($runtimeM / $plannedM, 1.0);
+                $perf     = min(($totalIBC / $runtimeM) / $idealRatePerMin, 1.0);
+                $qual     = $totalIBC > 0 ? $goodIBC / $totalIBC : 0;
+                $oeeByMonth[$row['month']] = round($avail * $perf * $qual * 100, 1);
+            }
+
+            $monthlyTotals = [];
+            foreach ($monthlyRaw as $row) {
+                $monthlyTotals[] = [
+                    'month'       => $row['month'],
+                    'ibc_total'   => (int)$row['ibc_total'],
+                    'avg_quality' => (float)$row['avg_quality'],
+                    'avg_oee'     => $oeeByMonth[$row['month']] ?? null,
+                ];
+            }
+
+            // ================================================================
+            // Bygg slutsvar
+            // ================================================================
+            echo json_encode([
+                'success'       => true,
+                'current_week'  => $currentWeek,
+                'best_week_ever'=> $bestWeekEver,
+                'best_day_ever' => $bestDayEver,
+                'top_weeks'     => $topWeeks,
+                'monthly_totals'=> $monthlyTotals,
+            ]);
+        } catch (Exception $e) {
+            error_log('getBenchmarking: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta benchmarking-data']);
         }
     }
 }
