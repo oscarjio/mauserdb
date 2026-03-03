@@ -99,7 +99,7 @@ export class LoginPage {
           this.auth.initialized$.next(true);
           sessionStorage.setItem('auth_user', JSON.stringify(res.user));
           this.router.navigate(['/']);
-          this.auth.fetchStatus(); // bakgrundsverifiering
+          this.auth.fetchStatus().subscribe(); // bakgrundsverifiering
         } else {
           this.error = res.message || 'Fel användarnamn eller lösenord.';
           this.loading = false;

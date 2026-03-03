@@ -1,17 +1,18 @@
 import { ApplicationConfig, APP_INITIALIZER, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 
 import { routes } from './app.routes';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { AuthService } from './services/auth.service';
 
-// Säkerställer att AuthService alltid instansieras direkt vid app-start,
-// oavsett vilken route som laddas. Utan detta anropas fetchStatus() aldrig
-// förrän en guard eller Menu-komponenten injicerar AuthService — vilket på
-// login/live-sidor (där Menu döljs) kan vara länge eller aldrig.
+// APP_INITIALIZER returnerar en Promise som Angular VÄNTAR på innan routing startar.
+// firstValueFrom(auth.fetchStatus()) skickar ett HTTP-anrop till /api.php?action=status
+// och resolvar när svaret (eller ett timeout/nätverksfel) är klart.
+// På så vis är loggedIn$ och user$ alltid korrekt satta vid första route-navigationen.
 function initAuth(auth: AuthService) {
-  return () => {}; // Konstruktorn gör jobbet (fetchStatus + interval)
+  return () => firstValueFrom(auth.fetchStatus());
 }
 
 export const appConfig: ApplicationConfig = {

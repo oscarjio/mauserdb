@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, interval, of } from 'rxjs';
-import { timeout, catchError, retry } from 'rxjs/operators';
+import { BehaviorSubject, interval, of, Observable } from 'rxjs';
+import { timeout, catchError, retry, tap, map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -25,26 +25,36 @@ export class AuthService {
         sessionStorage.removeItem('auth_user');
       }
     }
-    this.fetchStatus();
-    interval(60000).subscribe(() => this.fetchStatus());
+    // Det initiala fetchStatus()-anropet görs av APP_INITIALIZER (se app.config.ts)
+    // så att Angular väntar på svaret innan routing startar.
+    // Här sätter vi bara upp polling för efterföljande kontroller.
+    interval(60000).subscribe(() => this.fetchStatus().subscribe());
   }
 
-  fetchStatus() {
-    this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
+  fetchStatus(): Observable<void> {
+    return this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
       timeout(8000),
       retry(1),
-      catchError(() => of({ loggedIn: false, user: null }))
-    ).subscribe(res => {
-      const loggedIn = !!res?.loggedIn;
-      this.loggedIn$.next(loggedIn);
-      this.user$.next(res?.user || null);
-      this.initialized$.next(true);
-      if (loggedIn && res?.user) {
-        sessionStorage.setItem('auth_user', JSON.stringify(res.user));
-      } else {
-        sessionStorage.removeItem('auth_user');
-      }
-    });
+      catchError(() => of(null)), // null = transient error, ändra inte auth-state
+      tap(res => {
+        if (res === null) {
+          // Transienta fel (timeout, nätverksfel) loggar inte ut användaren.
+          // Sätt initialized så guards inte fastnar.
+          this.initialized$.next(true);
+          return;
+        }
+        const loggedIn = !!res?.loggedIn;
+        this.loggedIn$.next(loggedIn);
+        this.user$.next(res?.user || null);
+        this.initialized$.next(true);
+        if (loggedIn && res?.user) {
+          sessionStorage.setItem('auth_user', JSON.stringify(res.user));
+        } else {
+          sessionStorage.removeItem('auth_user');
+        }
+      }),
+      map(() => void 0)
+    );
   }
 
   logout() {
