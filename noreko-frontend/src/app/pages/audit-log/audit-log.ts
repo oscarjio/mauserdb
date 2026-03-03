@@ -107,7 +107,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
 
   loadLogs() {
     this.loading = true;
-    this.auditService.getLogs(this.buildParams()).subscribe({
+    this.auditService.getLogs(this.buildParams()).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.logs = res.data;
@@ -173,7 +173,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
   exportCSV() {
     this.exportingAll = true;
     const params = { ...this.buildParams(), page: 1, limit: 2000 };
-    this.auditService.getLogs(params).subscribe({
+    this.auditService.getLogs(params).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.exportingAll = false;
         const entries: AuditEntry[] = res.success ? res.data : this.logs;

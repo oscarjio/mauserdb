@@ -1,213 +1,290 @@
-<div class="container-fluid mt-4">
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">
-          <i class="fas fa-id-badge me-2"></i>
-          Operatörshantering
-        </h1>
-        <button class="btn btn-success" (click)="showAddForm = !showAddForm">
-          <i class="fas fa-plus me-2"></i>
-          Lägg till operatör
-        </button>
-      </div>
+<div class="ops-page">
 
-      <div *ngIf="loading" class="text-center text-muted">
-        <i class="fas fa-spinner fa-spin me-2"></i>
-        Laddar operatörer...
-      </div>
-
-      <div *ngIf="error" class="alert alert-danger" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        {{ error }}
-      </div>
-
-      <!-- Add Form -->
-      <div class="card mb-4" *ngIf="showAddForm">
-        <div class="card-header">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-plus me-2"></i>
-            Ny operatör
-          </h5>
-        </div>
-        <div class="card-body">
-          <form (ngSubmit)="createOperator()" class="edit-form">
-            <div class="row g-2 align-items-end">
-              <div class="col-md-4">
-                <label class="form-label">Namn</label>
-                <input class="form-control form-control-sm" [(ngModel)]="addForm.name" name="add-name" placeholder="Operatörens namn" required />
-              </div>
-              <div class="col-md-2">
-                <label class="form-label">PLC-nummer</label>
-                <input class="form-control form-control-sm" [(ngModel)]="addForm.number" name="add-number" placeholder="T.ex. 101" type="number" min="1" required />
-              </div>
-              <div class="col-md-2">
-                <button class="btn btn-success btn-sm w-100" type="submit">
-                  <i class="fas fa-save me-1"></i>
-                  Spara
-                </button>
-              </div>
-              <div class="col-md-2">
-                <button class="btn btn-secondary btn-sm w-100" type="button" (click)="showAddForm = false">
-                  Avbryt
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      <!-- Operators Card -->
-      <div class="card mb-4" *ngIf="!loading">
-        <div class="card-header bg-success text-white">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-id-badge me-2"></i>
-            Operatörer
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table table-striped table-hover" *ngIf="operators.length">
-              <thead class="table-dark">
-                <tr>
-                  <th>Namn</th>
-                  <th>Nummer</th>
-                  <th>Status</th>
-                  <th>Skapad</th>
-                  <th>Åtgärder</th>
-                </tr>
-              </thead>
-              <tbody>
-                <ng-container *ngFor="let op of operators">
-                  <tr [class.inactive-row]="op.active === 0 || op.active === '0'">
-                    <td><strong>{{ op.name }}</strong></td>
-                    <td><span class="badge bg-info">#{{ op.number }}</span></td>
-                    <td>
-                      <span class="badge" [class.bg-success]="op.active == 1" [class.bg-secondary]="op.active == 0">
-                        {{ op.active == 1 ? 'Aktiv' : 'Inaktiv' }}
-                      </span>
-                    </td>
-                    <td>{{ op.created_at || '-' }}</td>
-                    <td>
-                      <div class="btn-group btn-group-sm" role="group">
-                        <button class="btn btn-outline-primary" (click)="toggleExpand(op.id)" title="Redigera"
-                                aria-label="Redigera operatör">
-                          <i class="fas" [class.fa-edit]="!expanded[op.id]" [class.fa-times]="expanded[op.id]"></i>
-                        </button>
-                        <button class="btn btn-outline-warning" (click)="toggleActive(op)"
-                                [title]="op.active == 1 ? 'Inaktivera' : 'Aktivera'"
-                                [attr.aria-label]="op.active == 1 ? 'Inaktivera operatör' : 'Aktivera operatör'">
-                          <i class="fas" [class.fa-ban]="op.active == 1" [class.fa-check-circle]="op.active == 0"></i>
-                        </button>
-                        <button class="btn btn-outline-danger" (click)="deleteOperator(op)" title="Ta bort operatör"
-                                aria-label="Ta bort operatör">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  <tr *ngIf="expanded[op.id]" class="edit-row">
-                    <td colspan="5">
-                      <div class="card border-primary">
-                        <div class="card-body">
-                          <form (ngSubmit)="saveOperator(op)" class="edit-form">
-                            <div class="row g-2 align-items-end">
-                              <div class="col-md-4">
-                                <label class="form-label">Namn</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="op.name" name="name-{{op.id}}" placeholder="Namn" required />
-                              </div>
-                              <div class="col-md-2">
-                                <label class="form-label">PLC-nummer</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="op.number" name="number-{{op.id}}" placeholder="Nummer" type="number" min="1" required />
-                              </div>
-                              <div class="col-md-2">
-                                <button class="btn btn-success btn-sm w-100" type="submit">
-                                  <i class="fas fa-save me-1"></i>
-                                  Spara
-                                </button>
-                              </div>
-                              <div class="col-md-2">
-                                <button class="btn btn-secondary btn-sm w-100" type="button" (click)="expanded[op.id] = false">
-                                  Avbryt
-                                </button>
-                              </div>
-                            </div>
-                          </form>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                </ng-container>
-              </tbody>
-            </table>
-            <div *ngIf="!operators.length" class="text-center text-muted py-4">
-              <i class="fas fa-info-circle me-2"></i>
-              Inga operatörer registrerade. Klicka "Lägg till operatör" för att börja.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Operatörsranking -->
-      <div class="card mb-4" *ngIf="!loading">
-        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-trophy me-2 text-warning"></i>
-            Operatörsranking (senaste 30 dagarna)
-          </h5>
-          <button class="btn btn-outline-light btn-sm" (click)="toggleRanking()">
-            <i class="fas" [class.fa-chevron-down]="!showRanking" [class.fa-chevron-up]="showRanking"></i>
-            {{ showRanking ? 'Dölj' : 'Visa' }}
-          </button>
-        </div>
-        <div class="card-body" *ngIf="showRanking">
-          <div *ngIf="opStatsLoading" class="text-center text-muted py-3">
-            <i class="fas fa-spinner fa-spin me-2"></i>Laddar ranking...
-          </div>
-          <div class="table-responsive" *ngIf="!opStatsLoading">
-            <table class="table table-striped table-hover" *ngIf="opStats.length">
-              <thead class="table-dark">
-                <tr>
-                  <th>#</th>
-                  <th>Operatör</th>
-                  <th class="text-end">Skift</th>
-                  <th class="text-end">IBC/h</th>
-                  <th class="text-end">Kvalitet %</th>
-                  <th class="text-end">Senaste skift</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let s of opStats; let i = index">
-                  <td>
-                    <span *ngIf="i === 0" class="badge bg-warning text-dark">1</span>
-                    <span *ngIf="i === 1" class="badge bg-secondary">2</span>
-                    <span *ngIf="i === 2" class="badge" style="background:#cd7f32;color:#fff">3</span>
-                    <span *ngIf="i > 2">{{ i + 1 }}</span>
-                  </td>
-                  <td><strong>{{ s.name }}</strong> <small class="text-muted">#{{ s.number }}</small></td>
-                  <td class="text-end">{{ s.shifts || 0 }}</td>
-                  <td class="text-end">
-                    <span [class.text-success]="s.ibc_per_hour > 5" [class.text-warning]="s.ibc_per_hour <= 5 && s.ibc_per_hour > 0">
-                      {{ s.ibc_per_hour || '-' }}
-                    </span>
-                  </td>
-                  <td class="text-end">
-                    <span [class.text-success]="s.avg_quality >= 90" [class.text-warning]="s.avg_quality < 90 && s.avg_quality >= 70" [class.text-danger]="s.avg_quality < 70 && s.avg_quality != null">
-                      {{ s.avg_quality != null ? (s.avg_quality | number:'1.0-1') + '%' : '-' }}
-                    </span>
-                  </td>
-                  <td class="text-end text-muted">{{ s.last_shift ? (s.last_shift | slice:0:10) : '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div *ngIf="!opStats.length" class="text-center text-muted py-3">
-              <i class="fas fa-info-circle me-2"></i>
-              Ingen produktionsdata de senaste 30 dagarna.
-            </div>
-          </div>
-        </div>
-      </div>
-
+  <!-- Sidrubrik -->
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h1 class="h3 mb-0">
+        <i class="fas fa-id-badge me-2 text-info"></i>
+        Operatörer
+      </h1>
+      <button class="btn btn-success btn-sm" (click)="showAddForm = !showAddForm">
+        <i class="fas fa-plus me-1"></i>
+        Lägg till operatör
+      </button>
     </div>
   </div>
+
+  <!-- Fel -->
+  <div *ngIf="error" class="alert alert-danger mb-3">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+  </div>
+
+  <!-- Lägg till-formulär -->
+  <div class="ops-card mb-4" *ngIf="showAddForm">
+    <div class="ops-card-header">
+      <i class="fas fa-user-plus me-2 text-success"></i>Ny operatör
+    </div>
+    <div class="ops-card-body">
+      <form (ngSubmit)="createOperator()" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Namn</label>
+          <input class="form-control form-control-sm" [(ngModel)]="addForm.name"
+                 name="add-name" placeholder="Operatörens namn" required />
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">PLC-nummer</label>
+          <input class="form-control form-control-sm" [(ngModel)]="addForm.number"
+                 name="add-number" placeholder="T.ex. 101" type="number" min="1" required />
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-success btn-sm" type="submit">
+            <i class="fas fa-save me-1"></i>Spara
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-secondary btn-sm" type="button" (click)="showAddForm = false">
+            Avbryt
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- =================== OPERATÖRSKORT (statistik) =================== -->
+  <div class="ops-card mb-4">
+    <div class="ops-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span><i class="fas fa-chart-bar me-2 text-warning"></i>Operatörsöversikt — senaste 30 dagarna</span>
+      <!-- Sök + sortering -->
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="search-box">
+          <i class="fas fa-search search-icon"></i>
+          <input class="form-control form-control-sm search-input"
+                 [(ngModel)]="searchText"
+                 placeholder="Sök operatör..."
+                 name="search-ops" />
+        </div>
+        <div class="sort-controls">
+          <span class="sort-label">Sortera:</span>
+          <button class="sort-btn" [class.active]="sortField === 'ibc_per_hour'" (click)="sortBy('ibc_per_hour')">
+            IBC/h <i class="fas" [class]="'fas ' + sortIcon('ibc_per_hour')"></i>
+          </button>
+          <button class="sort-btn" [class.active]="sortField === 'avg_quality'" (click)="sortBy('avg_quality')">
+            Kvalitet <i class="fas" [class]="'fas ' + sortIcon('avg_quality')"></i>
+          </button>
+          <button class="sort-btn" [class.active]="sortField === 'shifts'" (click)="sortBy('shifts')">
+            Skift <i class="fas" [class]="'fas ' + sortIcon('shifts')"></i>
+          </button>
+          <button class="sort-btn" [class.active]="sortField === 'name'" (click)="sortBy('name')">
+            Namn <i class="fas" [class]="'fas ' + sortIcon('name')"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="ops-card-body">
+      <!-- Laddning -->
+      <div *ngIf="opStatsLoading" class="text-center text-muted py-4">
+        <i class="fas fa-spinner fa-spin me-2"></i>Laddar operatörsdata...
+      </div>
+
+      <!-- Inga resultat -->
+      <div *ngIf="!opStatsLoading && filteredStats.length === 0" class="text-center text-muted py-4">
+        <i class="fas fa-info-circle me-2"></i>
+        <span *ngIf="searchText">Inga operatörer matchar sökningen.</span>
+        <span *ngIf="!searchText">Ingen produktionsdata tillgänglig.</span>
+      </div>
+
+      <!-- Operatörskort-grid -->
+      <div class="op-cards-grid" *ngIf="!opStatsLoading && filteredStats.length > 0">
+        <ng-container *ngFor="let s of filteredStats; let i = index">
+          <!-- Operatörskortet -->
+          <div class="op-card" [class.op-card--expanded]="expandedStatId === s.id"
+               [class.op-card--inactive]="s.active == 0">
+            <div class="op-card-top" (click)="toggleStatDetail(s)">
+              <!-- Ranknummer / medalj -->
+              <div class="op-rank">
+                <span *ngIf="getRankMedal(i) === 'gold'" class="medal medal-gold">1</span>
+                <span *ngIf="getRankMedal(i) === 'silver'" class="medal medal-silver">2</span>
+                <span *ngIf="getRankMedal(i) === 'bronze'" class="medal medal-bronze">3</span>
+                <span *ngIf="!getRankMedal(i)" class="rank-num">{{ i + 1 }}</span>
+              </div>
+
+              <!-- Avatar (initialer) -->
+              <div class="op-avatar" [style.background]="getAvatarColor(s.name)">
+                {{ getInitials(s.name) }}
+              </div>
+
+              <!-- Info -->
+              <div class="op-info">
+                <div class="op-name">{{ s.name }}</div>
+                <div class="op-meta">
+                  <span class="op-number">#{{ s.number }}</span>
+                  <span class="op-status-badge" [class]="getActivityClass(s)">
+                    {{ getActivityLabel(s) }}
+                  </span>
+                </div>
+                <div class="op-last-shift" *ngIf="s.last_shift">
+                  Senaste skift: {{ (s.last_shift | slice:0:10) }}
+                </div>
+                <div class="op-last-shift text-muted" *ngIf="!s.last_shift">
+                  Inga skift senaste 30 dagarna
+                </div>
+              </div>
+
+              <!-- KPI-minisammanfattning -->
+              <div class="op-kpis">
+                <div class="op-kpi">
+                  <span class="kpi-val" [class]="getIbcClass(s.ibc_per_hour)">
+                    {{ s.ibc_per_hour != null ? s.ibc_per_hour : '–' }}
+                  </span>
+                  <span class="kpi-lbl">IBC/h</span>
+                </div>
+                <div class="op-kpi">
+                  <span class="kpi-val" [class]="getQualClass(s.avg_quality)">
+                    {{ s.avg_quality != null ? (s.avg_quality | number:'1.0-1') + '%' : '–' }}
+                  </span>
+                  <span class="kpi-lbl">Kvalitet</span>
+                </div>
+                <div class="op-kpi">
+                  <span class="kpi-val kpi-neutral">{{ s.shifts || 0 }}</span>
+                  <span class="kpi-lbl">Skift</span>
+                </div>
+              </div>
+
+              <!-- Expand-pil -->
+              <div class="op-expand-arrow">
+                <i class="fas" [class.fa-chevron-down]="expandedStatId !== s.id"
+                               [class.fa-chevron-up]="expandedStatId === s.id"></i>
+              </div>
+            </div>
+
+            <!-- Detaljvy (expanderad) -->
+            <div class="op-detail" *ngIf="expandedStatId === s.id">
+              <div class="op-detail-inner">
+                <!-- KPI-rad -->
+                <div class="kpi-row">
+                  <div class="kpi-tile">
+                    <div class="kpi-tile-val" [class]="getIbcClass(s.ibc_per_hour)">
+                      {{ s.ibc_per_hour != null ? s.ibc_per_hour : '–' }}
+                    </div>
+                    <div class="kpi-tile-lbl">IBC / timme</div>
+                  </div>
+                  <div class="kpi-tile">
+                    <div class="kpi-tile-val" [class]="getQualClass(s.avg_quality)">
+                      {{ s.avg_quality != null ? (s.avg_quality | number:'1.0-1') + '%' : '–' }}
+                    </div>
+                    <div class="kpi-tile-lbl">Snitt kvalitet %</div>
+                  </div>
+                  <div class="kpi-tile">
+                    <div class="kpi-tile-val kpi-neutral">{{ s.shifts || 0 }}</div>
+                    <div class="kpi-tile-lbl">Skift (30 dagar)</div>
+                  </div>
+                </div>
+
+                <!-- Trendgraf -->
+                <div class="trend-section">
+                  <div class="trend-title">IBC/h och kvalitet — senaste 8 veckorna</div>
+                  <div *ngIf="trendLoading[s.id]" class="text-center text-muted py-3">
+                    <i class="fas fa-spinner fa-spin me-2"></i>Laddar trend...
+                  </div>
+                  <div *ngIf="!trendLoading[s.id] && trendData[s.id]?.length === 0" class="text-center text-muted py-2">
+                    Ingen trenddata tillgänglig.
+                  </div>
+                  <div class="trend-chart-wrap" *ngIf="!trendLoading[s.id] && (trendData[s.id]?.length || 0) > 0">
+                    <canvas [id]="'trendChart_' + s.id"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== ADMIN-HANTERING =================== -->
+  <div class="ops-card mb-4">
+    <div class="ops-card-header">
+      <i class="fas fa-cog me-2 text-secondary"></i>Hantera operatörer
+    </div>
+    <div class="ops-card-body">
+      <div *ngIf="loading" class="text-center text-muted py-3">
+        <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+      </div>
+
+      <div class="table-responsive" *ngIf="!loading">
+        <table class="table table-hover ops-table" *ngIf="operators.length">
+          <thead>
+            <tr>
+              <th>Namn</th>
+              <th>Nummer</th>
+              <th>Status</th>
+              <th>Skapad</th>
+              <th>Åtgärder</th>
+            </tr>
+          </thead>
+          <tbody>
+            <ng-container *ngFor="let op of operators">
+              <tr [class.inactive-row]="op.active === 0 || op.active === '0'">
+                <td><strong>{{ op.name }}</strong></td>
+                <td><span class="badge bg-info text-dark">#{{ op.number }}</span></td>
+                <td>
+                  <span class="badge"
+                        [class.bg-success]="op.active == 1"
+                        [class.bg-secondary]="op.active == 0">
+                    {{ op.active == 1 ? 'Aktiv' : 'Inaktiv' }}
+                  </span>
+                </td>
+                <td class="text-muted small">{{ op.created_at ? (op.created_at | slice:0:10) : '–' }}</td>
+                <td>
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-outline-primary" (click)="toggleExpand(op.id)" title="Redigera">
+                      <i class="fas" [class.fa-edit]="!expanded[op.id]" [class.fa-times]="expanded[op.id]"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" (click)="toggleActive(op)"
+                            [title]="op.active == 1 ? 'Inaktivera' : 'Aktivera'">
+                      <i class="fas" [class.fa-ban]="op.active == 1" [class.fa-check-circle]="op.active == 0"></i>
+                    </button>
+                    <button class="btn btn-outline-danger" (click)="deleteOperator(op)" title="Ta bort">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="expanded[op.id]" class="edit-row">
+                <td colspan="5">
+                  <form (ngSubmit)="saveOperator(op)" class="row g-2 align-items-end p-2">
+                    <div class="col-md-4">
+                      <label class="form-label">Namn</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="op.name"
+                             [name]="'name-' + op.id" placeholder="Namn" required />
+                    </div>
+                    <div class="col-md-2">
+                      <label class="form-label">PLC-nummer</label>
+                      <input class="form-control form-control-sm" [(ngModel)]="op.number"
+                             [name]="'number-' + op.id" type="number" min="1" required />
+                    </div>
+                    <div class="col-auto">
+                      <button class="btn btn-success btn-sm" type="submit">
+                        <i class="fas fa-save me-1"></i>Spara
+                      </button>
+                    </div>
+                    <div class="col-auto">
+                      <button class="btn btn-secondary btn-sm" type="button" (click)="expanded[op.id] = false">
+                        Avbryt
+                      </button>
+                    </div>
+                  </form>
+                </td>
+              </tr>
+            </ng-container>
+          </tbody>
+        </table>
+        <div *ngIf="!operators.length" class="text-center text-muted py-4">
+          <i class="fas fa-info-circle me-2"></i>
+          Inga operatörer registrerade.
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>

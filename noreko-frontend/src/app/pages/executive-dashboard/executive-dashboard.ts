@@ -30,6 +30,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   private pollInterval: any;
   private dataSub: Subscription | null = null;
   private barChart: Chart | null = null;
+  private barChartTimer: any = null;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -51,6 +52,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollInterval) clearInterval(this.pollInterval);
+    clearTimeout(this.barChartTimer);
     this.dataSub?.unsubscribe();
     if (this.barChart) this.barChart.destroy();
   }
@@ -67,7 +69,10 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           if (res?.success && res.data) {
             this.dashData = res.data;
             this.lastRefresh = new Date();
-            setTimeout(() => this.buildBarChart(), 100);
+            clearTimeout(this.barChartTimer);
+            this.barChartTimer = setTimeout(() => {
+              if (!this.destroy$.closed) this.buildBarChart();
+            }, 100);
           }
           this.loading = false;
           this.isFetching = false;

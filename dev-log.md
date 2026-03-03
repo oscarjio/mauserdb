@@ -1,5 +1,52 @@
 # MauserDB Dev Log
 
+---
+
+## 2026-03-03 — Bug Hunt #2 + Operators-sida ombyggd
+
+### Bug Hunt #2 — Fixade minnesläckor
+
+**angular — takeUntil saknas (subscription-läckor):**
+- `audit-log.ts`: `loadLogs()` saknade `takeUntil(destroy$)` → subscription läckte vid navigering
+- `audit-log.ts`: `exportCSV()` saknade `takeUntil(destroy$)` → export-anrop kvarstod efter destroy
+- `stoppage-log.ts`: `loadReasons()` saknade `takeUntil(destroy$)`
+- `stoppage-log.ts`: `loadStoppages()` saknade `takeUntil(destroy$)`
+- `stoppage-log.ts`: `loadStats()` saknade `takeUntil(destroy$)`
+- `stoppage-log.ts`: `addStoppage()` saknade `takeUntil(destroy$)`
+- `stoppage-log.ts`: `deleteStoppage()` saknade `takeUntil(destroy$)`
+
+**Angular — setTimeout utan clearTimeout:**
+- `executive-dashboard.ts`: `setTimeout(() => buildBarChart(), 100)` var ej lagrat → `clearTimeout` kallades aldrig i ngOnDestroy. Fixat: ny `barChartTimer` property, clearTimeout i ngOnDestroy, guard `!destroy$.closed`.
+
+### Uppdrag 2 — Operators-sida ombyggd
+
+**Frontend — `operators.ts` (fullständig omskrivning):**
+- Operatörskort med initialer-avatar (cirkel med bakgrundsfärg baserad på namn-hash)
+- Sorterbar statistiklista på: IBC/h, Kvalitet%, Antal skift, Namn
+- Sökfunktion med fritext-filter (namn + nummer)
+- Status-badge per operatör: "Aktiv" (jobbat ≤7 dagar), "Nyligen aktiv" (≤30 dagar), "Inaktiv" (>30 dagar), "Aldrig jobbat"
+- Detaljvy: klicka på operatörskortet → expanderas med KPI-tiles + trendgraf
+- Trendgraf (Chart.js): IBC/h (blå, vänster axel) + Kvalitet% (grön, höger axel) senaste 8 veckorna
+- Medaljsystem: guld/silver/brons för rank 1-3
+- Statistiken laddas direkt vid sidstart (inte lazy-load bakom knapp)
+- Alla Chart.js-instanser destroy():as i ngOnDestroy (map av `trendCharts`)
+
+**Backend — `OperatorController.php`:**
+- `getStats()` utökad: lägger till `active`, `all_time_last_shift`, `activity_status` (active/recent/inactive/never)
+- Ny endpoint `?run=trend&op_number=N`: veckovis IBC/h + kvalitet% + antal skift senaste 8 veckorna (56 dagar)
+- Prepared statements, try/catch, error_log() — konsistent med övrig kod
+
+**Service — `operators.service.ts`:**
+- Ny metod `getTrend(opNumber: number)` → `?run=trend&op_number=N`
+
+**CSS — `operators.css` (fullständig omskrivning):**
+- Mörkt tema: `#1a202c` bg, `#2d3748` kort, `#e2e8f0` text
+- Operatörskort-grid med expanderbar detaljvy
+- Sök + sortering-knappar med aktiv-markering
+- Responsivt (768px breakpoint)
+
+---
+
 Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ---

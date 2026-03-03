@@ -134,7 +134,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadReasons() {
-    this.stoppageService.getReasons().subscribe({
+    this.stoppageService.getReasons().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) this.reasons = res.data;
       }
@@ -142,7 +142,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadStoppages() {
-    this.stoppageService.getStoppages(this.selectedLine, this.selectedPeriod).subscribe({
+    this.stoppageService.getStoppages(this.selectedLine, this.selectedPeriod).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) this.stoppages = res.data;
         this.loading = false;
@@ -167,7 +167,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadStats() {
-    this.stoppageService.getStats(this.selectedLine, this.selectedPeriod).subscribe({
+    this.stoppageService.getStats(this.selectedLine, this.selectedPeriod).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.stats = res.data;
@@ -221,7 +221,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.stoppageService.create(this.newEntry).subscribe({
+    this.stoppageService.create(this.newEntry).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Stoppost registrerad');
@@ -243,7 +243,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   deleteStoppage(id: number) {
     if (!confirm('Är du säker på att du vill ta bort denna stoppost?')) return;
-    this.stoppageService.delete(id).subscribe({
+    this.stoppageService.delete(id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.stoppages = this.stoppages.filter(s => s.id !== id);

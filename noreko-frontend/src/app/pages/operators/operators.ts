@@ -7,6 +7,13 @@ import { takeUntil } from 'rxjs/operators';
 import { OperatorsService } from '../../services/operators.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
+
+type SortField = 'name' | 'ibc_per_hour' | 'avg_quality' | 'shifts';
+type SortDir = 'asc' | 'desc';
+type ActivityStatus = 'active' | 'recent' | 'inactive' | 'never';
 
 @Component({
   standalone: true,
@@ -23,9 +30,22 @@ export class OperatorsPage implements OnInit, OnDestroy {
   showAddForm = false;
   addForm: { name: string; number: number | null } = { name: '', number: null };
 
-  showRanking = false;
+  // Stats / ranking
   opStats: any[] = [];
   opStatsLoading = false;
+  statsLoaded = false;
+
+  // Sök + sortering
+  searchText = '';
+  sortField: SortField = 'ibc_per_hour';
+  sortDir: SortDir = 'desc';
+
+  // Detaljvy
+  expandedStatId: number | null = null;
+  trendData: { [id: number]: any[] } = {};
+  trendLoading: { [id: number]: boolean } = {};
+  private trendCharts: { [id: number]: Chart | null } = {};
+  private trendTimers: { [id: number]: any } = {};
 
   private destroy$ = new Subject<void>();
 
@@ -43,12 +63,248 @@ export class OperatorsPage implements OnInit, OnDestroy {
       }
     });
     this.fetchOperators();
+    this.loadOpStats();
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    // Förstör alla trenddiagram
+    Object.values(this.trendCharts).forEach(c => c?.destroy());
+    Object.values(this.trendTimers).forEach(t => clearTimeout(t));
   }
+
+  // ======== Filtrera + sortera stats ========
+
+  get filteredStats(): any[] {
+    let result = this.opStats;
+
+    if (this.searchText.trim()) {
+      const q = this.searchText.toLowerCase();
+      result = result.filter(s =>
+        (s.name || '').toLowerCase().includes(q) ||
+        String(s.number || '').includes(q)
+      );
+    }
+
+    result = [...result].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      switch (this.sortField) {
+        case 'name':
+          aVal = (a.name || '').toLowerCase();
+          bVal = (b.name || '').toLowerCase();
+          break;
+        case 'ibc_per_hour':
+          aVal = a.ibc_per_hour ?? -1;
+          bVal = b.ibc_per_hour ?? -1;
+          break;
+        case 'avg_quality':
+          aVal = a.avg_quality ?? -1;
+          bVal = b.avg_quality ?? -1;
+          break;
+        case 'shifts':
+          aVal = a.shifts ?? 0;
+          bVal = b.shifts ?? 0;
+          break;
+        default:
+          aVal = a.ibc_per_hour ?? -1;
+          bVal = b.ibc_per_hour ?? -1;
+      }
+      if (aVal < bVal) return this.sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return this.sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }
+
+  sortBy(field: SortField) {
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDir = field === 'name' ? 'asc' : 'desc';
+    }
+  }
+
+  sortIcon(field: SortField): string {
+    if (this.sortField !== field) return 'fa-sort';
+    return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+  }
+
+  // ======== Operatörs-initialer (avatar) ========
+
+  getInitials(name: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  getAvatarColor(name: string): string {
+    const colors = [
+      '#4299e1', '#48bb78', '#ed8936', '#e53e3e', '#9f7aea',
+      '#00b5d8', '#d69e2e', '#38a169', '#e53e3e', '#667eea'
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  // ======== Status-badge ========
+
+  getActivityStatus(s: any): ActivityStatus {
+    return (s.activity_status as ActivityStatus) || 'never';
+  }
+
+  getActivityLabel(s: any): string {
+    switch (this.getActivityStatus(s)) {
+      case 'active':   return 'Aktiv';
+      case 'recent':   return 'Nyligen aktiv';
+      case 'inactive': return 'Inaktiv';
+      default:         return 'Aldrig jobbat';
+    }
+  }
+
+  getActivityClass(s: any): string {
+    switch (this.getActivityStatus(s)) {
+      case 'active':   return 'status-active';
+      case 'recent':   return 'status-recent';
+      case 'inactive': return 'status-inactive';
+      default:         return 'status-never';
+    }
+  }
+
+  // ======== Detaljvy toggle ========
+
+  toggleStatDetail(s: any) {
+    const id = s.id;
+    if (this.expandedStatId === id) {
+      this.expandedStatId = null;
+      return;
+    }
+    this.expandedStatId = id;
+    if (!this.trendData[id]) {
+      this.loadTrend(s);
+    } else {
+      // Bygg om diagram när detaljvyn öppnas (canvas kan ha återskapats)
+      clearTimeout(this.trendTimers[id]);
+      this.trendTimers[id] = setTimeout(() => {
+        if (this.expandedStatId === id) this.buildTrendChart(id);
+      }, 100);
+    }
+  }
+
+  private loadTrend(s: any) {
+    const id = s.id;
+    this.trendLoading[id] = true;
+    this.operatorsService.getTrend(s.number).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.trendLoading[id] = false;
+        this.trendData[id] = res.success ? res.data : [];
+        clearTimeout(this.trendTimers[id]);
+        this.trendTimers[id] = setTimeout(() => {
+          if (this.expandedStatId === id) this.buildTrendChart(id);
+        }, 100);
+      },
+      error: () => {
+        this.trendLoading[id] = false;
+        this.trendData[id] = [];
+      }
+    });
+  }
+
+  private buildTrendChart(id: number) {
+    if (this.trendCharts[id]) {
+      this.trendCharts[id]?.destroy();
+      this.trendCharts[id] = null;
+    }
+
+    const canvas = document.getElementById('trendChart_' + id) as HTMLCanvasElement;
+    const data = this.trendData[id];
+    if (!canvas || !data || data.length === 0) return;
+
+    const labels = data.map(d => 'V' + d.week_num);
+    const ibcH   = data.map(d => d.ibc_per_hour ?? 0);
+    const qual   = data.map(d => d.avg_quality ?? null);
+
+    this.trendCharts[id] = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC/h',
+            data: ibcH,
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66,153,225,0.12)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+            pointBackgroundColor: '#4299e1',
+            yAxisID: 'y'
+          },
+          {
+            label: 'Kvalitet %',
+            data: qual,
+            borderColor: '#48bb78',
+            backgroundColor: 'rgba(72,187,120,0.08)',
+            fill: false,
+            tension: 0.35,
+            pointRadius: 4,
+            pointBackgroundColor: '#48bb78',
+            yAxisID: 'y1',
+            spanGaps: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed.y;
+                if (v === null || v === undefined) return '';
+                return ctx.dataset.label + ': ' + v;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', font: { size: 11 } },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            position: 'left',
+            beginAtZero: true,
+            ticks: { color: '#4299e1', font: { size: 11 } },
+            grid: { color: '#2d3748' },
+            title: { display: true, text: 'IBC/h', color: '#4299e1', font: { size: 10 } }
+          },
+          y1: {
+            position: 'right',
+            min: 0,
+            max: 100,
+            ticks: { color: '#48bb78', font: { size: 11 } },
+            grid: { display: false },
+            title: { display: true, text: 'Kvalitet %', color: '#48bb78', font: { size: 10 } }
+          }
+        }
+      }
+    });
+  }
+
+  // ======== Operatörslistan (admin-hantering) ========
 
   fetchOperators() {
     this.loading = true;
@@ -75,11 +331,12 @@ export class OperatorsPage implements OnInit, OnDestroy {
           this.expanded[op.id] = false;
           this.toast.success('Operatör sparad');
           this.fetchOperators();
+          this.loadOpStats();
         } else {
           this.toast.error('Kunde inte spara: ' + (res.message || 'Okänt fel'));
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.toast.error(err.error?.message || 'Kunde inte spara operatör.');
       }
     });
@@ -94,11 +351,12 @@ export class OperatorsPage implements OnInit, OnDestroy {
         if (res.success) {
           this.toast.success('Operatör borttagen');
           this.fetchOperators();
+          this.loadOpStats();
         } else {
           this.toast.error(res.message || 'Kunde inte ta bort operatör');
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.toast.error(err.error?.message || 'Kunde inte ta bort operatör');
       }
     });
@@ -114,17 +372,10 @@ export class OperatorsPage implements OnInit, OnDestroy {
           this.toast.error(res.message || 'Kunde inte ändra status');
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.toast.error(err.error?.message || 'Kunde inte ändra status');
       }
     });
-  }
-
-  toggleRanking() {
-    this.showRanking = !this.showRanking;
-    if (this.showRanking && this.opStats.length === 0) {
-      this.loadOpStats();
-    }
   }
 
   loadOpStats() {
@@ -133,6 +384,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
       next: (res) => {
         this.opStats = res.stats || [];
         this.opStatsLoading = false;
+        this.statsLoaded = true;
       },
       error: () => {
         this.opStatsLoading = false;
@@ -152,13 +404,37 @@ export class OperatorsPage implements OnInit, OnDestroy {
           this.addForm = { name: '', number: null };
           this.showAddForm = false;
           this.fetchOperators();
+          this.loadOpStats();
         } else {
           this.toast.error('Kunde inte skapa: ' + (res.message || 'Okänt fel'));
         }
       },
-      error: (err) => {
+      error: (err: any) => {
         this.toast.error(err.error?.message || 'Kunde inte skapa operatör.');
       }
     });
+  }
+
+  // ======== KPI-hjälpfunktioner ========
+
+  getIbcClass(val: number | null): string {
+    if (val == null) return 'kpi-neutral';
+    if (val >= 10) return 'kpi-good';
+    if (val >= 5)  return 'kpi-warn';
+    return 'kpi-bad';
+  }
+
+  getQualClass(val: number | null): string {
+    if (val == null) return 'kpi-neutral';
+    if (val >= 90) return 'kpi-good';
+    if (val >= 70) return 'kpi-warn';
+    return 'kpi-bad';
+  }
+
+  getRankMedal(idx: number): string {
+    if (idx === 0) return 'gold';
+    if (idx === 1) return 'silver';
+    if (idx === 2) return 'bronze';
+    return '';
   }
 }

@@ -159,6 +159,10 @@ class OperatorController {
             $this->getStats();
             return;
         }
+        if ($run === 'trend') {
+            $this->getOperatorTrend();
+            return;
+        }
 
         // GET - Hämta alla operatörer
         try {
@@ -179,6 +183,7 @@ class OperatorController {
                     o.id,
                     o.name,
                     o.number,
+                    o.active,
                     COUNT(DISTINCT s.id) AS shifts,
                     ROUND(
                         SUM(COALESCE(s.ibc_ok, 0)) /
@@ -189,22 +194,94 @@ class OperatorController {
                              THEN s.ibc_ok * 100.0 / s.totalt
                              ELSE NULL END
                     ), 1) AS avg_quality,
-                    MAX(s.datum) AS last_shift
+                    MAX(s.datum) AS last_shift,
+                    (
+                        SELECT MAX(s2.datum)
+                        FROM rebotling_skiftrapport s2
+                        WHERE (s2.op1 = o.number OR s2.op2 = o.number OR s2.op3 = o.number)
+                    ) AS all_time_last_shift
                 FROM operators o
                 LEFT JOIN rebotling_skiftrapport s
                     ON (s.op1 = o.number OR s.op2 = o.number OR s.op3 = o.number)
                     AND DATE(s.datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                WHERE o.active = 1
-                GROUP BY o.id, o.name, o.number
+                GROUP BY o.id, o.name, o.number, o.active
                 ORDER BY ibc_per_hour DESC
             ');
             $stmt->execute();
             $stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna aktivitetsstatus per operatör
+            foreach ($stats as &$s) {
+                $lastShift = $s['all_time_last_shift'];
+                if (!$lastShift) {
+                    $s['activity_status'] = 'never';
+                } elseif (strtotime($lastShift) >= strtotime('-7 days')) {
+                    $s['activity_status'] = 'active';
+                } elseif (strtotime($lastShift) >= strtotime('-30 days')) {
+                    $s['activity_status'] = 'recent';
+                } else {
+                    $s['activity_status'] = 'inactive';
+                }
+            }
+            unset($s);
+
             echo json_encode(['success' => true, 'stats' => $stats]);
         } catch (Exception $e) {
             error_log('OperatorController getStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatistik']);
+        }
+    }
+
+    /**
+     * GET ?action=operators&run=trend&op_number=<number>
+     * Returnerar IBC/h och kvalitet% per vecka för senaste 8 veckorna.
+     */
+    private function getOperatorTrend() {
+        $opNumber = isset($_GET['op_number']) ? intval($_GET['op_number']) : 0;
+        if ($opNumber <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('
+                SELECT
+                    YEAR(datum)                          AS year,
+                    WEEK(datum, 1)                       AS week_num,
+                    MIN(DATE(datum))                     AS week_start,
+                    COUNT(DISTINCT id)                   AS shifts,
+                    SUM(COALESCE(ibc_ok, 0))             AS ibc_ok,
+                    SUM(COALESCE(totalt, 0))             AS totalt,
+                    ROUND(
+                        SUM(COALESCE(ibc_ok, 0)) /
+                        NULLIF(SUM(COALESCE(drifttid, 0)) / 60.0, 0),
+                    1) AS ibc_per_hour
+                FROM rebotling_skiftrapport
+                WHERE (op1 = :num OR op2 = :num OR op3 = :num)
+                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 56 DAY)
+                GROUP BY YEAR(datum), WEEK(datum, 1)
+                ORDER BY year ASC, week_num ASC
+            ');
+            $stmt->execute([':num' => $opNumber]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as &$r) {
+                $r['avg_quality'] = ($r['totalt'] > 0)
+                    ? round(($r['ibc_ok'] / $r['totalt']) * 100, 1)
+                    : null;
+                $r['ibc_per_hour'] = $r['ibc_per_hour'] !== null ? (float)$r['ibc_per_hour'] : null;
+                $r['shifts']       = (int)$r['shifts'];
+                $r['ibc_ok']       = (int)$r['ibc_ok'];
+            }
+            unset($r);
+
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (Exception $e) {
+            error_log('OperatorController getOperatorTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
         }
     }
 }
