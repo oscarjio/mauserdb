@@ -56,11 +56,11 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - [x] **Veckojämförelse-graf**: Levererat `c7faa1b` — bar chart denna/förra veckan, summakort med diff
 
 ### 🟡 Medium prioritet
-- [ ] **Rebotling-Skiftrapport sammanfattningskort**: Kvalitet%, OEE, Rastid, Vs. föregående skift — skiftrapport-agent jobbar på detta
-- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring över tid (my-bonus/bonus-dashboard)
+- [x] **Rebotling-Skiftrapport sammanfattningskort**: Levererat — 6 KPI-kort (Total IBC, Kvalitet%, OEE, Drifttid, Rasttid, Delta vs. föregående skift), sorterbar tabell, skiftväljare, textsök, förbättrad PDF+Excel-export
+- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring över tid — ÖPPEN (nästa omgång)
 - [x] **OEE deep-dive**: Levererat `c7faa1b` — Tillgänglighet/Prestanda/Kvalitet-bars + 30-dagars trendgraf
 - [ ] **Stopporsaksanalys**: Visualisera stopp och raster i production-analysis — ÖPPEN
-- [ ] **Admin: Mål per veckodag**: Måndag-fredag kan ha olika dagsmål — skiftrapport-agent jobbar på detta
+- [x] **Admin: Mål per veckodag**: Levererat — mån–sön individuella mål, `rebotling_weekday_goals` tabell. Skifttider konfigurerbart. Systemstatus-sektion med PLC-ping, löpnummer, DB-status.
 - [ ] **Förbättrad heatmap**: Tooltip med IBC/h + kvalitet%, val av KPI — ÖPPEN
 
 ### 🟢 Lägre prioritet
@@ -83,7 +83,8 @@ Tre agenter startades parallellt:
 - `ecc6b40` — Auth fix: APP_INITIALIZER väntar på fetchStatus() via firstValueFrom()
 - `771e128` — auto-develop.sh och dev-log.md tillagda
 - `d4db30b` — lead-agent.sh + lead-memory.md: orchestrator-system etablerat
-- `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista i production-analysis. Nya endpoints: week-comparison, oee-trend, best-shifts. Nya TypeScript-interfaces i RebotlingService.
+- `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista i production-analysis. Nya endpoints: week-comparison, oee-trend, best-shifts.
+- **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare (fm/em/natt), textsök, inline kvalitet%-badge, snitt cykeltid i detaljvy, bonus-estimat. Admin: veckodagsmål mån–sön, skifttider, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
 
 ---
@@ -101,8 +102,10 @@ Tre agenter startades parallellt:
 
 ## BESLUTSDAGBOK
 **2026-03-03 — Session 1**: Startade tre parallella worker-agenter. Ledaragent-system etablerat.
-**2026-03-03 — Statistik-agent klar**: Levererat veckojämförelse, skiftmålsprediktor, OEE deep-dive, bästa skift-topplista. 4 av 10 backlog-items klara. Bonus-agent och skiftrapport-agent fortfarande aktiva.
-Nästa session: Granska bonus-agent och skiftrapport-agent. Starta ny omgång på återstående öppna items (stopporsaksanalys, heatmap-förbättring, operatörsprestanda-trend).
+**2026-03-03 — Statistik-agent klar**: Veckojämförelse, skiftmålsprediktor, OEE deep-dive, bästa skift-topplista.
+**2026-03-03 — Skiftrapport-agent klar**: Sammanfattningskort, sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål i admin, systemstatus-sektion, ny SQL-migration. 7 av 12 backlog-items klara.
+**Bonus-agent** (aba3e1e2b4c1f1692) fortfarande aktiv — avvaktar resultat.
+Nästa session: Granska bonus-agent. Starta ny omgång på: operatörsprestanda-trend, stopporsaksanalys, heatmap-förbättring, executive dashboard.
 
 ---
 
