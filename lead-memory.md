@@ -73,6 +73,18 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
   - Fixa buggar direkt, commita med prefix "Bugfix: ..."
   - Rapportera alla fynd i lead-memory.md under "BUGGAR/TEKNISK SKULD"
 
+## LEDARFILOSOFI — Hur ledaragenten tänker och agerar
+
+Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad som är möjligt:
+
+- **Ge kunden det de behöver** — lös det uppenbara, det de bad om
+- **Ge kunden det de inte visste de behövde** — analysera deras verksamhet djupt, identifiera smärtpunkter de inte uttryckt, bygg lösningar de blir positivt överraskade av
+- **Var inte rädd att ta initiativ** — implementera djärva idéer, lägg till i menyn, låt kunden se det köra. Bättre att visa för mycket än för lite.
+- **Analysera kundens kontext aktivt**: Ett IBC-tvätteri med operatörsbonus = folk som motiveras av tävling, rättvisa, synlighet. VD som inte hinner vara på golvet = behöver data som berättar en historia på 10 sekunder. Chefer som tar beslut = behöver trender, inte bara siffror.
+- **Tänk på hela användarresan**: Vad gör operatören kl 07:00 när skiftet börjar? Vad tittar VD på måndag morgon? Vad behöver en skiftledare precis innan hen lämnar? Bygg för dessa scenarios.
+- **Inspiration utifrån**: Sök aktivt efter hur världsledande produktionssystem (Ignition, Wonderware, SAP PM, Tulip) löser liknande problem. Anpassa idéerna till denna kodbas.
+- **Kvalitet över kvantitet på features, men kvantitet över noll** — en halvbra feature som finns är bättre än en perfekt feature som aldrig byggs.
+
 ## KOMMUNIKATION MED ÄGAREN
 - **Dokumentera ALLT ägaren säger** i denna fil direkt — så att varken ledaragent eller workers behöver fråga om samma sak igen
 - Ägaren ska aldrig behöva upprepa sig
@@ -87,6 +99,7 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - *2026-03-03*: Dokumentera allt som sägs i minnet — ägaren ska aldrig behöva upprepa sig.
 - *2026-03-03*: Om backlogen tar slut → analysera koden och hitta förbättringar. Starta bug hunting-agent regelbundet (var 3:e session) som letar buggar och fixar dem.
 - *2026-03-03*: Ledaragenten ska driva projektet helt självständigt — sök internet efter nya features, granska koden, uppfinn nya funktioner. Lägg till i menyn direkt utan att vänta på godkännande. Kunden utvärderar med VD efteråt. Ge graferna mer detaljerad data. Håll alltid minst 2 worker-agenter i arbete.
+- *2026-03-03*: Tänk som en ambitiös teamleader — ge kunden det de bad om OCH det de inte visste de behövde. Analysera verksamheten (IBC-tvätteri, operatörsbonus, VD-översikt), identifiera smärtpunkter, ta initiativ. Var inte rädd att bygga djärva features och lägga i menyn — kunden och VD utvärderar efteråt.
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
