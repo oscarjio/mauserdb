@@ -51,18 +51,42 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - **Ledaragenten** (huvudkonversationen) övervakar, uppdaterar backlog och startar nya agenter så fort gamla är klara
 - När token-gränsen för huvudkonversationen närmar sig: commit lead-memory.md + push, cron-jobbet tar över
 
-### Om backlogen tar slut — gör detta i ordning:
-1. **Sök på internet** efter moderna features för produktionssystem, MES-system (Manufacturing Execution System), OEE-dashboards, bonussystem, operator performance tracking. Söktermer: "production dashboard features", "OEE software features", "operator bonus system UX", "manufacturing KPI dashboard best practices".
-2. **Granska befintlig kod** — läs alla komponenter, hitta grafer/tabeller som kan bli mer detaljerade, data som kan visualiseras bättre.
-3. **Uppfinn nya funktioner** — led agenten ska självständigt komma på vad som saknas och lägga till det. Ingen behöver godkänna — implementera direkt och lägg till i menyn. Kunden utvärderar efteråt.
-4. **Starta bug hunting-agent** parallellt.
+### BACKLOGGEN FÅR ALDRIG VARA TOM — ÄGARENS ABSOLUTA KRAV
+**Ägaren ska ALDRIG behöva se en tom backlog. Det är ledaragentens ansvar att ligga FÖRE — inte reagera när det tar slut.**
+
+Ledaragenten ska **proaktivt fylla på backloggen** INNAN den töms. Målet är att alltid ha minst 5-8 öppna items. Gör behovsanalys LÖPANDE — inte bara när det är tomt.
+
+### Behovsanalys — gör detta varje session som en del av den normala rutinen:
+1. **Läs igenom hela kodbasen** (noreko-frontend/src/app/pages/, noreko-backend/classes/) — identifiera:
+   - Sidor som saknar tomma-lista-hantering (empty states)
+   - Grafer med låg datakvalitet eller saknade labels
+   - Features som är halvfärdiga eller kan förbättras
+   - Sidor som ser inkonsistenta ut jämfört med resten av appen
+   - Mobilanpassning som saknas
+   - Laddningstillstånd (loading spinners) som saknas
+2. **Sök internet varje session** (WebSearch) efter:
+   - "manufacturing execution system features 2025"
+   - "OEE dashboard best practices"
+   - "operator bonus system gamification"
+   - "production floor KPI display"
+   - "IBC container recycling production tracking"
+   — Plocka de bästa idéerna och lägg i IDÉBANK
+3. **Tänk på användarresor** — vad gör operatören kl 06:00? Vad kollar VD måndag morgon? Vad behöver skiftledaren precis vid skiftbyte? Bygg för dessa scenarios.
+4. **Identifiera datamöjligheter** — vilka kolumner i rebotling_ibc/rebotling_skiftrapport används INTE ännu? Kan de visualiseras?
+
+### Om backlogen mot förmodan ändå är tom — eskalera omedelbart:
+1. Starta en dedikerad **behovsanalys-agent** som läser HELA kodbasen och returnerar 10+ nya backlog-items
+2. Starta en **bug hunting-agent** parallellt
+3. Sök internet efter inspiration
+4. Återuppta aldrig med färre än 5 nya items i backloggen
 
 ### Lead-agentens kreativa ansvar
-- Ledaragenten SKA driva projektet framåt på egen hand — inte bara förvalta en lista
+- Ledaragenten SKA ligga FÖRE projektet — alltid veta vad nästa 3 batchar ska göra
 - Läs koden, identifiera vad som fattas, hitta inspiration online, föreslå och implementera via worker-agenter
 - Lägg alltid till nya funktioner i navigationsmenyn (app.routes.ts + nav-komponent) så de är åtkomliga
 - Kunden ser allt efteråt och bestämmer vad som ska vara kvar — jobba fritt och kreativt
 - Prioritera: mer detaljerad data i befintliga grafer, nya vyer som ger VD och operatörer mer insikt
+- **BACKLOGGEN FYLLS PÅ KONTINUERLIGT UNDER UTVECKLINGEN** — varje agent som är klar triggar ledaragenten att lägga till 2-3 nya items baserat på vad som just byggts och vad som naturligt följer
 
 ### Bug Hunting — starta regelbundet
 - **Var 3:e session** (ungefär) ska en dedikerad bug hunting-agent startas parallellt med övriga workers
