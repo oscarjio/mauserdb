@@ -1,0 +1,468 @@
+/* ============================================================
+   Skiftöverlämning — dark theme styles
+   ============================================================ */
+
+.handover-page {
+  min-height: 100vh;
+  background: #1a202c;
+  color: #e2e8f0;
+  padding: 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+/* --- Header --- */
+
+.handover-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.line-badge {
+  display: inline-block;
+  background: #2b6cb0;
+  color: #bee3f8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: 9999px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.last-updated {
+  color: #718096;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* --- Formulärkort --- */
+
+.form-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #4a5568;
+}
+
+.form-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 1rem 0;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.note-textarea {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.97rem;
+  padding: 0.75rem;
+  resize: vertical;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.note-textarea:focus {
+  outline: none;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.15);
+}
+
+.note-textarea::placeholder {
+  color: #718096;
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 0.78rem;
+  color: #718096;
+  margin-top: 0.25rem;
+}
+
+.char-counter.char-warning {
+  color: #f6ad55;
+}
+
+.form-row {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+}
+
+.form-group-inline {
+  flex: 1;
+  min-width: 200px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #a0aec0;
+  margin-bottom: 0.4rem;
+}
+
+/* Prioritetsknappar */
+
+.priority-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.priority-btn {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.priority-btn.inactive {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.priority-btn.inactive:hover {
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.priority-btn.active-normal {
+  background: #2d3748;
+  border-color: #a0aec0;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 2px rgba(160, 174, 192, 0.3);
+}
+
+.priority-btn.active-important {
+  background: #744210;
+  border-color: #f6ad55;
+  color: #fefcbf;
+  box-shadow: 0 0 0 2px rgba(246, 173, 85, 0.3);
+}
+
+.priority-btn.active-urgent {
+  background: #742a2a;
+  border-color: #fc8181;
+  color: #fed7d7;
+  box-shadow: 0 0 0 2px rgba(252, 129, 129, 0.3);
+}
+
+/* Skift-selector */
+
+.skift-select {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.skift-select:focus {
+  outline: none;
+  border-color: #63b3ed;
+}
+
+/* Skicka-knapp */
+
+.submit-btn {
+  background: #3182ce;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #2b6cb0;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- Tillstånd --- */
+
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+  font-size: 1rem;
+}
+
+.error-state {
+  color: #fc8181;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.retry-btn {
+  background: #4a5568;
+  color: #e2e8f0;
+  border: none;
+  border-radius: 5px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.retry-btn:hover {
+  background: #718096;
+}
+
+/* --- Anteckningssektionen --- */
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.note-count {
+  font-size: 0.85rem;
+  color: #718096;
+  font-weight: 400;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #718096;
+}
+
+.empty-state i {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.empty-state small {
+  font-size: 0.85rem;
+}
+
+/* --- Anteckningskort --- */
+
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.note-card {
+  background: #2d3748;
+  border-radius: 9px;
+  padding: 1rem 1.15rem;
+  border-left: 4px solid #4a5568;
+  transition: box-shadow 0.15s;
+}
+
+.note-card:hover {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.note-card.priority-normal {
+  border-left-color: #718096;
+}
+
+.note-card.priority-important {
+  border-left-color: #f6ad55;
+  background: #2d2a1e;
+}
+
+.note-card.priority-urgent {
+  border-left-color: #fc8181;
+  background: #2d1e1e;
+}
+
+.note-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.note-meta-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.priority-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.priority-text {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.skift-badge {
+  background: #4a5568;
+  color: #cbd5e0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  letter-spacing: 0.02em;
+}
+
+.note-card.priority-important .skift-badge {
+  background: #744210;
+  color: #fefcbf;
+}
+
+.note-card.priority-urgent .skift-badge {
+  background: #742a2a;
+  color: #fed7d7;
+}
+
+.note-date {
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+.delete-btn {
+  background: transparent;
+  border: 1px solid #e53e3e;
+  color: #fc8181;
+  border-radius: 5px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.delete-btn:hover {
+  background: #742a2a;
+  border-color: #fc8181;
+}
+
+.note-body {
+  font-size: 1rem;
+  color: #e2e8f0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 0.75rem;
+}
+
+.note-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-top: 1px solid #4a5568;
+  padding-top: 0.55rem;
+  font-size: 0.82rem;
+  color: #a0aec0;
+}
+
+.note-card.priority-important .note-footer {
+  border-top-color: #744210;
+}
+
+.note-card.priority-urgent .note-footer {
+  border-top-color: #742a2a;
+}
+
+.note-author {
+  font-weight: 500;
+}
+
+.note-time {
+  color: #718096;
+}
+
+/* --- Responsivitet --- */
+
+@media (max-width: 600px) {
+  .handover-page {
+    padding: 1rem 0.75rem;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .page-title {
+    font-size: 1.3rem;
+  }
+
+  .priority-buttons {
+    gap: 0.4rem;
+  }
+
+  .priority-btn {
+    font-size: 0.82rem;
+    padding: 0.35rem 0.6rem;
+  }
+}

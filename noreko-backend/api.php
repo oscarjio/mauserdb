@@ -120,6 +120,7 @@ $classNameMap = [
     'lineskiftrapport' => 'LineSkiftrapportController',
     'shift-plan' => 'ShiftPlanController',
     'certifications' => 'CertificationController',
+    'shift-handover' => 'ShiftHandoverController',
 ];
 
 $actionKey = strtolower($action);

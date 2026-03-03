@@ -1,0 +1,169 @@
+<div class="handover-page">
+
+  <!-- Header -->
+  <div class="handover-header">
+    <div class="header-left">
+      <h1 class="page-title">
+        <i class="fas fa-exchange-alt me-2"></i>Skiftöverlämning
+        <span class="line-badge">Rebotling</span>
+      </h1>
+      <p class="page-subtitle">
+        Aktuellt skift: <strong>{{ currentSkiftLabel }}</strong>
+      </p>
+    </div>
+    <div class="header-right" *ngIf="lastUpdated">
+      <span class="last-updated">
+        <i class="fas fa-sync-alt me-1"></i>Uppdaterades {{ lastUpdated }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Formulär: Lägg till anteckning -->
+  <div class="form-card">
+    <h2 class="form-title">
+      <i class="fas fa-pen me-2"></i>Lägg till anteckning
+    </h2>
+
+    <div class="form-group">
+      <textarea
+        class="note-textarea"
+        [(ngModel)]="newNote"
+        placeholder="Beskriv maskinens status, pågående problem, uppgifter för nästa skift..."
+        rows="4"
+        maxlength="1000"
+      ></textarea>
+      <div class="char-counter" [class.char-warning]="charCount > 900">
+        {{ charCount }}/1000
+      </div>
+    </div>
+
+    <div class="form-row">
+      <!-- Prioritet -->
+      <div class="form-group-inline">
+        <label class="form-label">Prioritet</label>
+        <div class="priority-buttons">
+          <button
+            class="priority-btn"
+            [class.active-normal]="newPriority === 'normal'"
+            [class.inactive]="newPriority !== 'normal'"
+            (click)="setPriority('normal')"
+            type="button"
+          >
+            ⚪ Normal
+          </button>
+          <button
+            class="priority-btn"
+            [class.active-important]="newPriority === 'important'"
+            [class.inactive]="newPriority !== 'important'"
+            (click)="setPriority('important')"
+            type="button"
+          >
+            🟡 Viktig
+          </button>
+          <button
+            class="priority-btn"
+            [class.active-urgent]="newPriority === 'urgent'"
+            [class.inactive]="newPriority !== 'urgent'"
+            (click)="setPriority('urgent')"
+            type="button"
+          >
+            🔴 Brådskande
+          </button>
+        </div>
+      </div>
+
+      <!-- Skift-nr -->
+      <div class="form-group-inline">
+        <label class="form-label" for="skiftSelect">Skift</label>
+        <select id="skiftSelect" class="skift-select" [(ngModel)]="newSkiftNr">
+          <option [value]="1">Skift 1 — Morgon (06–14)</option>
+          <option [value]="2">Skift 2 — Eftermiddag (14–22)</option>
+          <option [value]="3">Skift 3 — Natt (22–06)</option>
+        </select>
+      </div>
+    </div>
+
+    <button
+      class="submit-btn"
+      (click)="submitNote()"
+      [disabled]="isSubmitting || !newNote.trim()"
+      type="button"
+    >
+      <i class="fas fa-paper-plane me-2"></i>
+      {{ isSubmitting ? 'Sparar...' : 'Skicka anteckning' }}
+    </button>
+  </div>
+
+  <!-- Laddningsindikator -->
+  <div class="loading-state" *ngIf="isLoading">
+    <i class="fas fa-spinner fa-spin me-2"></i>Hämtar anteckningar...
+  </div>
+
+  <!-- Felmeddelande -->
+  <div class="error-state" *ngIf="loadError && !isLoading">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ loadError }}
+    <button class="retry-btn" (click)="loadNotes(true)">Försök igen</button>
+  </div>
+
+  <!-- Anteckningslista -->
+  <div class="notes-section" *ngIf="!isLoading">
+    <h2 class="section-title">
+      <i class="fas fa-clipboard-list me-2"></i>Senaste anteckningar
+      <span class="note-count" *ngIf="notes.length > 0">({{ notes.length }})</span>
+    </h2>
+
+    <div class="empty-state" *ngIf="notes.length === 0 && !loadError">
+      <i class="fas fa-inbox"></i>
+      <p>Inga anteckningar de senaste 3 dagarna.</p>
+      <small>Var den första att skriva en skiftöverlämning!</small>
+    </div>
+
+    <div class="notes-list" *ngIf="notes.length > 0">
+      <div class="note-card" *ngFor="let note of notes" [class]="priorityClass(note.priority)">
+
+        <!-- Kortets övre rad: prioritet + skiftinfo -->
+        <div class="note-header">
+          <div class="note-meta-left">
+            <span class="priority-indicator">
+              {{ priorityIcon(note.priority) }}
+              <span class="priority-text">{{ priorityLabel(note.priority) }}</span>
+            </span>
+            <span class="skift-badge">
+              {{ note.skift_label }}
+            </span>
+            <span class="note-date">{{ note.datum }}</span>
+          </div>
+          <button
+            class="delete-btn"
+            *ngIf="canDelete(note)"
+            (click)="deleteNote(note)"
+            title="Ta bort anteckning"
+            type="button"
+          >
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+
+        <!-- Anteckningstext -->
+        <div class="note-body">
+          {{ note.note }}
+        </div>
+
+        <!-- Kortets undre rad: operatör + tid -->
+        <div class="note-footer">
+          <span class="note-author" *ngIf="note.op_name">
+            <i class="fas fa-user me-1"></i>{{ note.op_name }}
+          </span>
+          <span class="note-author" *ngIf="!note.op_name">
+            <i class="fas fa-user-circle me-1"></i>Okänd operatör
+          </span>
+          <span class="note-time">
+            <i class="fas fa-clock me-1"></i>{{ note.time_ago }}
+          </span>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
