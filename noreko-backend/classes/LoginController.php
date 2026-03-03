@@ -5,9 +5,11 @@ require_once __DIR__ . '/AuditController.php';
 class LoginController {
     public function handle() {
         global $pdo;
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        // OBS: session_start() anropas INTE här — det görs endast vid lyckat inlogg
+        // nedan (se kommentar). På så sätt skickas bara EN Set-Cookie: PHPSESSID-header
+        // per inloggning. Tidigare startades sessionen här + session_regenerate_id(true)
+        // skickade en ANDRA cookie, vilket fick browsern att ibland skicka fel PHPSESSID
+        // vid sidomladdning → status-endpoint returnerade loggedIn:false → utloggad.
 
         AuthHelper::ensureRateLimitTable($pdo);
         AuditLogger::ensureTable($pdo);
@@ -45,8 +47,11 @@ class LoginController {
             // Update last login
             $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
 
-            // Regenerate session ID to prevent session fixation attacks
-            session_regenerate_id(true);
+            // Starta session FÖRST HÄR (efter verifiering) — inga gamla session-ID:n
+            // att regenerera, så exakt EN Set-Cookie: PHPSESSID skickas till browsern.
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
 
             // Set session
             $_SESSION['user_id'] = $user['id'];
@@ -86,6 +91,9 @@ class LoginController {
 
     private function logout() {
         global $pdo;
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         if (!empty($_SESSION['user_id'])) {
             AuditLogger::log($pdo, 'logout', 'user', (int)$_SESSION['user_id'],
                 "Utloggning: " . ($_SESSION['username'] ?? 'okänd'));
