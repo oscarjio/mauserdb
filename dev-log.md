@@ -2,6 +2,51 @@
 
 ---
 
+## 2026-03-03 — Produktionskalender + Executive Dashboard alerts — commit cc4ba9f
+
+### Nytt: /rebotling/kalender (GitHub-liknande heatmap-kalender)
+
+**Syfte:** VD vill ha en omedelbar visuell historia av hela årets produktion. GitHub-liknande heatmap med 12 månadsblock ger en snabb överblick av produktionsmönster.
+
+**Backend — `RebotlingController.php`:**
+- Ny endpoint: `GET ?action=rebotling&run=year-calendar&year=YYYY`
+  - Metod `getYearCalendar()`: hämtar `SUM(ibc_ok)` per datum ur `rebotling_skiftrapport` för valt år.
+  - Fallback till PLC-data (`rebotling_ibc`) om inga skiftrapporter finns.
+  - Dagsmål hämtas från `rebotling_weekday_goals` (ISO-veckodag 1=Mån...7=Sön) med fallback till `rebotling_settings.rebotling_target`.
+  - Helgdagar med `daily_goal=0` men faktisk produktion får defaultGoal som mål.
+  - Returnerar: `{ success, year, days: [{ date, ibc, goal, pct }] }`.
+
+**Frontend — `ProductionCalendarPage` (`/rebotling/kalender`, adminGuard):**
+- Tre filer: `production-calendar.ts`, `production-calendar.html`, `production-calendar.css`
+- Standalone-komponent med `OnInit+OnDestroy`, `destroy$` + `takeUntil`.
+- Årsväljare (dropdown + pil-knappar).
+- 12 månadsblock i ett 4-kolumners responsivt grid (3 på tablet, 2 på mobil).
+- Varje dag = färgad ruta: grå (ingen data), röd (<60%), orange (60-79%), gul (80-94%), grön (>=95%), ljusgrön/superdag (>=110%).
+- Hover-tooltip: datum + IBC + mål + %.
+- KPI-summering: totalt IBC, snitt IBC/dag, bästa dag + datum, % dagar nådde mål.
+- Nav-länk: "Produktionskalender" under Rebotling-dropdown (admin only).
+- Route: `rebotling/kalender` skyddad av `adminGuard`.
+
+### Nytt: Alert-sektion i Executive Dashboard (`/oversikt`)
+
+**Syfte:** VD ska inte missa kritiska situationer — tydliga röda/orangea varningsbanners ovanför KPI-korten.
+
+**`executive-dashboard.ts`:**
+- Ny property: `alerts: { type, message, detail }[]`
+- Ny privat metod `computeAlerts()` anropas efter varje `loadData()`.
+- OEE-varningar: danger om oee < 70%, warning om oee < 80%.
+- Produktionsvarningar: danger om pct < 60%, warning om pct < 80%.
+
+**`executive-dashboard.html`:**
+- Alert-sektion med `*ngFor` ovanför SEKTION 1, döljs om `alerts.length === 0`.
+- Klasser `.alert-danger-banner` / `.alert-warning-banner` med ikon och tydlig text.
+
+**`executive-dashboard.css`:**
+- Nya stilar: `.alerts-container`, `.alert-banner`, `.alert-danger-banner`, `.alert-warning-banner`, `.alert-icon`, `.alert-text`, `.alert-message`, `.alert-detail`.
+- Slide-in animation.
+
+---
+
 ## 2026-03-03 — Cykeltids-histogram + SPC-kontrollkort i rebotling-statistik — commit e4ca058
 
 ### Nytt: Djupanalys i /rebotling/statistik
