@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-03-03 — Cykeltids-histogram + SPC-kontrollkort i rebotling-statistik — commit e4ca058
+
+### Nytt: Djupanalys i /rebotling/statistik
+
+**Syfte:** VD och produktionschef vill se djupare analys. Histogram visar om produktionen
+är jämn. SPC-kortet visar om IBC/h-processen är statistiskt under kontroll.
+
+**Backend — `RebotlingController.php`:**
+- Ny endpoint: `GET ?action=rebotling&run=cycle-histogram&date=YYYY-MM-DD`
+  - Metod `getCycleHistogram()`: hämtar `ibc_ok` och `drifttid` per skift från
+    `rebotling_skiftrapport`, beräknar cykeltid = drifttid/ibc_ok per skift.
+  - Fallback till PLC-data via `TIMESTAMPDIFF(SECOND, LAG(datum), datum)/60` per cykel
+    i `rebotling_ibc` om inga skiftrapporter finns för datumet.
+  - Histogrambuckets: 0-2, 2-3, 3-4, 4-5, 5-7, 7+ min.
+  - Returnerar: `{ buckets[], stats: { n, snitt, p50, p90, p95 } }`.
+- Ny endpoint: `GET ?action=rebotling&run=spc&days=7`
+  - Metod `getSPC()`: hämtar IBC/h per skift de senaste N dagarna från
+    `rebotling_skiftrapport` (ibc_ok * 60 / drifttid).
+  - Fallback till PLC-data per skiftraknare (MAX ibc_ok / MAX runtime_plc).
+  - Beräknar X̄ (medelvärde), σ (standardavvikelse), UCL=X̄+2σ, LCL=max(0,X̄-2σ).
+  - Returnerar: `{ points[], mean, stddev, ucl, lcl, n, days }`.
+
+**Service — `rebotling.service.ts`:**
+- Nya interfaces: `CycleHistogramResponse`, `CycleHistogramBucket`, `SPCResponse`, `SPCPoint`.
+- Nya metoder: `getCycleHistogram(date)`, `getSPC(days)`.
+
+**Frontend — `rebotling-statistik.ts` + `rebotling-statistik.html`:**
+- Histogram-sektion: datumväljare (default idag), KPI-brickor (Antal skift, Snitt, P50, P90),
+  Chart.js bar chart (grön `#48bb78`), laddnings- och tom-tillstånd, förklaringstext.
+- SPC-sektion: dagar-väljare (3/7/14/30), KPI-brickor (Medelvärde, σ, UCL, LCL),
+  Chart.js line chart med 4 dataset (IBC/h blå fylld, UCL röd streckad, LCL orange streckad,
+  medelvärde grön streckad), laddnings- och tom-tillstånd, förklaringstext.
+- Alla nya properties: `histogramDate`, `histogramLoaded/Loading`, `histogramBuckets`,
+  `histogramStats`, `histogramChart`, `spcDays`, `spcLoaded/Loading`, `spcMean/Stddev/UCL/LCL/N`, `spcChart`.
+- `ngOnInit()` kallar `loadCycleHistogram()` och `loadSPC()`.
+- `ngOnDestroy()` anropar `histogramChart?.destroy()` och `spcChart?.destroy()`.
+- `takeUntil(this.destroy$)` på alla subscriptions.
+
+---
+
 ## 2026-03-03 — Realtids-tävling TV-skärm (/rebotling/live-ranking) — commit a3d5b49
 
 ### Nytt: Live Ranking TV-skärm
