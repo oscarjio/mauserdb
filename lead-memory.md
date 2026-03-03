@@ -52,9 +52,17 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - När token-gränsen för huvudkonversationen närmar sig: commit lead-memory.md + push, cron-jobbet tar över
 
 ### Om backlogen tar slut — gör detta i ordning:
-1. **Analysera koden** — läs igenom alla sidor och controllers, identifiera förbättringsmöjligheter (UX, prestanda, kodkvalitet, saknade edge cases). Lägg nya items i backlogen.
-2. **Starta en bug hunting-agent** — se nedan
-3. **Generera nya feature-idéer** baserat på affärskontexten (IBC-tvätteri, VD-översikt, operatörsbonus)
+1. **Sök på internet** efter moderna features för produktionssystem, MES-system (Manufacturing Execution System), OEE-dashboards, bonussystem, operator performance tracking. Söktermer: "production dashboard features", "OEE software features", "operator bonus system UX", "manufacturing KPI dashboard best practices".
+2. **Granska befintlig kod** — läs alla komponenter, hitta grafer/tabeller som kan bli mer detaljerade, data som kan visualiseras bättre.
+3. **Uppfinn nya funktioner** — led agenten ska självständigt komma på vad som saknas och lägga till det. Ingen behöver godkänna — implementera direkt och lägg till i menyn. Kunden utvärderar efteråt.
+4. **Starta bug hunting-agent** parallellt.
+
+### Lead-agentens kreativa ansvar
+- Ledaragenten SKA driva projektet framåt på egen hand — inte bara förvalta en lista
+- Läs koden, identifiera vad som fattas, hitta inspiration online, föreslå och implementera via worker-agenter
+- Lägg alltid till nya funktioner i navigationsmenyn (app.routes.ts + nav-komponent) så de är åtkomliga
+- Kunden ser allt efteråt och bestämmer vad som ska vara kvar — jobba fritt och kreativt
+- Prioritera: mer detaljerad data i befintliga grafer, nya vyer som ger VD och operatörer mer insikt
 
 ### Bug Hunting — starta regelbundet
 - **Var 3:e session** (ungefär) ska en dedikerad bug hunting-agent startas parallellt med övriga workers
@@ -78,6 +86,7 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - *2026-03-03*: Agenterna ska aldrig stanna — alltid minst 2 igång, ledaragenten håller dom i arbete hela tiden.
 - *2026-03-03*: Dokumentera allt som sägs i minnet — ägaren ska aldrig behöva upprepa sig.
 - *2026-03-03*: Om backlogen tar slut → analysera koden och hitta förbättringar. Starta bug hunting-agent regelbundet (var 3:e session) som letar buggar och fixar dem.
+- *2026-03-03*: Ledaragenten ska driva projektet helt självständigt — sök internet efter nya features, granska koden, uppfinn nya funktioner. Lägg till i menyn direkt utan att vänta på godkännande. Kunden utvärderar med VD efteråt. Ge graferna mer detaljerad data. Håll alltid minst 2 worker-agenter i arbete.
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
@@ -151,6 +160,36 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - [x] **Notifikation/varning i admin**: Levererat `8404b29` — röd banner (>15 min), gul (5–15 min), plc-blink animation. Använder befintlig 30s polling utan extra HTTP-anrop.
 - [ ] **Tvättlinje/Såglinje förberedelsearbete**: Sätt upp grundstruktur för när de linjerna startar
 - [x] **Audit-log förbättring**: Levererat `e72763c` — fritext+datumfilter med debounce, åtgärds-dropdown (dynamisk från DB), färgkodade badges (grön/blå/röd/orange/grå), förbättrad paginering med ellipsis, CSV-export av hela filtrerade vyn. Stoppage-log: snitt-stopplängd KPI, veckojämförelse vs förra veckan, 14-dagars bar chart, weekly_summary endpoint.
+
+---
+
+## IDÉBANK — Autonomt genererade features (implementera fritt, kunden utvärderar)
+
+### Grafer — mer detaljerad data
+- [ ] **Cykeltids-histogram**: Fördelning av cykeltider per skift — visa om det är jämn produktion eller toppar/dalar. Chart.js histogram med percentiler (P50/P90/P95).
+- [ ] **Kontrollkort (SPC)**: Statistical Process Control — IBC/h per timme med ±2σ kontrollgränser. Visar om processen är "under kontroll" eller har onormal variation.
+- [ ] **Kvalitetstrendkort**: Daglig kvalitet% som linjegraf med 7-dagars rullande medelvärde. Identifiera om kvaliteten försämras gradvis.
+- [ ] **Waterfalldiagram OEE**: Visar hur förluster bryts ned: 100% → -X% tillgänglighet → -Y% prestanda → -Z% kvalitet = faktisk OEE.
+
+### Nya vyer/sidor
+- [ ] **Skiftplaneringsvy** (`/admin/skiftplan`): Kalendervy där admin kan se vilka operatörer som är schemalagda per skift. Kan kopplas till bonusberäkning.
+- [ ] **Realtids-tävling** (`/rebotling/live-ranking`): Stor TV-vy för produktionsgolvet. Visar rankinglista live med operatörernas namn, IBC/h och bonus-poäng. Uppdateras var 30s. Avsedd att visas på en skärm i fabriken.
+- [ ] **Energieffektivitet-vy** (`/rebotling/energi`): Om energidata finns — IBC per kWh, energikostnad per IBC, trend.
+- [ ] **Månadsrapport** (`/rapporter/manad`): Auto-genererad sammanfattning för månaden — total produktion, snitt OEE, bästa/sämsta dag, bonusutbetalningar. Exporterbar som PDF.
+- [ ] **Måluppfyllnad-kalender** (`/rebotling/kalender`): GitHub-liknande heatmap-kalender för hela året — varje dag färgkodad efter % av dagsmål uppnått.
+- [ ] **Operatörscertifiering** (`/admin/certifiering`): Spåra vilka operatörer som är certifierade för vilka linjer/maskiner.
+
+### Förbättringar av befintliga sidor
+- [ ] **Executive dashboard**: Lägg till "Alert-sektion" — om OEE < 70% eller produktion < 60% av mål visas en aktiv varning med åtgärdsförslag.
+- [ ] **Bonus-dashboard**: "What-if"-simulator — admin kan justera bonusparametrar och se i realtid hur det påverkar operatörernas utbetalningar.
+- [ ] **My-bonus**: Push-notifikation (Web Push API) när operatören passerar en bonusnivå (Brons→Silver osv).
+- [ ] **Rebotling-statistik**: Annotationer i grafer — markera ut driftstopp, helgdagar, nya operatörer direkt i tidslinjen.
+- [ ] **Skiftrapport**: Automatisk e-post/export vid skiftslut — skicka skiftsammanfattning som PDF till chef.
+
+### Data & Analytics
+- [ ] **Prediktiv underhållsindikator**: Baserat på cykeltidsdata — om cykeltid ökar stadigt kan det indikera maskinslitage. Visa varning.
+- [ ] **Benchmarking-vy**: Jämför prestanda mot "bästa historiska period" — "Den här veckan vs bästa veckan någonsin".
+- [ ] **Korrelationsanalys**: Visar samband — t.ex. "Operatör A presterar X% bättre när partnern är Operatör B".
 
 ---
 
