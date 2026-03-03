@@ -58,6 +58,8 @@ class RebotlingController {
                 $this->getBenchmarking();
             } elseif ($action === 'monthly-report') {
                 $this->getMonthlyReport();
+            } elseif ($action === 'maintenance-indicator') {
+                $this->getMaintenanceIndicator();
             } else {
                 $this->getLiveStats();
             }
@@ -3236,6 +3238,117 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getMonthlyReport: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsrapport']);
+        }
+    }
+
+    // ========== Prediktiv underhållsindikator ==========
+    private function getMaintenanceIndicator() {
+        try {
+            $sql = "
+                SELECT
+                    YEAR(datum) AS yr,
+                    WEEK(datum, 1) AS wk,
+                    MIN(DATE(datum)) AS week_start,
+                    SUM(shift_ibc) AS week_ibc,
+                    SUM(shift_runtime) AS week_runtime,
+                    ROUND(SUM(shift_runtime) / NULLIF(SUM(shift_ibc), 0), 2) AS avg_cycle_time
+                FROM (
+                    SELECT DATE(datum) AS datum, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 56 DAY)
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok > 0
+                      AND runtime_plc > 0
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY YEAR(datum), WEEK(datum, 1)
+                ORDER BY yr ASC, wk ASC
+            ";
+            $stmt = $this->pdo->query($sql);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($rows)) {
+                echo json_encode([
+                    'success' => true,
+                    'status'  => 'ok',
+                    'message' => 'Inte tillräckligt med data för att beräkna underhållsindikator.',
+                    'weeks'   => [],
+                    'baseline_cycle_time' => null,
+                    'current_cycle_time'  => null,
+                    'trend_pct'           => null,
+                ]);
+                return;
+            }
+
+            // Bygg veckoarray med etiketter
+            $weeks = [];
+            foreach ($rows as $row) {
+                $weeks[] = [
+                    'week_label'     => 'V' . (int)$row['wk'],
+                    'week_start'     => $row['week_start'],
+                    'avg_cycle_time' => $row['avg_cycle_time'] !== null ? (float)$row['avg_cycle_time'] : null,
+                    'week_ibc'       => (int)$row['week_ibc'],
+                ];
+            }
+
+            // Filtrera bort veckor utan cykeltidsdata
+            $validWeeks = array_filter($weeks, function($w) { return $w['avg_cycle_time'] !== null && $w['avg_cycle_time'] > 0; });
+            $validWeeks = array_values($validWeeks);
+
+            if (count($validWeeks) < 2) {
+                echo json_encode([
+                    'success' => true,
+                    'status'  => 'ok',
+                    'message' => 'Inte tillräckligt med data för trendbedömning.',
+                    'weeks'   => $weeks,
+                    'baseline_cycle_time' => null,
+                    'current_cycle_time'  => null,
+                    'trend_pct'           => null,
+                ]);
+                return;
+            }
+
+            // Baslinje = snitt av de 4 första veckorna (eller färre om data saknas)
+            $baselineCount = min(4, count($validWeeks) - 1);
+            $baselineSlice = array_slice($validWeeks, 0, $baselineCount);
+            $baselineSum   = array_sum(array_column($baselineSlice, 'avg_cycle_time'));
+            $baselineCycleTime = round($baselineSum / $baselineCount, 2);
+
+            // Aktuell = senaste veckan
+            $lastWeek = $validWeeks[count($validWeeks) - 1];
+            $currentCycleTime = (float)$lastWeek['avg_cycle_time'];
+
+            // Trend i procent
+            $trendPct = $baselineCycleTime > 0
+                ? round((($currentCycleTime - $baselineCycleTime) / $baselineCycleTime) * 100, 1)
+                : 0;
+
+            // Bestäm status
+            if ($trendPct > 30) {
+                $status  = 'danger';
+                $message = 'Cykeltiden har ökat ' . abs($trendPct) . '% under de senaste veckorna — kontrollera maskinens slitage omgående (ventiler, pumpar, dubbar).';
+            } elseif ($trendPct > 15) {
+                $status  = 'warning';
+                $message = 'Cykeltiden har ökat ' . abs($trendPct) . '% under de senaste veckorna — kontrollera maskinens slitage.';
+            } else {
+                $status  = 'ok';
+                $message = 'Cykeltiden är stabil. Ingen ökande trend detekterad.';
+            }
+
+            echo json_encode([
+                'success'             => true,
+                'status'              => $status,
+                'message'             => $message,
+                'weeks'               => $weeks,
+                'baseline_cycle_time' => $baselineCycleTime,
+                'current_cycle_time'  => $currentCycleTime,
+                'trend_pct'           => $trendPct,
+            ]);
+        } catch (Exception $e) {
+            error_log('getMaintenanceIndicator: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta underhållsindikator']);
         }
     }
 }

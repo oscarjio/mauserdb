@@ -439,6 +439,85 @@
         </div>
       </div>
 
+      <!-- ======== MASKINSTATUS & UNDERHÅLLSPREDIKTOR ======== -->
+      <div class="card mb-4 maintenance-section">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tools me-2 text-warning"></i>
+            Maskinstatus &amp; Underhållsprediktor
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            <span *ngIf="maintenanceLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="loadMaintenanceIndicator()" [disabled]="maintenanceLoading">
+              <i class="fas fa-sync-alt me-1"></i>Uppdatera
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- Status-banners -->
+          <div *ngIf="maintenanceStatus === 'danger'" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Varning:</strong> {{ maintenanceData?.message }}
+          </div>
+          <div *ngIf="maintenanceStatus === 'warning'" class="alert alert-warning">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ maintenanceData?.message }}
+          </div>
+          <div *ngIf="maintenanceStatus === 'ok'" class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            Maskinen verkar fungera normalt. Cykeltiden är stabil.
+          </div>
+
+          <!-- KPI-rad -->
+          <div class="row g-3 mb-3" *ngIf="maintenanceData && maintenanceData.baseline_cycle_time != null">
+            <div class="col-4">
+              <div class="status-card status-neutral">
+                <div class="status-label">Baslinje cykeltid</div>
+                <div class="status-value text-info">{{ maintenanceData.baseline_cycle_time }} min/IBC</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="status-card status-neutral">
+                <div class="status-label">Nuvarande cykeltid</div>
+                <div class="status-value"
+                  [class.text-success]="maintenanceStatus === 'ok'"
+                  [class.text-warning]="maintenanceStatus === 'warning'"
+                  [class.text-danger]="maintenanceStatus === 'danger'">
+                  {{ maintenanceData.current_cycle_time }} min/IBC
+                </div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="status-card status-neutral">
+                <div class="status-label">Trend</div>
+                <div class="status-value"
+                  [class.text-success]="(maintenanceData.trend_pct ?? 0) <= 15"
+                  [class.text-warning]="(maintenanceData.trend_pct ?? 0) > 15 && (maintenanceData.trend_pct ?? 0) <= 30"
+                  [class.text-danger]="(maintenanceData.trend_pct ?? 0) > 30">
+                  {{ (maintenanceData.trend_pct ?? 0) > 0 ? '+' : '' }}{{ maintenanceData.trend_pct }}%
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Graf -->
+          <div *ngIf="!maintenanceLoading || maintenanceData">
+            <canvas id="maintenanceChart" height="120"></canvas>
+          </div>
+
+          <!-- Laddningsindikator om ingen data ännu -->
+          <div *ngIf="maintenanceLoading && !maintenanceData" class="text-muted text-center py-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar underhållsdata...
+          </div>
+
+          <small class="text-muted d-block mt-2">
+            <i class="fas fa-info-circle me-1"></i>
+            Baserat på de senaste 8 veckorna. Uppdateras var 5:e minut.
+          </small>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

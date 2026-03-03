@@ -1,10 +1,14 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 @Component({
   standalone: true,
@@ -13,7 +17,7 @@ import { AuthService } from '../../services/auth.service';
   templateUrl: './rebotling-admin.html',
   styleUrl: './rebotling-admin.css'
 })
-export class RebotlingAdminPage implements OnInit, OnDestroy {
+export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
   loggedIn = false;
   user: any = null;
@@ -59,6 +63,13 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   systemStatusError   = '';
   private systemStatusInterval: any = null;
 
+  // ---- Underhållsindikator ----
+  maintenanceData: any = null;
+  maintenanceLoading = false;
+  maintenanceStatus: 'ok' | 'warning' | 'danger' | null = null;
+  maintenanceChart: Chart | null = null;
+  private maintenanceTimer: any = null;
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -70,6 +81,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     clearTimeout(this.successTimerId);
     clearInterval(this.systemStatusInterval);
+    clearInterval(this.maintenanceTimer);
+    this.maintenanceChart?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -84,6 +97,18 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
     this.systemStatusInterval = setInterval(() => {
       if (!this.destroy$.closed) this.loadSystemStatus();
     }, 30000);
+    // Ladda underhållsindikator vid start och var 5:e minut
+    this.loadMaintenanceIndicator();
+    this.maintenanceTimer = setInterval(() => {
+      if (!this.destroy$.closed) this.loadMaintenanceIndicator();
+    }, 300000);
+  }
+
+  ngAfterViewInit() {
+    // Rita om grafen om data redan är inläst
+    if (this.maintenanceData) {
+      this.renderMaintenanceChart();
+    }
   }
 
   // ========== Inställningar ==========
@@ -414,6 +439,101 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
 
   trackByProductId(index: number, product: any): number {
     return product.id;
+  }
+
+  // ========== Underhållsindikator ==========
+  loadMaintenanceIndicator() {
+    if (this.maintenanceLoading) return;
+    this.maintenanceLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=maintenance-indicator', { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of({ success: false, error: 'Timeout eller serverfel' })),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res.success) {
+            this.maintenanceData   = res;
+            this.maintenanceStatus = res.status as 'ok' | 'warning' | 'danger';
+            setTimeout(() => this.renderMaintenanceChart(), 0);
+          }
+          this.maintenanceLoading = false;
+        },
+        error: () => {
+          this.maintenanceLoading = false;
+        }
+      });
+  }
+
+  renderMaintenanceChart() {
+    const canvas = document.getElementById('maintenanceChart') as HTMLCanvasElement | null;
+    if (!canvas || !this.maintenanceData?.weeks?.length) return;
+
+    this.maintenanceChart?.destroy();
+
+    const weeks     = this.maintenanceData.weeks as any[];
+    const labels    = weeks.map((w: any) => w.week_label);
+    const cycleTimes = weeks.map((w: any) => w.avg_cycle_time);
+    const baseline  = this.maintenanceData.baseline_cycle_time;
+
+    const baselineData = baseline != null ? weeks.map(() => baseline) : [];
+
+    this.maintenanceChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Cykeltid (min/IBC)',
+            data: cycleTimes,
+            borderColor: '#ed8936',
+            backgroundColor: 'rgba(237,137,54,0.15)',
+            borderWidth: 2,
+            pointRadius: 4,
+            tension: 0.3,
+            fill: true,
+          },
+          ...(baseline != null ? [{
+            label: 'Baslinje',
+            data: baselineData,
+            borderColor: '#48bb78',
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+          }] : []),
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: { color: '#e2e8f0' }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} min/IBC`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.06)' },
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Minuter per IBC',
+              color: '#a0aec0',
+            },
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.06)' },
+          },
+        },
+      },
+    });
   }
 
   private showSuccess(message: string) {
