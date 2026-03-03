@@ -29,22 +29,22 @@ IBC-tvätteri (Intermediate Bulk Container) produktionssystem.
 ## BACKLOG (prioritetsordning)
 
 ### 🔴 Hög prioritet
-- [ ] **My-Bonus realtidsvy**: Operatör ser eget bonusläge live (poäng, estimerat belopp, trend)
-- [ ] **Bonus-Dashboard rankingkort**: Trendpilar (↑/↓ vs förra veckan), topplista med medaljer
-- [ ] **Skiftmålsprediktor**: "Prognos: 87 IBC klart idag (mål: 100)" — live-beräkning på statistiksidan
-- [ ] **Veckojämförelse-graf**: Denna vecka vs föregående vecka i rebotling-statistik
+- [ ] **My-Bonus realtidsvy**: Operatör ser eget bonusläge live (poäng, estimerat belopp, trend) — bonus-agent jobbar på detta
+- [ ] **Bonus-Dashboard rankingkort**: Trendpilar (↑/↓ vs förra veckan), topplista med medaljer — bonus-agent jobbar på detta
+- [x] **Skiftmålsprediktor**: Levererat `c7faa1b` — live-prognos baserat på takt sedan 06:00 → 22:00
+- [x] **Veckojämförelse-graf**: Levererat `c7faa1b` — bar chart denna/förra veckan, summakort med diff
 
 ### 🟡 Medium prioritet
-- [ ] **Rebotling-Skiftrapport sammanfattningskort**: Kvalitet%, OEE, Rastid, Vs. föregående skift
-- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring över tid (my-bonus eller bonus-dashboard)
-- [ ] **OEE deep-dive**: Breakdown Tillgänglighet/Prestanda/Kvalitet i statistik
-- [ ] **Stopporsaksanalys**: Visualisera stopp och raster i production-analysis
-- [ ] **Admin: Mål per veckodag**: Måndag-fredag kan ha olika dagsmål
-- [ ] **Förbättrad heatmap**: Tooltip med IBC/h + kvalitet%, val av KPI
+- [ ] **Rebotling-Skiftrapport sammanfattningskort**: Kvalitet%, OEE, Rastid, Vs. föregående skift — skiftrapport-agent jobbar på detta
+- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring över tid (my-bonus/bonus-dashboard)
+- [x] **OEE deep-dive**: Levererat `c7faa1b` — Tillgänglighet/Prestanda/Kvalitet-bars + 30-dagars trendgraf
+- [ ] **Stopporsaksanalys**: Visualisera stopp och raster i production-analysis — ÖPPEN
+- [ ] **Admin: Mål per veckodag**: Måndag-fredag kan ha olika dagsmål — skiftrapport-agent jobbar på detta
+- [ ] **Förbättrad heatmap**: Tooltip med IBC/h + kvalitet%, val av KPI — ÖPPEN
 
 ### 🟢 Lägre prioritet
 - [ ] **Systemstatus i admin**: Senaste PLC-ping, aktuellt löpnummer, DB-status
-- [ ] **Bästa skift-topplista**: De 10 bästa historiska skiften
+- [x] **Bästa skift-topplista**: Levererat `c7faa1b` — ny flik i production-analysis med guld/silver/brons + detailtabell
 - [ ] **Skift-sammanfattning vid export**: PDF-export inkluderar sammanfattningskort
 - [ ] **Executive dashboard förbättringar**: Bättre KPI-kort med trender
 
@@ -61,22 +61,27 @@ Tre agenter startades parallellt:
 ## GENOMFÖRT (commit-historik)
 - `ecc6b40` — Auth fix: APP_INITIALIZER väntar på fetchStatus() via firstValueFrom()
 - `771e128` — auto-develop.sh och dev-log.md tillagda
+- `d4db30b` — lead-agent.sh + lead-memory.md: orchestrator-system etablerat
+- `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista i production-analysis. Nya endpoints: week-comparison, oee-trend, best-shifts. Nya TypeScript-interfaces i RebotlingService.
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
 
 ---
 
 ## TEKNISKA OBSERVATIONER
 - `rebotling_ibc` tabell har kumulativa fält per skift — aggregering med MAX() per skiftraknare
-- BonusController har endpoints: operator, ranking, team, kpis, history, summary
-- RebotlingController GET-endpoints: admin-settings, status, rast, statistics, day-stats, oee, cycle-trend, report, heatmap, getLiveStats
-- rebotling-statistik.ts är ~1641 rader — mycket implementerat, läs noggrant innan du ändrar
+- BonusController endpoints: operator, ranking, team, kpis, history, summary
+- RebotlingController GET-endpoints: admin-settings, status, rast, statistics, day-stats, oee, cycle-trend, report, heatmap, getLiveStats, **week-comparison**, **oee-trend**, **best-shifts** (tillagda av statistik-agent)
+- rebotling-statistik.ts är nu **ännu längre** (veckojämförelse, prediktor, OEE deep-dive tillagda) — läs noggrant
+- RebotlingService har nya interfaces: WeekComparisonResponse, OEETrendResponse, BestShiftsResponse
 - Angular routing finns i app.routes.ts — nya sidor måste registreras där
+- Skiftmålsprediktor beräknar takt från 06:00 → projicerar till 22:00 (produktionsdag)
 
 ---
 
 ## BESLUTSDAGBOK
-**2026-03-03**: Startade tre parallella worker-agenter. Ledaragent-system etablerat.
-Nästa session: granska vad agenterna levererat, markera klara items i backlog, starta nästa omgång.
+**2026-03-03 — Session 1**: Startade tre parallella worker-agenter. Ledaragent-system etablerat.
+**2026-03-03 — Statistik-agent klar**: Levererat veckojämförelse, skiftmålsprediktor, OEE deep-dive, bästa skift-topplista. 4 av 10 backlog-items klara. Bonus-agent och skiftrapport-agent fortfarande aktiva.
+Nästa session: Granska bonus-agent och skiftrapport-agent. Starta ny omgång på återstående öppna items (stopporsaksanalys, heatmap-förbättring, operatörsprestanda-trend).
 
 ---
 
