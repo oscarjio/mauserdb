@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
@@ -37,7 +37,7 @@ interface TableRow {
   selector: 'app-tvattlinje-statistik',
   templateUrl: './tvattlinje-statistik.html',
   styleUrls: ['./tvattlinje-statistik.css'],
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule, DecimalPipe]
 })
 export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;

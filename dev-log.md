@@ -4,6 +4,56 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ---
 
+## 2026-03-03 — Tvättlinje-förberedelse + UX-polish
+
+### DEL 1 — Tvättlinje-förberedelse
+
+**Tvättlinje-admin (`pages/tvattlinje-admin/`):**
+- Ny TypeScript-logik: `timtakt` och `skiftlangd` som egna fält (utöver `antal_per_dag`)
+- Ny systemstatus-sektion med 30-sekunders polling (kör/stoppad, senaste signal, databas, linje)
+  - `loadSystemStatus(silent?)` med `isFetchingStatus`-guard mot anropsstaplar
+  - `getStatusAge()`, `getStatusAgeMinutes()`, `getStatusLevel()` för åldersindikator
+- Felmeddelandehantering: `settingsError` visas med `alert-danger`, separeras från success-toast
+- Tillbaka-knapp till Live i sidhuvudet
+- "Ej i drift"-infobanner förklarar att inställningar kan förberedas
+- Info-sektion med relevanta KPI:er och snabblänkar till Statistik / Skiftrapport
+- Fullständigt omskriven CSS i mörkt tema (`#1a202c`/`#2d3748`/`#e2e8f0`), konsistent med rebotling-admin
+
+**TvattlinjeController.php:**
+- `saveAdminSettings()` hanterar nu `timtakt` och `skiftlangd` (utöver `antal_per_dag`)
+- `loadSettings()` returnerar `timtakt` och `skiftlangd` med standardvärden 20 resp. 8.0
+- Idempotent `ALTER TABLE ADD COLUMN IF NOT EXISTS` i både load och save — inga migrations-beroenden
+
+**Databas-migration:**
+- `noreko-backend/migrations/2026-03-03_tvattlinje_settings_extend.sql`
+  - `ALTER TABLE tvattlinje_settings ADD COLUMN IF NOT EXISTS timtakt INT DEFAULT 20`
+  - `ALTER TABLE tvattlinje_settings ADD COLUMN IF NOT EXISTS skiftlangd DECIMAL(4,1) DEFAULT 8.0`
+
+**Tvättlinje-statistik (`pages/tvattlinje-statistik/`):**
+- "Ej i drift"-banner (orange/gul) visas när backend returnerar fel och mock-data visas
+- Förbättrad felmeddelande-alert: `alert-info` med "Exempeldata visas"
+- Tillbaka-knapp till Live integrerad i navigationskontrollen
+- `DecimalPipe` importerad — `avgEfficiency` och `row.efficiency` visas med 1 decimal
+
+**Tvättlinje-skiftrapport (`pages/tvattlinje-skiftrapport/`):**
+- Sammanfattningskort överst: Skift totalt, Totalt OK, Totalt ej OK, Snitt kvalitet (1 decimal)
+  - `getTotalOk()`, `getTotalEjOk()`, `getAvgQuality()` — nya metoder
+- Tillbaka-knapp till Live i sidhuvudet
+- Tom-tillstånd med ikon (`fa-clipboard`) + förklaringstext + knapp för manuell rapport
+- `getQualityPct()` returnerar nu 1 decimal (0.1% precision)
+- Friendlier HTTP-felmeddelande med stäng-knapp på alert
+
+### DEL 2 — UX-polish (tvättlinje)
+
+- **Tillbaka-knappar**: Alla tre tvättlinje-sidor (statistik, skiftrapport, admin) har tillbaka-knapp till `/tvattlinje/live`
+- **Tomma tillstånd**: Skiftrapport — dedikerat tom-tillstånd med ikon utanför tabellen
+- **Felmeddelanden**: HTTP-fel ger begriplig svensk text; alert har stäng-knapp
+- **Datumformat**: `yyyy-MM-dd` konsekvent via DatePipe
+- **Procentsiffror**: 1 decimal konsekvent (`| number:'1.1-1'`) i statistik-KPIs, skiftrapport-kort och kvalitet-badges
+- **Build**: `npx ng build` — 0 TypeScript-fel, inga nya budgetvarningar
+
+---
+
 ## 2026-03-03 — Audit-log & Stoppage-log förbättringar
 
 ### Audit-log förbättringar

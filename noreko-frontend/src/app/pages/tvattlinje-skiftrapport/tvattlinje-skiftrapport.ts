@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -9,7 +9,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
   standalone: true,
   selector: 'app-tvattlinje-skiftrapport',
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, DecimalPipe],
   templateUrl: './tvattlinje-skiftrapport.html',
   styleUrl: './tvattlinje-skiftrapport.css'
 })
@@ -83,7 +83,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
 
   getQualityPct(r: any): number | null {
     if (!r.totalt) return null;
-    return Math.round((r.antal_ok / r.totalt) * 100);
+    return Math.round((r.antal_ok / r.totalt) * 1000) / 10;
   }
 
   fetchReports(silent = false) {
@@ -111,7 +111,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
         },
         error: (err) => {
           if (!silent) this.loading = false;
-          this.errorMessage = err.error?.message || 'Fel vid hämtning';
+          if (!silent) this.errorMessage = 'Kunde inte hämta rapporter. Kontrollera din anslutning.';
         }
       });
   }
@@ -286,6 +286,22 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
         }).download(`${this.line}-skiftrapport-${report.datum}-${report.id}.pdf`);
       });
     });
+  }
+
+  getTotalOk(): number {
+    return this.filteredReports.reduce((sum, r) => sum + (parseInt(r.antal_ok, 10) || 0), 0);
+  }
+
+  getTotalEjOk(): number {
+    return this.filteredReports.reduce((sum, r) => sum + (parseInt(r.antal_ej_ok, 10) || 0), 0);
+  }
+
+  getAvgQuality(): number {
+    const reports = this.filteredReports.filter(r => r.totalt > 0);
+    if (reports.length === 0) return 0;
+    const totalOk = reports.reduce((sum, r) => sum + (parseInt(r.antal_ok, 10) || 0), 0);
+    const total   = reports.reduce((sum, r) => sum + (parseInt(r.totalt, 10) || 0), 0);
+    return total > 0 ? Math.round((totalOk / total) * 1000) / 10 : 0;
   }
 
   showSuccess(msg: string) {

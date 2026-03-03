@@ -1,39 +1,66 @@
-/* Tvättlinje Admin Page Styles - Dark Theme */
+/* Tvättlinje Admin Page Styles — Dark Theme */
 
-.card {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: #2d3748;
+.admin-page {
+  min-height: 100vh;
+  background: #1a202c;
   color: #e2e8f0;
-  transition: box-shadow 0.15s ease-in-out;
 }
 
-.card:hover {
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
+/* ---- Header ---- */
+.admin-header {
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem 0;
+  margin-bottom: 0;
+  backdrop-filter: blur(10px);
+}
+
+.admin-header h2 {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+/* ---- Cards ---- */
+.card {
+  background-color: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .card-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   font-weight: 600;
   background-color: #1a202c !important;
+  padding: 1rem 1.25rem;
+}
+
+.card-header h5 {
+  color: #e2e8f0;
+  margin: 0;
 }
 
 .card-body {
   background-color: #2d3748;
   color: #e2e8f0;
+  padding: 1.5rem;
 }
 
+/* ---- Form Controls ---- */
 .form-control {
   background-color: #4a5568;
   border-color: #718096;
   color: #e2e8f0;
+  border-radius: 8px;
 }
 
 .form-control:focus {
   background-color: #4a5568;
-  border-color: #86b7fe;
+  border-color: #63b3ed;
   color: #e2e8f0;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  box-shadow: 0 0 0 0.25rem rgba(99, 179, 237, 0.25);
 }
 
 .form-control::placeholder {
@@ -42,69 +69,168 @@
 
 .form-label {
   color: #e2e8f0;
-}
-
-.btn {
-  transition: all 0.15s ease-in-out;
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
-}
-
-.btn-success {
-  background-color: #198754;
-  border-color: #198754;
-}
-
-.btn-success:hover {
-  background-color: #157347;
-  border-color: #146c43;
-}
-
-.btn-primary {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.btn-primary:hover {
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
-}
-
-/* Access denied styling */
-.border-danger {
-  border-color: #dc3545 !important;
-}
-
-.bg-danger {
-  background-color: #dc3545 !important;
-}
-
-.bg-primary {
-  background-color: #0d6efd !important;
-}
-
-/* Text colors for dark theme */
-.text-muted {
-  color: #a0aec0 !important;
+  margin-bottom: 0.4rem;
 }
 
 .form-text {
   color: #a0aec0;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
-/* Toast notification styling */
+/* ---- Buttons ---- */
+.btn {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3182ce, #2b6cb0);
+  border: none;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4299e1, #3182ce);
+}
+
+.btn-outline-secondary {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #a0aec0;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #e2e8f0;
+}
+
+.btn-outline-secondary:disabled {
+  opacity: 0.4;
+}
+
+.btn-outline-info {
+  border-color: rgba(99, 179, 237, 0.5);
+  color: #63b3ed;
+}
+
+.btn-outline-info:hover {
+  background: rgba(99, 179, 237, 0.1);
+  border-color: #63b3ed;
+  color: #bee3f8;
+}
+
+/* ---- Alert Banner ---- */
+.not-running-banner {
+  background: rgba(49, 130, 206, 0.15);
+  border: 1px solid rgba(49, 130, 206, 0.4);
+  border-radius: 12px;
+  color: #90cdf4;
+}
+
+.alert-danger {
+  background: rgba(229, 62, 62, 0.15);
+  border: 1px solid rgba(229, 62, 62, 0.4);
+  border-radius: 8px;
+  color: #fc8181;
+}
+
+/* ---- Status Cards ---- */
+.status-card {
+  background: #1a202c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.status-card.status-ok {
+  border-color: rgba(72, 187, 120, 0.4);
+  background: rgba(72, 187, 120, 0.07);
+}
+
+.status-card.status-warn {
+  border-color: rgba(237, 137, 54, 0.4);
+  background: rgba(237, 137, 54, 0.07);
+}
+
+.status-card.status-err {
+  border-color: rgba(229, 62, 62, 0.4);
+  background: rgba(229, 62, 62, 0.07);
+}
+
+.status-card.status-neutral {
+  border-color: rgba(99, 179, 237, 0.3);
+  background: rgba(99, 179, 237, 0.05);
+}
+
+.status-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.status-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.status-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.status-sub {
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* ---- Info Card ---- */
+.info-card {
+  background: #1a202c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.info-title {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+}
+
+.info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.info-list li {
+  padding: 0.2rem 0;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.info-list li::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+  color: #4a5568;
+}
+
+/* ---- Toast ---- */
 .toast {
   background-color: #2d3748;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
-}
-
-.toast-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .toast-body {
@@ -116,19 +242,23 @@
   filter: invert(1) grayscale(100%) brightness(200%);
 }
 
-/* Responsive adjustments */
+/* ---- Text utilities ---- */
+.text-muted {
+  color: #a0aec0 !important;
+}
+
+.border-danger {
+  border-color: #e53e3e !important;
+}
+
+/* ---- Responsive ---- */
 @media (max-width: 768px) {
-  .btn {
-    margin-bottom: 0.5rem;
+  .admin-header .d-flex {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .status-card {
+    padding: 1rem;
   }
 }
-
-/* Custom spacing */
-.mb-4 {
-  margin-bottom: 1.5rem !important;
-}
-
-.mt-4 {
-  margin-top: 1.5rem !important;
-}
-

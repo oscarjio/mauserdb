@@ -12,10 +12,15 @@
   </div>
 
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">
-      <i class="fas fa-clipboard-list me-2 text-primary"></i>
-      Tvättlinje Skiftrapport
-    </h1>
+    <div class="d-flex align-items-center gap-3">
+      <a href="/tvattlinje/live" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left me-1"></i>Live
+      </a>
+      <h1 class="h3 mb-0">
+        <i class="fas fa-clipboard-list me-2 text-primary"></i>
+        Tvättlinje Skiftrapport
+      </h1>
+    </div>
     <button *ngIf="loggedIn" class="btn btn-primary" (click)="showAddForm = !showAddForm">
       <i class="fas" [class.fa-minus]="showAddForm" [class.fa-plus]="!showAddForm"></i>
       {{ showAddForm ? 'Dölj' : 'Lägg till rapport' }}
@@ -24,6 +29,63 @@
 
   <div *ngIf="errorMessage" class="alert alert-danger">
     <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}
+    <button type="button" class="btn-close float-end" (click)="errorMessage=''"></button>
+  </div>
+
+  <!-- Sammanfattningskort -->
+  <div class="row g-3 mb-4" *ngIf="filteredReports.length > 0">
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="summary-value">{{ filteredReports.length }}</div>
+        <div class="summary-label">Skift totalt</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="summary-icon text-success"><i class="fas fa-check-circle"></i></div>
+        <div class="summary-value text-success">
+          {{ getTotalOk() }}
+        </div>
+        <div class="summary-label">Totalt OK</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="summary-icon text-danger"><i class="fas fa-times-circle"></i></div>
+        <div class="summary-value text-danger">
+          {{ getTotalEjOk() }}
+        </div>
+        <div class="summary-label">Totalt ej OK</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="summary-card">
+        <div class="summary-icon"
+          [class.text-success]="getAvgQuality() >= 90"
+          [class.text-warning]="getAvgQuality() >= 70 && getAvgQuality() < 90"
+          [class.text-danger]="getAvgQuality() < 70">
+          <i class="fas fa-star"></i>
+        </div>
+        <div class="summary-value"
+          [class.text-success]="getAvgQuality() >= 90"
+          [class.text-warning]="getAvgQuality() >= 70 && getAvgQuality() < 90"
+          [class.text-danger]="getAvgQuality() < 70">
+          {{ getAvgQuality() | number:'1.1-1' }}%
+        </div>
+        <div class="summary-label">Snitt kvalitet</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tom-tillstånd -->
+  <div class="empty-state" *ngIf="!loading && filteredReports.length === 0 && reports.length === 0">
+    <i class="fas fa-clipboard fa-3x text-muted mb-3"></i>
+    <h5>Inga skiftrapporter hittades</h5>
+    <p class="text-muted">Tvättlinjen är ej i drift ännu. Rapporter visas när produktion startar.</p>
+    <button *ngIf="loggedIn" class="btn btn-primary mt-2" (click)="showAddForm = true">
+      <i class="fas fa-plus me-2"></i>Lägg till manuell rapport
+    </button>
   </div>
 
   <!-- Add form -->
@@ -141,7 +203,7 @@
                     [class.bg-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
                     [class.bg-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
                     [class.bg-secondary]="getQualityPct(report) == null">
-                    {{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}
+                    {{ getQualityPct(report) != null ? ((getQualityPct(report) | number:'1.1-1') + '%') : '–' }}
                   </span>
                 </td>
                 <td><span class="badge bg-secondary">{{ report.user_name || '-' }}</span></td>
@@ -184,7 +246,7 @@
                             [class.text-warning]="(getQualityPct(report) ?? 101) >= 70 && (getQualityPct(report) ?? 101) < 90"
                             [class.text-danger]="(getQualityPct(report) ?? 101) < 70 && getQualityPct(report) != null"
                             [class.text-muted]="getQualityPct(report) == null">
-                            {{ getQualityPct(report) != null ? (getQualityPct(report) + '%') : '–' }}
+                            {{ getQualityPct(report) != null ? ((getQualityPct(report) | number:'1.1-1') + '%') : '–' }}
                           </div>
                         </div>
                       </div>
@@ -260,9 +322,9 @@
               </tr>
             </ng-container>
 
-            <tr *ngIf="filteredReports.length === 0">
-              <td [attr.colspan]="isAdmin ? 10 : 9" class="text-center text-muted py-3">
-                <i class="fas fa-info-circle me-2"></i>
+            <tr *ngIf="filteredReports.length === 0 && !loading">
+              <td [attr.colspan]="isAdmin ? 10 : 9" class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x d-block mb-2 text-muted"></i>
                 {{ reports.length === 0 ? 'Inga rapporter hittades.' : 'Inga skift matchar det valda datumintervallet.' }}
               </td>
             </tr>

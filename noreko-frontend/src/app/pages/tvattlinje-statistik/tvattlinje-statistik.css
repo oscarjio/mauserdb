@@ -2,6 +2,23 @@
    DARK MODE STATISTICS PAGE
    ============================================ */
 
+/* Demo/Ej-i-drift banner */
+.demo-banner {
+  background: linear-gradient(135deg, rgba(237, 137, 54, 0.2), rgba(221, 107, 32, 0.15));
+  border: 1px solid rgba(237, 137, 54, 0.4);
+  color: #fbd38d;
+  padding: 0.875rem 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.alert-info {
+  background: rgba(49, 130, 206, 0.12);
+  border: 1px solid rgba(49, 130, 206, 0.3);
+  border-radius: 10px;
+  color: #90cdf4;
+}
+
 .tvattlinje-statistik-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);

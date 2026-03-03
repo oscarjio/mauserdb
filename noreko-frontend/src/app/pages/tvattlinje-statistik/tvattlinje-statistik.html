@@ -1,5 +1,11 @@
 <div class="tvattlinje-statistik-page">
-  
+
+  <!-- Ej i drift-banner (visas när data är exempeldata) -->
+  <div class="demo-banner" *ngIf="error">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>Tvättlinjen är ej igång</strong> — visar exempeldata. Riktiga mätvärden visas när linjen är i drift.
+  </div>
+
   <!-- Header with Breadcrumb -->
   <div class="stats-header">
     <div class="container-fluid">
@@ -39,14 +45,19 @@
         </div>
         
         <!-- Navigation Controls -->
-        <div class="nav-controls">
-          <button class="btn btn-dark btn-sm" (click)="navigatePrevious()">
-            <i class="fas fa-chevron-left"></i>
-          </button>
-          <span class="mx-3 view-mode-label">{{ getViewModeLabel() }}</span>
-          <button class="btn btn-dark btn-sm" (click)="navigateNext()">
-            <i class="fas fa-chevron-right"></i>
-          </button>
+        <div class="d-flex align-items-center gap-2">
+          <a href="/tvattlinje/live" class="btn btn-outline-secondary btn-sm me-2">
+            <i class="fas fa-arrow-left me-1"></i>Live
+          </a>
+          <div class="nav-controls">
+            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="mx-3 view-mode-label">{{ getViewModeLabel() }}</span>
+            <button class="btn btn-dark btn-sm" (click)="navigateNext()">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -82,7 +93,7 @@
             <i class="fas fa-percentage"></i>
           </div>
           <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">
-            {{ avgEfficiency }}%
+            {{ avgEfficiency | number:'1.1-1' }}%
           </div>
           <div class="kpi-label">Genomsnittlig Effektivitet</div>
         </div>
@@ -107,11 +118,12 @@
       <p class="mt-3">Hämtar statistik...</p>
     </div>
 
-    <!-- Error State -->
-    <div class="alert alert-warning" *ngIf="error && !loading">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      {{ error }}
-      <small class="d-block mt-1">Visar exempeldata</small>
+    <!-- Error State (visas som info, exempeldata-banner hanteras separat) -->
+    <div class="alert alert-info d-flex align-items-center" *ngIf="error && !loading" style="border-radius:10px;">
+      <i class="fas fa-flask me-2"></i>
+      <div>
+        <strong>Exempeldata visas</strong> — backend svarar inte eller tvättlinjen har inga mätvärden ännu.
+      </div>
     </div>
 
     <!-- Main Content Grid -->
@@ -302,7 +314,7 @@
                       {{ row.avgCycleTime }} min
                     </td>
                     <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
-                      <strong>{{ row.efficiency }}%</strong>
+                      <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
                     </td>
                     <td class="text-end">
                       {{ row.runtime | number:'1.0-0' }}
@@ -319,7 +331,7 @@
                       <strong>{{ avgCycleTime }} min</strong>
                     </td>
                     <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
-                      <strong>{{ avgEfficiency }}%</strong>
+                      <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
                     </td>
                     <td class="text-end">
                       <strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong>

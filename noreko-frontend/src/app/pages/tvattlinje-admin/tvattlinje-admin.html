@@ -1,4 +1,5 @@
-<div class="container-fluid mt-4" *ngIf="loggedIn && isAdmin">
+<div class="admin-page" *ngIf="loggedIn && isAdmin">
+
   <!-- Success Toast -->
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
     <div class="toast show" *ngIf="showSuccessMessage" role="alert" aria-live="assertive" aria-atomic="true">
@@ -7,75 +8,260 @@
         <strong class="me-auto">Framgång</strong>
         <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage = false"></button>
       </div>
-      <div class="toast-body bg-dark text-white">
-        {{ successMessage }}
+      <div class="toast-body">{{ successMessage }}</div>
+    </div>
+  </div>
+
+  <!-- Sidhuvud -->
+  <div class="admin-header">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-cogs me-2 text-info"></i>
+            Tvättlinje Admin
+          </h2>
+          <p class="mb-0 text-muted small">
+            Inloggad som <strong>{{ user?.username }}</strong>
+          </p>
+        </div>
+        <a href="/tvattlinje/live" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left me-2"></i>Tillbaka till Live
+        </a>
       </div>
     </div>
   </div>
 
-  <div class="row">
-    <div class="col-12">
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">
-          <i class="fas fa-cogs me-2"></i>
-          Tvättlinje Admin
-        </h1>
-        <div class="text-muted">
-          <small>Inloggad som: <strong>{{ user?.username }}</strong></small>
+  <div class="container-fluid py-4">
+
+    <!-- ======== DRIFTSTATUS-BANNER (ej i drift) ======== -->
+    <div class="alert alert-info d-flex align-items-center mb-4 not-running-banner" role="alert">
+      <i class="fas fa-info-circle me-3 fs-5"></i>
+      <div>
+        <strong>Tvättlinjen är ej i drift.</strong>
+        Inställningar kan förberedas och sparas inför driftsättning.
+      </div>
+    </div>
+
+    <!-- ======== SYSTEMSTATUS ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-heartbeat me-2 text-danger"></i>
+          Systemstatus
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span *ngIf="systemStatusLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+          <button class="btn btn-sm btn-outline-secondary" (click)="loadSystemStatus()" [disabled]="systemStatusLoading">
+            <i class="fas fa-sync-alt me-1"></i>Uppdatera
+          </button>
         </div>
       </div>
-
-      <!-- Settings Card -->
-      <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-          <h5 class="card-title mb-0">
-            <i class="fas fa-sliders-h me-2"></i>
-            Inställningar
-          </h5>
+      <div class="card-body">
+        <div *ngIf="systemStatusError" class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ systemStatusError }}
         </div>
-        <div class="card-body">
-          <form (ngSubmit)="saveSettings()">
-            <div class="row">
-              <div class="col-md-8">
-                <div class="mb-3">
-                  <label for="antalPerDag" class="form-label">Antal per dag</label>
-                  <input 
-                    type="number" 
-                    class="form-control" 
-                    id="antalPerDag" 
-                    [(ngModel)]="settings.antal_per_dag"
-                    name="antal_per_dag"
-                    min="1"
-                    step="1"
-                    placeholder="Ange mål per dag"
-                    required>
-                  <div class="form-text">
-                    Detta är det dagliga målet för antal producerade enheter på tvättlinjen.
-                  </div>
-                </div>
+        <div class="row g-3" *ngIf="systemStatus">
+          <!-- Körstatus -->
+          <div class="col-6 col-md-3">
+            <div class="status-card"
+              [class.status-ok]="systemStatus.running"
+              [class.status-err]="!systemStatus.running">
+              <div class="status-icon">
+                <i class="fas"
+                  [class.fa-play-circle]="systemStatus.running"
+                  [class.fa-stop-circle]="!systemStatus.running"
+                  [class.text-success]="systemStatus.running"
+                  [class.text-danger]="!systemStatus.running"></i>
               </div>
-              <div class="col-md-4">
-                <div class="mb-3">
-                  <label class="form-label">&nbsp;</label>
-                  <button 
-                    class="btn btn-success w-100" 
-                    type="submit"
-                    [disabled]="loading || !settings.antal_per_dag">
-                    <i class="fas fa-save me-2" *ngIf="!loading"></i>
-                    <i class="fas fa-spinner fa-spin me-2" *ngIf="loading"></i>
-                    {{ loading ? 'Sparar...' : 'Spara' }}
-                  </button>
-                </div>
+              <div class="status-label">Körstatus</div>
+              <div class="status-value"
+                [class.text-success]="systemStatus.running"
+                [class.text-danger]="!systemStatus.running">
+                {{ systemStatus.running ? 'Kör' : 'Stoppad' }}
               </div>
             </div>
-          </form>
+          </div>
+          <!-- Senaste signal -->
+          <div class="col-6 col-md-3">
+            <div class="status-card"
+              [class.status-ok]="getStatusLevel() === 'ok'"
+              [class.status-warn]="getStatusLevel() === 'warn'"
+              [class.status-err]="getStatusLevel() === 'err'">
+              <div class="status-icon">
+                <i class="fas fa-clock"
+                  [class.text-success]="getStatusLevel() === 'ok'"
+                  [class.text-warning]="getStatusLevel() === 'warn'"
+                  [class.text-danger]="getStatusLevel() === 'err'"></i>
+              </div>
+              <div class="status-label">Senaste signal</div>
+              <div class="status-value">{{ getStatusAge() }}</div>
+              <div class="status-sub text-muted small" *ngIf="systemStatus.lastUpdate">
+                {{ systemStatus.lastUpdate | date:'HH:mm:ss' }}
+              </div>
+            </div>
+          </div>
+          <!-- Databas -->
+          <div class="col-6 col-md-3">
+            <div class="status-card status-ok">
+              <div class="status-icon">
+                <i class="fas fa-database text-success"></i>
+              </div>
+              <div class="status-label">Databas</div>
+              <div class="status-value text-success">OK</div>
+            </div>
+          </div>
+          <!-- Tvättlinje status -->
+          <div class="col-6 col-md-3">
+            <div class="status-card status-neutral">
+              <div class="status-icon">
+                <i class="fas fa-tint text-info"></i>
+              </div>
+              <div class="status-label">Linje</div>
+              <div class="status-value text-info">Tvättlinje</div>
+              <div class="status-sub text-muted small">Ej i drift</div>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!systemStatus && !systemStatusLoading && !systemStatusError" class="text-muted text-center py-3">
+          <i class="fas fa-spinner fa-spin me-2"></i>Laddar systemstatus...
         </div>
       </div>
     </div>
+
+    <!-- ======== PRODUKTIONSINSTÄLLNINGAR ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-sliders-h me-2 text-info"></i>
+          Produktionsinställningar
+        </h5>
+        <span *ngIf="loading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+      </div>
+      <div class="card-body">
+        <div *ngIf="settingsError" class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ settingsError }}
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-box me-1 text-info"></i>Dagsmål (tankar/dag)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="settings.antal_per_dag"
+              name="antal_per_dag"
+              min="1"
+              step="1"
+              placeholder="Ange dagsmål">
+            <div class="form-text">Mål antal tvättade tankar per dag.</div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-tachometer-alt me-1 text-warning"></i>Timtakt (tankar/h)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="settings.timtakt"
+              name="timtakt"
+              min="1"
+              step="1"
+              placeholder="Ange timtakt">
+            <div class="form-text">Förväntad produktion per timme.</div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-clock me-1 text-success"></i>Skiftlängd (timmar)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="settings.skiftlangd"
+              name="skiftlangd"
+              min="0.5"
+              max="24"
+              step="0.5"
+              placeholder="Ange skiftlängd">
+            <div class="form-text">Antal arbetstimmar per skift.</div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button
+            class="btn btn-primary"
+            (click)="saveSettings()"
+            [disabled]="settingsSaving || loading">
+            <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
+            {{ settingsSaving ? 'Sparar...' : 'Spara inställningar' }}
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            (click)="loadSettings()"
+            [disabled]="loading || settingsSaving">
+            <i class="fas fa-sync-alt me-2"></i>Återställ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== INFO-SEKTION ======== -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-info-circle me-2 text-secondary"></i>
+          Om Tvättlinjen
+        </h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">
+          Tvättlinjen ansvarar för rengöring av IBC-tankar inför återcirkulering.
+          Produktionsdata samlas in automatiskt via PLC-integration.
+        </p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-title">
+                <i class="fas fa-chart-line me-2 text-info"></i>
+                Relevanta KPI:er
+              </div>
+              <ul class="info-list text-muted small mb-0">
+                <li>Antal tvättade tankar per dag / skift</li>
+                <li>Genomsnittlig cykeltid (mål: 3 min)</li>
+                <li>Utnyttjandegrad (körtid vs. planerad tid)</li>
+                <li>Maskinstatus (kör / stoppad)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-title">
+                <i class="fas fa-link me-2 text-success"></i>
+                Snabblänkar
+              </div>
+              <div class="d-flex flex-column gap-2">
+                <a href="/tvattlinje/statistik" class="btn btn-outline-info btn-sm">
+                  <i class="fas fa-chart-bar me-2"></i>Gå till Statistik
+                </a>
+                <a href="/tvattlinje/skiftrapport" class="btn btn-outline-secondary btn-sm">
+                  <i class="fas fa-clipboard-list me-2"></i>Gå till Skiftrapport
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
-<!-- Access Denied Message -->
+<!-- Åtkomst nekad -->
 <div class="container-fluid mt-4" *ngIf="!loggedIn || !isAdmin">
   <div class="row justify-content-center">
     <div class="col-md-6">
@@ -91,7 +277,7 @@
             <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
           </div>
           <p class="card-text">
-            Du har inte behörighet att komma åt denna sida. 
+            Du har inte behörighet att komma åt denna sida.
             Endast administratörer kan komma åt tvättlinje admin-panelen.
           </p>
           <a href="/" class="btn btn-primary">
@@ -103,4 +289,3 @@
     </div>
   </div>
 </div>
-

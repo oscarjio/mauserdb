@@ -243,7 +243,7 @@ class TvattlinjeController {
 
     private function saveAdminSettings() {
         $data = json_decode(file_get_contents('php://input'), true);
-        
+
         try {
             if (!isset($data['antal_per_dag'])) {
                 echo json_encode([
@@ -253,27 +253,43 @@ class TvattlinjeController {
                 return;
             }
 
+            $antal_per_dag = intval($data['antal_per_dag']);
+            $timtakt       = isset($data['timtakt'])    ? intval($data['timtakt'])         : 20;
+            $skiftlangd    = isset($data['skiftlangd']) ? floatval($data['skiftlangd'])     : 8.0;
+
+            // Säkerställ att kolumnerna finns (idempotent ADD COLUMN)
+            try {
+                $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
+            } catch (\Exception $e) { /* Kolumn finns redan */ }
+            try {
+                $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
+            } catch (\Exception $e) { /* Kolumn finns redan */ }
+
             // Kontrollera om settings existerar
             $stmt = $this->pdo->query("SELECT COUNT(*) FROM tvattlinje_settings");
             $exists = $stmt->fetchColumn() > 0;
 
             if ($exists) {
-                // Uppdatera befintlig rad
-                $stmt = $this->pdo->prepare("UPDATE tvattlinje_settings SET antal_per_dag = ?, updated_at = NOW() WHERE id = 1");
-                $stmt->execute([$data['antal_per_dag']]);
+                $stmt = $this->pdo->prepare(
+                    "UPDATE tvattlinje_settings SET antal_per_dag = ?, timtakt = ?, skiftlangd = ?, updated_at = NOW() WHERE id = 1"
+                );
+                $stmt->execute([$antal_per_dag, $timtakt, $skiftlangd]);
             } else {
-                // Skapa ny rad
-                $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_settings (antal_per_dag) VALUES (?)");
-                $stmt->execute([$data['antal_per_dag']]);
+                $stmt = $this->pdo->prepare(
+                    "INSERT INTO tvattlinje_settings (antal_per_dag, timtakt, skiftlangd) VALUES (?, ?, ?)"
+                );
+                $stmt->execute([$antal_per_dag, $timtakt, $skiftlangd]);
             }
-            
+
             AuditLogger::log($this->pdo, 'update_tvattlinje_settings', 'tvattlinje_settings', 1,
-                "antal_per_dag={$data['antal_per_dag']}");
+                "antal_per_dag={$antal_per_dag} timtakt={$timtakt} skiftlangd={$skiftlangd}");
             echo json_encode([
                 'success' => true,
                 'message' => 'Inställningar sparade',
                 'data' => [
-                    'antal_per_dag' => $data['antal_per_dag']
+                    'antal_per_dag' => $antal_per_dag,
+                    'timtakt'       => $timtakt,
+                    'skiftlangd'    => $skiftlangd
                 ]
             ]);
         } catch (Exception $e) {
@@ -286,17 +302,30 @@ class TvattlinjeController {
     }
 
     private function loadSettings() {
+        // Säkerställ att kolumnerna finns
+        try {
+            $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
+        } catch (\Exception $e) { /* Kolumn finns redan */ }
+        try {
+            $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
+        } catch (\Exception $e) { /* Kolumn finns redan */ }
+
         $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings LIMIT 1");
         $settings = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$settings) {
-            // Returnera standardvärden om inga settings finns
             return [
-                'id' => 1,
-                'antal_per_dag' => 150
+                'id'           => 1,
+                'antal_per_dag' => 150,
+                'timtakt'      => 20,
+                'skiftlangd'   => 8.0
             ];
         }
-        
+
+        // Sätt standardvärden för eventuellt saknade kolumner
+        $settings['timtakt']    = isset($settings['timtakt'])    ? intval($settings['timtakt'])      : 20;
+        $settings['skiftlangd'] = isset($settings['skiftlangd']) ? floatval($settings['skiftlangd']) : 8.0;
+
         return $settings;
     }
 
