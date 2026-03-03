@@ -25,9 +25,13 @@ export const adminGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  return auth.user$.pipe(
-    filter(val => val !== undefined),
+  // Vänta tills status-anropet är klart (precis som authGuard) — annars
+  // ser guard:en user$=null (initialt undefined → null vid langsammt fetch)
+  // och redirectar till / trots att användaren är inloggad som admin.
+  return auth.initialized$.pipe(
+    filter(init => init === true),
     take(1),
+    switchMap(() => auth.user$.pipe(take(1))),
     map(user => {
       if (user?.role === 'admin') return true;
       router.navigate(['/']);

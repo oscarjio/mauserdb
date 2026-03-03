@@ -1,0 +1,3 @@
+# Sätt PHP session-livslängd till 24h så sessioner inte dör efter 24 min (PHP-standard)
+php_value session.gc_maxlifetime 86400
+php_value session.cookie_lifetime 86400

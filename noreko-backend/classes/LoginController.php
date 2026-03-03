@@ -5,7 +5,9 @@ require_once __DIR__ . '/AuditController.php';
 class LoginController {
     public function handle() {
         global $pdo;
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         AuthHelper::ensureRateLimitTable($pdo);
         AuditLogger::ensureTable($pdo);

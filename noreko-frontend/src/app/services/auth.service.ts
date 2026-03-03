@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, interval, of } from 'rxjs';
-import { timeout, catchError } from 'rxjs/operators';
+import { timeout, catchError, retry } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -32,6 +32,7 @@ export class AuthService {
   fetchStatus() {
     this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
       timeout(8000),
+      retry(1),
       catchError(() => of({ loggedIn: false, user: null }))
     ).subscribe(res => {
       const loggedIn = !!res?.loggedIn;
