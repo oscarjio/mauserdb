@@ -159,14 +159,8 @@ export class TvattlinjeLivePage implements OnInit, OnDestroy {
   }
 
   private updateSpeedometer() {
-    // Använd samma produktionsprocent som visas från backend
-    // Max 200% för speedometern
     const percentage = Math.min(Math.max(this.productionPercentage, 0), 200);
-    
-    // Convert percentage to needle rotation (-180 to 0 degrees)
-    // -180 degrees är vänster (0%), 0 degrees är höger (200%)
-    // Mappar 0-200% till -180 till 0 grader
-    // Start position är -100 (ungefär 25% på speedometern)
-    this.needleRotation = -100 + (percentage / 200) * 180;
+    // 0% = -90° (vänster), 100% = 0° (topp/mitten = "i fas"), 200% = +90° (höger)
+    this.needleRotation = -90 + (percentage / 200) * 180;
   }
 }

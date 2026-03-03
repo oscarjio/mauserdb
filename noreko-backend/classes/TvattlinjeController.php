@@ -110,13 +110,32 @@ class TvattlinjeController {
                 }
             }
 
-            // Beräkna produktionsprocent
-            // Produktion = (antal cykler * 60) / (total runtime i minuter) / hourlyTarget * 100
+            // Fallback: om inga onoff-händelser finns men IBC-cykler finns, uppskatta körtid från IBC-tidsspann
+            if ($totalRuntimeMinutes == 0 && $ibcToday > 0) {
+                $stmt = $this->pdo->prepare(
+                    'SELECT MIN(datum) as first_ibc, MAX(datum) as last_ibc FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()'
+                );
+                $stmt->execute();
+                $ibcRange = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($ibcRange && $ibcRange['first_ibc']) {
+                    $firstIbc = new DateTime($ibcRange['first_ibc']);
+                    $lastIbc  = new DateTime($ibcRange['last_ibc']);
+                    $spanDiff = $firstIbc->diff($lastIbc);
+                    $spanMin  = ($spanDiff->days * 1440) + ($spanDiff->h * 60) + $spanDiff->i + ($spanDiff->s / 60);
+                    // Om bara en IBC idag, anta en standard cykeltid
+                    if ($spanMin < 1) { $spanMin = 5; }
+                    // Lägg till tid sedan senaste IBC om maskinen verkar köra (< 30 min sedan)
+                    $diffSinceLast = $lastIbc->diff($now);
+                    $minSinceLast  = ($diffSinceLast->days * 1440) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
+                    if ($minSinceLast < 30) { $spanMin += $minSinceLast; }
+                    $totalRuntimeMinutes = $spanMin;
+                }
+            }
+
+            // Beräkna produktionsprocent: faktisk IBC/h vs mål IBC/h
             $productionPercentage = 0;
             if ($totalRuntimeMinutes > 0 && $ibcToday > 0 && $hourlyTarget > 0) {
-                // Beräkna faktisk produktion per timme: (antal cykler * 60) / runtime i minuter
                 $actualProductionPerHour = ($ibcToday * 60) / $totalRuntimeMinutes;
-                // Jämför med mål per timme för att få procent
                 $productionPercentage = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
             }
 

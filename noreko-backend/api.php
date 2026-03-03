@@ -36,6 +36,23 @@ header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
 
+// Konfigurera session-cookie (måste göras innan session_start())
+// Sätter SameSite=Lax, HttpOnly, och 24h livslängd för pålitliga sessioner vid omladdning
+if (session_status() === PHP_SESSION_NONE) {
+    $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+               (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    session_set_cookie_params([
+        'lifetime' => 86400,
+        'path'     => '/',
+        'domain'   => '',
+        'secure'   => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    @ini_set('session.gc_maxlifetime', '86400');
+    session_start();
+}
+
 // Databasanslutning
 global $pdo;
 try {

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, interval } from 'rxjs';
+import { BehaviorSubject, interval, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -17,17 +18,13 @@ export class AuthService {
   }
 
   fetchStatus() {
-    this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).subscribe({
-      next: (res) => {
-        this.loggedIn$.next(res.loggedIn);
-        this.user$.next(res.user || null);
-        this.initialized$.next(true);
-      },
-      error: () => {
-        this.loggedIn$.next(false);
-        this.user$.next(null);
-        this.initialized$.next(true);
-      }
+    this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
+      timeout(8000),
+      catchError(() => of({ loggedIn: false, user: null }))
+    ).subscribe(res => {
+      this.loggedIn$.next(!!res?.loggedIn);
+      this.user$.next(res?.user || null);
+      this.initialized$.next(true);
     });
   }
 
