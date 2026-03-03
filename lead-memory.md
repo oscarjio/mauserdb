@@ -45,6 +45,13 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 4. Commit + push när en feature är klar (inte halvfärdig kod)
 5. Bygg alltid: `cd noreko-frontend && npx ng build` och fixa fel innan commit
 
+## DRIFTSLÄGE — KONTINUERLIGT ARBETE
+- **Agenterna stannar ALDRIG** — när en agent är klar startas en ny direkt på nästa backlog-item
+- **Minst 2 worker-agenter ska alltid vara igång** parallellt
+- **Ledaragenten** (huvudkonversationen) övervakar, uppdaterar backlog och startar nya agenter så fort gamla är klara
+- När token-gränsen för huvudkonversationen närmar sig: commit lead-memory.md + push, cron-jobbet tar över
+- Backlogen är aldrig tom — generera nya förbättringsidéer baserat på affärskontexten om den tar slut
+
 ---
 
 ## BACKLOG (prioritetsordning)
