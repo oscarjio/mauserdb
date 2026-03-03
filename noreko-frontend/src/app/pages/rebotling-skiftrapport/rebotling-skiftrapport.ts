@@ -59,6 +59,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   compareError   = '';
   compareResult: { a: any; b: any } | null = null;
 
+  // ---- Skiftkommentar ----
+  kommentarMap: { [reportId: number]: string } = {};
+  kommentarLoading: { [reportId: number]: boolean } = {};
+  redigerarKommentar: { [reportId: number]: boolean } = {};
+  spararKommentar: { [reportId: number]: boolean } = {};
+  editKommentar: { [reportId: number]: string } = {};
+
   private destroy$ = new Subject<void>();
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
@@ -545,6 +552,9 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       if (report && report.skiftraknare && this.lopnummerMap[id] === undefined) {
         this.loadLopnummer(report);
       }
+      if (report && this.kommentarMap[id] === undefined) {
+        this.laddaKommentar(report);
+      }
     }
   }
 
@@ -595,6 +605,76 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       },
       error: (error) => {
         this.errorMessage = error.error?.message || 'Ett fel uppstod vid uppdatering';
+      }
+    });
+  }
+
+  // ========== Kommentarer ==========
+  getShiftNr(r: any): number {
+    const timeStr = (r.datum || '').substring(11, 16);
+    if (!timeStr) return 1;
+    const [hh] = timeStr.split(':').map(Number);
+    const minutes = hh * 60 + (parseInt(timeStr.split(':')[1] || '0', 10));
+    if (minutes >= 6 * 60 && minutes < 14 * 60)  return 1; // förmiddag
+    if (minutes >= 14 * 60 && minutes < 22 * 60) return 2; // eftermiddag
+    return 3; // natt
+  }
+
+  laddaKommentar(report: any) {
+    const id = report.id;
+    const datum = (report.datum || '').substring(0, 10);
+    const skiftNr = this.getShiftNr(report);
+    this.kommentarLoading[id] = true;
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=skift-kommentar&datum=${datum}&skift_nr=${skiftNr}`,
+      { withCredentials: true }
+    )
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res) => {
+        this.kommentarLoading[id] = false;
+        if (res.success && res.data) {
+          this.kommentarMap[id] = res.data.kommentar || '';
+          this.editKommentar[id] = res.data.kommentar || '';
+        } else {
+          this.kommentarMap[id] = '';
+          this.editKommentar[id] = '';
+        }
+      },
+      error: () => {
+        this.kommentarLoading[id] = false;
+        this.kommentarMap[id] = '';
+        this.editKommentar[id] = '';
+      }
+    });
+  }
+
+  sparaKommentar(report: any) {
+    const id = report.id;
+    const datum = (report.datum || '').substring(0, 10);
+    const skiftNr = this.getShiftNr(report);
+    const text = (this.editKommentar[id] || '').substring(0, 500);
+    this.spararKommentar[id] = true;
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=set-skift-kommentar',
+      { datum, skift_nr: skiftNr, kommentar: text },
+      { withCredentials: true }
+    )
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res) => {
+        this.spararKommentar[id] = false;
+        if (res.success) {
+          this.kommentarMap[id] = text;
+          this.redigerarKommentar[id] = false;
+          this.showSuccess('Kommentar sparad');
+        } else {
+          this.errorMessage = res.error || 'Kunde inte spara kommentar';
+        }
+      },
+      error: () => {
+        this.spararKommentar[id] = false;
+        this.errorMessage = 'Serverfel vid sparande av kommentar';
       }
     });
   }
@@ -809,6 +889,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         },
         { text: '\n' },
         { text: 'Löpnummer detta skift: ' + (this.lopnummerMap[r.id] ?? '–'), style: 'meta' },
+        { text: 'Skiftkommentar: ' + (this.kommentarMap[r.id] || '–'), style: 'meta' },
         { text: 'Skiftansvarig: ' + (r.user_name || '-'), style: 'meta' },
         { text: 'Inlagd i system: ' + (r.inlagd == 1 ? 'Ja' : 'Nej'), style: 'meta' },
         { text: 'Genererad: ' + new Date().toLocaleString('sv-SE'), style: 'meta' }

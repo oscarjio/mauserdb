@@ -66,6 +66,8 @@ class RebotlingController {
                 $this->getQualityTrend();
             } elseif ($action === 'oee-waterfall') {
                 $this->getOeeWaterfall();
+            } elseif ($action === 'skift-kommentar') {
+                $this->getSkiftKommentar();
             } else {
                 $this->getLiveStats();
             }
@@ -74,6 +76,16 @@ class RebotlingController {
 
         if ($method === 'POST') {
             session_start();
+            // Kommentar-endpoint kräver enbart inloggning, inte admin
+            if ($action === 'set-skift-kommentar') {
+                if (!isset($_SESSION['user_id'])) {
+                    http_response_code(401);
+                    echo json_encode(['success' => false, 'error' => 'Inloggning krävs.']);
+                    return;
+                }
+                $this->setSkiftKommentar();
+                return;
+            }
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
@@ -3677,4 +3689,87 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av OEE-waterfall.']);
         }
     }
+
+    private function getSkiftKommentar() {
+        $datum    = $_GET['datum']   ?? '';
+        $skiftNr  = intval($_GET['skift_nr'] ?? 0);
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum.']);
+            return;
+        }
+        if ($skiftNr < 1 || $skiftNr > 3) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skift_nr (1-3).']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'SELECT datum, skift_nr, kommentar, skapad_av, skapad_tid
+                 FROM rebotling_skift_kommentar
+                 WHERE datum = ? AND skift_nr = ?'
+            );
+            $stmt->execute([$datum, $skiftNr]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($row) {
+                echo json_encode(['success' => true, 'data' => $row]);
+            } else {
+                echo json_encode(['success' => true, 'data' => null]);
+            }
+        } catch (Exception $e) {
+            error_log('getSkiftKommentar: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel.']);
+        }
+    }
+
+    private function setSkiftKommentar() {
+        $body = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($body)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig request-body.']);
+            return;
+        }
+
+        $datum     = $body['datum']     ?? '';
+        $skiftNr   = intval($body['skift_nr'] ?? 0);
+        $kommentar = $body['kommentar'] ?? '';
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum.']);
+            return;
+        }
+        if ($skiftNr < 1 || $skiftNr > 3) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skift_nr (1-3).']);
+            return;
+        }
+        if (mb_strlen($kommentar) > 500) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Kommentaren får vara max 500 tecken.']);
+            return;
+        }
+
+        $skapadAv = $_SESSION['username'] ?? $_SESSION['user_name'] ?? 'Okänd';
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO rebotling_skift_kommentar (datum, skift_nr, kommentar, skapad_av)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE kommentar = VALUES(kommentar), skapad_av = VALUES(skapad_av)'
+            );
+            $stmt->execute([$datum, $skiftNr, $kommentar, $skapadAv]);
+
+            echo json_encode(['success' => true, 'message' => 'Kommentar sparad.']);
+        } catch (Exception $e) {
+            error_log('setSkiftKommentar: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid sparande.']);
+        }
+    }
+
 }

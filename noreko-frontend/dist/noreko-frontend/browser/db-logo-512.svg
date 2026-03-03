@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Ingen bakgrund eller border -->
+  <g font-family="'Arial Rounded MT Bold', Arial, Helvetica, sans-serif" font-weight="bold" font-size="384" text-anchor="middle" dominant-baseline="middle">
+    <g transform="translate(160,384) scale(-1,1)">
+      <text x="0" y="0" fill="#00ff6a" style="text-shadow:0 2px 8px rgba(0,0,0,0.2)">D</text>
+    </g>
+    <text x="352" y="384" fill="#00ff6a" style="text-shadow:0 2px 8px rgba(0,0,0,0.2)">B</text>
+  </g>
+</svg>
