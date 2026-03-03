@@ -277,6 +277,25 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
     return 'err';
   }
 
+  /**
+   * PLC-varningsnivå baserat på senaste ping-tid:
+   * - 'none'  : < 5 min    (allt OK)
+   * - 'warn'  : 5–15 min   (gul varning)
+   * - 'danger': > 15 min   (röd varning)
+   */
+  get plcWarningLevel(): 'none' | 'warn' | 'danger' {
+    if (!this.systemStatus?.last_plc_ping) return 'danger';
+    const diffSec = (new Date().getTime() - new Date(this.systemStatus.last_plc_ping).getTime()) / 1000;
+    if (diffSec < 300)  return 'none';
+    if (diffSec < 900)  return 'warn';
+    return 'danger';
+  }
+
+  get plcMinutesOld(): number {
+    if (!this.systemStatus?.last_plc_ping) return 0;
+    return Math.floor((new Date().getTime() - new Date(this.systemStatus.last_plc_ping).getTime()) / 60000);
+  }
+
   // ========== Produkthantering ==========
   private loadProducts() {
     this.loading = true;

@@ -540,6 +540,377 @@
         </div>
       </div>
 
+      <!-- ======== JÄMFÖR SKIFT ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-balance-scale me-2 text-info"></i>
+            Jämför skift
+          </h5>
+          <button *ngIf="compareResult" class="btn btn-sm btn-outline-secondary" (click)="clearCompare()">
+            <i class="fas fa-times me-1"></i>Rensa
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Datumväljare -->
+          <div class="d-flex gap-3 align-items-end flex-wrap mb-3">
+            <div>
+              <label class="form-label small mb-1">Datum A</label>
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="compareDateA" style="width:160px;" />
+            </div>
+            <div>
+              <label class="form-label small mb-1">Datum B</label>
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="compareDateB" style="width:160px;" />
+            </div>
+            <button class="btn btn-info btn-sm" (click)="compareShifts()"
+              [disabled]="compareLoading || !compareDateA || !compareDateB">
+              <span *ngIf="compareLoading" class="spinner-border spinner-border-sm me-1"></span>
+              <i *ngIf="!compareLoading" class="fas fa-balance-scale me-1"></i>
+              {{ compareLoading ? 'Hämtar...' : 'Jämför' }}
+            </button>
+          </div>
+
+          <!-- Felmeddelande -->
+          <div *ngIf="compareError" class="alert alert-danger py-2 mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ compareError }}
+          </div>
+
+          <!-- Resultat -->
+          <div *ngIf="compareResult" class="compare-result">
+
+            <!-- KPI-jämförelsekort -->
+            <div class="row g-3 mb-4">
+
+              <!-- IBC totalt -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="compare-kpi-card">
+                  <div class="compare-kpi-label">Total IBC</div>
+                  <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                    <div class="compare-day-block">
+                      <div class="compare-day-date">{{ compareResult.a.date }}</div>
+                      <div class="compare-day-value text-info">{{ compareResult.a.totalt }}</div>
+                    </div>
+                    <div class="compare-diff-block">
+                      <ng-container *ngIf="compareDiff(compareResult.a.totalt, compareResult.b.totalt) as diff">
+                        <span class="compare-diff"
+                          [class.compare-better]="compareIsImprovement('totalt', diff)"
+                          [class.compare-worse]="compareIsWorse('totalt', diff)"
+                          [class.compare-equal]="diff === 0">
+                          <i class="fas me-1"
+                            [class.fa-arrow-up]="diff > 0"
+                            [class.fa-arrow-down]="diff < 0"
+                            [class.fa-minus]="diff === 0"></i>
+                          {{ diff > 0 ? '+' : '' }}{{ diff }}
+                        </span>
+                      </ng-container>
+                    </div>
+                    <div class="compare-day-block text-end">
+                      <div class="compare-day-date">{{ compareResult.b.date }}</div>
+                      <div class="compare-day-value text-info">{{ compareResult.b.totalt }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Kvalitet -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="compare-kpi-card">
+                  <div class="compare-kpi-label">Kvalitet %</div>
+                  <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                    <div class="compare-day-block">
+                      <div class="compare-day-date">{{ compareResult.a.date }}</div>
+                      <div class="compare-day-value"
+                        [class.text-success]="(compareResult.a.kvalitet ?? 0) >= 90"
+                        [class.text-warning]="(compareResult.a.kvalitet ?? 101) >= 70 && (compareResult.a.kvalitet ?? 101) < 90"
+                        [class.text-danger]="(compareResult.a.kvalitet ?? 101) < 70 && compareResult.a.kvalitet != null"
+                        [class.text-muted]="compareResult.a.kvalitet == null">
+                        {{ compareResult.a.kvalitet != null ? (compareResult.a.kvalitet + '%') : '–' }}
+                      </div>
+                    </div>
+                    <div class="compare-diff-block">
+                      <ng-container *ngIf="compareDiff(compareResult.a.kvalitet, compareResult.b.kvalitet) as diff">
+                        <span class="compare-diff"
+                          [class.compare-better]="compareIsImprovement('kvalitet', diff)"
+                          [class.compare-worse]="compareIsWorse('kvalitet', diff)"
+                          [class.compare-equal]="diff === 0">
+                          <i class="fas me-1"
+                            [class.fa-arrow-up]="diff > 0"
+                            [class.fa-arrow-down]="diff < 0"
+                            [class.fa-minus]="diff === 0"></i>
+                          {{ diff > 0 ? '+' : '' }}{{ diff }}%
+                        </span>
+                      </ng-container>
+                    </div>
+                    <div class="compare-day-block text-end">
+                      <div class="compare-day-date">{{ compareResult.b.date }}</div>
+                      <div class="compare-day-value"
+                        [class.text-success]="(compareResult.b.kvalitet ?? 0) >= 90"
+                        [class.text-warning]="(compareResult.b.kvalitet ?? 101) >= 70 && (compareResult.b.kvalitet ?? 101) < 90"
+                        [class.text-danger]="(compareResult.b.kvalitet ?? 101) < 70 && compareResult.b.kvalitet != null"
+                        [class.text-muted]="compareResult.b.kvalitet == null">
+                        {{ compareResult.b.kvalitet != null ? (compareResult.b.kvalitet + '%') : '–' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- OEE -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="compare-kpi-card">
+                  <div class="compare-kpi-label">OEE %</div>
+                  <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                    <div class="compare-day-block">
+                      <div class="compare-day-date">{{ compareResult.a.date }}</div>
+                      <div class="compare-day-value"
+                        [class.text-success]="(compareResult.a.oee ?? 0) >= 75"
+                        [class.text-warning]="(compareResult.a.oee ?? 101) >= 50 && (compareResult.a.oee ?? 101) < 75"
+                        [class.text-danger]="(compareResult.a.oee ?? 101) < 50 && compareResult.a.oee != null"
+                        [class.text-muted]="compareResult.a.oee == null">
+                        {{ compareResult.a.oee != null ? (compareResult.a.oee + '%') : '–' }}
+                      </div>
+                    </div>
+                    <div class="compare-diff-block">
+                      <ng-container *ngIf="compareDiff(compareResult.a.oee, compareResult.b.oee) as diff">
+                        <span class="compare-diff"
+                          [class.compare-better]="compareIsImprovement('oee', diff)"
+                          [class.compare-worse]="compareIsWorse('oee', diff)"
+                          [class.compare-equal]="diff === 0">
+                          <i class="fas me-1"
+                            [class.fa-arrow-up]="diff > 0"
+                            [class.fa-arrow-down]="diff < 0"
+                            [class.fa-minus]="diff === 0"></i>
+                          {{ diff > 0 ? '+' : '' }}{{ diff }}%
+                        </span>
+                      </ng-container>
+                    </div>
+                    <div class="compare-day-block text-end">
+                      <div class="compare-day-date">{{ compareResult.b.date }}</div>
+                      <div class="compare-day-value"
+                        [class.text-success]="(compareResult.b.oee ?? 0) >= 75"
+                        [class.text-warning]="(compareResult.b.oee ?? 101) >= 50 && (compareResult.b.oee ?? 101) < 75"
+                        [class.text-danger]="(compareResult.b.oee ?? 101) < 50 && compareResult.b.oee != null"
+                        [class.text-muted]="compareResult.b.oee == null">
+                        {{ compareResult.b.oee != null ? (compareResult.b.oee + '%') : '–' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Drifttid -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="compare-kpi-card">
+                  <div class="compare-kpi-label">Drifttid</div>
+                  <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                    <div class="compare-day-block">
+                      <div class="compare-day-date">{{ compareResult.a.date }}</div>
+                      <div class="compare-day-value text-success">{{ formatMinutes(compareResult.a.drifttid) }}</div>
+                    </div>
+                    <div class="compare-diff-block">
+                      <ng-container *ngIf="compareDiff(compareResult.a.drifttid, compareResult.b.drifttid) as diff">
+                        <span class="compare-diff"
+                          [class.compare-better]="compareIsImprovement('drifttid', diff)"
+                          [class.compare-worse]="compareIsWorse('drifttid', diff)"
+                          [class.compare-equal]="diff === 0">
+                          <i class="fas me-1"
+                            [class.fa-arrow-up]="diff > 0"
+                            [class.fa-arrow-down]="diff < 0"
+                            [class.fa-minus]="diff === 0"></i>
+                          {{ diff > 0 ? '+' : '' }}{{ diff }}min
+                        </span>
+                      </ng-container>
+                    </div>
+                    <div class="compare-day-block text-end">
+                      <div class="compare-day-date">{{ compareResult.b.date }}</div>
+                      <div class="compare-day-value text-success">{{ formatMinutes(compareResult.b.drifttid) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rasttid -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="compare-kpi-card">
+                  <div class="compare-kpi-label">Rasttid</div>
+                  <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                    <div class="compare-day-block">
+                      <div class="compare-day-date">{{ compareResult.a.date }}</div>
+                      <div class="compare-day-value text-warning">{{ formatMinutes(compareResult.a.rasttime) }}</div>
+                    </div>
+                    <div class="compare-diff-block">
+                      <ng-container *ngIf="compareDiff(compareResult.a.rasttime, compareResult.b.rasttime) as diff">
+                        <span class="compare-diff"
+                          [class.compare-better]="compareIsImprovement('rasttime', diff)"
+                          [class.compare-worse]="compareIsWorse('rasttime', diff)"
+                          [class.compare-equal]="diff === 0">
+                          <i class="fas me-1"
+                            [class.fa-arrow-up]="diff > 0"
+                            [class.fa-arrow-down]="diff < 0"
+                            [class.fa-minus]="diff === 0"></i>
+                          {{ diff > 0 ? '+' : '' }}{{ diff }}min
+                        </span>
+                      </ng-container>
+                    </div>
+                    <div class="compare-day-block text-end">
+                      <div class="compare-day-date">{{ compareResult.b.date }}</div>
+                      <div class="compare-day-value text-warning">{{ formatMinutes(compareResult.b.rasttime) }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- IBC/h -->
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="compare-kpi-card">
+                  <div class="compare-kpi-label">IBC / timme</div>
+                  <div class="d-flex align-items-center justify-content-between gap-2 mt-2">
+                    <div class="compare-day-block">
+                      <div class="compare-day-date">{{ compareResult.a.date }}</div>
+                      <div class="compare-day-value text-warning">
+                        {{ compareResult.a.ibc_per_h != null ? (compareResult.a.ibc_per_h + ' st/h') : '–' }}
+                      </div>
+                    </div>
+                    <div class="compare-diff-block">
+                      <ng-container *ngIf="compareDiff(compareResult.a.ibc_per_h, compareResult.b.ibc_per_h) as diff">
+                        <span class="compare-diff"
+                          [class.compare-better]="compareIsImprovement('ibc_per_h', diff)"
+                          [class.compare-worse]="compareIsWorse('ibc_per_h', diff)"
+                          [class.compare-equal]="diff === 0">
+                          <i class="fas me-1"
+                            [class.fa-arrow-up]="diff > 0"
+                            [class.fa-arrow-down]="diff < 0"
+                            [class.fa-minus]="diff === 0"></i>
+                          {{ diff > 0 ? '+' : '' }}{{ diff }}
+                        </span>
+                      </ng-container>
+                    </div>
+                    <div class="compare-day-block text-end">
+                      <div class="compare-day-date">{{ compareResult.b.date }}</div>
+                      <div class="compare-day-value text-warning">
+                        {{ compareResult.b.ibc_per_h != null ? (compareResult.b.ibc_per_h + ' st/h') : '–' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Ingen data-varning -->
+            <div *ngIf="!compareResult.a.has_data && !compareResult.b.has_data" class="alert alert-secondary text-center">
+              <i class="fas fa-info-circle me-2"></i>Inga skiftrapporter hittades för något av de valda datumen.
+            </div>
+            <div *ngIf="!compareResult.a.has_data && compareResult.b.has_data" class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i>Inga skiftrapporter för <strong>{{ compareResult.a.date }}</strong>.
+            </div>
+            <div *ngIf="compareResult.a.has_data && !compareResult.b.has_data" class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle me-2"></i>Inga skiftrapporter för <strong>{{ compareResult.b.date }}</strong>.
+            </div>
+
+            <!-- Operatörstabeller -->
+            <div *ngIf="compareResult.a.has_data || compareResult.b.has_data" class="row g-3 mt-2">
+              <!-- Dag A -->
+              <div class="col-12 col-lg-6">
+                <div class="compare-op-card">
+                  <div class="compare-op-header">
+                    <i class="fas fa-users me-2 text-info"></i>
+                    Operatörer — {{ compareResult.a.date }}
+                  </div>
+                  <div *ngIf="compareResult.a.operators.length === 0" class="text-muted small p-3 text-center">
+                    Ingen operatörsdata
+                  </div>
+                  <table *ngIf="compareResult.a.operators.length > 0" class="table table-sm mb-0">
+                    <thead>
+                      <tr>
+                        <th>Skiftansvarig</th>
+                        <th>IBC/h</th>
+                        <th>Kvalitet</th>
+                        <th>Operatörer</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let op of compareResult.a.operators">
+                        <td>
+                          <span class="badge bg-secondary">{{ op.user_name || '–' }}</span>
+                        </td>
+                        <td class="text-warning fw-semibold">
+                          {{ op.ibc_per_h != null ? (op.ibc_per_h + ' st/h') : '–' }}
+                        </td>
+                        <td>
+                          <span *ngIf="op.kvalitet != null" class="badge"
+                            [class.bg-success]="op.kvalitet >= 90"
+                            [class.bg-warning]="op.kvalitet >= 70 && op.kvalitet < 90"
+                            [class.bg-danger]="op.kvalitet < 70">
+                            {{ op.kvalitet }}%
+                          </span>
+                          <span *ngIf="op.kvalitet == null" class="text-muted">–</span>
+                        </td>
+                        <td class="text-muted small">
+                          <span *ngIf="op.op1_name">{{ op.op1_name }}</span>
+                          <span *ngIf="op.op2_name"> · {{ op.op2_name }}</span>
+                          <span *ngIf="op.op3_name"> · {{ op.op3_name }}</span>
+                          <span *ngIf="!op.op1_name && !op.op2_name && !op.op3_name">–</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Dag B -->
+              <div class="col-12 col-lg-6">
+                <div class="compare-op-card">
+                  <div class="compare-op-header">
+                    <i class="fas fa-users me-2 text-info"></i>
+                    Operatörer — {{ compareResult.b.date }}
+                  </div>
+                  <div *ngIf="compareResult.b.operators.length === 0" class="text-muted small p-3 text-center">
+                    Ingen operatörsdata
+                  </div>
+                  <table *ngIf="compareResult.b.operators.length > 0" class="table table-sm mb-0">
+                    <thead>
+                      <tr>
+                        <th>Skiftansvarig</th>
+                        <th>IBC/h</th>
+                        <th>Kvalitet</th>
+                        <th>Operatörer</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let op of compareResult.b.operators">
+                        <td>
+                          <span class="badge bg-secondary">{{ op.user_name || '–' }}</span>
+                        </td>
+                        <td class="text-warning fw-semibold">
+                          {{ op.ibc_per_h != null ? (op.ibc_per_h + ' st/h') : '–' }}
+                        </td>
+                        <td>
+                          <span *ngIf="op.kvalitet != null" class="badge"
+                            [class.bg-success]="op.kvalitet >= 90"
+                            [class.bg-warning]="op.kvalitet >= 70 && op.kvalitet < 90"
+                            [class.bg-danger]="op.kvalitet < 70">
+                            {{ op.kvalitet }}%
+                          </span>
+                          <span *ngIf="op.kvalitet == null" class="text-muted">–</span>
+                        </td>
+                        <td class="text-muted small">
+                          <span *ngIf="op.op1_name">{{ op.op1_name }}</span>
+                          <span *ngIf="op.op2_name"> · {{ op.op2_name }}</span>
+                          <span *ngIf="op.op3_name"> · {{ op.op3_name }}</span>
+                          <span *ngIf="!op.op1_name && !op.op2_name && !op.op3_name">–</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /compare-result -->
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

@@ -369,3 +369,15 @@
   color: #a0aec0;
   font-size: 0.8rem;
 }
+
+/* ---- PLC-varningsbanner ---- */
+.plc-warning-banner {
+  border-radius: 8px;
+  font-size: 0.95rem;
+  animation: plc-blink 2s ease-in-out infinite;
+}
+
+@keyframes plc-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.85; }
+}

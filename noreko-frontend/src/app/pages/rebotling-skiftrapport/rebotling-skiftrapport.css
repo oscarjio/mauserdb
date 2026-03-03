@@ -314,3 +314,91 @@
   background-color: #2d3748;
   color: #e2e8f0;
 }
+
+/* ---- Skiftjämförelse ---- */
+.compare-kpi-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 14px 16px;
+  transition: border-color 0.15s ease;
+}
+
+.compare-kpi-card:hover {
+  border-color: #4a90e2;
+}
+
+.compare-kpi-label {
+  font-size: 0.7rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.compare-day-block {
+  min-width: 80px;
+}
+
+.compare-day-date {
+  font-size: 0.7rem;
+  color: #718096;
+  margin-bottom: 2px;
+}
+
+.compare-day-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.compare-diff-block {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 60px;
+}
+
+.compare-diff {
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.compare-better {
+  background: rgba(56, 161, 105, 0.15);
+  color: #68d391;
+  border: 1px solid rgba(56, 161, 105, 0.3);
+}
+
+.compare-worse {
+  background: rgba(229, 62, 62, 0.15);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.3);
+}
+
+.compare-equal {
+  background: rgba(113, 128, 150, 0.15);
+  color: #a0aec0;
+  border: 1px solid rgba(113, 128, 150, 0.3);
+}
+
+.compare-op-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.compare-op-header {
+  background: rgba(49, 130, 206, 0.1);
+  border-bottom: 1px solid #2d3748;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}

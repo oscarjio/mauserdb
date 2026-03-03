@@ -44,6 +44,8 @@ class RebotlingController {
                 $this->getBestShifts();
             } elseif ($action === 'exec-dashboard') {
                 $this->getExecDashboard();
+            } elseif ($action === 'shift-compare') {
+                $this->getShiftCompare();
             } else {
                 $this->getLiveStats();
             }
@@ -1930,6 +1932,123 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getSystemStatus: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus']);
+        }
+    }
+
+    /**
+     * Jämför aggregerad skiftdata för två datum.
+     * GET ?action=rebotling&run=shift-compare&date_a=YYYY-MM-DD&date_b=YYYY-MM-DD
+     */
+    private function getShiftCompare() {
+        $date_a = $_GET['date_a'] ?? '';
+        $date_b = $_GET['date_b'] ?? '';
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_a) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_b)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            return;
+        }
+
+        try {
+            $result = [];
+            foreach (['a' => $date_a, 'b' => $date_b] as $key => $date) {
+                // Aggregerad sammanfattning per dag (summera alla rader för datumet)
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        SUM(s.ibc_ok)    AS ibc_ok,
+                        SUM(s.bur_ej_ok) AS bur_ej_ok,
+                        SUM(s.ibc_ej_ok) AS ibc_ej_ok,
+                        SUM(s.totalt)    AS totalt,
+                        SUM(s.drifttid)  AS drifttid,
+                        SUM(s.rasttime)  AS rasttime
+                    FROM rebotling_skiftrapport s
+                    WHERE s.datum = :date
+                ");
+                $stmt->execute(['date' => $date]);
+                $agg = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                // Beräkna KPI:er
+                $totalt   = (int)($agg['totalt']   ?? 0);
+                $ibc_ok   = (int)($agg['ibc_ok']   ?? 0);
+                $drifttid = (int)($agg['drifttid']  ?? 0);
+                $rasttime = (int)($agg['rasttime']  ?? 0);
+
+                $kvalitet = ($totalt > 0)
+                    ? round(($ibc_ok / $totalt) * 100, 1)
+                    : null;
+
+                $planned = $drifttid + $rasttime;
+                $avail   = ($planned > 0)
+                    ? min($drifttid / $planned, 1)
+                    : null;
+                $quality_ratio = ($totalt > 0) ? ($ibc_ok / $totalt) : null;
+                $oee = ($avail !== null && $quality_ratio !== null)
+                    ? round($avail * $quality_ratio * 100, 1)
+                    : null;
+
+                $ibc_per_h = ($drifttid > 0)
+                    ? round(($ibc_ok / ($drifttid / 60)), 1)
+                    : null;
+
+                // Operatörer som jobbade denna dag (från skiftrapporter)
+                $opStmt = $this->pdo->prepare("
+                    SELECT
+                        u.username AS user_name,
+                        SUM(s.ibc_ok)  AS ibc_ok,
+                        SUM(s.totalt)  AS totalt,
+                        SUM(s.drifttid) AS drifttid,
+                        o1.name AS op1_name,
+                        o2.name AS op2_name,
+                        o3.name AS op3_name
+                    FROM rebotling_skiftrapport s
+                    LEFT JOIN users     u  ON s.user_id = u.id
+                    LEFT JOIN operators o1 ON o1.number = s.op1
+                    LEFT JOIN operators o2 ON o2.number = s.op2
+                    LEFT JOIN operators o3 ON o3.number = s.op3
+                    WHERE s.datum = :date
+                    GROUP BY s.user_id, u.username, o1.name, o2.name, o3.name
+                    ORDER BY ibc_ok DESC
+                ");
+                $opStmt->execute(['date' => $date]);
+                $operators = $opStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // Lägg till IBC/h per operatör
+                foreach ($operators as &$op) {
+                    $op_drift = (int)($op['drifttid'] ?? 0);
+                    $op_ibc   = (int)($op['ibc_ok']   ?? 0);
+                    $op_tot   = (int)($op['totalt']    ?? 0);
+                    $op['ibc_per_h'] = ($op_drift > 0)
+                        ? round(($op_ibc / ($op_drift / 60)), 1)
+                        : null;
+                    $op['kvalitet'] = ($op_tot > 0)
+                        ? round(($op_ibc / $op_tot) * 100, 1)
+                        : null;
+                }
+                unset($op);
+
+                $result[$key] = [
+                    'date'      => $date,
+                    'totalt'    => $totalt,
+                    'ibc_ok'    => $ibc_ok,
+                    'bur_ej_ok' => (int)($agg['bur_ej_ok'] ?? 0),
+                    'ibc_ej_ok' => (int)($agg['ibc_ej_ok'] ?? 0),
+                    'kvalitet'  => $kvalitet,
+                    'oee'       => $oee,
+                    'drifttid'  => $drifttid,
+                    'rasttime'  => $rasttime,
+                    'ibc_per_h' => $ibc_per_h,
+                    'operators' => $operators,
+                    'has_data'  => $totalt > 0,
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data'    => $result
+            ]);
+        } catch (Exception $e) {
+            error_log('getShiftCompare: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte jämföra skift']);
         }
     }
 }

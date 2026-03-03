@@ -1,4 +1,22 @@
 <div class="container-fluid mt-4" *ngIf="loggedIn && isAdmin">
+
+  <!-- ======== PLC-VARNINGSBANNER ======== -->
+  <div *ngIf="systemStatus && plcWarningLevel === 'danger'"
+    class="alert alert-danger d-flex align-items-center mb-3 plc-warning-banner" role="alert">
+    <i class="fas fa-exclamation-triangle me-3 fs-5"></i>
+    <div>
+      <strong>PLC har inte rapporterat data på {{ plcMinutesOld }} minuter.</strong>
+      Kontrollera produktionslinjen och PLC-anslutningen!
+    </div>
+  </div>
+  <div *ngIf="systemStatus && plcWarningLevel === 'warn'"
+    class="alert alert-warning d-flex align-items-center mb-3 plc-warning-banner" role="alert">
+    <i class="fas fa-clock me-3 fs-5"></i>
+    <div>
+      PLC-data är <strong>{{ plcMinutesOld }} min</strong> gammal — kontrollera att produktionen är igång.
+    </div>
+  </div>
+
   <!-- Success Toast -->
   <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
     <div class="toast show" *ngIf="showSuccessMessage" role="alert" aria-live="assertive" aria-atomic="true">

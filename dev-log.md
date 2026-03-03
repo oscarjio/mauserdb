@@ -4,6 +4,52 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ---
 
+## 2026-03-03 — Skiftjämförelse + PLC-varningsbanner
+
+### DEL 1 — Skiftjämförelse (rebotling-skiftrapport)
+
+**Backend (`RebotlingController.php`):**
+- Ny GET-endpoint `?action=rebotling&run=shift-compare&date_a=YYYY-MM-DD&date_b=YYYY-MM-DD`
+- Metod `getShiftCompare()`: validerar datumformat med regex, hämtar aggregerad data per datum från `rebotling_skiftrapport`
+- Returnerar per datum: totalt, ibc_ok, bur_ej_ok, ibc_ej_ok, kvalitet%, OEE%, drifttid, rasttid, ibc_per_h samt operatörslista med individuella IBC/h och kvalitet%
+
+**Frontend (`rebotling-skiftrapport.ts`):**
+- Properties: `compareDateA`, `compareDateB`, `compareLoading`, `compareError`, `compareResult`
+- Metoder: `compareShifts()` (HTTP GET + felhantering), `clearCompare()`, `compareDiff()`, `compareIsImprovement()`, `compareIsWorse()`, `formatMinutes()`
+
+**Frontend (`rebotling-skiftrapport.html`):**
+- Ny sektion "Jämför skift" längst ner på sidan
+- Två datumväljare + "Jämför"-knapp
+- 6 KPI-kort (Total IBC, Kvalitet%, OEE%, Drifttid, Rasttid, IBC/h) med sida-vid-sida-layout
+- Diff-badge: grön (förbättring) / röd (försämring) — rasttid är inverterad (lägre = bättre)
+- Operatörstabeller för respektive datum (user_name, IBC/h, kvalitet%, op1/2/3-namn)
+- Varningsmeddelanden om data saknas för ett/båda datum
+
+**CSS (`rebotling-skiftrapport.css`):**
+- `.compare-kpi-card`, `.compare-day-block`, `.compare-diff-block`, `.compare-diff`
+- `.compare-better` (grön), `.compare-worse` (röd), `.compare-equal` (grå)
+- `.compare-op-card`, `.compare-op-header`
+
+---
+
+### DEL 2 — PLC-varningsbanner (rebotling-admin)
+
+**Frontend (`rebotling-admin.ts`):**
+- Getter `plcWarningLevel`: returnerar `'none'` (< 5 min), `'warn'` (5–15 min), `'danger'` (> 15 min)
+- Getter `plcMinutesOld`: beräknar antal minuter sedan senaste PLC-ping
+- Använder befintlig `systemStatus.last_plc_ping` och existerande 30s polling
+
+**Frontend (`rebotling-admin.html`):**
+- Röd `alert-danger`-banner vid `plcWarningLevel === 'danger'`: "PLC har inte rapporterat data på X minuter. Kontrollera produktionslinjen!"
+- Gul `alert-warning`-banner vid `plcWarningLevel === 'warn'`: "PLC-data är X min gammal"
+- Ingen banner vid `'none'` (allt OK)
+- Banner visas bara när `systemStatus` är laddat (undviker false positives under initial laddning)
+
+**CSS (`rebotling-admin.css`):**
+- `.plc-warning-banner` med subtil `plc-blink`-animation (opacity-pulsering)
+
+---
+
 ## 2026-03-03 — Heatmap förbättring + My-bonus mobilanpassning
 
 ### Rebotling-statistik — förbättrad heatmap

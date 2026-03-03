@@ -52,6 +52,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // Settings for bonus estimate
   private settings: any = { rebotlingTarget: 1000, shiftHours: 8.0 };
 
+  // ---- Skiftjämförelse ----
+  compareDateA = '';
+  compareDateB = '';
+  compareLoading = false;
+  compareError   = '';
+  compareResult: { a: any; b: any } | null = null;
+
   private destroy$ = new Subject<void>();
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
@@ -815,6 +822,73 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       defaultStyle: { fontSize: 11 },
       pageMargins: [40, 50, 40, 50]
     };
+  }
+
+  // ========== Skiftjämförelse ==========
+  compareShifts() {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(this.compareDateA) || !dateRegex.test(this.compareDateB)) {
+      this.compareError = 'Ange giltiga datum (ÅÅÅÅ-MM-DD) för båda fälten';
+      return;
+    }
+    if (this.compareDateA === this.compareDateB) {
+      this.compareError = 'Välj två olika datum för att jämföra';
+      return;
+    }
+    this.compareError   = '';
+    this.compareResult  = null;
+    this.compareLoading = true;
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=shift-compare&date_a=${this.compareDateA}&date_b=${this.compareDateB}`,
+      { withCredentials: true }
+    )
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (res) => {
+        this.compareLoading = false;
+        if (res.success) {
+          this.compareResult = { a: res.data.a, b: res.data.b };
+        } else {
+          this.compareError = res.error || 'Kunde inte hämta jämförelsedata';
+        }
+      },
+      error: () => {
+        this.compareLoading = false;
+        this.compareError = 'Serverfel vid jämförelse';
+      }
+    });
+  }
+
+  clearCompare() {
+    this.compareResult  = null;
+    this.compareError   = '';
+    this.compareDateA   = '';
+    this.compareDateB   = '';
+  }
+
+  compareDiff(fieldA: number | null, fieldB: number | null): number | null {
+    if (fieldA == null || fieldB == null) return null;
+    return Math.round((fieldB - fieldA) * 10) / 10;
+  }
+
+  compareIsImprovement(field: string, diff: number | null): boolean {
+    if (diff == null) return false;
+    // För rasttid är lägre bättre
+    if (field === 'rasttime') return diff < 0;
+    return diff > 0;
+  }
+
+  compareIsWorse(field: string, diff: number | null): boolean {
+    if (diff == null) return false;
+    if (field === 'rasttime') return diff > 0;
+    return diff < 0;
+  }
+
+  formatMinutes(min: number | null): string {
+    if (min == null || min === 0) return '–';
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return h > 0 ? `${h}h ${m}min` : `${m}min`;
   }
 
   // ========== Toast ==========
