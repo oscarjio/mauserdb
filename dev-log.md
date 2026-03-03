@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-03-03 — Digital skiftöverlämning — commit ca4b8f2
+
+### Nytt: /rebotling/overlamnin
+
+**Syfte:** Ersätter muntlig informationsöverföring vid skiftbyte med en digital överlämningslogg.
+Avgående skift dokumenterar maskinstatus, problem och uppgifter. Inkommande skift ser de tre
+senaste dagarnas anteckningar direkt när de börjar.
+
+**Backend — `noreko-backend/classes/ShiftHandoverController.php` (ny):**
+
+- `GET &run=recent` — hämtar senaste 3 dagars anteckningar (max 10), sorterat nyast först.
+  - Returnerar `time_ago` på svenska ("2 timmar sedan", "Igår", "3 dagar sedan").
+  - `skift_label` beräknas: "Skift 1 — Morgon" etc.
+- `POST &run=add` — sparar ny anteckning. Kräver inloggad session (`$_SESSION['user_id']`).
+  - Validering: note max 1000 tecken, skift_nr 1–3, priority whitelist.
+  - Slår upp op_name mot operators-tabellen om op_number angivits.
+  - Returnerar det nyskapade note-objektet direkt för optimistisk UI-uppdatering.
+- `POST/DELETE &run=delete&id=N` — tar bort anteckning.
+  - Kräver admin ELLER att `created_by_user_id` matchar inloggad användare.
+
+**DB — `noreko-backend/migrations/2026-03-04_shift_handover.sql`:**
+- Ny tabell `shift_handover` med id, datum, skift_nr, note, priority (ENUM), op_number,
+  op_name, created_by_user_id, created_at. Index på datum och (datum, skift_nr).
+
+**Frontend — `noreko-frontend/src/app/pages/shift-handover/` (ny):**
+- Standalone-komponent med `destroy$ + takeUntil`, `isFetching`-guard, `clearInterval` i ngOnDestroy.
+- Header visar aktuellt skift baserat på klockslag (06–14 = Morgon, 14–22 = Eftermiddag, 22–06 = Natt).
+- Formulärpanel alltid synlig: textarea (max 1000 tecken), toggle-knappar för Normal/Viktig/Brådskande,
+  skift-selector (auto-satt men justerbar), skicka-knapp.
+- Anteckningskort: prioritetsfärgad vänsterkant (grå/orange/röd), skift-badge, datum, anteckningstext,
+  operatörsnamn, time_ago. Radera-knapp visas om admin eller ägare.
+- Auto-poll var 60s med `timeout(5000)` + `catchError`.
+- "Uppdaterades XX:XX" i header efter varje lyckad fetch.
+
+**Routing & nav:**
+- Route: `{ path: 'rebotling/overlamnin', canActivate: [authGuard], ... }` i `app.routes.ts`.
+- Nav-länk under Rebotling-dropdown (ikon: `fas fa-exchange-alt`, synlig för inloggade).
+
+---
+
 ## 2026-03-03 — Kvalitetstrendkort + Waterfalldiagram OEE — commit d44a4fe
 
 ### Nytt: Två analysvyer i Rebotling Statistik
