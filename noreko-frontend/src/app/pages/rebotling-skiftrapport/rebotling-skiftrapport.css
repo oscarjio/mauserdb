@@ -236,3 +236,81 @@
   font-weight: 700;
   line-height: 1.2;
 }
+
+/* Summary bar */
+.summary-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.summary-card:hover {
+  border-color: #4a90e2;
+}
+
+.summary-label {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Sortable column headers */
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable:hover {
+  background-color: rgba(66, 153, 225, 0.15) !important;
+}
+
+/* Shift summary row */
+.shift-summary {
+  background: rgba(49, 130, 206, 0.08);
+  border: 1px solid rgba(49, 130, 206, 0.2);
+  border-radius: 6px;
+  padding: 10px 14px;
+}
+
+.shift-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 12px;
+}
+
+.shift-stat-label {
+  font-size: 0.7rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.shift-stat-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* Filter bar */
+.filter-bar .form-control {
+  background-color: #4a5568;
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.filter-bar select.form-control option {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}

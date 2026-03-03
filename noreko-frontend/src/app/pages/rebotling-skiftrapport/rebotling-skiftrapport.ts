@@ -3,8 +3,12 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
 import { SkiftrapportService } from '../../services/skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
+
+type SortField = 'datum' | 'product_name' | 'user_name' | 'ibc_ok' | 'bur_ej_ok' | 'ibc_ej_ok' | 'totalt' | 'kvalitet' | 'ibc_per_h';
+type SortDir   = 'asc' | 'desc';
 
 @Component({
   standalone: true,
@@ -14,6 +18,8 @@ import { AuthService } from '../../services/auth.service';
   styleUrl: './rebotling-skiftrapport.css'
 })
 export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
+  Math = Math;
+
   reports: any[] = [];
   products: any[] = [];
   selectedIds: Set<number> = new Set();
@@ -27,13 +33,24 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   showAddReportForm = false;
   loggedIn = false;
 
-  // Date filter
-  filterFrom = '';
-  filterTo = '';
+  // Date + shift filter
+  filterFrom  = '';
+  filterTo    = '';
+  filterSkift = ''; // förmiddag | eftermiddag | natt | ''
+
+  // Search
+  searchText = '';
+
+  // Sort
+  sortField: SortField = 'datum';
+  sortDir: SortDir     = 'desc';
 
   // Löpnummer lazy-load
   lopnummerMap: { [reportId: number]: string } = {};
   lopnummerLoading: { [reportId: number]: boolean } = {};
+
+  // Settings for bonus estimate
+  private settings: any = { rebotlingTarget: 1000, shiftHours: 8.0 };
 
   private destroy$ = new Subject<void>();
   private fetchSub: Subscription | null = null;
@@ -42,7 +59,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   constructor(
     private skiftrapportService: SkiftrapportService,
-    private auth: AuthService
+    private auth: AuthService,
+    private http: HttpClient
   ) {}
 
   newReport = {
@@ -61,6 +79,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
     this.fetchReports();
     this.fetchProducts();
+    this.loadSettings();
 
     // Uppdatera tabellen var 10:e sekund
     this.updateInterval = setInterval(() => {
@@ -76,22 +95,149 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  private loadSettings() {
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            this.settings = res.data;
+          }
+        },
+        error: () => {}
+      });
+  }
+
+  // ========== Shift helper ==========
+  private getShiftForReport(r: any): string {
+    if (!r.datum) return '';
+    const timeStr = (r.datum || '').substring(11, 16);
+    if (!timeStr) return '';
+    const [hh, mm] = timeStr.split(':').map(Number);
+    const minutes = hh * 60 + mm;
+    if (minutes >= 6 * 60 && minutes < 14 * 60)  return 'förmiddag';
+    if (minutes >= 14 * 60 && minutes < 22 * 60) return 'eftermiddag';
+    return 'natt';
+  }
+
   // ========== Date filter ==========
   get filteredReports(): any[] {
-    return this.reports.filter(r => {
+    let result = this.reports.filter(r => {
       const d = (r.datum || '').substring(0, 10);
       if (this.filterFrom && d < this.filterFrom) return false;
-      if (this.filterTo && d > this.filterTo) return false;
+      if (this.filterTo   && d > this.filterTo)   return false;
+      if (this.filterSkift) {
+        if (this.getShiftForReport(r) !== this.filterSkift) return false;
+      }
+      if (this.searchText) {
+        const q = this.searchText.toLowerCase();
+        const searchable = [
+          r.datum || '',
+          r.product_name || '',
+          r.user_name || '',
+          String(r.ibc_ok ?? ''),
+          String(r.totalt ?? '')
+        ].join(' ').toLowerCase();
+        if (!searchable.includes(q)) return false;
+      }
       return true;
     });
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let aVal: any;
+      let bVal: any;
+      switch (this.sortField) {
+        case 'datum':        aVal = a.datum ?? ''; bVal = b.datum ?? ''; break;
+        case 'product_name': aVal = (a.product_name ?? '').toLowerCase(); bVal = (b.product_name ?? '').toLowerCase(); break;
+        case 'user_name':    aVal = (a.user_name ?? '').toLowerCase(); bVal = (b.user_name ?? '').toLowerCase(); break;
+        case 'ibc_ok':       aVal = a.ibc_ok ?? 0;     bVal = b.ibc_ok ?? 0; break;
+        case 'bur_ej_ok':    aVal = a.bur_ej_ok ?? 0;  bVal = b.bur_ej_ok ?? 0; break;
+        case 'ibc_ej_ok':    aVal = a.ibc_ej_ok ?? 0;  bVal = b.ibc_ej_ok ?? 0; break;
+        case 'totalt':       aVal = a.totalt ?? 0;      bVal = b.totalt ?? 0; break;
+        case 'kvalitet':     aVal = this.getQualityPct(a) ?? -1; bVal = this.getQualityPct(b) ?? -1; break;
+        case 'ibc_per_h':    aVal = this.getIbcPerHour(a) ?? -1; bVal = this.getIbcPerHour(b) ?? -1; break;
+        default:             aVal = a.datum ?? ''; bVal = b.datum ?? '';
+      }
+      if (aVal < bVal) return this.sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return this.sortDir === 'asc' ?  1 : -1;
+      return 0;
+    });
+
+    return result;
+  }
+
+  sortBy(field: SortField) {
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDir   = field === 'datum' ? 'desc' : 'asc';
+    }
+  }
+
+  sortIcon(field: SortField): string {
+    if (this.sortField !== field) return 'fa-sort';
+    return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
   }
 
   clearFilter() {
-    this.filterFrom = '';
-    this.filterTo = '';
+    this.filterFrom  = '';
+    this.filterTo    = '';
+    this.filterSkift = '';
+    this.searchText  = '';
   }
 
-  // ========== Computed KPIs ==========
+  // ========== Summary KPIs (filtered set) ==========
+  get summaryTotalIbc(): number {
+    return this.filteredReports.reduce((s, r) => s + (r.totalt || 0), 0);
+  }
+
+  get summaryAvgQuality(): number | null {
+    const reports = this.filteredReports.filter(r => r.totalt > 0);
+    if (!reports.length) return null;
+    const totalOk  = reports.reduce((s, r) => s + (r.ibc_ok || 0), 0);
+    const totalAll = reports.reduce((s, r) => s + (r.totalt || 0), 0);
+    return totalAll > 0 ? Math.round((totalOk / totalAll) * 100) : null;
+  }
+
+  get summaryAvgOee(): number | null {
+    const reports = this.filteredReports.filter(r => (r.drifttid || 0) + (r.rasttime || 0) > 0 && r.totalt > 0);
+    if (!reports.length) return null;
+    // OEE simplified: (quality * efficiency) average over reports with PLC data
+    const oeeSum = reports.reduce((s, r) => {
+      const q = r.totalt > 0 ? (r.ibc_ok / r.totalt) : 0;
+      const planned = (r.drifttid || 0) + (r.rasttime || 0);
+      const avail   = planned > 0 ? Math.min((r.drifttid || 0) / planned, 1) : 0;
+      return s + q * avail * 100;
+    }, 0);
+    return Math.round(oeeSum / reports.length);
+  }
+
+  get summaryTotalRast(): number {
+    return this.filteredReports.reduce((s, r) => s + (r.rasttime || 0), 0);
+  }
+
+  get summaryTotalDrift(): number {
+    return this.filteredReports.reduce((s, r) => s + (r.drifttid || 0), 0);
+  }
+
+  get summaryDeltaVsPrev(): number | null {
+    const all = this.filteredReports;
+    if (all.length < 2) return null;
+    const current  = all[0]?.totalt;
+    const previous = all[1]?.totalt;
+    if (current == null || previous == null) return null;
+    return current - previous;
+  }
+
+  get summaryBonusEstimate(): number | null {
+    if (!this.filteredReports.length) return null;
+    const latestReport = this.filteredReports[0];
+    return this.getBonusEstimate(latestReport);
+  }
+
+  // ========== Computed KPIs per row ==========
   getQualityPct(r: any): number | null {
     if (!r.totalt) return null;
     return Math.round((r.ibc_ok / r.totalt) * 100);
@@ -113,10 +259,31 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return Math.round(((r.bur_ej_ok + r.ibc_ej_ok) / r.totalt) * 100);
   }
 
+  getAvgCycleTime(r: any): number | null {
+    if (!r.drifttid || !r.ibc_ok) return null;
+    return Math.round((r.drifttid / r.ibc_ok) * 10) / 10;
+  }
+
+  getStopCount(r: any): number {
+    // PLC data not available per row, return 0 unless we have it
+    return 0;
+  }
+
+  getBonusEstimate(r: any): number | null {
+    if (!r || !r.totalt) return null;
+    const target = this.settings?.rebotlingTarget || 1000;
+    const quality = this.getQualityPct(r);
+    if (quality == null) return null;
+    // Simple bonus estimate: (totalt / target) * quality% * 100kr
+    const pct = Math.min((r.totalt / target) * 100, 100);
+    if (pct < 80) return 0;
+    return Math.round((pct / 100) * (quality / 100) * 500);
+  }
+
   getDeltaIbc(index: number): number | null {
     const reports = this.filteredReports;
     if (index >= reports.length - 1) return null;
-    const current = reports[index]?.totalt;
+    const current  = reports[index]?.totalt;
     const previous = reports[index + 1]?.totalt;
     if (current == null || previous == null) return null;
     return current - previous;
@@ -162,10 +329,10 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
             const newReports = res.data || [];
 
             if (silent) {
-              const expandedCopy = { ...this.expanded };
+              const expandedCopy    = { ...this.expanded };
               const selectedIdsCopy = new Set(this.selectedIds);
-              this.reports = newReports;
-              this.expanded = expandedCopy;
+              this.reports    = newReports;
+              this.expanded   = expandedCopy;
               this.selectedIds = new Set(
                 Array.from(selectedIdsCopy).filter(id =>
                   newReports.some((r: any) => r.id === id)
@@ -333,23 +500,23 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
     this.loading = true;
     this.skiftrapportService.createSkiftrapport({
-      datum: this.newReport.datum,
-      product_id: this.newReport.product_id,
-      ibc_ok: this.newReport.ibc_ok,
-      bur_ej_ok: this.newReport.bur_ej_ok,
-      ibc_ej_ok: this.newReport.ibc_ej_ok,
-      totalt: totalt
+      datum:       this.newReport.datum,
+      product_id:  this.newReport.product_id,
+      ibc_ok:      this.newReport.ibc_ok,
+      bur_ej_ok:   this.newReport.bur_ej_ok,
+      ibc_ej_ok:   this.newReport.ibc_ej_ok,
+      totalt:      totalt
     }).subscribe({
       next: (res) => {
         this.loading = false;
         if (res.success) {
           this.fetchReports();
           this.newReport = {
-            datum: new Date().toISOString().split('T')[0],
+            datum:      new Date().toISOString().split('T')[0],
             product_id: null,
-            ibc_ok: 0,
-            bur_ej_ok: 0,
-            ibc_ej_ok: 0
+            ibc_ok:     0,
+            bur_ej_ok:  0,
+            ibc_ej_ok:  0
           };
           this.showAddReportForm = false;
           this.showSuccess('Skiftrapport tillagd');
@@ -400,15 +567,17 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     }
 
     this.skiftrapportService.updateSkiftrapport(report.id, {
-      datum: datum,
+      datum:      datum,
       product_id: report.product_id,
-      ibc_ok: parseInt(report.ibc_ok, 10) || 0,
-      bur_ej_ok: parseInt(report.bur_ej_ok, 10) || 0,
-      ibc_ej_ok: parseInt(report.ibc_ej_ok, 10) || 0
+      ibc_ok:     parseInt(report.ibc_ok,     10) || 0,
+      bur_ej_ok:  parseInt(report.bur_ej_ok,  10) || 0,
+      ibc_ej_ok:  parseInt(report.ibc_ej_ok,  10) || 0
     }).subscribe({
       next: (res) => {
         if (res.success) {
-          report.totalt = (parseInt(report.ibc_ok, 10) || 0) + (parseInt(report.bur_ej_ok, 10) || 0) + (parseInt(report.ibc_ej_ok, 10) || 0);
+          report.totalt = (parseInt(report.ibc_ok, 10) || 0)
+                        + (parseInt(report.bur_ej_ok, 10) || 0)
+                        + (parseInt(report.ibc_ej_ok, 10) || 0);
           report.datum = datum;
           this.expanded[report.id] = false;
           this.fetchReports();
@@ -427,7 +596,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   exportCSV() {
     if (this.filteredReports.length === 0) return;
 
-    const header = ['ID', 'Datum', 'Produkt', 'Användare', 'IBC OK', 'Bur ej OK', 'IBC ej OK', 'Totalt', 'Inlagd'];
+    const header = ['ID', 'Datum', 'Produkt', 'Användare', 'IBC OK', 'Bur ej OK', 'IBC ej OK', 'Totalt', 'Kvalitet%', 'IBC/h', 'Drifttid(min)', 'Rasttid(min)', 'Inlagd'];
     const rows = this.filteredReports.map((r: any) => [
       r.id,
       r.datum,
@@ -437,6 +606,10 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       r.bur_ej_ok,
       r.ibc_ej_ok,
       r.totalt,
+      this.getQualityPct(r) ?? '',
+      this.getIbcPerHour(r) ?? '',
+      r.drifttid ?? '',
+      r.rasttime ?? '',
       r.inlagd == 1 ? 'Ja' : 'Nej'
     ]);
 
@@ -444,11 +617,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       .map(row => row.map(cell => `"${cell}"`).join(';'))
       .join('\n');
 
-    const BOM = '\uFEFF';
+    const BOM  = '\uFEFF';
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const url  = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = url;
+    link.href     = url;
     link.download = `skiftrapport-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     URL.revokeObjectURL(url);
@@ -457,6 +630,15 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   exportExcel() {
     if (this.filteredReports.length === 0) return;
     import('xlsx').then(XLSX => {
+      const summaryData = [
+        { 'Sammanfattning': '', 'Värde': '' },
+        { 'Sammanfattning': 'Total IBC',  'Värde': this.summaryTotalIbc },
+        { 'Sammanfattning': 'Kvalitet %', 'Värde': this.summaryAvgQuality ?? '' },
+        { 'Sammanfattning': 'OEE %',      'Värde': this.summaryAvgOee ?? '' },
+        { 'Sammanfattning': 'Drifttid (min)', 'Värde': this.summaryTotalDrift },
+        { 'Sammanfattning': 'Rasttid (min)',  'Värde': this.summaryTotalRast },
+        { 'Sammanfattning': '', 'Värde': '' },
+      ];
       const data = this.filteredReports.map(r => ({
         'ID':              r.id,
         'Datum':           r.datum,
@@ -469,18 +651,23 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         'Kvalitet %':      this.getQualityPct(r) ?? '',
         'Effektivitet %':  this.getEfficiencyPct(r) ?? '',
         'IBC/timme':       this.getIbcPerHour(r) ?? '',
-        'Op1':             r.op1 ?? '',
-        'Op2':             r.op2 ?? '',
-        'Op3':             r.op3 ?? '',
+        'Kassation %':     this.getDefectPct(r) ?? '',
+        'Snitt cykeltid':  this.getAvgCycleTime(r) ?? '',
+        'Bonus-estimat':   this.getBonusEstimate(r) ?? '',
+        'Op1':             this.getOpLabel(r, 'op1'),
+        'Op2':             this.getOpLabel(r, 'op2'),
+        'Op3':             this.getOpLabel(r, 'op3'),
         'Drifttid (min)':  r.drifttid ?? '',
         'Rasttid (min)':   r.rasttime ?? '',
         'Löpnummer':       r.lopnummer ?? '',
         'Skifträknare':    r.skiftraknare ?? '',
         'Inlagd':          r.inlagd == 1 ? 'Ja' : 'Nej'
       }));
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      const wsData    = XLSX.utils.json_to_sheet(data);
+      const wb        = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Sammanfattning');
+      XLSX.utils.book_append_sheet(wb, wsData,    'Skiftrapporter');
       XLSX.writeFile(wb, `skiftrapporter-${new Date().toISOString().split('T')[0]}.xlsx`);
     });
   }
@@ -488,84 +675,117 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   exportPDF(report: any) {
     import('pdfmake/build/pdfmake').then((pdfMakeModule: any) => {
       import('pdfmake/build/vfs_fonts').then((vfsFontsModule: any) => {
-        const pdfMake = pdfMakeModule.default || pdfMakeModule;
+        const pdfMake  = pdfMakeModule.default || pdfMakeModule;
         const vfsFonts = vfsFontsModule.default || vfsFontsModule;
-        pdfMake.vfs = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
-        const docDef = this.buildPDFDocDef(report);
+        pdfMake.vfs    = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
+        const docDef   = this.buildPDFDocDef(report);
         pdfMake.createPdf(docDef).download(`skiftrapport-${report.datum}-${report.id}.pdf`);
       });
     });
   }
 
   private buildPDFDocDef(r: any): any {
-    const qualPct = this.getQualityPct(r);
-    const effPct  = this.getEfficiencyPct(r);
-    const ibcH    = this.getIbcPerHour(r);
-    const defPct  = this.getDefectPct(r);
+    const qualPct   = this.getQualityPct(r);
+    const effPct    = this.getEfficiencyPct(r);
+    const ibcH      = this.getIbcPerHour(r);
+    const defPct    = this.getDefectPct(r);
+    const avgCycle  = this.getAvgCycleTime(r);
+    const bonus     = this.getBonusEstimate(r);
+    const target    = this.settings?.rebotlingTarget || 1000;
+    const achievePct = target > 0 ? Math.round((r.totalt / target) * 100) : null;
 
     return {
       content: [
-        { text: 'Skiftrapport', style: 'header' },
+        { text: 'Skiftrapport – Rebotling', style: 'header' },
+        { text: `${r.datum}  |  ${r.product_name || '-'}  |  Skiftansvarig: ${r.user_name || '-'}`, style: 'subheader' },
+        { text: '\n' },
+        // --- Sammanfattningskort ---
+        { text: 'Sammanfattning', style: 'sectionHeader' },
         {
-          text: `${r.datum}  |  ${r.product_name || '-'}`,
-          style: 'subheader'
+          table: {
+            widths: ['*', '*', '*', '*', '*'],
+            body: [
+              [
+                { text: 'Total IBC',      bold: true, fillColor: '#eeeeee' },
+                { text: 'Dagsmål',        bold: true, fillColor: '#eeeeee' },
+                { text: 'Uppfyllnad',     bold: true, fillColor: '#eeeeee' },
+                { text: 'Kvalitet',       bold: true, fillColor: '#eeeeee' },
+                { text: 'Bonus-estimat',  bold: true, fillColor: '#eeeeee' }
+              ],
+              [
+                { text: String(r.totalt),                                        bold: true,  alignment: 'center' },
+                { text: String(target),                                          alignment: 'center' },
+                { text: achievePct != null ? achievePct + '%' : '–',             alignment: 'center',
+                  color: achievePct != null && achievePct >= 100 ? 'green' : (achievePct != null && achievePct >= 80 ? 'orange' : 'red') },
+                { text: qualPct != null ? qualPct + '%' : '–',                   alignment: 'center',
+                  color: qualPct != null && qualPct >= 90 ? 'green' : 'black' },
+                { text: bonus != null ? bonus + ' kr' : '–',                     alignment: 'center', color: 'darkblue' }
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines'
         },
         { text: '\n' },
+        // --- Produktion ---
         { text: 'Produktion', style: 'sectionHeader' },
         {
           table: {
             widths: ['*', '*', '*', '*'],
             body: [
               [
-                { text: 'IBC OK', bold: true, fillColor: '#eeeeee' },
-                { text: 'Bur ej OK', bold: true, fillColor: '#eeeeee' },
-                { text: 'IBC ej OK', bold: true, fillColor: '#eeeeee' },
-                { text: 'Totalt', bold: true, fillColor: '#eeeeee' }
+                { text: 'IBC OK',     bold: true, fillColor: '#eeeeee' },
+                { text: 'Bur ej OK',  bold: true, fillColor: '#eeeeee' },
+                { text: 'IBC ej OK',  bold: true, fillColor: '#eeeeee' },
+                { text: 'Totalt',     bold: true, fillColor: '#eeeeee' }
               ],
               [
-                { text: String(r.ibc_ok), alignment: 'center' },
-                { text: String(r.bur_ej_ok), alignment: 'center' },
-                { text: String(r.ibc_ej_ok), alignment: 'center' },
-                { text: String(r.totalt), bold: true, alignment: 'center' }
+                { text: String(r.ibc_ok),     alignment: 'center' },
+                { text: String(r.bur_ej_ok),  alignment: 'center' },
+                { text: String(r.ibc_ej_ok),  alignment: 'center' },
+                { text: String(r.totalt),     bold: true, alignment: 'center' }
               ]
             ]
           },
           layout: 'lightHorizontalLines'
         },
         { text: '\n' },
+        // --- Nyckeltal ---
         { text: 'Nyckeltal', style: 'sectionHeader' },
         {
           table: {
-            widths: ['*', '*', '*', '*'],
+            widths: ['*', '*', '*', '*', '*'],
             body: [
               [
-                { text: 'Kvalitet', bold: true, fillColor: '#eeeeee' },
+                { text: 'Kvalitet',     bold: true, fillColor: '#eeeeee' },
                 { text: 'Effektivitet', bold: true, fillColor: '#eeeeee' },
-                { text: 'IBC/timme', bold: true, fillColor: '#eeeeee' },
-                { text: 'Kassation', bold: true, fillColor: '#eeeeee' }
+                { text: 'IBC/timme',    bold: true, fillColor: '#eeeeee' },
+                { text: 'Kassation',    bold: true, fillColor: '#eeeeee' },
+                { text: 'Snitt cykeltid', bold: true, fillColor: '#eeeeee' }
               ],
               [
-                { text: qualPct != null ? qualPct + '%' : '–', alignment: 'center', color: qualPct != null && qualPct >= 90 ? 'green' : 'black' },
-                { text: effPct  != null ? effPct + '%'  : '–', alignment: 'center' },
-                { text: ibcH    != null ? ibcH + ' st/h': '–', alignment: 'center' },
-                { text: defPct  != null ? defPct + '%'  : '–', alignment: 'center', color: defPct != null && defPct > 10 ? 'red' : 'black' }
+                { text: qualPct  != null ? qualPct  + '%'    : '–', alignment: 'center', color: qualPct != null && qualPct >= 90 ? 'green' : 'black' },
+                { text: effPct   != null ? effPct   + '%'    : '–', alignment: 'center' },
+                { text: ibcH     != null ? ibcH     + ' st/h': '–', alignment: 'center' },
+                { text: defPct   != null ? defPct   + '%'    : '–', alignment: 'center', color: defPct != null && defPct > 10 ? 'red' : 'black' },
+                { text: avgCycle != null ? avgCycle + ' min' : '–', alignment: 'center' }
               ]
             ]
           },
           layout: 'lightHorizontalLines'
         },
         { text: '\n' },
+        // --- PLC-data ---
         { text: 'PLC-data', style: 'sectionHeader' },
         {
           table: {
             widths: ['*', '*', '*', '*', '*', '*'],
             body: [
               [
-                { text: 'Tvättplats', bold: true, fillColor: '#eeeeee' },
+                { text: 'Tvättplats',    bold: true, fillColor: '#eeeeee' },
                 { text: 'Kontrollstation', bold: true, fillColor: '#eeeeee' },
-                { text: 'Truckförare', bold: true, fillColor: '#eeeeee' },
-                { text: 'Drifttid', bold: true, fillColor: '#eeeeee' },
-                { text: 'Rasttid', bold: true, fillColor: '#eeeeee' },
+                { text: 'Truckförare',   bold: true, fillColor: '#eeeeee' },
+                { text: 'Drifttid',      bold: true, fillColor: '#eeeeee' },
+                { text: 'Rasttid',       bold: true, fillColor: '#eeeeee' },
                 { text: 'Löpnr (sista)', bold: true, fillColor: '#eeeeee' }
               ],
               [
@@ -588,7 +808,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       ],
       styles: {
         header:        { fontSize: 22, bold: true, margin: [0, 0, 0, 4] },
-        subheader:     { fontSize: 12, color: '#555555', margin: [0, 0, 0, 10] },
+        subheader:     { fontSize: 11, color: '#555555', margin: [0, 0, 0, 10] },
         sectionHeader: { fontSize: 13, bold: true, margin: [0, 10, 0, 4] },
         meta:          { fontSize: 10, color: '#777777', margin: [0, 2, 0, 0] }
       },
@@ -599,8 +819,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   // ========== Toast ==========
   showSuccess(message: string) {
-    this.successMessage = message;
-    this.showSuccessMessage = true;
+    this.successMessage      = message;
+    this.showSuccessMessage  = true;
     clearTimeout(this.successTimerId);
     this.successTimerId = setTimeout(() => {
       if (!this.destroy$.closed) this.showSuccessMessage = false;

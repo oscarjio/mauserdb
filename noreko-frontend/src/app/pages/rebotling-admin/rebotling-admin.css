@@ -278,3 +278,94 @@
 .btn-close-white {
   filter: invert(1) grayscale(100%) brightness(200%);
 }
+
+/* ---- Systemstatus ---- */
+.status-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.status-card.status-ok   { border-color: #38a169; }
+.status-card.status-warn { border-color: #d69e2e; }
+.status-card.status-err  { border-color: #e53e3e; }
+.status-card.status-neutral { border-color: #4a5568; }
+
+.status-icon { font-size: 1.5rem; margin-bottom: 6px; }
+.status-label { font-size: 0.7rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.status-value { font-size: 1.1rem; font-weight: 700; }
+.status-sub   { font-size: 0.72rem; margin-top: 2px; }
+
+/* ---- Veckodagsmål ---- */
+.weekday-goal-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  transition: border-color 0.15s ease;
+}
+
+.weekday-goal-card:hover { border-color: #4a90e2; }
+.weekday-goal-card.weekday-disabled { opacity: 0.5; }
+
+.weekday-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.weekday-input {
+  text-align: center;
+  font-weight: 700;
+  background-color: #2d3748 !important;
+  color: #e2e8f0 !important;
+  border-color: #4a5568 !important;
+}
+
+.weekday-sub {
+  font-size: 0.7rem;
+  margin-top: 4px;
+}
+
+/* ---- Skifttider ---- */
+.shift-time-card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.shift-time-card:hover { border-color: #d69e2e; }
+.shift-time-card.shift-disabled { opacity: 0.5; }
+
+/* ---- Bonussektionen ---- */
+.bonus-info-card {
+  background: rgba(56, 161, 105, 0.08);
+  border: 1px solid rgba(56, 161, 105, 0.25);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.bonus-info-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+}
+
+.bonus-info-body p {
+  line-height: 1.6;
+}
+
+/* form-text i dark mode */
+.form-text {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}

@@ -7,9 +7,7 @@
         <strong class="me-auto">Framgång</strong>
         <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage = false"></button>
       </div>
-      <div class="toast-body bg-dark text-white">
-        {{ successMessage }}
-      </div>
+      <div class="toast-body bg-dark text-white">{{ successMessage }}</div>
     </div>
   </div>
 
@@ -25,156 +23,83 @@
         </div>
       </div>
 
-      <!-- Product Management -->
+      <!-- ======== SYSTEMSTATUS ======== -->
       <div class="card mb-4">
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
           <h5 class="card-title mb-0">
-            <i class="fas fa-boxes me-2"></i>
-            Produkthantering
+            <i class="fas fa-heartbeat me-2 text-danger"></i>
+            Systemstatus
           </h5>
-          <button class="btn btn-sm btn-outline-light" (click)="showAddProductForm = !showAddProductForm" [title]="showAddProductForm ? 'Dölj formulär' : 'Visa formulär'">
-            <i class="fas" [class.fa-minus]="showAddProductForm" [class.fa-plus]="!showAddProductForm"></i>
-            {{ showAddProductForm ? 'Dölj' : 'Lägg till produkt' }}
-          </button>
+          <div class="d-flex align-items-center gap-2">
+            <span *ngIf="systemStatusLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="loadSystemStatus()" [disabled]="systemStatusLoading">
+              <i class="fas fa-sync-alt me-1"></i>Uppdatera
+            </button>
+          </div>
         </div>
         <div class="card-body">
-          <!-- Add New Product Form -->
-          <div class="row mb-4" *ngIf="showAddProductForm">
-            <div class="col-12">
-              <div class="card border-primary">
-                <div class="card-header bg-light">
-                  <h6 class="mb-0">
-                    <i class="fas fa-plus me-2"></i>
-                    Lägg till ny produkt
-                  </h6>
+          <div *ngIf="systemStatusError" class="alert alert-danger mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ systemStatusError }}
+          </div>
+          <div class="row g-3" *ngIf="systemStatus">
+            <!-- PLC-ping -->
+            <div class="col-6 col-md-3">
+              <div class="status-card" [class.status-ok]="getPlcStatus() === 'ok'" [class.status-warn]="getPlcStatus() === 'warn'" [class.status-err]="getPlcStatus() === 'err'">
+                <div class="status-icon">
+                  <i class="fas fa-plug" [class.text-success]="getPlcStatus() === 'ok'" [class.text-warning]="getPlcStatus() === 'warn'" [class.text-danger]="getPlcStatus() === 'err'"></i>
                 </div>
-                <div class="card-body">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label for="newProductName" class="form-label">Produktnamn</label>
-                        <input 
-                          type="text" 
-                          class="form-control" 
-                          id="newProductName" 
-                          [(ngModel)]="newProduct.name"
-                          placeholder="Ange produktnamn">
-                      </div>
-                    </div>
-                    <div class="col-md-4">
-                      <div class="mb-3">
-                        <label for="newProductCycleTime" class="form-label">Cykeltid (minuter)</label>
-                        <input 
-                          type="number" 
-                          class="form-control" 
-                          id="newProductCycleTime" 
-                          [(ngModel)]="newProduct.cycle_time_minutes"
-                          min="1"
-                          step="1"
-                          placeholder="0">
-                      </div>
-                    </div>
-                    <div class="col-md-2">
-                      <div class="mb-3">
-                        <label class="form-label">&nbsp;</label>
-                        <button 
-                          class="btn btn-primary w-100" 
-                          (click)="addProduct()"
-                          [disabled]="!newProduct.name || !newProduct.cycle_time_minutes">
-                          <i class="fas fa-plus me-2"></i>
-                          Lägg till
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                <div class="status-label">Senaste PLC-data</div>
+                <div class="status-value">{{ getPlcAge() }}</div>
+                <div class="status-sub text-muted small" *ngIf="systemStatus.last_plc_ping">
+                  {{ systemStatus.last_plc_ping | date:'HH:mm:ss' }}
+                </div>
+              </div>
+            </div>
+            <!-- Löpnummer -->
+            <div class="col-6 col-md-3">
+              <div class="status-card status-neutral">
+                <div class="status-icon">
+                  <i class="fas fa-hashtag text-info"></i>
+                </div>
+                <div class="status-label">Aktuellt löpnummer</div>
+                <div class="status-value text-info">
+                  {{ systemStatus.last_lopnummer != null ? systemStatus.last_lopnummer : '–' }}
+                </div>
+              </div>
+            </div>
+            <!-- Databas -->
+            <div class="col-6 col-md-3">
+              <div class="status-card" [class.status-ok]="systemStatus.db_ok" [class.status-err]="!systemStatus.db_ok">
+                <div class="status-icon">
+                  <i class="fas fa-database" [class.text-success]="systemStatus.db_ok" [class.text-danger]="!systemStatus.db_ok"></i>
+                </div>
+                <div class="status-label">Databas</div>
+                <div class="status-value" [class.text-success]="systemStatus.db_ok" [class.text-danger]="!systemStatus.db_ok">
+                  {{ systemStatus.db_ok ? 'OK' : 'FEL' }}
+                </div>
+              </div>
+            </div>
+            <!-- IBC idag -->
+            <div class="col-6 col-md-3">
+              <div class="status-card status-neutral">
+                <div class="status-icon">
+                  <i class="fas fa-boxes text-warning"></i>
+                </div>
+                <div class="status-label">IBC idag (PLC)</div>
+                <div class="status-value text-warning">{{ systemStatus.ibc_today }}</div>
+                <div class="status-sub text-muted small">
+                  Servertid: {{ systemStatus.server_time | date:'HH:mm:ss' }}
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- Products Table -->
-          <div class="table-responsive">
-            <table class="table table-striped table-hover">
-              <thead class="table-dark">
-                <tr>
-                  <th>ID</th>
-                  <th>Produktnamn</th>
-                  <th>Cykeltid (min)</th>
-                  <th>Skapad</th>
-                  <th>Åtgärder</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let product of products; trackBy: trackByProductId">
-                  <td>{{ product.id }}</td>
-                  <td>
-                    <span *ngIf="!product.editing">{{ product.name }}</span>
-                    <input 
-                      *ngIf="product.editing" 
-                      type="text" 
-                      class="form-control form-control-sm" 
-                      [(ngModel)]="product.name"
-                      (keyup.enter)="saveProduct(product)"
-                      (keyup.escape)="cancelEdit(product)">
-                  </td>
-                  <td>
-                    <span *ngIf="!product.editing">{{ product.cycle_time_minutes }}</span>
-                    <input 
-                      *ngIf="product.editing" 
-                      type="number" 
-                      class="form-control form-control-sm" 
-                      [(ngModel)]="product.cycle_time_minutes"
-                      min="1"
-                      step="1"
-                      (keyup.enter)="saveProduct(product)"
-                      (keyup.escape)="cancelEdit(product)">
-                  </td>
-                  <td>{{ product.created_at | date:'yyyy-MM-dd HH:mm' }}</td>
-                  <td>
-                    <div class="btn-group btn-group-sm" role="group">
-                      <button 
-                        *ngIf="!product.editing"
-                        class="btn btn-outline-primary" 
-                        (click)="editProduct(product)"
-                        title="Redigera">
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button 
-                        *ngIf="product.editing"
-                        class="btn btn-outline-success" 
-                        (click)="saveProduct(product)"
-                        title="Spara">
-                        <i class="fas fa-check"></i>
-                      </button>
-                      <button 
-                        *ngIf="product.editing"
-                        class="btn btn-outline-secondary" 
-                        (click)="cancelEdit(product)"
-                        title="Avbryt">
-                        <i class="fas fa-times"></i>
-                      </button>
-                      <button 
-                        class="btn btn-outline-danger" 
-                        (click)="deleteProduct(product)"
-                        title="Ta bort"
-                        [disabled]="product.editing">
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr *ngIf="products.length === 0">
-                  <td colspan="5" class="text-center text-muted">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Inga produkter hittades. Lägg till en produkt ovan.
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+          <div *ngIf="!systemStatus && !systemStatusLoading && !systemStatusError" class="text-muted text-center py-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar systemstatus...
           </div>
         </div>
       </div>
-      <!-- Admin Settings -->
+
+      <!-- ======== PRODUKTIONSINSTÄLLNINGAR ======== -->
       <div class="card mb-4">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
           <h5 class="card-title mb-0">
@@ -187,14 +112,13 @@
           <div *ngIf="settingsError" class="alert alert-danger mb-3">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ settingsError }}
           </div>
-
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label fw-semibold">
-                <i class="fas fa-box me-1 text-info"></i>Dagsmål (IBC/dag)
+                <i class="fas fa-box me-1 text-info"></i>Dagsmål – standard (IBC/dag)
               </label>
               <input type="number" class="form-control" [(ngModel)]="settings.rebotlingTarget" min="1" />
-              <div class="form-text">Totalt antal IBC att producera per dag</div>
+              <div class="form-text">Fallback om inget veckodagsmål är satt</div>
             </div>
             <div class="col-md-4">
               <label class="form-label fw-semibold">
@@ -238,7 +162,6 @@
               <div class="form-text">Startar automatiskt vid skiftbyte</div>
             </div>
           </div>
-
           <div class="mt-4 d-flex gap-2">
             <button class="btn btn-primary" (click)="saveSettings()" [disabled]="settingsSaving">
               <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
@@ -252,19 +175,264 @@
         </div>
       </div>
 
+      <!-- ======== VECKODAGSMÅL ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-week me-2 text-info"></i>
+            Dagsmål per veckodag
+          </h5>
+          <span *ngIf="weekdayLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            Sätt olika produktionsmål per veckodag — t.ex. lägre mål måndag p.g.a. uppstart, noll på helgen.
+          </p>
+          <div *ngIf="weekdayError" class="alert alert-danger mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayError }}
+          </div>
+          <div class="row g-2" *ngIf="weekdayGoals.length > 0">
+            <div class="col-6 col-sm-4 col-md-3 col-lg-2"
+              *ngFor="let goal of weekdayGoals; let i = index">
+              <div class="weekday-goal-card" [class.weekday-disabled]="goal.daily_goal === 0">
+                <div class="weekday-label">{{ goal.label }}</div>
+                <input type="number" class="form-control form-control-sm weekday-input"
+                  [(ngModel)]="goal.daily_goal" min="0" step="10" />
+                <div class="weekday-sub text-muted">IBC</div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="weekdayLoading && weekdayGoals.length === 0" class="text-muted text-center py-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+          </div>
+          <div class="mt-3 d-flex gap-2 align-items-center">
+            <button class="btn btn-info" (click)="saveWeekdayGoals()" [disabled]="weekdaySaving">
+              <span *ngIf="weekdaySaving" class="spinner-border spinner-border-sm me-2"></span>
+              <i *ngIf="!weekdaySaving" class="fas fa-save me-2"></i>
+              {{ weekdaySaving ? 'Sparar...' : 'Spara veckodagsmål' }}
+            </button>
+            <span *ngIf="weekdaySaved" class="text-success small">
+              <i class="fas fa-check me-1"></i>Sparat
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== SKIFTTIDER ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-clock me-2 text-warning"></i>
+            Skifttider
+          </h5>
+          <span *ngIf="shiftTimesLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            Konfigurera start- och sluttid för varje skift. Används för filtrering i skiftrapporten.
+          </p>
+          <div *ngIf="shiftTimesError" class="alert alert-danger mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ shiftTimesError }}
+          </div>
+          <div class="row g-3" *ngIf="shiftTimes.length > 0">
+            <div class="col-md-4" *ngFor="let shift of shiftTimes">
+              <div class="shift-time-card" [class.shift-disabled]="!shift.enabled">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="fw-semibold">{{ getShiftLabel(shift.shift_name) }}</span>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" [(ngModel)]="shift.enabled" />
+                    <label class="form-check-label small text-muted">{{ shift.enabled ? 'Aktivt' : 'Inaktivt' }}</label>
+                  </div>
+                </div>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label small mb-1">Start</label>
+                    <input type="time" class="form-control form-control-sm" [(ngModel)]="shift.start_time" />
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small mb-1">Slut</label>
+                    <input type="time" class="form-control form-control-sm" [(ngModel)]="shift.end_time" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="shiftTimesLoading && shiftTimes.length === 0" class="text-muted text-center py-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+          </div>
+          <div class="mt-3 d-flex gap-2 align-items-center">
+            <button class="btn btn-warning" (click)="saveShiftTimes()" [disabled]="shiftTimesSaving">
+              <span *ngIf="shiftTimesSaving" class="spinner-border spinner-border-sm me-2"></span>
+              <i *ngIf="!shiftTimesSaving" class="fas fa-save me-2"></i>
+              {{ shiftTimesSaving ? 'Sparar...' : 'Spara skifttider' }}
+            </button>
+            <span *ngIf="shiftTimesSaved" class="text-success small">
+              <i class="fas fa-check me-1"></i>Sparat
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== BONUSNIVÅER ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-trophy me-2 text-success"></i>
+            Bonussystem
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            Bonusregler och målnivåer hanteras i det separata bonus-admingränssnittet.
+            Skiftrapporten visar ett förenklat bonus-estimat baserat på dagsmål och kvalitetsprocent.
+          </p>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="bonus-info-card">
+                <div class="bonus-info-title">
+                  <i class="fas fa-info-circle me-2 text-info"></i>
+                  Estimatformeln (skiftrapport)
+                </div>
+                <div class="bonus-info-body text-muted small">
+                  <p class="mb-1">Uppfyllnad (%) = Total IBC / Dagsmål × 100</p>
+                  <p class="mb-1">Bonus-estimat = Uppfyllnad × Kvalitet% × 5 kr</p>
+                  <p class="mb-0 text-warning">Max 500 kr vid 100% uppfyllnad + 100% kvalitet</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 d-flex align-items-center">
+              <a href="/admin/bonus" class="btn btn-outline-success">
+                <i class="fas fa-external-link-alt me-2"></i>
+                Gå till Bonus-admin
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== PRODUKTHANTERING ======== -->
+      <div class="card mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-boxes me-2"></i>
+            Produkthantering
+          </h5>
+          <button class="btn btn-sm btn-outline-light" (click)="showAddProductForm = !showAddProductForm"
+            [title]="showAddProductForm ? 'Dölj formulär' : 'Visa formulär'">
+            <i class="fas" [class.fa-minus]="showAddProductForm" [class.fa-plus]="!showAddProductForm"></i>
+            {{ showAddProductForm ? 'Dölj' : 'Lägg till produkt' }}
+          </button>
+        </div>
+        <div class="card-body">
+          <!-- Lägg till produkt -->
+          <div class="row mb-4" *ngIf="showAddProductForm">
+            <div class="col-12">
+              <div class="card border-primary">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Lägg till ny produkt</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <div class="mb-3">
+                        <label for="newProductName" class="form-label">Produktnamn</label>
+                        <input type="text" class="form-control" id="newProductName"
+                          [(ngModel)]="newProduct.name" placeholder="Ange produktnamn">
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <div class="mb-3">
+                        <label for="newProductCycleTime" class="form-label">Cykeltid (minuter)</label>
+                        <input type="number" class="form-control" id="newProductCycleTime"
+                          [(ngModel)]="newProduct.cycle_time_minutes" min="1" step="1" placeholder="0">
+                      </div>
+                    </div>
+                    <div class="col-md-2">
+                      <div class="mb-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button class="btn btn-primary w-100" (click)="addProduct()"
+                          [disabled]="!newProduct.name || !newProduct.cycle_time_minutes">
+                          <i class="fas fa-plus me-2"></i>Lägg till
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Produkttabell -->
+          <div class="table-responsive">
+            <table class="table table-striped table-hover">
+              <thead class="table-dark">
+                <tr>
+                  <th>ID</th>
+                  <th>Produktnamn</th>
+                  <th>Cykeltid (min)</th>
+                  <th>Skapad</th>
+                  <th>Åtgärder</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of products; trackBy: trackByProductId">
+                  <td>{{ product.id }}</td>
+                  <td>
+                    <span *ngIf="!product.editing">{{ product.name }}</span>
+                    <input *ngIf="product.editing" type="text" class="form-control form-control-sm"
+                      [(ngModel)]="product.name"
+                      (keyup.enter)="saveProduct(product)"
+                      (keyup.escape)="cancelEdit(product)">
+                  </td>
+                  <td>
+                    <span *ngIf="!product.editing">{{ product.cycle_time_minutes }}</span>
+                    <input *ngIf="product.editing" type="number" class="form-control form-control-sm"
+                      [(ngModel)]="product.cycle_time_minutes" min="1" step="1"
+                      (keyup.enter)="saveProduct(product)"
+                      (keyup.escape)="cancelEdit(product)">
+                  </td>
+                  <td>{{ product.created_at | date:'yyyy-MM-dd HH:mm' }}</td>
+                  <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button *ngIf="!product.editing" class="btn btn-outline-primary" (click)="editProduct(product)" title="Redigera">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button *ngIf="product.editing" class="btn btn-outline-success" (click)="saveProduct(product)" title="Spara">
+                        <i class="fas fa-check"></i>
+                      </button>
+                      <button *ngIf="product.editing" class="btn btn-outline-secondary" (click)="cancelEdit(product)" title="Avbryt">
+                        <i class="fas fa-times"></i>
+                      </button>
+                      <button class="btn btn-outline-danger" (click)="deleteProduct(product)" title="Ta bort" [disabled]="product.editing">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr *ngIf="products.length === 0">
+                  <td colspan="5" class="text-center text-muted">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Inga produkter hittades. Lägg till en produkt ovan.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<!-- Access Denied Message -->
+<!-- Åtkomst nekad -->
 <div class="container-fluid mt-4" *ngIf="!loggedIn || !isAdmin">
   <div class="row justify-content-center">
     <div class="col-md-6">
       <div class="card border-danger">
         <div class="card-header bg-danger text-white text-center">
           <h5 class="card-title mb-0">
-            <i class="fas fa-lock me-2"></i>
-            Åtkomst nekad
+            <i class="fas fa-lock me-2"></i>Åtkomst nekad
           </h5>
         </div>
         <div class="card-body text-center">
@@ -272,12 +440,11 @@
             <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
           </div>
           <p class="card-text">
-            Du har inte behörighet att komma åt denna sida. 
+            Du har inte behörighet att komma åt denna sida.
             Endast administratörer kan komma åt rebotling admin-panelen.
           </p>
           <a href="/" class="btn btn-primary">
-            <i class="fas fa-home me-2"></i>
-            Gå tillbaka till startsidan
+            <i class="fas fa-home me-2"></i>Gå tillbaka till startsidan
           </a>
         </div>
       </div>
