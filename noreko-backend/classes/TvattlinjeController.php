@@ -63,20 +63,20 @@ class TvattlinjeController {
             // Beräkna total runtime för idag
             // Runtime räknas som summan av alla perioder när maskinen var running
             $totalRuntimeMinutes = 0;
-            
+            $now = new DateTime();
+
             // Hämta alla rader för idag sorterade efter datum
             $stmt = $this->pdo->prepare('
                 SELECT datum, running
-                FROM tvattlinje_onoff 
+                FROM tvattlinje_onoff
                 WHERE DATE(datum) = CURDATE()
                 ORDER BY datum ASC
             ');
             $stmt->execute();
             $todayEntries = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
+
             if (count($todayEntries) > 0) {
                 $lastRunningStart = null;
-                $now = new DateTime();
                 
                 foreach ($todayEntries as $entry) {
                     $entryTime = new DateTime($entry['datum']);
@@ -184,7 +184,7 @@ class TvattlinjeController {
             }
             
             echo json_encode($response);
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             error_log('Kunde inte hämta statistik (tvattlinje getLiveStats): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
