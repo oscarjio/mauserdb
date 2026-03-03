@@ -2,6 +2,46 @@
 
 ---
 
+## 2026-03-03 — Kvalitetstrendkort + Waterfalldiagram OEE — commit d44a4fe
+
+### Nytt: Två analysvyer i Rebotling Statistik
+
+**Syfte:** VD vill se om kvaliteten försämras gradvis (Kvalitetstrendkort) och förstå exakt VAR OEE-förlusterna uppstår (Waterfalldiagram OEE).
+
+**Backend — `noreko-backend/classes/RebotlingController.php`:**
+
+- `GET ?action=rebotling&run=quality-trend&days=N` (ny endpoint):
+  - SQL med MAX-per-skift-mönster, aggregerat per dag.
+  - 7-dagars rullande medelvärde beräknat i PHP med array_slice/array_sum.
+  - KPI: snitt, min, max, trendindikator (up/down/stable) via jämförelse sista 7 d mot föregående 7 d.
+  - Returnerar `{ success, days: [{date, quality_pct, rolling_avg, ibc_ok, ibc_totalt}], kpi }`.
+
+- `GET ?action=rebotling&run=oee-waterfall&days=N` (ny endpoint):
+  - MAX-per-skift-aggregat för runtime_plc, rasttime, ibc_ok, ibc_ej_ok.
+  - Tillgänglighet = runtime / (runtime + rast) * 100.
+  - Prestanda = (ibc_ok * 4 min) / runtime * 100 (15 IBC/h standard, cap vid 100).
+  - Kvalitet = ibc_ok / ibc_totalt * 100.
+  - OEE = A * P * Q / 10000.
+  - Returnerar alla komponenter + förluster (availability_loss, performance_loss, quality_loss).
+
+**Service — `noreko-frontend/src/app/services/rebotling.service.ts`:**
+- `getQualityTrend(days)` och `getOeeWaterfall(days)` metoder.
+- Nya interfaces: `QualityTrendDay`, `QualityTrendResponse`, `OeeWaterfallResponse`.
+
+**Frontend — `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`:**
+- Properties: `qualityTrendChart`, `qualityTrendDays=30`, `qualityTrendData`, `qualityTrendKpi`, `oeeWaterfallChart`, `oeeWaterfallDays=30`, `oeeWaterfallData`.
+- `loadQualityTrend()`: hämtar data via service, renderar Chart.js linjegraf.
+- `renderQualityTrendChart()`: canvas `qualityTrendChart`, 3 datasets (daglig/rullande/mållinje), Y 0-100%.
+- `loadOeeWaterfall()`: hämtar data, renderar horisontellt stacked bar chart.
+- `renderOeeWaterfallChart()`: canvas `oeeWaterfallChart`, grön+grå stack, indexAxis 'y'.
+- Båda charts destroyed i ngOnDestroy. Laddas i ngOnInit.
+
+**HTML — `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.html`:**
+- Kvalitetstrendkort: dagar-väljare 14/30/90, 4 KPI-brickor (snitt/lägsta/bästa/trend med pil-ikon), linjegraf 300px.
+- Waterfalldiagram OEE: dagar-väljare 7/30/90, OEE-summering, 4 KPI-brickor med förlust-siffror och färgkodning, horisontellt bar chart 260px.
+
+---
+
 ## 2026-03-03 — Operatörscertifiering — commit 22bfe7c
 
 ### Nytt: /admin/certifiering — admin-sida för linjecertifikat
