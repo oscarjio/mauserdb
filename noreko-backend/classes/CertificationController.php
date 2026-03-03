@@ -8,7 +8,9 @@ class CertificationController {
     }
 
     public function handle() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
 
         $run = $_GET['run'] ?? '';
         $method = $_SERVER['REQUEST_METHOD'];

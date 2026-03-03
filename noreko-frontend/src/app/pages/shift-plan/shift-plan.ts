@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
 
 const API = '/noreko-backend/api.php?action=shift-plan';
@@ -150,10 +151,15 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
 
   loadOperators() {
     this.http.get<any>(`${API}&run=operators`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next: (res) => {
-          if (res.success) this.operators = res.operators || [];
+          if (res?.success) this.operators = res.operators || [];
+          else if (res === null) this.toast.error('Kunde inte hämta operatörslista');
         },
         error: () => {
           this.toast.error('Kunde inte hämta operatörslista');
@@ -166,10 +172,18 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     this.error = '';
     const dateParam = this.formatDate(this.currentWeekStart);
     this.http.get<any>(`${API}&run=week&date=${dateParam}`, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next: (res) => {
           this.loading = false;
+          if (res === null) {
+            this.error = 'Kunde inte hämta skiftplan';
+            return;
+          }
           if (res.success) {
             this.weekData = res.days || {};
           } else {
@@ -223,9 +237,14 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
       op_number: op.op_number,
     };
     this.http.post<any>(`${API}&run=assign`, body, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next: (res) => {
+          if (res === null) { this.toast.error('Nätverksfel — kunde inte lägga till operatör'); return; }
           if (res.success) {
             // Lägg till lokalt utan att ladda om hela veckan
             const d = this.activeCell!.datum;
@@ -254,9 +273,14 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
       op_number: entry.op_number,
     };
     this.http.post<any>(`${API}&run=remove`, body, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next: (res) => {
+          if (res === null) { this.toast.error('Nätverksfel — kunde inte ta bort operatör'); return; }
           if (res.success) {
             // Ta bort lokalt
             const s = String(skiftNr);

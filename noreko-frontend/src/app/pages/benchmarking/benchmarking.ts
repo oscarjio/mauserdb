@@ -49,6 +49,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private chartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
   constructor(private rebotlingService: RebotlingService) {}
@@ -64,6 +65,10 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
+    }
+    if (this.chartTimer !== null) {
+      clearTimeout(this.chartTimer);
+      this.chartTimer = null;
     }
     this.monthlyChartInstance?.destroy();
     this.monthlyChartInstance = null;
@@ -108,7 +113,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
         this.loading = false;
         // Bygger chart efter att data är satt
-        setTimeout(() => this.buildMonthlyChart(), 50);
+        this.chartTimer = setTimeout(() => this.buildMonthlyChart(), 50);
       });
   }
 

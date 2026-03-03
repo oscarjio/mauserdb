@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Subject, Subscription } from 'rxjs';
+import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 
@@ -59,7 +59,6 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   private readonly apiUrl = '/noreko-backend/api.php?action=rebotling&run=live-ranking';
 
   private pollInterval: any = null;
-  private dataSub: Subscription | null = null;
   private destroy$ = new Subject<void>();
 
   constructor(private http: HttpClient) {}
@@ -77,15 +76,13 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.mottoTimer) clearInterval(this.mottoTimer);
-    this.dataSub?.unsubscribe();
   }
 
   loadData(): void {
     if (this.isFetching) return;
     this.isFetching = true;
 
-    this.dataSub?.unsubscribe();
-    this.dataSub = this.http.get<LiveRankingResponse>(this.apiUrl)
+    this.http.get<LiveRankingResponse>(this.apiUrl, { withCredentials: true })
       .pipe(
         timeout(8000),
         catchError(() => of(null)),

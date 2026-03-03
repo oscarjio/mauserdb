@@ -113,7 +113,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
 
     const url = `/noreko-backend/api.php?action=rebotling&run=year-calendar&year=${this.selectedYear}`;
 
-    this.http.get<CalendarResponse>(url)
+    this.http.get<CalendarResponse>(url, { withCredentials: true })
       .pipe(
         timeout(10000),
         catchError(() => of(null)),
