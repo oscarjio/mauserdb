@@ -2,6 +2,39 @@
 
 ---
 
+## 2026-03-03 — Annotationer i OEE-trend och cykeltrend-grafer — commit 078e804
+
+### Nytt: Vertikala annotationslinjer i rebotling-statistik
+
+**Syfte:** VD och produktionschefen ska direkt i OEE-trendgrafen och cykeltrendgrafen kunna se varför en dal uppstod — t.ex. "Lång stopptid: 3.2h" eller "Låg prod: 42 IBC". Annotationer förvandlar grafer från datapunkter till berättande verktyg.
+
+**Backend — `noreko-backend/classes/RebotlingController.php`:**
+- Ny metod `getAnnotations()` + dispatch `elseif ($action === 'annotations')`.
+- Endpoint: `GET ?action=rebotling&run=annotations&start=YYYY-MM-DD&end=YYYY-MM-DD`
+- Tre datakällor i separata try-catch:
+  1. **Stopp** — `rebotling_skiftrapport` GROUP BY dag, HAVING SUM(rasttime) > 120 min. Label: "Lång stopptid: Xh".
+  2. **Låg produktion** — samma tabell, HAVING SUM(ibc_ok) < (dagsmål/2). Label: "Låg prod: N IBC". Deduplicerar mot stopp-annotationer.
+  3. **Audit-log** — kontrollerar `information_schema.tables` om tabellen finns, hämtar CREATE/UPDATE-händelser (LIMIT 5). Svenska etiketter i PHP-mappning.
+- Returnerar: `{ success: true, annotations: [{ date, type, label }] }`.
+- Fel i valfri källa loggas med `error_log()` — övriga källor returneras ändå.
+
+**Service — `noreko-frontend/src/app/services/rebotling.service.ts`:**
+- Ny metod `getAnnotations(startDate, endDate)` → `GET ?action=rebotling&run=annotations`.
+- Nytt interface `ChartAnnotation { date, dateShort, type, label }`.
+- Nytt interface `AnnotationsResponse { success, annotations?, error? }`.
+
+**Frontend — `noreko-frontend/src/app/pages/rebotling/rebotling-statistik.ts`:**
+- Custom Chart.js-plugin `annotationPlugin` (id: `'verticalAnnotations'`) definieras och registreras globalt med `Chart.register()`.
+  - `afterDraw` ritar en streckad vertikal linje (röd=stopp, orange=low_production, grön=audit) på x-axeln via `getPixelForValue(xIndex)`.
+  - Etikett (max 20 tecken) ritas 3px till höger om linjen, 12px under grafens övre kant.
+- Ny class-property: `chartAnnotations: ChartAnnotation[] = []`.
+- Ny metod `loadAnnotations(startDate, endDate)` med `timeout(8000)` + `takeUntil(this.destroy$)` + `catchError(() => of(null))`. Mappar API-svar till `ChartAnnotation[]` (lägger till `dateShort = date.substring(5)`). Vid framgång renderas OEE-trend och/eller cykeltrend om om de redan är inladdade.
+- `loadOEE()`: beräknar start/end-datum (senaste 30 dagar) och anropar `loadAnnotations()` innan OEE-datan hämtas.
+- `loadCycleTrend()`: anropar `loadAnnotations()` om `chartAnnotations.length === 0` (undviker dubbelanrop).
+- `renderOEETrendChart()` och `renderCycleTrendChart()`: skickar `verticalAnnotations: { annotations: this.chartAnnotations }` i `options.plugins` (castat med `as any` för TypeScript-kompatibilitet).
+
+---
+
 ## 2026-03-03 — Korrelationsanalys — bästa operatörspar — commit ad4429e
 
 ### Nytt: Sektion "Bästa operatörspar — korrelationsanalys" i `/admin/operators`
