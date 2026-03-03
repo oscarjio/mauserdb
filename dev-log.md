@@ -2,6 +2,38 @@
 
 ---
 
+## 2026-03-03 — Månadsrapport med PDF-export — commit e9e7590
+
+### Nytt: `/rapporter/manad` — auto-genererad månadsöversikt
+
+**Syfte:** VD vill ha en månadssammanfattning att dela med styrelsen eller spara som PDF. Visar total produktion, OEE-snitt, bästa/sämsta dag, operatörsranking och veckoöversikt.
+
+**Backend — `noreko-backend/classes/RebotlingController.php`:**
+- Ny metod `getMonthlyReport()` + dispatch `elseif ($action === 'monthly-report')`.
+- Endpoint: `GET ?action=rebotling&run=monthly-report&month=YYYY-MM`
+- Aggregering med korrekt `MAX() per (DATE, skiftraknare)` → `SUM()` på per-skift-undernivå.
+- OEE beräknas per dag med `Availability × Performance × Quality`-formeln.
+- Månadsnamn på svenska (Januari–December).
+- Månadsmål: `dagsmål × antal vardagar i månaden` (hämtat från `rebotling_settings`).
+- Operatörsranking: UNION på `op1/op2/op3` i `rebotling_skiftrapport` + JOIN `operators`, sorterat på IBC/h.
+- Returnerar: `summary`, `best_day`, `worst_day`, `daily_production`, `week_summary`, `operator_ranking`.
+
+**Frontend — `noreko-frontend/src/app/pages/monthly-report/`:**
+- Standalone Angular-komponent (`MonthlyReportPage`), `OnInit + OnDestroy + AfterViewChecked`.
+- `destroy$` + `takeUntil`, `chart?.destroy()` i `ngOnDestroy`.
+- **Sektion 1:** 6 KPI-kort i CSS-grid — Total IBC, Mål-%, Snitt IBC/dag, Produktionsdagar, Snitt Kvalitet, Snitt OEE — med färgkodning grön/gul/röd.
+- **Sektion 2:** Chart.js stapeldiagram (en stapel per dag, färgad efter % av dagsmål) + kvalitets-linje på höger Y-axel.
+- **Sektion 3:** Bästa/sämsta dag sida vid sida (grön/röd vänsterbård).
+- **Sektion 4:** Operatörsranking — guld/silver/brons för topp 3.
+- **Sektion 5:** Veckosammanfattningstabell.
+- **Sektion 6:** PDF-export via `window.print()` + `@media print` CSS (ljus bakgrund, döljer navbar/knappar).
+
+**Routing & Nav:**
+- Route: `{ path: 'rapporter/manad', canActivate: [authGuard], ... }` i `app.routes.ts`.
+- Nytt "Rapporter"-dropdown i menyn (synligt för inloggade) med länk "Månadsrapport" → `/rapporter/manad`.
+
+---
+
 ## 2026-03-03 — Benchmarking-vy: Denna vecka vs Rekordveckan — commit 9001021
 
 ### Nytt: `/rebotling/benchmarking` — rekordtavla och historik
