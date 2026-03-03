@@ -50,8 +50,8 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 ## BACKLOG (prioritetsordning)
 
 ### 🔴 Hög prioritet
-- [ ] **My-Bonus realtidsvy**: Operatör ser eget bonusläge live (poäng, estimerat belopp, trend) — bonus-agent jobbar på detta
-- [ ] **Bonus-Dashboard rankingkort**: Trendpilar (↑/↓ vs förra veckan), topplista med medaljer — bonus-agent jobbar på detta
+- [x] **My-Bonus realtidsvy**: Levererat `82173ec` — motiverande statusbricka (Rekordnivå!/Uppåt mot toppen!/etc.), IBC/h-trendgraf senaste 7 skiften med glidande snitt, skiftprognos-banner (förväntad bonus + IBC/vecka), inkluderat i PDF-export
+- [x] **Bonus-Dashboard rankingkort**: Levererat `82173ec` — trendpilar ↑↓→ vs föregående period, veckobonusmål-progressbar för hela teamet, mini-progressbar per operatör i rankingtabellen
 - [x] **Skiftmålsprediktor**: Levererat `c7faa1b` — live-prognos baserat på takt sedan 06:00 → 22:00
 - [x] **Veckojämförelse-graf**: Levererat `c7faa1b` — bar chart denna/förra veckan, summakort med diff
 
@@ -64,10 +64,30 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - [ ] **Förbättrad heatmap**: Tooltip med IBC/h + kvalitet%, val av KPI — ÖPPEN
 
 ### 🟢 Lägre prioritet
-- [ ] **Systemstatus i admin**: Senaste PLC-ping, aktuellt löpnummer, DB-status
-- [x] **Bästa skift-topplista**: Levererat `c7faa1b` — ny flik i production-analysis med guld/silver/brons + detailtabell
-- [ ] **Skift-sammanfattning vid export**: PDF-export inkluderar sammanfattningskort
-- [ ] **Executive dashboard förbättringar**: Bättre KPI-kort med trender
+- [x] **Systemstatus i admin**: Levererat — PLC-ping ålder, löpnummer, DB-status
+- [x] **Bästa skift-topplista**: Levererat `c7faa1b` — guld/silver/brons i production-analysis
+- [x] **Skift-sammanfattning vid export**: Levererat — PDF + Excel inkluderar sammanfattningskort
+- [ ] **Executive dashboard förbättringar**: KPI-kort med trendpilar, jämförelse vs förra veckan
+
+---
+
+## NÄSTA BATCH (session 2 — startas av lead-agent via cron)
+
+### 🔴 Hög prioritet
+- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring/försämring vecka för vecka (bonus-dashboard eller my-bonus)
+- [ ] **Stopporsaksanalys**: Kategorisera och visualisera stopp/raster i production-analysis — varför stannar linjen?
+- [ ] **Executive dashboard — VD-vy**: Ombygg till ren chefsöversikt: idag vs mål, veckostatus, topp-operatör, senaste skift KPIs. Ska ge svar på 10 sekunder.
+
+### 🟡 Medium prioritet
+- [ ] **Förbättrad heatmap i statistik**: Interaktiv hover-tooltip, val av KPI (IBC/h, kvalitet%, OEE)
+- [ ] **Mobilanpassning**: Rebotling-live och my-bonus ska fungera bra på surfplatta i produktionsmiljön
+- [ ] **Bonushistorik-graf i my-bonus**: Stapeldiagram per vecka de senaste 8 veckorna — "min bonusutveckling"
+- [ ] **Skiftjämförelse**: Välj två datum och jämför nyckeltal sida vid sida
+
+### 🟢 Lägre prioritet
+- [ ] **Notifikation/varning i admin**: Om linjen inte rapporterat data på >15 min → varningsvisning
+- [ ] **Tvättlinje/Såglinje förberedelsearbete**: Sätt upp grundstruktur för när de linjerna startar
+- [ ] **Audit-log förbättring**: Filtrerbar, sökbar, exporterbar
 
 ---
 
@@ -83,8 +103,9 @@ Tre agenter startades parallellt:
 - `ecc6b40` — Auth fix: APP_INITIALIZER väntar på fetchStatus() via firstValueFrom()
 - `771e128` — auto-develop.sh och dev-log.md tillagda
 - `d4db30b` — lead-agent.sh + lead-memory.md: orchestrator-system etablerat
-- `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista i production-analysis. Nya endpoints: week-comparison, oee-trend, best-shifts.
-- **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare (fm/em/natt), textsök, inline kvalitet%-badge, snitt cykeltid i detaljvy, bonus-estimat. Admin: veckodagsmål mån–sön, skifttider, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
+- `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista. Nya endpoints: week-comparison, oee-trend, best-shifts.
+- **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål mån–sön i admin, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
+- `82173ec` — **Bonus-agent**: My-bonus: statusbricka (rekordnivå/uppåt/etc.), IBC/h-trendgraf 7 skift med glidande snitt, skiftprognos-banner, PDF-export. Bonus-dashboard: trendpilar ↑↓→ vs föregående period, veckobonusmål-progressbar för team + per operatör. Bonus-admin: ny Prognos-flik (sök operatör → snittbonus/tier/IBC/h), veckobonusmål-konfiguration. Backend: operator_forecast endpoint, set_weekly_goal endpoint. Migration: `2026-03-03_bonus_weekly_goal.sql`.
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
 
 ---
@@ -103,9 +124,9 @@ Tre agenter startades parallellt:
 ## BESLUTSDAGBOK
 **2026-03-03 — Session 1**: Startade tre parallella worker-agenter. Ledaragent-system etablerat.
 **2026-03-03 — Statistik-agent klar**: Veckojämförelse, skiftmålsprediktor, OEE deep-dive, bästa skift-topplista.
-**2026-03-03 — Skiftrapport-agent klar**: Sammanfattningskort, sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål i admin, systemstatus-sektion, ny SQL-migration. 7 av 12 backlog-items klara.
-**Bonus-agent** (aba3e1e2b4c1f1692) fortfarande aktiv — avvaktar resultat.
-Nästa session: Granska bonus-agent. Starta ny omgång på: operatörsprestanda-trend, stopporsaksanalys, heatmap-förbättring, executive dashboard.
+**2026-03-03 — Skiftrapport-agent klar**: Sammanfattningskort, sorterbar tabell, skiftväljare, textsök, bonus-estimat, veckodagsmål i admin, systemstatus.
+**2026-03-03 — Bonus-agent klar**: My-bonus statusbricka + trendgraf + prognos. Bonus-dashboard trendpilar + veckobonusmål. Bonus-admin prognos-flik. Alla tre agenter klara. **10 av 12 backlog-items levererade session 1.**
+Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny batch features.
 
 ---
 
