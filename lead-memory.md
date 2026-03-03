@@ -52,6 +52,19 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - När token-gränsen för huvudkonversationen närmar sig: commit lead-memory.md + push, cron-jobbet tar över
 - Backlogen är aldrig tom — generera nya förbättringsidéer baserat på affärskontexten om den tar slut
 
+## KOMMUNIKATION MED ÄGAREN
+- **Dokumentera ALLT ägaren säger** i denna fil direkt — så att varken ledaragent eller workers behöver fråga om samma sak igen
+- Ägaren ska aldrig behöva upprepa sig
+- Om ägaren ger en ny instruktion: uppdatera lead-memory.md + commit inom samma svar
+
+## ÄGARENS INSTRUKTIONER (kronologisk logg)
+- *2026-03-03*: Fokus på rebotling. Övriga linjer ej igång.
+- *2026-03-03*: Systemet är för VD som vill ha övergripande koll + ge rättvis individuell bonus åt operatörerna.
+- *2026-03-03*: Databas ligger INTE på denna server — allt deployas manuellt. DB-ändringar via SQL-migreringsfiler.
+- *2026-03-03*: Rör aldrig livesidorna (i produktion).
+- *2026-03-03*: Agenterna ska aldrig stanna — alltid minst 2 igång, ledaragenten håller dom i arbete hela tiden.
+- *2026-03-03*: Dokumentera allt som sägs i minnet — ägaren ska aldrig behöva upprepa sig.
+
 ---
 
 ## BACKLOG (prioritetsordning)
