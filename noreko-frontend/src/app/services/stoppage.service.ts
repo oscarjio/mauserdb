@@ -35,6 +35,20 @@ export interface StoppageStats {
   daily: { dag: string; total_minutes: number; count: number }[];
 }
 
+export interface ParetoOrsak {
+  orsak: string;
+  antal: number;
+  total_minuter: number;
+  pct: number;
+  kumulativ_pct: number;
+}
+
+export interface ParetoData {
+  orsaker: ParetoOrsak[];
+  total_minuter: number;
+  dagar: number;
+}
+
 export interface StoppageWeeklySummary {
   this_week: { count: number; total_minutes: number; avg_minutes: number };
   prev_week: { count: number; total_minutes: number; avg_minutes: number };
@@ -73,5 +87,9 @@ export class StoppageService {
 
   getWeeklySummary(line: string = 'rebotling'): Observable<{ success: boolean; data: StoppageWeeklySummary }> {
     return this.http.get<any>(`${this.base}&run=weekly_summary&line=${line}`, { withCredentials: true });
+  }
+
+  getPareto(line: string = 'rebotling', dagar: number = 30): Observable<{ success: boolean } & ParetoData> {
+    return this.http.get<any>(`${this.base}&run=pareto&line=${line}&dagar=${dagar}`, { withCredentials: true });
   }
 }

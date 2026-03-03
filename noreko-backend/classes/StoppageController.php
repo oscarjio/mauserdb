@@ -47,6 +47,8 @@ class StoppageController {
                 $this->getStats();
             } elseif ($run === 'weekly_summary') {
                 $this->getWeeklySummary();
+            } elseif ($run === 'pareto') {
+                $this->getPareto();
             } else {
                 $this->getStoppages();
             }
@@ -375,6 +377,59 @@ class StoppageController {
             error_log('deleteStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort stoppost']);
+        }
+    }
+
+
+    private function getPareto() {
+        try {
+            $line = $_GET['line'] ?? 'rebotling';
+            if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
+            $dagar = max(1, min(365, intval($_GET['dagar'] ?? 30)));
+
+            $stmt = $this->pdo->prepare("
+                SELECT r.name as orsak,
+                       COUNT(*) AS antal,
+                       COALESCE(SUM(s.duration_minutes), 0) AS total_minuter
+                FROM stoppage_log s
+                JOIN stoppage_reasons r ON s.reason_id = r.id
+                WHERE s.line = ?
+                  AND s.start_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  AND s.duration_minutes IS NOT NULL
+                  AND s.duration_minutes > 0
+                GROUP BY r.id, r.name
+                ORDER BY total_minuter DESC
+                LIMIT 20
+            ");
+            $stmt->execute([$line, $dagar]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $totalMinuter = array_sum(array_column($rows, 'total_minuter'));
+
+            $kumulativ = 0;
+            $orsaker = [];
+            foreach ($rows as $row) {
+                $pct = $totalMinuter > 0 ? round($row['total_minuter'] / $totalMinuter * 100, 1) : 0;
+                $kumulativ = round($kumulativ + $pct, 1);
+                $orsaker[] = [
+                    'orsak'         => $row['orsak'],
+                    'antal'         => (int)$row['antal'],
+                    'total_minuter' => (int)$row['total_minuter'],
+                    'pct'           => $pct,
+                    'kumulativ_pct' => $kumulativ,
+                ];
+            }
+
+            echo json_encode([
+                'success'        => true,
+                'orsaker'        => $orsaker,
+                'total_minuter'  => (int)$totalMinuter,
+                'dagar'          => $dagar,
+            ]);
+        } catch (PDOException $e) {
+            error_log('getPareto: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta Pareto-data']);
         }
     }
 

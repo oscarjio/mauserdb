@@ -118,6 +118,9 @@
       <button class="tab-btn" [class.active]="activeTab === 'stats'" (click)="switchTab('stats')">
         <i class="fas fa-chart-bar me-2"></i>Statistik
       </button>
+      <button class="tab-btn" [class.active]="activeTab === 'pareto'" (click)="switchTab('pareto')">
+        <i class="fas fa-chart-area me-2"></i>Pareto-analys
+      </button>
       <div class="tab-actions" *ngIf="loggedIn">
         <button class="btn btn-sm btn-primary" (click)="showForm = !showForm" *ngIf="activeTab === 'log'">
           <i class="fas fa-plus me-1"></i>Nytt stopp
@@ -372,6 +375,157 @@
         </div>
         <p class="mt-3 text-muted">Hämtar statistik...</p>
       </div>
+    </div>
+
+    <!-- PARETO TAB -->
+    <div *ngIf="activeTab === 'pareto'">
+
+      <!-- Pareto filter row -->
+      <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+        <span class="text-muted"><i class="fas fa-calendar-alt me-1"></i>Analysperiod:</span>
+        <div class="btn-group" role="group">
+          <button type="button" class="btn btn-sm"
+                  [class.btn-warning]="paretoDagar === 7"
+                  [class.btn-outline-secondary]="paretoDagar !== 7"
+                  (click)="paretoDagar = 7; onParetoDagarChange()">
+            Senaste 7 dagar
+          </button>
+          <button type="button" class="btn btn-sm"
+                  [class.btn-warning]="paretoDagar === 30"
+                  [class.btn-outline-secondary]="paretoDagar !== 30"
+                  (click)="paretoDagar = 30; onParetoDagarChange()">
+            Senaste 30 dagar
+          </button>
+          <button type="button" class="btn btn-sm"
+                  [class.btn-warning]="paretoDagar === 90"
+                  [class.btn-outline-secondary]="paretoDagar !== 90"
+                  (click)="paretoDagar = 90; onParetoDagarChange()">
+            Senaste 90 dagar
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading spinner -->
+      <div class="text-center py-5" *ngIf="paretoLoading">
+        <div class="spinner-border text-warning" role="status">
+          <span class="visually-hidden">Laddar...</span>
+        </div>
+        <p class="mt-3 text-muted">Analyserar stopporsaker...</p>
+      </div>
+
+      <!-- Error -->
+      <div class="alert alert-danger" *ngIf="paretoError && !paretoLoading">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ paretoError }}
+      </div>
+
+      <!-- Pareto content -->
+      <div *ngIf="!paretoLoading && !paretoError && paretoData">
+
+        <!-- KPI-rad -->
+        <div class="row mb-4">
+          <div class="col-md-4 mb-3">
+            <div class="pareto-kpi-card">
+              <div class="pareto-kpi-icon"><i class="fas fa-clock"></i></div>
+              <div class="pareto-kpi-value">{{ formatDuration(paretoData.total_minuter) }}</div>
+              <div class="pareto-kpi-label">Total stilleståndstid</div>
+              <div class="pareto-kpi-sub">Senaste {{ paretoData.dagar }} dagarna</div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="pareto-kpi-card pareto-kpi-card-orange">
+              <div class="pareto-kpi-icon"><i class="fas fa-exclamation-triangle"></i></div>
+              <div class="pareto-kpi-value">{{ getParetoCount80() }}</div>
+              <div class="pareto-kpi-label">Pareto-orsaker</div>
+              <div class="pareto-kpi-sub">Orsakar 80% av stilleståndstiden</div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="pareto-kpi-card pareto-kpi-card-red">
+              <div class="pareto-kpi-icon"><i class="fas fa-bullseye"></i></div>
+              <div class="pareto-kpi-value">{{ getParetoCount80() }} av {{ paretoData.orsaker.length }}</div>
+              <div class="pareto-kpi-label">80%-gräns</div>
+              <div class="pareto-kpi-sub">Fokusera på dessa orsaker</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pareto chart -->
+        <div class="dark-card mb-4">
+          <div class="card-header">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+              <div>
+                <h5 class="mb-0"><i class="fas fa-chart-area me-2 text-warning"></i>Pareto-diagram — Stopporsaker</h5>
+                <small class="text-muted">Staplar = stilleståndstid (min) | Linje = kumulativ andel | Streckad linje = 80%-gränsen</small>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" style="height: 360px;">
+              <canvas id="paretoDetailChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pareto table -->
+        <div class="dark-card mb-4" *ngIf="paretoData.orsaker.length > 0">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Detaljerad Pareto-tabell</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="stoppage-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Stopporsak</th>
+                    <th class="text-end">Antal stopp</th>
+                    <th class="text-end">Stilleståndstid</th>
+                    <th class="text-end">Andel %</th>
+                    <th class="text-end">Kumulativ %</th>
+                    <th>80%-status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let o of paretoData.orsaker; let i = index"
+                      [class.pareto-row-vital]="o.kumulativ_pct <= 80 || (i > 0 && paretoData.orsaker[i-1].kumulativ_pct < 80)">
+                    <td class="text-muted">{{ i + 1 }}</td>
+                    <td>
+                      <span class="reason-badge" style="border-left-color: #ef4444;">{{ o.orsak }}</span>
+                    </td>
+                    <td class="text-end">{{ o.antal }}</td>
+                    <td class="text-end"><strong>{{ formatDuration(o.total_minuter) }}</strong></td>
+                    <td class="text-end">{{ o.pct }}%</td>
+                    <td class="text-end">
+                      <span [class.text-warning]="o.kumulativ_pct <= 80" [class.text-muted]="o.kumulativ_pct > 80">
+                        {{ o.kumulativ_pct }}%
+                      </span>
+                    </td>
+                    <td>
+                      <span *ngIf="o.kumulativ_pct <= 80 || (i > 0 && paretoData.orsaker[i-1].kumulativ_pct < 80)"
+                            class="badge-vital">
+                        <i class="fas fa-exclamation-circle me-1"></i>Vital
+                      </span>
+                      <span *ngIf="!(o.kumulativ_pct <= 80 || (i > 0 && paretoData.orsaker[i-1].kumulativ_pct < 80))"
+                            class="badge-trivial">
+                        Trivial
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- No pareto data -->
+      <div class="dark-card text-center py-5" *ngIf="!paretoLoading && !paretoError && paretoData && paretoData.orsaker.length === 0">
+        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+        <h5>Inga stopporsaker registrerade</h5>
+        <p class="text-muted">Inga stopp med registrerad tid hittades för valda filter.</p>
+      </div>
+
     </div>
 
   </div>

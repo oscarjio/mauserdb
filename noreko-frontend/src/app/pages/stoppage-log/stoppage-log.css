@@ -549,3 +549,90 @@
 .table-responsive::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 212, 255, 0.5);
 }
+
+/* ── Pareto tab ────────────────────────────────────────────────────────────── */
+
+/* KPI cards for Pareto tab */
+.pareto-kpi-card {
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.pareto-kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.pareto-kpi-card-orange {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(20, 20, 20, 0.95) 100%);
+}
+
+.pareto-kpi-card-red {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(20, 20, 20, 0.95) 100%);
+}
+
+.pareto-kpi-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.75rem;
+  color: #a0aec0;
+}
+
+.pareto-kpi-card-orange .pareto-kpi-icon { color: #f59e0b; }
+.pareto-kpi-card-red .pareto-kpi-icon    { color: #ef4444; }
+
+.pareto-kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.25rem;
+  line-height: 1.1;
+}
+
+.pareto-kpi-label {
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.pareto-kpi-sub {
+  color: #718096;
+  font-size: 0.78rem;
+}
+
+/* Vital/trivial row highlight */
+.pareto-row-vital td {
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.badge-vital {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.badge-trivial {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+  border: 1px solid rgba(107, 114, 128, 0.25);
+}

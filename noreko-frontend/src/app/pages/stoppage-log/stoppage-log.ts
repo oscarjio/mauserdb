@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary } from '../../services/stoppage.service';
+import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary, ParetoData, ParetoOrsak } from '../../services/stoppage.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -26,11 +27,17 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   stats: StoppageStats | null = null;
   weeklySummary: StoppageWeeklySummary | null = null;
 
+  // Pareto tab state
+  paretoData: ParetoData | null = null;
+  paretoDagar: number = 30;
+  paretoLoading = false;
+  paretoError = '';
+
   selectedLine: string = 'rebotling';
   selectedPeriod: string = 'week';
   loading = false;
   showForm = false;
-  activeTab: 'log' | 'stats' = 'log';
+  activeTab: 'log' | 'stats' | 'pareto' = 'log';
 
   // Sorting & search
   searchQuery: string = '';
@@ -94,9 +101,11 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   private refreshInterval: any;
   private successTimerId: any = null;
   private chartTimerId: any = null;
-  private paretoChart: Chart | null = null;
+  private paretoDetailChart: Chart | null = null;
   private dailyChart: Chart | null = null;
   private weekly14Chart: Chart | null = null;
+  // Legacy ref kept for stats-tab simple chart
+  private paretoChart: Chart | null = null;
 
   constructor(
     private auth: AuthService,
@@ -126,9 +135,10 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     clearTimeout(this.successTimerId);
     clearTimeout(this.chartTimerId);
     if (this.refreshInterval) clearInterval(this.refreshInterval);
-    if (this.paretoChart)   this.paretoChart.destroy();
-    if (this.dailyChart)    this.dailyChart.destroy();
-    if (this.weekly14Chart) this.weekly14Chart.destroy();
+    if (this.paretoDetailChart) this.paretoDetailChart.destroy();
+    if (this.paretoChart)       this.paretoChart.destroy();
+    if (this.dailyChart)        this.dailyChart.destroy();
+    if (this.weekly14Chart)     this.weekly14Chart.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -183,6 +193,45 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     });
   }
 
+  loadPareto() {
+    this.paretoLoading = true;
+    this.paretoError = '';
+    this.stoppageService.getPareto(this.selectedLine, this.paretoDagar)
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(5000),
+        catchError(() => of({ success: false, orsaker: [], total_minuter: 0, dagar: this.paretoDagar }))
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.paretoLoading = false;
+          if (res.success) {
+            this.paretoData = { orsaker: res.orsaker, total_minuter: res.total_minuter, dagar: res.dagar };
+            setTimeout(() => {
+              if (!this.destroy$.closed) this.buildParetoDetailChart();
+            }, 50);
+          } else {
+            this.paretoError = 'Kunde inte hämta Pareto-data';
+          }
+        },
+        error: () => {
+          this.paretoLoading = false;
+          this.paretoError = 'Timeout — kontrollera anslutningen';
+        }
+      });
+  }
+
+  onParetoDagarChange() {
+    this.loadPareto();
+  }
+
+  /** How many causes make up >= 80% of downtime */
+  getParetoCount80(): number {
+    if (!this.paretoData) return 0;
+    const idx = this.paretoData.orsaker.findIndex(o => o.kumulativ_pct >= 80);
+    return idx >= 0 ? idx + 1 : this.paretoData.orsaker.length;
+  }
+
   getAvgDuration(): number {
     const finished = this.stoppages.filter(s => s.duration_minutes !== null && s.duration_minutes !== undefined);
     if (finished.length === 0) return 0;
@@ -197,9 +246,10 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     return Math.round(((cur - prev) / prev) * 100);
   }
 
-  switchTab(tab: 'log' | 'stats') {
+  switchTab(tab: 'log' | 'stats' | 'pareto') {
     this.activeTab = tab;
     if (tab === 'stats') this.loadStats();
+    if (tab === 'pareto') this.loadPareto();
   }
 
   onFilterChange() {
@@ -208,6 +258,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.loadStoppages();
     this.loadWeeklySummary();
     if (this.activeTab === 'stats') this.loadStats();
+    if (this.activeTab === 'pareto') this.loadPareto();
   }
 
   addStoppage() {
@@ -457,6 +508,113 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           x: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' } },
           y: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Minuter', color: '#a0aec0' } },
           y1: { position: 'right', ticks: { color: '#a0aec0' }, grid: { display: false }, title: { display: true, text: 'Antal', color: '#a0aec0' } }
+        }
+      }
+    });
+  }
+
+  private buildParetoDetailChart() {
+    if (this.paretoDetailChart) this.paretoDetailChart.destroy();
+    const canvas = document.getElementById('paretoDetailChart') as HTMLCanvasElement;
+    if (!canvas || !this.paretoData || this.paretoData.orsaker.length === 0) return;
+
+    const orsaker = this.paretoData.orsaker;
+
+    // Custom plugin: draw a dashed horizontal reference line at 80% on y1 axis
+    const refLine80Plugin = {
+      id: 'refLine80',
+      afterDraw(chart: any) {
+        const y1 = chart.scales['y1'];
+        if (!y1) return;
+        const y80 = y1.getPixelForValue(80);
+        const ctx80 = chart.ctx;
+        const left = chart.chartArea.left;
+        const right = chart.chartArea.right;
+        ctx80.save();
+        ctx80.beginPath();
+        ctx80.setLineDash([6, 4]);
+        ctx80.strokeStyle = 'rgba(245, 158, 11, 0.75)';
+        ctx80.lineWidth = 2;
+        ctx80.moveTo(left, y80);
+        ctx80.lineTo(right, y80);
+        ctx80.stroke();
+        // Label
+        ctx80.setLineDash([]);
+        ctx80.fillStyle = 'rgba(245, 158, 11, 0.9)';
+        ctx80.font = 'bold 11px sans-serif';
+        ctx80.fillText('80%', right + 4, y80 + 4);
+        ctx80.restore();
+      }
+    };
+
+    this.paretoDetailChart = new Chart(canvas, {
+      type: 'bar',
+      plugins: [refLine80Plugin],
+      data: {
+        labels: orsaker.map(o => o.orsak),
+        datasets: [
+          {
+            type: 'bar' as const,
+            label: 'Stillestånd (min)',
+            data: orsaker.map(o => o.total_minuter),
+            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+            borderColor: '#ef4444',
+            borderWidth: 1,
+            borderRadius: 4,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line' as const,
+            label: 'Kumulativ %',
+            data: orsaker.map(o => o.kumulativ_pct),
+            borderColor: '#f59e0b',
+            backgroundColor: 'transparent',
+            pointBackgroundColor: '#f59e0b',
+            pointRadius: 4,
+            borderWidth: 2,
+            tension: 0.1,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: { color: '#e2e8f0' }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                if (ctx.datasetIndex === 0) {
+                  return ` ${ctx.parsed.y} min (${orsaker[ctx.dataIndex]?.pct ?? 0}%)`;
+                }
+                return ` Kumulativ: ${ctx.parsed.y}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxRotation: 40 },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#a0aec0' },
+            grid: { color: '#2d3748' },
+            title: { display: true, text: 'Minuter stillestånd', color: '#a0aec0' }
+          },
+          y1: {
+            position: 'right',
+            min: 0,
+            max: 100,
+            ticks: { color: '#f59e0b', callback: (v) => v + '%' },
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Kumulativ %', color: '#f59e0b' }
+          }
         }
       }
     });
