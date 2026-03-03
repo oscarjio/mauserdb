@@ -456,11 +456,8 @@ class BonusAdminController {
                 return;
             }
 
-            // Sanitize approved_by
-            $approved_by = filter_var(
-                $input['approved_by'] ?? $_SESSION['username'] ?? 'admin',
-                FILTER_SANITIZE_STRING
-            );
+            // Sanitize approved_by (strip tags + limit length)
+            $approved_by = strip_tags((string)($input['approved_by'] ?? $_SESSION['username'] ?? 'admin'));
             $approved_by = substr($approved_by, 0, 100); // Limit length
 
             // Mark bonuses as approved in database

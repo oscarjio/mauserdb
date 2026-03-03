@@ -99,7 +99,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   private loadWeeklyGoal() {
-    this.bonusAdminService.getConfig().subscribe({
+    this.bonusAdminService.getConfig().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.weeklyGoal = (res.data as any).weekly_bonus_goal || 80;
@@ -110,13 +110,14 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   loadData() {
+    if (this.destroy$.closed) return;
     this.loadDataSub?.unsubscribe();
 
     this.loading = true;
     this.error = '';
 
     // Ladda summary
-    this.bonusService.getDailySummary().subscribe({
+    this.bonusService.getDailySummary().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.summary = res.data;
@@ -154,7 +155,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.bonusService.getRanking(
       undefined, 10,
       prevPeriod.start, prevPeriod.end
-    ).subscribe({
+    ).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         this.prevRanking = res.data?.rankings.overall || [];
         this.prevLoading = false;

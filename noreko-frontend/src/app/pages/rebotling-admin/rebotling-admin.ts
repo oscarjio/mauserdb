@@ -236,6 +236,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy {
 
   // ========== Systemstatus ==========
   loadSystemStatus() {
+    if (this.systemStatusLoading) return;
     this.systemStatusLoading = true;
     this.systemStatusError   = '';
     this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=system-status', { withCredentials: true })

@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil, distinctUntilChanged } from 'rxjs/operators';
+import { takeUntil, distinctUntilChanged, timeout, catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { BonusService, OperatorStatsResponse, KPIDetailsResponse, OperatorHistoryResponse, WeeklyHistoryEntry } from '../../services/bonus.service';
+import { BonusService, WeeklyHistoryEntry } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -107,13 +108,17 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.loading = true;
     this.error = '';
 
-    this.bonusService.getOperatorStats(this.savedOperatorId, this.selectedPeriod).subscribe({
-      next: (res: OperatorStatsResponse) => {
-        if (res.success && res.data) {
+    this.bonusService.getOperatorStats(this.savedOperatorId, this.selectedPeriod).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.data) {
           this.stats = res.data;
           this.buildKPIChart(res.data);
         } else {
-          this.error = res.error || 'Ingen data hittades för detta operatörs-ID.';
+          this.error = (res as any)?.error || 'Ingen data hittades för detta operatörs-ID.';
           this.stats = null;
         }
         this.loading = false;
@@ -125,9 +130,13 @@ export class MyBonusPage implements OnInit, OnDestroy {
     });
 
     // Historik: hämta 20 senaste skift för historikgraf + ibcTrend
-    this.bonusService.getOperatorHistory(this.savedOperatorId, 20).subscribe({
-      next: (res: OperatorHistoryResponse) => {
-        if (res.success && res.data) {
+    this.bonusService.getOperatorHistory(this.savedOperatorId, 20).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.data) {
           this.history = res.data.history || [];
           this.buildHistoryChart(this.history);
           this.buildIbcTrendChart(this.history);
@@ -138,9 +147,13 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
     // Veckohistorik: senaste 8 ISO-veckor
     this.weeklyLoading = true;
-    this.bonusService.getWeeklyHistory(this.savedOperatorId).subscribe({
+    this.bonusService.getWeeklyHistory(this.savedOperatorId).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.weeklyData = res.data.weeks || [];
           this.weeklyAvg = res.data.my_avg ?? 0;
           // Bygg grafen när DOM är redo

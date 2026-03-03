@@ -627,7 +627,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.rebotlingService.getRastStatus().pipe(
       timeout(8000),
       takeUntil(this.destroy$),
-      catchError(() => { this.error = 'Kunde inte ladda raststatus'; this.stopAnalysisLoading = false; return of(null); })
+      catchError(() => { this.error = 'Kunde inte ladda raststatus'; return of(null); })
     ).subscribe(res => {
       if (res?.success) {
         this.rastStatus = res.data;

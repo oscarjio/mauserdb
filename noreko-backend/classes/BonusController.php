@@ -910,7 +910,8 @@ class BonusController {
         ]);
     }
 
-    private function sendError(string $message): void {
+    private function sendError(string $message, int $code = 400): void {
+        http_response_code($code);
         echo json_encode([
             'success'   => false,
             'error'     => $message,
