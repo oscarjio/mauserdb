@@ -63,12 +63,36 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 - `catchError` returnerar `null` istället för `{ loggedIn: false }` — transienta fel loggar inte ut användaren
 - `StatusController.php`: `session_start(['read_and_close'])` — PHP-session-låset släpps direkt, hindrar blockering vid sidomladdning
 
-### Planerade förbättringar (agenterna jobbar på dessa)
-- **Bonus-dashboard**: Realtidstrender, skiftprognos, motiverande UI för operatörer
-- **My-bonus**: Bättre visualisering av eget bonusläge, historikgraf
-- **Rebotling-statistik**: Veckojämförelse, skiftmålsprediktor, förbättrad heatmap
-- **Rebotling-skiftrapport**: Bättre filtrering, sortering, sammanfattningskort
-- **Rebotling-admin**: Bonusnivå-konfiguration, målhantering per veckodag
-- **Production analysis**: Stopporsaksanalys, OEE deep-dive
+### Bonussystem — förbättringar (commit 9ee9d57)
+
+**My-Bonus (`pages/my-bonus/`):**
+- Motiverande statusbricka ("Rekordnivå!", "Över genomsnitt!", "Uppåt mot toppen!", etc.)
+- IBC/h-trendgraf för senaste 7 skiften med glidande snitt (3-punkts rullande medelvärde)
+- Skiftprognos-banner: förväntad bonus, IBC/h och IBC/vecka (5 skift) baserat på senaste 7 skiften
+- PDF-export inkluderar nu skiftprognos i rapporten
+
+**Bonus-Dashboard (`pages/bonus-dashboard/`):**
+- Trendpilar (↑/↓/→) per operatör i rankingtabellen, jämfört med föregående period
+- Bonusprogressionssbar för teamet mot konfigurerbart veckobonusmål
+- Kvalitet%-KPI-kort ersätter Max Bonus (kvalitet visas tydligare)
+- Mål-kolumn i rankingtabellen med mini-progressbar per operatör
+
+**Bonus-Admin (`pages/bonus-admin/`):**
+- Ny flik "Prognos": sök operatör, se snittbonus, tier-multiplikator, IBC/h och % av veckobonusmål
+- Ny sektion i "Mål"-fliken: konfigurera veckobonusmål (1–200 poäng) med tiernamn-preview
+- Visuell progressbar visar var valt mål befinner sig på tierskalan
+
+**Backend (`BonusAdminController.php`):**
+- `POST ?run=set_weekly_goal` — sparar weekly_bonus_goal i bonus_config (validerat 0–200)
+- `GET ?run=operator_forecast&id=<op_id>` — prognos baserat på per-skift-aggregering senaste 7 dagar
+
+**BonusAdminService (TypeScript):**
+- `setWeeklyGoal(weeklyGoal)` — ny metod
+- `getOperatorForecast(operatorId)` — ny metod med `OperatorForecastResponse` interface
+
+**Databas-migration:**
+- `2026-03-03_bonus_weekly_goal.sql`: ALTER TABLE bonus_config ADD weekly_bonus_goal DECIMAL(6,2) DEFAULT 80
+
+---
 
 ---
