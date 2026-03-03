@@ -6,6 +6,38 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ## 2026-03-03
 
+### Rebotling-skiftrapport + Admin förbättringar (commit cbfc3d4)
+
+**Rebotling-skiftrapport (`pages/rebotling-skiftrapport/`):**
+- Sammanfattningskort överst: Total IBC, Kvalitet%, OEE-snitt, Drifttid, Rasttid, Vs. föregående
+- Filtrera per skift (förmiddag 06-14 / eftermiddag 14-22 / natt 22-06) utöver datumfilter
+- Textsökning på produkt och användare direkt i filterraden
+- Sorterbar tabell — klicka på kolumnrubrik för att sortera (datum, produkt, användare, IBC-antal, kvalitet%, IBC/h)
+- Kvalitet%-badge med färgkodning (grön/gul/röd) direkt i tabellraden
+- Skiftsammanfattning i expanderad detaljvy: snitt cykeltid, drifttid, rasttid, bonus-estimat
+- PDF-export inkluderar nu sammanfattningskort med dagsmål-uppfyllnad och bonus-estimat
+- Excel-export inkluderar separat sammanfattningsflik med periodnyckeltal
+
+**Rebotling-admin (`pages/rebotling-admin/`):**
+- Systemstatus-sektion (live, uppdateras var 30:e sek): senaste PLC-ping med åldersindikator, aktuellt löpnummer, DB-status OK/FEL, IBC idag
+- Veckodagsmål: sätt olika IBC-mål per veckodag (standardvärden lägre mån/fre, noll helg)
+- Skifttider: konfigurera start/sluttid + aktiv/inaktiv för förmiddag/eftermiddag/natt
+- Bonussektion med förklarande estimatformel och länk till bonus-admin
+
+**Backend (RebotlingController.php):**
+- `GET/POST ?run=weekday-goals` — hämta/spara veckodagsmål (auto-skapar tabell)
+- `GET/POST ?run=shift-times` — hämta/spara skifttider (auto-skapar tabell)
+- `GET ?run=system-status` — returnerar PLC-ping, löpnummer, DB-check, IBC-idag, servertid
+- POST-hantering samlad med admin-kontroll i en IF-block
+
+**Databas-migration:**
+- `noreko-backend/migrations/2026-03-03_rebotling_settings_weekday_goals.sql`
+  - `rebotling_weekday_goals` (weekday 1-7, daily_goal, label)
+  - `rebotling_shift_times` (shift_name, start_time, end_time, enabled)
+  - Standardvärden ifyllda
+
+---
+
 ### Rebotling-statistik + Production Analysis förbättringar (commit c7faa1b)
 
 **Rebotling-statistik (rebotling-statistik.ts/.html):**
