@@ -46,6 +46,12 @@ class RebotlingController {
                 $this->getExecDashboard();
             } elseif ($action === 'shift-compare') {
                 $this->getShiftCompare();
+            } elseif ($action === 'live-ranking') {
+                $this->getLiveRanking();
+            } elseif ($action === 'cycle-histogram') {
+                $this->getCycleHistogram();
+            } elseif ($action === 'spc') {
+                $this->getSPC();
             } else {
                 $this->getLiveStats();
             }
@@ -2049,6 +2055,121 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getShiftCompare: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte jämföra skift']);
+        }
+    }
+
+    // =========================================================
+    // Live Ranking — TV-skärm på fabriksgolvet
+    // GET ?action=rebotling&run=live-ranking  (ingen auth krävs)
+    // =========================================================
+    private function getLiveRanking() {
+        try {
+            // Dagsmål från settings
+            $dailyGoal = 1000;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sr) $dailyGoal = (int)$sr['rebotling_target'];
+            } catch (Exception $e) { /* ignorera */ }
+
+            $today = date('Y-m-d');
+
+            // Försök hämta data för idag. Om inga skiftrapporter finns idag — fall tillbaka på senaste 7 dagarna.
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) FROM rebotling_skiftrapport WHERE datum = :today
+            ");
+            $stmt->execute(['today' => $today]);
+            $countToday = (int)$stmt->fetchColumn();
+
+            if ($countToday > 0) {
+                $dateFilter = "s.datum = :dateFrom";
+                $dateParam  = ['dateFrom' => $today];
+                $periodLabel = $today;
+            } else {
+                $dateFilter = "s.datum >= :dateFrom";
+                $dateParam  = ['dateFrom' => date('Y-m-d', strtotime('-7 days'))];
+                $periodLabel = 'senaste 7 dagarna';
+            }
+
+            // Aggregera per operatör (op1/op2/op3 lagras som operator-nummer)
+            // Varje skiftrapport kan ha upp till 3 operatörer.
+            // Vi slår ihop dem via UNION och aggregerar sedan.
+            $sql = "
+                SELECT
+                    o.number        AS op_number,
+                    o.name          AS name,
+                    SUM(sub.ibc_ok)   AS ibc_ok,
+                    SUM(sub.totalt)   AS totalt,
+                    SUM(sub.drifttid) AS drifttid,
+                    COUNT(sub.skift_id) AS shifts_count
+                FROM (
+                    SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s
+                    WHERE {$dateFilter} AND s.op1 IS NOT NULL
+                    UNION ALL
+                    SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s
+                    WHERE {$dateFilter} AND s.op2 IS NOT NULL
+                    UNION ALL
+                    SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s
+                    WHERE {$dateFilter} AND s.op3 IS NOT NULL
+                ) sub
+                JOIN operators o ON o.number = sub.op_num
+                GROUP BY o.number, o.name
+                ORDER BY (SUM(sub.ibc_ok) / GREATEST(SUM(sub.drifttid)/60, 0.01)) DESC
+                LIMIT 10
+            ";
+
+            // PDO named placeholders kan inte upprepas — bind manuellt med positional
+            if ($countToday > 0) {
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    ':dateFrom'  => $today,
+                    ':dateFrom'  => $today,   // op2
+                    ':dateFrom'  => $today,   // op3 — PDO overwrites duplicates, so use positional below
+                ]);
+            }
+
+            // Bygg om med positional placeholders för att undvika duplikat-parameter-problem
+            $sqlPos = str_replace(':dateFrom', '?', $sql);
+            $stmt2  = $this->pdo->prepare($sqlPos);
+            $d      = $dateParam['dateFrom'];
+            $stmt2->execute([$d, $d, $d]);
+            $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+            $ranking = [];
+            foreach ($rows as $row) {
+                $ibc_ok   = (int)($row['ibc_ok']   ?? 0);
+                $totalt   = (int)($row['totalt']    ?? 0);
+                $drifttid = (int)($row['drifttid']  ?? 0); // i minuter
+                $ibc_per_hour = $drifttid > 0
+                    ? round($ibc_ok / ($drifttid / 60), 1)
+                    : null;
+                $quality_pct = $totalt > 0
+                    ? round($ibc_ok / $totalt * 100, 1)
+                    : null;
+
+                $ranking[] = [
+                    'op_number'    => (int)$row['op_number'],
+                    'name'         => $row['name'],
+                    'ibc_ok'       => $ibc_ok,
+                    'ibc_per_hour' => $ibc_per_hour,
+                    'quality_pct'  => $quality_pct,
+                    'shifts_today' => (int)($row['shifts_count'] ?? 0),
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'ranking' => $ranking,
+                'date'    => $today,
+                'period'  => $periodLabel,
+                'goal'    => $dailyGoal,
+            ]);
+        } catch (Exception $e) {
+            error_log('getLiveRanking: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta live ranking']);
         }
     }
 }

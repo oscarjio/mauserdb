@@ -1,0 +1,94 @@
+<div class="tv-wrapper">
+
+  <!-- HEADER -->
+  <header class="tv-header">
+    <div class="header-left">
+      <span class="pulse-dot"></span>
+      <span class="header-title">LIVE RANKING</span>
+    </div>
+    <div class="header-center">
+      <span class="header-date">{{ formatDate(date) }}</span>
+    </div>
+    <div class="header-right">
+      <span class="refresh-label">Uppdateras var 30s</span>
+      <span class="refresh-time">{{ formatTime(lastRefresh) }}</span>
+    </div>
+  </header>
+
+  <!-- LOADING -->
+  <div *ngIf="loading" class="tv-loading">
+    <div class="spinner"></div>
+    <p>Laddar ranking...</p>
+  </div>
+
+  <!-- ERROR -->
+  <div *ngIf="!loading && error" class="tv-error">
+    <p class="error-icon">&#9888;</p>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- INGEN DATA -->
+  <div *ngIf="!loading && !error && ranking.length === 0" class="tv-empty">
+    <p>Inga skiftrapporter registrerade idag.</p>
+  </div>
+
+  <!-- RANKINGLISTA -->
+  <main *ngIf="!loading && !error && ranking.length > 0" class="tv-main">
+    <div class="ranking-list">
+      <div
+        *ngFor="let entry of ranking; let i = index"
+        class="ranking-row"
+        [class.row-top3]="i < 3"
+      >
+        <!-- Rank-bricka -->
+        <div class="rank-badge" [ngClass]="getMedalClass(i + 1)">
+          <span class="rank-number">{{ i + 1 }}</span>
+        </div>
+
+        <!-- Namn -->
+        <div class="op-name">{{ entry.name }}</div>
+
+        <!-- IBC/h -->
+        <div class="stat-block">
+          <span class="stat-value accent-green">
+            {{ entry.ibc_per_hour !== null ? entry.ibc_per_hour : '–' }}
+          </span>
+          <span class="stat-unit">IBC/h</span>
+        </div>
+
+        <!-- Kvalitet% -->
+        <div class="stat-block">
+          <span class="stat-value accent-yellow">
+            {{ entry.quality_pct !== null ? entry.quality_pct : '–' }}
+          </span>
+          <span class="stat-unit">kvalitet%</span>
+        </div>
+
+        <!-- Totalt IBC idag -->
+        <div class="stat-block">
+          <span class="stat-value accent-blue">{{ entry.ibc_ok }}</span>
+          <span class="stat-unit">IBC totalt</span>
+        </div>
+
+        <!-- Progress mot dagsmål -->
+        <div class="progress-section" *ngIf="goal > 0">
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              [ngClass]="getProgressClass(entry.ibc_ok)"
+              [style.width.%]="getProgressPct(entry.ibc_ok)"
+            ></div>
+          </div>
+          <span class="progress-label">{{ getProgressPct(entry.ibc_ok) }}% av dagsmål</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER: roterande motto -->
+  <footer class="tv-footer">
+    <span class="motto-text">{{ mottos[mottoIndex] }}</span>
+    <span class="goal-label" *ngIf="goal > 0">Dagsmål: {{ goal }} IBC</span>
+  </footer>
+
+</div>

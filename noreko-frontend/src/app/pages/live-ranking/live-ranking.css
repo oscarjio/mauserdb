@@ -1,0 +1,268 @@
+/* ============================================================
+   TV-skärmsvy: Live Ranking för fabriksgolvet
+   Dark theme, stora siffror, neonaccenter
+   ============================================================ */
+
+:host {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #0d1117;
+  color: #e2e8f0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+/* Wrapper */
+.tv-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+/* ---- HEADER ---- */
+.tv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 2rem;
+  background: #1a202c;
+  border-bottom: 2px solid #2d3748;
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #39ff14;
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(57, 255, 20, 0.7); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 8px rgba(57, 255, 20, 0); }
+}
+
+.header-title {
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #39ff14;
+  text-transform: uppercase;
+}
+
+.header-center {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #a0aec0;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.9rem;
+  color: #718096;
+}
+
+.refresh-time {
+  font-size: 1rem;
+  color: #a0aec0;
+  font-family: monospace;
+}
+
+/* ---- MAIN ---- */
+.tv-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 2rem;
+}
+
+/* ---- RANKING LIST ---- */
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ranking-row {
+  display: grid;
+  grid-template-columns: 70px 1fr 140px 140px 140px 1fr;
+  align-items: center;
+  gap: 1rem;
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 0.8rem 1.2rem;
+  transition: background 0.2s;
+}
+
+.ranking-row.row-top3 {
+  background: #1e2a3a;
+  border-color: #3a4a5c;
+}
+
+/* ---- RANK BADGE ---- */
+.rank-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+.medal-gold   { background: linear-gradient(135deg, #f6c90e, #c9a100); color: #1a202c; box-shadow: 0 0 14px rgba(246,201,14,0.6); }
+.medal-silver { background: linear-gradient(135deg, #c0c0c0, #8a8a8a); color: #1a202c; box-shadow: 0 0 10px rgba(192,192,192,0.5); }
+.medal-bronze { background: linear-gradient(135deg, #cd7f32, #8b5e20); color: #fff;    box-shadow: 0 0 10px rgba(205,127,50,0.5); }
+.medal-default { background: #2d3748; color: #a0aec0; }
+
+.rank-number { line-height: 1; }
+
+/* ---- OP NAME ---- */
+.op-name {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-top3 .op-name {
+  font-size: 1.9rem;
+}
+
+/* ---- STAT BLOCK ---- */
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.row-top3 .stat-value {
+  font-size: 2.3rem;
+}
+
+.stat-unit {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.accent-green  { color: #39ff14; }
+.accent-yellow { color: #f6c90e; }
+.accent-blue   { color: #63b3ed; }
+
+/* ---- PROGRESS ---- */
+.progress-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.progress-track {
+  height: 12px;
+  background: #2d3748;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+.bar-green  { background: linear-gradient(90deg, #39ff14, #2db814); }
+.bar-yellow { background: linear-gradient(90deg, #f6c90e, #c9a100); }
+.bar-red    { background: linear-gradient(90deg, #e53e3e, #c0392b); }
+
+.progress-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-align: right;
+}
+
+/* ---- FOOTER ---- */
+.tv-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 2rem;
+  background: #1a202c;
+  border-top: 2px solid #2d3748;
+  flex-shrink: 0;
+}
+
+.motto-text {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #39ff14;
+  letter-spacing: 0.04em;
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.goal-label {
+  font-size: 1.1rem;
+  color: #a0aec0;
+  font-weight: 600;
+}
+
+/* ---- LOADING / ERROR / EMPTY ---- */
+.tv-loading,
+.tv-error,
+.tv-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: #718096;
+  font-size: 1.5rem;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #2d3748;
+  border-top-color: #39ff14;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.tv-error { color: #e53e3e; }
+.error-icon { font-size: 3rem; }

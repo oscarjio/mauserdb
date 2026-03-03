@@ -17,6 +17,7 @@ export const routes: Routes = [
 
       // Public live views
       { path: 'rebotling/live', loadComponent: () => import('./pages/rebotling-live/rebotling-live').then(m => m.RebotlingLivePage) },
+      { path: 'rebotling/live-ranking', loadComponent: () => import('./pages/live-ranking/live-ranking').then(m => m.LiveRankingPage) },
       { path: 'tvattlinje/live', loadComponent: () => import('./pages/tvattlinje-live/tvattlinje-live').then(m => m.TvattlinjeLivePage) },
       { path: 'saglinje/live', loadComponent: () => import('./pages/saglinje-live/saglinje-live').then(m => m.SaglinjeLivePage) },
       { path: 'klassificeringslinje/live', loadComponent: () => import('./pages/klassificeringslinje-live/klassificeringslinje-live').then(m => m.KlassificeringslinjeLivePage) },
