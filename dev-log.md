@@ -6,7 +6,7 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ## 2026-03-03
 
-### Executive Dashboard — Fullständig VD-vy (commit TBD)
+### Executive Dashboard — Fullständig VD-vy (commit fb05cce)
 
 **Mål:** VD öppnar sidan och ser på 10 sekunder om produktionen går bra eller dåligt.
 
