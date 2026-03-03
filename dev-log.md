@@ -2,6 +2,17 @@
 
 ---
 
+
+## 2026-03-03 23:07 — Bug hunt #3: 6 buggar fixade — commit 20686bb
+
+- `shift-plan.ts`: Saknat `timeout()` + `catchError` på alla 4 HTTP-anrop — HTTP-anrop kunde hänga oändligt
+- `live-ranking.ts`: Saknat `withCredentials: true` — session skickades ej till backend
+- `live-ranking.ts`: Redundant `Subscription`/`dataSub`-pattern borttagen (takeUntil hanterar cleanup)
+- `production-calendar.ts`: Saknat `withCredentials: true` — session skickades ej till backend
+- `benchmarking.ts`: setTimeout-referens sparas nu i `chartTimer` och clearas i ngOnDestroy — förhindrar render på förstörd komponent
+- `CertificationController.php`: `session_status()`-kontroll saknad före `session_start()` — PHP-varning om session redan aktiv
+
+---
 ## 2026-03-03 — Digital skiftöverlämning — commit ca4b8f2
 
 ### Nytt: /rebotling/overlamnin
@@ -834,3 +845,7 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 ---
 
 ---
+[2026-03-03 23:00] Skiftkommentar-agent: kommentarsfält i skiftrapport levererat, commit 1feb15e
+[2026-03-03 23:00] Andon-agent: Andon-tavla /rebotling/andon levererad, commit ddbade9
+[2026-03-03 23:15] Bonusprognos-agent: bonus i kr levererat, commit e472997
+[2026-03-03 23:05] Pareto-agent: Pareto-diagram stopporsaker levererat, commit 0f4865c
