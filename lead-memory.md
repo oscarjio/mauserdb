@@ -50,7 +50,20 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - **Minst 2 worker-agenter ska alltid vara igång** parallellt
 - **Ledaragenten** (huvudkonversationen) övervakar, uppdaterar backlog och startar nya agenter så fort gamla är klara
 - När token-gränsen för huvudkonversationen närmar sig: commit lead-memory.md + push, cron-jobbet tar över
-- Backlogen är aldrig tom — generera nya förbättringsidéer baserat på affärskontexten om den tar slut
+
+### Om backlogen tar slut — gör detta i ordning:
+1. **Analysera koden** — läs igenom alla sidor och controllers, identifiera förbättringsmöjligheter (UX, prestanda, kodkvalitet, saknade edge cases). Lägg nya items i backlogen.
+2. **Starta en bug hunting-agent** — se nedan
+3. **Generera nya feature-idéer** baserat på affärskontexten (IBC-tvätteri, VD-översikt, operatörsbonus)
+
+### Bug Hunting — starta regelbundet
+- **Var 3:e session** (ungefär) ska en dedikerad bug hunting-agent startas parallellt med övriga workers
+- Bug hunting-agentens uppdrag:
+  - Läs igenom alla TypeScript-komponenter och leta efter: minnesläckor (saknat ngOnDestroy/clearInterval), race conditions i polling, felhantering som saknas, edge cases (null/undefined, tomma arrayer)
+  - Kolla PHP-controllers: saknade auth-checks, SQL utan prepared statements, felaktiga HTTP-statuskoder
+  - Kolla att alla nya features faktiskt bygger (`npx ng build`) utan fel
+  - Fixa buggar direkt, commita med prefix "Bugfix: ..."
+  - Rapportera alla fynd i lead-memory.md under "BUGGAR/TEKNISK SKULD"
 
 ## KOMMUNIKATION MED ÄGAREN
 - **Dokumentera ALLT ägaren säger** i denna fil direkt — så att varken ledaragent eller workers behöver fråga om samma sak igen
@@ -64,6 +77,11 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - *2026-03-03*: Rör aldrig livesidorna (i produktion).
 - *2026-03-03*: Agenterna ska aldrig stanna — alltid minst 2 igång, ledaragenten håller dom i arbete hela tiden.
 - *2026-03-03*: Dokumentera allt som sägs i minnet — ägaren ska aldrig behöva upprepa sig.
+- *2026-03-03*: Om backlogen tar slut → analysera koden och hitta förbättringar. Starta bug hunting-agent regelbundet (var 3:e session) som letar buggar och fixar dem.
+
+## BUGGAR / TEKNISK SKULD
+*(Uppdateras av bug hunting-agenter och workers som hittar problem)*
+- Inget känt just nu — bug hunting-agent har ej körts ännu
 
 ---
 
