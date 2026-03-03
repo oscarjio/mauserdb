@@ -1,0 +1,323 @@
+/* ============================================================
+   Andon-tavla — Full-screen TV-display
+   Bakgrund: #0d1117 (mörkare än standardtemat)
+   ============================================================ */
+
+:host {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hindra scroll på body när andon är aktiv */
+body {
+  overflow: hidden !important;
+  background: #0d1117 !important;
+}
+
+.andon-wrapper {
+  background: #0d1117;
+  color: #e2e8f0;
+  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+  box-sizing: border-box;
+  padding: 1rem 2rem;
+}
+
+/* ------ Laddning / Fel ------ */
+.andon-loading,
+.andon-fel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: #a0aec0;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid #2d3748;
+  border-top-color: #00e676;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fel-ikon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f4433622;
+  border: 3px solid #f44336;
+  color: #f44336;
+  font-size: 3rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fel-sub {
+  font-size: 1.1rem;
+  color: #718096;
+}
+
+/* ------ Huvud-layout ------ */
+.andon-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  height: 100%;
+}
+
+/* ------ Header ------ */
+.andon-header {
+  display: flex;
+  align-items: baseline;
+  gap: 2rem;
+  border-bottom: 2px solid #2d3748;
+  padding-bottom: 0.5rem;
+}
+
+.andon-titel {
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  color: #e2e8f0;
+  text-transform: uppercase;
+}
+
+.andon-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  font-size: 1.4rem;
+  color: #a0aec0;
+}
+
+.meta-sep {
+  color: #4a5568;
+}
+
+.meta-datum {
+  font-weight: 600;
+  color: #cbd5e0;
+}
+
+.meta-skift {
+  font-weight: 600;
+  color: #90cdf4;
+}
+
+/* ------ Status-baner ------ */
+.status-baner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.8rem 1.5rem;
+  border-radius: 8px;
+  border: 2px solid;
+  background: rgba(0,0,0,0.3);
+  flex-wrap: wrap;
+}
+
+.status-prick {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: puls 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes puls {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.status-live-text {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.status-sep {
+  color: #4a5568;
+  font-size: 1.5rem;
+  margin: 0 0.5rem;
+}
+
+.ibc-idag-label {
+  font-size: 1.3rem;
+  color: #a0aec0;
+  margin-right: 0.3rem;
+}
+
+.ibc-idag-val {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  margin-right: 1.2rem;
+}
+
+/* ------ KPI-rad ------ */
+.kpi-rad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.kpi-kort {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.8rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  justify-content: center;
+}
+
+.kpi-rubrik {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #718096;
+  text-transform: uppercase;
+}
+
+.kpi-varde {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.kpi-enhet {
+  font-size: 2rem;
+  font-weight: 400;
+  margin-left: 0.2rem;
+  opacity: 0.7;
+}
+
+.kpi-sub {
+  font-size: 1.2rem;
+  color: #a0aec0;
+  margin-top: 0.2rem;
+}
+
+.kpi-sub2 {
+  font-size: 1rem;
+  color: #718096;
+}
+
+.oee-etikett {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+/* ------ Progress-bar (dagsmål) ------ */
+.progress-bar-wrap {
+  width: 100%;
+  height: 18px;
+  background: #2d3748;
+  border-radius: 9px;
+  overflow: hidden;
+  margin: 0.4rem 0;
+}
+
+.progress-bar-inner {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.6s ease;
+  min-width: 4px;
+}
+
+/* ------ Händelse-baner ------ */
+.handelse-baner {
+  background: #161b22;
+  border: 1px solid #2d3748;
+  border-left: 6px solid;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.handelse-rubrik {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: #718096;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.handelse-text {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* ------ Footer ------ */
+.andon-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #2d3748;
+  padding-top: 0.5rem;
+  font-size: 1.2rem;
+  color: #718096;
+}
+
+.klocka {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.uppdatering-text {
+  color: #718096;
+}
+
+.uppdatering-text strong {
+  color: #a0aec0;
+}
+
+/* ------ Responsivt ------ */
+@media (max-width: 1200px) {
+  .kpi-varde {
+    font-size: 3.2rem;
+  }
+  .andon-titel {
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .kpi-rad {
+    grid-template-columns: 1fr;
+  }
+  .andon-wrapper {
+    padding: 0.5rem 1rem;
+  }
+}

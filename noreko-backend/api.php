@@ -121,6 +121,7 @@ $classNameMap = [
     'shift-plan' => 'ShiftPlanController',
     'certifications' => 'CertificationController',
     'shift-handover' => 'ShiftHandoverController',
+    'andon' => 'AndonController',
 ];
 
 $actionKey = strtolower($action);

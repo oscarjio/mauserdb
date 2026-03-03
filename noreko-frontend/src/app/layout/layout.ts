@@ -37,7 +37,7 @@ export class Layout implements OnInit, OnDestroy {
 
   get hideMenu() {
     // Hide menu on any 'live', 'login' eller 'register' route
-    return this.router.url.includes('/live') || this.router.url.includes('/login') || this.router.url.includes('/register');
+    return this.router.url.includes('/live') || this.router.url.includes('/login') || this.router.url.includes('/register') || this.router.url.includes('/andon');
   }
 
   get showBackButton() {

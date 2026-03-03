@@ -1,0 +1,87 @@
+<div class="andon-wrapper">
+
+  <!-- Laddning -->
+  <div class="andon-loading" *ngIf="laddas && !fel">
+    <div class="spinner"></div>
+    <p>Laddar Andon-tavla...</p>
+  </div>
+
+  <!-- Fel -->
+  <div class="andon-fel" *ngIf="fel">
+    <div class="fel-ikon">!</div>
+    <p>{{ fel }}</p>
+    <p class="fel-sub">Forsöker igen om {{ nedrakning }}s</p>
+  </div>
+
+  <!-- Huvud-layout -->
+  <div class="andon-main" *ngIf="status && !laddas">
+
+    <!-- Header-rad -->
+    <div class="andon-header">
+      <div class="andon-titel">REBOTLING</div>
+      <div class="andon-meta">
+        <span class="meta-datum">{{ status.datum }}</span>
+        <span class="meta-sep">|</span>
+        <span class="meta-skift">Skift: {{ status.skift }}</span>
+      </div>
+    </div>
+
+    <!-- Status-baner -->
+    <div class="status-baner" [style.background-color]="statusFarg + '22'" [style.border-color]="statusFarg">
+      <span class="status-prick" [style.background-color]="statusFarg"></span>
+      <span class="status-live-text" [style.color]="statusFarg">{{ statusText }}</span>
+      <span class="status-sep">|</span>
+      <span class="ibc-idag-label">IBC denna dag:</span>
+      <span class="ibc-idag-val">{{ status.ibc_idag }}</span>
+      <span class="ibc-idag-label">Mal:</span>
+      <span class="ibc-idag-val">{{ status.mal_idag }}</span>
+    </div>
+
+    <!-- KPI-kort-rad -->
+    <div class="kpi-rad">
+
+      <!-- Dagsmål-kort -->
+      <div class="kpi-kort">
+        <div class="kpi-rubrik">DAGSMAL</div>
+        <div class="kpi-varde" [style.color]="statusFarg">{{ Math.round(status.mal_pct) }}<span class="kpi-enhet">%</span></div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-inner"
+               [style.width.%]="malBreddpct"
+               [style.background-color]="statusFarg">
+          </div>
+        </div>
+        <div class="kpi-sub">{{ status.ibc_idag }} / {{ status.mal_idag }} IBC</div>
+      </div>
+
+      <!-- OEE-kort -->
+      <div class="kpi-kort">
+        <div class="kpi-rubrik">OEE</div>
+        <div class="kpi-varde" [style.color]="statusFarg">{{ status.oee_pct.toFixed(1) }}<span class="kpi-enhet">%</span></div>
+        <div class="oee-etikett" [style.color]="statusFarg">{{ oeeEtikett }}</div>
+        <div class="kpi-sub">Effektivitet idag</div>
+      </div>
+
+      <!-- IBC/h-kort -->
+      <div class="kpi-kort">
+        <div class="kpi-rubrik">IBC / TIMME</div>
+        <div class="kpi-varde" [style.color]="statusFarg">{{ status.ibc_per_h.toFixed(1) }}</div>
+        <div class="kpi-sub">Snitt idag</div>
+        <div class="kpi-sub kpi-sub2">Drifttid: {{ status.runtime_min }} min</div>
+      </div>
+
+    </div>
+
+    <!-- Handelse-baner -->
+    <div class="handelse-baner" [style.border-left-color]="statusFarg">
+      <span class="handelse-rubrik">SENASTE HANDELSE:</span>
+      <span class="handelse-text" [style.color]="statusFarg">{{ statusEtikett }}</span>
+    </div>
+
+    <!-- Footer-rad -->
+    <div class="andon-footer">
+      <span class="uppdatering-text">Uppdateras om <strong>{{ nedrakning }}s</strong></span>
+      <span class="klocka">{{ klockslag }}</span>
+    </div>
+
+  </div>
+</div>
