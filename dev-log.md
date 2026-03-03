@@ -2,6 +2,37 @@
 
 ---
 
+## 2026-03-03 — Realtids-tävling TV-skärm (/rebotling/live-ranking) — commit a3d5b49
+
+### Nytt: Live Ranking TV-skärm
+
+**Syfte:** Helskärmsvy för TV/monitor på fabriksgolvet. Operatörer ser sin ranking live
+medan de arbetar — motiverar tävlingsanda och håller farten uppe.
+
+**Backend — `RebotlingController.php`:**
+- Ny endpoint: `GET ?action=rebotling&run=live-ranking` (ingen auth krävs — fabriksgolvet)
+- Metod `getLiveRanking()`: aggregerar op1/op2/op3 via UNION ALL från `rebotling_skiftrapport`
+- Joinar mot `operators`-tabellen för namn
+- Beräknar IBC/h = `SUM(ibc_ok) / (SUM(drifttid)/60)`, kvalitet% = `SUM(ibc_ok)/SUM(totalt)*100`
+- Sorterar på IBC/h DESC, returnerar topp 10
+- Fallback: om ingen data idag → senaste 7 dagarna
+- Returnerar: `{ success, ranking[], date, period, goal }` där goal = dagsmål från `rebotling_settings`
+
+**Frontend — `src/app/pages/live-ranking/` (3 nya filer):**
+- `live-ranking.ts`: standalone component, OnInit+OnDestroy, `destroy$ = new Subject<void>()`,
+  polling var 30s med `setInterval` + `isFetching`-guard + `timeout(8000)` + `catchError`.
+  Roterande motton (8 st) via `setInterval` 6s. Alla interval rensas i `ngOnDestroy`.
+- `live-ranking.html`: TV-layout med pulsande grön dot, header med datum+tid, rankinglista
+  (guld/silver/brons-brickor, rank 1-3 framhävda), progress-bars mot dagsmål, roterande motto i footer.
+- `live-ranking.css`: full-screen `100vw × 100vh`, dark theme (`#0d1117`/`#1a202c`), neongrön
+  accent `#39ff14`, guld/silver/brons-gradienter, CSS-animationer (pulse, spin, fadeIn).
+
+**Routing — `app.routes.ts`:**
+- Lagt till som public route (ingen canActivate): `{ path: 'rebotling/live-ranking', loadComponent: ... }`
+- URL innehåller `/live` → Layout döljer automatiskt navbar (befintlig logik i layout.ts)
+
+---
+
 ## 2026-03-03 — Bug Hunt #2 + Operators-sida ombyggd
 
 ### Bug Hunt #2 — Fixade minnesläckor
