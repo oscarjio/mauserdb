@@ -509,25 +509,41 @@
 .tc-diff-pos { background: rgba(72,187,120,0.12); color: #68d391; }
 .tc-diff-neg { background: rgba(229,62,62,0.12);  color: #fc8181; }
 
-@media (max-width: 600px) {
-  .team-compare-grid { grid-template-columns: 1fr; }
-  .tc-item { border-right: none; border-bottom: 1px solid #2d3748; }
-  .tc-item:last-child { border-bottom: none; }
-}
-
 /* Bootstrap overrides */
 .table-dark { --bs-table-bg: transparent; --bs-table-border-color: #2d3748; }
 .progress   { background-color: #161c29; }
 .alert-warning { background: rgba(237,137,54,0.12); border-color: rgba(237,137,54,0.3); color: #fbd38d; }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .bonus-hero { padding: 1rem; }
-  .score-dial { width: 80px; height: 80px; }
-  .dial-num   { font-size: 1.5rem; }
-  .hero-quick-row { gap: 0.75rem; }
-  .kpi-value  { font-size: 1.5rem; }
-  .projection-card { flex-direction: column; text-align: center; }
-  .prognosis-banner { flex-direction: column; }
-  .prog-sep { display: none; }
+/* Mobil */
+.my-bonus-container{overflow-x:hidden}
+@media(max-width:768px){
+  .my-bonus-container{font-size:14px;padding:.75rem}
+  .page-title{font-size:1.25rem}
+  .bonus-hero{padding:1rem}
+  .score-dial{width:80px;height:80px}
+  .dial-num{font-size:1.5rem}
+  .bonus-hero .row{flex-direction:column}
+  .bonus-hero .col-auto{width:100%;display:flex;justify-content:center;margin-bottom:1rem}
+  .bonus-hero .col.hero-details{padding-left:0!important}
+  .kpi-value{font-size:1.5rem}
+  .team-compare-grid{grid-template-columns:1fr}
+  .tc-item{border-right:none;border-bottom:1px solid #2d3748}
+  .tc-item:last-child{border-bottom:none}
+  .projection-card{flex-direction:column;text-align:center;padding:.9rem 1rem}
+  .prognosis-banner{flex-direction:column;padding:.9rem 1rem}
+  .prog-sep{display:none}
+  .period-group button{padding:.5rem .9rem;min-height:44px}
+  .btn-sm{min-height:44px;padding:.5rem .9rem}
+  .setup-input-row{flex-direction:column;align-items:stretch}
+  .setup-input{max-width:100%}
+  .stats-table{font-size:.8rem}
+  .stats-table thead th,.stats-table tbody td{padding:.45rem .5rem}
+  .chart-container{height:200px}
+  .tier-labels-row{font-size:.55rem}
+}
+@media(max-width:480px){
+  .my-bonus-container{padding:.5rem}
+  .kpi-value{font-size:1.3rem}
+  .score-dial{width:70px;height:70px}
+  .dial-num{font-size:1.3rem}
 }

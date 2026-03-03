@@ -4,6 +4,43 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ---
 
+## 2026-03-03 — Heatmap förbättring + My-bonus mobilanpassning
+
+### Rebotling-statistik — förbättrad heatmap
+
+**Interaktiva tooltips:**
+- Hover över en heatmap-cell visar tooltip: Datum, Timme, IBC denna timme, IBC/h (takt), Kvalitet% om tillgänglig
+- Tooltip positioneras ovanför cellen relativt `.heatmap-container`, fungerar med horisontell scroll
+
+**KPI-toggle:**
+- Dropdown-knappar ovanför heatmappen: "IBC/h" | "Kvalitet%" | "OEE%"
+- IBC/h: vit→mörkblå; Kvalitet%: vit→mörkgrön; OEE%: vit→mörkviolett
+- Kvalitet% visas på dagsnivå med tydlig etikett om timdata saknas
+
+**Förbättrad färgskala & legend:**
+- Noll-celler: mörk grå (`#2a2a3a`) istället för transparent
+- Legend: noll-ruta + gradient "Låg → Hög" med siffror, uppdateras per KPI
+
+**TypeScript ändringar (`rebotling-statistik.ts`):**
+- `heatmapKpi: 'ibc' | 'quality' | 'oee'`
+- `heatmapRows.qualityPct: number[]` tillagt
+- `getHeatmapColor(rowIndex, hourIndex)` — ny signatur med rgb-interpolation per KPI
+- `showHeatmapTooltip` / `hideHeatmapTooltip` metoder
+
+### My-bonus — mobilanpassning för surfplatta
+
+**CSS (`my-bonus.css`):**
+- `overflow-x: hidden` — ingen horisontell overflow
+- `@media (max-width: 768px)`: kort staplas vertikalt, hero kolumnar
+- Lagerjämförelse → 1 kolumn på mobil (ersätter 600px-breakpoint)
+- Touch-targets: `.period-group button` och `.btn-sm` → `min-height: 44px`
+- `font-size: 14px` body, `1.25rem` rubrik
+- `chart-container: 200px` höjd på mobil
+- `@media (max-width: 480px)`: ytterligare komprimering
+- Håller sig inom Angular 12kB CSS-budget
+
+---
+
 ## 2026-03-03 — Bug Hunting Session (commit `92cbcb1`)
 
 ### Angular — Minnesläckor fixade

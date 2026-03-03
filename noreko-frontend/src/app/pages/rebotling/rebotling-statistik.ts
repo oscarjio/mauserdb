@@ -91,10 +91,26 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   // Heatmap-vy
   heatmapDays: number = 30;
-  heatmapRows: { date: string; label: string; counts: number[] }[] = [];
+  heatmapRows: { date: string; label: string; counts: number[]; qualityPct: number[] }[] = [];
   heatmapHours: number[] = Array.from({ length: 18 }, (_, i) => i + 5); // 05–22
   heatmapMax: number = 1;
+  heatmapQualityMax: number = 100;
   private isLoadingHeatmap = false;
+
+  // KPI-val för heatmappen
+  heatmapKpi: 'ibc' | 'quality' | 'oee' = 'ibc';
+
+  // Tooltip-state
+  heatmapTooltip: {
+    visible: boolean;
+    x: number;
+    y: number;
+    date: string;
+    hour: number;
+    count: number;
+    ibcH: number;
+    qualityPct: number;
+  } = { visible: false, x: 0, y: 0, date: '', hour: 0, count: 0, ibcH: 0, qualityPct: 0 };
 
   isDragging: boolean = false;
 
@@ -1574,15 +1590,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     });
   }
 
-  private buildHeatmapRows(data: { date: string; hour: number; count: number }[]) {
-    // Bygg en map: date → { hour → count }
-    const map = new Map<string, Map<number, number>>();
-    data.forEach(({ date, hour, count }) => {
+  private buildHeatmapRows(data: { date: string; hour: number; count: number; quality_pct?: number }[]) {
+    // Bygg en map: date → { hour → { count, quality_pct } }
+    const map = new Map<string, Map<number, { count: number; quality_pct: number }>>();
+    data.forEach(({ date, hour, count, quality_pct }) => {
       if (!map.has(date)) map.set(date, new Map());
-      map.get(date)!.set(hour, count);
+      map.get(date)!.set(hour, { count, quality_pct: quality_pct ?? 0 });
     });
 
-    // Skapa sorterad lista av unika datum (senaste 30 dagarna, nyast sist)
+    // Skapa sorterad lista av unika datum (senaste N dagarna, nyast sist)
     const today = new Date();
     const rows: typeof this.heatmapRows = [];
     this.heatmapMax = 1;
@@ -1593,26 +1609,113 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const dateStr = d.toISOString().split('T')[0];
       const dayMap = map.get(dateStr) || new Map();
 
-      const counts = this.heatmapHours.map(h => dayMap.get(h) || 0);
+      const counts = this.heatmapHours.map(h => dayMap.get(h)?.count || 0);
+      const qualityPct = this.heatmapHours.map(h => dayMap.get(h)?.quality_pct || 0);
       const maxVal = Math.max(...counts);
       if (maxVal > this.heatmapMax) this.heatmapMax = maxVal;
 
       const weekdays = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
       const label = `${weekdays[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
-      rows.push({ date: dateStr, label, counts });
+      rows.push({ date: dateStr, label, counts, qualityPct });
     }
 
     this.heatmapRows = rows;
   }
 
-  getHeatmapColor(count: number): string {
-    if (count === 0) return 'transparent';
-    const ratio = Math.min(count / this.heatmapMax, 1);
-    // Blå (kall) → grön → gul (varm): hsl 220→120→60
-    const hue = Math.round(220 - ratio * 160);
-    const sat = 70 + Math.round(ratio * 20);
-    const light = 55 - Math.round(ratio * 15);
-    return `hsl(${hue}, ${sat}%, ${light}%)`;
+  getHeatmapColor(rowIndex: number, hourIndex: number): string {
+    const row = this.heatmapRows[rowIndex];
+    if (!row) return '#2a2a3a';
+
+    if (this.heatmapKpi === 'ibc') {
+      const count = row.counts[hourIndex];
+      if (count === 0) return '#2a2a3a'; // Mörk grå för noll-celler
+      const ratio = Math.min(count / this.heatmapMax, 1);
+      // Vit → mörkblå: interpolera rgb(230,245,255) → rgb(5,60,150)
+      const r = Math.round(230 - ratio * 225);
+      const g = Math.round(245 - ratio * 185);
+      const b = Math.round(255 - ratio * 105);
+      return `rgb(${r},${g},${b})`;
+    } else if (this.heatmapKpi === 'quality') {
+      const q = row.qualityPct[hourIndex];
+      if (row.counts[hourIndex] === 0) return '#2a2a3a';
+      if (q === 0) return '#2a2a3a';
+      const ratio = Math.min(q / 100, 1);
+      // Vit → mörkgrön: interpolera rgb(230,255,235) → rgb(10,90,30)
+      const r = Math.round(230 - ratio * 220);
+      const g = Math.round(255 - ratio * 165);
+      const b = Math.round(235 - ratio * 205);
+      return `rgb(${r},${g},${b})`;
+    } else {
+      // OEE: visa count som proxy (ingen OEE per timme i backend)
+      const count = row.counts[hourIndex];
+      if (count === 0) return '#2a2a3a';
+      const ratio = Math.min(count / this.heatmapMax, 1);
+      // Vit → mörkviolett: interpolera rgb(245,235,255) → rgb(80,20,140)
+      const r = Math.round(245 - ratio * 165);
+      const g = Math.round(235 - ratio * 215);
+      const b = Math.round(255 - ratio * 115);
+      return `rgb(${r},${g},${b})`;
+    }
+  }
+
+  getHeatmapLegendGradient(): string {
+    if (this.heatmapKpi === 'ibc') {
+      return 'linear-gradient(to right, #e6f5ff, #053c96)';
+    } else if (this.heatmapKpi === 'quality') {
+      return 'linear-gradient(to right, #e6ffeb, #0a5a1e)';
+    } else {
+      return 'linear-gradient(to right, #f5ebff, #50148c)';
+    }
+  }
+
+  getHeatmapLegendLow(): string {
+    if (this.heatmapKpi === 'ibc') return '0 IBC';
+    if (this.heatmapKpi === 'quality') return '0%';
+    return 'Låg';
+  }
+
+  getHeatmapLegendHigh(): string {
+    if (this.heatmapKpi === 'ibc') return `${this.heatmapMax} IBC/h`;
+    if (this.heatmapKpi === 'quality') return '100%';
+    return 'Hög';
+  }
+
+  getHeatmapKpiLabel(): string {
+    if (this.heatmapKpi === 'ibc') return 'IBC/h';
+    if (this.heatmapKpi === 'quality') return 'Kvalitet% (dagsnivå)';
+    return 'OEE% (IBC-proxy)';
+  }
+
+  showHeatmapTooltip(event: MouseEvent, rowIndex: number, hourIndex: number) {
+    const row = this.heatmapRows[rowIndex];
+    if (!row) return;
+    const count = row.counts[hourIndex];
+    const hour = this.heatmapHours[hourIndex];
+    const cellEl = event.currentTarget as HTMLElement;
+    const containerEl = cellEl.closest('.heatmap-container') as HTMLElement | null;
+    let x = 0;
+    let y = 0;
+    if (containerEl) {
+      const cellRect = cellEl.getBoundingClientRect();
+      const contRect = containerEl.getBoundingClientRect();
+      // Positionera tooltip mitt ovanför cellen, relativt .heatmap-container
+      x = cellRect.left - contRect.left + cellRect.width / 2 + containerEl.scrollLeft;
+      y = cellRect.top - contRect.top;
+    }
+    this.heatmapTooltip = {
+      visible: true,
+      x,
+      y,
+      date: row.date,
+      hour,
+      count,
+      ibcH: count,
+      qualityPct: row.qualityPct[hourIndex]
+    };
+  }
+
+  hideHeatmapTooltip() {
+    this.heatmapTooltip = { ...this.heatmapTooltip, visible: false };
   }
 
   onHeatmapDaysChange() {

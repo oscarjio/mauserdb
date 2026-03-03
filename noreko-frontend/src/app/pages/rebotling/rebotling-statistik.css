@@ -673,6 +673,7 @@
 .heatmap-container {
   overflow-x: auto;
   padding-bottom: 8px;
+  position: relative;
 }
 
 .heatmap-grid {
@@ -710,7 +711,7 @@
 .heatmap-cell {
   height: 22px;
   border-radius: 3px;
-  background: rgba(255,255,255,0.04);
+  background: #2a2a3a;
   border: 1px solid rgba(255,255,255,0.05);
   cursor: default;
   transition: transform 0.1s;
@@ -723,12 +724,13 @@
 .heatmap-cell:hover {
   transform: scale(1.4);
   z-index: 10;
-  border-color: rgba(255,255,255,0.3);
+  border-color: rgba(255,255,255,0.35);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
 
 .heatmap-cell-val {
   font-size: 0.5rem;
-  color: rgba(0,0,0,0.6);
+  color: rgba(0,0,0,0.65);
   font-weight: 700;
   pointer-events: none;
 }
@@ -741,10 +743,75 @@
   width: 120px;
   height: 10px;
   border-radius: 5px;
-  background: linear-gradient(to right,
-    hsl(220, 70%, 55%),
-    hsl(160, 80%, 48%),
-    hsl(80, 85%, 50%),
-    hsl(60, 90%, 45%)
-  );
+}
+
+.hm-zero-box {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #2a2a3a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 3px;
+}
+
+/* ---- KPI-toggle ---- */
+.heatmap-kpi-toggle {
+  display: inline-flex;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.hm-kpi-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.hm-kpi-btn:hover { background: #2d3748; color: #e2e8f0; }
+.hm-kpi-btn.active {
+  background: #4299e1;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---- Tooltip ---- */
+.heatmap-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(15, 20, 30, 0.97);
+  border: 1px solid rgba(66,153,225,0.4);
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  pointer-events: none;
+  z-index: 50;
+  min-width: 180px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  white-space: nowrap;
+}
+.ht-date {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #90cdf4;
+  margin-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 0.3rem;
+}
+.ht-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-top: 0.2rem;
+}
+.ht-row strong {
+  color: #e2e8f0;
+  font-weight: 700;
 }

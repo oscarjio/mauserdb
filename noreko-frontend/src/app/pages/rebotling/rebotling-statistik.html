@@ -93,7 +93,32 @@
           </div>
 
           <div *ngIf="!loading && heatmapRows.length > 0" class="heatmap-container">
-            <!-- Timme-etiketter (vänster) + rutnät -->
+
+            <!-- KPI-val + förklaring -->
+            <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+              <div class="heatmap-kpi-toggle">
+                <button class="hm-kpi-btn"
+                        [class.active]="heatmapKpi === 'ibc'"
+                        (click)="heatmapKpi = 'ibc'">
+                  IBC/h
+                </button>
+                <button class="hm-kpi-btn"
+                        [class.active]="heatmapKpi === 'quality'"
+                        (click)="heatmapKpi = 'quality'">
+                  Kvalitet%
+                </button>
+                <button class="hm-kpi-btn"
+                        [class.active]="heatmapKpi === 'oee'"
+                        (click)="heatmapKpi = 'oee'">
+                  OEE%
+                </button>
+              </div>
+              <small class="text-muted">
+                Visar: <strong class="text-light">{{ getHeatmapKpiLabel() }}</strong>
+              </small>
+            </div>
+
+            <!-- Heatmap-rutnät med tooltip -->
             <div class="heatmap-grid">
               <!-- Tomma hörncellen + datum-labels (x-axel) -->
               <div class="heatmap-corner"></div>
@@ -106,18 +131,41 @@
                 <div class="heatmap-hour-label">{{ hour }}:00</div>
                 <div class="heatmap-cell"
                      *ngFor="let row of heatmapRows; let di = index"
-                     [style.background-color]="getHeatmapColor(row.counts[hi])"
-                     [title]="row.date + ' ' + hour + ':00 — ' + row.counts[hi] + ' cykler'">
+                     [style.background-color]="getHeatmapColor(di, hi)"
+                     (mouseenter)="showHeatmapTooltip($event, di, hi)"
+                     (mouseleave)="hideHeatmapTooltip()">
                   <span class="heatmap-cell-val" *ngIf="row.counts[hi] > 0">{{ row.counts[hi] }}</span>
                 </div>
               </ng-container>
             </div>
 
+            <!-- Tooltip -->
+            <div class="heatmap-tooltip"
+                 *ngIf="heatmapTooltip.visible"
+                 [style.left.px]="heatmapTooltip.x"
+                 [style.top.px]="heatmapTooltip.y - 8">
+              <div class="ht-date">{{ heatmapTooltip.date }} &nbsp; {{ heatmapTooltip.hour }}:00–{{ heatmapTooltip.hour + 1 }}:00</div>
+              <div class="ht-row"><span>IBC denna timme:</span><strong>{{ heatmapTooltip.count }}</strong></div>
+              <div class="ht-row"><span>IBC/h (takt):</span><strong>{{ heatmapTooltip.ibcH }}</strong></div>
+              <div class="ht-row" *ngIf="heatmapTooltip.qualityPct > 0">
+                <span>Kvalitet% (dag):</span><strong>{{ heatmapTooltip.qualityPct | number:'1.0-1' }}%</strong>
+              </div>
+              <div class="ht-row text-muted" *ngIf="heatmapTooltip.qualityPct === 0 && heatmapTooltip.count > 0">
+                <span>Kvalitet%:</span><small>Ej tillgängligt per timme</small>
+              </div>
+            </div>
+
             <!-- Legend -->
-            <div class="heatmap-legend mt-3 d-flex align-items-center gap-2">
-              <small class="text-muted me-1">Låg</small>
-              <div class="heatmap-legend-bar"></div>
-              <small class="text-muted ms-1">Hög (max: {{ heatmapMax }} cykler/h)</small>
+            <div class="heatmap-legend mt-3 d-flex align-items-center gap-2 flex-wrap">
+              <small class="text-muted me-1">
+                <span class="hm-zero-box"></span> Ingen prod.
+              </small>
+              <small class="text-muted">Låg</small>
+              <div class="heatmap-legend-bar" [style.background]="getHeatmapLegendGradient()"></div>
+              <small class="text-muted">Hög</small>
+              <small class="text-muted ms-2">
+                {{ getHeatmapLegendLow() }} → {{ getHeatmapLegendHigh() }}
+              </small>
             </div>
           </div>
 
