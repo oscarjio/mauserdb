@@ -1,0 +1,125 @@
+<!-- ===== Produktionskalender ===== -->
+<div class="cal-page">
+
+  <!-- Header -->
+  <div class="cal-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+      <h2 class="cal-title mb-0">
+        <i class="fas fa-calendar-alt me-2 text-info"></i>Produktionskalender {{ selectedYear }}
+      </h2>
+      <small class="text-muted">GitHub-liknande heatmap — ett år av produktion på en skärm</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary" (click)="prevYear()" [disabled]="selectedYear <= 2023">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <select class="form-select form-select-sm year-select" (change)="onYearChange($event)">
+        <option *ngFor="let y of availableYears" [value]="y" [selected]="y === selectedYear">{{ y }}</option>
+      </select>
+      <button class="btn btn-sm btn-outline-secondary" (click)="nextYear()" [disabled]="selectedYear >= 2026">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Laddning -->
+  <div *ngIf="loading" class="text-center py-5">
+    <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+    <p class="text-muted mt-3">Hämtar kalenderdata för {{ selectedYear }}...</p>
+  </div>
+
+  <!-- Fel -->
+  <div *ngIf="!loading && error && days.length === 0" class="alert alert-warning">
+    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- KPI-rad -->
+    <div class="row g-3 mb-4" *ngIf="days.length > 0">
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon text-info"><i class="fas fa-boxes"></i></div>
+          <div class="kpi-label">Totalt {{ selectedYear }}</div>
+          <div class="kpi-value text-info">{{ totalIbc | number }}</div>
+          <div class="kpi-sub">IBC producerade</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon text-warning"><i class="fas fa-chart-bar"></i></div>
+          <div class="kpi-label">Snitt per dag</div>
+          <div class="kpi-value text-warning">{{ avgIbcPerDay }}</div>
+          <div class="kpi-sub">IBC / produktionsdag</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon text-success"><i class="fas fa-trophy"></i></div>
+          <div class="kpi-label">Bästa dag</div>
+          <div class="kpi-value text-success">{{ bestDayIbc }}</div>
+          <div class="kpi-sub">IBC — {{ formatBestDate() }}</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon text-success"><i class="fas fa-check-circle"></i></div>
+          <div class="kpi-label">Nådde målet</div>
+          <div class="kpi-value text-success">{{ daysOnTargetPct }}%</div>
+          <div class="kpi-sub">{{ daysOnTarget }} av {{ totalProductionDays }} dagar (≥95%)</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Ingen data -->
+    <div *ngIf="days.length === 0 && !error" class="text-center py-5 text-muted">
+      <i class="fas fa-calendar-times fa-2x mb-3"></i>
+      <p>Ingen produktionsdata registrerad för {{ selectedYear }}.</p>
+    </div>
+
+    <!-- Legender -->
+    <div class="legend-row mb-3 d-flex flex-wrap align-items-center gap-3">
+      <span class="legend-label">Förklaring:</span>
+      <span class="legend-item"><span class="legend-dot cell-empty"></span> Ingen data</span>
+      <span class="legend-item"><span class="legend-dot cell-red"></span> &lt;60%</span>
+      <span class="legend-item"><span class="legend-dot cell-orange"></span> 60–79%</span>
+      <span class="legend-item"><span class="legend-dot cell-yellow"></span> 80–94%</span>
+      <span class="legend-item"><span class="legend-dot cell-green"></span> ≥95%</span>
+      <span class="legend-item"><span class="legend-dot cell-superday"></span> ≥110% Superdag!</span>
+    </div>
+
+    <!-- Veckodagar-header -->
+    <div class="weekday-header mb-1">
+      <span>M</span><span>T</span><span>O</span><span>T</span><span>F</span><span>L</span><span>S</span>
+    </div>
+
+    <!-- Kalender-grid: 12 månadsblock -->
+    <div class="calendar-grid">
+      <div class="month-block" *ngFor="let mb of monthBlocks">
+        <div class="month-name">{{ mb.monthName }}</div>
+        <div class="month-weeks">
+          <div class="week-row" *ngFor="let week of mb.weeks; let wi = index">
+            <div
+              class="day-cell"
+              *ngFor="let cell of week.cells; let di = index"
+              [ngClass]="getCellColorClass(cell)"
+              [title]="getTooltip(cell, mb.month, wi, di)"
+            >
+              <span class="day-num" *ngIf="cell">{{ getDayNum(cell.date) }}</span>
+              <span class="day-num empty-num" *ngIf="!cell">
+                {{ getCellDate(mb.month, wi, di) ? getDayNum(getCellDate(mb.month, wi, di)) : '' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>

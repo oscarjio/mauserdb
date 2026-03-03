@@ -30,6 +30,24 @@
     <p class="text-muted mt-3">Hämtar produktionsdata...</p>
   </div>
 
+  <!-- ---- Alert-sektion ---- -->
+  <ng-container *ngIf="!loading && dashData && alerts.length > 0">
+    <div class="alerts-container mb-4">
+      <div
+        *ngFor="let alert of alerts"
+        class="alert-banner d-print-none"
+        [class.alert-danger-banner]="alert.type === 'danger'"
+        [class.alert-warning-banner]="alert.type === 'warning'"
+      >
+        <i class="fas fa-exclamation-triangle alert-icon"></i>
+        <div class="alert-text">
+          <strong class="alert-message">{{ alert.message }}</strong>
+          <span class="alert-detail">: {{ alert.detail }}</span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
   <ng-container *ngIf="!loading && dashData">
 
     <!-- ============================================================

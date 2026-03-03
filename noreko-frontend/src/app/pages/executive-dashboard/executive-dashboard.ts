@@ -27,6 +27,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   dashData: ExecDashboardResponse['data'] | null = null;
   lastRefresh: Date = new Date();
 
+  alerts: { type: 'danger' | 'warning' | 'info'; message: string; detail: string }[] = [];
+
   private pollInterval: any;
   private dataSub: Subscription | null = null;
   private barChart: Chart | null = null;
@@ -69,6 +71,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           if (res?.success && res.data) {
             this.dashData = res.data;
             this.lastRefresh = new Date();
+            this.computeAlerts();
             clearTimeout(this.barChartTimer);
             this.barChartTimer = setTimeout(() => {
               if (!this.destroy$.closed) this.buildBarChart();
@@ -82,6 +85,46 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           this.isFetching = false;
         }
       });
+  }
+
+  // ---- Alert-beräkning ----
+
+  private computeAlerts(): void {
+    this.alerts = [];
+    if (!this.dashData) return;
+
+    const oee  = this.dashData.today?.oee_today ?? 0;
+    const ibc  = this.dashData.today?.ibc ?? 0;
+    const goal = this.dashData.today?.target ?? 0;
+    const pct  = goal > 0 ? (ibc / goal * 100) : 100;
+
+    if (oee < 70) {
+      this.alerts.push({
+        type: 'danger',
+        message: 'OEE under kritisk nivå',
+        detail: `OEE är ${oee.toFixed(1)}% — målet är ≥70%. Kontrollera stopptider och maskinprestanda.`
+      });
+    } else if (oee < 80) {
+      this.alerts.push({
+        type: 'warning',
+        message: 'OEE under målnivå',
+        detail: `OEE är ${oee.toFixed(1)}% — normalt ≥80%. Håll koll på produktionstakten.`
+      });
+    }
+
+    if (pct < 60) {
+      this.alerts.push({
+        type: 'danger',
+        message: 'Produktion kraftigt under mål',
+        detail: `Endast ${ibc} IBC av ${goal} planerade (${pct.toFixed(0)}%). Åtgärd krävs.`
+      });
+    } else if (pct < 80) {
+      this.alerts.push({
+        type: 'warning',
+        message: 'Produktion under mål',
+        detail: `${ibc} IBC av ${goal} planerade (${pct.toFixed(0)}%). Håll ögonen på takten.`
+      });
+    }
   }
 
   // ---- Status helpers ----

@@ -1,0 +1,215 @@
+/* ============================================================
+   PRODUKTIONSKALENDER — GitHub-liknande heatmap
+   ============================================================ */
+
+.cal-page {
+  padding: 1.5rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* --- Header --- */
+.cal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.year-select {
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+  min-width: 90px;
+}
+.year-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* --- KPI-kort --- */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 14px;
+  padding: 1.2rem;
+  text-align: center;
+  border: 1px solid #3a4a61;
+  height: 100%;
+}
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 0.4rem;
+  opacity: 0.85;
+}
+.kpi-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-bottom: 0.25rem;
+}
+.kpi-value {
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.kpi-sub {
+  font-size: 0.68rem;
+  color: #718096;
+  margin-top: 0.3rem;
+}
+
+/* --- Legender --- */
+.legend-row {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+.legend-label {
+  font-weight: 600;
+  color: #718096;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* --- Veckodagar-header --- */
+.weekday-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  max-width: 140px;
+  gap: 2px;
+  margin-bottom: 4px;
+  display: none; /* Döljs på desktop — visas per månad om man vill */
+}
+.weekday-header span {
+  font-size: 0.6rem;
+  color: #4a5568;
+  text-align: center;
+}
+
+/* --- Kalender-grid --- */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .calendar-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .calendar-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* --- Månadsblock --- */
+.month-block {
+  min-width: 0;
+}
+.month-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+
+/* --- Veckodagar-header per månad --- */
+.month-block::before {
+  content: 'M  T  O  T  F  L  S';
+  display: block;
+  font-size: 0.52rem;
+  color: #4a5568;
+  letter-spacing: 4px;
+  margin-bottom: 3px;
+  font-family: monospace;
+}
+
+/* --- Veckors grid --- */
+.month-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+/* --- Dagcell --- */
+.day-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  cursor: default;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.1s, filter 0.1s;
+  min-width: 0;
+  min-height: 14px;
+}
+.day-cell:hover {
+  transform: scale(1.4);
+  z-index: 10;
+  filter: brightness(1.2);
+}
+
+.day-num {
+  font-size: 0.38rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  pointer-events: none;
+  user-select: none;
+}
+.empty-num {
+  color: rgba(255,255,255,0.15);
+}
+
+/* --- Färgkodning --- */
+.cell-empty {
+  background: #2d3748;
+  border: 1px solid #3a4a61;
+}
+.cell-red {
+  background: #e53e3e;
+  border: 1px solid #c53030;
+}
+.cell-orange {
+  background: #dd6b20;
+  border: 1px solid #c05621;
+}
+.cell-yellow {
+  background: #d69e2e;
+  border: 1px solid #b7791f;
+}
+.cell-green {
+  background: #38a169;
+  border: 1px solid #276749;
+}
+.cell-superday {
+  background: #48bb78;
+  border: 2px solid #9ae6b4;
+  box-shadow: 0 0 6px rgba(72,187,120,0.5);
+}
+
+/* --- Responsiv: vid väldigt liten skärm — göm dagsiffror --- */
+@media (max-width: 400px) {
+  .day-num { display: none; }
+  .day-cell { min-height: 12px; }
+}

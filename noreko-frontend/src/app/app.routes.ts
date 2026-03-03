@@ -42,6 +42,7 @@ export const routes: Routes = [
       { path: 'rebotling/bonus', canActivate: [adminGuard], loadComponent: () => import('./pages/bonus-dashboard/bonus-dashboard').then(m => m.BonusDashboardPage) },
       { path: 'rebotling/bonus-admin', canActivate: [adminGuard], loadComponent: () => import('./pages/bonus-admin/bonus-admin').then(m => m.BonusAdminPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
+      { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
       { path: 'tvattlinje/admin', canActivate: [adminGuard], loadComponent: () => import('./pages/tvattlinje-admin/tvattlinje-admin').then(m => m.TvattlinjeAdminPage) },
       { path: 'admin/users', canActivate: [adminGuard], loadComponent: () => import('./pages/users/users').then(m => m.UsersPage) },
       { path: 'admin/create-user', canActivate: [adminGuard], loadComponent: () => import('./pages/create-user/create-user').then(m => m.CreateUserPage) },

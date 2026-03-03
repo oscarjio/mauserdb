@@ -17,6 +17,65 @@
 }
 
 /* ============================================================
+   ALERT-SEKTION
+   ============================================================ */
+.alerts-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.4rem;
+  border-radius: 12px;
+  border-left: 5px solid transparent;
+  animation: alertSlideIn 0.3s ease;
+}
+
+@keyframes alertSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.alert-danger-banner {
+  background: rgba(229, 62, 62, 0.15);
+  border-left-color: #e53e3e;
+  color: #feb2b2;
+}
+.alert-warning-banner {
+  background: rgba(221, 107, 32, 0.15);
+  border-left-color: #dd6b20;
+  color: #fbd38d;
+}
+
+.alert-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.alert-danger-banner .alert-icon  { color: #fc8181; }
+.alert-warning-banner .alert-icon { color: #f6ad55; }
+
+.alert-text {
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.alert-message {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.alert-danger-banner .alert-message  { color: #fc8181; }
+.alert-warning-banner .alert-message { color: #f6ad55; }
+
+.alert-detail {
+  font-size: 0.88rem;
+  opacity: 0.9;
+}
+
+/* ============================================================
    SEKTION 1 — IDAG-KORT (stor status-panel)
    ============================================================ */
 .section-card {
