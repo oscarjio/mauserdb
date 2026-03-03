@@ -150,7 +150,7 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 ### 🟢 Lägre prioritet
 - [x] **Notifikation/varning i admin**: Levererat `8404b29` — röd banner (>15 min), gul (5–15 min), plc-blink animation. Använder befintlig 30s polling utan extra HTTP-anrop.
 - [ ] **Tvättlinje/Såglinje förberedelsearbete**: Sätt upp grundstruktur för när de linjerna startar
-- [~] **Audit-log förbättring**: Pågår (adb27cefffd74b9aa) — filtrering, färgkodade badges, CSV-export
+- [x] **Audit-log förbättring**: Levererat `e72763c` — fritext+datumfilter med debounce, åtgärds-dropdown (dynamisk från DB), färgkodade badges (grön/blå/röd/orange/grå), förbättrad paginering med ellipsis, CSV-export av hela filtrerade vyn. Stoppage-log: snitt-stopplängd KPI, veckojämförelse vs förra veckan, 14-dagars bar chart, weekly_summary endpoint.
 
 ---
 
@@ -170,6 +170,7 @@ Tre agenter startades parallellt:
 - **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål mån–sön i admin, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
 - `ef505e6` — **Operatörstrend-agent**: My-bonus veckoutvecklingsgraf (8v), lagsjämförelse. Production-analysis stoppanalys-flik med tidslinje + 14-dagars chart. Ny endpoint weekly_history i BonusController.
 - `fb05cce` — **VD-dashboard-agent**: Executive dashboard ombyggd — SVG-cirkulär progress, prognos, OEE-trendpil vs igår, 7-dagars bar chart (grön/röd), veckokort, operatörstabell. Ny endpoint exec-dashboard (ett anrop för allt).
+- `e72763c` — **Audit+stoppage-agent**: Audit-log: 4 filter (fritext/datum/åtgärd), färgkodade badges, bättre paginering, CSV-export. Stoppage-log: snitt-stopplängd, veckojämförelse, 14-dagars chart, weekly_summary endpoint.
 - `8404b29` — **Skiftjämförelse-agent**: Sida-vid-sida KPI-jämförelse med diff-badges, operatörstabeller, shift-compare endpoint. Admin PLC-varningsbanner med blinkanimation vid >15min utan data.
 - `3a89898` — **Heatmap+mobil-agent**: Interaktiv heatmap-tooltip, KPI-toggle (IBC/h/Kvalitet%/OEE%), dynamisk färgskala+legend, noll-celler grå. my-bonus mobilanpassad (responsive 768px/480px, touch-targets 44px).
 - `92cbcb1` — **Bug hunt #1**: 8 buggar fixade — takeUntil-läckor i bonus-dashboard, timeout saknas i my-bonus HTTP-anrop, isFetching-guard i rebotling-admin, prematur loading-reset i production-analysis, BonusController sendError() HTTP 200 vid fel, FILTER_SANITIZE_STRING deprecated PHP 8.2.
