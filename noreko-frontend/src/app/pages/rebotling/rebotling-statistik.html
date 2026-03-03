@@ -190,6 +190,193 @@
       </div>
     </div>
 
+    <!-- ======== SNABBLÄNKAR FÖR NYA PANELER ======== -->
+    <div class="row mb-3 g-2" *ngIf="!loading">
+      <div class="col-auto">
+        <button class="btn btn-sm btn-outline-info" (click)="loadWeekComparison()" [disabled]="weekComparisonLoading">
+          <i class="fas fa-calendar-week me-1"></i>Veckojämförelse
+          <span *ngIf="weekComparisonLoading" class="ms-1"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-sm btn-outline-warning" (click)="loadPrediktion()" [disabled]="prediktionLoading">
+          <i class="fas fa-bullseye me-1"></i>Prognos idag
+          <span *ngIf="prediktionLoading" class="ms-1"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-sm btn-outline-success" (click)="loadOEE()" [disabled]="oeeLoading">
+          <i class="fas fa-tachometer-alt me-1"></i>OEE Deep-dive
+          <span *ngIf="oeeLoading" class="ms-1"><i class="fas fa-spinner fa-spin"></i></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ======== VECKOJÄMFÖRELSE-PANEL ======== -->
+    <div class="row mb-4" *ngIf="weekComparisonLoaded && !weekComparisonLoading">
+      <div class="col-12">
+        <div class="dark-card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <h5 class="mb-0"><i class="fas fa-calendar-week me-2 text-info"></i>Veckojämförelse — IBC per dag</h5>
+              <small class="text-muted">Denna vecka vs förra veckan</small>
+            </div>
+            <div class="d-flex gap-3">
+              <div class="text-center">
+                <div class="small text-muted">Denna vecka</div>
+                <strong class="text-info">{{ getWeekComparisonTotal(weekComparisonThisWeek) }} IBC</strong>
+              </div>
+              <div class="text-center">
+                <div class="small text-muted">Förra veckan</div>
+                <strong style="color:#a0aec0">{{ getWeekComparisonTotal(weekComparisonPrevWeek) }} IBC</strong>
+              </div>
+              <div class="text-center">
+                <div class="small text-muted">Skillnad</div>
+                <strong [class.text-success]="getWeekComparisonDiff() >= 0" [class.text-danger]="getWeekComparisonDiff() < 0">
+                  {{ getWeekComparisonDiff() >= 0 ? '+' : '' }}{{ getWeekComparisonDiff() }} IBC
+                  ({{ getWeekComparisonDiffPct() >= 0 ? '+' : '' }}{{ getWeekComparisonDiffPct() }}%)
+                </strong>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div style="height: 220px; position:relative;">
+              <canvas id="weekComparisonChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== SKIFTMÅLSPREDIKTOR ======== -->
+    <div class="row mb-4" *ngIf="prediktionLoaded && !prediktionLoading">
+      <div class="col-12">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-bullseye me-2 text-warning"></i>Prognos för slutet av dagen</h5>
+            <small class="text-muted">Baserat på nuvarande produktionstakt ({{ prediktionRunningHours }}h körning sedan kl 06:00)</small>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center g-4">
+              <div class="col-md-4 text-center">
+                <div class="small text-muted mb-1">IBC gjorda idag</div>
+                <div style="font-size:2.2rem;font-weight:800;color:#e2e8f0">{{ prediktionIBC }}</div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div class="small text-muted mb-1">Prognos vid dagens slut</div>
+                <div style="font-size:2.2rem;font-weight:800;" [ngClass]="getPrediktionTextClass()">{{ prediktionPrognos }}</div>
+                <div class="small text-muted">{{ prediktionRemainingHours }}h kvar av produktionsdagen</div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div class="small text-muted mb-1">Dagsmål</div>
+                <div style="font-size:2.2rem;font-weight:800;color:#e2e8f0">{{ prediktionMal }}</div>
+              </div>
+            </div>
+            <div class="mt-4">
+              <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>Prognos {{ prediktionPrognos }} IBC av mål {{ prediktionMal }}</span>
+                <span [ngClass]="getPrediktionTextClass()">{{ prediktionPct }}%</span>
+              </div>
+              <div class="progress" style="height:18px;border-radius:9px;background:rgba(255,255,255,0.07)">
+                <div class="progress-bar" [ngClass]="getPrediktionClass()"
+                     [style.width.%]="prediktionPct > 100 ? 100 : prediktionPct"
+                     style="border-radius:9px;transition:width .5s ease;font-size:.8rem;font-weight:700">
+                  {{ prediktionPct }}%
+                </div>
+              </div>
+              <div class="small text-muted mt-2 text-center" *ngIf="prediktionPrognos > 0 && prediktionMal > 0">
+                <span *ngIf="prediktionPrognos >= prediktionMal" class="text-success">
+                  <i class="fas fa-check-circle me-1"></i>Prognosen pekar mot att nå dagsmålet!
+                </span>
+                <span *ngIf="prediktionPrognos < prediktionMal" class="text-warning">
+                  <i class="fas fa-exclamation-triangle me-1"></i>
+                  {{ prediktionMal - prediktionPrognos }} IBC saknas för att nå dagsmålet
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== OEE DEEP-DIVE ======== -->
+    <div class="row mb-4" *ngIf="oeeLoaded && !oeeLoading">
+      <div class="col-12">
+        <div class="dark-card">
+          <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2 text-success"></i>OEE Deep-dive — Senaste 30 dagarna</h5>
+            <small class="text-muted">Overall Equipment Effectiveness = Tillgänglighet × Prestanda × Kvalitet</small>
+          </div>
+          <div class="card-body">
+            <!-- OEE Breakdown bars -->
+            <div class="row g-3 mb-4" *ngIf="oeeData">
+              <div class="col-12">
+                <h6 style="color:#718096;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px" class="mb-3">Senaste månaden — Breakdown</h6>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="small text-muted mb-2">OEE Total</div>
+                <div style="font-size:2.4rem;font-weight:800;"
+                     [class.text-success]="oeeData.oee >= 75"
+                     [class.text-warning]="oeeData.oee >= 50 && oeeData.oee < 75"
+                     [class.text-danger]="oeeData.oee < 50">
+                  {{ oeeData.oee }}%
+                </div>
+                <div class="small text-muted">Världsklass: {{ oeeData.world_class_benchmark }}%</div>
+              </div>
+              <div class="col-md-9">
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted"><i class="fas fa-check-circle me-1 text-success"></i>Tillgänglighet</span>
+                    <span class="fw-bold text-success">{{ oeeData.availability }}%</span>
+                  </div>
+                  <div class="progress" style="height:14px;background:rgba(255,255,255,0.07);border-radius:7px">
+                    <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.availability)"
+                         [style.width.%]="getOEEBarWidth(oeeData.availability)"
+                         style="border-radius:7px"></div>
+                  </div>
+                  <div class="small text-muted mt-1">Körtid: {{ oeeData.operating_hours }}h / Planerad tid: {{ oeeData.planned_hours }}h</div>
+                </div>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted"><i class="fas fa-tachometer-alt me-1 text-warning"></i>Prestanda</span>
+                    <span class="fw-bold text-warning">{{ oeeData.performance }}%</span>
+                  </div>
+                  <div class="progress" style="height:14px;background:rgba(255,255,255,0.07);border-radius:7px">
+                    <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.performance)"
+                         [style.width.%]="getOEEBarWidth(oeeData.performance)"
+                         style="border-radius:7px"></div>
+                  </div>
+                  <div class="small text-muted mt-1">Faktisk takt vs ideal takt (15 IBC/h)</div>
+                </div>
+                <div class="mb-2">
+                  <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted"><i class="fas fa-star me-1 text-info"></i>Kvalitet</span>
+                    <span class="fw-bold text-info">{{ oeeData.quality }}%</span>
+                  </div>
+                  <div class="progress" style="height:14px;background:rgba(255,255,255,0.07);border-radius:7px">
+                    <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.quality)"
+                         [style.width.%]="getOEEBarWidth(oeeData.quality)"
+                         style="border-radius:7px"></div>
+                  </div>
+                  <div class="small text-muted mt-1">{{ oeeData.good_ibc }} godkända / {{ oeeData.total_ibc }} totala IBC</div>
+                </div>
+              </div>
+            </div>
+            <!-- OEE Trendgraf -->
+            <div *ngIf="oeeTrendDays.length > 0">
+              <h6 style="color:#718096;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px" class="mb-2">OEE-trend per dag (senaste 30 dagar)</h6>
+              <div style="height:220px;position:relative;">
+                <canvas id="oeeTrendChart"></canvas>
+              </div>
+            </div>
+            <div *ngIf="oeeTrendDays.length === 0 && oeeLoaded" class="text-center text-muted py-3">
+              <i class="fas fa-info-circle me-2"></i>Ingen OEE-trenddata tillgänglig (OEE-kolumner saknas i DB)
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div class="text-center py-5" *ngIf="loading">
       <div class="spinner-border text-primary" role="status">

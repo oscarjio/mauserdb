@@ -10,10 +10,16 @@ class RebotlingController {
     public function handle() {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $action = $_GET['run'] ?? '';
-        
+
         if ($method === 'GET') {
             if ($action === 'admin-settings') {
                 $this->getAdminSettings();
+            } elseif ($action === 'weekday-goals') {
+                $this->getWeekdayGoals();
+            } elseif ($action === 'shift-times') {
+                $this->getShiftTimes();
+            } elseif ($action === 'system-status') {
+                $this->getSystemStatus();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
             } elseif ($action === 'rast') {
@@ -30,20 +36,34 @@ class RebotlingController {
                 $this->getProductionReport();
             } elseif ($action === 'heatmap') {
                 $this->getHeatmap();
+            } elseif ($action === 'week-comparison') {
+                $this->getWeekComparison();
+            } elseif ($action === 'oee-trend') {
+                $this->getOEETrend();
+            } elseif ($action === 'best-shifts') {
+                $this->getBestShifts();
             } else {
                 $this->getLiveStats();
             }
             return;
         }
 
-        if ($method === 'POST' && $action === 'admin-settings') {
+        if ($method === 'POST') {
             session_start();
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
                 return;
             }
-            $this->saveAdminSettings();
+            if ($action === 'admin-settings') {
+                $this->saveAdminSettings();
+            } elseif ($action === 'weekday-goals') {
+                $this->saveWeekdayGoals();
+            } elseif ($action === 'shift-times') {
+                $this->saveShiftTimes();
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
+            }
             return;
         }
 
@@ -1116,6 +1136,189 @@ class RebotlingController {
     }
 
     /**
+     * GET ?action=rebotling&run=week-comparison
+     * Returnerar IBC/dag för denna vecka (mån–idag) + förra veckan (14 dagar).
+     * Används av Veckojämförelse-panelen i statistiksidan.
+     */
+    private function getWeekComparison() {
+        try {
+            // Hämta daglig IBC-räkning för de senaste 14 dagarna
+            // ibc_ok är kumulativt per skift → MAX per skiftraknare per dag, sedan SUM per dag
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    SUM(shift_ibc_ok) AS ibc_ok,
+                    SUM(cykler)       AS cykler
+                FROM (
+                    SELECT
+                        DATE(datum)           AS dag,
+                        skiftraknare,
+                        COUNT(*)              AS cykler,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Bygg karta dag -> data
+            $map = [];
+            foreach ($rows as $r) {
+                $map[$r['dag']] = ['ibc_ok' => (int)$r['ibc_ok'], 'cykler' => (int)$r['cykler']];
+            }
+
+            // Generera fullständig 14-dagars lista (idag + 13 dagar bakåt)
+            $days = [];
+            for ($i = 13; $i >= 0; $i--) {
+                $date = date('Y-m-d', strtotime("-{$i} days"));
+                $days[] = [
+                    'date'   => $date,
+                    'ibc_ok' => $map[$date]['ibc_ok'] ?? 0,
+                    'cykler' => $map[$date]['cykler'] ?? 0
+                ];
+            }
+
+            // Dela upp i denna vecka (dag 7-13, index 7-13) och förra (dag 0-6, index 0-6)
+            $prevWeek = array_slice($days, 0, 7);
+            $thisWeek = array_slice($days, 7, 7);
+
+            echo json_encode([
+                'success'   => true,
+                'data'      => [
+                    'this_week' => $thisWeek,
+                    'prev_week' => $prevWeek,
+                    'all_days'  => $days
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getWeekComparison: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckojämförelsedata']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=oee-trend&days=30
+     * OEE-trend senaste N dagarna (Availability, Performance, Quality, OEE per dag).
+     */
+    private function getOEETrend() {
+        $days = min(90, max(7, intval($_GET['days'] ?? 30)));
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    dag,
+                    SUM(shift_ibc_ok)    AS ibc_ok,
+                    SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                    SUM(shift_runtime)   AS runtime_min,
+                    SUM(shift_rast)      AS rast_min
+                FROM (
+                    SELECT
+                        DATE(datum)           AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmt->execute([$days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $idealRatePerMin = 15.0 / 60.0;
+            $daily = [];
+            foreach ($rows as $r) {
+                $ibcOk    = (float)$r['ibc_ok'];
+                $ibcEjOk  = (float)$r['ibc_ej_ok'];
+                $totalIBC = $ibcOk + $ibcEjOk;
+                $opMin    = max((float)$r['runtime_min'], 1);
+                $planMin  = max($opMin + (float)$r['rast_min'], 1);
+
+                $avail = min($opMin / $planMin, 1.0);
+                $perf  = min(($totalIBC / $opMin) / $idealRatePerMin, 1.0);
+                $qual  = $totalIBC > 0 ? $ibcOk / $totalIBC : 0;
+                $oee   = $avail * $perf * $qual;
+
+                $daily[] = [
+                    'date'         => $r['dag'],
+                    'oee'          => round($oee   * 100, 1),
+                    'availability' => round($avail  * 100, 1),
+                    'performance'  => round($perf   * 100, 1),
+                    'quality'      => round($qual   * 100, 1),
+                    'ibc_ok'       => (int)$ibcOk
+                ];
+            }
+
+            echo json_encode(['success' => true, 'data' => $daily]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getOEETrend: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-trend']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=best-shifts&limit=10
+     * De historiskt bästa skiften sorterade på ibc_ok DESC.
+     */
+    private function getBestShifts() {
+        $limit = min(50, max(5, intval($_GET['limit'] ?? 10)));
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    skiftraknare,
+                    DATE(MIN(datum)) AS dag,
+                    COUNT(*)         AS cykler,
+                    MAX(COALESCE(ibc_ok,   0)) AS ibc_ok,
+                    MAX(COALESCE(ibc_ej_ok,0)) AS ibc_ej_ok,
+                    MAX(COALESCE(runtime_plc,0)) AS runtime_min,
+                    ROUND(AVG(NULLIF(produktion_procent,0)), 1) AS avg_kvalitet
+                FROM rebotling_ibc
+                WHERE skiftraknare IS NOT NULL
+                  AND ibc_ok IS NOT NULL
+                GROUP BY skiftraknare
+                HAVING ibc_ok > 0
+                ORDER BY ibc_ok DESC
+                LIMIT ?
+            ");
+            $stmt->execute([$limit]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $result = [];
+            foreach ($rows as $i => $r) {
+                $ibcOk   = (int)$r['ibc_ok'];
+                $ibcEjOk = (int)$r['ibc_ej_ok'];
+                $total   = $ibcOk + $ibcEjOk;
+                $result[] = [
+                    'rank'        => $i + 1,
+                    'skiftraknare' => (int)$r['skiftraknare'],
+                    'dag'         => $r['dag'],
+                    'cykler'      => (int)$r['cykler'],
+                    'ibc_ok'      => $ibcOk,
+                    'ibc_ej_ok'   => $ibcEjOk,
+                    'kvalitet_pct'=> $total > 0 ? round($ibcOk / $total * 100, 1) : 0,
+                    'runtime_h'   => round((float)$r['runtime_min'] / 60, 1),
+                    'avg_kvalitet' => (float)$r['avg_kvalitet']
+                ];
+            }
+
+            echo json_encode(['success' => true, 'data' => $result]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getBestShifts: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bästa skift']);
+        }
+    }
+
+    /**
      * GET ?action=rebotling&run=heatmap&days=30
      * Returnerar produktionsintensitet per timme och dag som
      * { date: "YYYY-MM-DD", hour: 0-23, count: N }[]
@@ -1149,6 +1352,199 @@ class RebotlingController {
             error_log('RebotlingController getHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta heatmap-data']);
+        }
+    }
+
+    // =========================================================
+    // Veckodagsmål
+    // =========================================================
+
+    private function ensureWeekdayGoalsTable() {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS `rebotling_weekday_goals` (
+                `id`          INT         NOT NULL AUTO_INCREMENT,
+                `weekday`     TINYINT     NOT NULL COMMENT '1=Måndag ... 7=Söndag (ISO)',
+                `daily_goal`  INT         NOT NULL DEFAULT 1000,
+                `label`       VARCHAR(20) NOT NULL DEFAULT '',
+                `updated_at`  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_weekday` (`weekday`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        // Standardvärden
+        $defaults = [
+            [1, 900,  'Måndag'],
+            [2, 1000, 'Tisdag'],
+            [3, 1000, 'Onsdag'],
+            [4, 1000, 'Torsdag'],
+            [5, 950,  'Fredag'],
+            [6, 0,    'Lördag'],
+            [7, 0,    'Söndag'],
+        ];
+        foreach ($defaults as [$wd, $goal, $lbl]) {
+            $this->pdo->exec("INSERT IGNORE INTO rebotling_weekday_goals (weekday, daily_goal, label) VALUES ($wd, $goal, '$lbl')");
+        }
+    }
+
+    private function getWeekdayGoals() {
+        try {
+            $this->ensureWeekdayGoalsTable();
+            $rows = $this->pdo->query("SELECT weekday, daily_goal, label FROM rebotling_weekday_goals ORDER BY weekday")->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (Exception $e) {
+            error_log('getWeekdayGoals: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål']);
+        }
+    }
+
+    private function saveWeekdayGoals() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $goals = $data['goals'] ?? [];
+        if (!is_array($goals)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            return;
+        }
+        try {
+            $this->ensureWeekdayGoalsTable();
+            $stmt = $this->pdo->prepare("UPDATE rebotling_weekday_goals SET daily_goal = ? WHERE weekday = ?");
+            foreach ($goals as $item) {
+                $wd   = intval($item['weekday'] ?? 0);
+                $goal = max(0, intval($item['daily_goal'] ?? 0));
+                if ($wd >= 1 && $wd <= 7) {
+                    $stmt->execute([$goal, $wd]);
+                }
+            }
+            echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade']);
+        } catch (Exception $e) {
+            error_log('saveWeekdayGoals: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål']);
+        }
+    }
+
+    // =========================================================
+    // Skifttider
+    // =========================================================
+
+    private function ensureShiftTimesTable() {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS `rebotling_shift_times` (
+                `id`         INT         NOT NULL AUTO_INCREMENT,
+                `shift_name` VARCHAR(50) NOT NULL,
+                `start_time` TIME        NOT NULL DEFAULT '06:00:00',
+                `end_time`   TIME        NOT NULL DEFAULT '14:00:00',
+                `enabled`    TINYINT(1)  NOT NULL DEFAULT 1,
+                `updated_at` TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `uq_shift_name` (`shift_name`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $defaults = [
+            ['förmiddag',   '06:00:00', '14:00:00', 1],
+            ['eftermiddag', '14:00:00', '22:00:00', 1],
+            ['natt',        '22:00:00', '06:00:00', 0],
+        ];
+        foreach ($defaults as [$name, $start, $end, $enabled]) {
+            $this->pdo->exec("INSERT IGNORE INTO rebotling_shift_times (shift_name, start_time, end_time, enabled) VALUES ('$name', '$start', '$end', $enabled)");
+        }
+    }
+
+    private function getShiftTimes() {
+        try {
+            $this->ensureShiftTimesTable();
+            $rows = $this->pdo->query("SELECT shift_name, start_time, end_time, enabled FROM rebotling_shift_times ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (Exception $e) {
+            error_log('getShiftTimes: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skifttider']);
+        }
+    }
+
+    private function saveShiftTimes() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $shifts = $data['shifts'] ?? [];
+        if (!is_array($shifts)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            return;
+        }
+        try {
+            $this->ensureShiftTimesTable();
+            $stmt = $this->pdo->prepare("UPDATE rebotling_shift_times SET start_time = ?, end_time = ?, enabled = ? WHERE shift_name = ?");
+            foreach ($shifts as $s) {
+                $name    = $s['shift_name'] ?? '';
+                $start   = $s['start_time'] ?? '06:00:00';
+                $end     = $s['end_time']   ?? '14:00:00';
+                $enabled = isset($s['enabled']) ? ($s['enabled'] ? 1 : 0) : 1;
+                // Validera tidsformat
+                if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $start)) continue;
+                if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $end))   continue;
+                if (in_array($name, ['förmiddag', 'eftermiddag', 'natt'])) {
+                    $stmt->execute([$start, $end, $enabled, $name]);
+                }
+            }
+            echo json_encode(['success' => true, 'message' => 'Skifttider sparade']);
+        } catch (Exception $e) {
+            error_log('saveShiftTimes: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara skifttider']);
+        }
+    }
+
+    // =========================================================
+    // Systemstatus
+    // =========================================================
+
+    private function getSystemStatus() {
+        try {
+            // Senaste PLC-ping (senaste raden i rebotling_ibc eller rebotling_onoff)
+            $lastPlcPing  = null;
+            $lastLopnummer = null;
+            try {
+                $row = $this->pdo->query("SELECT MAX(datum) as last_ping FROM rebotling_ibc")->fetch(PDO::FETCH_ASSOC);
+                $lastPlcPing = $row ? $row['last_ping'] : null;
+            } catch (Exception $e) { /* ignorera */ }
+
+            try {
+                $row = $this->pdo->query("SELECT lopnummer FROM rebotling_lopnummer_current WHERE id = 1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                $lastLopnummer = $row ? (int)$row['lopnummer'] : null;
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Databas OK
+            $dbOk = true;
+            try {
+                $this->pdo->query("SELECT 1");
+            } catch (Exception $e) {
+                $dbOk = false;
+            }
+
+            // Räkna skiftrapporter idag
+            $reportsToday = 0;
+            try {
+                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_skiftrapport WHERE DATE(created_at) = CURDATE()")->fetchColumn();
+                $reportsToday = (int)$row;
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Totalt IBC idag från PLC
+            $ibcToday = 0;
+            try {
+                $row = $this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
+                $ibcToday = (int)$row;
+            } catch (Exception $e) { /* ignorera */ }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'last_plc_ping'   => $lastPlcPing,
+                    'last_lopnummer'  => $lastLopnummer,
+                    'db_ok'           => $dbOk,
+                    'reports_today'   => $reportsToday,
+                    'ibc_today'       => $ibcToday,
+                    'server_time'     => date('Y-m-d H:i:s')
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getSystemStatus: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus']);
         }
     }
 }

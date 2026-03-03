@@ -50,6 +50,11 @@
         <i class="fas fa-layer-group me-1"></i>Skiftöversikt
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'bestshifts'" (click)="setTab('bestshifts')">
+        <i class="fas fa-trophy me-1"></i>Bästa skift
+      </a>
+    </li>
   </ul>
 
   <!-- ============ TAB 1: OPERATÖRSJÄMFÖRELSE ============ -->
@@ -366,6 +371,91 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ============ TAB 5: BÄSTA SKIFT ============ -->
+  <div *ngIf="activeTab === 'bestshifts'">
+
+    <!-- Limit selector -->
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <span class="text-muted small">Visa topp:</span>
+      <select class="form-select form-select-sm" style="width:auto;background:#1e2535;color:#e2e8f0;border-color:#2d3748"
+              [(ngModel)]="bestShiftsLimit" (change)="loadBestShifts()">
+        <option [value]="5">5 skift</option>
+        <option [value]="10">10 skift</option>
+        <option [value]="20">20 skift</option>
+        <option [value]="50">50 skift</option>
+      </select>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="bestShiftsLoading" class="text-center py-4">
+      <i class="fas fa-spinner fa-spin fa-2x text-warning"></i>
+      <p class="text-muted mt-2">Laddar historik...</p>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="card mb-4" *ngIf="!bestShiftsLoading && bestShifts.length > 0">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-trophy me-2 text-warning"></i>Topp {{ bestShiftsLimit }} — Bästa skift historiskt</h5>
+        <small class="text-muted">Sorterat på IBC OK, med kvalitet% som linjediagram</small>
+      </div>
+      <div class="card-body">
+        <div class="chart-container" style="height: 340px;">
+          <canvas id="bestShiftsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card mb-4" *ngIf="!bestShiftsLoading && bestShifts.length > 0">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Detaljlista</h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-dark table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Skift #</th>
+                <th>Datum</th>
+                <th>IBC OK</th>
+                <th>IBC Ej OK</th>
+                <th>Kvalitet %</th>
+                <th>Körtid (h)</th>
+                <th>Cykler</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of bestShifts">
+                <td>
+                  <i [class]="getBestShiftMedal(s.rank)" class="me-1"></i>
+                  <span *ngIf="s.rank > 3">{{ s.rank }}</span>
+                </td>
+                <td><strong>{{ s.skiftraknare }}</strong></td>
+                <td>{{ s.dag }}</td>
+                <td><strong class="text-success">{{ s.ibc_ok }}</strong></td>
+                <td class="text-danger">{{ s.ibc_ej_ok }}</td>
+                <td>
+                  <span [class.text-success]="s.kvalitet_pct >= 90"
+                        [class.text-warning]="s.kvalitet_pct >= 70 && s.kvalitet_pct < 90"
+                        [class.text-danger]="s.kvalitet_pct < 70">
+                    {{ s.kvalitet_pct }}%
+                  </span>
+                </td>
+                <td>{{ s.runtime_h }}</td>
+                <td>{{ s.cykler }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-muted text-center" *ngIf="!bestShiftsLoading && bestShifts.length === 0">
+      Ingen historisk skiftdata tillgänglig.
+    </p>
   </div>
 
 </div>

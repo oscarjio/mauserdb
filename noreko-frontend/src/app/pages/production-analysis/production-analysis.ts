@@ -5,7 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
-import { RebotlingService } from '../../services/rebotling.service';
+import { RebotlingService, BestShift } from '../../services/rebotling.service';
 import { catchError, of, timeout } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 
@@ -58,6 +58,12 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   allShifts: ShiftStats[] = [];
   expandedShift: number | null = null;
 
+  // Tab 5: Bästa skift (historik)
+  bestShifts: BestShift[] = [];
+  bestShiftsLoading = false;
+  bestShiftsLimit = 10;
+  private bestShiftsChart: Chart | null = null;
+
   // Charts
   private destroy$ = new Subject<void>();
   private rankingChart: Chart | null = null;
@@ -99,13 +105,14 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
 
   private destroyAllCharts() {
     [this.rankingChart, this.radarChart, this.dailyTrendChart,
-     this.weekdayChart, this.hourlyBarChart, this.bubbleChart].forEach(c => c?.destroy());
+     this.weekdayChart, this.hourlyBarChart, this.bubbleChart, this.bestShiftsChart].forEach(c => c?.destroy());
     this.rankingChart = null;
     this.radarChart = null;
     this.dailyTrendChart = null;
     this.weekdayChart = null;
     this.hourlyBarChart = null;
     this.bubbleChart = null;
+    this.bestShiftsChart = null;
   }
 
   setTab(tab: string) {
@@ -125,6 +132,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       case 'daily': this.loadDailyData(); break;
       case 'hourly': this.loadHourlyData(); break;
       case 'shifts': this.loadShiftData(); break;
+      case 'bestshifts': this.loadBestShifts(); break;
     }
   }
 
@@ -613,6 +621,89 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     if (!pos) return '-';
     const map: { [k: string]: string } = { '1': 'Tvättplats', '2': 'Kontroll', '3': 'Truck' };
     return map[pos] || pos;
+  }
+
+  // ======== TAB 5: BÄSTA SKIFT ========
+
+  loadBestShifts() {
+    this.bestShiftsLoading = true;
+    this.rebotlingService.getBestShifts(this.bestShiftsLimit).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(err => { this.error = 'Kunde inte ladda bästa skift'; this.bestShiftsLoading = false; return of(null); })
+    ).subscribe(res => {
+      if (res?.success && res.data) {
+        this.bestShifts = res.data;
+        clearTimeout(this.chartTimeout);
+        this.chartTimeout = setTimeout(() => {
+          if (!this.destroy$.closed) this.renderBestShiftsChart();
+        }, 100);
+      }
+      this.bestShiftsLoading = false;
+    });
+  }
+
+  private renderBestShiftsChart() {
+    if (this.bestShiftsChart) this.bestShiftsChart.destroy();
+    const canvas = document.getElementById('bestShiftsChart') as HTMLCanvasElement;
+    if (!canvas || !this.bestShifts.length) return;
+
+    const labels = this.bestShifts.map(s => `#${s.skiftraknare} (${s.dag})`);
+    const ibcValues = this.bestShifts.map(s => s.ibc_ok);
+    const kvalValues = this.bestShifts.map(s => s.kvalitet_pct);
+
+    this.bestShiftsChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC OK',
+            data: ibcValues,
+            backgroundColor: ibcValues.map((_, i) => i === 0 ? 'rgba(236,201,75,0.85)' : i <= 2 ? 'rgba(66,153,225,0.75)' : 'rgba(113,128,150,0.5)'),
+            borderRadius: 4,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Kvalitet %',
+            data: kvalValues,
+            type: 'line',
+            borderColor: '#48bb78',
+            backgroundColor: 'transparent',
+            pointBackgroundColor: '#48bb78',
+            pointRadius: 4,
+            tension: 0.3,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0' } },
+          tooltip: {
+            backgroundColor: 'rgba(20,20,30,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#ecc94b',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: { position: 'left', ticks: { color: '#718096' }, grid: { color: '#2d3748' }, beginAtZero: true, title: { display: true, text: 'IBC OK', color: '#718096' } },
+          y1: { position: 'right', ticks: { color: '#718096', callback: (v: any) => v + '%' }, grid: { display: false }, min: 0, max: 100, title: { display: true, text: 'Kvalitet %', color: '#718096' } }
+        }
+      }
+    });
+  }
+
+  getBestShiftMedal(rank: number): string {
+    if (rank === 1) return 'fas fa-medal text-warning';
+    if (rank === 2) return 'fas fa-medal text-secondary';
+    if (rank === 3) return 'fas fa-medal text-danger';
+    return 'fas fa-hashtag text-muted';
   }
 
   exportRankingCSV() {

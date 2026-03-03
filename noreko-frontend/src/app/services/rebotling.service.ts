@@ -144,6 +144,27 @@ export class RebotlingService {
     window.open(`/noreko-backend/api.php?action=rebotling&run=report&period=${period}&format=csv`, '_blank');
   }
 
+  getWeekComparison(): Observable<WeekComparisonResponse> {
+    return this.http.get<WeekComparisonResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=week-comparison`,
+      { withCredentials: true }
+    );
+  }
+
+  getOEETrend(days: number = 30): Observable<OEETrendResponse> {
+    return this.http.get<OEETrendResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=oee-trend&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getBestShifts(limit: number = 10): Observable<BestShiftsResponse> {
+    return this.http.get<BestShiftsResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=best-shifts&limit=${limit}`,
+      { withCredentials: true }
+    );
+  }
+
   getOEE(period: string = 'today'): Observable<OEEResponse> {
     return this.http.get<OEEResponse>(
       `/noreko-backend/api.php?action=rebotling&run=oee&period=${period}`,
@@ -162,6 +183,55 @@ export interface CycleTrendResponse {
     total_cycles: number;
     alert: { type: string; message: string; change_pct: number; current_avg: number; previous_avg: number } | null;
   };
+  error?: string;
+}
+
+export interface WeekComparisonDay {
+  date: string;
+  ibc_ok: number;
+  cykler: number;
+}
+
+export interface WeekComparisonResponse {
+  success: boolean;
+  data?: {
+    this_week: WeekComparisonDay[];
+    prev_week: WeekComparisonDay[];
+    all_days: WeekComparisonDay[];
+  };
+  error?: string;
+}
+
+export interface OEETrendDay {
+  date: string;
+  oee: number;
+  availability: number;
+  performance: number;
+  quality: number;
+  ibc_ok: number;
+}
+
+export interface OEETrendResponse {
+  success: boolean;
+  data?: OEETrendDay[];
+  error?: string;
+}
+
+export interface BestShift {
+  rank: number;
+  skiftraknare: number;
+  dag: string;
+  cykler: number;
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  kvalitet_pct: number;
+  runtime_h: number;
+  avg_kvalitet: number;
+}
+
+export interface BestShiftsResponse {
+  success: boolean;
+  data?: BestShift[];
   error?: string;
 }
 

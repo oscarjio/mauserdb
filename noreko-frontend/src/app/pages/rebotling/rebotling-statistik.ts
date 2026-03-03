@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService } from '../../services/rebotling.service';
+import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
 
@@ -96,6 +97,30 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   private isLoadingHeatmap = false;
 
   isDragging: boolean = false;
+
+  // Veckojämförelse-panel
+  weekComparisonLoaded: boolean = false;
+  weekComparisonLoading: boolean = false;
+  weekComparisonThisWeek: WeekComparisonDay[] = [];
+  weekComparisonPrevWeek: WeekComparisonDay[] = [];
+  private weekComparisonChart: Chart | null = null;
+
+  // Skiftmålsprediktor
+  prediktionLoaded: boolean = false;
+  prediktionLoading: boolean = false;
+  prediktionIBC: number = 0;
+  prediktionMal: number = 0;
+  prediktionPrognos: number = 0;
+  prediktionPct: number = 0;
+  prediktionRunningHours: number = 0;
+  prediktionRemainingHours: number = 0;
+
+  // OEE deep-dive
+  oeeLoaded: boolean = false;
+  oeeLoading: boolean = false;
+  oeeData: any = null;
+  oeeTrendDays: OEETrendDay[] = [];
+  private oeeTrendChart: Chart | null = null;
 
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
@@ -188,6 +213,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.productionChart.destroy();
       this.productionChart = null;
     }
+    this.weekComparisonChart?.destroy();
+    this.weekComparisonChart = null;
+    this.oeeTrendChart?.destroy();
+    this.oeeTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -1637,5 +1666,290 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       XLSX.utils.book_append_sheet(wb, ws, 'Statistik');
       XLSX.writeFile(wb, `rebotling-statistik-${this.breadcrumb.join('-')}.xlsx`);
     });
+  }
+
+  // ======== VECKOJÄMFÖRELSE ========
+
+  loadWeekComparison() {
+    if (this.weekComparisonLoading) return;
+    this.weekComparisonLoading = true;
+    this.rebotlingService.getWeekComparison().pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe(res => {
+      this.weekComparisonLoading = false;
+      if (res?.success && res.data) {
+        this.weekComparisonThisWeek = res.data.this_week;
+        this.weekComparisonPrevWeek = res.data.prev_week;
+        this.weekComparisonLoaded = true;
+        setTimeout(() => this.renderWeekComparisonChart(), 100);
+      }
+    });
+  }
+
+  private renderWeekComparisonChart() {
+    this.weekComparisonChart?.destroy();
+    const canvas = document.getElementById('weekComparisonChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const weekdays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+    const labels = this.weekComparisonThisWeek.map(d => {
+      const wd = new Date(d.date + 'T00:00:00').getDay();
+      const wdIdx = wd === 0 ? 6 : wd - 1;
+      return `${weekdays[wdIdx]} ${d.date.substring(5)}`;
+    });
+
+    this.weekComparisonChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Förra veckan',
+            data: this.weekComparisonPrevWeek.map(d => d.ibc_ok),
+            backgroundColor: 'rgba(113,128,150,0.5)',
+            borderColor: 'rgba(160,174,192,0.8)',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Denna vecka',
+            data: this.weekComparisonThisWeek.map(d => d.ibc_ok),
+            backgroundColor: 'rgba(66,153,225,0.7)',
+            borderColor: 'rgba(99,179,237,1)',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 12 } } },
+          tooltip: {
+            backgroundColor: 'rgba(20,20,30,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1,
+            callbacks: {
+              afterLabel: (ctx: any) => {
+                const thisW = this.weekComparisonThisWeek[ctx.dataIndex]?.ibc_ok ?? 0;
+                const prevW = this.weekComparisonPrevWeek[ctx.dataIndex]?.ibc_ok ?? 0;
+                if (ctx.datasetIndex === 1 && prevW > 0) {
+                  const diff = thisW - prevW;
+                  const pct = Math.round((diff / prevW) * 100);
+                  return `${diff >= 0 ? '+' : ''}${diff} IBC (${pct >= 0 ? '+' : ''}${pct}% vs förra)`;
+                }
+                return '';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#718096' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { beginAtZero: true, ticks: { color: '#718096' }, grid: { color: 'rgba(255,255,255,0.05)' },
+               title: { display: true, text: 'IBC OK', color: '#718096' } }
+        }
+      }
+    });
+  }
+
+  getWeekComparisonTotal(week: WeekComparisonDay[]): number {
+    return week.reduce((s, d) => s + d.ibc_ok, 0);
+  }
+
+  getWeekComparisonDiff(): number {
+    return this.getWeekComparisonTotal(this.weekComparisonThisWeek) -
+           this.getWeekComparisonTotal(this.weekComparisonPrevWeek);
+  }
+
+  getWeekComparisonDiffPct(): number {
+    const prev = this.getWeekComparisonTotal(this.weekComparisonPrevWeek);
+    if (prev === 0) return 0;
+    return Math.round((this.getWeekComparisonDiff() / prev) * 100);
+  }
+
+  // ======== SKIFTMÅLSPREDIKTOR ========
+
+  loadPrediktion() {
+    if (this.prediktionLoading) return;
+    this.prediktionLoading = true;
+
+    // Hämta dagsmål från admin-settings
+    this.rebotlingService.getLiveStats().pipe(
+      timeout(6000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe(liveRes => {
+      if (liveRes?.success && liveRes.data) {
+        this.prediktionIBC = liveRes.data.ibcToday;
+        this.prediktionMal = liveRes.data.rebotlingTarget;
+      }
+      this.computePrediktion();
+      this.prediktionLoading = false;
+      this.prediktionLoaded = true;
+    });
+  }
+
+  private computePrediktion() {
+    const now = new Date();
+    const dayStartHour = 6;   // Antag produktionsdagen börjar 06:00
+    const dayEndHour = 22;    // och slutar 22:00
+
+    const minutesInDay = (dayEndHour - dayStartHour) * 60;
+    const minutesSinceStart = Math.max(0, (now.getHours() - dayStartHour) * 60 + now.getMinutes());
+    const minutesRemaining = Math.max(0, minutesInDay - minutesSinceStart);
+
+    this.prediktionRunningHours = Math.round(minutesSinceStart / 60 * 10) / 10;
+    this.prediktionRemainingHours = Math.round(minutesRemaining / 60 * 10) / 10;
+
+    if (minutesSinceStart > 0 && this.prediktionIBC > 0) {
+      const ratePerMin = this.prediktionIBC / minutesSinceStart;
+      this.prediktionPrognos = Math.round(this.prediktionIBC + ratePerMin * minutesRemaining);
+    } else {
+      this.prediktionPrognos = 0;
+    }
+
+    if (this.prediktionMal > 0) {
+      this.prediktionPct = Math.min(150, Math.round((this.prediktionPrognos / this.prediktionMal) * 100));
+    } else {
+      this.prediktionPct = 0;
+    }
+  }
+
+  getPrediktionClass(): string {
+    if (this.prediktionPct >= 100) return 'bg-success';
+    if (this.prediktionPct >= 75) return 'bg-warning';
+    return 'bg-danger';
+  }
+
+  getPrediktionTextClass(): string {
+    if (this.prediktionPct >= 100) return 'text-success';
+    if (this.prediktionPct >= 75) return 'text-warning';
+    return 'text-danger';
+  }
+
+  // ======== OEE DEEP-DIVE ========
+
+  loadOEE() {
+    if (this.oeeLoading) return;
+    this.oeeLoading = true;
+
+    this.rebotlingService.getOEE('month').pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe(oeeRes => {
+      if (oeeRes?.success && oeeRes.data) {
+        this.oeeData = oeeRes.data;
+      }
+
+      this.rebotlingService.getOEETrend(30).pipe(
+        timeout(8000),
+        takeUntil(this.destroy$),
+        catchError(() => of(null))
+      ).subscribe(trendRes => {
+        this.oeeLoading = false;
+        if (trendRes?.success && trendRes.data) {
+          this.oeeTrendDays = trendRes.data;
+          this.oeeLoaded = true;
+          setTimeout(() => this.renderOEETrendChart(), 100);
+        } else {
+          this.oeeLoaded = true;
+        }
+      });
+    });
+  }
+
+  private renderOEETrendChart() {
+    this.oeeTrendChart?.destroy();
+    const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
+    if (!canvas || !this.oeeTrendDays.length) return;
+
+    const labels = this.oeeTrendDays.map(d => d.date.substring(5));
+
+    this.oeeTrendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'OEE %',
+            data: this.oeeTrendDays.map(d => d.oee),
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66,153,225,0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            borderWidth: 2,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Tillgänglighet %',
+            data: this.oeeTrendDays.map(d => d.availability),
+            borderColor: '#48bb78',
+            borderDash: [5, 3],
+            tension: 0.3,
+            pointRadius: 2,
+            borderWidth: 1.5,
+            fill: false,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Prestanda %',
+            data: this.oeeTrendDays.map(d => d.performance),
+            borderColor: '#ecc94b',
+            borderDash: [5, 3],
+            tension: 0.3,
+            pointRadius: 2,
+            borderWidth: 1.5,
+            fill: false,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Kvalitet %',
+            data: this.oeeTrendDays.map(d => d.quality),
+            borderColor: '#fc8181',
+            borderDash: [5, 3],
+            tension: 0.3,
+            pointRadius: 2,
+            borderWidth: 1.5,
+            fill: false,
+            yAxisID: 'y'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#718096', maxTicksLimit: 10, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          y: { beginAtZero: true, max: 100, ticks: { color: '#718096', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+  }
+
+  getOEEBarWidth(value: number): number {
+    return Math.min(100, Math.max(0, value));
+  }
+
+  getOEEBarClass(value: number): string {
+    if (value >= 75) return 'bg-success';
+    if (value >= 50) return 'bg-warning';
+    return 'bg-danger';
   }
 }
