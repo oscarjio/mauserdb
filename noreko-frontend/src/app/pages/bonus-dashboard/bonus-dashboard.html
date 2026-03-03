@@ -2,9 +2,9 @@
 
   <!-- Header -->
   <div class="dashboard-header mb-4">
-    <div class="d-flex justify-content-between align-items-center flex-wrap">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
       <div>
-        <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Bonus Dashboard - Rebotling</h2>
+        <h2 class="mb-0"><i class="fas fa-trophy me-2"></i>Bonus Dashboard — Rebotling</h2>
         <small class="text-muted">Realtidsöversikt av operatörsbonus</small>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -33,8 +33,8 @@
     <button type="button" class="btn-close" (click)="error = ''"></button>
   </div>
 
-  <!-- Daglig sammanfattning -->
-  <div class="row g-3 mb-4" *ngIf="summary">
+  <!-- Daglig sammanfattning KPI-kort -->
+  <div class="row g-3 mb-3" *ngIf="summary">
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-cycles">
         <div class="kpi-icon"><i class="fas fa-sync-alt"></i></div>
@@ -62,12 +62,40 @@
     <div class="col-6 col-md-3">
       <div class="kpi-card kpi-max">
         <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
-        <div class="kpi-label">Max Bonus</div>
-        <div class="kpi-value" [ngClass]="getBonusClass(summary.max_bonus)">{{ summary.max_bonus }}</div>
+        <div class="kpi-label">Kvalitet</div>
+        <div class="kpi-value text-info">{{ getQualityPct() }}%</div>
         <div class="kpi-sub">
           {{ (summary.unique_operators?.tvattplats || 0) + (summary.unique_operators?.kontroll || 0) + (summary.unique_operators?.truck || 0) }} operatörer
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Bonusprogression mot veckobonusmål -->
+  <div class="goal-progress-card mb-4" *ngIf="summary && weeklyGoal > 0">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <div>
+        <span class="goal-progress-title">
+          <i class="fas fa-bullseye me-2 text-info"></i>Teamets framsteg mot veckobonusmål
+        </span>
+        <small class="text-muted ms-2">(Mål: {{ weeklyGoal }} poäng)</small>
+      </div>
+      <span class="fw-bold" [ngClass]="getBonusClass(summary.avg_bonus)">
+        {{ getTeamGoalProgress() }}%
+      </span>
+    </div>
+    <div class="progress mb-1" style="height: 12px;">
+      <div class="progress-bar"
+           [class.bg-danger]="getTeamGoalProgress() < 70"
+           [class.bg-warning]="getTeamGoalProgress() >= 70 && getTeamGoalProgress() < 90"
+           [class.bg-success]="getTeamGoalProgress() >= 90"
+           [style.width.%]="getTeamGoalProgress()"
+           style="transition: width 0.6s ease; border-radius: 4px;">
+      </div>
+    </div>
+    <div class="d-flex justify-content-between">
+      <small class="text-muted">Snittbonus: {{ summary.avg_bonus }} p</small>
+      <small class="text-muted">Mål: {{ weeklyGoal }} p</small>
     </div>
   </div>
 
@@ -145,7 +173,7 @@
           </div>
         </div>
 
-        <!-- KPI:er -->
+        <!-- KPI progress bars -->
         <div class="row g-3 mb-4">
           <div class="col-md-4">
             <div class="kpi-bar">
@@ -245,7 +273,7 @@
       </button>
     </div>
     <div class="card-body">
-      <!-- Tabs -->
+      <!-- Period tabs -->
       <ul class="nav nav-pills mb-3">
         <li class="nav-item">
           <a class="nav-link" [class.active]="activeRankingTab === 'overall'" (click)="setRankingTab('overall')">Alla</a>
@@ -266,15 +294,16 @@
           <thead>
             <tr>
               <th>#</th>
+              <th>Trend</th>
               <th>Operatör</th>
               <th *ngIf="activeRankingTab === 'overall'">Position</th>
-              <th>Cykler</th>
               <th>IBC OK</th>
               <th>Timmar</th>
               <th>Effektivitet</th>
               <th>Produktivitet</th>
               <th>Kvalitet</th>
               <th>Bonus</th>
+              <th>Mål</th>
             </tr>
           </thead>
           <tbody>
@@ -285,13 +314,24 @@
                 <span class="rank-medal" *ngIf="op.rank === 3">🥉</span>
                 <span class="rank-num" *ngIf="op.rank > 3" [ngClass]="getRankBadge(op.rank)">{{ op.rank }}</span>
               </td>
+              <!-- Trend arrow -->
+              <td class="trend-cell">
+                <span *ngIf="getOperatorTrend(op) === 'up'" class="trend-arrow trend-up" title="Bättre än förra perioden">
+                  <i class="fas fa-arrow-up"></i>
+                </span>
+                <span *ngIf="getOperatorTrend(op) === 'down'" class="trend-arrow trend-down" title="Sämre än förra perioden">
+                  <i class="fas fa-arrow-down"></i>
+                </span>
+                <span *ngIf="getOperatorTrend(op) === 'flat'" class="trend-arrow trend-flat" title="Stabil">
+                  <i class="fas fa-minus"></i>
+                </span>
+              </td>
               <td>
                 <a class="operator-link" (click)="searchOperatorId = '' + op.operator_id; searchOperator()">
                   <i class="fas fa-user-circle me-1 opacity-50"></i>{{ op.operator_name || op.operator_id }}
                 </a>
               </td>
               <td *ngIf="activeRankingTab === 'overall'">{{ op.position || '-' }}</td>
-              <td>{{ op.cycles || op.total_cycles }}</td>
               <td>{{ op.total_ibc_ok }}</td>
               <td>{{ op.total_hours }}h</td>
               <td>{{ op.effektivitet }}%</td>
@@ -299,6 +339,18 @@
               <td>{{ op.kvalitet }}%</td>
               <td [ngClass]="getBonusClass(op.bonus_avg)">
                 <strong>{{ op.bonus_avg }}</strong>
+              </td>
+              <!-- Mini progress bar toward weekly goal -->
+              <td class="goal-col">
+                <div class="goal-mini-bar" title="Framsteg mot veckobonusmål {{ weeklyGoal }} p">
+                  <div class="gmb-fill"
+                       [class.gmb-danger]="getGoalProgress(op.bonus_avg) < 70"
+                       [class.gmb-warning]="getGoalProgress(op.bonus_avg) >= 70 && getGoalProgress(op.bonus_avg) < 90"
+                       [class.gmb-success]="getGoalProgress(op.bonus_avg) >= 90"
+                       [style.width.%]="getGoalProgress(op.bonus_avg)">
+                  </div>
+                </div>
+                <small class="text-muted">{{ getGoalProgress(op.bonus_avg) }}%</small>
               </td>
             </tr>
           </tbody>
@@ -415,9 +467,9 @@
         <p><strong>Tier-multiplikatorer:</strong></p>
         <ul>
           <li>95+ poäng: x2.0 (Outstanding)</li>
-          <li>90-94: x1.5 (Excellent)</li>
-          <li>80-89: x1.25 (God prestanda)</li>
-          <li>70-79: x1.0 (Basbonus)</li>
+          <li>90–94: x1.5 (Excellent)</li>
+          <li>80–89: x1.25 (God prestanda)</li>
+          <li>70–79: x1.0 (Basbonus)</li>
           <li>&lt;70: x0.75 (Under förväntan)</li>
         </ul>
       </div>

@@ -22,7 +22,6 @@ export class MyBonusPage implements OnInit, OnDestroy {
   savedOperatorId = '';
   loading = false;
   error = '';
-  // Om operatör-ID är kopplat till kontot (kan inte manuellt ändras av användaren)
   operatorIdFromAccount = false;
 
   stats: any = null;
@@ -33,6 +32,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   Math = Math;
   private kpiChart: Chart | null = null;
   private historyChart: Chart | null = null;
+  private ibcTrendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
 
   constructor(private auth: AuthService, private bonusService: BonusService) {
@@ -45,13 +45,11 @@ export class MyBonusPage implements OnInit, OnDestroy {
       distinctUntilChanged((a: any, b: any) => a?.operator_id === b?.operator_id)
     ).subscribe((user: any) => {
       if (user?.operator_id) {
-        // Operatör-ID är kopplat till kontot – använd det automatiskt
         this.operatorId = String(user.operator_id);
         this.savedOperatorId = String(user.operator_id);
         this.operatorIdFromAccount = true;
         this.loadStats();
       } else {
-        // Fallback: använd localStorage
         this.operatorIdFromAccount = false;
         const saved = localStorage.getItem('myOperatorId');
         if (saved) {
@@ -68,6 +66,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.kpiChart) this.kpiChart.destroy();
     if (this.historyChart) this.historyChart.destroy();
+    if (this.ibcTrendChart) this.ibcTrendChart.destroy();
   }
 
   saveAndLoad(): void {
@@ -85,6 +84,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.history = [];
     if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
     if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
+    if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
   }
 
   changePeriod(period: string): void {
@@ -114,15 +114,55 @@ export class MyBonusPage implements OnInit, OnDestroy {
       }
     });
 
+    // Historik: hämta 20 senaste skift för historikgraf + ibcTrend
     this.bonusService.getOperatorHistory(this.savedOperatorId, 20).subscribe({
       next: (res: OperatorHistoryResponse) => {
         if (res.success && res.data) {
           this.history = res.data.history || [];
           this.buildHistoryChart(this.history);
+          this.buildIbcTrendChart(this.history);
         }
       },
       error: () => {}
     });
+  }
+
+  // ===== Motivational status badge =====
+  getStatusBadge(): { text: string; cssClass: string } {
+    const bonus = this.stats?.kpis?.bonus_avg ?? 0;
+    const trend = this.getTrendDirection();
+    if (bonus >= 95) return { text: 'Rekordniva!', cssClass: 'badge-outstanding' };
+    if (bonus >= 90 && trend === 'up') return { text: 'Uppat mot toppen!', cssClass: 'badge-excellent-up' };
+    if (bonus >= 90) return { text: 'Utmarkt prestanda!', cssClass: 'badge-excellent' };
+    if (bonus >= 80 && trend === 'up') return { text: 'Over genomsnitt!', cssClass: 'badge-good-up' };
+    if (bonus >= 80) return { text: 'Over genomsnitt', cssClass: 'badge-good' };
+    if (bonus >= 70) return { text: 'Pa ratt spår', cssClass: 'badge-base' };
+    return { text: 'Fortsätt kämpa!', cssClass: 'badge-below' };
+  }
+
+  // Beräkna mitt IBC/h-snitt senaste 7 skiften
+  getMyAvgIbcPerHour(): number {
+    if (!this.history || this.history.length === 0) return 0;
+    const recent = this.history.slice(0, 7);
+    const withProd = recent.filter((h: any) => (h.kpis?.produktivitet ?? 0) > 0);
+    if (withProd.length === 0) return 0;
+    const sum = withProd.reduce((s: number, h: any) => s + (h.kpis?.produktivitet ?? 0), 0);
+    return Math.round((sum / withProd.length) * 10) / 10;
+  }
+
+  // Prognos: antal poäng + IBC/h om fortsätter i detta tempo
+  getShiftPrognosis(): { bonusPoang: number; ibcPerHour: number; weeklyIbc: number } | null {
+    if (!this.history || this.history.length < 3) return null;
+    const recent = this.history.slice(0, 7);
+    const avgBonus = recent.reduce((s: number, h: any) => s + (h.kpis?.bonus ?? 0), 0) / recent.length;
+    const avgProd = recent.reduce((s: number, h: any) => s + (h.kpis?.produktivitet ?? 0), 0) / recent.length;
+    const avgIbcPerShift = recent.reduce((s: number, h: any) => s + (h.ibc_ok ?? 0), 0) / recent.length;
+
+    return {
+      bonusPoang: Math.round(avgBonus * 10) / 10,
+      ibcPerHour: Math.round(avgProd * 10) / 10,
+      weeklyIbc: Math.round(avgIbcPerShift * 5)  // 5 skift/vecka
+    };
   }
 
   getBonusClass(bonus: number): string {
@@ -161,7 +201,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         return { name: tier.name, pointsNeeded: tier.threshold - bonus };
       }
     }
-    return null; // Already at top tier
+    return null;
   }
 
   getProjectedBonus(): { weekly: number; monthly: number } | null {
@@ -216,6 +256,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         const trend = this.getTrendDirection();
         const trendText = trend === 'up' ? '↑ Uppåtgående' : trend === 'down' ? '↓ Nedåtgående' : '→ Stabil';
         const projected = this.getProjectedBonus();
+        const prognosis = this.getShiftPrognosis();
         const breakdownRows = (s.daily_breakdown || []).slice(0, 20).map((d: any) => [
           d.date || '',
           String(d.cycles || 0),
@@ -243,6 +284,22 @@ export class MyBonusPage implements OnInit, OnDestroy {
                 ]
               }, layout: 'lightHorizontalLines'
             },
+            ...(prognosis ? [
+              { text: ' ' },
+              { text: 'Skiftprognos (om du fortsätter i detta tempo)', style: 'sectionHeader' },
+              {
+                table: { widths: ['*', '*', '*'],
+                  body: [
+                    [{ text: 'Förv. bonus', bold: true, fillColor: '#eeeeee' }, { text: 'IBC/h', bold: true, fillColor: '#eeeeee' }, { text: 'IBC/vecka (5 skift)', bold: true, fillColor: '#eeeeee' }],
+                    [
+                      { text: prognosis.bonusPoang.toFixed(1) + ' p', alignment: 'center' },
+                      { text: prognosis.ibcPerHour.toFixed(1), alignment: 'center' },
+                      { text: String(prognosis.weeklyIbc), alignment: 'center' }
+                    ]
+                  ]
+                }, layout: 'lightHorizontalLines'
+              }
+            ] : []),
             { text: ' ' },
             { text: 'KPI:er', style: 'sectionHeader' },
             {
@@ -257,11 +314,6 @@ export class MyBonusPage implements OnInit, OnDestroy {
                 ]
               }, layout: 'lightHorizontalLines'
             },
-            ...(projected ? [
-              { text: ' ' },
-              { text: 'Prognos (baserat på senaste skift)', style: 'meta' },
-              { text: 'Vecka: ' + projected.weekly + ' p  |  Månad: ' + projected.monthly + ' p', style: 'meta' }
-            ] : []),
             ...(breakdownRows.length > 0 ? [
               { text: ' ' },
               { text: 'Daglig uppdelning (senaste ' + breakdownRows.length + ' skift)', style: 'sectionHeader' },
@@ -376,6 +428,68 @@ export class MyBonusPage implements OnInit, OnDestroy {
         scales: {
           x: { ticks: { color: '#718096' }, grid: { color: '#2d3748' } },
           y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, min: 0, max: 200 }
+        }
+      }
+    });
+  }
+
+  /** IBC/h de senaste 7 skiften vs ett glidande snitt */
+  private buildIbcTrendChart(history: any[]): void {
+    if (this.ibcTrendChart) this.ibcTrendChart.destroy();
+
+    const canvas = document.getElementById('myIbcTrendChart') as HTMLCanvasElement;
+    if (!canvas || history.length < 2) return;
+
+    const recent = history.slice(0, 7).reverse();
+    const labels = recent.map((h: any) => h.datum?.substring(5, 10) || '');
+    const ibcData = recent.map((h: any) => +(h.kpis?.produktivitet ?? 0).toFixed(1));
+
+    // Beräkna rullande medelvärde (3 punkter)
+    const avgData = ibcData.map((_: number, i: number) => {
+      const window = ibcData.slice(Math.max(0, i - 2), i + 1);
+      return +(window.reduce((a: number, b: number) => a + b, 0) / window.length).toFixed(1);
+    });
+
+    this.ibcTrendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC/h per skift',
+            data: ibcData,
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66,153,225,0.15)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5,
+            pointBackgroundColor: '#4299e1'
+          },
+          {
+            label: 'Glidande snitt (3)',
+            data: avgData,
+            borderColor: '#f6e05e',
+            backgroundColor: 'transparent',
+            borderDash: [5, 3],
+            tension: 0.3,
+            pointRadius: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } }
+        },
+        scales: {
+          x: { ticks: { color: '#718096' }, grid: { color: '#2d3748' } },
+          y: {
+            ticks: { color: '#718096' },
+            grid: { color: '#2d3748' },
+            title: { display: true, text: 'IBC/h', color: '#718096' },
+            beginAtZero: false
+          }
         }
       }
     });

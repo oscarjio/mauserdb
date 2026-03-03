@@ -3,9 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
-import { BonusAdminService, BonusPeriod } from '../../services/bonus-admin.service';
+import { BonusAdminService, BonusPeriod, OperatorForecastResponse } from '../../services/bonus-admin.service';
 
 @Component({
   standalone: true,
@@ -37,8 +36,18 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   targetsForm = { foodgrade: 12, nonun: 20, tvattade: 15 };
   editingTargets = false;
 
+  // Weekly goal
+  weeklyGoalForm = 80;
+  editingWeeklyGoal = false;
+
   // Periods
   periods: BonusPeriod[] = [];
+
+  // Operator forecast
+  forecastOperatorId = '';
+  operatorForecast: OperatorForecastResponse['data'] | null = null;
+  forecastLoading = false;
+  forecastError = '';
 
   // Active tab
   activeTab = 'overview';
@@ -79,7 +88,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
           this.systemStats = res.data;
         }
       },
-      error: (err) => this.showError('Kunde inte ladda systemstatistik')
+      error: () => this.showError('Kunde inte ladda systemstatistik')
     });
   }
 
@@ -99,6 +108,10 @@ export class BonusAdminPage implements OnInit, OnDestroy {
             nonun: res.data.productivity_target_nonun || 20,
             tvattade: res.data.productivity_target_tvattade || 15
           };
+          // Ladda veckobonusmål
+          if ((res.data as any).weekly_bonus_goal) {
+            this.weeklyGoalForm = (res.data as any).weekly_bonus_goal;
+          }
         }
         this.loading = false;
       },
@@ -177,6 +190,83 @@ export class BonusAdminPage implements OnInit, OnDestroy {
         this.loading = false;
       }
     });
+  }
+
+  // ========== Weekly Goal ==========
+  startEditWeeklyGoal() {
+    this.editingWeeklyGoal = true;
+  }
+
+  cancelEditWeeklyGoal() {
+    this.editingWeeklyGoal = false;
+    this.loadConfig();
+  }
+
+  saveWeeklyGoal() {
+    if (this.weeklyGoalForm <= 0 || this.weeklyGoalForm > 200) {
+      this.showError('Veckobonusmålet måste vara mellan 1 och 200 poäng');
+      return;
+    }
+    this.loading = true;
+    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.showSuccess('Veckobonusmål sparat!');
+          this.editingWeeklyGoal = false;
+        } else {
+          this.showError(res.error || 'Fel vid sparning');
+        }
+        this.loading = false;
+      },
+      error: () => {
+        this.showError('Nätverksfel vid sparning');
+        this.loading = false;
+      }
+    });
+  }
+
+  getWeeklyGoalTierName(): string {
+    const g = this.weeklyGoalForm;
+    if (g >= 95) return 'Outstanding';
+    if (g >= 90) return 'Excellent';
+    if (g >= 80) return 'God prestanda';
+    if (g >= 70) return 'Basbonus';
+    return 'Under basbonus';
+  }
+
+  // ========== Operator Forecast ==========
+  loadOperatorForecast() {
+    const id = parseInt(this.forecastOperatorId.trim(), 10);
+    if (!id || id <= 0) {
+      this.forecastError = 'Ange ett giltigt operatör-ID';
+      return;
+    }
+    this.forecastLoading = true;
+    this.forecastError = '';
+    this.operatorForecast = null;
+
+    this.bonusAdmin.getOperatorForecast(id).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.operatorForecast = res.data;
+        } else {
+          this.forecastError = res.error || 'Ingen data hittades';
+        }
+        this.forecastLoading = false;
+      },
+      error: () => {
+        this.forecastError = 'Nätverksfel vid hämtning av prognos';
+        this.forecastLoading = false;
+      }
+    });
+  }
+
+  getForecastTierName(bonus: number): string {
+    if (bonus >= 95) return 'Outstanding (x2.0)';
+    if (bonus >= 90) return 'Excellent (x1.5)';
+    if (bonus >= 80) return 'God prestanda (x1.25)';
+    if (bonus >= 70) return 'Basbonus (x1.0)';
+    return 'Under förväntan (x0.75)';
   }
 
   // ========== Periods ==========

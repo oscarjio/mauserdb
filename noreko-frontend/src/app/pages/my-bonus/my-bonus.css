@@ -359,6 +359,61 @@
 .tier-base        { background: rgba(160,174,192,0.08); color: #a0aec0; }
 .tier-below       { background: rgba(229,62,62,0.08); color: #fc8181; }
 
+/* ============================================================
+   STATUS BADGE (motiverande)
+   ============================================================ */
+.status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-outstanding  { background: rgba(246,224,94,0.18); color: #f6e05e; border: 1px solid rgba(246,224,94,0.4); }
+.badge-excellent-up { background: rgba(56,178,172,0.18); color: #4fd1c5; border: 1px solid rgba(56,178,172,0.4); }
+.badge-excellent    { background: rgba(56,178,172,0.12); color: #38b2ac; border: 1px solid rgba(56,178,172,0.3); }
+.badge-good-up      { background: rgba(66,153,225,0.18); color: #63b3ed; border: 1px solid rgba(66,153,225,0.4); }
+.badge-good         { background: rgba(66,153,225,0.12); color: #4299e1; border: 1px solid rgba(66,153,225,0.3); }
+.badge-base         { background: rgba(160,174,192,0.1); color: #a0aec0; border: 1px solid rgba(160,174,192,0.25); }
+.badge-below        { background: rgba(229,62,62,0.1);   color: #fc8181; border: 1px solid rgba(229,62,62,0.25); }
+
+/* ============================================================
+   SKIFTPROGNOS BANNER
+   ============================================================ */
+.prognosis-banner {
+  background: linear-gradient(135deg, #1a202c 0%, #1e2b3a 100%);
+  border: 1px solid #2a4a6a;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.prognosis-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+.prognosis-body { flex: 1; min-width: 0; }
+.prognosis-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #718096;
+  margin-bottom: 0.6rem;
+}
+.prognosis-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+.prog-item { display: flex; flex-direction: column; }
+.prog-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.5px; color: #718096; }
+.prog-val   { font-size: 1.2rem; font-weight: 800; line-height: 1.1; }
+.prog-sep   { width: 1px; height: 30px; background: #2d3748; flex-shrink: 0; }
+
 /* Bootstrap overrides */
 .table-dark { --bs-table-bg: transparent; --bs-table-border-color: #2d3748; }
 .progress   { background-color: #161c29; }
@@ -372,4 +427,6 @@
   .hero-quick-row { gap: 0.75rem; }
   .kpi-value  { font-size: 1.5rem; }
   .projection-card { flex-direction: column; text-align: center; }
+  .prognosis-banner { flex-direction: column; }
+  .prog-sep { display: none; }
 }

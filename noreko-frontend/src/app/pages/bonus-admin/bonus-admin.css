@@ -249,6 +249,91 @@
 }
 
 /* ============================================================
+   WEEKLY GOAL
+   ============================================================ */
+.goal-display-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #4299e1;
+  line-height: 1;
+}
+.badge-tier {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.tier-markers { position: relative; height: 1rem; }
+.goal-preview-card {
+  background: #161c29;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #2d3748;
+}
+
+/* ============================================================
+   FORECAST
+   ============================================================ */
+.forecast-result {
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+.forecast-header {
+  background: #161c29;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #2d3748;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.forecast-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f7fafc;
+}
+
+.forecast-tile {
+  background: #161c29;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  border: 1px solid #2d3748;
+  transition: transform 0.15s;
+}
+.forecast-tile:hover { transform: translateY(-2px); }
+.ft-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #718096;
+  margin-bottom: 0.25rem;
+}
+.ft-value {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.ft-sub {
+  font-size: 0.68rem;
+  color: #718096;
+  margin-top: 0.2rem;
+}
+
+.forecast-goal-card {
+  background: #161c29;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #2d3748;
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
@@ -256,4 +341,5 @@
   .stat-value  { font-size: 1.5rem; }
   .target-value { font-size: 1.6rem; }
   .nav-pills .nav-link { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
+  .forecast-header { flex-direction: column; align-items: flex-start; }
 }

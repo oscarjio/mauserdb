@@ -7,9 +7,12 @@
  * - ?action=bonusadmin&run=get_config          → Hämta bonuskonfiguration
  * - ?action=bonusadmin&run=update_weights      → Uppdatera viktningar
  * - ?action=bonusadmin&run=set_targets         → Sätt produktivitetsmål
+ * - ?action=bonusadmin&run=set_weekly_goal     → Sätt veckobonusmål (poäng)
  * - ?action=bonusadmin&run=get_periods         → Hämta bonusperioder
  * - ?action=bonusadmin&run=export_report       → Exportera rapport
  * - ?action=bonusadmin&run=approve_bonuses     → Godkänn bonusar
+ * - ?action=bonusadmin&run=get_stats           → Systemstatistik
+ * - ?action=bonusadmin&run=operator_forecast   → Prognos för specifik operatör
  */
 
 class BonusAdminController {
@@ -64,6 +67,16 @@ class BonusAdminController {
                 break;
             case 'get_stats':
                 $this->getSystemStats();
+                break;
+            case 'set_weekly_goal':
+                if ($method !== 'POST') {
+                    $this->sendError('POST required');
+                    return;
+                }
+                $this->setWeeklyGoal();
+                break;
+            case 'operator_forecast':
+                $this->getOperatorForecast();
                 break;
             default:
                 $this->sendError('Invalid action: ' . $run);
@@ -556,6 +569,122 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdmin getSystemStats error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * Sätt veckobonusmål (poäng) — sparas i bonus_config
+     */
+    private function setWeeklyGoal() {
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->sendError('Invalid JSON input');
+                return;
+            }
+            $goal = filter_var($input['weekly_goal'] ?? null, FILTER_VALIDATE_FLOAT);
+            if ($goal === false || $goal < 0 || $goal > 200) {
+                $this->sendError('weekly_goal måste vara ett tal 0–200');
+                return;
+            }
+
+            $stmt = $this->pdo->prepare("
+                INSERT INTO bonus_config (id, weekly_bonus_goal)
+                VALUES (1, :goal)
+                ON DUPLICATE KEY UPDATE weekly_bonus_goal = :goal
+            ");
+            $stmt->execute(['goal' => round($goal, 2)]);
+
+            $this->logAudit('set_weekly_goal', 'config', 1, null, ['weekly_bonus_goal' => round($goal, 2)]);
+            $this->sendSuccess(['weekly_bonus_goal' => round($goal, 2)]);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin setWeeklyGoal error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * Prognos för en specifik operatör: baserat på snitt senaste 7 dagarna
+     * GET ?action=bonusadmin&run=operator_forecast&id=<op_id>
+     */
+    private function getOperatorForecast() {
+        $op_id = isset($_GET['id']) ? intval($_GET['id']) : null;
+        if (!$op_id || $op_id <= 0) {
+            $this->sendError('Operatör-ID saknas (id)');
+            return;
+        }
+        try {
+            // Hämta operatörens namn
+            $nameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $nameStmt->execute([$op_id]);
+            $opName = $nameStmt->fetchColumn() ?: 'Operatör ' . $op_id;
+
+            // Per-skift-aggregering senaste 7 dagarna
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*)          AS total_shifts,
+                    AVG(last_bonus)   AS avg_bonus,
+                    AVG(last_prod)    AS avg_produktivitet,
+                    SUM(shift_runtime) AS total_runtime
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
+                        SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_prod,
+                        MAX(runtime_plc) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE (op1 = :op_id OR op2 = :op_id OR op3 = :op_id)
+                      AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+            $stmt->execute(['op_id' => $op_id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $shifts = (int)($row['total_shifts'] ?? 0);
+            if ($shifts === 0) {
+                $this->sendError('Ingen data senaste 7 dagarna för operatör ' . $op_id);
+                return;
+            }
+
+            $avg_bonus    = round($row['avg_bonus']        ?? 0, 2);
+            $avg_prod     = round($row['avg_produktivitet'] ?? 0, 2);
+            $total_hours  = round(($row['total_runtime']   ?? 0) / 60, 1);
+            $hours_per_shift = $shifts > 0 ? round($total_hours / $shifts, 2) : 8;
+
+            // Tier-multiplikator
+            $multiplier = 0.75;
+            if ($avg_bonus >= 95) $multiplier = 2.0;
+            elseif ($avg_bonus >= 90) $multiplier = 1.5;
+            elseif ($avg_bonus >= 80) $multiplier = 1.25;
+            elseif ($avg_bonus >= 70) $multiplier = 1.0;
+
+            // Hämta veckobonusmål
+            $goalStmt = $this->pdo->prepare("SELECT weekly_bonus_goal FROM bonus_config WHERE id = 1");
+            $goalStmt->execute();
+            $weeklyGoal = (float)($goalStmt->fetchColumn() ?: 80);
+
+            // Prognos: antag 5 skift/vecka
+            $projected_weekly_bonus  = min(round($avg_bonus * $multiplier, 1), 200);
+            $projected_shifts_week   = 5; // normalt en vecka
+            $pct_of_goal = $weeklyGoal > 0 ? round(($avg_bonus / $weeklyGoal) * 100, 1) : 0;
+
+            $this->sendSuccess([
+                'operator_id'            => $op_id,
+                'operator_name'          => $opName,
+                'shifts_last_7days'      => $shifts,
+                'avg_bonus_last_7days'   => $avg_bonus,
+                'avg_produktivitet'      => $avg_prod,
+                'hours_per_shift'        => $hours_per_shift,
+                'tier_multiplier'        => $multiplier,
+                'projected_bonus'        => $projected_weekly_bonus,
+                'weekly_goal'            => $weeklyGoal,
+                'pct_of_goal'            => $pct_of_goal,
+            ]);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin getOperatorForecast error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }

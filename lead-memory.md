@@ -5,11 +5,32 @@
 
 ---
 
-## Projektöversikt
-IBC-tvätteri (Intermediate Bulk Container) produktionssystem.
-- **Aktiv linje**: Rebotling (rebotling av IBC-tankar)
-- **Inaktiva linjer**: Tvättlinje, Såglinje, Klassificeringslinje — byggs men EJ i drift
-- **Användare**: Operatörer (bonus/live-data), Produktionschefer (statistik/rapporter), Admins
+## Projektöversikt — Affärskontext
+
+**Företaget** återvinner och tvättar IBC-tankar (Intermediate Bulk Container, 1000-liters plasttankar i metallbur).
+Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkulation.
+
+**Systemets syfte — två huvudmål:**
+1. **VD-överblick**: VD har beställt systemet för att enkelt och i realtid kunna följa produktionen. Hen ska kunna se om linjen körs bra, om målen nås, vad som orsakar stopp — utan att behöva gå ut i produktionen.
+2. **Rättvis individuell bonus**: Operatörerna arbetar i lag (2-3 per skift). Systemet mäter varje operatörs prestation objektivt (IBC/h, kvalitet%, effektivitet) och beräknar en rättvis bonus. Målet är att motivera operatörerna att hålla hög fart OCH hög kvalitet — inte bara kvantitet.
+
+**Användarroller:**
+- **VD / Chef**: Vill se KPI:er på hög nivå — nådde vi dagsmålet? Hur ser veckan ut? Vilken operatör presterar bäst? Executive dashboard, statistik, bonusöversikt.
+- **Operatör**: Vill se sitt eget bonusläge live — "hur mycket bonus är jag på väg mot idag/denna vecka?" Motiverande, enkelt, mobilanpassat.
+- **Admin**: Konfigurerar mål, bonusregler, skiftlängder. Kan se auditlogg.
+
+**Produktionslinjer:**
+- **Rebotling** (aktiv): Byter bottenventil + tvätt på IBC-tankar. Data från PLC i realtid.
+- **Tvättlinje** (byggs): Högtryckstvätt av tankar.
+- **Såglinje** (byggs): Sågar sönder trasiga burarna för återvinning.
+- **Klassificeringslinje** (byggs): Sorterar inkommande tankar efter skick.
+
+**Data-flöde**: PLC → `plcbackend/` → MySQL → PHP API → Angular frontend
+
+**Design-filosofi för features:**
+- VD ska kunna öppna dashboarden och på 10 sekunder förstå om produktionen går bra eller dåligt
+- Operatören ska känna sig motiverad och rättvist behandlad — transparent bonusberäkning
+- Allt ska vara enkelt, snabbt och fungera på både dator och surfplatta i produktionsmiljö
 
 ## Arkitektur
 - Frontend: Angular 20+ standalone, `noreko-frontend/src/app/`

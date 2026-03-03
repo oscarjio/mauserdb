@@ -32,7 +32,12 @@
     </li>
     <li class="nav-item">
       <a class="nav-link" [class.active]="activeTab === 'targets'" (click)="setTab('targets')">
-        <i class="fas fa-bullseye me-1"></i>Produktivitetsmål
+        <i class="fas fa-bullseye me-1"></i>Mål
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'forecast'" (click)="setTab('forecast')">
+        <i class="fas fa-calculator me-1"></i>Prognos
       </a>
     </li>
     <li class="nav-item">
@@ -202,11 +207,13 @@
     </div>
   </div>
 
-  <!-- ========== PRODUKTIVITETSMÅL ========== -->
+  <!-- ========== MÅL ========== -->
   <div *ngIf="activeTab === 'targets'">
-    <div class="card">
+
+    <!-- Produktivitetsmål -->
+    <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h6 class="mb-0"><i class="fas fa-bullseye me-2"></i>Produktivitetsmål (IBC/timme)</h6>
+        <h6 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Produktivitetsmål (IBC/timme)</h6>
         <button class="btn btn-sm btn-outline-info" *ngIf="!editingTargets" (click)="startEditTargets()">
           <i class="fas fa-edit me-1"></i>Redigera
         </button>
@@ -246,6 +253,174 @@
             <i class="fas fa-save me-1"></i>Spara mål
           </button>
           <button class="btn btn-outline-secondary" (click)="cancelEditTargets()">Avbryt</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Veckobonusmål -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-star me-2"></i>Veckobonusmål (poäng)</h6>
+        <button class="btn btn-sm btn-outline-info" *ngIf="!editingWeeklyGoal" (click)="startEditWeeklyGoal()">
+          <i class="fas fa-edit me-1"></i>Redigera
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Definierar vilket bonuspoäng som är "mål" för veckan. Operatörens prognossida visar hur nära de är detta mål.
+        </p>
+        <div *ngIf="!editingWeeklyGoal">
+          <div class="d-flex align-items-baseline gap-3">
+            <span class="goal-display-value">{{ weeklyGoalForm }}</span>
+            <span class="text-muted">poäng/vecka</span>
+            <span class="badge-tier" [ngClass]="getBonusClass(weeklyGoalForm)">{{ getWeeklyGoalTierName() }}</span>
+          </div>
+          <!-- Progress preview -->
+          <div class="mt-3">
+            <div class="d-flex justify-content-between mb-1">
+              <small class="text-muted">Mål-nivå på tierskalan</small>
+              <small class="text-muted">{{ weeklyGoalForm }}/200 p</small>
+            </div>
+            <div class="progress" style="height: 10px;">
+              <div class="progress-bar bg-info" [style.width.%]="(weeklyGoalForm / 200) * 100"></div>
+            </div>
+            <div class="tier-markers mt-1">
+              <small class="text-muted" style="position:relative; left:35%">70</small>
+              <small class="text-muted" style="position:relative; left:40%">80</small>
+              <small class="text-muted" style="position:relative; left:45%">95</small>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="editingWeeklyGoal">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label">Veckobonusmål (poäng)</label>
+              <input type="number" class="form-control" step="1" min="1" max="200"
+                     [(ngModel)]="weeklyGoalForm">
+              <small class="text-muted">1–200 poäng. Tier-gränser: 70, 80, 90, 95</small>
+            </div>
+            <div class="col-md-4">
+              <div class="goal-preview-card">
+                <div class="small text-muted mb-1">Valt mål motsvarar</div>
+                <div class="fw-bold" [ngClass]="getBonusClass(weeklyGoalForm)">{{ getWeeklyGoalTierName() }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-success" (click)="saveWeeklyGoal()">
+              <i class="fas fa-save me-1"></i>Spara mål
+            </button>
+            <button class="btn btn-outline-secondary" (click)="cancelEditWeeklyGoal()">Avbryt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== PROGNOS ========== -->
+  <div *ngIf="activeTab === 'forecast'">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>Operatörsprognos</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Beräknar prognosen för en operatör baserat på deras genomsnittsprestation de senaste 7 dagarna.
+        </p>
+        <div class="input-group mb-3" style="max-width: 400px;">
+          <input type="text" class="form-control" placeholder="Operatör-ID (t.ex. 42)"
+                 [(ngModel)]="forecastOperatorId"
+                 (keyup.enter)="loadOperatorForecast()">
+          <button class="btn btn-info" (click)="loadOperatorForecast()" [disabled]="forecastLoading || !forecastOperatorId.trim()">
+            <i class="fas fa-search me-1"></i>Beräkna
+          </button>
+        </div>
+
+        <div *ngIf="forecastLoading" class="text-center py-3">
+          <i class="fas fa-spinner fa-spin text-info"></i>
+        </div>
+        <div class="alert alert-warning" *ngIf="forecastError">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ forecastError }}
+        </div>
+
+        <!-- Forecast result -->
+        <div *ngIf="operatorForecast && !forecastLoading" class="forecast-result">
+          <div class="row g-3">
+            <!-- Operator card -->
+            <div class="col-12">
+              <div class="forecast-header">
+                <div class="forecast-name">
+                  <i class="fas fa-user-circle me-2 text-info"></i>
+                  {{ operatorForecast.operator_name }}
+                  <span class="text-muted ms-2 small">ID: {{ operatorForecast.operator_id }}</span>
+                </div>
+                <div class="forecast-basis text-muted small">
+                  Baserat på {{ operatorForecast.shifts_last_7days }} skift senaste 7 dagarna
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI tiles -->
+            <div class="col-md-3 col-6">
+              <div class="forecast-tile">
+                <div class="ft-label">Snittbonus</div>
+                <div class="ft-value" [ngClass]="getBonusClass(operatorForecast.avg_bonus_last_7days)">
+                  {{ operatorForecast.avg_bonus_last_7days | number:'1.1-1' }}
+                </div>
+                <div class="ft-sub">poäng snitt</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="forecast-tile">
+                <div class="ft-label">Tier</div>
+                <div class="ft-value text-warning">x{{ operatorForecast.tier_multiplier }}</div>
+                <div class="ft-sub">multiplikator</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="forecast-tile">
+                <div class="ft-label">Prognosbonus</div>
+                <div class="ft-value" [ngClass]="getBonusClass(operatorForecast.projected_bonus)">
+                  {{ operatorForecast.projected_bonus | number:'1.1-1' }}
+                </div>
+                <div class="ft-sub">poäng (med tier)</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="forecast-tile">
+                <div class="ft-label">Produktivitet</div>
+                <div class="ft-value text-info">{{ operatorForecast.avg_produktivitet | number:'1.1-1' }}</div>
+                <div class="ft-sub">IBC/h snitt</div>
+              </div>
+            </div>
+
+            <!-- Goal progress -->
+            <div class="col-12">
+              <div class="forecast-goal-card">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="fw-bold">Framsteg mot veckobonusmål ({{ operatorForecast.weekly_goal }} poäng)</span>
+                  <span [ngClass]="getBonusClass(operatorForecast.avg_bonus_last_7days)" class="fw-bold">
+                    {{ operatorForecast.pct_of_goal }}%
+                  </span>
+                </div>
+                <div class="progress mb-2" style="height: 14px;">
+                  <div class="progress-bar"
+                       [class.bg-danger]="operatorForecast.pct_of_goal < 70"
+                       [class.bg-warning]="operatorForecast.pct_of_goal >= 70 && operatorForecast.pct_of_goal < 90"
+                       [class.bg-success]="operatorForecast.pct_of_goal >= 90"
+                       [style.width.%]="operatorForecast.pct_of_goal > 100 ? 100 : operatorForecast.pct_of_goal"
+                       style="transition: width 0.6s ease;">
+                    {{ operatorForecast.pct_of_goal }}%
+                  </div>
+                </div>
+                <small class="text-muted">
+                  Snittbonus {{ operatorForecast.avg_bonus_last_7days | number:'1.1-1' }} p
+                  av {{ operatorForecast.weekly_goal }} p mål
+                  — tier: {{ getForecastTierName(operatorForecast.avg_bonus_last_7days) }}
+                </small>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -48,6 +48,23 @@ export interface BonusSystemStatsResponse {
   error?: string;
 }
 
+export interface OperatorForecastResponse {
+  success: boolean;
+  data?: {
+    operator_id: number;
+    operator_name: string;
+    shifts_last_7days: number;
+    avg_bonus_last_7days: number;
+    avg_produktivitet: number;
+    hours_per_shift: number;
+    tier_multiplier: number;
+    projected_bonus: number;
+    weekly_goal: number;
+    pct_of_goal: number;
+  };
+  error?: string;
+}
+
 export interface GenericResponse {
   success: boolean;
   data?: any;
@@ -107,5 +124,18 @@ export class BonusAdminService {
     return this.http.get<BonusSystemStatsResponse>(this.baseUrl + '&run=get_stats', {
       withCredentials: true
     });
+  }
+
+  setWeeklyGoal(weeklyGoal: number): Observable<GenericResponse> {
+    return this.http.post<GenericResponse>(this.baseUrl + '&run=set_weekly_goal', {
+      weekly_goal: weeklyGoal
+    }, { withCredentials: true });
+  }
+
+  getOperatorForecast(operatorId: number): Observable<OperatorForecastResponse> {
+    return this.http.get<OperatorForecastResponse>(
+      this.baseUrl + '&run=operator_forecast&id=' + operatorId,
+      { withCredentials: true }
+    );
   }
 }

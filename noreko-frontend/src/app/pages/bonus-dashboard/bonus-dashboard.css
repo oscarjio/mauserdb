@@ -207,10 +207,61 @@
 .card-header[role="button"] { cursor: pointer; }
 .card-header[role="button"]:hover { background: #1a2132; }
 
+/* ============================================================
+   GOAL PROGRESS BANNER
+   ============================================================ */
+.goal-progress-card {
+  background: linear-gradient(135deg, #1a202c 0%, #1e2535 100%);
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+.goal-progress-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #cbd5e0;
+}
+
+/* ============================================================
+   TREND ARROWS
+   ============================================================ */
+.trend-cell { width: 36px; text-align: center; }
+.trend-arrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.18rem 0.4rem;
+  border-radius: 4px;
+  display: inline-block;
+}
+.trend-up   { background: rgba(72,187,120,0.15); color: #68d391; }
+.trend-down { background: rgba(229,62,62,0.15);  color: #fc8181; }
+.trend-flat { background: rgba(113,128,150,0.1);  color: #718096; }
+
+/* ============================================================
+   GOAL MINI BAR (ranking table)
+   ============================================================ */
+.goal-col { width: 90px; }
+.goal-mini-bar {
+  height: 6px;
+  background: #161c29;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+.gmb-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+.gmb-danger  { background: #e53e3e; }
+.gmb-warning { background: #ed8936; }
+.gmb-success { background: #48bb78; }
+
 /* Responsive */
 @media (max-width: 768px) {
   .bonus-dashboard-container { padding: 0.75rem; }
   .kpi-value       { font-size: 1.5rem; }
   .mini-stat-value { font-size: 1.1rem; }
   .table           { font-size: 0.78rem; }
+  .goal-col, .trend-cell { display: none; }
 }

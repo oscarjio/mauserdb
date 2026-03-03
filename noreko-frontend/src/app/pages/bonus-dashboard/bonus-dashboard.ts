@@ -5,6 +5,7 @@ import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
+import { BonusAdminService } from '../../services/bonus-admin.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -36,10 +37,17 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   positionRankings: { [key: string]: RankingEntry[] } = {};
   activeRankingTab = 'overall';
 
+  // Previous-period ranking for trend arrows
+  prevRanking: RankingEntry[] = [];
+  prevLoading = false;
+
   // Team/shift stats
   teamAggregate: any = null;
   shifts: ShiftStats[] = [];
   showTeamView = false;
+
+  // Weekly goal (from admin config)
+  weeklyGoal = 80;
 
   // Operator search
   searchOperatorId = '';
@@ -59,7 +67,11 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   private teamStatsSub: Subscription | null = null;
   private destroy$ = new Subject<void>();
 
-  constructor(private auth: AuthService, private bonusService: BonusService) {
+  constructor(
+    private auth: AuthService,
+    private bonusService: BonusService,
+    private bonusAdminService: BonusAdminService
+  ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
@@ -69,6 +81,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.loadData();
+    this.loadWeeklyGoal();
     this.pollingInterval = setInterval(() => this.loadData(), 30000);
   }
 
@@ -85,8 +98,18 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (this.shiftCompareChart) this.shiftCompareChart.destroy();
   }
 
+  private loadWeeklyGoal() {
+    this.bonusAdminService.getConfig().subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.weeklyGoal = (res.data as any).weekly_bonus_goal || 80;
+        }
+      },
+      error: () => {}
+    });
+  }
+
   loadData() {
-    // Cancel any in-flight request before starting a new one
     this.loadDataSub?.unsubscribe();
 
     this.loading = true;
@@ -102,7 +125,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       error: () => {}
     });
 
-    // Ladda ranking (controls loading flag)
+    // Ladda ranking (controls loading flag) + previous period for trend arrows
     this.loadDataSub = this.bonusService.getRanking(this.selectedPeriod).subscribe({
       next: (res) => {
         if (res.success && res.data) {
@@ -112,6 +135,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
             'Kontrollstation': res.data.rankings.position_2 || [],
             'Truckförare': res.data.rankings.position_3 || []
           };
+          this.loadPrevPeriodRanking();
         }
         this.loading = false;
       },
@@ -120,6 +144,80 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         this.loading = false;
       }
     });
+  }
+
+  /** Load the previous comparable period for trend arrows */
+  private loadPrevPeriodRanking() {
+    const prevPeriod = this.getPreviousPeriod(this.selectedPeriod);
+    if (!prevPeriod) return;
+    this.prevLoading = true;
+    this.bonusService.getRanking(
+      undefined, 10,
+      prevPeriod.start, prevPeriod.end
+    ).subscribe({
+      next: (res) => {
+        this.prevRanking = res.data?.rankings.overall || [];
+        this.prevLoading = false;
+      },
+      error: () => { this.prevLoading = false; }
+    });
+  }
+
+  private getPreviousPeriod(period: string): { start: string; end: string } | null {
+    const now = new Date();
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    if (period === 'today') {
+      const y = new Date(now); y.setDate(y.getDate() - 1);
+      return { start: fmt(y), end: fmt(y) };
+    }
+    if (period === 'week') {
+      const e = new Date(now); e.setDate(e.getDate() - 7);
+      const s = new Date(e); s.setDate(s.getDate() - 7);
+      return { start: fmt(s), end: fmt(e) };
+    }
+    if (period === 'month') {
+      const e = new Date(now); e.setDate(e.getDate() - 30);
+      const s = new Date(e); s.setDate(s.getDate() - 30);
+      return { start: fmt(s), end: fmt(e) };
+    }
+    return null;
+  }
+
+  /** Get trend direction for an operator vs previous period */
+  getOperatorTrend(op: RankingEntry): 'up' | 'down' | 'flat' {
+    if (!this.prevRanking || this.prevRanking.length === 0) return 'flat';
+    const prev = this.prevRanking.find(p => p.operator_id === op.operator_id);
+    if (!prev) return 'flat';
+    const diff = (op.bonus_avg ?? 0) - (prev.bonus_avg ?? 0);
+    if (diff > 1) return 'up';
+    if (diff < -1) return 'down';
+    return 'flat';
+  }
+
+  /** Get previous period rank for an operator */
+  getPrevRank(op: RankingEntry): number | null {
+    const prev = this.prevRanking.find(p => p.operator_id === op.operator_id);
+    return prev ? prev.rank : null;
+  }
+
+  /** Progress toward weekly goal as percentage */
+  getGoalProgress(bonus: number): number {
+    if (!this.weeklyGoal || this.weeklyGoal <= 0) return 0;
+    return Math.min(Math.round((bonus / this.weeklyGoal) * 100), 100);
+  }
+
+  /** Team average bonus progress toward weekly goal */
+  getTeamGoalProgress(): number {
+    if (!this.summary?.avg_bonus || !this.weeklyGoal) return 0;
+    return Math.min(Math.round((this.summary.avg_bonus / this.weeklyGoal) * 100), 100);
+  }
+
+  /** Quality percentage from summary */
+  getQualityPct(): number {
+    if (!this.summary) return 0;
+    const total = (this.summary.total_ibc_ok || 0) + (this.summary.total_ibc_ej_ok || 0);
+    if (total <= 0) return 0;
+    return Math.round((this.summary.total_ibc_ok / total) * 100);
   }
 
   toggleTeamView() {
@@ -153,14 +251,12 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   searchOperator() {
     if (!this.searchOperatorId.trim()) return;
 
-    // Cancel any pending search
     this.searchSub?.unsubscribe();
 
     this.loading = true;
     this.operatorData = null;
     this.operatorKPIData = null;
 
-    // Use a counter to handle the two parallel calls
     let pending = 2;
     const done = () => { if (--pending === 0) this.loading = false; };
 
@@ -180,7 +276,6 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       }
     });
 
-    // Ladda KPI chart data
     this.bonusService.getKPIDetails(this.searchOperatorId, this.selectedPeriod).subscribe({
       next: (res) => {
         if (res.success && res.data) {
@@ -271,6 +366,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   onPeriodChange() {
+    this.prevRanking = [];
     this.loadData();
     if (this.operatorData) this.searchOperator();
     if (this.showTeamView) this.reloadTeamStats();
@@ -286,7 +382,6 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   clearOperatorSearch() {
-    // Cancel any pending search request
     this.searchSub?.unsubscribe();
     this.operatorData = null;
     this.operatorKPIData = null;
@@ -369,9 +464,10 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       ? this.overallRanking
       : (this.positionRankings[this.activeRankingTab] || []);
     if (data.length === 0) return;
-    const header = ['Rank', 'Operatör', 'Bonus Snitt', 'Effektivitet', 'Produktivitet', 'Kvalitet', 'IBC OK', 'Timmar'];
+    const header = ['Rank', 'Trend', 'Operatör', 'Bonus Snitt', 'Effektivitet', 'Produktivitet', 'Kvalitet', 'IBC OK', 'Timmar'];
     const rows = data.map((r: RankingEntry) => [
       r.rank,
+      this.getOperatorTrend(r) === 'up' ? 'Uppat' : this.getOperatorTrend(r) === 'down' ? 'Nedåt' : 'Stabil',
       r.operator_name || ('Op ' + r.operator_id),
       (r.bonus_avg ?? 0).toFixed(1),
       (r.effektivitet ?? 0).toFixed(1) + '%',

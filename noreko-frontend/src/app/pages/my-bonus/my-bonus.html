@@ -82,7 +82,7 @@
         </div>
         <!-- Details -->
         <div class="col hero-details ps-4">
-          <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
             <span class="tier-badge" [ngClass]="getBonusClass(stats.kpis?.bonus_avg || 0)">
               {{ getBonusTier(stats.kpis?.bonus_avg || 0) }}
             </span>
@@ -92,6 +92,10 @@
               <i class="fas" [class.fa-arrow-up]="getTrendDirection() === 'up'"
                  [class.fa-arrow-down]="getTrendDirection() === 'down'"></i>
               {{ getTrendDirection() === 'up' ? 'Stigande' : 'Sjunkande' }}
+            </span>
+            <!-- Motivational status badge -->
+            <span class="status-badge" [ngClass]="getStatusBadge().cssClass">
+              {{ getStatusBadge().text }}
             </span>
           </div>
 
@@ -137,6 +141,37 @@
       </div>
     </div>
 
+    <!-- ===== SKIFTPROGNOS ===== -->
+    <div class="prognosis-banner mb-4" *ngIf="getShiftPrognosis() as prog">
+      <div class="prognosis-icon">
+        <i class="fas fa-chart-line"
+           [class.text-success]="getTrendDirection() === 'up'"
+           [class.text-danger]="getTrendDirection() === 'down'"
+           [class.text-muted]="getTrendDirection() === 'flat'"></i>
+      </div>
+      <div class="prognosis-body">
+        <div class="prognosis-title">
+          Skiftprognos — om du fortsätter i detta tempo
+        </div>
+        <div class="prognosis-row">
+          <div class="prog-item">
+            <span class="prog-label">Förv. bonus</span>
+            <span class="prog-val" [ngClass]="getBonusClass(prog.bonusPoang)">{{ prog.bonusPoang | number:'1.1-1' }} p</span>
+          </div>
+          <div class="prog-sep"></div>
+          <div class="prog-item">
+            <span class="prog-label">IBC/h</span>
+            <span class="prog-val text-info">{{ prog.ibcPerHour | number:'1.1-1' }}</span>
+          </div>
+          <div class="prog-sep"></div>
+          <div class="prog-item">
+            <span class="prog-label">IBC/vecka (5 skift)</span>
+            <span class="prog-val text-primary">{{ prog.weeklyIbc }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
       <div class="col-md-3 col-6">
@@ -175,7 +210,7 @@
       </div>
     </div>
 
-    <!-- Charts row -->
+    <!-- Charts row: KPI radar + Bonus history -->
     <div class="row g-3 mb-4">
       <div class="col-md-5">
         <div class="chart-card">
@@ -199,6 +234,19 @@
               <canvas id="myHistoryChart"></canvas>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IBC/h trend chart for last 7 shifts -->
+    <div class="chart-card mb-4" *ngIf="history.length >= 2">
+      <div class="chart-card-header">
+        <i class="fas fa-chart-line me-2 text-primary"></i>Mina IBC/h — senaste 7 skiften
+        <span class="ms-auto text-muted small">Snitt: {{ getMyAvgIbcPerHour() | number:'1.1-1' }} IBC/h</span>
+      </div>
+      <div class="chart-body">
+        <div class="chart-container">
+          <canvas id="myIbcTrendChart"></canvas>
         </div>
       </div>
     </div>
