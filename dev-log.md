@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-03-03 — Prediktiv underhållsindikator i rebotling-admin — commit 153729e
+
+### Nytt: Sektion "Maskinstatus & Underhållsprediktor" i `/admin/rebotling`
+
+**Syfte:** Produktionschefen ska tidigt se om cykeltiden ökar stadigt under de senaste veckorna — ett tecken på maskinslitage (ventiler, pumpar, dubbar). En tidig varning förebygger haveri och produktionsstopp.
+
+**Backend — `noreko-backend/classes/RebotlingController.php`:**
+- Ny metod `getMaintenanceIndicator()` + dispatch `elseif ($action === 'maintenance-indicator')`.
+- Endpoint: `GET ?action=rebotling&run=maintenance-indicator`
+- SQL: aggregerar `MAX(ibc_ok)` + `MAX(runtime_plc)` per `(DATE, skiftraknare)` → summerar per vecka (senaste 8 veckor, 56 dagar).
+- Cykeltid = `SUM(shift_runtime) / SUM(shift_ibc)` (minuter per IBC).
+- Baslinje = snitt av de 4 första veckorna. Aktuell = senaste veckan.
+- Status: `ok` / `warning` (>15% ökning) / `danger` (>30% ökning).
+- Returnerar: `status`, `message`, `weeks[]`, `baseline_cycle_time`, `current_cycle_time`, `trend_pct`.
+
+**Frontend — `noreko-frontend/src/app/pages/rebotling-admin/rebotling-admin.ts` + `.html`:**
+- Ny sektion (card) längst ned på admin-sidan — INTE en ny flik.
+- `Chart.js` linjegraf: orange linje för cykeltid per vecka + grön streckad baslinje.
+- KPI-brickor: baslinje, aktuell cykeltid, trend-% (färgkodad grön/gul/röd).
+- Statusbanner: grön vid ok, gul vid warning, röd vid danger.
+- Polling var 5 min via `setInterval` + `clearInterval` i `ngOnDestroy`.
+- `takeUntil(this.destroy$)` + `timeout(8000)` + `catchError`.
+- `maintenanceChart?.destroy()` i `ngOnDestroy` för att undvika memory-läcka.
+- `ngAfterViewInit` implementerad för att rita om grafen om data redan är laddad.
+
+---
+
 ## 2026-03-03 — Månadsrapport med PDF-export — commit e9e7590
 
 ### Nytt: `/rapporter/manad` — auto-genererad månadsöversikt
