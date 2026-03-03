@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, timeout } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { OperatorsService } from '../../services/operators.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -35,6 +37,11 @@ export class OperatorsPage implements OnInit, OnDestroy {
   opStatsLoading = false;
   statsLoaded = false;
 
+  // Korrelationsanalys — operatörspar
+  pairsData: any[] = [];
+  pairsLoading = false;
+  showPairs = false;
+
   // Sök + sortering
   searchText = '';
   sortField: SortField = 'ibc_per_hour';
@@ -64,6 +71,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
     });
     this.fetchOperators();
     this.loadOpStats();
+    this.loadPairs();
   }
 
   ngOnDestroy() {
@@ -388,6 +396,24 @@ export class OperatorsPage implements OnInit, OnDestroy {
       },
       error: () => {
         this.opStatsLoading = false;
+      }
+    });
+  }
+
+  loadPairs() {
+    this.pairsLoading = true;
+    this.operatorsService.getPairs().pipe(
+      takeUntil(this.destroy$),
+      timeout(8000),
+      catchError(() => of({ success: false, pairs: [] }))
+    ).subscribe({
+      next: (res) => {
+        this.pairsData = res.pairs || [];
+        this.pairsLoading = false;
+      },
+      error: () => {
+        this.pairsData = [];
+        this.pairsLoading = false;
       }
     });
   }

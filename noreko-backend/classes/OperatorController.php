@@ -163,6 +163,10 @@ class OperatorController {
             $this->getOperatorTrend();
             return;
         }
+        if ($run === 'pairs') {
+            $this->getPairs();
+            return;
+        }
 
         // GET - Hämta alla operatörer
         try {
@@ -230,6 +234,95 @@ class OperatorController {
             error_log('OperatorController getStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatistik']);
+        }
+    }
+
+    /**
+     * GET ?action=operators&run=pairs
+     * Analyserar parvisa operatörskombinationer senaste 90 dagarna.
+     * Returnerar top-20 par sorterade på snitt-IBC/h (minst 3 gemensamma skift).
+     */
+    private function getPairs() {
+        try {
+            $stmt = $this->pdo->prepare('
+                SELECT
+                    LEAST(op_a, op_b)   AS op1_num,
+                    GREATEST(op_a, op_b) AS op2_num,
+                    COUNT(*)             AS shifts_together,
+                    ROUND(
+                        SUM(COALESCE(ibc_ok, 0)) /
+                        NULLIF(SUM(COALESCE(drifttid, 0)) / 60.0, 0),
+                    1) AS avg_ibc_per_hour,
+                    ROUND(AVG(
+                        CASE WHEN totalt > 0 THEN ibc_ok * 100.0 / totalt ELSE NULL END
+                    ), 1) AS avg_quality
+                FROM (
+                    SELECT op1 AS op_a, op2 AS op_b, ibc_ok, totalt, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND op2 IS NOT NULL AND op2 > 0
+                      AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    UNION ALL
+                    SELECT op1, op3, ibc_ok, totalt, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op1 IS NOT NULL AND op3 IS NOT NULL AND op3 > 0
+                      AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    UNION ALL
+                    SELECT op2, op3, ibc_ok, totalt, drifttid
+                    FROM rebotling_skiftrapport
+                    WHERE op2 IS NOT NULL AND op3 IS NOT NULL AND op2 > 0 AND op3 > 0
+                      AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                ) AS pairs
+                GROUP BY LEAST(op_a, op_b), GREATEST(op_a, op_b)
+                HAVING shifts_together >= 3
+                ORDER BY avg_ibc_per_hour DESC
+                LIMIT 20
+            ');
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($rows)) {
+                echo json_encode(['success' => true, 'pairs' => []]);
+                return;
+            }
+
+            // Hämta operatörsnamn för alla berörda nummer
+            $nums = [];
+            foreach ($rows as $r) {
+                $nums[] = (int)$r['op1_num'];
+                $nums[] = (int)$r['op2_num'];
+            }
+            $nums = array_unique($nums);
+            $placeholders = implode(',', array_fill(0, count($nums), '?'));
+
+            $nameStmt = $this->pdo->prepare(
+                "SELECT number, name FROM operators WHERE number IN ($placeholders)"
+            );
+            $nameStmt->execute($nums);
+            $nameMap = [];
+            foreach ($nameStmt->fetchAll(PDO::FETCH_ASSOC) as $op) {
+                $nameMap[(int)$op['number']] = $op['name'];
+            }
+
+            $pairs = [];
+            foreach ($rows as $r) {
+                $op1 = (int)$r['op1_num'];
+                $op2 = (int)$r['op2_num'];
+                $pairs[] = [
+                    'op1_num'          => $op1,
+                    'op1_name'         => $nameMap[$op1] ?? ('Operatör #' . $op1),
+                    'op2_num'          => $op2,
+                    'op2_name'         => $nameMap[$op2] ?? ('Operatör #' . $op2),
+                    'shifts_together'  => (int)$r['shifts_together'],
+                    'avg_ibc_per_hour' => $r['avg_ibc_per_hour'] !== null ? (float)$r['avg_ibc_per_hour'] : null,
+                    'avg_quality'      => $r['avg_quality']      !== null ? (float)$r['avg_quality']      : null,
+                ];
+            }
+
+            echo json_encode(['success' => true, 'pairs' => $pairs]);
+        } catch (Exception $e) {
+            error_log('OperatorController getPairs: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta pardata']);
         }
     }
 

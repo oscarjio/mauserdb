@@ -35,4 +35,8 @@ export class OperatorsService {
   getTrend(opNumber: number): Observable<any> {
     return this.http.get<any>(this.apiUrl + '&run=trend&op_number=' + opNumber, { withCredentials: true });
   }
+
+  getPairs(): Observable<any> {
+    return this.http.get<any>(this.apiUrl + '&run=pairs', { withCredentials: true });
+  }
 }

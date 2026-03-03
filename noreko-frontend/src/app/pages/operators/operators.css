@@ -468,3 +468,124 @@
     font-size: 1.1rem;
   }
 }
+
+/* ============================================================
+   Korrelationsanalys — Operatörspar
+   ============================================================ */
+
+.pairs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
+}
+
+.pair-card {
+  background-color: #1a202c;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: border-color 0.15s;
+}
+
+.pair-card:hover {
+  border-color: rgba(99,179,237,0.3);
+}
+
+.pair-rank {
+  color: #718096;
+  font-size: 0.8rem;
+  font-weight: 700;
+  min-width: 2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.pair-names {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.pair-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: #fff;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.pair-plus {
+  color: #718096;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.pair-name-text {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  margin-top: 0.15rem;
+}
+
+.pair-stats {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pair-stat-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.75rem;
+  white-space: nowrap;
+}
+
+.pair-stat-ibc {
+  background: rgba(66,153,225,0.18);
+  color: #4299e1;
+}
+
+.pair-stat-quality {
+  background: rgba(72,187,120,0.18);
+  color: #48bb78;
+}
+
+.pair-stat-shifts {
+  background: rgba(160,174,192,0.12);
+  color: #a0aec0;
+}
+
+@media (max-width: 576px) {
+  .pairs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pair-card {
+    flex-wrap: wrap;
+  }
+
+  .pair-stats {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
