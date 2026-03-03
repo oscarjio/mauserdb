@@ -690,6 +690,77 @@
     </div>
   </div>
 
+
+  <!-- ===== TAB: Bonusnivåer (kr) ===== -->
+  <div *ngIf="activeTab === 'amounts'">
+    <div class="card" style="background:#2d3748; border:none;">
+      <div class="card-body">
+        <h5 class="mb-1"><i class="fas fa-coins me-2 text-warning"></i>Bonusnivåer — Belopp i kronor</h5>
+        <p class="text-muted small mb-4">Konfigurera hur mycket varje bonusnivå är värd per månad.</p>
+
+        <div *ngIf="amountsLoading" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+          <span class="text-muted ms-2">Hämtar belopp...</span>
+        </div>
+
+        <div *ngIf="!amountsLoading">
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold" style="color:#cd7f32;">
+                <i class="fas fa-medal me-2"></i>Brons
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;"
+                       [(ngModel)]="amountsForm.brons" min="0" max="100000" step="100">
+                <span class="input-group-text" style="background:#1a202c; color:#a0aec0; border-color:#4a5568;">kr / månad</span>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold" style="color:#a8a9ad;">
+                <i class="fas fa-medal me-2"></i>Silver
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;"
+                       [(ngModel)]="amountsForm.silver" min="0" max="100000" step="100">
+                <span class="input-group-text" style="background:#1a202c; color:#a0aec0; border-color:#4a5568;">kr / månad</span>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold" style="color:#ffd700;">
+                <i class="fas fa-trophy me-2"></i>Guld
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;"
+                       [(ngModel)]="amountsForm.guld" min="0" max="100000" step="100">
+                <span class="input-group-text" style="background:#1a202c; color:#a0aec0; border-color:#4a5568;">kr / månad</span>
+              </div>
+            </div>
+            <div class="col-12 col-md-6">
+              <label class="form-label fw-semibold" style="color:#e5e4e2;">
+                <i class="fas fa-gem me-2"></i>Platina
+              </label>
+              <div class="input-group">
+                <input type="number" class="form-control" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568;"
+                       [(ngModel)]="amountsForm.platina" min="0" max="100000" step="100">
+                <span class="input-group-text" style="background:#1a202c; color:#a0aec0; border-color:#4a5568;">kr / månad</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <button class="btn btn-warning" (click)="saveAmounts()" [disabled]="amountsSaving">
+              <i class="fas fa-save me-2"></i>{{ amountsSaving ? 'Sparar...' : 'Spara belopp' }}
+            </button>
+            <span class="text-muted small" *ngIf="amountsLastUpdated">
+              <i class="fas fa-clock me-1"></i>
+              Senast uppdaterat: {{ amountsLastUpdated }} av {{ amountsLastUpdatedBy || 'okänd' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Not admin -->

@@ -172,6 +172,66 @@
       </div>
     </div>
 
+    <!-- ===== BONUSPROGNOS I KR ===== -->
+    <div class="bonus-kr-card mb-4" *ngIf="stats">
+      <div *ngIf="!bonusAmountsLoading && !bonusAmountsConfigured" class="bonus-kr-not-configured">
+        <i class="fas fa-info-circle me-2 text-muted"></i>
+        <span class="text-muted">Kontakta admin for att konfigurera bonusbelopp.</span>
+      </div>
+      <div *ngIf="bonusAmountsLoading" class="d-flex align-items-center gap-2 py-2">
+        <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+        <span class="text-muted small">Hamtar bonusbelopp...</span>
+      </div>
+      <div *ngIf="!bonusAmountsLoading && bonusAmountsConfigured && bonusAmounts">
+        <div class="bonus-kr-header">
+          <i class="fas fa-coins me-2 text-warning"></i>Bonusprognos denna manad
+        </div>
+        <div class="bonus-kr-body">
+          <ng-container *ngIf="getBonusLevelKey(stats.kpis?.bonus_avg || 0) as currentKey">
+            <div class="bonus-kr-current mb-3">
+              <div class="bkc-label">Nuvarande niva</div>
+              <div class="bkc-level">
+                <i class="fas fa-medal me-2" [style]="getLevelIconStyle(currentKey)"></i>
+                <span [style]="getLevelIconStyle(currentKey)" class="fw-semibold">{{ getLevelDisplayName(currentKey) }}</span>
+              </div>
+              <div class="bkc-progress-wrap mt-2">
+                <div class="bkc-progress-bar">
+                  <div class="bkc-progress-fill"
+                       [style.width]="getLevelProgress(stats.kpis?.bonus_avg || 0) + '%'"
+                       [style]="getLevelIconStyle(currentKey)">
+                  </div>
+                </div>
+                <span class="bkc-progress-pct text-muted small ms-2">~{{ getLevelProgress(stats.kpis?.bonus_avg || 0) }}%</span>
+              </div>
+              <div class="bkc-amount mt-2">
+                <i class="fas fa-arrow-right me-1 text-muted"></i>
+                Uppskattad bonus:
+                <span class="bkc-sek fw-bold text-warning ms-1">~{{ bonusAmounts[currentKey] | number }} kr</span>
+              </div>
+            </div>
+            <div class="bonus-kr-next" *ngIf="getNextLevelKey(currentKey) as nextKey">
+              <div class="bkn-label">Om du nar {{ getLevelDisplayName(nextKey) }}:</div>
+              <div class="bkn-value">
+                <i class="fas fa-arrow-up me-1 text-success"></i>
+                <span class="text-success fw-semibold">~{{ bonusAmounts[nextKey] | number }} kr</span>
+                <span class="text-muted ms-1 small">(+{{ (bonusAmounts[nextKey] - bonusAmounts[currentKey]) | number }} kr)</span>
+              </div>
+            </div>
+            <div class="bonus-kr-top text-success" *ngIf="!getNextLevelKey(currentKey)">
+              <i class="fas fa-gem me-2"></i>Du ar pa hogsta nivan! Fantastisk prestation.
+            </div>
+          </ng-container>
+          <div *ngIf="!getBonusLevelKey(stats.kpis?.bonus_avg || 0)" class="bonus-kr-below">
+            <i class="fas fa-info-circle me-2 text-muted"></i>
+            <span class="text-muted">Na minst 70 poang for att kvalificera dig for bonus.</span>
+            <div class="mt-1 small text-muted">
+              Lagsta bonusniva (Brons): <span class="text-warning fw-semibold">{{ bonusAmounts?.brons | number }} kr</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
       <div class="col-md-3 col-6">

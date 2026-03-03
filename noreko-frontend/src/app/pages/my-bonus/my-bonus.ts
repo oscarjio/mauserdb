@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, distinctUntilChanged, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, WeeklyHistoryEntry } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
@@ -42,7 +43,12 @@ export class MyBonusPage implements OnInit, OnDestroy {
   weeklyAvg = 0;
   weeklyLoading = false;
 
-  constructor(private auth: AuthService, private bonusService: BonusService) {
+  // Bonusprognos i kr
+  bonusAmounts: { brons: number; silver: number; guld: number; platina: number } | null = null;
+  bonusAmountsLoading = false;
+  bonusAmountsConfigured = false;
+
+  constructor(private auth: AuthService, private bonusService: BonusService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
   }
 
@@ -66,6 +72,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         }
       }
     });
+    this.loadBonusAmounts();
   }
 
   ngOnDestroy(): void {
@@ -262,6 +269,90 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (diff > 2) return 'up';
     if (diff < -2) return 'down';
     return 'flat';
+  }
+
+  loadBonusAmounts(): void {
+    this.bonusAmountsLoading = true;
+    this.http.get<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=getAmounts',
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.data?.amounts) {
+          const a = res.data.amounts;
+          if ((a.brons || 0) > 0 || (a.silver || 0) > 0 || (a.guld || 0) > 0 || (a.platina || 0) > 0) {
+            this.bonusAmounts = {
+              brons:   a.brons   ?? 0,
+              silver:  a.silver  ?? 0,
+              guld:    a.guld    ?? 0,
+              platina: a.platina ?? 0
+            };
+            this.bonusAmountsConfigured = true;
+          } else {
+            this.bonusAmountsConfigured = false;
+          }
+        } else {
+          this.bonusAmountsConfigured = false;
+        }
+        this.bonusAmountsLoading = false;
+      },
+      error: () => {
+        this.bonusAmountsConfigured = false;
+        this.bonusAmountsLoading = false;
+      }
+    });
+  }
+
+  getBonusLevelKey(bonus: number): 'brons' | 'silver' | 'guld' | 'platina' | null {
+    if (bonus >= 95) return 'platina';
+    if (bonus >= 90) return 'guld';
+    if (bonus >= 80) return 'silver';
+    if (bonus >= 70) return 'brons';
+    return null;
+  }
+
+  getNextLevelKey(current: 'brons' | 'silver' | 'guld' | 'platina' | null): 'silver' | 'guld' | 'platina' | null {
+    switch (current) {
+      case 'brons':   return 'silver';
+      case 'silver':  return 'guld';
+      case 'guld':    return 'platina';
+      default:        return null;
+    }
+  }
+
+  getLevelDisplayName(key: string | null): string {
+    switch (key) {
+      case 'brons':   return 'Brons';
+      case 'silver':  return 'Silver';
+      case 'guld':    return 'Guld';
+      case 'platina': return 'Platina';
+      default:        return 'Ingen nivå';
+    }
+  }
+
+  getLevelIconStyle(key: string | null): string {
+    switch (key) {
+      case 'brons':   return 'color:#cd7f32';
+      case 'silver':  return 'color:#a8a9ad';
+      case 'guld':    return 'color:#ffd700';
+      case 'platina': return 'color:#e5e4e2';
+      default:        return 'color:#718096';
+    }
+  }
+
+  getLevelProgress(bonus: number): number {
+    const tiers = [0, 70, 80, 90, 95, 120];
+    for (let i = 0; i < tiers.length - 1; i++) {
+      if (bonus >= tiers[i] && bonus < tiers[i + 1]) {
+        const pct = ((bonus - tiers[i]) / (tiers[i + 1] - tiers[i])) * 100;
+        return Math.min(Math.round(pct), 100);
+      }
+    }
+    return 100;
   }
 
   exportBonusCSV(): void {

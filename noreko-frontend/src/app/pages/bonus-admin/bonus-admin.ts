@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusAdminService, BonusPeriod, OperatorForecastResponse } from '../../services/bonus-admin.service';
 
@@ -67,6 +67,13 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   simResult: any = null;
   simError = '';
 
+  // ========== Bonusnivåer i kr ==========
+  amountsForm = { brons: 500, silver: 1000, guld: 2000, platina: 3500 };
+  amountsLoading = false;
+  amountsSaving = false;
+  amountsLastUpdated: string | null = null;
+  amountsLastUpdatedBy: string | null = null;
+
   // Toast timer IDs
   private successTimerId: any = null;
   private errorTimerId: any = null;
@@ -103,6 +110,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.loadSystemStats();
     this.loadConfig();
     this.loadPeriods();
+    this.loadAmounts();
   }
 
   // ========== System Stats ==========
@@ -373,6 +381,62 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       case 'platinum': return '#e5e4e2';
       default:         return '#6c757d';
     }
+  }
+
+  // ========== Bonusnivåer i kr ==========
+  loadAmounts() {
+    this.amountsLoading = true;
+    this.http.get<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=getAmounts',
+      { withCredentials: true }
+    ).pipe(
+      timeout(5000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.data?.amounts) {
+          const a = res.data.amounts;
+          this.amountsForm = {
+            brons:   a.brons   ?? 500,
+            silver:  a.silver  ?? 1000,
+            guld:    a.guld    ?? 2000,
+            platina: a.platina ?? 3500
+          };
+          this.amountsLastUpdated    = res.data.last_updated   ?? null;
+          this.amountsLastUpdatedBy  = res.data.last_updated_by ?? null;
+        }
+        this.amountsLoading = false;
+      },
+      error: () => { this.amountsLoading = false; }
+    });
+  }
+
+  saveAmounts() {
+    this.amountsSaving = true;
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=setAmounts',
+      this.amountsForm,
+      { withCredentials: true }
+    ).pipe(
+      timeout(5000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.showSuccess('Bonusbelopp sparade!');
+          this.loadAmounts();
+        } else {
+          this.showError(res?.error || 'Fel vid sparning av belopp');
+        }
+        this.amountsSaving = false;
+      },
+      error: () => {
+        this.showError('Nätverksfel vid sparning av belopp');
+        this.amountsSaving = false;
+      }
+    });
   }
 
   // ========== Helpers ==========

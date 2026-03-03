@@ -78,6 +78,16 @@ class BonusAdminController {
             case 'operator_forecast':
                 $this->getOperatorForecast();
                 break;
+            case 'getAmounts':
+                $this->getAmounts();
+                break;
+            case 'setAmounts':
+                if ($method !== 'POST') {
+                    $this->sendError('POST required');
+                    return;
+                }
+                $this->setAmounts();
+                break;
             default:
                 $this->sendError('Invalid action: ' . $run);
         }
@@ -682,6 +692,98 @@ class BonusAdminController {
             ]);
         } catch (PDOException $e) {
             error_log('BonusAdmin getOperatorForecast error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * Hamta bonusniva-belopp i SEK
+     */
+    private function getAmounts() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT level_name, amount_sek, updated_at, updated_by
+                FROM bonus_level_amounts
+                ORDER BY FIELD(level_name, 'brons', 'silver', 'guld', 'platina')
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $amounts = [];
+            $lastUpdated = null;
+            $lastUpdatedBy = null;
+            foreach ($rows as $row) {
+                $amounts[$row['level_name']] = (int)$row['amount_sek'];
+                if (!$lastUpdated || $row['updated_at'] > $lastUpdated) {
+                    $lastUpdated = $row['updated_at'];
+                    $lastUpdatedBy = $row['updated_by'];
+                }
+            }
+
+            $this->sendSuccess([
+                'amounts'         => $amounts,
+                'last_updated'    => $lastUpdated,
+                'last_updated_by' => $lastUpdatedBy
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusAdmin getAmounts error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * Spara bonusniva-belopp i SEK (admin-skyddad)
+     */
+    private function setAmounts() {
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->sendError('Ogiltig JSON-data');
+                return;
+            }
+
+            $allowed = ['brons', 'silver', 'guld', 'platina'];
+            $updatedBy = substr(strip_tags((string)($_SESSION['username'] ?? 'admin')), 0, 100);
+
+            $stmt = $this->pdo->prepare("
+                INSERT INTO bonus_level_amounts (level_name, amount_sek, updated_by)
+                VALUES (:level, :amount, :updated_by)
+                ON DUPLICATE KEY UPDATE
+                    amount_sek = :amount,
+                    updated_by = :updated_by
+            ");
+
+            $saved = [];
+            foreach ($allowed as $level) {
+                if (!isset($input[$level])) {
+                    continue;
+                }
+                $amount = filter_var($input[$level], FILTER_VALIDATE_INT);
+                if ($amount === false || $amount < 0 || $amount > 100000) {
+                    $this->sendError("Ogiltigt belopp for niva: $level (0-100 000 kr)");
+                    return;
+                }
+                $stmt->execute([
+                    'level'      => $level,
+                    'amount'     => $amount,
+                    'updated_by' => $updatedBy
+                ]);
+                $saved[$level] = $amount;
+            }
+
+            if (empty($saved)) {
+                $this->sendError('Inga giltiga belopp skickades');
+                return;
+            }
+
+            $this->logAudit('set_amounts', 'bonus_level_amounts', null, null, $saved);
+            $this->sendSuccess([
+                'message' => 'Bonusbelopp sparade',
+                'saved'   => $saved
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusAdmin setAmounts error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }
