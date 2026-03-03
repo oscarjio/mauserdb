@@ -8,7 +8,7 @@ $allowedOrigins = [
     'http://localhost',
     'https://localhost',
 ];
-// Lägg till egna domäner via db_config om den finns
+// Lägg till extra domäner via cors_origins.php (server-specifik fil, ej i git)
 $corsConfig = __DIR__ . '/cors_origins.php';
 if (file_exists($corsConfig)) {
     $extraOrigins = require $corsConfig;
@@ -16,7 +16,25 @@ if (file_exists($corsConfig)) {
         $allowedOrigins = array_merge($allowedOrigins, $extraOrigins);
     }
 }
-if ($origin && in_array($origin, $allowedOrigins, true)) {
+
+// Tillåt automatiskt alla subdomäner av serverns egna domän.
+// Hanterar t.ex. dev.mauserdb.com ↔ mauserdb.com utan att behöva lista dem i cors_origins.php.
+if ($origin) {
+    $serverHost = $_SERVER['SERVER_NAME'] ?? $_SERVER['HTTP_HOST'] ?? '';
+    // Extrahera registered domain (sista två delar: "mauserdb.com")
+    $hostParts = explode('.', $serverHost);
+    if (count($hostParts) >= 2) {
+        $registeredDomain = implode('.', array_slice($hostParts, -2));
+        // Kontrollera om origin matchar http(s)://(subdomain.)?registeredDomain
+        $pattern = '#^https?://([\w-]+\.)?' . preg_quote($registeredDomain, '#') . '(:\d+)?$#';
+        if (preg_match($pattern, $origin)) {
+            $allowedOrigins[] = $origin;
+        }
+    }
+}
+
+$originAllowed = $origin && in_array($origin, $allowedOrigins, true);
+if ($originAllowed) {
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
