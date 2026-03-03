@@ -137,6 +137,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   oeeData: any = null;
   oeeTrendDays: OEETrendDay[] = [];
   private oeeTrendChart: Chart | null = null;
+  oeeGranularity: 'day' | 'shift' = 'day';
+
+  // Veckojämförelse granularitet
+  weekGranularity: 'day' | 'shift' = 'day';
+
+  // Cykeltrend
+  cycleTrendLoaded: boolean = false;
+  cycleTrendLoading: boolean = false;
+  cycleTrendDays: number = 30;
+  cycleTrendData: any[] = [];
+  cycleTrendGranularity: 'day' | 'shift' = 'day';
+  private cycleTrendChart: Chart | null = null;
 
   // Cykeltids-histogram
   histogramDate: string = new Date().toISOString().split('T')[0];
@@ -254,6 +266,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.weekComparisonChart = null;
     this.oeeTrendChart?.destroy();
     this.oeeTrendChart = null;
+    this.cycleTrendChart?.destroy();
+    this.cycleTrendChart = null;
     this.histogramChart?.destroy();
     this.histogramChart = null;
     this.spcChart?.destroy();
@@ -1798,10 +1812,16 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   // ======== VECKOJÄMFÖRELSE ========
 
+  setWeekGranularity(g: 'day' | 'shift') {
+    this.weekGranularity = g;
+    this.weekComparisonLoaded = false;
+    this.loadWeekComparison();
+  }
+
   loadWeekComparison() {
     if (this.weekComparisonLoading) return;
     this.weekComparisonLoading = true;
-    this.rebotlingService.getWeekComparison().pipe(
+    this.rebotlingService.getWeekComparison(this.weekGranularity).pipe(
       timeout(8000),
       takeUntil(this.destroy$),
       catchError(() => of(null))
@@ -1823,6 +1843,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const weekdays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
     const labels = this.weekComparisonThisWeek.map(d => {
+      if (d.label) return d.label;
       const wd = new Date(d.date + 'T00:00:00').getDay();
       const wdIdx = wd === 0 ? 6 : wd - 1;
       return `${weekdays[wdIdx]} ${d.date.substring(5)}`;
@@ -1962,6 +1983,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   // ======== OEE DEEP-DIVE ========
 
+  setOeeGranularity(g: 'day' | 'shift') {
+    this.oeeGranularity = g;
+    this.oeeLoaded = false;
+    this.loadOEE();
+  }
+
   loadOEE() {
     if (this.oeeLoading) return;
     this.oeeLoading = true;
@@ -1975,7 +2002,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         this.oeeData = oeeRes.data;
       }
 
-      this.rebotlingService.getOEETrend(30).pipe(
+      this.rebotlingService.getOEETrend(30, this.oeeGranularity).pipe(
         timeout(8000),
         takeUntil(this.destroy$),
         catchError(() => of(null))
@@ -1997,7 +2024,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.oeeTrendDays.length) return;
 
-    const labels = this.oeeTrendDays.map(d => d.date.substring(5));
+    const labels = this.oeeTrendDays.map(d => d.label ?? d.date.substring(5));
 
     this.oeeTrendChart = new Chart(canvas, {
       type: 'line',
@@ -2286,5 +2313,106 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   onSPCDaysChange() {
     this.spcLoaded = false;
     this.loadSPC();
+  }
+
+  // ======== CYKELTREND ========
+
+  setCycleTrendGranularity(g: 'day' | 'shift') {
+    this.cycleTrendGranularity = g;
+    this.cycleTrendLoaded = false;
+    this.loadCycleTrend();
+  }
+
+  loadCycleTrend() {
+    if (this.cycleTrendLoading) return;
+    this.cycleTrendLoading = true;
+    this.rebotlingService.getCycleTrend(this.cycleTrendDays, this.cycleTrendGranularity).pipe(
+      timeout(10000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe(res => {
+      this.cycleTrendLoading = false;
+      if (res?.success && res.data) {
+        this.cycleTrendData = res.data.daily;
+        this.cycleTrendLoaded = true;
+        setTimeout(() => this.renderCycleTrendChart(), 100);
+      } else {
+        this.cycleTrendLoaded = true;
+      }
+    });
+  }
+
+  private renderCycleTrendChart() {
+    this.cycleTrendChart?.destroy();
+    const canvas = document.getElementById('cycleTrendChart') as HTMLCanvasElement;
+    if (!canvas || !this.cycleTrendData.length) return;
+
+    const labels = this.cycleTrendData.map(d => d.label ?? d.dag.substring(5));
+    const ibcData = this.cycleTrendData.map(d => d.total_ibc_ok);
+    const ibcPerHour = this.cycleTrendData.map(d => d.avg_ibc_per_hour);
+
+    this.cycleTrendChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC OK',
+            data: ibcData,
+            backgroundColor: 'rgba(66,153,225,0.6)',
+            borderColor: 'rgba(99,179,237,1)',
+            borderWidth: 1,
+            borderRadius: 3,
+            yAxisID: 'y'
+          },
+          {
+            type: 'line' as any,
+            label: 'IBC/h',
+            data: ibcPerHour,
+            borderColor: '#48bb78',
+            backgroundColor: 'rgba(72,187,120,0.1)',
+            tension: 0.3,
+            pointRadius: 2,
+            borderWidth: 2,
+            fill: false,
+            yAxisID: 'y2'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          },
+          y: {
+            beginAtZero: true,
+            position: 'left',
+            ticks: { color: '#718096' },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            title: { display: true, text: 'IBC OK', color: '#a0aec0', font: { size: 11 } }
+          },
+          y2: {
+            beginAtZero: true,
+            position: 'right',
+            ticks: { color: '#48bb78', callback: (v: any) => v + '/h' },
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'IBC/h', color: '#48bb78', font: { size: 11 } }
+          }
+        }
+      }
+    });
   }
 }

@@ -126,9 +126,9 @@ export class RebotlingService {
     );
   }
 
-  getCycleTrend(days: number = 30): Observable<CycleTrendResponse> {
+  getCycleTrend(days: number = 30, granularity: string = 'day'): Observable<CycleTrendResponse> {
     return this.http.get<CycleTrendResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}`,
+      `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`,
       { withCredentials: true }
     );
   }
@@ -144,16 +144,16 @@ export class RebotlingService {
     window.open(`/noreko-backend/api.php?action=rebotling&run=report&period=${period}&format=csv`, '_blank');
   }
 
-  getWeekComparison(): Observable<WeekComparisonResponse> {
+  getWeekComparison(granularity: string = 'day'): Observable<WeekComparisonResponse> {
     return this.http.get<WeekComparisonResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=week-comparison`,
+      `/noreko-backend/api.php?action=rebotling&run=week-comparison&granularity=${granularity}`,
       { withCredentials: true }
     );
   }
 
-  getOEETrend(days: number = 30): Observable<OEETrendResponse> {
+  getOEETrend(days: number = 30, granularity: string = 'day'): Observable<OEETrendResponse> {
     return this.http.get<OEETrendResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=oee-trend&days=${days}`,
+      `/noreko-backend/api.php?action=rebotling&run=oee-trend&days=${days}&granularity=${granularity}`,
       { withCredentials: true }
     );
   }
@@ -196,8 +196,9 @@ export class RebotlingService {
 
 export interface CycleTrendResponse {
   success: boolean;
+  granularity?: string;
   data?: {
-    daily: { dag: string; cycles: number; avg_runtime: number; avg_ibc_per_hour: number; total_ibc_ok: number; total_ibc_ej_ok: number; total_bur_ej_ok: number }[];
+    daily: { dag: string; label?: string; skiftraknare?: number; cycles: number; avg_runtime: number; avg_ibc_per_hour: number; total_ibc_ok: number; total_ibc_ej_ok: number; total_bur_ej_ok: number }[];
     moving_average: { dag: string; moving_avg: number }[];
     trend: 'increasing' | 'decreasing' | 'stable';
     avg_runtime: number;
@@ -209,6 +210,8 @@ export interface CycleTrendResponse {
 
 export interface WeekComparisonDay {
   date: string;
+  label?: string;
+  skiftraknare?: number;
   ibc_ok: number;
   cykler: number;
 }
@@ -225,6 +228,8 @@ export interface WeekComparisonResponse {
 
 export interface OEETrendDay {
   date: string;
+  label?: string;
+  skiftraknare?: number;
   oee: number;
   availability: number;
   performance: number;

@@ -815,3 +815,27 @@
   color: #e2e8f0;
   font-weight: 700;
 }
+
+/* ---- Granularitets-toggle (per dag / per skift) ---- */
+.granularity-toggle {
+  display: inline-flex;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.gran-btn {
+  background: none;
+  border: none;
+  color: #a0aec0;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gran-btn:hover { background: #2d3748; color: #e2e8f0; }
+.gran-btn.active {
+  background: #4299e1;
+  color: #fff;
+  font-weight: 600;
+}

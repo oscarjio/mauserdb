@@ -910,6 +910,64 @@ class RebotlingController {
     private function getCycleTrend() {
         try {
             $days = min(90, max(7, intval($_GET['days'] ?? 30)));
+            $granularity = $_GET['granularity'] ?? 'day';
+
+            if ($granularity === 'shift') {
+                // Per-skift granularitet: varje skift är en datapunkt
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum)          AS dag,
+                        skiftraknare,
+                        MIN(datum)           AS skift_start,
+                        COUNT(*)             AS cykler,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                    ORDER BY dag ASC, skiftraknare ASC
+                ");
+                $stmt->execute([$days]);
+                $shiftRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $shiftData = [];
+                foreach ($shiftRows as $r) {
+                    $dagParts = explode('-', $r['dag']);
+                    $label = sprintf('%s/%s Skift %d',
+                        $dagParts[2], $dagParts[1], (int)$r['skiftraknare']
+                    );
+                    $runtime = (float)$r['shift_runtime'];
+                    $ibcPerHour = $runtime > 0 ? round((float)$r['shift_ibc_ok'] * 60.0 / $runtime, 1) : 0.0;
+                    $shiftData[] = [
+                        'dag'             => $r['dag'],
+                        'label'           => $label,
+                        'skiftraknare'    => (int)$r['skiftraknare'],
+                        'cycles'          => (int)$r['cykler'],
+                        'avg_runtime'     => $runtime,
+                        'avg_ibc_per_hour'=> $ibcPerHour,
+                        'total_ibc_ok'    => (int)$r['shift_ibc_ok'],
+                        'total_ibc_ej_ok' => (int)$r['shift_ibc_ej_ok'],
+                        'total_bur_ej_ok' => (int)$r['shift_bur_ej_ok']
+                    ];
+                }
+
+                echo json_encode([
+                    'success' => true,
+                    'granularity' => 'shift',
+                    'data' => [
+                        'daily'          => $shiftData,
+                        'moving_average' => [],
+                        'trend'          => 'stable',
+                        'avg_runtime'    => 0,
+                        'total_cycles'   => array_sum(array_column($shiftData, 'cycles')),
+                        'alert'          => null
+                    ]
+                ]);
+                return;
+            }
 
             // Daglig statistik. ibc_ok/ej_ok/bur_ej_ok är kumulativa PLC-värden per skift –
             // aggregera korrekt med per-skift-subquery (MAX per skiftraknare → SUM per dag).
@@ -1154,6 +1212,58 @@ class RebotlingController {
      */
     private function getWeekComparison() {
         try {
+            $granularity = $_GET['granularity'] ?? 'day';
+
+            if ($granularity === 'shift') {
+                // Per-skift: hämta senaste 14 dagarna, varje skift = en datapunkt
+                $weekdays = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum)           AS dag,
+                        skiftraknare,
+                        MIN(datum)            AS skift_start,
+                        COUNT(*)              AS cykler,
+                        MAX(COALESCE(ibc_ok,  0)) AS shift_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                    ORDER BY dag ASC, skiftraknare ASC
+                ");
+                $stmt->execute();
+                $shiftRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $allShifts = [];
+                foreach ($shiftRows as $r) {
+                    $ts = strtotime($r['dag']);
+                    $wd = (int)date('w', $ts); // 0=Sun, 1=Mon ... 6=Sat
+                    $label = $weekdays[$wd] . ' Skift ' . (int)$r['skiftraknare'];
+                    $allShifts[] = [
+                        'date'         => $r['dag'],
+                        'label'        => $label,
+                        'skiftraknare' => (int)$r['skiftraknare'],
+                        'ibc_ok'       => (int)$r['shift_ibc_ok'],
+                        'cykler'       => (int)$r['cykler']
+                    ];
+                }
+
+                // Dela på mittpunkt 7 dagar
+                $cutoff = date('Y-m-d', strtotime('-7 days'));
+                $thisWeekShifts = array_values(array_filter($allShifts, fn($s) => $s['date'] >= $cutoff));
+                $prevWeekShifts = array_values(array_filter($allShifts, fn($s) => $s['date'] < $cutoff));
+
+                echo json_encode([
+                    'success' => true,
+                    'granularity' => 'shift',
+                    'data' => [
+                        'this_week' => $thisWeekShifts,
+                        'prev_week' => $prevWeekShifts,
+                        'all_days'  => $allShifts
+                    ]
+                ]);
+                return;
+            }
+
             // Hämta daglig IBC-räkning för de senaste 14 dagarna
             // ibc_ok är kumulativt per skift → MAX per skiftraknare per dag, sedan SUM per dag
             $stmt = $this->pdo->prepare("
@@ -1214,12 +1324,69 @@ class RebotlingController {
     }
 
     /**
-     * GET ?action=rebotling&run=oee-trend&days=30
-     * OEE-trend senaste N dagarna (Availability, Performance, Quality, OEE per dag).
+     * GET ?action=rebotling&run=oee-trend&days=30[&granularity=shift]
+     * OEE-trend senaste N dagarna (Availability, Performance, Quality, OEE per dag eller per skift).
      */
     private function getOEETrend() {
         $days = min(90, max(7, intval($_GET['days'] ?? 30)));
+        $granularity = $_GET['granularity'] ?? 'day';
         try {
+            if ($granularity === 'shift') {
+                // Per-skift: varje skift = en datapunkt med eget OEE-värde
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum)           AS dag,
+                        skiftraknare,
+                        MIN(datum)            AS skift_start,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                    ORDER BY dag ASC, skiftraknare ASC
+                ");
+                $stmt->execute([$days]);
+                $shiftRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $idealRatePerMin = 15.0 / 60.0;
+                $shiftData = [];
+                foreach ($shiftRows as $r) {
+                    $dagParts = explode('-', $r['dag']);
+                    $label = sprintf('%s/%s Skift %d',
+                        $dagParts[2], $dagParts[1], (int)$r['skiftraknare']
+                    );
+
+                    $ibcOk   = (float)$r['shift_ibc_ok'];
+                    $ibcEjOk = (float)$r['shift_ibc_ej_ok'];
+                    $totalIBC = $ibcOk + $ibcEjOk;
+                    $opMin   = max((float)$r['shift_runtime'], 1);
+                    $planMin = max($opMin + (float)$r['shift_rast'], 1);
+
+                    $avail = min($opMin / $planMin, 1.0);
+                    $perf  = min(($totalIBC / $opMin) / $idealRatePerMin, 1.0);
+                    $qual  = $totalIBC > 0 ? $ibcOk / $totalIBC : 0;
+                    $oee   = $avail * $perf * $qual;
+
+                    $shiftData[] = [
+                        'date'         => $r['dag'],
+                        'label'        => $label,
+                        'skiftraknare' => (int)$r['skiftraknare'],
+                        'oee'          => round($oee   * 100, 1),
+                        'availability' => round($avail  * 100, 1),
+                        'performance'  => round($perf   * 100, 1),
+                        'quality'      => round($qual   * 100, 1),
+                        'ibc_ok'       => (int)$ibcOk
+                    ];
+                }
+
+                echo json_encode(['success' => true, 'granularity' => 'shift', 'data' => $shiftData]);
+                return;
+            }
+
             $stmt = $this->pdo->prepare("
                 SELECT
                     dag,
