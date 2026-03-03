@@ -1,0 +1,400 @@
+/* =============================================
+   Månadsrapport — dark theme
+   ============================================= */
+
+.monthly-report-page {
+  background: #1a202c;
+  min-height: 100vh;
+  padding: 2rem 1.5rem 4rem;
+  color: #e2e8f0;
+}
+
+/* --- Header --- */
+.report-header {
+  margin-bottom: 2rem;
+}
+
+.report-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 1.25rem;
+}
+
+.controls-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.month-picker {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.45rem 0.75rem;
+}
+
+.month-picker:focus {
+  outline: none;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.25);
+}
+
+/* colour-scheme override for native date input */
+.month-picker::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
+.btn-fetch {
+  height: 42px;
+  padding: 0 1.5rem;
+  font-weight: 600;
+}
+
+/* --- Loading / empty state --- */
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: 5rem 1rem;
+  color: #a0aec0;
+}
+
+/* --- Report body --- */
+.report-body {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Print-only title (hidden on screen) */
+.print-title {
+  display: none;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* --- Section --- */
+.report-section {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #90cdf4;
+  border-bottom: 1px solid #2d3748;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* --- KPI grid (6 kort) --- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+  gap: 1rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border: 1px solid #3d4a5c;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: #4a5568;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+  margin-bottom: 0.35rem;
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.kpi-badge-wrap {
+  margin-top: 0.4rem;
+}
+
+.kpi-badge {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.badge-success { background: rgba(72, 187, 120, 0.2); color: #68d391; }
+.badge-warning { background: rgba(237, 179, 57, 0.2); color: #f6e05e; }
+.badge-danger  { background: rgba(245, 101, 101, 0.2); color: #fc8181; }
+
+/* --- Chart --- */
+.chart-container {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.5rem;
+  height: 320px;
+  position: relative;
+  border: 1px solid #3d4a5c;
+}
+
+/* --- Best/worst grid --- */
+.best-worst-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .best-worst-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.day-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.5rem;
+  border: 1px solid #3d4a5c;
+}
+
+.day-card-header {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.day-best .day-card-header { color: #68d391; }
+.day-worst .day-card-header { color: #fc8181; }
+
+.day-best { border-left: 4px solid #48bb78; }
+.day-worst { border-left: 4px solid #f56565; }
+
+.day-card-date {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.day-card-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #3d4a5c;
+}
+
+.day-card-stat:last-child {
+  border-bottom: none;
+}
+
+.day-stat-label {
+  font-size: 0.82rem;
+  color: #a0aec0;
+}
+
+.day-stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* --- Tables --- */
+.ranking-table,
+.week-table {
+  background: #2d3748;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ranking-table thead th,
+.week-table thead th {
+  background: #1a202c;
+  color: #90cdf4;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-color: #3d4a5c;
+  padding: 0.85rem 1rem;
+}
+
+.ranking-table tbody td,
+.week-table tbody td {
+  border-color: #3d4a5c;
+  color: #e2e8f0;
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
+.ranking-table tbody tr:hover,
+.week-table tbody tr:hover {
+  background: #374151;
+}
+
+.rank-cell {
+  font-size: 1.1rem;
+  min-width: 50px;
+}
+
+.operator-name {
+  font-weight: 600;
+}
+
+/* Medal rows */
+.gold-row   { border-left: 3px solid #f6e05e; }
+.silver-row { border-left: 3px solid #a0aec0; }
+.bronze-row { border-left: 3px solid #c05621; }
+
+/* Text colors for quality/OEE */
+.text-success { color: #68d391 !important; }
+.text-warning { color: #f6e05e !important; }
+.text-danger  { color: #fc8181 !important; }
+
+/* --- Export row --- */
+.export-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.5rem;
+  background: #2d3748;
+  border-radius: 10px;
+  border: 1px solid #3d4a5c;
+}
+
+.btn-export {
+  font-weight: 600;
+  border-color: #4a5568;
+}
+
+.btn-export:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+/* =============================================
+   PRINT / PDF styles
+   ============================================= */
+@media print {
+  /* Dölj navigation och kontroller */
+  app-header,
+  app-menu,
+  nav,
+  .no-print-controls,
+  .controls-row,
+  .btn,
+  button {
+    display: none !important;
+  }
+
+  /* Ljus bakgrund för PDF */
+  body,
+  .monthly-report-page {
+    background: #ffffff !important;
+    color: #1a202c !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: unset !important;
+  }
+
+  /* Visa print-titeln */
+  .print-title {
+    display: block !important;
+  }
+
+  /* Sektionsrubriker */
+  .section-title {
+    color: #1a365d !important;
+    border-bottom-color: #bee3f8 !important;
+  }
+
+  /* KPI-kort */
+  .kpi-card {
+    background: #f7fafc !important;
+    border-color: #bee3f8 !important;
+    color: #1a202c !important;
+    break-inside: avoid;
+  }
+
+  .kpi-label { color: #4a5568 !important; }
+  .kpi-value { color: #1a202c !important; }
+  .kpi-sub   { color: #718096 !important; }
+
+  /* Chart */
+  .chart-container {
+    background: #f7fafc !important;
+    border-color: #bee3f8 !important;
+    height: 280px;
+    break-inside: avoid;
+  }
+
+  /* Dag-kort */
+  .day-card {
+    background: #f7fafc !important;
+    border-color: #e2e8f0 !important;
+    break-inside: avoid;
+  }
+
+  .day-card-date { color: #1a202c !important; }
+  .day-stat-label { color: #4a5568 !important; }
+  .day-stat-value { color: #1a202c !important; }
+  .day-card-stat { border-bottom-color: #e2e8f0 !important; }
+
+  /* Tabeller */
+  .ranking-table,
+  .week-table {
+    background: transparent !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+  }
+
+  .ranking-table thead th,
+  .week-table thead th {
+    background: #ebf8ff !important;
+    color: #1a365d !important;
+    border-color: #bee3f8 !important;
+  }
+
+  .ranking-table tbody td,
+  .week-table tbody td {
+    color: #1a202c !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .ranking-table tbody tr:hover,
+  .week-table tbody tr:hover {
+    background: transparent !important;
+  }
+
+  /* Säkerställ att text-success/warning/danger fungerar i ljust läge */
+  .text-success { color: #276749 !important; }
+  .text-warning { color: #975a16 !important; }
+  .text-danger  { color: #9b2c2c !important; }
+
+  /* Sidbrytningar */
+  .report-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-title { color: #1a202c !important; }
+}

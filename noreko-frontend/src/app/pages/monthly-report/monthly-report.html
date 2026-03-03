@@ -1,0 +1,249 @@
+<div class="monthly-report-page">
+
+  <!-- ===== HEADER ===== -->
+  <div class="report-header no-print-controls">
+    <h1 class="report-title">
+      <i class="fas fa-file-chart-column me-2"></i>Månadsrapport
+    </h1>
+    <div class="controls-row">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div>
+          <label class="form-label mb-1 text-muted small">Välj månad</label>
+          <input
+            type="month"
+            class="form-control month-picker"
+            [(ngModel)]="selectedMonth"
+            [max]="'9999-12'"
+          />
+        </div>
+        <button
+          class="btn btn-primary btn-fetch"
+          (click)="fetchReport()"
+          [disabled]="isLoading || !selectedMonth"
+        >
+          <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          <i *ngIf="!isLoading" class="fas fa-search me-2"></i>
+          {{ isLoading ? 'Hämtar…' : 'Hämta rapport' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LADDNING ===== -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner-border text-info" style="width: 3rem; height: 3rem;" role="status"></div>
+    <p class="mt-3 text-muted">Genererar rapport…</p>
+  </div>
+
+  <!-- ===== FEL / TOMT TILLSTÅND ===== -->
+  <div *ngIf="!isLoading && errorMsg" class="empty-state">
+    <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+    <p class="text-danger">{{ errorMsg }}</p>
+  </div>
+
+  <div *ngIf="!isLoading && !errorMsg && !hasData && !report" class="empty-state">
+    <i class="fas fa-calendar-alt fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Välj en månad och klicka på "Hämta rapport"</p>
+  </div>
+
+  <!-- ===== RAPPORTINNEHÅLL ===== -->
+  <div *ngIf="hasData && report" class="report-body">
+
+    <!-- Rapport-rubrik (synlig i utskrift) -->
+    <div class="print-title">
+      <h2>Månadsrapport — {{ report.month_label }}</h2>
+      <p class="text-muted">Automatgenererad av Noreko produktionssystem</p>
+    </div>
+
+    <!-- ===== SEKTION 1: KPI-sammanfattning ===== -->
+    <section class="report-section">
+      <h2 class="section-title">
+        <i class="fas fa-tachometer-alt me-2"></i>KPI-sammanfattning
+      </h2>
+      <div class="kpi-grid">
+
+        <!-- Total IBC -->
+        <div class="kpi-card">
+          <div class="kpi-label">Total IBC</div>
+          <div class="kpi-value">{{ report.summary.ibc_total | number }}</div>
+          <div class="kpi-sub">av mål {{ report.summary.ibc_goal | number }}</div>
+        </div>
+
+        <!-- Mål-% -->
+        <div class="kpi-card">
+          <div class="kpi-label">Måluppfyllnad</div>
+          <div class="kpi-value" [class]="goalClass(report.summary.goal_pct)">
+            {{ report.summary.goal_pct }}%
+          </div>
+          <div class="kpi-badge-wrap">
+            <span class="kpi-badge" [class]="goalBadgeClass(report.summary.goal_pct)">
+              {{ report.summary.goal_pct >= 95 ? 'Utmärkt' : report.summary.goal_pct >= 80 ? 'Bra' : 'Under mål' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Snitt IBC/dag -->
+        <div class="kpi-card">
+          <div class="kpi-label">Snitt IBC/dag</div>
+          <div class="kpi-value">{{ report.summary.avg_ibc_per_day | number:'1.0-1' }}</div>
+          <div class="kpi-sub">per produktionsdag</div>
+        </div>
+
+        <!-- Produktionsdagar -->
+        <div class="kpi-card">
+          <div class="kpi-label">Produktionsdagar</div>
+          <div class="kpi-value">{{ report.summary.production_days }}</div>
+          <div class="kpi-sub">av {{ report.summary.active_days }} kalenderdagar</div>
+        </div>
+
+        <!-- Snitt Kvalitet -->
+        <div class="kpi-card">
+          <div class="kpi-label">Snitt Kvalitet</div>
+          <div class="kpi-value" [class]="goalClass(report.summary.avg_quality)">
+            {{ report.summary.avg_quality }}%
+          </div>
+          <div class="kpi-sub">IBC godkänt av total</div>
+        </div>
+
+        <!-- Snitt OEE -->
+        <div class="kpi-card">
+          <div class="kpi-label">Snitt OEE</div>
+          <div class="kpi-value" [class]="goalClass(report.summary.avg_oee)">
+            {{ report.summary.avg_oee }}%
+          </div>
+          <div class="kpi-sub">
+            Drifttid {{ report.summary.total_runtime_hours | number:'1.0-1' }}h /
+            Stopp {{ report.summary.total_stoppage_hours | number:'1.0-1' }}h
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 2: Daglig produktion (stapeldiagram) ===== -->
+    <section class="report-section" *ngIf="report.daily_production.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-chart-bar me-2"></i>Daglig produktion
+      </h2>
+      <div class="chart-container">
+        <canvas #productionChart></canvas>
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 3: Bästa & Sämsta dag ===== -->
+    <section class="report-section" *ngIf="report.best_day || report.worst_day">
+      <h2 class="section-title">
+        <i class="fas fa-star me-2"></i>Bästa &amp; Sämsta dag
+      </h2>
+      <div class="best-worst-grid">
+
+        <div class="day-card day-best" *ngIf="report.best_day">
+          <div class="day-card-header">
+            <i class="fas fa-arrow-up me-2"></i>Bästa dag
+          </div>
+          <div class="day-card-date">{{ formatDate(report.best_day.date) }}</div>
+          <div class="day-card-stat">
+            <span class="day-stat-label">IBC tvättade</span>
+            <span class="day-stat-value">{{ report.best_day.ibc | number }}</span>
+          </div>
+          <div class="day-card-stat">
+            <span class="day-stat-label">Kvalitet</span>
+            <span class="day-stat-value">{{ report.best_day.quality }}%</span>
+          </div>
+        </div>
+
+        <div class="day-card day-worst" *ngIf="report.worst_day">
+          <div class="day-card-header">
+            <i class="fas fa-arrow-down me-2"></i>Sämsta dag
+          </div>
+          <div class="day-card-date">{{ formatDate(report.worst_day.date) }}</div>
+          <div class="day-card-stat">
+            <span class="day-stat-label">IBC tvättade</span>
+            <span class="day-stat-value">{{ report.worst_day.ibc | number }}</span>
+          </div>
+          <div class="day-card-stat">
+            <span class="day-stat-label">Kvalitet</span>
+            <span class="day-stat-value">{{ report.worst_day.quality }}%</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 4: Operatörsranking ===== -->
+    <section class="report-section" *ngIf="report.operator_ranking.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-users me-2"></i>Operatörsranking
+      </h2>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover ranking-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Namn</th>
+              <th class="text-end">Skift</th>
+              <th class="text-end">IBC totalt</th>
+              <th class="text-end">Snitt IBC/h</th>
+              <th class="text-end">Snitt Kvalitet</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of report.operator_ranking; let i = index"
+                [class.gold-row]="i === 0"
+                [class.silver-row]="i === 1"
+                [class.bronze-row]="i === 2">
+              <td class="rank-cell">{{ rankMedal(i) }}</td>
+              <td class="operator-name">{{ op.name }}</td>
+              <td class="text-end">{{ op.shifts }}</td>
+              <td class="text-end fw-bold">{{ op.ibc_ok | number }}</td>
+              <td class="text-end">
+                {{ op.avg_ibc_per_hour !== null ? (op.avg_ibc_per_hour | number:'1.0-1') : '—' }}
+              </td>
+              <td class="text-end" [class]="op.avg_quality !== null ? goalClass(op.avg_quality) : ''">
+                {{ op.avg_quality !== null ? (op.avg_quality | number:'1.0-1') + '%' : '—' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 5: Veckosammanfattning ===== -->
+    <section class="report-section" *ngIf="report.week_summary.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-calendar-week me-2"></i>Veckosammanfattning
+      </h2>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover week-table">
+          <thead>
+            <tr>
+              <th>Vecka</th>
+              <th class="text-end">IBC totalt</th>
+              <th class="text-end">Snitt Kvalitet</th>
+              <th class="text-end">Snitt OEE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let w of report.week_summary">
+              <td class="fw-bold">{{ w.week }}</td>
+              <td class="text-end">{{ w.ibc | number }}</td>
+              <td class="text-end" [class]="goalClass(w.avg_quality)">{{ w.avg_quality }}%</td>
+              <td class="text-end" [class]="goalClass(w.avg_oee)">{{ w.avg_oee }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 6: PDF-export ===== -->
+    <section class="report-section no-print-controls">
+      <div class="export-row">
+        <button class="btn btn-outline-light btn-export" (click)="exportPDF()">
+          <i class="fas fa-file-pdf me-2 text-danger"></i>Exportera som PDF
+        </button>
+        <small class="text-muted ms-3">Öppnar utskriftsdialog — välj "Spara som PDF" i skrivaren</small>
+      </div>
+    </section>
+
+  </div>
+</div>

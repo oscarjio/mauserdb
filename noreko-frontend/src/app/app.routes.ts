@@ -33,6 +33,9 @@ export const routes: Routes = [
       { path: 'klassificeringslinje/skiftrapport', loadComponent: () => import('./pages/klassificeringslinje-skiftrapport/klassificeringslinje-skiftrapport').then(m => m.KlassificeringslinjeSkiftrapportPage) },
       { path: 'klassificeringslinje/statistik', loadComponent: () => import('./pages/klassificeringslinje-statistik/klassificeringslinje-statistik').then(m => m.KlassificeringslinjeStatistikPage) },
 
+      // Rapporter
+      { path: 'rapporter/manad', canActivate: [authGuard], loadComponent: () => import('./pages/monthly-report/monthly-report').then(m => m.MonthlyReportPage) },
+
       // Authenticated routes
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
@@ -50,6 +53,7 @@ export const routes: Routes = [
       { path: 'admin/vpn', canActivate: [adminGuard], loadComponent: () => import('./pages/vpn-admin/vpn-admin').then(m => m.VpnAdminPage) },
       { path: 'admin/audit', canActivate: [adminGuard], loadComponent: () => import('./pages/audit-log/audit-log').then(m => m.AuditLogPage) },
       { path: 'admin/operators', canActivate: [adminGuard], loadComponent: () => import('./pages/operators/operators').then(m => m.OperatorsPage) },
+      { path: 'admin/skiftplan', canActivate: [adminGuard], loadComponent: () => import('./pages/shift-plan/shift-plan').then(m => m.ShiftPlanPage) },
 
       { path: '**', loadComponent: () => import('./pages/not-found/not-found').then(m => m.NotFoundPage) }
     ]

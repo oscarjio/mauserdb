@@ -56,6 +56,8 @@ class RebotlingController {
                 $this->getYearCalendar();
             } elseif ($action === 'benchmarking') {
                 $this->getBenchmarking();
+            } elseif ($action === 'monthly-report') {
+                $this->getMonthlyReport();
             } else {
                 $this->getLiveStats();
             }
@@ -2989,6 +2991,251 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getBenchmarking: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta benchmarking-data']);
+        }
+    }
+
+    // =========================================================
+    // Månadsrapport
+    // GET ?action=rebotling&run=monthly-report&month=YYYY-MM
+    // =========================================================
+    private function getMonthlyReport() {
+        try {
+            $month = $_GET['month'] ?? date('Y-m');
+            if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+                $month = date('Y-m');
+            }
+
+            // Bygg mennesklig månadsrubrik (svenska)
+            $monthNames = [
+                '01' => 'Januari', '02' => 'Februari', '03' => 'Mars',
+                '04' => 'April',   '05' => 'Maj',       '06' => 'Juni',
+                '07' => 'Juli',    '08' => 'Augusti',   '09' => 'September',
+                '10' => 'Oktober', '11' => 'November',  '12' => 'December',
+            ];
+            [$year, $mon] = explode('-', $month);
+            $monthLabel = ($monthNames[$mon] ?? $mon) . ' ' . $year;
+
+            // Dagsmål från rebotling_settings
+            $dailyGoal = 1000;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sr && isset($sr['rebotling_target'])) {
+                    $dailyGoal = (int)$sr['rebotling_target'];
+                }
+            } catch (Exception $e) {
+                error_log('getMonthlyReport: kunde inte läsa dagsmål: ' . $e->getMessage());
+            }
+
+            // Antal kalenderdagar i månaden
+            $activeDays = (int)date('t', strtotime($month . '-01'));
+            // Månadsmål baserat på dagsmål * antal produktionsdagar (alla dagar som inte är lördag/söndag)
+            $workdays = 0;
+            for ($d = 1; $d <= $activeDays; $d++) {
+                $dow = (int)date('N', strtotime(sprintf('%s-%02d', $month, $d)));
+                if ($dow < 6) $workdays++;
+            }
+            $monthGoal = $dailyGoal * $workdays;
+
+            // ---- Per-skift-subquery som bas ----
+            $perShiftSQL = "
+                SELECT
+                    DATE(datum)                                                             AS dag,
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok, 0))                                               AS shift_ibc,
+                    MAX(COALESCE(ibc_ej_ok, 0))                                            AS shift_ej_ok,
+                    ROUND(MAX(COALESCE(ibc_ok,0))*100.0 /
+                        NULLIF(MAX(COALESCE(ibc_ok,0))+MAX(COALESCE(ibc_ej_ok,0)),0),1)   AS shift_quality,
+                    MAX(COALESCE(runtime_plc, 0))                                          AS shift_runtime,
+                    MAX(COALESCE(rasttime, 0))                                             AS shift_rast
+                FROM rebotling_ibc
+                WHERE DATE_FORMAT(datum,'%Y-%m') = ?
+                  AND skiftraknare IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+            ";
+
+            // ---- Summary ----
+            $summarySQL = "
+                SELECT
+                    COUNT(DISTINCT dag)                   AS production_days,
+                    SUM(shift_ibc)                        AS ibc_total,
+                    ROUND(AVG(shift_quality),1)           AS avg_quality,
+                    ROUND(SUM(shift_runtime)/60.0,1)      AS total_runtime_hours,
+                    ROUND(SUM(shift_rast)/60.0,1)         AS total_stoppage_hours,
+                    ROUND(AVG(shift_ibc),1)               AS avg_ibc_per_shift,
+                    SUM(shift_ibc+shift_ej_ok)            AS total_ibc_all
+                FROM ({$perShiftSQL}) AS per_shift
+            ";
+            $stmt = $this->pdo->prepare($summarySQL);
+            $stmt->execute([$month]);
+            $sumRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $ibcTotal          = (int)($sumRow['ibc_total'] ?? 0);
+            $productionDays    = (int)($sumRow['production_days'] ?? 0);
+            $avgQuality        = (float)($sumRow['avg_quality'] ?? 0);
+            $totalRuntimeHours = (float)($sumRow['total_runtime_hours'] ?? 0);
+            $totalStoppageHours= (float)($sumRow['total_stoppage_hours'] ?? 0);
+            $goalPct           = $monthGoal > 0 ? round($ibcTotal * 100.0 / $monthGoal, 1) : 0;
+            $avgIbcPerDay      = $productionDays > 0 ? round($ibcTotal / $productionDays, 1) : 0;
+
+            // ---- OEE per dag (aggregerat) ----
+            $oeeSQL = "
+                SELECT
+                    dag,
+                    SUM(shift_ibc)      AS ibc_ok,
+                    SUM(shift_ej_ok)    AS ibc_ej_ok,
+                    SUM(shift_runtime)  AS runtime_min,
+                    SUM(shift_rast)     AS rast_min
+                FROM ({$perShiftSQL}) AS per_shift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ";
+            $stmt = $this->pdo->prepare($oeeSQL);
+            $stmt->execute([$month]);
+            $oeeRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $idealRatePerMin = 15.0 / 60.0;
+            $dailyProduction = [];
+            $oeeSum = 0;
+            $oeeDays = 0;
+            $bestDay  = null;
+            $worstDay = null;
+
+            foreach ($oeeRows as $r) {
+                $ibcOk   = (float)$r['ibc_ok'];
+                $ibcEjOk = (float)$r['ibc_ej_ok'];
+                $total   = $ibcOk + $ibcEjOk;
+                $opMin   = max((float)$r['runtime_min'], 1);
+                $planMin = max($opMin + (float)$r['rast_min'], 1);
+
+                $avail = min($opMin / $planMin, 1.0);
+                $perf  = min(($total / $opMin) / $idealRatePerMin, 1.0);
+                $qual  = $total > 0 ? $ibcOk / $total : 0;
+                $oee   = round($avail * $perf * $qual * 100, 1);
+                $qualPct = $total > 0 ? round($ibcOk / $total * 100, 1) : 0;
+
+                $dailyProduction[] = [
+                    'date'    => $r['dag'],
+                    'ibc'     => (int)$ibcOk,
+                    'quality' => $qualPct,
+                    'oee'     => $oee,
+                ];
+
+                if ($ibcOk > 0) {
+                    $oeeSum += $oee;
+                    $oeeDays++;
+
+                    if ($bestDay === null || $ibcOk > $bestDay['ibc']) {
+                        $bestDay = ['date' => $r['dag'], 'ibc' => (int)$ibcOk, 'quality' => $qualPct];
+                    }
+                    if ($worstDay === null || $ibcOk < $worstDay['ibc']) {
+                        $worstDay = ['date' => $r['dag'], 'ibc' => (int)$ibcOk, 'quality' => $qualPct];
+                    }
+                }
+            }
+
+            $avgOee = $oeeDays > 0 ? round($oeeSum / $oeeDays, 1) : 0;
+
+            // ---- Veckosammanfattning ----
+            $weekMap = [];
+            foreach ($dailyProduction as $day) {
+                $ts  = strtotime($day['date']);
+                $wk  = 'V' . (int)date('W', $ts);
+                if (!isset($weekMap[$wk])) {
+                    $weekMap[$wk] = ['ibc' => 0, 'quality_sum' => 0, 'oee_sum' => 0, 'days' => 0];
+                }
+                $weekMap[$wk]['ibc']         += $day['ibc'];
+                $weekMap[$wk]['quality_sum'] += $day['quality'];
+                $weekMap[$wk]['oee_sum']     += $day['oee'];
+                $weekMap[$wk]['days']++;
+            }
+            $weekSummary = [];
+            foreach ($weekMap as $wk => $wd) {
+                $days = max($wd['days'], 1);
+                $weekSummary[] = [
+                    'week'        => $wk,
+                    'ibc'         => $wd['ibc'],
+                    'avg_quality' => round($wd['quality_sum'] / $days, 1),
+                    'avg_oee'     => round($wd['oee_sum'] / $days, 1),
+                ];
+            }
+
+            // ---- Operatörsranking för månaden ----
+            $opSQL = "
+                SELECT
+                    o.number        AS number,
+                    o.name          AS name,
+                    SUM(sub.ibc_ok)       AS ibc_ok,
+                    SUM(sub.totalt)       AS totalt,
+                    SUM(sub.drifttid)     AS drifttid,
+                    COUNT(sub.skift_id)   AS shifts
+                FROM (
+                    SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s
+                    WHERE DATE_FORMAT(s.datum,'%Y-%m') = ?
+                      AND s.op1 IS NOT NULL
+                    UNION ALL
+                    SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s
+                    WHERE DATE_FORMAT(s.datum,'%Y-%m') = ?
+                      AND s.op2 IS NOT NULL
+                    UNION ALL
+                    SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s
+                    WHERE DATE_FORMAT(s.datum,'%Y-%m') = ?
+                      AND s.op3 IS NOT NULL
+                ) sub
+                JOIN operators o ON o.number = sub.op_num
+                GROUP BY o.number, o.name
+                ORDER BY (SUM(sub.ibc_ok) / GREATEST(SUM(sub.drifttid)/60.0, 0.01)) DESC
+                LIMIT 20
+            ";
+            $stmt = $this->pdo->prepare($opSQL);
+            $stmt->execute([$month, $month, $month]);
+            $opRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $operatorRanking = [];
+            foreach ($opRows as $row) {
+                $ibcOk   = (int)($row['ibc_ok']  ?? 0);
+                $totalt  = (int)($row['totalt']   ?? 0);
+                $drMin   = (int)($row['drifttid'] ?? 0);
+                $ibcPerH = $drMin > 0 ? round($ibcOk / ($drMin / 60.0), 1) : null;
+                $qualPct = $totalt > 0 ? round($ibcOk / $totalt * 100, 1) : null;
+                $operatorRanking[] = [
+                    'name'             => $row['name'],
+                    'number'           => (int)$row['number'],
+                    'shifts'           => (int)$row['shifts'],
+                    'ibc_ok'           => $ibcOk,
+                    'avg_ibc_per_hour' => $ibcPerH,
+                    'avg_quality'      => $qualPct,
+                ];
+            }
+
+            echo json_encode([
+                'success'          => true,
+                'month'            => $month,
+                'month_label'      => $monthLabel,
+                'summary'          => [
+                    'ibc_total'            => $ibcTotal,
+                    'ibc_goal'             => $monthGoal,
+                    'goal_pct'             => $goalPct,
+                    'avg_ibc_per_day'      => $avgIbcPerDay,
+                    'active_days'          => $activeDays,
+                    'production_days'      => $productionDays,
+                    'avg_quality'          => $avgQuality,
+                    'avg_oee'              => $avgOee,
+                    'total_runtime_hours'  => $totalRuntimeHours,
+                    'total_stoppage_hours' => $totalStoppageHours,
+                ],
+                'best_day'         => $bestDay,
+                'worst_day'        => $worstDay,
+                'operator_ranking' => $operatorRanking,
+                'daily_production' => $dailyProduction,
+                'week_summary'     => $weekSummary,
+            ]);
+        } catch (Exception $e) {
+            error_log('getMonthlyReport: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsrapport']);
         }
     }
 }
