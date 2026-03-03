@@ -2,6 +2,33 @@
 
 ---
 
+## 2026-03-03 — Operatörscertifiering — commit 22bfe7c
+
+### Nytt: /admin/certifiering — admin-sida för linjecertifikat
+
+**Syfte:** Produktionschefen behöver veta vilka operatörer som är godkända att köra respektive linje. Sidan visar certifieringsstatus med färgkodade badges och flaggar utgångna eller snart utgående certifieringar.
+
+**Backend — `noreko-backend/migrations/2026-03-04_certifications.sql`:**
+- Ny tabell `operator_certifications`: op_number, line, certified_by, certified_date, expires_date, notes, active, created_at.
+- Index på op_number, line och expires_date.
+
+**Backend — `noreko-backend/classes/CertificationController.php`:**
+- `GET &run=all` — hämtar alla certifieringar, JOIN mot operators för namn, grupperar per operatör. Beräknar `days_until_expiry` i PHP: `(strtotime(expires_date) - time()) / 86400`. Negativa = utgången, NULL = ingen utgångsgräns.
+- `POST &run=add` — lägger till certifiering, validerar linje mot whitelist och datumformat. Kräver admin-session.
+- `POST &run=revoke` — sätter active=0 på certifiering. Kräver admin-session.
+- Registrerad i `api.php` under nyckeln `certifications`.
+
+**Frontend — `noreko-frontend/src/app/pages/certifications/`:**
+- `certifications.ts`: Standalone-komponent med destroy$/takeUntil. KPI-beräkningar (totalCertifiedOperators, expiringSoon, expired) som getters. Avatar-funktioner (getInitials/getAvatarColor) kopierade från operators-sidan. Badge-klassificering: grön (>30 d kvar eller ingen gräns), orange (≤30 d), röd (utgången, strikethrough).
+- `certifications.html`: Sidhuvud, varningsbanner (visas om expired>0 eller expiringSoon>0), KPI-brickor, linje-filterknappar, operatörskort-grid, kollapsbart lägg till-formulär. Återkalla-knapp per certifiering med confirm-dialog.
+- `certifications.css`: Dark theme (#1a202c/#2d3748), responsivt grid, badge-stilar, avatar-cirkel.
+
+**Routing + Nav:**
+- Route `admin/certifiering` med `adminGuard` i `app.routes.ts`.
+- Nav-länk med `fas fa-certificate`-ikon under Admin-dropdown i `menu.html`.
+
+---
+
 ## 2026-03-03 — Annotationer i OEE-trend och cykeltrend-grafer — commit 078e804
 
 ### Nytt: Vertikala annotationslinjer i rebotling-statistik
