@@ -100,6 +100,8 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - *2026-03-03*: Om backlogen tar slut → analysera koden och hitta förbättringar. Starta bug hunting-agent regelbundet (var 3:e session) som letar buggar och fixar dem.
 - *2026-03-03*: Ledaragenten ska driva projektet helt självständigt — sök internet efter nya features, granska koden, uppfinn nya funktioner. Lägg till i menyn direkt utan att vänta på godkännande. Kunden utvärderar med VD efteråt. Ge graferna mer detaljerad data. Håll alltid minst 2 worker-agenter i arbete.
 - *2026-03-03*: Tänk som en ambitiös teamleader — ge kunden det de bad om OCH det de inte visste de behövde. Analysera verksamheten (IBC-tvätteri, operatörsbonus, VD-översikt), identifiera smärtpunkter, ta initiativ. Var inte rädd att bygga djärva features och lägga i menyn — kunden och VD utvärderar efteråt.
+- *2026-03-03*: **DYGNET RUNT** — Ägaren sover. Ni som inte behöver sova SKA fortsätta jobba aktivt tills ägaren explicit säger stopp. Det finns alltid något att fixa. Håll alltid minst 2 worker-agenter i arbete — om en blir klar, starta en ny direkt. Backlogen tar aldrig slut: granska koden, hitta buggar, sök internet, uppfinn nya features, förbättra befintliga. Ingen väntetid accepteras.
+- *2026-03-03*: **GRAFKVALITET** — Graferna behöver mer detaljerade datapunkter. "En punkt var 10:e [enhet] när man är per dygn är lite dåligt." Implementera adaptiv granularitet med toggle-knappar (Timme/Skift/Dag) i graferna. Se TEKNISK PLAN nedan.
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
@@ -161,7 +163,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - [x] **Systemstatus i admin**: Levererat — PLC-ping ålder, löpnummer, DB-status
 - [x] **Bästa skift-topplista**: Levererat `c7faa1b` — guld/silver/brons i production-analysis
 - [x] **Skift-sammanfattning vid export**: Levererat — PDF + Excel inkluderar sammanfattningskort
-- [ ] **Executive dashboard förbättringar**: KPI-kort med trendpilar, jämförelse vs förra veckan
+- [x] **Executive dashboard förbättringar**: Alert-sektion levererad `cc4ba9f` — danger/warning-banners för OEE<70%/<80% och produktion<60%/<80%, slide-in-animation, döljs om allt är OK.
 
 ---
 
@@ -188,17 +190,17 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ## IDÉBANK — Autonomt genererade features (implementera fritt, kunden utvärderar)
 
 ### Grafer — mer detaljerad data
-- [ ] **Cykeltids-histogram**: Fördelning av cykeltider per skift — visa om det är jämn produktion eller toppar/dalar. Chart.js histogram med percentiler (P50/P90/P95).
-- [ ] **Kontrollkort (SPC)**: Statistical Process Control — IBC/h per timme med ±2σ kontrollgränser. Visar om processen är "under kontroll" eller har onormal variation.
+- [x] **Cykeltids-histogram**: Levererat `e4ca058` — histogrambuckets (0-2/2-3/3-4/4-5/5-7/7+min), KPI-brickor (Snitt/P50/P90/P95), grön stapelgraf, datumväljare. Backend: cycle-histogram endpoint med fallback till rebotling_ibc.
+- [x] **Kontrollkort (SPC)**: Levererat `e4ca058` — X̄±2σ kontrollgränser, 4 dataset (IBC/h blå, UCL röd, LCL orange, medelvärde grön), dagar-väljare (3/7/14/30). Backend: spc endpoint med sample stddev.
 - [ ] **Kvalitetstrendkort**: Daglig kvalitet% som linjegraf med 7-dagars rullande medelvärde. Identifiera om kvaliteten försämras gradvis.
 - [ ] **Waterfalldiagram OEE**: Visar hur förluster bryts ned: 100% → -X% tillgänglighet → -Y% prestanda → -Z% kvalitet = faktisk OEE.
 
 ### Nya vyer/sidor
 - [ ] **Skiftplaneringsvy** (`/admin/skiftplan`): Kalendervy där admin kan se vilka operatörer som är schemalagda per skift. Kan kopplas till bonusberäkning.
-- [ ] **Realtids-tävling** (`/rebotling/live-ranking`): Stor TV-vy för produktionsgolvet. Visar rankinglista live med operatörernas namn, IBC/h och bonus-poäng. Uppdateras var 30s. Avsedd att visas på en skärm i fabriken.
+- [x] **Realtids-tävling** (`/rebotling/live-ranking`): Levererat `a3d5b49` — full-screen TV-vy, neongrön accent, guld/silver/brons ranking, IBC/h + kvalitet% + progress-bar mot dagsmål, polling var 30s, roterande motton. Backend UNION ALL aggregerar op1/op2/op3, fallback senaste 7 dagarna. Layout.ts döljer navbar automatiskt (URL innehåller "live").
 - [ ] **Energieffektivitet-vy** (`/rebotling/energi`): Om energidata finns — IBC per kWh, energikostnad per IBC, trend.
 - [ ] **Månadsrapport** (`/rapporter/manad`): Auto-genererad sammanfattning för månaden — total produktion, snitt OEE, bästa/sämsta dag, bonusutbetalningar. Exporterbar som PDF.
-- [ ] **Måluppfyllnad-kalender** (`/rebotling/kalender`): GitHub-liknande heatmap-kalender för hela året — varje dag färgkodad efter % av dagsmål uppnått.
+- [x] **Måluppfyllnad-kalender** (`/rebotling/kalender`): Levererat `cc4ba9f` — 12-månaders grid, 6 färgklasser (grå/röd/orange/gul/grön/superdag-glow), hover-tooltip med datum+IBC+mål+%, KPI-rad (total/snitt/bästa dag/% dagar på mål), årsväljare med pilar. Admin-only route + nav-länk.
 - [ ] **Operatörscertifiering** (`/admin/certifiering`): Spåra vilka operatörer som är certifierade för vilka linjer/maskiner.
 
 ### Förbättringar av befintliga sidor
@@ -215,11 +217,10 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (senaste session 2026-03-03)
-Tre agenter startades parallellt:
-- **Bonus-agent** (aba3e1e2b4c1f1692): bonus-dashboard, my-bonus, bonus-admin, BonusController
-- **Statistik-agent** (a9ebe78f439b80657): rebotling-statistik, production-analysis, RebotlingController
-- **Skiftrapport-agent** (a016503aaac3d553c): rebotling-skiftrapport, rebotling-admin, SkiftrapportController
+## AKTIVA AGENTER (session 2026-03-03 kväll)
+Två agenter startades parallellt:
+- **Live-ranking-agent** (a122f4aa871227407): live-ranking/, app.routes.ts, RebotlingController (ny endpoint)
+- **Histogram+SPC-agent** (a28e9937bf01212d3): rebotling-statistik.ts, rebotling.service.ts, RebotlingController (ny endpoint)
 
 ---
 
@@ -232,7 +233,10 @@ Tre agenter startades parallellt:
 - `ef505e6` — **Operatörstrend-agent**: My-bonus veckoutvecklingsgraf (8v), lagsjämförelse. Production-analysis stoppanalys-flik med tidslinje + 14-dagars chart. Ny endpoint weekly_history i BonusController.
 - `fb05cce` — **VD-dashboard-agent**: Executive dashboard ombyggd — SVG-cirkulär progress, prognos, OEE-trendpil vs igår, 7-dagars bar chart (grön/röd), veckokort, operatörstabell. Ny endpoint exec-dashboard (ett anrop för allt).
 - `e72763c` — **Audit+stoppage-agent**: Audit-log: 4 filter (fritext/datum/åtgärd), färgkodade badges, bättre paginering, CSV-export. Stoppage-log: snitt-stopplängd, veckojämförelse, 14-dagars chart, weekly_summary endpoint.
-- `a9716cd` — **Bug Hunt #2 + Operators-agent**: 10 takeUntil-läckor + setTimeout-bugg fixade. Operators-sida ombyggd: initialer-avatars, sorterbar lista, sökfunktion, status-badges, detaljvy med trendgraf 8 veckor.
+- `a9716cd` — **Bug Hunt #2 + Operators-agent**: 11 buggar fixade. Operators: initialer-avatars, sortering, sök, status-badges, detaljvy med trendgraf 8v. Ny backend-endpoint trend.
+- `a3d5b49` — **Live-ranking TV-skärm**: `/rebotling/live-ranking` full-screen, neongrön, guld/silver/brons, polling 30s, UNION ALL op1/op2/op3, dagsmål progress-bar.
+- `e4ca058` — **Histogram+SPC**: Cykeltids-histogram (P50/P90/P95) + SPC-kontrollkort (±2σ) i rebotling-statistik. Nya endpoints: cycle-histogram, spc.
+- `cc4ba9f` — **Kalender + Alerts**: Produktionskalender 12-månaders heatmap (6 färgklasser, hover-tooltip, årsväljare, KPI-rad). Executive dashboard alert-sektion (OEE/produktion trösklar). Ny endpoint: year-calendar.
 - `8404b29` — **Skiftjämförelse-agent**: Sida-vid-sida KPI-jämförelse med diff-badges, operatörstabeller, shift-compare endpoint. Admin PLC-varningsbanner med blinkanimation vid >15min utan data.
 - `3a89898` — **Heatmap+mobil-agent**: Interaktiv heatmap-tooltip, KPI-toggle (IBC/h/Kvalitet%/OEE%), dynamisk färgskala+legend, noll-celler grå. my-bonus mobilanpassad (responsive 768px/480px, touch-targets 44px).
 - `92cbcb1` — **Bug hunt #1**: 8 buggar fixade — takeUntil-läckor i bonus-dashboard, timeout saknas i my-bonus HTTP-anrop, isFetching-guard i rebotling-admin, prematur loading-reset i production-analysis, BonusController sendError() HTTP 200 vid fel, FILTER_SANITIZE_STRING deprecated PHP 8.2.
@@ -240,6 +244,37 @@ Tre agenter startades parallellt:
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
 
 ---
+
+## TEKNISK PLAN: ADAPTIV GRAFGRANULARITET
+
+**Bakgrund (research 2026-03-03):** rebotling_ibc.datum = TIMESTAMP med minutprecision. Per-timme-data möjlig via HOUR(datum). Heatmap-endpointen gör redan detta. Befintliga grafer (oee-trend, week-comparison, cycle-trend) aggregerar bara per dag.
+
+**Lösning — granularity-parameter + toggle-knappar:**
+- Backend: lägg till `?granularity=hour|shift|day` på oee-trend, week-comparison, cycle-trend
+- Frontend: toggle-knappar ovanför varje graf, auto-val baserat på tidsspan
+- Auto-selection: ≤2 dagar → timme | 3–14 dagar → skift | ≥15 dagar → dag
+
+**Per-skift SQL (GROUP BY DATE(datum), skiftraknare från rebotling_ibc):**
+- 3 skift per dag → 21 punkter för 7 dagar (vs nuvarande 7)
+- 3 skift per dag → 90 punkter för 30 dagar (vs nuvarande 30)
+
+**Per-timme SQL (GROUP BY DATE(datum), HOUR(datum) från rebotling_ibc):**
+- 16 timmar per dag (06–22) → 16 punkter för 1 dag (vs nuvarande 1)
+- Beräkning: MAX(ibc_ok) per timme+skift, sedan delta mot föregående rad (kumulativa fält!)
+
+**Viktigt om kumulativa fält:** ibc_ok/runtime_plc är kumulativa per skiftraknare. För per-timme: ta MAX(ibc_ok) per (timme, skiftraknare) och beräkna delta mot föregående timme inom samma skiftraknare. Alternativt: COUNT(*) per timme som heatmap gör (antal PLC-registreringar ≈ antal IBC, men inte exakt).
+
+**Enklaste korrekt approach för per-skift:**
+```sql
+SELECT DATE(datum) AS dag, skiftraknare,
+       MAX(ibc_ok) AS shift_ibc, MAX(runtime_plc) AS shift_runtime, MAX(rasttime) AS shift_rast,
+       MIN(datum) AS skift_start
+FROM rebotling_ibc
+WHERE datum >= ? AND skiftraknare IS NOT NULL
+GROUP BY DATE(datum), skiftraknare
+ORDER BY dag, skiftraknare
+```
+X-axeln: skift_start (timestamp) → Chart.js kan visa "Dag + skiftnummer"
 
 ## TEKNISKA OBSERVATIONER
 - `rebotling_ibc` tabell har kumulativa fält per skift — aggregering med MAX() per skiftraknare
@@ -261,9 +296,18 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ---
 
-## NÄSTA SESSION — GÖR DETTA
-1. Kör `git log --oneline -15` för att se vad som committats
-2. Läs `dev-log.md` för uppdateringar från worker-agenter
-3. Uppdatera backlog (markera klart, lägg till nya observationer)
-4. Starta 2-3 nya worker-agenter på nästa prioriterade items
-5. Uppdatera denna fil med nya beslut och observationer
+## NÄSTA SESSION — GÖR DETTA (DYGNET RUNT — JOBBA UTAN PAUS)
+1. Kör `git log --oneline -15` för att se vad som committats sedan förra sessionen
+2. Uppdatera backlog — markera klara items [x], notera commit-hash
+3. Starta 2-3 nya worker-agenter DIREKT på nästa prioriterade öppna items
+4. Återstående IDÉBANK-features att implementera:
+   - **What-if bonussimulator**: Admin justerar bonusparametrar → ser live-effekt på utbetalningar
+   - **Månadsrapport PDF**: Auto-genererad sammanfattning för månaden — total prod, snitt OEE, bästa/sämsta dag, bonusutbetalningar
+   - **Skiftplaneringsvy** (`/admin/skiftplan`): Kalendervy, vilka operatörer är schemalagda per skift
+   - **Benchmarking-vy**: Jämför denna vecka vs bästa veckan någonsin
+   - **Korrelationsanalys**: Operatör A presterar X% bättre när partnern är Operatör B
+   - **Operatörscertifiering** (`/admin/certifiering`): Spåra certifieringar per linje/maskin
+   - **Annotationer i grafer**: Markera driftstopp, helgdagar, nya operatörer direkt i tidslinjen
+   - **Skiftrapport auto-export**: Skicka skiftsammanfattning som PDF till chef vid skiftslut
+5. Om ovan är klara: granska koden, leta buggar, sök internet efter nya MES/OEE-features
+6. Uppdatera denna fil med beslut och observationer
