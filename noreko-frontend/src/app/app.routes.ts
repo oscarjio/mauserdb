@@ -54,6 +54,7 @@ export const routes: Routes = [
       { path: 'admin/audit', canActivate: [adminGuard], loadComponent: () => import('./pages/audit-log/audit-log').then(m => m.AuditLogPage) },
       { path: 'admin/operators', canActivate: [adminGuard], loadComponent: () => import('./pages/operators/operators').then(m => m.OperatorsPage) },
       { path: 'admin/skiftplan', canActivate: [adminGuard], loadComponent: () => import('./pages/shift-plan/shift-plan').then(m => m.ShiftPlanPage) },
+      { path: 'admin/certifiering', canActivate: [adminGuard], loadComponent: () => import('./pages/certifications/certifications').then(m => m.CertificationsPage) },
 
       { path: '**', loadComponent: () => import('./pages/not-found/not-found').then(m => m.NotFoundPage) }
     ]

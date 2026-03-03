@@ -1,0 +1,186 @@
+<?php
+class CertificationController {
+    private $pdo;
+
+    public function __construct() {
+        global $pdo;
+        $this->pdo = $pdo;
+    }
+
+    public function handle() {
+        session_start();
+
+        $run = $_GET['run'] ?? '';
+        $method = $_SERVER['REQUEST_METHOD'];
+
+        if ($method === 'GET' && $run === 'all') {
+            $this->getAll();
+            return;
+        }
+
+        // POST-endpoints kräver admin
+        if ($method === 'POST') {
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                return;
+            }
+
+            if ($run === 'add') {
+                $this->addCertification();
+                return;
+            }
+
+            if ($run === 'revoke') {
+                $this->revokeCertification();
+                return;
+            }
+        }
+
+        http_response_code(400);
+        echo json_encode(['success' => false, 'error' => 'Okänd åtgärd']);
+    }
+
+    private function getAll() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT
+                    c.id,
+                    c.op_number,
+                    c.line,
+                    c.certified_date,
+                    c.expires_date,
+                    c.notes,
+                    c.active,
+                    c.created_at,
+                    o.name AS op_name
+                FROM operator_certifications c
+                LEFT JOIN operators o ON o.number = c.op_number
+                ORDER BY o.name ASC, c.line ASC, c.certified_date DESC
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna days_until_expiry och gruppera per operatör
+            $grouped = [];
+            foreach ($rows as $row) {
+                $opNum = (int)$row['op_number'];
+                $daysUntil = null;
+                if ($row['expires_date']) {
+                    $daysUntil = (int)round((strtotime($row['expires_date']) - time()) / 86400);
+                }
+
+                if (!isset($grouped[$opNum])) {
+                    $grouped[$opNum] = [
+                        'op_number'      => $opNum,
+                        'name'           => $row['op_name'] ?? ('Operatör #' . $opNum),
+                        'certifications' => []
+                    ];
+                }
+
+                $grouped[$opNum]['certifications'][] = [
+                    'id'                => (int)$row['id'],
+                    'line'              => $row['line'],
+                    'certified_date'    => $row['certified_date'],
+                    'expires_date'      => $row['expires_date'],
+                    'notes'             => $row['notes'],
+                    'active'            => (int)$row['active'],
+                    'days_until_expiry' => $daysUntil,
+                    'created_at'        => $row['created_at'],
+                ];
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'operators'    => array_values($grouped)
+            ]);
+        } catch (Exception $e) {
+            error_log('CertificationController getAll: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringar']);
+        }
+    }
+
+    private function addCertification() {
+        $data = json_decode(file_get_contents('php://input'), true);
+
+        $opNumber    = isset($data['op_number'])     ? intval($data['op_number'])     : null;
+        $line        = trim($data['line'] ?? '');
+        $certDate    = trim($data['certified_date']  ?? '');
+        $expiresDate = isset($data['expires_date'])  && $data['expires_date'] !== ''
+                           ? trim($data['expires_date']) : null;
+        $notes       = isset($data['notes']) ? trim($data['notes']) : null;
+
+        $allowedLines = ['rebotling', 'tvattlinje', 'saglinje', 'klassificeringslinje'];
+
+        if (!$opNumber || $opNumber <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer']);
+            return;
+        }
+
+        if (!in_array($line, $allowedLines, true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig linje']);
+            return;
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $certDate)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt certifieringsdatum']);
+            return;
+        }
+
+        if ($expiresDate !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiresDate)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt utgångsdatum']);
+            return;
+        }
+
+        $certifiedBy = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO operator_certifications
+                    (op_number, line, certified_by, certified_date, expires_date, notes, active)
+                VALUES
+                    (?, ?, ?, ?, ?, ?, 1)
+            ");
+            $stmt->execute([$opNumber, $line, $certifiedBy, $certDate, $expiresDate, $notes ?: null]);
+            $newId = (int)$this->pdo->lastInsertId();
+
+            echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd']);
+        } catch (Exception $e) {
+            error_log('CertificationController addCertification: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till certifiering']);
+        }
+    }
+
+    private function revokeCertification() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $id   = isset($data['id']) ? intval($data['id']) : null;
+
+        if (!$id || $id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("UPDATE operator_certifications SET active = 0 WHERE id = ?");
+            $stmt->execute([$id]);
+
+            if ($stmt->rowCount() === 0) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Certifiering hittades inte']);
+                return;
+            }
+
+            echo json_encode(['success' => true, 'message' => 'Certifiering återkallad']);
+        } catch (Exception $e) {
+            error_log('CertificationController revokeCertification: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte återkalla certifiering']);
+        }
+    }
+}

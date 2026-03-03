@@ -1,0 +1,172 @@
+<div class="cert-page">
+
+  <!-- Sidhuvud -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-certificate me-2 text-warning"></i>Operatörscertifiering
+    </h1>
+    <p class="page-subtitle">Certifieringsstatus per operatör och linje</p>
+  </div>
+
+  <!-- Varningsbanner -->
+  <div class="warning-banner" *ngIf="!loading && hasWarnings">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <span *ngIf="expired > 0 && expiringSoon > 0">
+      {{ expired }} certifiering{{ expired !== 1 ? 'ar' : '' }} utgången och
+      {{ expiringSoon }} löper ut inom 30 dagar
+    </span>
+    <span *ngIf="expired > 0 && expiringSoon === 0">
+      {{ expired }} certifiering{{ expired !== 1 ? 'ar' : '' }} har gått ut
+    </span>
+    <span *ngIf="expired === 0 && expiringSoon > 0">
+      {{ expiringSoon }} certifiering{{ expiringSoon !== 1 ? 'ar' : '' }} löper ut inom 30 dagar
+    </span>
+  </div>
+
+  <!-- KPI-brickor -->
+  <div class="kpi-row" *ngIf="!loading">
+    <div class="kpi-card">
+      <div class="kpi-value">{{ totalCertifiedOperators }}</div>
+      <div class="kpi-label">Certifierade operatörer</div>
+    </div>
+    <div class="kpi-card kpi-warn" [class.kpi-warn-active]="expiringSoon > 0">
+      <div class="kpi-value">{{ expiringSoon }}</div>
+      <div class="kpi-label">Löper ut inom 30 dagar</div>
+    </div>
+    <div class="kpi-card kpi-danger" [class.kpi-danger-active]="expired > 0">
+      <div class="kpi-value">{{ expired }}</div>
+      <div class="kpi-label">Utgångna certifieringar</div>
+    </div>
+  </div>
+
+  <!-- Filter-rad -->
+  <div class="filter-row" *ngIf="!loading">
+    <button
+      *ngFor="let f of lineFilters"
+      class="filter-btn"
+      [class.filter-btn-active]="activeLineFilter === f.key"
+      (click)="setLineFilter(f.key)">
+      {{ f.label }}
+    </button>
+  </div>
+
+  <!-- Laddning -->
+  <div class="loading-state" *ngIf="loading">
+    <i class="fas fa-spinner fa-spin me-2"></i>Hämtar certifieringar...
+  </div>
+
+  <!-- Fel -->
+  <div class="error-state" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-light ms-3" (click)="loadCertifications()">Försök igen</button>
+  </div>
+
+  <!-- Tom vy -->
+  <div class="empty-state" *ngIf="!loading && !error && filteredOperators.length === 0">
+    <i class="fas fa-certificate fa-3x mb-3 text-muted"></i>
+    <p *ngIf="activeLineFilter === 'alla'">Inga certifieringar registrerade ännu.</p>
+    <p *ngIf="activeLineFilter !== 'alla'">Inga certifieringar för vald linje.</p>
+  </div>
+
+  <!-- Operatörskort-grid -->
+  <div class="op-grid" *ngIf="!loading && !error">
+    <div class="op-card" *ngFor="let op of filteredOperators">
+      <div class="op-card-header">
+        <div class="op-avatar" [style.background]="getAvatarColor(op.name)">
+          {{ getInitials(op.name) }}
+        </div>
+        <div class="op-info">
+          <div class="op-name">{{ op.name }}</div>
+          <div class="op-number">#{{ op.op_number }}</div>
+        </div>
+      </div>
+
+      <div class="cert-list">
+        <div
+          class="cert-badge-row"
+          *ngFor="let cert of op.certifications">
+          <span class="cert-badge" [ngClass]="getBadgeClass(cert)">
+            <i class="fas fa-check-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-valid'"></i>
+            <i class="fas fa-clock me-1" *ngIf="getBadgeClass(cert) === 'badge-warning'"></i>
+            <i class="fas fa-times-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-expired'"></i>
+            <span [class.text-strikethrough]="getBadgeClass(cert) === 'badge-expired'">
+              {{ getBadgeLabel(cert) }}
+            </span>
+          </span>
+          <span class="cert-date text-muted">{{ formatDate(cert.certified_date) }}</span>
+          <button
+            class="revoke-btn"
+            title="Återkalla certifiering"
+            (click)="revoke(cert.id)">
+            <i class="fas fa-ban"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lägg till certifiering (admin) -->
+  <div class="add-section">
+    <button class="btn-toggle-add" (click)="toggleAddForm()">
+      <i class="fas" [class.fa-plus-circle]="!showAddForm" [class.fa-minus-circle]="showAddForm"></i>
+      {{ showAddForm ? 'Dölj formulär' : 'Lägg till certifiering' }}
+    </button>
+
+    <div class="add-form-panel" *ngIf="showAddForm">
+      <h3 class="add-form-title">Ny certifiering</h3>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Operatör</label>
+          <select class="form-control" [(ngModel)]="addForm.op_number">
+            <option [ngValue]="null" disabled>Välj operatör...</option>
+            <option *ngFor="let op of operatorOptions" [ngValue]="op.number">
+              {{ op.name }} (#{{ op.number }})
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Linje</label>
+          <select class="form-control" [(ngModel)]="addForm.line">
+            <option value="" disabled>Välj linje...</option>
+            <option value="rebotling">Rebotling</option>
+            <option value="tvattlinje">Tvättlinje</option>
+            <option value="saglinje">Såglinje</option>
+            <option value="klassificeringslinje">Klassificeringslinje</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Certifierat datum</label>
+          <input type="date" class="form-control" [(ngModel)]="addForm.certified_date" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Utgångsdatum <span class="optional">(valfritt)</span></label>
+          <input type="date" class="form-control" [(ngModel)]="addForm.expires_date" />
+        </div>
+
+        <div class="form-group form-group-full">
+          <label class="form-label">Anteckningar <span class="optional">(valfritt)</span></label>
+          <textarea class="form-control" rows="2" [(ngModel)]="addForm.notes"
+            placeholder="T.ex. certifierad av produktionschef..."></textarea>
+        </div>
+      </div>
+
+      <div class="alert alert-danger" *ngIf="addError">
+        <i class="fas fa-exclamation-circle me-2"></i>{{ addError }}
+      </div>
+      <div class="alert alert-success" *ngIf="addSuccess">
+        <i class="fas fa-check-circle me-2"></i>{{ addSuccess }}
+      </div>
+
+      <button class="btn-submit" (click)="submitAdd()" [disabled]="addLoading">
+        <i class="fas fa-plus me-2" *ngIf="!addLoading"></i>
+        <i class="fas fa-spinner fa-spin me-2" *ngIf="addLoading"></i>
+        {{ addLoading ? 'Sparar...' : 'Lägg till certifiering' }}
+      </button>
+    </div>
+  </div>
+
+</div>

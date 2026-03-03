@@ -1,0 +1,387 @@
+/* === Sida === */
+.cert-page {
+  background: #1a202c;
+  min-height: 100vh;
+  padding: 2rem 1.5rem;
+  color: #e2e8f0;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0 0 0.25rem 0;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* === Varningsbanner === */
+.warning-banner {
+  background: #744210;
+  border: 1px solid #d69e2e;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  color: #fbd38d;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* === KPI-brickor === */
+.kpi-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  flex: 1;
+  min-width: 160px;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+
+.kpi-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #63b3ed;
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  margin-top: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-warn .kpi-value { color: #a0aec0; }
+.kpi-warn-active .kpi-value { color: #f6ad55; }
+
+.kpi-danger .kpi-value { color: #a0aec0; }
+.kpi-danger-active .kpi-value { color: #fc8181; }
+
+/* === Filter-rad === */
+.filter-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover {
+  background: #3a4a6b;
+  color: #e2e8f0;
+}
+
+.filter-btn-active {
+  background: #2b6cb0;
+  border-color: #63b3ed;
+  color: #fff;
+}
+
+/* === States === */
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #a0aec0;
+}
+
+.error-state {
+  color: #fc8181;
+}
+
+/* === Operatörskort-grid === */
+.op-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.op-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.15s;
+}
+
+.op-card:hover {
+  border-color: #63b3ed;
+}
+
+/* === Operatörs-header === */
+.op-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.op-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.op-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.op-number {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* === Certifieringslista === */
+.cert-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cert-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* === Badges === */
+.cert-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.badge-valid {
+  background: #1c4532;
+  color: #68d391;
+  border: 1px solid #276749;
+}
+
+.badge-warning {
+  background: #744210;
+  color: #f6ad55;
+  border: 1px solid #c05621;
+}
+
+.badge-expired {
+  background: #3d1a1a;
+  color: #fc8181;
+  border: 1px solid #742a2a;
+}
+
+.text-strikethrough {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+.cert-date {
+  font-size: 0.75rem;
+  color: #718096;
+  flex: 1;
+}
+
+.revoke-btn {
+  background: transparent;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.revoke-btn:hover {
+  color: #fc8181;
+  background: #3d1a1a;
+}
+
+/* === Lägg till-sektion === */
+.add-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #4a5568;
+}
+
+.btn-toggle-add {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.15s;
+}
+
+.btn-toggle-add:hover {
+  background: #3a4a6b;
+  color: #e2e8f0;
+  border-color: #63b3ed;
+}
+
+.add-form-panel {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.add-form-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 1.25rem 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #a0aec0;
+  margin-bottom: 0.35rem;
+  font-weight: 500;
+}
+
+.optional {
+  color: #718096;
+  font-weight: 400;
+}
+
+.form-control {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.9rem;
+  transition: border-color 0.15s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.2);
+}
+
+.form-control option {
+  background: #2d3748;
+}
+
+textarea.form-control {
+  resize: vertical;
+}
+
+.alert {
+  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.alert-danger {
+  background: #3d1a1a;
+  border: 1px solid #742a2a;
+  color: #fc8181;
+}
+
+.alert-success {
+  background: #1c4532;
+  border: 1px solid #276749;
+  color: #68d391;
+}
+
+.btn-submit {
+  background: #2b6cb0;
+  border: none;
+  color: #fff;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: background 0.15s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #2c5282;
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* === Responsiv === */
+@media (max-width: 600px) {
+  .kpi-row {
+    gap: 0.75rem;
+  }
+  .kpi-card {
+    min-width: 130px;
+  }
+  .op-grid {
+    grid-template-columns: 1fr;
+  }
+}
