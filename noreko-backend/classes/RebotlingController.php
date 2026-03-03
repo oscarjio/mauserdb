@@ -52,6 +52,8 @@ class RebotlingController {
                 $this->getCycleHistogram();
             } elseif ($action === 'spc') {
                 $this->getSPC();
+            } elseif ($action === 'year-calendar') {
+                $this->getYearCalendar();
             } else {
                 $this->getLiveStats();
             }
@@ -2170,6 +2172,312 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getLiveRanking: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta live ranking']);
+        }
+    }
+
+    // =========================================================
+    // Cykeltids-histogram
+    // GET ?action=rebotling&run=cycle-histogram&date=YYYY-MM-DD
+    // =========================================================
+    private function getCycleHistogram() {
+        $date = $_GET['date'] ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $date = date('Y-m-d');
+        }
+
+        try {
+            // Hämta ibc_ok och drifttid per skift för valt datum från rebotling_skiftrapport
+            $stmt = $this->pdo->prepare("
+                SELECT ibc_ok, drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum = :date
+                  AND ibc_ok > 0
+                  AND drifttid > 0
+            ");
+            $stmt->execute(['date' => $date]);
+            $shifts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna cykeltid (min/IBC) per skift
+            $cycleTimes = [];
+            foreach ($shifts as $s) {
+                $ibcOk    = (int)$s['ibc_ok'];
+                $driftMin = (float)$s['drifttid'];
+                if ($ibcOk > 0 && $driftMin > 0) {
+                    $cycleTimes[] = $driftMin / $ibcOk;
+                }
+            }
+
+            // Om inga skiftrapporter finns: hämta cykeltider per cykel från PLC-data
+            if (empty($cycleTimes)) {
+                $stmt2 = $this->pdo->prepare("
+                    SELECT
+                        skiftraknare,
+                        datum,
+                        TIMESTAMPDIFF(SECOND,
+                            LAG(datum) OVER (PARTITION BY skiftraknare ORDER BY datum),
+                            datum
+                        ) / 60.0 AS cycle_time_min
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                      AND skiftraknare IS NOT NULL
+                    ORDER BY skiftraknare, datum ASC
+                ");
+                $stmt2->execute(['date' => $date]);
+                $rows2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows2 as $r) {
+                    $ct = (float)($r['cycle_time_min'] ?? 0);
+                    // Filtrera: 0.5 – 30 min
+                    if ($ct >= 0.5 && $ct <= 30) {
+                        $cycleTimes[] = $ct;
+                    }
+                }
+            }
+
+            // Bygg histogrambuckets
+            $buckets = [
+                '0-2 min'  => 0,
+                '2-3 min'  => 0,
+                '3-4 min'  => 0,
+                '4-5 min'  => 0,
+                '5-7 min'  => 0,
+                '7+ min'   => 0,
+            ];
+            foreach ($cycleTimes as $ct) {
+                if ($ct < 2)      $buckets['0-2 min']++;
+                elseif ($ct < 3)  $buckets['2-3 min']++;
+                elseif ($ct < 4)  $buckets['3-4 min']++;
+                elseif ($ct < 5)  $buckets['4-5 min']++;
+                elseif ($ct < 7)  $buckets['5-7 min']++;
+                else              $buckets['7+ min']++;
+            }
+
+            // Statistik
+            $n      = count($cycleTimes);
+            $snitt  = $n > 0 ? array_sum($cycleTimes) / $n : 0;
+            $p50 = $p90 = $p95 = 0;
+            if ($n > 0) {
+                sort($cycleTimes);
+                $p50 = $cycleTimes[(int)floor(($n - 1) * 0.50)];
+                $p90 = $cycleTimes[(int)floor(($n - 1) * 0.90)];
+                $p95 = $cycleTimes[(int)floor(($n - 1) * 0.95)];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'date'    => $date,
+                    'buckets' => array_map(function($label, $count) {
+                        return ['label' => $label, 'count' => $count];
+                    }, array_keys($buckets), array_values($buckets)),
+                    'stats' => [
+                        'n'      => $n,
+                        'snitt'  => round($snitt, 2),
+                        'p50'    => round($p50, 2),
+                        'p90'    => round($p90, 2),
+                        'p95'    => round($p95, 2),
+                    ]
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getCycleHistogram: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta cykeltidsfordelning']);
+        }
+    }
+
+    // =========================================================
+    // SPC-kontrollkort
+    // GET ?action=rebotling&run=spc&days=7
+    // =========================================================
+    private function getSPC() {
+        $days = min(30, max(3, intval($_GET['days'] ?? 7)));
+
+        try {
+            // Hämta IBC/h per skift de senaste N dagarna från rebotling_skiftrapport
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    datum,
+                    skift_nr,
+                    ibc_ok,
+                    drifttid
+                FROM rebotling_skiftrapport
+                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                  AND ibc_ok > 0
+                  AND drifttid > 0
+                ORDER BY datum ASC, skift_nr ASC
+            ");
+            $stmt->execute(['days' => $days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $points = [];
+            foreach ($rows as $r) {
+                $ibcOk    = (int)$r['ibc_ok'];
+                $driftMin = (float)$r['drifttid'];
+                if ($driftMin > 0) {
+                    $ibcPerH = round($ibcOk * 60.0 / $driftMin, 2);
+                    $points[] = [
+                        'label'        => $r['datum'] . ' S' . $r['skift_nr'],
+                        'ibc_per_hour' => $ibcPerH,
+                    ];
+                }
+            }
+
+            // Fallback: PLC-data aggregerat per dag+skift om inga skiftrapporter
+            if (empty($points)) {
+                $stmt2 = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,    0)) AS shift_ibc_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                      AND skiftraknare IS NOT NULL
+                      AND ibc_ok IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                    HAVING shift_runtime > 0 AND shift_ibc_ok > 0
+                    ORDER BY dag ASC, skiftraknare ASC
+                ");
+                $stmt2->execute(['days' => $days]);
+                $rows2 = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows2 as $r) {
+                    $ibcPerH = round($r['shift_ibc_ok'] * 60.0 / $r['shift_runtime'], 2);
+                    $points[] = [
+                        'label'        => $r['dag'] . ' #' . $r['skiftraknare'],
+                        'ibc_per_hour' => $ibcPerH,
+                    ];
+                }
+            }
+
+            // Beräkna medelvärde (X̄) och standardavvikelse (σ)
+            $n      = count($points);
+            $mean   = 0;
+            $stddev = 0;
+            if ($n > 0) {
+                $values = array_column($points, 'ibc_per_hour');
+                $mean   = array_sum($values) / $n;
+                if ($n > 1) {
+                    $variance = array_sum(array_map(fn($v) => pow($v - $mean, 2), $values)) / ($n - 1);
+                    $stddev   = sqrt($variance);
+                }
+            }
+
+            $ucl = round($mean + 2 * $stddev, 2);
+            $lcl = round(max(0, $mean - 2 * $stddev), 2);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'points' => $points,
+                    'mean'   => round($mean, 2),
+                    'stddev' => round($stddev, 2),
+                    'ucl'    => $ucl,
+                    'lcl'    => $lcl,
+                    'n'      => $n,
+                    'days'   => $days,
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getSPC: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta SPC-data']);
+        }
+    }
+
+    // =========================================================
+    // Produktionskalender — GitHub-liknande heatmap per år
+    // GET ?action=rebotling&run=year-calendar&year=YYYY
+    // =========================================================
+    private function getYearCalendar() {
+        $year = intval($_GET['year'] ?? date('Y'));
+        if ($year < 2020 || $year > 2100) {
+            $year = (int)date('Y');
+        }
+
+        try {
+            // Hämta dagsmål: försök veckodagsmål, annars rebotling_settings
+            $weekdayGoals = [];
+            try {
+                $wgStmt = $this->pdo->query("SELECT weekday, daily_goal FROM rebotling_weekday_goals");
+                foreach ($wgStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $weekdayGoals[(int)$row['weekday']] = (int)$row['daily_goal'];
+                }
+            } catch (Exception $e) { /* tabell saknas */ }
+
+            $defaultGoal = 1000;
+            try {
+                $sgRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sgRow) $defaultGoal = (int)$sgRow['rebotling_target'];
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Hämta produktion per dag för hela året från rebotling_skiftrapport
+            // SUM(ibc_ok) per datum
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    datum,
+                    SUM(ibc_ok) AS ibc_ok
+                FROM rebotling_skiftrapport
+                WHERE YEAR(datum) = :year
+                  AND ibc_ok IS NOT NULL
+                GROUP BY datum
+                ORDER BY datum ASC
+            ");
+            $stmt->execute(['year' => $year]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fallback: om inga skiftrapporter — hämta från rebotling_ibc (PLC-data)
+            if (empty($rows)) {
+                $stmt2 = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum) AS datum,
+                        SUM(shift_ibc_ok) AS ibc_ok
+                    FROM (
+                        SELECT
+                            datum,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc_ok
+                        FROM rebotling_ibc
+                        WHERE YEAR(datum) = :year
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS ps
+                    GROUP BY DATE(datum)
+                    ORDER BY datum ASC
+                ");
+                $stmt2->execute(['year' => $year]);
+                $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            $days = [];
+            foreach ($rows as $row) {
+                $dateStr = $row['datum'];
+                $ibc     = (int)$row['ibc_ok'];
+                if ($ibc <= 0) continue; // hoppa över nolldagar
+
+                // Bestäm dagsmål: ISO-veckodag 1=Måndag ... 7=Söndag
+                $dt      = new DateTime($dateStr);
+                $wday    = (int)$dt->format('N'); // 1=Mån, 7=Sön
+                $goal    = isset($weekdayGoals[$wday]) ? $weekdayGoals[$wday] : $defaultGoal;
+
+                // Om dagsmål är 0 (t.ex. lördag/söndag) men det ändå producerats — sätt mål till defaultGoal
+                if ($goal <= 0) $goal = $defaultGoal;
+
+                $pct = $goal > 0 ? round($ibc / $goal * 100, 2) : 0;
+
+                $days[] = [
+                    'date' => $dateStr,
+                    'ibc'  => $ibc,
+                    'goal' => $goal,
+                    'pct'  => $pct,
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'year'    => $year,
+                'days'    => $days,
+            ]);
+        } catch (Exception $e) {
+            error_log('getYearCalendar: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kalenderdata']);
         }
     }
 }

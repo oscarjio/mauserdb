@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift } from '../../services/rebotling.service';
+import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
 
@@ -138,6 +138,25 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   oeeTrendDays: OEETrendDay[] = [];
   private oeeTrendChart: Chart | null = null;
 
+  // Cykeltids-histogram
+  histogramDate: string = new Date().toISOString().split('T')[0];
+  histogramLoaded: boolean = false;
+  histogramLoading: boolean = false;
+  histogramBuckets: { label: string; count: number }[] = [];
+  histogramStats: { n: number; snitt: number; p50: number; p90: number; p95: number } | null = null;
+  private histogramChart: Chart | null = null;
+
+  // SPC-kontrollkort
+  spcDays: number = 7;
+  spcLoaded: boolean = false;
+  spcLoading: boolean = false;
+  spcMean: number = 0;
+  spcStddev: number = 0;
+  spcUCL: number = 0;
+  spcLCL: number = 0;
+  spcN: number = 0;
+  private spcChart: Chart | null = null;
+
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
 
@@ -158,6 +177,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.generatePeriodCells();
     this.syncStateToUrl();
     this.loadStatistics();
+    this.loadCycleHistogram();
+    this.loadSPC();
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -233,6 +254,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.weekComparisonChart = null;
     this.oeeTrendChart?.destroy();
     this.oeeTrendChart = null;
+    this.histogramChart?.destroy();
+    this.histogramChart = null;
+    this.spcChart?.destroy();
+    this.spcChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -2054,5 +2079,212 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     if (value >= 75) return 'bg-success';
     if (value >= 50) return 'bg-warning';
     return 'bg-danger';
+  }
+
+  // ======== CYKELTIDS-HISTOGRAM ========
+
+  loadCycleHistogram() {
+    if (this.histogramLoading) return;
+    this.histogramLoading = true;
+
+    this.rebotlingService.getCycleHistogram(this.histogramDate).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe((res: CycleHistogramResponse | null) => {
+      this.histogramLoading = false;
+      if (res?.success && res.data) {
+        this.histogramBuckets = res.data.buckets;
+        this.histogramStats = res.data.stats;
+        this.histogramLoaded = true;
+        setTimeout(() => this.renderHistogramChart(), 100);
+      } else {
+        this.histogramLoaded = true;
+      }
+    });
+  }
+
+  private renderHistogramChart() {
+    this.histogramChart?.destroy();
+    const canvas = document.getElementById('cycleHistogramChart') as HTMLCanvasElement;
+    if (!canvas || !this.histogramBuckets.length) return;
+
+    const labels = this.histogramBuckets.map(b => b.label);
+    const counts = this.histogramBuckets.map(b => b.count);
+
+    this.histogramChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Antal skift',
+            data: counts,
+            backgroundColor: 'rgba(72, 187, 120, 0.75)',
+            borderColor: '#48bb78',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(20,20,30,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e2e8f0',
+            borderColor: '#48bb78',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx: any) => ` ${ctx.parsed.y} st`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#a0aec0', stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'Antal skift', color: '#a0aec0', font: { size: 12 } }
+          }
+        }
+      }
+    });
+  }
+
+  onHistogramDateChange() {
+    this.histogramLoaded = false;
+    this.loadCycleHistogram();
+  }
+
+  // ======== SPC-KONTROLLKORT ========
+
+  loadSPC() {
+    if (this.spcLoading) return;
+    this.spcLoading = true;
+
+    this.rebotlingService.getSPC(this.spcDays).pipe(
+      timeout(10000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe((res: SPCResponse | null) => {
+      this.spcLoading = false;
+      if (res?.success && res.data) {
+        this.spcMean   = res.data.mean;
+        this.spcStddev = res.data.stddev;
+        this.spcUCL    = res.data.ucl;
+        this.spcLCL    = res.data.lcl;
+        this.spcN      = res.data.n;
+        this.spcLoaded = true;
+        setTimeout(() => this.renderSPCChart(res.data!.points), 100);
+      } else {
+        this.spcLoaded = true;
+      }
+    });
+  }
+
+  private renderSPCChart(points: { label: string; ibc_per_hour: number }[]) {
+    this.spcChart?.destroy();
+    const canvas = document.getElementById('spcChart') as HTMLCanvasElement;
+    if (!canvas || !points.length) return;
+
+    const labels  = points.map(p => p.label);
+    const values  = points.map(p => p.ibc_per_hour);
+    const uclArr  = points.map(() => this.spcUCL);
+    const lclArr  = points.map(() => this.spcLCL);
+    const meanArr = points.map(() => this.spcMean);
+
+    this.spcChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC/h',
+            data: values,
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66,153,225,0.15)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            borderWidth: 2,
+            yAxisID: 'y'
+          },
+          {
+            label: 'UCL (Övre kontrollgräns)',
+            data: uclArr,
+            borderColor: '#fc8181',
+            borderDash: [6, 3],
+            tension: 0,
+            fill: false,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            yAxisID: 'y'
+          },
+          {
+            label: 'LCL (Nedre kontrollgräns)',
+            data: lclArr,
+            borderColor: '#ed8936',
+            borderDash: [6, 3],
+            tension: 0,
+            fill: false,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Medelvärde (X\u0305)',
+            data: meanArr,
+            borderColor: '#48bb78',
+            borderDash: [4, 4],
+            tension: 0,
+            fill: false,
+            pointRadius: 0,
+            borderWidth: 1.5,
+            yAxisID: 'y'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 14 },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          },
+          y: {
+            beginAtZero: false,
+            ticks: { color: '#718096', callback: (v: any) => v + ' IBC/h' },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+            title: { display: true, text: 'IBC per timme', color: '#a0aec0', font: { size: 12 } }
+          }
+        }
+      }
+    });
+  }
+
+  onSPCDaysChange() {
+    this.spcLoaded = false;
+    this.loadSPC();
   }
 }

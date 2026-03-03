@@ -178,6 +178,20 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getCycleHistogram(date: string): Observable<CycleHistogramResponse> {
+    return this.http.get<CycleHistogramResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=cycle-histogram&date=${date}`,
+      { withCredentials: true }
+    );
+  }
+
+  getSPC(days: number = 7): Observable<SPCResponse> {
+    return this.http.get<SPCResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=spc&days=${days}`,
+      { withCredentials: true }
+    );
+  }
 }
 
 export interface CycleTrendResponse {
@@ -295,6 +309,46 @@ export interface ExecDashboardResponse {
     };
     days7: { date: string; ibc: number; target: number }[];
     last_shift_operators: ExecDashboardOperator[];
+  };
+  error?: string;
+}
+
+export interface CycleHistogramBucket {
+  label: string;
+  count: number;
+}
+
+export interface CycleHistogramResponse {
+  success: boolean;
+  data?: {
+    date: string;
+    buckets: CycleHistogramBucket[];
+    stats: {
+      n: number;
+      snitt: number;
+      p50: number;
+      p90: number;
+      p95: number;
+    };
+  };
+  error?: string;
+}
+
+export interface SPCPoint {
+  label: string;
+  ibc_per_hour: number;
+}
+
+export interface SPCResponse {
+  success: boolean;
+  data?: {
+    points: SPCPoint[];
+    mean: number;
+    stddev: number;
+    ucl: number;
+    lcl: number;
+    n: number;
+    days: number;
   };
   error?: string;
 }
