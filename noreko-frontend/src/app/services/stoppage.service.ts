@@ -35,6 +35,12 @@ export interface StoppageStats {
   daily: { dag: string; total_minutes: number; count: number }[];
 }
 
+export interface StoppageWeeklySummary {
+  this_week: { count: number; total_minutes: number; avg_minutes: number };
+  prev_week: { count: number; total_minutes: number; avg_minutes: number };
+  daily_14: { dag: string; count: number; total_minutes: number }[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class StoppageService {
   private base = '/noreko-backend/api.php?action=stoppage';
@@ -63,5 +69,9 @@ export class StoppageService {
 
   delete(id: number): Observable<any> {
     return this.http.post<any>(this.base, { action: 'delete', id }, { withCredentials: true });
+  }
+
+  getWeeklySummary(line: string = 'rebotling'): Observable<{ success: boolean; data: StoppageWeeklySummary }> {
+    return this.http.get<any>(`${this.base}&run=weekly_summary&line=${line}`, { withCredentials: true });
   }
 }

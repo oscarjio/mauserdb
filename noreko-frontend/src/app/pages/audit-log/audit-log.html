@@ -16,37 +16,10 @@
             <h2 class="mb-1"><i class="fas fa-history me-2"></i>Aktivitetslogg</h2>
             <small class="text-muted">Spåra alla admin-ändringar i systemet</small>
           </div>
-          <div class="d-flex align-items-center gap-2">
-            <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()">
-              <option value="today">Idag</option>
-              <option value="week">Senaste 7 dagar</option>
-              <option value="month">Senaste 30 dagar</option>
-              <option value="year">Senaste året</option>
-            </select>
-            <input type="text" class="form-control form-control-sm filter-input" placeholder="Filtrera användare..." [(ngModel)]="filterUser" (keyup.enter)="onFilterChange()">
-            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()">
-              <option value="">Alla åtgärder</option>
-              <option value="create_user">Skapa användare</option>
-              <option value="delete_user">Ta bort användare</option>
-              <option value="toggle_admin">Ändra admin</option>
-              <option value="toggle_active">Ändra aktiv</option>
-              <option value="update_user">Uppdatera användare</option>
-              <option value="create_skiftrapport">Skapa skiftrapport</option>
-              <option value="delete_skiftrapport">Ta bort skiftrapport</option>
-              <option value="create_rapport">Skapa linjerapport</option>
-              <option value="delete_rapport">Ta bort linjerapport</option>
-              <option value="create_stoppage">Registrera stoppost</option>
-              <option value="delete_stoppage">Ta bort stoppost</option>
-              <option value="product_create">Skapa produkt</option>
-              <option value="product_update">Uppdatera produkt</option>
-              <option value="product_delete">Ta bort produkt</option>
-              <option value="register">Registrering</option>
-              <option value="update_profile">Uppdatera profil</option>
-              <option value="update_inlagd">Markera inlagd</option>
-              <option value="bulk_update_inlagd">Massmarkera inlagd</option>
-            </select>
-            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" *ngIf="logs.length > 0" title="Exportera sida till CSV">
-              <i class="fas fa-download me-1"></i>CSV
+          <div class="header-actions">
+            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" [disabled]="exportingAll" title="Exportera filtrerad vy som CSV">
+              <span *ngIf="!exportingAll"><i class="fas fa-download me-1"></i>Exportera CSV</span>
+              <span *ngIf="exportingAll"><i class="fas fa-spinner fa-spin me-1"></i>Exporterar...</span>
             </button>
           </div>
         </div>
@@ -54,6 +27,95 @@
     </div>
 
     <div class="container-fluid py-4">
+
+      <!-- Filter bar -->
+      <div class="filter-bar dark-card mb-4">
+        <div class="filter-row">
+          <!-- Free text search -->
+          <div class="filter-group filter-search">
+            <label class="filter-label"><i class="fas fa-search me-1"></i>Fritext</label>
+            <div class="search-input-wrap">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" class="form-control form-control-sm filter-input"
+                     placeholder="Sök åtgärd, användare, beskrivning..."
+                     [(ngModel)]="searchText" (input)="onSearchInput()">
+            </div>
+          </div>
+
+          <!-- Action dropdown (dynamic) -->
+          <div class="filter-group">
+            <label class="filter-label"><i class="fas fa-tag me-1"></i>Åtgärdstyp</label>
+            <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()">
+              <option value="">Alla åtgärder</option>
+              <ng-container *ngIf="availableActions.length > 0; else staticOptions">
+                <option *ngFor="let a of availableActions" [value]="a">{{ getActionLabel(a) }}</option>
+              </ng-container>
+              <ng-template #staticOptions>
+                <option value="create_user">Skapa användare</option>
+                <option value="delete_user">Ta bort användare</option>
+                <option value="toggle_admin">Ändra admin</option>
+                <option value="toggle_active">Ändra aktiv</option>
+                <option value="update_user">Uppdatera användare</option>
+                <option value="create_skiftrapport">Skapa skiftrapport</option>
+                <option value="delete_skiftrapport">Ta bort skiftrapport</option>
+                <option value="create_rapport">Skapa linjerapport</option>
+                <option value="delete_rapport">Ta bort linjerapport</option>
+                <option value="create_stoppage">Registrera stoppost</option>
+                <option value="delete_stoppage">Ta bort stoppost</option>
+                <option value="login">Inloggning</option>
+                <option value="logout">Utloggning</option>
+                <option value="login_failed">Misslyckad inloggning</option>
+                <option value="register">Registrering</option>
+                <option value="update_profile">Uppdatera profil</option>
+              </ng-template>
+            </select>
+          </div>
+
+          <!-- User filter -->
+          <div class="filter-group">
+            <label class="filter-label"><i class="fas fa-user me-1"></i>Användare</label>
+            <input type="text" class="form-control form-control-sm filter-input"
+                   placeholder="Filtrera användare..."
+                   [(ngModel)]="filterUser" (keyup.enter)="onFilterChange()" (blur)="onFilterChange()">
+          </div>
+
+          <!-- Period / date range toggle -->
+          <div class="filter-group">
+            <label class="filter-label"><i class="fas fa-calendar me-1"></i>Period</label>
+            <div class="d-flex gap-1 align-items-center">
+              <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedPeriod" (change)="onFilterChange()" [disabled]="showDateRange">
+                <option value="today">Idag</option>
+                <option value="week">Senaste 7 dagar</option>
+                <option value="month">Senaste 30 dagar</option>
+                <option value="year">Senaste året</option>
+              </select>
+              <button class="btn btn-sm"
+                      [class.btn-outline-info]="!showDateRange"
+                      [class.btn-info]="showDateRange"
+                      (click)="toggleDateRange()" title="Anpassat datumintervall">
+                <i class="fas fa-calendar-alt"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Date range row (toggled) -->
+        <div class="date-range-row" *ngIf="showDateRange">
+          <div class="filter-group">
+            <label class="filter-label">Från datum</label>
+            <input type="date" class="form-control form-control-sm filter-input"
+                   [(ngModel)]="fromDate" (change)="onFilterChange()">
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Till datum</label>
+            <input type="date" class="form-control form-control-sm filter-input"
+                   [(ngModel)]="toDate" (change)="onFilterChange()">
+          </div>
+          <div class="filter-result-note" *ngIf="totalCount > 0">
+            <i class="fas fa-info-circle me-1"></i>{{ totalCount }} poster matchar filtret
+          </div>
+        </div>
+      </div>
 
       <!-- Tabs -->
       <div class="tab-bar mb-4">
@@ -84,11 +146,16 @@
                     <i class="fas" [ngClass]="getActionIcon(log.action)"></i>
                   </div>
                   <div class="audit-content">
-                    <div class="audit-action">{{ getActionLabel(log.action) }}</div>
+                    <div class="audit-action-row">
+                      <span class="action-badge" [ngClass]="getActionBadgeClass(log.action)">
+                        {{ getActionLabel(log.action) }}
+                      </span>
+                      <span class="audit-entity" *ngIf="log.entity_type">{{ log.entity_type }}<span *ngIf="log.entity_id"> #{{ log.entity_id }}</span></span>
+                    </div>
                     <div class="audit-desc" *ngIf="log.description">{{ log.description }}</div>
                   </div>
                   <div class="audit-meta">
-                    <span class="audit-user"><i class="fas fa-user me-1"></i>{{ log.user }}</span>
+                    <span class="audit-user"><i class="fas fa-user-circle me-1"></i>{{ log.user }}</span>
                     <span class="audit-time">{{ log.created_at | date:'yyyy-MM-dd HH:mm' }}</span>
                     <span class="audit-ip" *ngIf="log.ip_address">{{ log.ip_address }}</span>
                   </div>
@@ -133,10 +200,17 @@
           <button class="btn btn-sm btn-dark" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
             <i class="fas fa-chevron-left"></i>
           </button>
-          <span class="page-info">Sida {{ currentPage }} av {{ totalPages }}</span>
+          <ng-container *ngFor="let p of pageNumbers">
+            <span class="page-ellipsis" *ngIf="p > 1 && pageNumbers[pageNumbers.indexOf(p)-1] !== p - 1">…</span>
+            <button class="btn btn-sm"
+                    [class.btn-dark]="p !== currentPage"
+                    [class.btn-info]="p === currentPage"
+                    (click)="goToPage(p)">{{ p }}</button>
+          </ng-container>
           <button class="btn btn-sm btn-dark" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
             <i class="fas fa-chevron-right"></i>
           </button>
+          <span class="page-info">Sida {{ currentPage }} av {{ totalPages }} ({{ totalCount }} poster)</span>
         </div>
 
         <!-- No data -->
@@ -195,8 +269,10 @@
                   <tbody>
                     <tr *ngFor="let item of stats.by_action">
                       <td>
-                        <i class="fas me-2" [ngClass]="getActionIcon(item.action)" [style.color]="getActionColor(item.action)"></i>
-                        {{ getActionLabel(item.action) }}
+                        <span class="action-badge" [ngClass]="getActionBadgeClass(item.action)">
+                          <i class="fas me-1" [ngClass]="getActionIcon(item.action)"></i>
+                          {{ getActionLabel(item.action) }}
+                        </span>
                       </td>
                       <td class="text-end"><strong>{{ item.count }}</strong></td>
                     </tr>
@@ -216,7 +292,7 @@
                 <table class="audit-stats-table">
                   <tbody>
                     <tr *ngFor="let item of stats.by_user">
-                      <td><i class="fas fa-user me-2 text-muted"></i>{{ item.user }}</td>
+                      <td><i class="fas fa-user-circle me-2 text-muted"></i>{{ item.user }}</td>
                       <td class="text-end"><strong>{{ item.count }}</strong></td>
                     </tr>
                   </tbody>
@@ -225,6 +301,12 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Stats loading -->
+      <div class="text-center py-5" *ngIf="activeTab === 'stats' && !stats">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Laddar...</span></div>
+        <p class="mt-3 text-muted">Hämtar statistik...</p>
       </div>
 
     </div>

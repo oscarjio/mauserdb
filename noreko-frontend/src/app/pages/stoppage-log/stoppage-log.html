@@ -32,12 +32,12 @@
   <div class="container-fluid py-4">
 
     <!-- KPI Cards -->
-    <div class="row mb-4">
+    <div class="row mb-3">
       <div class="col-lg-3 col-md-6 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon"><i class="fas fa-stop-circle"></i></div>
           <div class="kpi-value">{{ stoppages.length }}</div>
-          <div class="kpi-label">Antal stopp</div>
+          <div class="kpi-label">Antal stopp (vald period)</div>
         </div>
       </div>
       <div class="col-lg-3 col-md-6 mb-3">
@@ -56,9 +56,48 @@
       </div>
       <div class="col-lg-3 col-md-6 mb-3">
         <div class="kpi-card">
-          <div class="kpi-icon kpi-icon-green"><i class="fas fa-wrench"></i></div>
-          <div class="kpi-value">{{ stoppages.length - getUnplannedCount() }}</div>
-          <div class="kpi-label">Planerade stopp</div>
+          <div class="kpi-icon kpi-icon-green"><i class="fas fa-ruler"></i></div>
+          <div class="kpi-value">{{ getAvgDuration() > 0 ? getAvgDuration() + ' min' : '—' }}</div>
+          <div class="kpi-label">Snitt stopplängd</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly summary row -->
+    <div class="row mb-4" *ngIf="weeklySummary">
+      <!-- Denna vecka -->
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card kpi-card-week">
+          <div class="kpi-week-label">Denna vecka</div>
+          <div class="kpi-value">{{ weeklySummary.this_week.count }}</div>
+          <div class="kpi-label">stopp</div>
+          <div class="kpi-diff" *ngIf="getWeekDiff('count') !== null"
+               [class.diff-up]="(getWeekDiff('count') ?? 0) > 0"
+               [class.diff-down]="(getWeekDiff('count') ?? 0) < 0">
+            <i class="fas" [ngClass]="(getWeekDiff('count') ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ (getWeekDiff('count') ?? 0) | number:'1.0-0' }}% vs förra veckan
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6 mb-3">
+        <div class="kpi-card kpi-card-week">
+          <div class="kpi-week-label">Denna vecka</div>
+          <div class="kpi-value">{{ formatDuration(weeklySummary.this_week.total_minutes) }}</div>
+          <div class="kpi-label">total stopptid</div>
+          <div class="kpi-diff" *ngIf="getWeekDiff('total_minutes') !== null"
+               [class.diff-up]="(getWeekDiff('total_minutes') ?? 0) > 0"
+               [class.diff-down]="(getWeekDiff('total_minutes') ?? 0) < 0">
+            <i class="fas" [ngClass]="(getWeekDiff('total_minutes') ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ (getWeekDiff('total_minutes') ?? 0) | number:'1.0-0' }}% vs förra veckan
+          </div>
+        </div>
+      </div>
+      <!-- 14-day bar chart -->
+      <div class="col-lg-6 col-12 mb-3">
+        <div class="dark-card chart14-card">
+          <div class="chart-container" style="height:130px">
+            <canvas id="weekly14Chart"></canvas>
+          </div>
         </div>
       </div>
     </div>

@@ -45,6 +45,8 @@ class StoppageController {
                 $this->getReasons();
             } elseif ($run === 'stats') {
                 $this->getStats();
+            } elseif ($run === 'weekly_summary') {
+                $this->getWeeklySummary();
             } else {
                 $this->getStoppages();
             }
@@ -373,6 +375,65 @@ class StoppageController {
             error_log('deleteStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort stoppost']);
+        }
+    }
+
+    private function getWeeklySummary() {
+        try {
+            $line = $_GET['line'] ?? 'rebotling';
+            if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
+
+            $thisWeekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));
+            $prevWeekStart = date('Y-m-d 00:00:00', strtotime('monday last week'));
+            $prevWeekEnd   = date('Y-m-d 23:59:59', strtotime('sunday last week'));
+
+            // This week
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as count,
+                       COALESCE(SUM(duration_minutes), 0) as total_minutes,
+                       COALESCE(ROUND(AVG(duration_minutes), 0), 0) as avg_minutes
+                FROM stoppage_log
+                WHERE line = ? AND start_time >= ?
+            ");
+            $stmt->execute([$line, $thisWeekStart]);
+            $thisWeek = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Prev week
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) as count,
+                       COALESCE(SUM(duration_minutes), 0) as total_minutes,
+                       COALESCE(ROUND(AVG(duration_minutes), 0), 0) as avg_minutes
+                FROM stoppage_log
+                WHERE line = ? AND start_time >= ? AND start_time <= ?
+            ");
+            $stmt->execute([$line, $prevWeekStart, $prevWeekEnd]);
+            $prevWeek = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Daily counts last 14 days (for mini bar chart)
+            $stmt = $this->pdo->prepare("
+                SELECT DATE(start_time) as dag,
+                       COUNT(*) as count,
+                       COALESCE(SUM(duration_minutes), 0) as total_minutes
+                FROM stoppage_log
+                WHERE line = ? AND start_time >= ?
+                GROUP BY DATE(start_time)
+                ORDER BY dag
+            ");
+            $stmt->execute([$line, date('Y-m-d 00:00:00', strtotime('-14 days'))]);
+            $daily14 = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'this_week'  => $thisWeek,
+                    'prev_week'  => $prevWeek,
+                    'daily_14'   => $daily14
+                ]
+            ]);
+        } catch (PDOException $e) {
+            error_log('getWeeklySummary: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta veckosummering']);
         }
     }
 

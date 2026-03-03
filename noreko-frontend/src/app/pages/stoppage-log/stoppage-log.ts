@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { StoppageService, StoppageReason, StoppageEntry, StoppageStats } from '../../services/stoppage.service';
+import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary } from '../../services/stoppage.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -24,6 +24,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   reasons: StoppageReason[] = [];
   stoppages: StoppageEntry[] = [];
   stats: StoppageStats | null = null;
+  weeklySummary: StoppageWeeklySummary | null = null;
 
   selectedLine: string = 'rebotling';
   selectedPeriod: string = 'week';
@@ -95,6 +96,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   private chartTimerId: any = null;
   private paretoChart: Chart | null = null;
   private dailyChart: Chart | null = null;
+  private weekly14Chart: Chart | null = null;
 
   constructor(
     private auth: AuthService,
@@ -115,6 +117,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
     this.loadReasons();
     this.loadStoppages();
+    this.loadWeeklySummary();
 
     this.refreshInterval = setInterval(() => this.loadStoppages(), 30000);
   }
@@ -123,8 +126,9 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     clearTimeout(this.successTimerId);
     clearTimeout(this.chartTimerId);
     if (this.refreshInterval) clearInterval(this.refreshInterval);
-    if (this.paretoChart) this.paretoChart.destroy();
-    if (this.dailyChart) this.dailyChart.destroy();
+    if (this.paretoChart)   this.paretoChart.destroy();
+    if (this.dailyChart)    this.dailyChart.destroy();
+    if (this.weekly14Chart) this.weekly14Chart.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -147,6 +151,21 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     });
   }
 
+  loadWeeklySummary() {
+    this.stoppageService.getWeeklySummary(this.selectedLine).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.weeklySummary = res.data;
+          clearTimeout(this.chartTimerId);
+          this.chartTimerId = setTimeout(() => {
+            if (!this.destroy$.closed) this.buildWeekly14Chart();
+          }, 150);
+        }
+      },
+      error: () => {}
+    });
+  }
+
   loadStats() {
     this.stoppageService.getStats(this.selectedLine, this.selectedPeriod).subscribe({
       next: (res) => {
@@ -164,6 +183,20 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     });
   }
 
+  getAvgDuration(): number {
+    const finished = this.stoppages.filter(s => s.duration_minutes !== null && s.duration_minutes !== undefined);
+    if (finished.length === 0) return 0;
+    return Math.round(finished.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) / finished.length);
+  }
+
+  getWeekDiff(field: 'count' | 'total_minutes'): number | null {
+    if (!this.weeklySummary) return null;
+    const cur  = Number(this.weeklySummary.this_week[field]);
+    const prev = Number(this.weeklySummary.prev_week[field]);
+    if (prev === 0) return null;
+    return Math.round(((cur - prev) / prev) * 100);
+  }
+
   switchTab(tab: 'log' | 'stats') {
     this.activeTab = tab;
     if (tab === 'stats') this.loadStats();
@@ -173,6 +206,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.loading = true;
     this.newEntry.line = this.selectedLine;
     this.loadStoppages();
+    this.loadWeeklySummary();
     if (this.activeTab === 'stats') this.loadStats();
   }
 
@@ -318,6 +352,68 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         scales: {
           x: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' } },
           y: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' }, title: { display: true, text: 'Minuter', color: '#a0aec0' } }
+        }
+      }
+    });
+  }
+
+  private buildWeekly14Chart() {
+    if (this.weekly14Chart) this.weekly14Chart.destroy();
+    const canvas = document.getElementById('weekly14Chart') as HTMLCanvasElement;
+    if (!canvas || !this.weeklySummary) return;
+
+    const daily = this.weeklySummary.daily_14;
+
+    // Fill in all 14 days (including zeros)
+    const labels: string[] = [];
+    const countData: number[] = [];
+    const minuteData: number[] = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const found = daily.find(x => x.dag === dateStr);
+      labels.push(dateStr.substring(5)); // MM-DD
+      countData.push(found ? Number(found.count) : 0);
+      minuteData.push(found ? Number(found.total_minutes) : 0);
+    }
+
+    this.weekly14Chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Antal stopp/dag',
+          data: countData,
+          backgroundColor: countData.map(v => v === 0 ? 'rgba(107,114,128,0.2)' : 'rgba(239,68,68,0.55)'),
+          borderColor: countData.map(v => v === 0 ? 'rgba(107,114,128,0.4)' : '#ef4444'),
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          title: { display: true, text: 'Antal stopp per dag — senaste 14 dagar', color: '#e2e8f0' },
+          tooltip: {
+            callbacks: {
+              afterLabel: (ctx) => {
+                const min = minuteData[ctx.dataIndex];
+                return min > 0 ? `Stopptid: ${min} min` : '';
+              }
+            }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#a0aec0', maxRotation: 45 }, grid: { color: '#2d3748' } },
+          y: {
+            ticks: { color: '#a0aec0', stepSize: 1 },
+            grid: { color: '#2d3748' },
+            beginAtZero: true,
+            title: { display: true, text: 'Antal', color: '#a0aec0' }
+          }
         }
       }
     });

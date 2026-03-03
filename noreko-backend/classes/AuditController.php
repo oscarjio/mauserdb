@@ -29,6 +29,8 @@ class AuditController {
 
         if ($run === 'stats') {
             $this->getStats();
+        } elseif ($run === 'actions') {
+            $this->getActions();
         } else {
             $this->getLogs();
         }
@@ -48,26 +50,52 @@ class AuditController {
             $offset = ($page - 1) * $limit;
 
             $actionFilter = $_GET['filter_action'] ?? '';
-            $userFilter = $_GET['filter_user'] ?? '';
+            $userFilter   = $_GET['filter_user'] ?? '';
             $entityFilter = $_GET['filter_entity'] ?? '';
-            $periodFilter = $_GET['period'] ?? 'month';
+            $searchText   = trim($_GET['search'] ?? '');
+            $periodFilter = $_GET['period'] ?? 'custom';
+            $fromDate     = $_GET['from_date'] ?? '';
+            $toDate       = $_GET['to_date'] ?? '';
 
-            $dateFilter = $this->getDateFilter($periodFilter);
+            // Date range: explicit from/to takes priority over period preset
+            if ($periodFilter !== 'custom' || (empty($fromDate) && empty($toDate))) {
+                $dateStart = $this->getDateFilter($periodFilter);
+                $dateEnd   = null;
+            } else {
+                $dateStart = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate))
+                    ? $fromDate . ' 00:00:00'
+                    : date('Y-m-d 00:00:00', strtotime('-30 days'));
+                $dateEnd = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate))
+                    ? $toDate . ' 23:59:59'
+                    : null;
+            }
 
-            $where = ['created_at >= ?'];
-            $params = [$dateFilter];
+            $where  = ['created_at >= ?'];
+            $params = [$dateStart];
 
+            if ($dateEnd) {
+                $where[]  = 'created_at <= ?';
+                $params[] = $dateEnd;
+            }
             if ($actionFilter) {
-                $where[] = 'action = ?';
+                $where[]  = 'action = ?';
                 $params[] = $actionFilter;
             }
             if ($userFilter) {
-                $where[] = 'user LIKE ?';
+                $where[]  = '`user` LIKE ?';
                 $params[] = '%' . $userFilter . '%';
             }
             if ($entityFilter) {
-                $where[] = 'entity_type = ?';
+                $where[]  = 'entity_type = ?';
                 $params[] = $entityFilter;
+            }
+            if ($searchText !== '') {
+                $where[]  = '(action LIKE ? OR `user` LIKE ? OR description LIKE ? OR entity_type LIKE ?)';
+                $like     = '%' . $searchText . '%';
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
             }
 
             $whereClause = implode(' AND ', $where);
@@ -90,10 +118,10 @@ class AuditController {
 
             echo json_encode([
                 'success' => true,
-                'data' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-                'total' => $total,
-                'page' => $page,
-                'pages' => ceil($total / $limit)
+                'data'    => $stmt->fetchAll(PDO::FETCH_ASSOC),
+                'total'   => $total,
+                'page'    => $page,
+                'pages'   => (int)ceil($total / $limit)
             ]);
         } catch (PDOException $e) {
             error_log('AuditController getLogs: ' . $e->getMessage());
@@ -155,13 +183,32 @@ class AuditController {
         }
     }
 
+    private function getActions() {
+        try {
+            $check = $this->pdo->query("SHOW TABLES LIKE 'audit_log'");
+            if (!$check || $check->rowCount() === 0) {
+                echo json_encode(['success' => true, 'data' => []]);
+                return;
+            }
+            $stmt = $this->pdo->query("SELECT DISTINCT action FROM audit_log ORDER BY action");
+            echo json_encode([
+                'success' => true,
+                'data'    => $stmt->fetchAll(PDO::FETCH_COLUMN)
+            ]);
+        } catch (PDOException $e) {
+            error_log('AuditController getActions: ' . $e->getMessage());
+            echo json_encode(['success' => true, 'data' => []]);
+        }
+    }
+
     private function getDateFilter($period) {
         switch ($period) {
-            case 'today': return date('Y-m-d 00:00:00');
-            case 'week': return date('Y-m-d 00:00:00', strtotime('-7 days'));
-            case 'month': return date('Y-m-d 00:00:00', strtotime('-30 days'));
-            case 'year': return date('Y-m-d 00:00:00', strtotime('-365 days'));
-            default: return date('Y-m-d 00:00:00', strtotime('-30 days'));
+            case 'today':  return date('Y-m-d 00:00:00');
+            case 'week':   return date('Y-m-d 00:00:00', strtotime('-7 days'));
+            case 'month':  return date('Y-m-d 00:00:00', strtotime('-30 days'));
+            case 'year':   return date('Y-m-d 00:00:00', strtotime('-365 days'));
+            case 'custom': return date('Y-m-d 00:00:00', strtotime('-30 days'));
+            default:       return date('Y-m-d 00:00:00', strtotime('-30 days'));
         }
     }
 }

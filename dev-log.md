@@ -4,6 +4,49 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ---
 
+## 2026-03-03 — Audit-log & Stoppage-log förbättringar
+
+### Audit-log förbättringar
+
+**Filtrering (server-side):**
+- Fritext-sökning i `action`, `user`, `description`, `entity_type` via ny `?search=`-parameter med 350ms debounce
+- Datumintervall-filter: knapp togglar "anpassat intervall" med from/to date-inputs (`?from_date=` + `?to_date=`)
+- Period-dropdown inaktiveras när datumintervall är aktivt
+- Åtgärds-dropdown fylls dynamiskt från ny `?run=actions` endpoint (unika actions från databasen)
+
+**Presentation:**
+- Färgkodade action-badges (pill-style): login/logout=grå, create/register=grön, update/toggle/set/approve=blå, delete/bulk_delete=röd, login_failed=orange
+- Entitetstyp + ID visas i grå monospace bredvid badgen
+- Förbättrad paginering med sifferknappar och ellipsis
+- Strukturerad filterrad med labels och gruppering
+
+**Export:**
+- CSV-export hämtar upp till 2000 poster för aktiv filtrering (inte bara nuvarande sida)
+
+**Backend (AuditController.php):**
+- `getLogs()`: ny `search` (4-kolumns LIKE), `from_date`/`to_date`, `period=custom`
+- Ny `getActions()`: returnerar distinkta actions
+- `getDateFilter()`: stöder `custom`
+
+**Frontend (audit.service.ts):** `search`, `from_date`, `to_date` + `getActions()`
+
+### Stoppage-log förbättringar
+
+**KPIer:**
+- Snitt stopplängd ersätter "Planerade stopp" i fjärde kortet
+- Veckosummering-rad: antal stopp + total stopptid denna vecka vs förra veckan med diff-%
+
+**14-dagars bar-chart:**
+- Inline chart (130px) bredvid veckokorten, antal stopp/dag, nolldagar i grå
+- Tooltip visar stopptid i minuter
+
+**Backend (StoppageController.php):**
+- Ny `getWeeklySummary()` (`?run=weekly_summary&line=`): this_week, prev_week, daily_14
+
+**Frontend (stoppage.service.ts):** Interface `StoppageWeeklySummary` + `getWeeklySummary(line)`
+
+---
+
 ## 2026-03-03 — Skiftjämförelse + PLC-varningsbanner
 
 ### DEL 1 — Skiftjämförelse (rebotling-skiftrapport)

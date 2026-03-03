@@ -25,22 +25,32 @@ export class AuditLogPage implements OnInit, OnDestroy {
   logs: AuditEntry[] = [];
   stats: AuditStats | null = null;
   loading = false;
+  exportingAll = false;
 
   // Filters
   selectedPeriod = 'month';
   filterAction = '';
   filterUser = '';
+  searchText = '';
+  fromDate = '';
+  toDate = '';
+  showDateRange = false;
+
+  // Dynamic action list from API
+  availableActions: string[] = [];
 
   // Pagination
   currentPage = 1;
   totalPages = 1;
   totalCount = 0;
+  readonly pageSize = 50;
 
   activeTab: 'log' | 'stats' = 'log';
   expandedId: number | null = null;
 
   private activityChart: Chart | null = null;
   private chartTimer: any = null;
+  private searchTimer: any = null;
 
   constructor(
     private auth: AuthService,
@@ -55,6 +65,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
       this.isAdmin = val?.role === 'admin';
       if (this.isAdmin && !wasAdmin) {
         this.loadLogs();
+        this.loadAvailableActions();
       }
     });
   }
@@ -63,17 +74,40 @@ export class AuditLogPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     clearTimeout(this.chartTimer);
+    clearTimeout(this.searchTimer);
     if (this.activityChart) this.activityChart.destroy();
+  }
+
+  loadAvailableActions() {
+    this.auditService.getActions().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        if (res.success) this.availableActions = res.data;
+      },
+      error: () => {}
+    });
+  }
+
+  buildParams() {
+    const params: any = {
+      page: this.currentPage,
+      limit: this.pageSize,
+      filter_action: this.filterAction,
+      filter_user: this.filterUser,
+      search: this.searchText
+    };
+    if (this.showDateRange && (this.fromDate || this.toDate)) {
+      params.period = 'custom';
+      if (this.fromDate) params.from_date = this.fromDate;
+      if (this.toDate)   params.to_date   = this.toDate;
+    } else {
+      params.period = this.selectedPeriod;
+    }
+    return params;
   }
 
   loadLogs() {
     this.loading = true;
-    this.auditService.getLogs({
-      page: this.currentPage,
-      period: this.selectedPeriod,
-      filter_action: this.filterAction,
-      filter_user: this.filterUser
-    }).subscribe({
+    this.auditService.getLogs(this.buildParams()).subscribe({
       next: (res) => {
         if (res.success) {
           this.logs = res.data;
@@ -87,7 +121,8 @@ export class AuditLogPage implements OnInit, OnDestroy {
   }
 
   loadStats() {
-    this.auditService.getStats(this.selectedPeriod).pipe(takeUntil(this.destroy$)).subscribe({
+    const period = (!this.showDateRange) ? this.selectedPeriod : 'month';
+    this.auditService.getStats(period).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.stats = res.data;
@@ -112,6 +147,18 @@ export class AuditLogPage implements OnInit, OnDestroy {
     if (this.activeTab === 'stats') this.loadStats();
   }
 
+  onSearchInput() {
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      if (!this.destroy$.closed) this.onFilterChange();
+    }, 350);
+  }
+
+  toggleDateRange() {
+    this.showDateRange = !this.showDateRange;
+    this.onFilterChange();
+  }
+
   goToPage(page: number) {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
@@ -122,103 +169,142 @@ export class AuditLogPage implements OnInit, OnDestroy {
     this.expandedId = this.expandedId === id ? null : id;
   }
 
+  /** Export ALL matching records (no pagination) as CSV */
   exportCSV() {
-    if (this.logs.length === 0) return;
-    const header = ['ID', 'Tidpunkt', 'Användare', 'Åtgärd', 'Entitet', 'Entitet-ID', 'Beskrivning', 'IP'];
-    const rows = this.logs.map(e => [
-      e.id,
-      (e.created_at || '').substring(0, 19).replace('T', ' '),
-      e.user,
-      this.getActionLabel(e.action),
-      e.entity_type,
-      e.entity_id ?? '',
-      e.description || '',
-      e.ip_address || ''
-    ]);
-    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    this.exportingAll = true;
+    const params = { ...this.buildParams(), page: 1, limit: 2000 };
+    this.auditService.getLogs(params).subscribe({
+      next: (res) => {
+        this.exportingAll = false;
+        const entries: AuditEntry[] = res.success ? res.data : this.logs;
+        if (entries.length === 0) return;
+        const header = ['ID', 'Tidpunkt', 'Användare', 'Åtgärd', 'Entitet', 'Entitet-ID', 'Beskrivning', 'IP'];
+        const rows = entries.map(e => [
+          e.id,
+          (e.created_at || '').substring(0, 19).replace('T', ' '),
+          e.user,
+          this.getActionLabel(e.action),
+          e.entity_type,
+          e.entity_id ?? '',
+          e.description || '',
+          e.ip_address || ''
+        ]);
+        const csv = [header, ...rows]
+          .map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';'))
+          .join('\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.exportingAll = false;
+      }
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Badge helpers
+  // ----------------------------------------------------------------
+
+  /** Returns CSS class name for action badge */
+  getActionBadgeClass(action: string): string {
+    const a = action.toLowerCase();
+    if (a === 'login')        return 'badge-grey';
+    if (a === 'logout')       return 'badge-grey';
+    if (a === 'login_failed') return 'badge-orange';
+    if (a.includes('delete') || a.includes('bulk_delete')) return 'badge-red';
+    if (a.includes('create') || a.includes('register'))    return 'badge-green';
+    if (a.includes('update') || a.includes('toggle') || a.includes('set') || a.includes('approve')) return 'badge-blue';
+    return 'badge-grey';
   }
 
   getActionLabel(action: string): string {
     const labels: Record<string, string> = {
-      'create_user': 'Skapa användare',
-      'delete_user': 'Ta bort användare',
-      'toggle_admin': 'Ändra admin-status',
-      'toggle_active': 'Ändra aktiv-status',
-      'update_user': 'Uppdatera användare',
-      'update_weights': 'Uppdatera vikter',
-      'set_targets': 'Ändra mål',
-      'approve_bonuses': 'Godkänn bonus',
-      'create_skiftrapport': 'Skapa skiftrapport',
-      'delete_skiftrapport': 'Ta bort skiftrapport',
-      'bulk_delete_skiftrapport': 'Massbort skiftrapporter',
-      'update_skiftrapport': 'Uppdatera skiftrapport',
-      'create_rapport': 'Skapa linjerapport',
-      'update_rapport': 'Uppdatera linjerapport',
-      'delete_rapport': 'Ta bort linjerapport',
-      'bulk_delete_rapport': 'Massbort linjerapporter',
-      'create_stoppage': 'Registrera stoppost',
-      'update_stoppage': 'Uppdatera stoppost',
-      'delete_stoppage': 'Ta bort stoppost',
-      'vpn_update': 'Uppdatera VPN',
-      'product_create': 'Skapa produkt',
-      'product_update': 'Uppdatera produkt',
-      'product_delete': 'Ta bort produkt',
-      'register': 'Registrering',
-      'update_profile': 'Uppdatera profil',
-      'update_tvattlinje_settings': 'Uppdatera tvättlinjeinst.',
-      'update_inlagd': 'Markera inlagd',
-      'bulk_update_inlagd': 'Massmarkera inlagd'
+      'create_user':                   'Skapa användare',
+      'delete_user':                   'Ta bort användare',
+      'toggle_admin':                  'Ändra admin-status',
+      'toggle_active':                 'Ändra aktiv-status',
+      'update_user':                   'Uppdatera användare',
+      'update_weights':                'Uppdatera vikter',
+      'set_targets':                   'Ändra mål',
+      'approve_bonuses':               'Godkänn bonus',
+      'create_skiftrapport':           'Skapa skiftrapport',
+      'delete_skiftrapport':           'Ta bort skiftrapport',
+      'bulk_delete_skiftrapport':      'Massbort skiftrapporter',
+      'update_skiftrapport':           'Uppdatera skiftrapport',
+      'create_rapport':                'Skapa linjerapport',
+      'update_rapport':                'Uppdatera linjerapport',
+      'delete_rapport':                'Ta bort linjerapport',
+      'bulk_delete_rapport':           'Massbort linjerapporter',
+      'create_stoppage':               'Registrera stoppost',
+      'update_stoppage':               'Uppdatera stoppost',
+      'delete_stoppage':               'Ta bort stoppost',
+      'vpn_update':                    'Uppdatera VPN',
+      'product_create':                'Skapa produkt',
+      'product_update':                'Uppdatera produkt',
+      'product_delete':                'Ta bort produkt',
+      'register':                      'Registrering',
+      'update_profile':                'Uppdatera profil',
+      'update_tvattlinje_settings':    'Uppdatera tvättlinjeinst.',
+      'update_inlagd':                 'Markera inlagd',
+      'bulk_update_inlagd':            'Massmarkera inlagd',
+      'login':                         'Inloggning',
+      'logout':                        'Utloggning',
+      'login_failed':                  'Misslyckad inloggning'
     };
     return labels[action] || action;
   }
 
   getActionIcon(action: string): string {
     const icons: Record<string, string> = {
-      'create_user': 'fa-user-plus',
-      'delete_user': 'fa-user-minus',
-      'toggle_admin': 'fa-user-shield',
-      'toggle_active': 'fa-user-check',
-      'update_user': 'fa-user-edit',
-      'update_weights': 'fa-balance-scale',
-      'set_targets': 'fa-bullseye',
-      'approve_bonuses': 'fa-check-double',
-      'create_skiftrapport': 'fa-plus-circle',
-      'delete_skiftrapport': 'fa-trash',
+      'create_user':            'fa-user-plus',
+      'delete_user':            'fa-user-minus',
+      'toggle_admin':           'fa-user-shield',
+      'toggle_active':          'fa-user-check',
+      'update_user':            'fa-user-edit',
+      'update_weights':         'fa-balance-scale',
+      'set_targets':            'fa-bullseye',
+      'approve_bonuses':        'fa-check-double',
+      'create_skiftrapport':    'fa-plus-circle',
+      'delete_skiftrapport':    'fa-trash',
       'bulk_delete_skiftrapport': 'fa-trash-alt',
-      'update_skiftrapport': 'fa-edit',
-      'create_rapport': 'fa-plus-circle',
-      'update_rapport': 'fa-edit',
-      'delete_rapport': 'fa-trash',
-      'bulk_delete_rapport': 'fa-trash-alt',
-      'create_stoppage': 'fa-exclamation-triangle',
-      'update_stoppage': 'fa-edit',
-      'delete_stoppage': 'fa-trash',
-      'vpn_update': 'fa-network-wired',
-      'product_create': 'fa-box',
-      'product_update': 'fa-box',
-      'product_delete': 'fa-box',
-      'register': 'fa-user-plus',
-      'update_profile': 'fa-id-card',
+      'update_skiftrapport':    'fa-edit',
+      'create_rapport':         'fa-plus-circle',
+      'update_rapport':         'fa-edit',
+      'delete_rapport':         'fa-trash',
+      'bulk_delete_rapport':    'fa-trash-alt',
+      'create_stoppage':        'fa-exclamation-triangle',
+      'update_stoppage':        'fa-edit',
+      'delete_stoppage':        'fa-trash',
+      'vpn_update':             'fa-network-wired',
+      'product_create':         'fa-box',
+      'product_update':         'fa-box',
+      'product_delete':         'fa-box',
+      'register':               'fa-user-plus',
+      'update_profile':         'fa-id-card',
       'update_tvattlinje_settings': 'fa-sliders-h',
-      'update_inlagd': 'fa-check-circle',
-      'bulk_update_inlagd': 'fa-check-double'
+      'update_inlagd':          'fa-check-circle',
+      'bulk_update_inlagd':     'fa-check-double',
+      'login':                  'fa-sign-in-alt',
+      'logout':                 'fa-sign-out-alt',
+      'login_failed':           'fa-ban'
     };
     return icons[action] || 'fa-cog';
   }
 
   getActionColor(action: string): string {
-    if (action.includes('delete')) return '#ef4444';
-    if (action.includes('create')) return '#22c55e';
-    if (action.includes('toggle')) return '#f97316';
-    if (action.includes('approve')) return '#3b82f6';
-    return '#a0aec0';
+    const cls = this.getActionBadgeClass(action);
+    switch (cls) {
+      case 'badge-red':    return '#ef4444';
+      case 'badge-green':  return '#22c55e';
+      case 'badge-blue':   return '#3b82f6';
+      case 'badge-orange': return '#f97316';
+      default:             return '#a0aec0';
+    }
   }
 
   parseJson(value: string | null): any {
@@ -229,6 +315,16 @@ export class AuditLogPage implements OnInit, OnDestroy {
   formatJsonKeys(obj: any): string[] {
     if (!obj || typeof obj !== 'object') return [];
     return Object.keys(obj);
+  }
+
+  get pageNumbers(): number[] {
+    const total = this.totalPages;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+    const cur = this.currentPage;
+    const pages = new Set<number>([1, total, cur]);
+    if (cur > 1)     pages.add(cur - 1);
+    if (cur < total) pages.add(cur + 1);
+    return Array.from(pages).sort((a, b) => a - b);
   }
 
   private buildActivityChart() {

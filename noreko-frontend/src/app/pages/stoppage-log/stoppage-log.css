@@ -452,6 +452,43 @@
 .text-success { color: #22c55e !important; }
 .text-warning { color: #fbbf24 !important; }
 
+/* Weekly summary KPI card */
+.kpi-card-week {
+  border-color: rgba(0, 212, 255, 0.2);
+  position: relative;
+}
+
+.kpi-week-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #00d4ff;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-diff {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+.kpi-diff.diff-up {
+  color: #f87171;
+}
+
+.kpi-diff.diff-down {
+  color: #22c55e;
+}
+
+/* 14-day chart card */
+.chart14-card {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .stoppage-header .d-flex {
