@@ -104,7 +104,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
 
-### Åtgärdat `[nästa commit]` — 2026-03-03 (Bug Hunt #2 + Operators-agent)
+### Åtgärdat `a9716cd` — 2026-03-03 (Bug Hunt #2 + Operators-agent)
 
 **Angular — takeUntil saknas (subscription-läckor):**
 - `audit-log.ts`: `loadLogs()` + `exportCSV()` saknade `takeUntil(destroy$)`
@@ -232,7 +232,7 @@ Tre agenter startades parallellt:
 - `ef505e6` — **Operatörstrend-agent**: My-bonus veckoutvecklingsgraf (8v), lagsjämförelse. Production-analysis stoppanalys-flik med tidslinje + 14-dagars chart. Ny endpoint weekly_history i BonusController.
 - `fb05cce` — **VD-dashboard-agent**: Executive dashboard ombyggd — SVG-cirkulär progress, prognos, OEE-trendpil vs igår, 7-dagars bar chart (grön/röd), veckokort, operatörstabell. Ny endpoint exec-dashboard (ett anrop för allt).
 - `e72763c` — **Audit+stoppage-agent**: Audit-log: 4 filter (fritext/datum/åtgärd), färgkodade badges, bättre paginering, CSV-export. Stoppage-log: snitt-stopplängd, veckojämförelse, 14-dagars chart, weekly_summary endpoint.
-- `[nästa commit]` — **Bug Hunt #2 + Operators-agent**: 10 takeUntil-läckor + setTimeout-bugg fixade. Operators-sida ombyggd: initialer-avatars, sorterbar lista, sökfunktion, status-badges, detaljvy med trendgraf 8 veckor.
+- `a9716cd` — **Bug Hunt #2 + Operators-agent**: 10 takeUntil-läckor + setTimeout-bugg fixade. Operators-sida ombyggd: initialer-avatars, sorterbar lista, sökfunktion, status-badges, detaljvy med trendgraf 8 veckor.
 - `8404b29` — **Skiftjämförelse-agent**: Sida-vid-sida KPI-jämförelse med diff-badges, operatörstabeller, shift-compare endpoint. Admin PLC-varningsbanner med blinkanimation vid >15min utan data.
 - `3a89898` — **Heatmap+mobil-agent**: Interaktiv heatmap-tooltip, KPI-toggle (IBC/h/Kvalitet%/OEE%), dynamisk färgskala+legend, noll-celler grå. my-bonus mobilanpassad (responsive 768px/480px, touch-targets 44px).
 - `92cbcb1` — **Bug hunt #1**: 8 buggar fixade — takeUntil-läckor i bonus-dashboard, timeout saknas i my-bonus HTTP-anrop, isFetching-guard i rebotling-admin, prematur loading-reset i production-analysis, BonusController sendError() HTTP 200 vid fel, FILTER_SANITIZE_STRING deprecated PHP 8.2.
