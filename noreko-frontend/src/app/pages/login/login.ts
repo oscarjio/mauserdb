@@ -91,8 +91,15 @@ export class LoginPage {
     }, { withCredentials: true }).subscribe({
       next: (res) => {
         if (res.success) {
-          this.auth.fetchStatus();
+          // Sätt auth-state SYNKRONT från login-svaret innan navigate().
+          // Utan detta hinner authGuard se loggedIn$=false (från startup-fetchStatus
+          // som redan körts och returnerat false) och redirectar tillbaka till /login.
+          this.auth.loggedIn$.next(true);
+          this.auth.user$.next(res.user);
+          this.auth.initialized$.next(true);
+          sessionStorage.setItem('auth_user', JSON.stringify(res.user));
           this.router.navigate(['/']);
+          this.auth.fetchStatus(); // bakgrundsverifiering
         } else {
           this.error = res.message || 'Fel användarnamn eller lösenord.';
           this.loading = false;
