@@ -60,6 +60,8 @@ class RebotlingController {
                 $this->getMonthlyReport();
             } elseif ($action === 'maintenance-indicator') {
                 $this->getMaintenanceIndicator();
+            } elseif ($action === 'annotations') {
+                $this->getAnnotations();
             } else {
                 $this->getLiveStats();
             }
@@ -3350,5 +3352,156 @@ class RebotlingController {
             error_log('getMaintenanceIndicator: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta underhållsindikator']);
         }
+    }
+
+    /**
+     * GET ?action=rebotling&run=annotations&start=YYYY-MM-DD&end=YYYY-MM-DD
+     *
+     * Returnerar händelseannotationer från tre källor:
+     *  1. Lång stopptid (> 2 h per dag) — från rebotling_skiftrapport.rasttime
+     *  2. Låg produktion (< 50 % av dagsmål) — från rebotling_skiftrapport
+     *  3. Audit-log-händelser (om tabellen finns)
+     *
+     * Varje källa hanteras i ett eget try-catch, så övriga källor returneras
+     * även om en källa misslyckas.
+     */
+    private function getAnnotations() {
+        // Validera datumparametrar
+        $start = $_GET['start'] ?? '';
+        $end   = $_GET['end']   ?? '';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltiga datumparametrar']);
+            return;
+        }
+
+        $annotations = [];
+
+        // ----------------------------------------------------------------
+        // Källa 1: Dagar med total rasttime > 120 min i rebotling_skiftrapport
+        // ----------------------------------------------------------------
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum)    AS event_date,
+                    SUM(rasttime)  AS total_rast_min
+                FROM rebotling_skiftrapport
+                WHERE DATE(datum) BETWEEN :start AND :end
+                GROUP BY DATE(datum)
+                HAVING SUM(rasttime) > 120
+                ORDER BY event_date
+            ");
+            $stmt->execute([':start' => $start, ':end' => $end]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $row) {
+                $hours = round($row['total_rast_min'] / 60, 1);
+                $annotations[] = [
+                    'date'      => $row['event_date'],
+                    'type'      => 'stopp',
+                    'label'     => 'Lång stopptid: ' . $hours . 'h',
+                ];
+            }
+        } catch (Exception $e) {
+            error_log('getAnnotations stopp-källa: ' . $e->getMessage());
+        }
+
+        // ----------------------------------------------------------------
+        // Källa 2: Dagar med låg produktion (< 50 % av dagsmålet)
+        // ----------------------------------------------------------------
+        try {
+            // Hämta dagsmål från rebotling_settings
+            $halfGoal = 500; // fallback
+            try {
+                $sr = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                if ($sr && isset($sr['rebotling_target'])) {
+                    $halfGoal = intval($sr['rebotling_target']) / 2;
+                }
+            } catch (Exception $e2) {
+                error_log('getAnnotations: kunde inte läsa rebotling_settings: ' . $e2->getMessage());
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum)   AS event_date,
+                    SUM(ibc_ok)   AS total_ibc
+                FROM rebotling_skiftrapport
+                WHERE DATE(datum) BETWEEN :start AND :end
+                GROUP BY DATE(datum)
+                HAVING SUM(ibc_ok) < :half_goal AND SUM(ibc_ok) > 0
+                ORDER BY event_date
+            ");
+            $stmt->execute([':start' => $start, ':end' => $end, ':half_goal' => $halfGoal]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($rows as $row) {
+                // Undvik dubbelregistrering om datumet redan finns som stopp
+                $alreadyExists = false;
+                foreach ($annotations as $ann) {
+                    if ($ann['date'] === $row['event_date']) {
+                        $alreadyExists = true;
+                        break;
+                    }
+                }
+                if (!$alreadyExists) {
+                    $annotations[] = [
+                        'date'  => $row['event_date'],
+                        'type'  => 'low_production',
+                        'label' => 'Låg prod: ' . intval($row['total_ibc']) . ' IBC',
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            error_log('getAnnotations low_production-källa: ' . $e->getMessage());
+        }
+
+        // ----------------------------------------------------------------
+        // Källa 3: Audit-log (om tabellen finns)
+        // ----------------------------------------------------------------
+        try {
+            // Kontrollera om tabellen existerar
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                 AND table_name = 'audit_log'"
+            )->fetchColumn();
+
+            if ($check > 0) {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(created_at) AS event_date,
+                        'audit'          AS event_type,
+                        action           AS label
+                    FROM audit_log
+                    WHERE created_at BETWEEN :start AND :end
+                      AND action IN ('create_operator', 'update_settings', 'approve_bonus')
+                    ORDER BY created_at
+                    LIMIT 5
+                ");
+                $stmt->execute([':start' => $start . ' 00:00:00', ':end' => $end . ' 23:59:59']);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $auditLabels = [
+                    'create_operator' => 'Ny operatör',
+                    'update_settings' => 'Inställningar uppdaterade',
+                    'approve_bonus'   => 'Bonus godkänd',
+                ];
+                foreach ($rows as $row) {
+                    $annotations[] = [
+                        'date'  => $row['event_date'],
+                        'type'  => 'audit',
+                        'label' => $auditLabels[$row['label']] ?? $row['label'],
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            error_log('getAnnotations audit-källa: ' . $e->getMessage());
+        }
+
+        // Sortera på datum
+        usort($annotations, function($a, $b) {
+            return strcmp($a['date'], $b['date']);
+        });
+
+        echo json_encode(['success' => true, 'annotations' => $annotations]);
     }
 }

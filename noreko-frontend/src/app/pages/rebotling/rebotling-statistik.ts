@@ -6,9 +6,50 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse } from '../../services/rebotling.service';
+import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
+
+// Custom plugin: vertikala annotationslinjer i Chart.js-grafer
+const annotationPlugin = {
+  id: 'verticalAnnotations',
+  afterDraw(chart: any, _args: any, options: any) {
+    if (!options.annotations?.length) return;
+    const ctx = chart.ctx;
+    const xAxis = chart.scales['x'];
+    const yAxis = chart.scales['y'];
+    if (!xAxis || !yAxis) return;
+
+    options.annotations.forEach((ann: ChartAnnotation) => {
+      const xIndex = (chart.data.labels as string[])?.findIndex(
+        (l: string) => l.includes(ann.dateShort)
+      );
+      if (xIndex === undefined || xIndex < 0) return;
+      const x = xAxis.getPixelForValue(xIndex);
+
+      const color = ann.type === 'stopp' ? '#e53e3e'
+                  : ann.type === 'low_production' ? '#dd6b20'
+                  : '#48bb78';
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x, yAxis.top);
+      ctx.lineTo(x, yAxis.bottom);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+
+      // Etikett ovanpå linjen
+      ctx.fillStyle = color;
+      ctx.font = '10px sans-serif';
+      ctx.setLineDash([]);
+      ctx.fillText(ann.label.substring(0, 20), x + 3, yAxis.top + 12);
+      ctx.restore();
+    });
+  }
+};
+Chart.register(annotationPlugin);
 
 type ViewMode = 'year' | 'month' | 'day' | 'heatmap';
 
@@ -168,6 +209,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   spcLCL: number = 0;
   spcN: number = 0;
   private spcChart: Chart | null = null;
+
+  // Annotations i OEE- och cykeltrend-grafer
+  chartAnnotations: ChartAnnotation[] = [];
 
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
@@ -1993,6 +2037,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     if (this.oeeLoading) return;
     this.oeeLoading = true;
 
+    // Beräkna datumintervallet för 30 dagar (samma som OEE-trendgrafen)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 29);
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    this.loadAnnotations(fmt(startDate), fmt(endDate));
+
     this.rebotlingService.getOEE('month').pipe(
       timeout(8000),
       takeUntil(this.destroy$),
@@ -2088,8 +2140,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             bodyColor: '#e0e0e0',
             borderColor: '#4299e1',
             borderWidth: 1
+          },
+          verticalAnnotations: {
+            annotations: this.chartAnnotations
           }
-        },
+        } as any,
         scales: {
           x: { ticks: { color: '#718096', maxTicksLimit: 10, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.04)' } },
           y: { beginAtZero: true, max: 100, ticks: { color: '#718096', callback: (v: any) => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' } }
@@ -2315,6 +2370,38 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.loadSPC();
   }
 
+  // ======== ANNOTATIONER ========
+
+  /**
+   * Hämtar annotationer för OEE-trend och cykeltrend.
+   * Anropas med samma datumintervall (senaste 30 dagar) som de berörda graferna.
+   * Fel ignoreras — annotationer är ett additivt lager, inte kritisk data.
+   */
+  loadAnnotations(startDate: string, endDate: string) {
+    this.rebotlingService.getAnnotations(startDate, endDate).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe(res => {
+      if (res?.success && res.annotations) {
+        this.chartAnnotations = res.annotations.map(ann => ({
+          date: ann.date,
+          // dateShort = MM-DD, t.ex. "02-14" — matchar det kortade datumet i graf-labels
+          dateShort: ann.date.substring(5),
+          type: ann.type as 'stopp' | 'low_production' | 'audit',
+          label: ann.label
+        }));
+        // Rendera om graferna med annotationer om de redan är inladdade
+        if (this.oeeLoaded && this.oeeTrendDays.length) {
+          setTimeout(() => this.renderOEETrendChart(), 0);
+        }
+        if (this.cycleTrendLoaded && this.cycleTrendData.length) {
+          setTimeout(() => this.renderCycleTrendChart(), 0);
+        }
+      }
+    });
+  }
+
   // ======== CYKELTREND ========
 
   setCycleTrendGranularity(g: 'day' | 'shift') {
@@ -2326,6 +2413,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   loadCycleTrend() {
     if (this.cycleTrendLoading) return;
     this.cycleTrendLoading = true;
+
+    // Hämta annotationer om de inte redan är inladdade
+    if (this.chartAnnotations.length === 0) {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - (this.cycleTrendDays - 1));
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      this.loadAnnotations(fmt(startDate), fmt(endDate));
+    }
+
     this.rebotlingService.getCycleTrend(this.cycleTrendDays, this.cycleTrendGranularity).pipe(
       timeout(10000),
       takeUntil(this.destroy$),
@@ -2390,8 +2488,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             bodyColor: '#e0e0e0',
             borderColor: '#4299e1',
             borderWidth: 1
+          },
+          verticalAnnotations: {
+            annotations: this.chartAnnotations
           }
-        },
+        } as any,
         scales: {
           x: {
             ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 20 },

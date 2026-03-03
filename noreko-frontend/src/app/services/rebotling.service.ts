@@ -199,6 +199,13 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getAnnotations(startDate: string, endDate: string): Observable<AnnotationsResponse> {
+    return this.http.get<AnnotationsResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=annotations&start=${startDate}&end=${endDate}`,
+      { withCredentials: true }
+    );
+  }
 }
 
 export interface CycleTrendResponse {
@@ -404,6 +411,19 @@ export interface BenchmarkingResponse {
   best_day_ever?: BenchmarkingBestDay;
   top_weeks?: BenchmarkingTopWeek[];
   monthly_totals?: BenchmarkingMonthly[];
+  error?: string;
+}
+
+export interface ChartAnnotation {
+  date: string;
+  dateShort: string;
+  type: 'stopp' | 'low_production' | 'audit';
+  label: string;
+}
+
+export interface AnnotationsResponse {
+  success: boolean;
+  annotations?: { date: string; type: string; label: string }[];
   error?: string;
 }
 
