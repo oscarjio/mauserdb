@@ -241,10 +241,9 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-03 kväll)
-Två agenter startades parallellt:
-- **Live-ranking-agent** (a122f4aa871227407): live-ranking/, app.routes.ts, RebotlingController (ny endpoint)
-- **Histogram+SPC-agent** (a28e9937bf01212d3): rebotling-statistik.ts, rebotling.service.ts, RebotlingController (ny endpoint)
+## AKTIVA AGENTER (session 2026-03-03 natt)
+- **Benchmarking-agent** (a57caa3bcc447d235): benchmarking/, app.routes.ts, RebotlingController (benchmarking endpoint), nav
+- **What-if-simulator-agent** (a25400e70cec4e981): bonus-admin.ts, BonusController (simulate endpoint)
 
 ---
 
@@ -261,6 +260,11 @@ Två agenter startades parallellt:
 - `a3d5b49` — **Live-ranking TV-skärm**: `/rebotling/live-ranking` full-screen, neongrön, guld/silver/brons, polling 30s, UNION ALL op1/op2/op3, dagsmål progress-bar.
 - `e4ca058` — **Histogram+SPC**: Cykeltids-histogram (P50/P90/P95) + SPC-kontrollkort (±2σ) i rebotling-statistik. Nya endpoints: cycle-histogram, spc.
 - `cc4ba9f` — **Kalender + Alerts**: Produktionskalender 12-månaders heatmap (6 färgklasser, hover-tooltip, årsväljare, KPI-rad). Executive dashboard alert-sektion (OEE/produktion trösklar). Ny endpoint: year-calendar.
+- `28dae83` — **Adaptiv grafgranularitet**: Toggle "Per dag / Per skift" i OEE-trend, veckojämförelse, cykeltrend. 3× fler datapunkter vid per-skift. CSS pill-knappar. Bakåtkompatibelt.
+- `9001021` — **Benchmarking-vy + What-if simulator**: `/rebotling/benchmarking` — rekordvecka, topp-10 tabell, månadsöversikt bar chart. What-if bonussimulator som ny flik i bonus-admin — justera tier-parametrar med sliders → se kostnadsberäkning per operatör. Backend: benchmarking + simulate endpoints. (Båda features i samma commit)
+- `ad4429e` — **Korrelationsanalys**: Bästa operatörspar i operators-sidan — UNION ALL SQL för alla par-kombinationer, LEAST/GREATEST-normalisering, topp-20 sorterat IBC/h, avatarer + stat-pills per par. Ny endpoint: `?run=pairs`.
+- `153729e` — **Prediktiv underhållsindikator**: Ny sektion i rebotling-admin — cykeltidstrend 8 veckor, baseline vs nuvarande, status ok/warning/danger (>15%/>30% ökning), Chart.js linjegraf med orange kurva + grön baslinje, 5-min polling.
+- `e9e7590`+`d997b06` — **Månadsrapport + Skiftplaneringsvy**: `/rapporter/manad` — 6 KPI-kort, daglig bar chart, PDF-export, "Rapporter"-dropdown nav. `/admin/skiftplan` — 7×3-grid kalender, operatörsbadges, assign/remove per skift. Ny DB-tabell `shift_plan`, ny controller `ShiftPlanController.php`, migration. (Files bundlade i samma commits av parallella agenter)
 - `8404b29` — **Skiftjämförelse-agent**: Sida-vid-sida KPI-jämförelse med diff-badges, operatörstabeller, shift-compare endpoint. Admin PLC-varningsbanner med blinkanimation vid >15min utan data.
 - `3a89898` — **Heatmap+mobil-agent**: Interaktiv heatmap-tooltip, KPI-toggle (IBC/h/Kvalitet%/OEE%), dynamisk färgskala+legend, noll-celler grå. my-bonus mobilanpassad (responsive 768px/480px, touch-targets 44px).
 - `92cbcb1` — **Bug hunt #1**: 8 buggar fixade — takeUntil-läckor i bonus-dashboard, timeout saknas i my-bonus HTTP-anrop, isFetching-guard i rebotling-admin, prematur loading-reset i production-analysis, BonusController sendError() HTTP 200 vid fel, FILTER_SANITIZE_STRING deprecated PHP 8.2.
