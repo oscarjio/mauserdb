@@ -2,6 +2,31 @@
 
 ---
 
+## 2026-03-03 — Korrelationsanalys — bästa operatörspar — commit ad4429e
+
+### Nytt: Sektion "Bästa operatörspar — korrelationsanalys" i `/admin/operators`
+
+**Syfte:** VD och skiftledare ska kunna se vilka operatörspar som presterar bäst tillsammans, baserat på faktisk produktionsdata. Ger underlag för optimal skiftplanering.
+
+**Backend — `noreko-backend/classes/OperatorController.php`:**
+- Ny privat metod `getPairs()` + dispatch `$run === 'pairs'`.
+- Endpoint: `GET ?action=operators&run=pairs`
+- SQL: UNION ALL av alla tre parvisa kombinationer (op1/op2, op1/op3, op2/op3) från `rebotling_skiftrapport` (senaste 90 dagar).
+- Grupperar på `LEAST(op_a, op_b) / GREATEST(op_a, op_b)` → normaliserade par.
+- `HAVING shifts_together >= 3`, `ORDER BY avg_ibc_per_hour DESC`, `LIMIT 20`.
+- JOIN mot `operators`-tabellen för namn på respektive operatörsnummer.
+- Returnerar: `op1_num`, `op1_name`, `op2_num`, `op2_name`, `shifts_together`, `avg_ibc_per_hour`, `avg_quality`.
+
+**Service — `noreko-frontend/src/app/services/operators.service.ts`:**
+- Ny metod `getPairs()` → `GET ?action=operators&run=pairs`.
+
+**Frontend — `noreko-frontend/src/app/pages/operators/`:**
+- `operators.ts`: tre nya properties (`pairsData`, `pairsLoading`, `showPairs`) + metod `loadPairs()` med `timeout(8000)` + `catchError` + `takeUntil(destroy$)`. Anropas i `ngOnInit`.
+- `operators.html`: ny toggle-sektion med responsivt `.pairs-grid` — visar parvisa avatarer (återanvänder `getInitials()` / `getAvatarColor()`), namn och tre stat-pills (IBC/h, kvalitet%, antal skift).
+- `operators.css`: `.pairs-grid`, `.pair-card`, `.pair-avatar`, `.pair-plus`, `.pair-name-text`, `.pair-stats`, `.pair-stat-pill` + varianter `.pair-stat-ibc` / `.pair-stat-quality` / `.pair-stat-shifts`. Fullständigt responsivt för mobile.
+
+---
+
 ## 2026-03-03 — Prediktiv underhållsindikator i rebotling-admin — commit 153729e
 
 ### Nytt: Sektion "Maskinstatus & Underhållsprediktor" i `/admin/rebotling`
