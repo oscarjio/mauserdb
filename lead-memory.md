@@ -145,12 +145,12 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 - [x] **Förbättrad heatmap i statistik**: Levererat `3a89898` — interaktiv tooltip (datum/timme/IBC/h/kvalitet%), KPI-toggle (IBC/h blå, Kvalitet% grön, OEE% violett), legend med gradient+siffror, noll-celler mörkt grå
 - [x] **Mobilanpassning**: Levererat `3a89898` — my-bonus responsive (768px/480px), lagerjämförelse 1-kolumn på mobil, 44px touch-targets, overflow-x:hidden
 - [x] **Bonushistorik-graf i my-bonus**: Levererat `ef505e6` — stapeldiagram 8 veckor med lagsnitt (weekly_history endpoint)
-- [ ] **Skiftjämförelse**: Välj två datum och jämför nyckeltal sida vid sida — NÄSTA
+- [x] **Skiftjämförelse**: Levererat `8404b29` — två datumväljare, 6 KPI-kort sida-vid-sida med diff-badge (grön/röd/grå + pil), operatörstabeller per datum. Backend: shift-compare endpoint med aggregerad SQL.
 
 ### 🟢 Lägre prioritet
-- [ ] **Notifikation/varning i admin**: Om linjen inte rapporterat data på >15 min → varningsvisning — NÄSTA
+- [x] **Notifikation/varning i admin**: Levererat `8404b29` — röd banner (>15 min), gul (5–15 min), plc-blink animation. Använder befintlig 30s polling utan extra HTTP-anrop.
 - [ ] **Tvättlinje/Såglinje förberedelsearbete**: Sätt upp grundstruktur för när de linjerna startar
-- [ ] **Audit-log förbättring**: Filtrerbar, sökbar, exporterbar
+- [~] **Audit-log förbättring**: Pågår (adb27cefffd74b9aa) — filtrering, färgkodade badges, CSV-export
 
 ---
 
@@ -170,6 +170,7 @@ Tre agenter startades parallellt:
 - **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål mån–sön i admin, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
 - `ef505e6` — **Operatörstrend-agent**: My-bonus veckoutvecklingsgraf (8v), lagsjämförelse. Production-analysis stoppanalys-flik med tidslinje + 14-dagars chart. Ny endpoint weekly_history i BonusController.
 - `fb05cce` — **VD-dashboard-agent**: Executive dashboard ombyggd — SVG-cirkulär progress, prognos, OEE-trendpil vs igår, 7-dagars bar chart (grön/röd), veckokort, operatörstabell. Ny endpoint exec-dashboard (ett anrop för allt).
+- `8404b29` — **Skiftjämförelse-agent**: Sida-vid-sida KPI-jämförelse med diff-badges, operatörstabeller, shift-compare endpoint. Admin PLC-varningsbanner med blinkanimation vid >15min utan data.
 - `3a89898` — **Heatmap+mobil-agent**: Interaktiv heatmap-tooltip, KPI-toggle (IBC/h/Kvalitet%/OEE%), dynamisk färgskala+legend, noll-celler grå. my-bonus mobilanpassad (responsive 768px/480px, touch-targets 44px).
 - `92cbcb1` — **Bug hunt #1**: 8 buggar fixade — takeUntil-läckor i bonus-dashboard, timeout saknas i my-bonus HTTP-anrop, isFetching-guard i rebotling-admin, prematur loading-reset i production-analysis, BonusController sendError() HTTP 200 vid fel, FILTER_SANITIZE_STRING deprecated PHP 8.2.
 - `82173ec` — **Bonus-agent**: My-bonus: statusbricka (rekordnivå/uppåt/etc.), IBC/h-trendgraf 7 skift med glidande snitt, skiftprognos-banner, PDF-export. Bonus-dashboard: trendpilar ↑↓→ vs föregående period, veckobonusmål-progressbar för team + per operatör. Bonus-admin: ny Prognos-flik (sök operatör → snittbonus/tier/IBC/h), veckobonusmål-konfiguration. Backend: operator_forecast endpoint, set_weekly_goal endpoint. Migration: `2026-03-03_bonus_weekly_goal.sql`.
