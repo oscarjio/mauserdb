@@ -16,6 +16,7 @@
  * - ?action=bonus&run=kpis&id=<op_id>         → KPI-trenddata för operatör
  * - ?action=bonus&run=history&id=<op_id>      → Råhistorik för operatör
  * - ?action=bonus&run=summary                 → Dagens sammanfattning
+ * - ?action=bonus&run=weekly_history&id=<op_id> → Bonuspoäng per ISO-vecka, senaste 8 veckorna
  */
 
 class BonusController {
@@ -44,12 +45,13 @@ class BonusController {
         }
 
         switch ($run) {
-            case 'operator': $this->getOperatorStats();   break;
-            case 'ranking':  $this->getRanking();         break;
-            case 'team':     $this->getTeamStats();       break;
-            case 'kpis':     $this->getKPIDetails();      break;
-            case 'history':  $this->getOperatorHistory(); break;
-            case 'summary':  $this->getDailySummary();    break;
+            case 'operator':       $this->getOperatorStats();     break;
+            case 'ranking':        $this->getRanking();           break;
+            case 'team':           $this->getTeamStats();         break;
+            case 'kpis':           $this->getKPIDetails();        break;
+            case 'history':        $this->getOperatorHistory();   break;
+            case 'summary':        $this->getDailySummary();      break;
+            case 'weekly_history': $this->getWeeklyHistory();     break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -721,6 +723,124 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getDailySummary error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=weekly_history&id=<op_id>
+     *
+     * Returnerar bonuspoäng (snitt per skift) per ISO-vecka för de senaste 8 veckorna.
+     * Aggregering: MAX() per skiftraknare (kumulativt fält), sedan AVG() per vecka.
+     * Returnerar även teamets snitt för varje vecka (alla operatörer).
+     * Returnerar IBC/h-snitt och kvalitet%-snitt per vecka för jämförelse.
+     */
+    private function getWeeklyHistory() {
+        $op_id = isset($_GET['id']) ? intval($_GET['id']) : null;
+
+        if (!$op_id || $op_id <= 0) {
+            $this->sendError('Operatör-ID saknas (id)');
+            return;
+        }
+
+        try {
+            // --- Operatörens bonuspoäng per vecka (senaste 8 ISO-veckor) ---
+            $opFilter = "(op1 = :op_id OR op2 = :op_id OR op3 = :op_id)";
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    YEARWEEK(first_datum, 3) AS yearweek,
+                    YEAR(first_datum)        AS yr,
+                    WEEK(first_datum, 3)     AS wk,
+                    AVG(last_bonus)          AS avg_bonus,
+                    AVG(last_produktivitet)  AS avg_ibc_per_hour,
+                    AVG(last_kvalitet)       AS avg_kvalitet,
+                    COUNT(*)                 AS shifts
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum) AS first_datum,
+                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
+                        SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_produktivitet,
+                        SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
+                    FROM rebotling_ibc
+                    WHERE $opFilter
+                      AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+                    GROUP BY skiftraknare
+                ) AS per_shift
+                GROUP BY yearweek
+                ORDER BY yearweek ASC
+            ");
+            $stmt->execute(['op_id' => $op_id]);
+            $opWeeks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- Teamets snitt (alla operatörer, alla positioner) per vecka ---
+            $stmt2 = $this->pdo->prepare("
+                SELECT
+                    YEARWEEK(first_datum, 3) AS yearweek,
+                    AVG(last_bonus)          AS avg_bonus,
+                    AVG(last_produktivitet)  AS avg_ibc_per_hour,
+                    AVG(last_kvalitet)       AS avg_kvalitet
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum) AS first_datum,
+                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang   ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
+                        SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_produktivitet,
+                        SUBSTRING_INDEX(GROUP_CONCAT(kvalitet      ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kvalitet
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 8 WEEK)
+                    GROUP BY skiftraknare
+                ) AS per_shift
+                GROUP BY yearweek
+                ORDER BY yearweek ASC
+            ");
+            $stmt2->execute();
+            $teamWeeks = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+            // Indexera team per yearweek för snabb lookup
+            $teamMap = [];
+            foreach ($teamWeeks as $row) {
+                $teamMap[$row['yearweek']] = [
+                    'avg_bonus'        => round($row['avg_bonus']        ?? 0, 2),
+                    'avg_ibc_per_hour' => round($row['avg_ibc_per_hour'] ?? 0, 2),
+                    'avg_kvalitet'     => round($row['avg_kvalitet']      ?? 0, 2),
+                ];
+            }
+
+            // Bygg listan med operatörens veckodata inkl. teamjämförelse
+            $weeks = array_map(function ($row) use ($teamMap) {
+                $yw = $row['yearweek'];
+                $team = $teamMap[$yw] ?? ['avg_bonus' => 0, 'avg_ibc_per_hour' => 0, 'avg_kvalitet' => 0];
+                return [
+                    'yearweek'        => (int)$yw,
+                    'year'            => (int)$row['yr'],
+                    'week'            => (int)$row['wk'],
+                    'label'           => 'V' . (int)$row['wk'],
+                    'shifts'          => (int)$row['shifts'],
+                    'my_bonus'        => round($row['avg_bonus']        ?? 0, 2),
+                    'my_ibc_per_hour' => round($row['avg_ibc_per_hour'] ?? 0, 2),
+                    'my_kvalitet'     => round($row['avg_kvalitet']      ?? 0, 2),
+                    'team_bonus'      => $team['avg_bonus'],
+                    'team_ibc_per_hour' => $team['avg_ibc_per_hour'],
+                    'team_kvalitet'   => $team['avg_kvalitet'],
+                ];
+            }, $opWeeks);
+
+            // Räkna ut snitt för operatören (för referenslinjen)
+            $myBonusAvg = count($weeks) > 0
+                ? round(array_sum(array_column($weeks, 'my_bonus')) / count($weeks), 2)
+                : 0;
+
+            $this->sendSuccess([
+                'operator_id' => (int)$op_id,
+                'weeks'       => $weeks,
+                'my_avg'      => $myBonusAvg,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('Bonus getWeeklyHistory error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }

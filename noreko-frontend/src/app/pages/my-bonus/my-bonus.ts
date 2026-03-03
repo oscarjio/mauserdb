@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, distinctUntilChanged } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { BonusService, OperatorStatsResponse, KPIDetailsResponse, OperatorHistoryResponse } from '../../services/bonus.service';
+import { BonusService, OperatorStatsResponse, KPIDetailsResponse, OperatorHistoryResponse, WeeklyHistoryEntry } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -33,7 +33,13 @@ export class MyBonusPage implements OnInit, OnDestroy {
   private kpiChart: Chart | null = null;
   private historyChart: Chart | null = null;
   private ibcTrendChart: Chart | null = null;
+  private weeklyChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+
+  // Veckohistorik
+  weeklyData: WeeklyHistoryEntry[] = [];
+  weeklyAvg = 0;
+  weeklyLoading = false;
 
   constructor(private auth: AuthService, private bonusService: BonusService) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
@@ -67,6 +73,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (this.kpiChart) this.kpiChart.destroy();
     if (this.historyChart) this.historyChart.destroy();
     if (this.ibcTrendChart) this.ibcTrendChart.destroy();
+    if (this.weeklyChart) this.weeklyChart.destroy();
   }
 
   saveAndLoad(): void {
@@ -82,9 +89,12 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.savedOperatorId = '';
     this.stats = null;
     this.history = [];
+    this.weeklyData = [];
+    this.weeklyAvg = 0;
     if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
     if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
     if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
+    if (this.weeklyChart) { this.weeklyChart.destroy(); this.weeklyChart = null; }
   }
 
   changePeriod(period: string): void {
@@ -124,6 +134,23 @@ export class MyBonusPage implements OnInit, OnDestroy {
         }
       },
       error: () => {}
+    });
+
+    // Veckohistorik: senaste 8 ISO-veckor
+    this.weeklyLoading = true;
+    this.bonusService.getWeeklyHistory(this.savedOperatorId).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.weeklyData = res.data.weeks || [];
+          this.weeklyAvg = res.data.my_avg ?? 0;
+          // Bygg grafen när DOM är redo
+          setTimeout(() => {
+            if (!this.destroy$.closed) this.buildWeeklyChart();
+          }, 150);
+        }
+        this.weeklyLoading = false;
+      },
+      error: () => { this.weeklyLoading = false; }
     });
   }
 
@@ -349,6 +376,142 @@ export class MyBonusPage implements OnInit, OnDestroy {
       case 'position_3': return 'Truckförare';
       default: return pos;
     }
+  }
+
+  // ===== Veckohistorik hjälpfunktioner =====
+
+  /** Jämförelserad: diff i % och riktning mot lagsnitt */
+  getWeeklyTeamComparison(): { ibcDiff: number; kvalitetDiff: number; bonusDiff: number } | null {
+    if (!this.weeklyData || this.weeklyData.length === 0) return null;
+    const n = this.weeklyData.length;
+    const myIbc     = this.weeklyData.reduce((s, w) => s + w.my_ibc_per_hour, 0) / n;
+    const teamIbc   = this.weeklyData.reduce((s, w) => s + w.team_ibc_per_hour, 0) / n;
+    const myKval    = this.weeklyData.reduce((s, w) => s + w.my_kvalitet, 0) / n;
+    const teamKval  = this.weeklyData.reduce((s, w) => s + w.team_kvalitet, 0) / n;
+    const myBonus   = this.weeklyData.reduce((s, w) => s + w.my_bonus, 0) / n;
+    const teamBonus = this.weeklyData.reduce((s, w) => s + w.team_bonus, 0) / n;
+    return {
+      ibcDiff:     Math.round((myIbc   - teamIbc)   * 10) / 10,
+      kvalitetDiff: Math.round((myKval  - teamKval)  * 10) / 10,
+      bonusDiff:   Math.round((myBonus - teamBonus) * 10) / 10,
+    };
+  }
+
+  getMyWeeklyAvgIbc(): number {
+    if (!this.weeklyData.length) return 0;
+    return Math.round(this.weeklyData.reduce((s, w) => s + w.my_ibc_per_hour, 0) / this.weeklyData.length * 10) / 10;
+  }
+
+  getTeamWeeklyAvgIbc(): number {
+    if (!this.weeklyData.length) return 0;
+    return Math.round(this.weeklyData.reduce((s, w) => s + w.team_ibc_per_hour, 0) / this.weeklyData.length * 10) / 10;
+  }
+
+  getMyWeeklyAvgKvalitet(): number {
+    if (!this.weeklyData.length) return 0;
+    return Math.round(this.weeklyData.reduce((s, w) => s + w.my_kvalitet, 0) / this.weeklyData.length * 10) / 10;
+  }
+
+  getTeamWeeklyAvgKvalitet(): number {
+    if (!this.weeklyData.length) return 0;
+    return Math.round(this.weeklyData.reduce((s, w) => s + w.team_kvalitet, 0) / this.weeklyData.length * 10) / 10;
+  }
+
+  getTeamWeeklyAvgBonus(): number {
+    if (!this.weeklyData.length) return 0;
+    return Math.round(this.weeklyData.reduce((s, w) => s + w.team_bonus, 0) / this.weeklyData.length * 10) / 10;
+  }
+
+  /** Stapeldiagram: bonuspoäng per vecka med referenslinje och färgkodning */
+  private buildWeeklyChart(): void {
+    if (this.weeklyChart) this.weeklyChart.destroy();
+
+    const canvas = document.getElementById('myWeeklyChart') as HTMLCanvasElement;
+    if (!canvas || this.weeklyData.length === 0) return;
+
+    const labels = this.weeklyData.map(w => w.label);
+    const bonusValues = this.weeklyData.map(w => w.my_bonus);
+    const avg = this.weeklyAvg;
+
+    // Färgkodning: över snitt = grön, under = röd/orange
+    const barColors = bonusValues.map(v =>
+      v >= avg ? 'rgba(72, 187, 120, 0.75)' : 'rgba(229, 100, 62, 0.75)'
+    );
+    const barBorders = bonusValues.map(v =>
+      v >= avg ? 'rgb(72, 187, 120)' : 'rgb(229, 100, 62)'
+    );
+
+    this.weeklyChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Bonuspoäng',
+            data: bonusValues,
+            backgroundColor: barColors,
+            borderColor: barBorders,
+            borderWidth: 1,
+            borderRadius: 5,
+            order: 2
+          },
+          {
+            // Referenslinje: streckad horisontell linje på genomsnittet
+            label: 'Mitt snitt',
+            data: bonusValues.map(() => avg),
+            type: 'line',
+            borderColor: '#f6e05e',
+            backgroundColor: 'transparent',
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0,
+            order: 1
+          } as any
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: {
+              color: '#a0aec0',
+              font: { size: 11 },
+              boxWidth: 14
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(20,20,30,0.95)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            callbacks: {
+              afterBody: (ctx: any[]) => {
+                const idx = ctx[0]?.dataIndex;
+                if (idx == null) return [];
+                const w = this.weeklyData[idx];
+                if (!w) return [];
+                const diff = Math.round((w.my_bonus - avg) * 10) / 10;
+                const sign = diff >= 0 ? '+' : '';
+                return [`Vs snitt: ${sign}${diff} p`, `Skift: ${w.shifts}`];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', font: { size: 11 } },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            ticks: { color: '#718096' },
+            grid: { color: '#2d3748' },
+            beginAtZero: false,
+            title: { display: true, text: 'Bonuspoäng', color: '#718096', font: { size: 11 } }
+          }
+        }
+      }
+    });
   }
 
   private buildKPIChart(data: any): void {

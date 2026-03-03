@@ -176,6 +176,30 @@ export interface OperatorHistoryEntry {
   };
 }
 
+export interface WeeklyHistoryEntry {
+  yearweek: number;
+  year: number;
+  week: number;
+  label: string;
+  shifts: number;
+  my_bonus: number;
+  my_ibc_per_hour: number;
+  my_kvalitet: number;
+  team_bonus: number;
+  team_ibc_per_hour: number;
+  team_kvalitet: number;
+}
+
+export interface WeeklyHistoryResponse {
+  success: boolean;
+  data?: {
+    operator_id: number;
+    weeks: WeeklyHistoryEntry[];
+    my_avg: number;
+  };
+  error?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BonusService {
   private readonly baseUrl = '/noreko-backend/api.php?action=bonus';
@@ -238,6 +262,14 @@ export class BonusService {
     const params = new HttpParams().set('run', 'history').set('id', operatorId).set('limit', limit.toString());
 
     return this.http.get<OperatorHistoryResponse>(this.baseUrl, {
+      params,
+      withCredentials: true
+    });
+  }
+
+  getWeeklyHistory(operatorId: string): Observable<WeeklyHistoryResponse> {
+    const params = new HttpParams().set('run', 'weekly_history').set('id', operatorId);
+    return this.http.get<WeeklyHistoryResponse>(this.baseUrl, {
       params,
       withCredentials: true
     });

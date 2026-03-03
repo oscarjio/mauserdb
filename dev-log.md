@@ -6,6 +6,41 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 
 ## 2026-03-03
 
+### Operatörsprestanda-trend + Stopporsaksanalys
+
+**My-Bonus (`pages/my-bonus/`):**
+- Ny sektion "Min bonusutveckling" (visas under IBC/h-trenden)
+- Veckoutvecklings-graf: Stapeldiagram bonuspoäng per ISO-vecka, senaste 8 veckorna
+  - Referenslinje: streckad gul horisontell linje = operatörens eget snitt
+  - Färgkodning per stapel: grön = över eget snitt, röd/orange = under
+  - Tooltip: diff mot snitt + antal skift den veckan
+- Jämförelse mot laget (tre kolumner): IBC/h, Kvalitet%, Bonuspoäng — jag vs lagsnitt med grön/röd diff-pill
+- `weeklyLoading` spinner; rensas vid `clearOperator()`
+
+**BonusController.php:**
+- Ny endpoint `GET ?action=bonus&run=weekly_history&id=<op_id>`
+  - Bonuspoäng (snitt per skift) per ISO-vecka senaste 8 veckorna
+  - Korrekt MAX/SUBSTRING_INDEX-aggregering för kumulativa PLC-fält
+  - Teamsnitt per vecka (bonus, IBC/h, kvalitet) för lagsjämförelse
+  - `my_avg` returneras för referenslinjen
+
+**bonus.service.ts:**
+- Ny `getWeeklyHistory(operatorId)` metod
+- Nya interfaces: `WeeklyHistoryEntry`, `WeeklyHistoryResponse`
+
+**Production Analysis (`pages/production-analysis/`) — ny flik "Stoppanalys" (flik 6):**
+- Tydlig notis om datakälla: rast-data som proxy, riktig stoppanalys kräver PLC-integration
+- KPI-kort idag: Status (kör/rast), Rasttid (min), Antal raster, Körtid est.
+- Stopp-tidslinje 06:00–22:00: grön=kör, gul=rast/stopp, byggs från rast-events
+  - Summering: X min kört, Y min rast/stopp, antal stopp
+  - Fallback-meddelande om inga rast-events registrerats
+- Bar chart "Rasttid per dag senaste 14 dagarna" (estimerad: 8h skift – körtid)
+- Stoppstatistik-tiles: raster idag, rasttid idag, dagar med data, senaste rast-event
+- Hämtar: `?run=rast` + `?run=status` + `?run=statistics`
+- `stopRastChart` rensas i `destroyAllCharts()`
+
+---
+
 ### Executive Dashboard — Fullständig VD-vy (commit fb05cce)
 
 **Mål:** VD öppnar sidan och ser på 10 sekunder om produktionen går bra eller dåligt.

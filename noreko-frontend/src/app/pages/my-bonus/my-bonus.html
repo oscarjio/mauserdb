@@ -251,6 +251,110 @@
       </div>
     </div>
 
+    <!-- ===== MIN BONUSUTVECKLING ===== -->
+    <div class="weekly-dev-card mb-4" *ngIf="weeklyData.length > 0 || weeklyLoading">
+      <div class="weekly-dev-header">
+        <i class="fas fa-calendar-week me-2 text-warning"></i>Min bonusutveckling
+        <span class="ms-auto text-muted small" *ngIf="weeklyData.length > 0">
+          Snitt: <strong class="text-warning">{{ weeklyAvg | number:'1.1-1' }} p</strong>
+        </span>
+      </div>
+
+      <!-- Loading -->
+      <div *ngIf="weeklyLoading" class="text-center py-3">
+        <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+        <span class="text-muted ms-2 small">Laddar veckodata...</span>
+      </div>
+
+      <div *ngIf="!weeklyLoading && weeklyData.length > 0">
+
+        <!-- Stapeldiagram: bonuspoäng per vecka -->
+        <div class="weekly-chart-wrap">
+          <div class="chart-body pt-3 pb-2 px-3">
+            <div class="weekly-chart-title">Mina senaste 8 veckorna</div>
+            <div class="chart-container" style="height: 210px;">
+              <canvas id="myWeeklyChart"></canvas>
+            </div>
+            <div class="weekly-legend mt-2">
+              <span class="legend-dot legend-dot-green"></span><span class="legend-text">Över mitt snitt</span>
+              <span class="legend-dot legend-dot-orange ms-3"></span><span class="legend-text">Under mitt snitt</span>
+              <span class="legend-dash ms-3"></span><span class="legend-text">Mitt snitt (streckad)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jämförelse mot laget -->
+        <div class="team-compare-grid" *ngIf="getWeeklyTeamComparison() as cmp">
+          <!-- IBC/h -->
+          <div class="tc-item">
+            <div class="tc-label"><i class="fas fa-tachometer-alt me-1 text-primary"></i>IBC/h</div>
+            <div class="tc-row">
+              <div class="tc-val-block">
+                <span class="tc-sub">Jag</span>
+                <span class="tc-val text-primary">{{ getMyWeeklyAvgIbc() | number:'1.1-1' }}</span>
+              </div>
+              <div class="tc-vs">VS</div>
+              <div class="tc-val-block">
+                <span class="tc-sub">Lag</span>
+                <span class="tc-val text-muted">{{ getTeamWeeklyAvgIbc() | number:'1.1-1' }}</span>
+              </div>
+              <div class="tc-diff"
+                   [class.tc-diff-pos]="cmp.ibcDiff >= 0"
+                   [class.tc-diff-neg]="cmp.ibcDiff < 0">
+                <i class="fas" [class.fa-caret-up]="cmp.ibcDiff >= 0" [class.fa-caret-down]="cmp.ibcDiff < 0"></i>
+                {{ cmp.ibcDiff >= 0 ? '+' : '' }}{{ cmp.ibcDiff | number:'1.1-1' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Kvalitet% -->
+          <div class="tc-item">
+            <div class="tc-label"><i class="fas fa-check-double me-1 text-success"></i>Kvalitet%</div>
+            <div class="tc-row">
+              <div class="tc-val-block">
+                <span class="tc-sub">Jag</span>
+                <span class="tc-val text-success">{{ getMyWeeklyAvgKvalitet() | number:'1.1-1' }}%</span>
+              </div>
+              <div class="tc-vs">VS</div>
+              <div class="tc-val-block">
+                <span class="tc-sub">Lag</span>
+                <span class="tc-val text-muted">{{ getTeamWeeklyAvgKvalitet() | number:'1.1-1' }}%</span>
+              </div>
+              <div class="tc-diff"
+                   [class.tc-diff-pos]="cmp.kvalitetDiff >= 0"
+                   [class.tc-diff-neg]="cmp.kvalitetDiff < 0">
+                <i class="fas" [class.fa-caret-up]="cmp.kvalitetDiff >= 0" [class.fa-caret-down]="cmp.kvalitetDiff < 0"></i>
+                {{ cmp.kvalitetDiff >= 0 ? '+' : '' }}{{ cmp.kvalitetDiff | number:'1.1-1' }}%
+              </div>
+            </div>
+          </div>
+
+          <!-- Bonuspoäng -->
+          <div class="tc-item">
+            <div class="tc-label"><i class="fas fa-star me-1 text-warning"></i>Bonuspoäng</div>
+            <div class="tc-row">
+              <div class="tc-val-block">
+                <span class="tc-sub">Jag</span>
+                <span class="tc-val" [ngClass]="getBonusClass(weeklyAvg)">{{ weeklyAvg | number:'1.1-1' }}</span>
+              </div>
+              <div class="tc-vs">VS</div>
+              <div class="tc-val-block">
+                <span class="tc-sub">Lag</span>
+                <span class="tc-val text-muted">{{ getTeamWeeklyAvgBonus() | number:'1.1-1' }}</span>
+              </div>
+              <div class="tc-diff"
+                   [class.tc-diff-pos]="cmp.bonusDiff >= 0"
+                   [class.tc-diff-neg]="cmp.bonusDiff < 0">
+                <i class="fas" [class.fa-caret-up]="cmp.bonusDiff >= 0" [class.fa-caret-down]="cmp.bonusDiff < 0"></i>
+                {{ cmp.bonusDiff >= 0 ? '+' : '' }}{{ cmp.bonusDiff | number:'1.1-1' }} p
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Bonus Projection -->
     <div class="projection-card mb-4" *ngIf="getProjectedBonus() as proj">
       <div class="projection-icon"

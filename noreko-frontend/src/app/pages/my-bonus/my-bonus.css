@@ -414,6 +414,107 @@
 .prog-val   { font-size: 1.2rem; font-weight: 800; line-height: 1.1; }
 .prog-sep   { width: 1px; height: 30px; background: #2d3748; flex-shrink: 0; }
 
+/* ============================================================
+   VECKOHISTORIK / MIN BONUSUTVECKLING
+   ============================================================ */
+.weekly-dev-card {
+  background: #1e2535;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.weekly-dev-header {
+  background: #161c29;
+  padding: 0.75rem 1.1rem;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: #cbd5e0;
+  border-bottom: 1px solid #2d3748;
+  display: flex;
+  align-items: center;
+}
+.weekly-chart-title {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+.weekly-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  font-size: 0.7rem;
+  color: #718096;
+}
+.legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.legend-dot-green  { background: rgba(72,187,120,0.8); }
+.legend-dot-orange { background: rgba(229,100,62,0.8); }
+.legend-dash {
+  width: 18px; height: 2px;
+  background: repeating-linear-gradient(90deg, #f6e05e 0, #f6e05e 5px, transparent 5px, transparent 9px);
+  display: inline-block;
+  flex-shrink: 0;
+  align-self: center;
+}
+.legend-text { color: #718096; }
+
+/* Lagsjämförelse grid */
+.team-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  border-top: 1px solid #2d3748;
+}
+.tc-item {
+  padding: 0.9rem 1rem;
+  border-right: 1px solid #2d3748;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.tc-item:last-child { border-right: none; }
+.tc-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #718096;
+}
+.tc-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.tc-val-block { display: flex; flex-direction: column; align-items: center; }
+.tc-sub  { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.3px; color: #4a5568; }
+.tc-val  { font-size: 1.1rem; font-weight: 800; line-height: 1.1; }
+.tc-vs   { font-size: 0.62rem; color: #4a5568; font-weight: 600; }
+.tc-diff {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: auto;
+}
+.tc-diff-pos { background: rgba(72,187,120,0.12); color: #68d391; }
+.tc-diff-neg { background: rgba(229,62,62,0.12);  color: #fc8181; }
+
+@media (max-width: 600px) {
+  .team-compare-grid { grid-template-columns: 1fr; }
+  .tc-item { border-right: none; border-bottom: 1px solid #2d3748; }
+  .tc-item:last-child { border-bottom: none; }
+}
+
 /* Bootstrap overrides */
 .table-dark { --bs-table-bg: transparent; --bs-table-border-color: #2d3748; }
 .progress   { background-color: #161c29; }
