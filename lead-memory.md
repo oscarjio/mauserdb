@@ -112,8 +112,8 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 ## NÄSTA BATCH (session 2 — startas av lead-agent via cron)
 
 ### 🔴 Hög prioritet
-- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring/försämring vecka för vecka (bonus-dashboard eller my-bonus)
-- [ ] **Stopporsaksanalys**: Kategorisera och visualisera stopp/raster i production-analysis — varför stannar linjen?
+- [x] **Operatörsprestanda-trend**: Levererat `ef505e6` — stapeldiagram per ISO-vecka (8 veckor), grön/orange vs snitt, streckad referenslinje, lagsjämförelse (IBC/h, Kvalitet%, Bonus) i my-bonus. Ny endpoint `bonus&run=weekly_history`.
+- [x] **Stopporsaksanalys**: Levererat `ef505e6` — ny flik i production-analysis: horisontell tidslinje (grön=kör, gul=rast), summering-pills, 14-dagars bar chart, KPI-kort. Proxy-data med tydlig kommentar om PLC-integration.
 - [x] **Executive dashboard — VD-vy**: Levererat `fb05cce` — SVG-cirkulär progress, prognos, OEE-trendpil, 7-dagars bar chart (grön/röd vs mål), veckokort, operatörstabell. Enda HTTP-anrop via ny endpoint `exec-dashboard`.
 
 ### 🟡 Medium prioritet
@@ -143,6 +143,7 @@ Tre agenter startades parallellt:
 - `d4db30b` — lead-agent.sh + lead-memory.md: orchestrator-system etablerat
 - `c7faa1b` — **Statistik-agent**: Veckojämförelse, Skiftmålsprediktor, OEE deep-dive (30-dagars trend), Bästa skift-topplista. Nya endpoints: week-comparison, oee-trend, best-shifts.
 - **Skiftrapport-agent**: Sammanfattningskort (6 KPIs), sorterbar tabell, skiftväljare, textsök, bonus-estimat i detaljvy, veckodagsmål mån–sön i admin, systemstatus (PLC-ping, löpnummer, DB). Nya tabeller: `rebotling_weekday_goals`, `rebotling_shift_times`. Migration: `2026-03-03_rebotling_settings_weekday_goals.sql`.
+- `ef505e6` — **Operatörstrend-agent**: My-bonus veckoutvecklingsgraf (8v), lagsjämförelse. Production-analysis stoppanalys-flik med tidslinje + 14-dagars chart. Ny endpoint weekly_history i BonusController.
 - `fb05cce` — **VD-dashboard-agent**: Executive dashboard ombyggd — SVG-cirkulär progress, prognos, OEE-trendpil vs igår, 7-dagars bar chart (grön/röd), veckokort, operatörstabell. Ny endpoint exec-dashboard (ett anrop för allt).
 - `82173ec` — **Bonus-agent**: My-bonus: statusbricka (rekordnivå/uppåt/etc.), IBC/h-trendgraf 7 skift med glidande snitt, skiftprognos-banner, PDF-export. Bonus-dashboard: trendpilar ↑↓→ vs föregående period, veckobonusmål-progressbar för team + per operatör. Bonus-admin: ny Prognos-flik (sök operatör → snittbonus/tier/IBC/h), veckobonusmål-konfiguration. Backend: operator_forecast endpoint, set_weekly_goal endpoint. Migration: `2026-03-03_bonus_weekly_goal.sql`.
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
