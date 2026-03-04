@@ -90,6 +90,39 @@
         </ul>
       </li>
 
+      <!-- Notifikationscentral — visas bara för inloggade -->
+      <li class="nav-item dropdown" *ngIf="loggedIn">
+        <a class="nav-link position-relative" href="#" id="notifDropdown" role="button"
+           data-bs-toggle="dropdown" aria-expanded="false" title="Notifikationer">
+          <i class="fas fa-bell"></i>
+          <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-badge"
+                *ngIf="(urgentNoteCount + certExpiryCount) > 0">
+            {{ urgentNoteCount + certExpiryCount }}
+          </span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end notif-dropdown" aria-labelledby="notifDropdown" style="min-width:300px">
+          <li class="dropdown-header">
+            <i class="fas fa-bell me-1"></i>Notifikationer
+          </li>
+          <li *ngIf="urgentNoteCount === 0 && certExpiryCount === 0">
+            <span class="dropdown-item-text text-muted small px-3 py-2 d-block">Inga nya notifikationer</span>
+          </li>
+          <li *ngIf="urgentNoteCount > 0">
+            <a class="dropdown-item" routerLink="/rebotling/overlamnin">
+              <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+              {{ urgentNoteCount }} brådskande {{ urgentNoteCount === 1 ? 'notering' : 'noteringar' }}
+            </a>
+          </li>
+          <li *ngIf="certExpiryCount > 0">
+            <a class="dropdown-item" routerLink="/admin/certifiering">
+              <i class="fas fa-certificate text-warning me-2"></i>
+              {{ certExpiryCount }} certifieringar snart utgångna
+            </a>
+          </li>
+        </ul>
+      </li>
+
+
       <li class="nav-item dropdown" *ngIf="!loggedIn">
         <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           Login

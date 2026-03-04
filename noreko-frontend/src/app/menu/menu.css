@@ -217,3 +217,16 @@
     padding-right: 0;
   }
 }
+
+/* Notifikationscentral */
+.notif-dropdown {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.notif-badge {
+  font-size: 0.6rem;
+  padding: 0.25em 0.45em;
+  min-width: 1.2em;
+  line-height: 1;
+}
