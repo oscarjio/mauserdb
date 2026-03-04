@@ -27,6 +27,26 @@
     </div>
 
     <!-- ============================================================
+         Flikar
+    ============================================================ -->
+    <div class="tab-bar mb-4">
+      <button class="tab-btn" [class.tab-btn--active]="activeTab === 'overview'" (click)="setTab('overview')">
+        <i class="fas fa-chart-line me-1"></i> Översikt
+      </button>
+      <button class="tab-btn" [class.tab-btn--active]="activeTab === 'personbasta'" (click)="setTab('personbasta')">
+        <i class="fas fa-user-crown me-1"></i> Personbästa
+      </button>
+      <button class="tab-btn" [class.tab-btn--active]="activeTab === 'halloffame'" (click)="setTab('halloffame')">
+        <i class="fas fa-star me-1"></i> Hall of Fame
+      </button>
+    </div>
+
+    <!-- ============================================================
+         TAB: Översikt
+    ============================================================ -->
+    <div *ngIf="activeTab === 'overview'">
+
+    <!-- ============================================================
          Sektion 1: Denna vecka vs Rekordveckan
     ============================================================ -->
     <section class="section mb-4">
@@ -366,6 +386,228 @@
         </div>
       </div>
     </section>
+
+    </div><!-- /overview tab -->
+
+    <!-- ============================================================
+         TAB: Personbästa
+    ============================================================ -->
+    <div *ngIf="activeTab === 'personbasta'">
+
+      <!-- Teamrekord vs Individrekord sida vid sida -->
+      <section class="section mb-4" *ngIf="personalBests">
+        <h2 class="section-title">
+          <i class="fas fa-users me-2 text-info"></i>
+          Teamrekord vs. Individrekord
+        </h2>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <div class="kpi-card kpi-card--blue">
+              <div class="kpi-card__label">
+                <span class="badge bg-primary">TEAM — BÄSTA DAG</span>
+              </div>
+              <div class="kpi-item mt-2">
+                <span class="kpi-value text-info">{{ personalBests.team_best_day | number:'1.0-0' }}</span>
+                <span class="kpi-label">IBC</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="kpi-card kpi-card--blue">
+              <div class="kpi-card__label">
+                <span class="badge bg-primary">TEAM — BÄSTA VECKA</span>
+              </div>
+              <div class="kpi-item mt-2">
+                <span class="kpi-value text-info">{{ personalBests.team_best_week | number:'1.0-0' }}</span>
+                <span class="kpi-label">IBC</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="kpi-card kpi-card--blue">
+              <div class="kpi-card__label">
+                <span class="badge bg-primary">TEAM — BÄSTA MÅNAD</span>
+              </div>
+              <div class="kpi-item mt-2">
+                <span class="kpi-value text-info">{{ personalBests.team_best_month | number:'1.0-0' }}</span>
+                <span class="kpi-label">IBC</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Per operatör: bästa dag / vecka / månad -->
+      <section class="section mb-4">
+        <h2 class="section-title">
+          <i class="fas fa-medal me-2 text-warning"></i>
+          Personbästa per operatör — dag / vecka / månad
+        </h2>
+
+        <div *ngIf="personalBestsLoading && !personalBests" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="text-muted ms-2">Laddar personbästa…</span>
+        </div>
+
+        <div *ngIf="personalBests && personalBests.operators.length === 0" class="text-center py-4">
+          <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen personbästa-data tillgänglig.</p>
+        </div>
+
+        <div *ngIf="personalBests && personalBests.operators.length > 0" class="card bg-card">
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span class="fw-semibold">Bästa IBC-resultat per tidsperiod</span>
+            <span class="badge badge-gold">
+              <i class="fas fa-trophy me-1"></i>Teamrekord IBC/h: {{ personalBests.team_record_ibc_h }}
+            </span>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-dark table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Operatör</th>
+                    <th class="text-end">Bästa dag (IBC)</th>
+                    <th class="text-end">Bästa vecka (IBC)</th>
+                    <th class="text-end">Bästa månad (IBC)</th>
+                    <th class="text-end">Bästa IBC/h</th>
+                    <th class="text-end">Bästa kvalitet</th>
+                    <th class="text-end">Antal skift</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let op of personalBests.operators; let i = index">
+                    <td>
+                      <span class="rank-badge me-2" [ngClass]="hofMedalClass(i + 1)">
+                        <span *ngIf="i < 3"><i [class]="hofMedalIcon(i + 1)"></i></span>
+                        <span *ngIf="i >= 3">{{ i + 1 }}</span>
+                      </span>
+                      <span class="badge bg-secondary me-1">{{ op.initialer }}</span>
+                      {{ op.namn }}
+                    </td>
+                    <td class="text-end fw-bold">
+                      {{ op.best_day_ibc | number:'1.0-0' }}
+                      <small *ngIf="op.best_day_date" class="text-muted ms-1">{{ formatDate(op.best_day_date) }}</small>
+                    </td>
+                    <td class="text-end fw-bold">{{ op.best_week_ibc | number:'1.0-0' }}</td>
+                    <td class="text-end fw-bold">{{ op.best_month_ibc | number:'1.0-0' }}</td>
+                    <td class="text-end"
+                      [class.text-success]="op.pct_of_record >= 90"
+                      [class.text-warning]="op.pct_of_record >= 70 && op.pct_of_record < 90"
+                      [class.text-danger]="op.pct_of_record < 70">
+                      {{ op.best_ibc_h | number:'1.1-1' }}
+                    </td>
+                    <td class="text-end">{{ op.best_kvalitet | number:'1.1-1' }}%</td>
+                    <td class="text-end text-muted small">{{ op.total_skift }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /personbasta tab -->
+
+    <!-- ============================================================
+         TAB: Hall of Fame
+    ============================================================ -->
+    <div *ngIf="activeTab === 'halloffame'">
+
+      <section class="section mb-4">
+        <h2 class="section-title">
+          <i class="fas fa-crown me-2 text-warning"></i>
+          Hall of Fame — Topp 5 bästa dagarna
+        </h2>
+        <p class="text-muted mb-3" style="font-size: 0.9rem;">De fem bästa enskilda produktionsdagarna i hela systemets historik.</p>
+
+        <div *ngIf="hallOfFameLoading && !hallOfFame.length" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="text-muted ms-2">Laddar Hall of Fame…</span>
+        </div>
+
+        <div *ngIf="!hallOfFameLoading && hallOfFame.length === 0" class="text-center py-4">
+          <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen Hall of Fame-data tillgänglig.</p>
+        </div>
+
+        <div *ngIf="hallOfFame.length > 0" class="hof-grid">
+          <div *ngFor="let day of hallOfFame; let i = index"
+            class="hof-card"
+            [class.hof-card--gold]="i === 0"
+            [class.hof-card--silver]="i === 1"
+            [class.hof-card--bronze]="i === 2">
+            <div class="hof-rank">
+              <span class="rank-badge" [ngClass]="hofMedalClass(day.rank)">
+                <span *ngIf="i < 3"><i [class]="hofMedalIcon(day.rank)"></i></span>
+                <span *ngIf="i >= 3">{{ day.rank }}</span>
+              </span>
+            </div>
+            <div class="hof-body">
+              <div class="hof-date">{{ formatDate(day.date) }}</div>
+              <div class="hof-ibc">
+                <span class="hof-ibc-value">{{ day.ibc_total | number:'1.0-0' }}</span>
+                <span class="hof-ibc-label">IBC</span>
+              </div>
+              <div class="hof-quality">
+                Kvalitet: <span class="text-success">{{ day.avg_quality | number:'1.1-1' }}%</span>
+              </div>
+              <div class="hof-operators" *ngIf="day.operators && day.operators.length">
+                <i class="fas fa-users me-1 text-muted"></i>
+                <span class="text-muted small">{{ day.operators.join(', ') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Team vs Individ rekord (i Hall of Fame-fliken) -->
+      <section class="section mb-4" *ngIf="personalBests && bestDayEver">
+        <h2 class="section-title">
+          <i class="fas fa-balance-scale me-2 text-info"></i>
+          Teamrekord vs. Bästa individdag
+        </h2>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="kpi-card kpi-card--gold">
+              <div class="kpi-card__label">
+                <span class="badge badge-gold">TEAMREKORD — BÄSTA DAG</span>
+              </div>
+              <div class="kpi-grid mt-3">
+                <div class="kpi-item">
+                  <span class="kpi-value text-warning">{{ bestDayEver.ibc_total | number:'1.0-0' }}</span>
+                  <span class="kpi-label">IBC (alla skift)</span>
+                </div>
+                <div class="kpi-item">
+                  <span class="kpi-value">{{ bestDayEver.quality | number:'1.1-1' }}%</span>
+                  <span class="kpi-label">Kvalitet</span>
+                </div>
+              </div>
+              <div class="text-muted small mt-2">{{ formatDate(bestDayEver.date) }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="kpi-card kpi-card--blue" *ngIf="personalBests.operators.length > 0">
+              <div class="kpi-card__label">
+                <span class="badge bg-primary">INDIVIDREKORD — BÄSTA IBC/h</span>
+              </div>
+              <div class="kpi-grid mt-3">
+                <div class="kpi-item">
+                  <span class="kpi-value text-info">{{ personalBests.operators[0].best_ibc_h | number:'1.1-1' }}</span>
+                  <span class="kpi-label">IBC/h</span>
+                </div>
+                <div class="kpi-item">
+                  <span class="kpi-value">{{ personalBests.operators[0].best_kvalitet | number:'1.1-1' }}%</span>
+                  <span class="kpi-label">Kvalitet</span>
+                </div>
+              </div>
+              <div class="text-muted small mt-2">{{ personalBests.operators[0].namn }}</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /halloffame tab -->
 
   </div>
 </div>

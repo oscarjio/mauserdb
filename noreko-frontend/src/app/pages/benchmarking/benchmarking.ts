@@ -15,6 +15,8 @@ import {
   PersonalBestsResponse,
   MonthlyLeaderEntry,
   MonthlyLeadersResponse,
+  HallOfFameDayEntry,
+  HallOfFameDaysResponse,
 } from '../../services/rebotling.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -46,10 +48,14 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   ibcDiffToRecord = 0;
   isNewRecord = false;
 
-  personalBests: { operators: PersonalBestOperator[]; team_record_ibc_h: number } | null = null;
+  personalBests: { operators: PersonalBestOperator[]; team_record_ibc_h: number; team_best_day: number; team_best_week: number; team_best_month: number } | null = null;
   personalBestsLoading = false;
   monthlyLeaders: MonthlyLeaderEntry[] = [];
   monthlyLeadersLoading = false;
+  hallOfFame: HallOfFameDayEntry[] = [];
+  hallOfFameLoading = false;
+
+  activeTab: 'overview' | 'personbasta' | 'halloffame' = 'overview';
 
   @ViewChild('monthlyChart') monthlyChartRef!: ElementRef<HTMLCanvasElement>;
   private monthlyChartInstance: Chart | null = null;
@@ -68,6 +74,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     this.load();
     this.loadPersonalBests();
     this.loadMonthlyLeaders();
+    this.loadHallOfFame();
     this.pollInterval = setInterval(() => this.load(), 60_000);
   }
 
@@ -213,6 +220,34 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
         this.monthlyLeadersLoading = false;
         if (res?.success && res.data) this.monthlyLeaders = res.data;
       });
+  }
+
+  loadHallOfFame(): void {
+    this.hallOfFameLoading = true;
+    this.rebotlingService.getHallOfFameDays()
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe((res: HallOfFameDaysResponse | null) => {
+        this.hallOfFameLoading = false;
+        if (res?.success && res.data) this.hallOfFame = res.data;
+      });
+  }
+
+  hofMedalClass(rank: number): string {
+    if (rank === 1) return 'rank-gold';
+    if (rank === 2) return 'rank-silver';
+    if (rank === 3) return 'rank-bronze';
+    return '';
+  }
+
+  hofMedalIcon(rank: number): string {
+    if (rank === 1) return 'fas fa-trophy';
+    if (rank === 2) return 'fas fa-medal';
+    if (rank === 3) return 'fas fa-award';
+    return '';
+  }
+
+  setTab(tab: 'overview' | 'personbasta' | 'halloffame'): void {
+    this.activeTab = tab;
   }
 
   private buildMonthlyChart(): void {

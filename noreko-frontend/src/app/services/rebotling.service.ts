@@ -334,6 +334,13 @@ export class RebotlingService {
     );
   }
 
+  getHallOfFameDays(): Observable<HallOfFameDaysResponse> {
+    return this.http.get<HallOfFameDaysResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=hall-of-fame',
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {
@@ -344,6 +351,10 @@ export interface PersonalBestOperator {
   best_kvalitet: number;
   pct_of_record: number;
   total_skift: number;
+  best_day_ibc: number;
+  best_day_date: string | null;
+  best_week_ibc: number;
+  best_month_ibc: number;
 }
 
 export interface PersonalBestsResponse {
@@ -351,7 +362,24 @@ export interface PersonalBestsResponse {
   data?: {
     operators: PersonalBestOperator[];
     team_record_ibc_h: number;
+    team_best_day: number;
+    team_best_week: number;
+    team_best_month: number;
   };
+  error?: string;
+}
+
+export interface HallOfFameDayEntry {
+  rank: number;
+  date: string;
+  ibc_total: number;
+  avg_quality: number;
+  operators: string[];
+}
+
+export interface HallOfFameDaysResponse {
+  success: boolean;
+  data?: HallOfFameDayEntry[];
   error?: string;
 }
 
