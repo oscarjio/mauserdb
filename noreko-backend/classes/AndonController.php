@@ -4,7 +4,10 @@
  * Hanterar API-anrop för Andon-tavlan (/rebotling/andon).
  * Publik endpoint — kräver ingen autentisering.
  *
- * Endpoint: api.php?action=andon&run=status
+ * Endpoints:
+ *   api.php?action=andon&run=status
+ *   api.php?action=andon&run=recent-stoppages
+ *   api.php?action=andon&run=andon-notes
  */
 class AndonController {
     private PDO $pdo;
@@ -21,6 +24,8 @@ class AndonController {
             $this->getStatus();
         } elseif ($run === 'recent-stoppages') {
             $this->recentStoppages();
+        } elseif ($run === 'andon-notes') {
+            $this->andonNotes();
         } else {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Okänd metod']);
@@ -199,6 +204,55 @@ class AndonController {
             error_log('AndonController::recentStoppages fel: ' . $e->getMessage());
             // Tabellen kanske inte finns — returnera tom lista gracefully
             echo json_encode(['success' => true, 'stoppages' => []]);
+        }
+    }
+
+    /**
+     * Returnerar okvitterade skiftöverlämningsnoter för Andon-tavlan.
+     * Publik endpoint — ingen autentisering krävs.
+     * Hämtar noter riktade till 'alla' eller 'ansvarig', sorterat på prioritet.
+     */
+    private function andonNotes(): void {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    id,
+                    note,
+                    priority,
+                    op_name,
+                    created_at
+                FROM shift_handover
+                WHERE acknowledged_at IS NULL
+                  AND (audience = 'alla' OR audience = 'ansvarig')
+                ORDER BY
+                    FIELD(priority, 'urgent', 'important', 'normal'),
+                    created_at DESC
+                LIMIT 5
+            ");
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $notes = [];
+            foreach ($rows as $row) {
+                $notes[] = [
+                    'id'         => (int)$row['id'],
+                    'note'       => $row['note'],
+                    'priority'   => $row['priority'],
+                    'op_name'    => $row['op_name'],
+                    'created_at' => $row['created_at'],
+                ];
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'notes'        => $notes,
+                'unread_count' => count($notes),
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('AndonController::andonNotes fel: ' . $e->getMessage());
+            // Tabell kanske inte finns — returnera tomt gracefully
+            echo json_encode(['success' => true, 'notes' => [], 'unread_count' => 0]);
         }
     }
 }

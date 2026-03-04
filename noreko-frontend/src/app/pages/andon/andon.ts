@@ -29,6 +29,14 @@ interface Stoppage {
   notes: string;
 }
 
+interface HandoverNote {
+  id: number;
+  note: string;
+  priority: 'normal' | 'important' | 'urgent';
+  op_name: string | null;
+  created_at: string;
+}
+
 @Component({
   standalone: true,
   selector: 'app-andon',
@@ -67,6 +75,12 @@ export class AndonPage implements OnInit, OnDestroy {
     niva: 'rekord' | 'ok' | 'warn' | 'critical' | 'ingen';
   } = { text: '', ibcPrognos: 0, niva: 'ingen' };
 
+  // Feature 4: Skiftöverlämningsnoter
+  handoverNotes: HandoverNote[] = [];
+  unreadNoteCount = 0;
+  isFetchingNotes = false;
+  private notesInterval: any = null;
+
   private destroy$ = new Subject<void>();
   private pollInterval: any = null;
   private stoppagePollInterval: any = null;
@@ -86,6 +100,7 @@ export class AndonPage implements OnInit, OnDestroy {
     this.uppdateraSkiftTimer();
     this.hamtaStatus();
     this.hamtaStoppages();
+    this.hamtaHandoverNotes();
 
     // Klocka + skifttimer uppdateras varje sekund
     this.clockInterval = setInterval(() => {
@@ -113,6 +128,11 @@ export class AndonPage implements OnInit, OnDestroy {
     this.stoppagePollInterval = setInterval(() => {
       this.hamtaStoppages();
     }, 30000);
+
+    // Skiftöverlämningsnoter var 30s
+    this.notesInterval = setInterval(() => {
+      this.hamtaHandoverNotes();
+    }, 30000);
   }
 
   ngOnDestroy(): void {
@@ -123,6 +143,7 @@ export class AndonPage implements OnInit, OnDestroy {
     if (this.clockInterval) clearInterval(this.clockInterval);
     if (this.countdownInterval) clearInterval(this.countdownInterval);
     if (this.skiftTimerInterval) clearInterval(this.skiftTimerInterval);
+    if (this.notesInterval) clearInterval(this.notesInterval);
   }
 
   // ─────────────────────────────────────────────
@@ -392,5 +413,61 @@ export class AndonPage implements OnInit, OnDestroy {
       case 'critical': return '🔴';
       default:         return '';
     }
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 4: Skiftöverlämningsnoter
+  // ─────────────────────────────────────────────
+
+  hamtaHandoverNotes(): void {
+    if (this.isFetchingNotes) return;
+    this.isFetchingNotes = true;
+
+    this.http.get<{ success: boolean; notes: HandoverNote[]; unread_count: number }>(
+      `${this.apiUrl}?action=andon&run=andon-notes`
+    )
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(data => {
+        this.isFetchingNotes = false;
+        if (data && data.success) {
+          this.handoverNotes = data.notes;
+          this.unreadNoteCount = data.unread_count ?? data.notes.length;
+        }
+      });
+  }
+
+  /** Returnerar true om det finns minst en 'urgent'-not */
+  get hasUrgentNotes(): boolean {
+    return this.handoverNotes.some(n => n.priority === 'urgent');
+  }
+
+  notePrioritetFarg(priority: string): string {
+    switch (priority) {
+      case 'urgent':    return '#f44336';
+      case 'important': return '#ff9800';
+      default:          return '#4a5568';
+    }
+  }
+
+  notePrioritetEtikett(priority: string): string {
+    switch (priority) {
+      case 'urgent':    return 'BRÅDSKANDE';
+      case 'important': return 'VIKTIG';
+      default:          return '';
+    }
+  }
+
+  timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just nu';
+    if (mins < 60) return `${mins} min sedan`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours} h sedan`;
+    return `${Math.floor(hours / 24)} dagar sedan`;
   }
 }

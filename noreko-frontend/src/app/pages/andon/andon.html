@@ -18,7 +18,20 @@
 
     <!-- Header-rad -->
     <div class="andon-header">
-      <div class="andon-titel">REBOTLING</div>
+      <div class="andon-titel">
+        REBOTLING
+        <!-- Larm-indikator: blinkar om linjen är stoppad och det finns urgenta noter -->
+        <span class="larm-indikator"
+              *ngIf="hasUrgentNotes && status && status.linje_status !== 'kör'"
+              title="Okvitterade brådskande noter">
+          &#9888;
+        </span>
+        <!-- Notklocka: visas alltid om det finns okvitterade noter -->
+        <span class="noter-badge"
+              *ngIf="unreadNoteCount > 0">
+          {{ unreadNoteCount }}
+        </span>
+      </div>
       <div class="andon-meta">
         <span class="meta-datum">{{ status.datum }}</span>
         <span class="meta-sep">|</span>
@@ -145,6 +158,42 @@
       </div>
 
     </div><!-- /nedre-rad -->
+
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 4: Skiftöverlämningsnoter
+         ═══════════════════════════════════════════════════════ -->
+    <div class="overlam-sektion">
+      <div class="overlam-rubrik">
+        <span class="overlam-rubrik-text">SKIFTÖVERLÄMNING</span>
+        <span class="overlam-badge" *ngIf="unreadNoteCount > 0"
+              [class.overlam-badge-urgent]="hasUrgentNotes">
+          {{ unreadNoteCount }} okvitterad{{ unreadNoteCount === 1 ? '' : 'e' }}
+        </span>
+      </div>
+
+      <!-- Tom state -->
+      <div class="overlam-tom" *ngIf="handoverNotes.length === 0">
+        Inga okvitterade noter
+      </div>
+
+      <!-- Notlista -->
+      <div class="overlam-lista" *ngIf="handoverNotes.length > 0">
+        <div class="overlam-not"
+             *ngFor="let n of handoverNotes"
+             [style.border-left-color]="notePrioritetFarg(n.priority)">
+          <div class="overlam-not-huvud">
+            <span class="overlam-prioritet-badge"
+                  *ngIf="n.priority !== 'normal'"
+                  [style.background-color]="notePrioritetFarg(n.priority)">
+              {{ notePrioritetEtikett(n.priority) }}
+            </span>
+            <span class="overlam-tid">{{ timeAgo(n.created_at) }}</span>
+            <span class="overlam-operatoer" *ngIf="n.op_name">— {{ n.op_name }}</span>
+          </div>
+          <div class="overlam-meddelande">{{ n.note }}</div>
+        </div>
+      </div>
+    </div><!-- /overlam-sektion -->
 
     <!-- Händelse-baner -->
     <div class="handelse-baner" [style.border-left-color]="statusFarg">
