@@ -5,7 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
-import { RebotlingService, BestShift } from '../../services/rebotling.service';
+import { RebotlingService, BestShift, StoppageDayEntry, StoppageCategoryEntry, StoppageReasonEntry } from '../../services/rebotling.service';
 import { catchError, of, timeout } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 
@@ -64,14 +64,22 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   bestShiftsLimit = 10;
   private bestShiftsChart: Chart | null = null;
 
-  // Tab 6: Stoppanalys
-  // OBS: Stoppanalys är baserad på rast-data som proxy.
-  // Riktig stoppanalys kräver utökad PLC-integration med separata stopp-events.
+  // Tab 6: Stoppanalys — riktig data från stoppage_log
   stopAnalysisLoading = false;
+  stopDays = 30;
+  stoppageEmpty = false;
+  stoppageEmptyReason = '';
+  stoppageByDay: StoppageDayEntry[] = [];
+  stoppageByCategory: StoppageCategoryEntry[] = [];
+  stoppageTopReasons: StoppageReasonEntry[] = [];
+  stoppageTotalEvents = 0;
+  stoppageTotalMinutes = 0;
+  // Tidslinje-data (rast-proxy, behålls)
   rastStatus: any = null;
   lineStatus: any = null;
   rastHistory14: { date: string; totalRastMinutes: number; rastCount: number }[] = [];
   private stopRastChart: Chart | null = null;
+  private stoppageDailyChart: Chart | null = null;
 
   // Charts
   private destroy$ = new Subject<void>();
@@ -115,7 +123,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   private destroyAllCharts() {
     [this.rankingChart, this.radarChart, this.dailyTrendChart,
      this.weekdayChart, this.hourlyBarChart, this.bubbleChart,
-     this.bestShiftsChart, this.stopRastChart].forEach(c => c?.destroy());
+     this.bestShiftsChart, this.stopRastChart, this.stoppageDailyChart].forEach(c => c?.destroy());
     this.rankingChart = null;
     this.radarChart = null;
     this.dailyTrendChart = null;
@@ -124,6 +132,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.bubbleChart = null;
     this.bestShiftsChart = null;
     this.stopRastChart = null;
+    this.stoppageDailyChart = null;
   }
 
   setTab(tab: string) {
@@ -616,22 +625,40 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   // ======== TAB 6: STOPPANALYS ========
-  // OBS: Denna analys använder rast-data som proxy för stopp.
-  // Riktig stoppanalys kräver utökad PLC-integration med stopp-events.
 
   loadStopAnalysis() {
     this.stopAnalysisLoading = true;
     this.error = '';
 
-    // Hämta dagens rast-status (inkl. events för tidslinje)
+    // Hämta riktig stoppdata från stoppage_log
+    this.rebotlingService.getStoppageAnalysis(this.stopDays).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => { this.error = 'Kunde inte ladda stoppdata'; this.stopAnalysisLoading = false; return of(null); })
+    ).subscribe(res => {
+      if (res?.success) {
+        this.stoppageEmpty        = res.empty ?? false;
+        this.stoppageEmptyReason  = res.reason ?? '';
+        this.stoppageByDay        = res.by_day ?? [];
+        this.stoppageByCategory   = res.by_category ?? [];
+        this.stoppageTopReasons   = res.top_reasons ?? [];
+        this.stoppageTotalEvents  = res.total_events ?? 0;
+        this.stoppageTotalMinutes = res.total_minutes ?? 0;
+        clearTimeout(this.chartTimeout);
+        this.chartTimeout = setTimeout(() => {
+          if (!this.destroy$.closed) this.renderStoppageDailyChart();
+        }, 150);
+      }
+      this.stopAnalysisLoading = false;
+    });
+
+    // Hämta rast-status för tidslinje (kompletterande data)
     this.rebotlingService.getRastStatus().pipe(
       timeout(8000),
       takeUntil(this.destroy$),
-      catchError(() => { this.error = 'Kunde inte ladda raststatus'; return of(null); })
+      catchError(() => of(null))
     ).subscribe(res => {
-      if (res?.success) {
-        this.rastStatus = res.data;
-      }
+      if (res?.success) this.rastStatus = res.data;
     });
 
     // Hämta linjestatus
@@ -640,100 +667,133 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       catchError(() => of(null))
     ).subscribe(res => {
-      if (res?.success) {
-        this.lineStatus = res.data;
-      }
-    });
-
-    // Hämta statistik senaste 30 dagarna (för rast-per-dag-diagram, 14 dagar visas)
-    const today = new Date();
-    const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - 29);
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr   = today.toISOString().split('T')[0];
-
-    this.rebotlingService.getStatistics(startStr, endStr).pipe(
-      timeout(10000),
-      takeUntil(this.destroy$),
-      catchError(() => { this.stopAnalysisLoading = false; return of(null); })
-    ).subscribe(res => {
-      if (res?.success && res.data) {
-        // Bygg rasttid per dag från onoff_events (om tillgänglig) eller skapa dummy-sammanfattning
-        // Rast-data aggregeras per datum baserat på statistik-svaret
-        this.buildRastHistoryFromStats(res.data);
-        clearTimeout(this.chartTimeout);
-        this.chartTimeout = setTimeout(() => {
-          if (!this.destroy$.closed) this.renderStopRastChart();
-        }, 150);
-      }
-      this.stopAnalysisLoading = false;
+      if (res?.success) this.lineStatus = res.data;
     });
   }
 
-  /**
-   * Aggregerar rasttid per dag från statistik-data.
-   * Eftersom statistics-endpointen ger cyklar + runtime per dag, estimerar vi
-   * rasttid som skillnaden mot total skifttid. Detta är en approximation.
-   * OBS: För exakt rasttid per dag krävs rast-events per dag — inte tillgängligt i
-   * den nuvarande statistik-endpointen. Vi visar totalt antal raster idag (från rast-endpoint).
-   */
-  private buildRastHistoryFromStats(data: any) {
-    // Bygg daglig rastdata: cykeltid × antal cyklar används som körtids-proxy
-    // Senaste 14 dagarna för diagrammet
-    const cycleDays: { date: string; cycles: number; runtime: number }[] = [];
-
-    (data.cycles || []).forEach((c: any) => {
-      const date = c.datum?.substring(0, 10) || '';
-      if (!date) return;
-      const existing = cycleDays.find(d => d.date === date);
-      if (existing) {
-        existing.cycles++;
-        existing.runtime += c.cycle_time ?? 0;
-      } else {
-        cycleDays.push({ date, cycles: 1, runtime: c.cycle_time ?? 0 });
-      }
-    });
-
-    // Sortera och ta senaste 14 dagarna
-    cycleDays.sort((a, b) => a.date.localeCompare(b.date));
-    const recent14 = cycleDays.slice(-14);
-
-    // Beräkna estimerad rasttid: (8h skift - körtid per dag)
-    // OBS: Approximation — körtid från PLC runtime_plc fältet vore mer exakt
-    const shiftHours = 8;
-    this.rastHistory14 = recent14.map(d => {
-      const runtimeH = d.runtime / 60;
-      const rastEst  = Math.max(0, Math.round((shiftHours - runtimeH) * 60));
-      return {
-        date: d.date,
-        totalRastMinutes: rastEst,
-        rastCount: 0  // per-dag rastantal kräver rastevents per dag — ej tillgängligt här
-      };
-    });
+  onStopDaysChange() {
+    this.loadStopAnalysis();
   }
 
-  /** Sammanfattning: totalt antal raster, total rasttid, snitt raster/dag (senaste 30 dagar) */
-  getStopSummary30d(): { totalRaster: number; totalRastTid: number; snittPerDag: number } {
-    if (!this.rastStatus) return { totalRaster: 0, totalRastTid: 0, snittPerDag: 0 };
-    // Vi har idag-data från rast-endpointen
-    const todayRaster  = this.rastStatus.rast_count_today ?? 0;
-    const todayMinuter = this.rastStatus.rast_minutes_today ?? 0;
-    return {
-      totalRaster:  todayRaster,
-      totalRastTid: todayMinuter,
-      snittPerDag:  Math.round(todayMinuter)  // idag-data, inte 30-dagar (se OBS nedan)
+  /** Stoppid i timmar och minuter */
+  getStopHoursMin(): string {
+    const h = Math.floor(this.stoppageTotalMinutes / 60);
+    const m = Math.round(this.stoppageTotalMinutes % 60);
+    if (h > 0) return `${h}h ${m}min`;
+    return `${m} min`;
+  }
+
+  /** Snitt stopplängd per händelse */
+  getAvgStopMinutes(): number {
+    if (!this.stoppageTotalEvents) return 0;
+    return Math.round((this.stoppageTotalMinutes / this.stoppageTotalEvents) * 10) / 10;
+  }
+
+  /** Kategorin med mest total stoppid */
+  getWorstCategory(): string {
+    if (!this.stoppageByCategory.length) return '-';
+    const worst = this.stoppageByCategory[0];
+    const labels: { [k: string]: string } = {
+      maskin: 'Maskin', material: 'Material', 'operatör': 'Operatör', övrigt: 'Övrigt'
     };
+    return labels[worst.category] ?? worst.category;
+  }
+
+  getCategoryLabel(cat: string): string {
+    const labels: { [k: string]: string } = {
+      maskin: 'Maskin', material: 'Material', 'operatör': 'Operatör', övrigt: 'Övrigt'
+    };
+    return labels[cat] ?? cat;
+  }
+
+  getCategoryBadgeClass(cat: string): string {
+    const map: { [k: string]: string } = {
+      maskin: 'badge-category-maskin',
+      material: 'badge-category-material',
+      'operatör': 'badge-category-operator',
+      övrigt: 'badge-category-ovrigt'
+    };
+    return 'category-badge ' + (map[cat] ?? 'badge-category-ovrigt');
+  }
+
+  private getCategoryColor(cat: string, alpha = 0.75): string {
+    const map: { [k: string]: string } = {
+      maskin:     `rgba(229,62,62,${alpha})`,
+      material:   `rgba(237,137,54,${alpha})`,
+      'operatör': `rgba(66,153,225,${alpha})`,
+      övrigt:     `rgba(160,174,192,${alpha})`
+    };
+    return map[cat] ?? `rgba(160,174,192,${alpha})`;
+  }
+
+  private renderStoppageDailyChart() {
+    if (this.stoppageDailyChart) this.stoppageDailyChart.destroy();
+    const canvas = document.getElementById('stoppageDailyChart') as HTMLCanvasElement;
+    if (!canvas || !this.stoppageByDay.length) return;
+
+    // Sortera dagarna kronologiskt
+    const sorted = [...this.stoppageByDay].sort((a, b) => a.dag.localeCompare(b.dag));
+    const labels = sorted.map(d => d.dag.substring(5));
+
+    // Kategorier
+    const cats = ['maskin', 'material', 'operatör', 'övrigt'];
+    const catLabels: { [k: string]: string } = {
+      maskin: 'Maskin', material: 'Material', 'operatör': 'Operatör', övrigt: 'Övrigt'
+    };
+
+    const datasets = cats.map(cat => ({
+      label: catLabels[cat] ?? cat,
+      data: sorted.map(d => d.kategorier?.[cat] ?? 0),
+      backgroundColor: this.getCategoryColor(cat, 0.75),
+      borderColor: this.getCategoryColor(cat, 1),
+      borderWidth: 1,
+      borderRadius: 3,
+      stack: 'dag'
+    }));
+
+    this.stoppageDailyChart = new Chart(canvas, {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#a0aec0', font: { size: 11 } } },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.97)',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            callbacks: {
+              label: (ctx: any) => ctx.raw > 0 ? ` ${ctx.dataset.label}: ${ctx.raw} min` : ''
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: { color: '#718096', maxRotation: 45, font: { size: 9 } },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            stacked: true,
+            ticks: { color: '#718096' },
+            grid: { color: '#2d3748' },
+            beginAtZero: true,
+            title: { display: true, text: 'Stoppid (min)', color: '#718096', font: { size: 11 } }
+          }
+        }
+      }
+    });
   }
 
   /** Tidslinje-block för idag baserat på rast-events */
   getTimelineBlocks(): { type: 'running' | 'rast'; label: string; widthPct: number; tooltip: string }[] {
     if (!this.rastStatus?.events || this.rastStatus.events.length === 0) {
-      // Ingen event-data: visa bara status
       return [];
     }
 
-    const shiftStartH = 6;  // Skift börjar 06:00
-    const shiftEndH   = 22; // Skift slutar 22:00
+    const shiftStartH = 6;
+    const shiftEndH   = 22;
     const totalMin = (shiftEndH - shiftStartH) * 60;
 
     const toMin = (dateStr: string): number => {
@@ -756,16 +816,13 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       const widthPct = (dur / totalMin) * 100;
 
       if (ev.rast_status === 1) {
-        // Övergång till rast — lägg till körblock
         blocks.push({ type: 'running', label: '', widthPct, tooltip: `Kör ${dur} min` });
       } else {
-        // Övergång till kör — lägg till rastblock
         blocks.push({ type: 'rast', label: '', widthPct, tooltip: `Rast ${dur} min` });
       }
       curMin = evMin;
     });
 
-    // Fyll ut resten av dagen
     if (curMin < totalMin) {
       const dur = totalMin - curMin;
       const widthPct = (dur / totalMin) * 100;
@@ -782,49 +839,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderStopRastChart() {
+    // Behålls för bakåtkompatibilitet men används ej längre i UI
     if (this.stopRastChart) this.stopRastChart.destroy();
-    const canvas = document.getElementById('stopRastChart') as HTMLCanvasElement;
-    if (!canvas || !this.rastHistory14.length) return;
-
-    const labels = this.rastHistory14.map(d => d.date.substring(5));
-    const values = this.rastHistory14.map(d => d.totalRastMinutes);
-
-    this.stopRastChart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Est. rasttid (min)',
-          data: values,
-          backgroundColor: values.map(v => {
-            const max = Math.max(...values, 1);
-            const ratio = v / max;
-            return ratio > 0.75 ? 'rgba(237,137,54,0.8)' : ratio > 0.4 ? 'rgba(236,201,75,0.7)' : 'rgba(66,153,225,0.55)';
-          }),
-          borderRadius: 5
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(20,20,30,0.95)',
-            titleColor: '#fff',
-            bodyColor: '#e0e0e0',
-            callbacks: {
-              label: (ctx: any) => ` ${ctx.raw} min estimerad rasttid`
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#a0aec0', maxRotation: 45, font: { size: 10 } }, grid: { color: '#2d3748' } },
-          y: { ticks: { color: '#718096' }, grid: { color: '#2d3748' }, beginAtZero: true,
-               title: { display: true, text: 'Minuter', color: '#718096', font: { size: 11 } } }
-        }
-      }
-    });
   }
 
   // ======== HELPERS ========

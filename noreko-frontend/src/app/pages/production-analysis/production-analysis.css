@@ -394,6 +394,39 @@
 .sst-sub  { font-size: 0.7rem; color: #718096; margin-top: 0.2rem; }
 
 /* ============================================================
+   STOPPANALYS — KATEGORI-BADGES
+   ============================================================ */
+.category-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.badge-category-maskin {
+  background: rgba(229,62,62,0.15);
+  color: #fc8181;
+  border: 1px solid rgba(229,62,62,0.35);
+}
+.badge-category-material {
+  background: rgba(237,137,54,0.15);
+  color: #f6ad55;
+  border: 1px solid rgba(237,137,54,0.35);
+}
+.badge-category-operator {
+  background: rgba(66,153,225,0.15);
+  color: #63b3ed;
+  border: 1px solid rgba(66,153,225,0.35);
+}
+.badge-category-ovrigt {
+  background: rgba(160,174,192,0.12);
+  color: #a0aec0;
+  border: 1px solid rgba(160,174,192,0.25);
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {

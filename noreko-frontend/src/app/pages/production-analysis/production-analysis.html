@@ -466,12 +466,13 @@
   <!-- ============ TAB 6: STOPPANALYS ============ -->
   <div *ngIf="activeTab === 'stopanalysis'">
 
-    <!-- Notering om datakälla -->
-    <div class="alert stop-data-notice mb-4" role="alert">
-      <i class="fas fa-info-circle me-2"></i>
-      <strong>Observera:</strong> Stoppanalys baseras på <em>rast-data som proxy</em>.
-      Riktig stoppanalys (maskinfel, materialfel, operatörstopp) kräver utökad PLC-integration med separata stopp-events.
-      Kontakta systemadministratören för att aktivera detaljerad stoppregistrering.
+    <!-- Periodväljare -->
+    <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+      <span class="text-muted small">Analysperiod:</span>
+      <button class="btn btn-sm" [class.btn-info]="stopDays === 7"    [class.btn-outline-secondary]="stopDays !== 7"    (click)="stopDays = 7;  onStopDaysChange()">7 dagar</button>
+      <button class="btn btn-sm" [class.btn-info]="stopDays === 14"   [class.btn-outline-secondary]="stopDays !== 14"   (click)="stopDays = 14; onStopDaysChange()">14 dagar</button>
+      <button class="btn btn-sm" [class.btn-info]="stopDays === 30"   [class.btn-outline-secondary]="stopDays !== 30"   (click)="stopDays = 30; onStopDaysChange()">30 dagar</button>
+      <button class="btn btn-sm" [class.btn-info]="stopDays === 90"   [class.btn-outline-secondary]="stopDays !== 90"   (click)="stopDays = 90; onStopDaysChange()">90 dagar</button>
     </div>
 
     <!-- Loading -->
@@ -482,49 +483,134 @@
 
     <div *ngIf="!stopAnalysisLoading">
 
-      <!-- Linjesummering idag -->
-      <div class="row g-3 mb-4" *ngIf="rastStatus">
+      <!-- Tom databas — informationsruta -->
+      <div *ngIf="stoppageEmpty" class="alert stop-data-notice mb-4">
+        <i class="fas fa-database me-2"></i>
+        <strong>Inga stoppregistreringar hittades</strong> för de senaste {{ stopDays }} dagarna.
+        <span *ngIf="stoppageEmptyReason"> — {{ stoppageEmptyReason }}</span>
+        <div class="mt-2 small text-muted">
+          Stopphändelser registreras i <code>stoppage_log</code>-tabellen. Kör migreringsfil
+          <code>2026-03-04_stoppage_log.sql</code> för att aktivera funktionen.
+        </div>
+      </div>
+
+      <!-- KPI-rad (visas alltid om data finns) -->
+      <div class="row g-3 mb-4" *ngIf="!stoppageEmpty">
         <div class="col-6 col-md-3">
           <div class="kpi-card">
-            <div class="kpi-label">Status nu</div>
-            <div class="kpi-value" [class.text-success]="!rastStatus.on_rast" [class.text-warning]="rastStatus.on_rast">
-              <i class="fas" [class.fa-play]="!rastStatus.on_rast" [class.fa-pause]="rastStatus.on_rast"></i>
-            </div>
-            <div class="kpi-sub">{{ rastStatus.on_rast ? 'Rast / Stopp' : 'Körs' }}</div>
+            <div class="kpi-label">Total stoppid</div>
+            <div class="kpi-value text-danger">{{ getStopHoursMin() }}</div>
+            <div class="kpi-sub">senaste {{ stopDays }} dagarna</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="kpi-card">
-            <div class="kpi-label">Rasttid idag</div>
-            <div class="kpi-value text-warning">{{ rastStatus.rast_minutes_today ?? 0 }}</div>
+            <div class="kpi-label">Antal stopphändelser</div>
+            <div class="kpi-value text-warning">{{ stoppageTotalEvents }}</div>
+            <div class="kpi-sub">registrerade stopp</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-label">Snitt per stopp</div>
+            <div class="kpi-value text-info">{{ getAvgStopMinutes() }}</div>
             <div class="kpi-sub">minuter</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
-          <div class="kpi-card">
-            <div class="kpi-label">Antal raster idag</div>
-            <div class="kpi-value text-info">{{ rastStatus.rast_count_today ?? 0 }}</div>
-            <div class="kpi-sub">stopp/raster</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
-          <div class="kpi-card">
-            <div class="kpi-label">Körtid idag (est.)</div>
-            <div class="kpi-value text-success">
-              {{ Math.max(0, 480 - (rastStatus.rast_minutes_today ?? 0)) }}
-            </div>
-            <div class="kpi-sub">min (8h skift)</div>
+          <div class="kpi-card kpi-card-warn">
+            <div class="kpi-label">Värst kategori</div>
+            <div class="kpi-value" style="font-size:1.4rem;">{{ getWorstCategory() }}</div>
+            <div class="kpi-sub">mest stoppid totalt</div>
           </div>
         </div>
       </div>
 
-      <!-- Stopp-tidslinje idag -->
+      <!-- Daglig stoppid-diagram -->
+      <div class="card mb-4" *ngIf="!stoppageEmpty && stoppageByDay.length > 0">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="fas fa-chart-bar me-2 text-danger"></i>Stoppid per dag — senaste {{ stopDays }} dagar
+          </h5>
+          <small class="text-muted">Staplat per kategori: röd=maskin, orange=material, blå=operatör, grå=övrigt</small>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" style="height: 300px;">
+            <canvas id="stoppageDailyChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kategori-sammanfattning -->
+      <div class="row g-3 mb-4" *ngIf="!stoppageEmpty && stoppageByCategory.length > 0">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-tags me-2 text-info"></i>Stoppid per kategori</h5>
+            </div>
+            <div class="card-body">
+              <div class="row g-2">
+                <div class="col-6 col-md-3" *ngFor="let cat of stoppageByCategory">
+                  <div class="stop-stat-tile">
+                    <div class="mb-2">
+                      <span [ngClass]="getCategoryBadgeClass(cat.category)">{{ getCategoryLabel(cat.category) }}</span>
+                    </div>
+                    <div class="sst-val" [class.text-danger]="cat.category === 'maskin'"
+                                        [class.text-warning]="cat.category === 'material'"
+                                        [class.text-info]="cat.category === 'operatör'"
+                                        [class.text-secondary]="cat.category === 'övrigt'">
+                      {{ cat.total_min | number:'1.0-0' }} min
+                    </div>
+                    <div class="sst-sub">{{ cat.antal }} händelser</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Topplista stopporsaker -->
+      <div class="card mb-4" *ngIf="!stoppageEmpty && stoppageTopReasons.length > 0">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-list-ol me-2 text-warning"></i>Topplista stopporsaker</h5>
+          <small class="text-muted">Sorterat efter total stoppid</small>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-sm table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Orsak</th>
+                  <th>Kategori</th>
+                  <th>Antal</th>
+                  <th>Total tid</th>
+                  <th>Snitt per stopp</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of stoppageTopReasons; let i = index">
+                  <td class="text-muted">{{ i + 1 }}</td>
+                  <td><strong>{{ r.name }}</strong></td>
+                  <td><span [ngClass]="getCategoryBadgeClass(r.category)">{{ getCategoryLabel(r.category) }}</span></td>
+                  <td>{{ r.antal }}</td>
+                  <td class="text-danger fw-bold">{{ r.total_min | number:'1.0-0' }} min</td>
+                  <td class="text-muted">{{ r.snitt_min }} min</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tidslinje idag (rast-data) -->
       <div class="card mb-4">
         <div class="card-header">
           <h5 class="mb-0">
-            <i class="fas fa-stream me-2 text-info"></i>Stopp-tidslinje för idag
+            <i class="fas fa-stream me-2 text-info"></i>Linjetidslinje — idag
           </h5>
-          <small class="text-muted">Grön = kör, gul = rast/stopp (06:00–22:00)</small>
+          <small class="text-muted">Grön = kör, gul = rast/stopp (06:00–22:00) — baserat på PLC rast-signal</small>
         </div>
         <div class="card-body">
           <div *ngIf="getTimelineBlocks().length > 0; else noTimeline">
@@ -537,7 +623,6 @@
                    [title]="block.tooltip">
               </div>
             </div>
-            <!-- Tid-axel -->
             <div class="stop-timeline-axis">
               <span>06:00</span>
               <span>09:00</span>
@@ -547,7 +632,6 @@
               <span>21:00</span>
               <span>22:00</span>
             </div>
-            <!-- Summering -->
             <div class="stop-summary mt-3" *ngIf="rastStatus">
               <span class="stop-sum-item stop-sum-running">
                 <i class="fas fa-play me-1"></i>
@@ -566,7 +650,7 @@
           <ng-template #noTimeline>
             <div class="text-center text-muted py-3">
               <i class="fas fa-info-circle me-2"></i>
-              Ingen detaljerad tidslinje tillgänglig — inga rast-events registrerade idag.
+              Ingen tidslinje tillgänglig — inga rast-events registrerade idag.
               <div class="mt-2" *ngIf="rastStatus">
                 <span class="badge" [class.bg-success]="!rastStatus.on_rast" [class.bg-warning]="rastStatus.on_rast" [class.text-dark]="rastStatus.on_rast">
                   Nuläge: {{ rastStatus.on_rast ? 'Rast/Stopp' : 'Körs' }}
@@ -575,73 +659,6 @@
               </div>
             </div>
           </ng-template>
-        </div>
-      </div>
-
-      <!-- Rast per dag senaste 14 dagarna -->
-      <div class="card mb-4">
-        <div class="card-header">
-          <h5 class="mb-0">
-            <i class="fas fa-chart-bar me-2 text-warning"></i>Rasttid per dag — senaste 14 dagarna
-          </h5>
-          <small class="text-muted">Estimerat: (8h skift – registrerad körtid). OBS: Proxy för rast — inte exakt stoppanalys.</small>
-        </div>
-        <div class="card-body">
-          <div *ngIf="rastHistory14.length > 0; else noRastHistory">
-            <div class="chart-container" style="height: 260px;">
-              <canvas id="stopRastChart"></canvas>
-            </div>
-          </div>
-          <ng-template #noRastHistory>
-            <p class="text-muted text-center py-3">
-              Ingen historisk rastdata tillgänglig för de senaste 14 dagarna.
-            </p>
-          </ng-template>
-        </div>
-      </div>
-
-      <!-- Statistik senaste 30 dagarna -->
-      <div class="card mb-4" *ngIf="rastStatus">
-        <div class="card-header">
-          <h5 class="mb-0">
-            <i class="fas fa-table me-2 text-info"></i>Stoppstatistik — idag (rast-data)
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-6 col-md-3">
-              <div class="stop-stat-tile">
-                <div class="sst-label">Totalt antal raster</div>
-                <div class="sst-val text-warning">{{ rastStatus.rast_count_today ?? 0 }}</div>
-                <div class="sst-sub">idag</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="stop-stat-tile">
-                <div class="sst-label">Total rasttid</div>
-                <div class="sst-val text-warning">{{ rastStatus.rast_minutes_today ?? 0 }}</div>
-                <div class="sst-sub">minuter idag</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="stop-stat-tile">
-                <div class="sst-label">Snitt raster/skift</div>
-                <div class="sst-val text-info">
-                  {{ rastHistory14.length > 0 ? (rastHistory14.length | number:'1.0-0') : '-' }}
-                </div>
-                <div class="sst-sub">dagar med data</div>
-              </div>
-            </div>
-            <div class="col-6 col-md-3">
-              <div class="stop-stat-tile">
-                <div class="sst-label">Senaste rast-event</div>
-                <div class="sst-val text-muted" style="font-size:0.95rem;">
-                  {{ rastStatus.last_event ? (rastStatus.last_event | slice:11:16) : '-' }}
-                </div>
-                <div class="sst-sub">{{ rastStatus.last_event ? (rastStatus.last_event | slice:0:10) : 'Ingen data' }}</div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

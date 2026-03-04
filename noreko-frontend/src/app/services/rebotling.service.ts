@@ -275,6 +275,46 @@ export class RebotlingService {
       { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
   }
+
+  getStoppageAnalysis(days: number = 30): Observable<StoppageAnalysisResponse> {
+    return this.http.get<StoppageAnalysisResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=stoppage-analysis&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+}
+
+export interface StoppageDayEntry {
+  dag: string;
+  total_minuter: number;
+  antal: number;
+  kategorier: { [category: string]: number };
+}
+
+export interface StoppageCategoryEntry {
+  category: string;
+  antal: number;
+  total_min: number;
+}
+
+export interface StoppageReasonEntry {
+  name: string;
+  category: string;
+  antal: number;
+  total_min: number;
+  snitt_min: number;
+}
+
+export interface StoppageAnalysisResponse {
+  success: boolean;
+  empty?: boolean;
+  reason?: string;
+  by_day: StoppageDayEntry[];
+  by_category: StoppageCategoryEntry[];
+  top_reasons: StoppageReasonEntry[];
+  total_events: number;
+  total_minutes: number;
+  days: number;
 }
 
 export interface CycleTrendResponse {

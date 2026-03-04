@@ -72,6 +72,8 @@ class RebotlingController {
                 $this->getWeekdayStats();
             } elseif ($action === 'events') {
                 $this->getEvents();
+            } elseif ($action === 'stoppage-analysis') {
+                $this->getStoppageAnalysis();
             } else {
                 $this->getLiveStats();
             }
@@ -3987,6 +3989,175 @@ class RebotlingController {
             error_log('RebotlingController addEvent: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'Kunde inte spara händelsen']);
+        }
+    }
+
+    // GET ?action=rebotling&run=stoppage-analysis&days=30
+    // Returnerar stoppanalys från stoppage_log + stoppage_reasons.
+    // Hanterar saknad tabell gracefully (returnerar empty=true).
+    private function getStoppageAnalysis(): void {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+
+        // Kontrollera att tabellerna finns
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name IN ('stoppage_log','stoppage_reasons')"
+            );
+            $found = (int)$check->fetchColumn();
+            if ($found < 2) {
+                echo json_encode([
+                    'success' => true,
+                    'empty'   => true,
+                    'reason'  => 'Tabellerna stoppage_log/stoppage_reasons finns inte än. Kör migreringsfil 2026-03-04_stoppage_log.sql.',
+                    'by_day'  => [],
+                    'by_category' => [],
+                    'top_reasons' => [],
+                    'total_events'   => 0,
+                    'total_minutes'  => 0,
+                    'days'    => $days
+                ]);
+                return;
+            }
+        } catch (Exception $e) {
+            error_log('RebotlingController getStoppageAnalysis check: ' . $e->getMessage());
+            echo json_encode([
+                'success' => true,
+                'empty'   => true,
+                'reason'  => 'Kunde inte kontrollera tabeller.',
+                'by_day'  => [],
+                'by_category' => [],
+                'top_reasons' => [],
+                'total_events'   => 0,
+                'total_minutes'  => 0,
+                'days'    => $days
+            ]);
+            return;
+        }
+
+        try {
+            // Aggregering per dag och kategori
+            $stmtDay = $this->pdo->prepare(
+                "SELECT
+                     DATE(sl.created_at)        AS dag,
+                     sr.category,
+                     sr.name                    AS reason_name,
+                     COUNT(*)                   AS antal,
+                     COALESCE(SUM(sl.duration_minutes), 0)  AS total_minuter,
+                     COALESCE(AVG(sl.duration_minutes), 0)  AS snitt_minuter
+                 FROM stoppage_log sl
+                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 WHERE sl.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                 GROUP BY DATE(sl.created_at), sr.category, sr.name
+                 ORDER BY dag DESC, total_minuter DESC"
+            );
+            $stmtDay->execute([$days]);
+            $byDay = $stmtDay->fetchAll(PDO::FETCH_ASSOC);
+
+            // Aggregering per kategori
+            $stmtCat = $this->pdo->prepare(
+                "SELECT
+                     sr.category,
+                     COUNT(*)                              AS antal,
+                     COALESCE(SUM(sl.duration_minutes), 0) AS total_min
+                 FROM stoppage_log sl
+                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 WHERE sl.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                 GROUP BY sr.category
+                 ORDER BY total_min DESC"
+            );
+            $stmtCat->execute([$days]);
+            $byCategory = $stmtCat->fetchAll(PDO::FETCH_ASSOC);
+
+            // Topplista per orsak (max 10)
+            $stmtTop = $this->pdo->prepare(
+                "SELECT
+                     sr.name,
+                     sr.category,
+                     COUNT(*)                              AS antal,
+                     COALESCE(SUM(sl.duration_minutes), 0) AS total_min,
+                     COALESCE(AVG(sl.duration_minutes), 0) AS snitt_min
+                 FROM stoppage_log sl
+                 JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                 WHERE sl.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                 GROUP BY sr.name, sr.category
+                 ORDER BY total_min DESC
+                 LIMIT 10"
+            );
+            $stmtTop->execute([$days]);
+            $topReasons = $stmtTop->fetchAll(PDO::FETCH_ASSOC);
+
+            // Summering
+            $stmtSum = $this->pdo->prepare(
+                "SELECT COUNT(*) AS total_events,
+                        COALESCE(SUM(duration_minutes), 0) AS total_minutes
+                 FROM stoppage_log
+                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)"
+            );
+            $stmtSum->execute([$days]);
+            $summary = $stmtSum->fetch(PDO::FETCH_ASSOC);
+
+            $totalEvents  = (int)($summary['total_events']  ?? 0);
+            $totalMinutes = (float)($summary['total_minutes'] ?? 0);
+
+            // Bygg daglig aggregering (total per dag, för diagram)
+            $dagMap = [];
+            foreach ($byDay as $row) {
+                $dag = $row['dag'];
+                if (!isset($dagMap[$dag])) {
+                    $dagMap[$dag] = ['dag' => $dag, 'total_minuter' => 0, 'antal' => 0, 'kategorier' => []];
+                }
+                $dagMap[$dag]['total_minuter'] += (float)$row['total_minuter'];
+                $dagMap[$dag]['antal']         += (int)$row['antal'];
+                $cat = $row['category'];
+                if (!isset($dagMap[$dag]['kategorier'][$cat])) $dagMap[$dag]['kategorier'][$cat] = 0;
+                $dagMap[$dag]['kategorier'][$cat] += (float)$row['total_minuter'];
+            }
+            $dagList = array_values($dagMap);
+
+            // Konvertera numeriska strängar
+            foreach ($byCategory as &$r) {
+                $r['antal']     = (int)$r['antal'];
+                $r['total_min'] = (float)$r['total_min'];
+            }
+            unset($r);
+            foreach ($topReasons as &$r) {
+                $r['antal']     = (int)$r['antal'];
+                $r['total_min'] = (float)$r['total_min'];
+                $r['snitt_min'] = round((float)$r['snitt_min'], 1);
+            }
+            unset($r);
+            foreach ($dagList as &$r) {
+                $r['total_minuter'] = round($r['total_minuter'], 1);
+            }
+            unset($r);
+
+            $empty = ($totalEvents === 0);
+
+            echo json_encode([
+                'success'      => true,
+                'empty'        => $empty,
+                'by_day'       => $dagList,
+                'by_category'  => $byCategory,
+                'top_reasons'  => $topReasons,
+                'total_events' => $totalEvents,
+                'total_minutes'=> round($totalMinutes, 1),
+                'days'         => $days
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getStoppageAnalysis: ' . $e->getMessage());
+            echo json_encode([
+                'success'      => true,
+                'empty'        => true,
+                'reason'       => 'Databasfel vid hämtning av stoppdata.',
+                'by_day'       => [],
+                'by_category'  => [],
+                'top_reasons'  => [],
+                'total_events' => 0,
+                'total_minutes'=> 0,
+                'days'         => $days
+            ]);
         }
     }
 
