@@ -1,0 +1,118 @@
+<div class="container-fluid py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <h2 class="text-light mb-0">
+      <i class="fas fa-calendar-check me-2 text-info"></i>Operatörsnärvaro
+    </h2>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-outline-secondary btn-sm" (click)="prevMonth()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="text-light fw-bold" style="min-width:160px;text-align:center">{{ monthLabel() }}</span>
+      <button class="btn btn-outline-secondary btn-sm" (click)="nextMonth()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+
+  <div class="row g-4">
+    <!-- Kalendervy -->
+    <div class="col-12 col-xl-8">
+      <div class="card" style="background:#2d3748">
+        <div class="card-header text-light d-flex align-items-center justify-content-between">
+          <span>Daglig närvaro</span>
+          <small class="text-muted">{{ calendarDays.length }} dagar i månaden</small>
+        </div>
+        <div class="card-body p-2">
+          <div *ngIf="loading" class="text-center text-muted py-4">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+          </div>
+
+          <div *ngIf="!loading">
+            <!-- Veckodagsrubriker -->
+            <div class="weekday-header-grid mb-1">
+              <div class="weekday-header" *ngFor="let wd of weekdayHeaders">{{ wd }}</div>
+            </div>
+
+            <!-- Dagceller med offset för att börja på rätt veckodag -->
+            <div class="attendance-grid">
+              <div class="day-cell empty-offset" *ngFor="let o of startOffset"></div>
+              <div class="day-cell"
+                   *ngFor="let day of calendarDays"
+                   [class.weekend]="day.weekday === 0 || day.weekday === 6"
+                   [class.empty-day]="day.operators.length === 0">
+                <div class="day-num">
+                  {{ day.dayNum }}
+                  <small class="text-muted">{{ weekdayLabel(day.weekday) }}</small>
+                </div>
+                <div class="op-badges">
+                  <span class="badge me-1 mb-1"
+                        *ngFor="let op of day.operators"
+                        style="background:#4a5568;font-size:0.7rem"
+                        [title]="op.namn">
+                    {{ op.initialer }}
+                  </span>
+                  <span class="text-muted small" *ngIf="day.operators.length === 0">—</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistik-sidebar -->
+    <div class="col-12 col-xl-4">
+      <div class="card" style="background:#2d3748">
+        <div class="card-header text-light">
+          <i class="fas fa-chart-bar me-2 text-info"></i>Närvarodagar — {{ monthLabel() }}
+        </div>
+        <div class="card-body p-0">
+          <div *ngIf="loading" class="text-center text-muted py-4">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+          </div>
+          <table class="table table-dark table-hover mb-0" *ngIf="!loading">
+            <thead>
+              <tr>
+                <th>Operatör</th>
+                <th class="text-center">Dagar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of attendanceStats">
+                <td>
+                  <span class="badge me-2" style="background:#4a5568;font-size:0.7rem">{{ s.initialer }}</span>
+                  {{ s.namn }}
+                </td>
+                <td class="text-center">
+                  <span class="badge"
+                        [class]="s.days >= 20 ? 'bg-success' : s.days >= 10 ? 'bg-warning text-dark' : s.days > 0 ? 'bg-info text-dark' : 'bg-secondary'">
+                    {{ s.days }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="attendanceStats.length === 0">
+                <td colspan="2" class="text-muted text-center py-3">Inga aktiva operatörer hittades</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sammanfattning -->
+      <div class="card mt-3" style="background:#2d3748" *ngIf="!loading && attendanceStats.length > 0">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between text-light small">
+            <span class="text-muted">Operatörer med närvaro:</span>
+            <strong>{{ opsWithAttendance }}</strong>
+          </div>
+          <div class="d-flex justify-content-between text-light small mt-1">
+            <span class="text-muted">Totalt operatörsdagar:</span>
+            <strong>{{ totalAttendanceDays }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

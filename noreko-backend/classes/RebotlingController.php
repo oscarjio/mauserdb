@@ -12,6 +12,21 @@ class RebotlingController {
         $action = $_GET['run'] ?? '';
 
         if ($method === 'GET') {
+            // Skydda admin-only GET-endpoints med sessions-kontroll
+            $adminOnlyActions = [
+                'admin-settings', 'weekday-goals', 'shift-times', 'system-status',
+                'alert-thresholds', 'today-snapshot', 'notification-settings',
+                'all-lines-status',
+            ];
+            if (in_array($action, $adminOnlyActions, true)) {
+                if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+                if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    return;
+                }
+            }
+
             if ($action === 'admin-settings') {
                 $this->getAdminSettings();
             } elseif ($action === 'weekday-goals') {
@@ -92,12 +107,16 @@ class RebotlingController {
                 $this->getAllLinesStatus();
             } elseif ($action === 'notification-settings') {
                 $this->getNotificationSettings();
+            } elseif ($action === 'live-ranking-settings') {
+                $this->getLiveRankingSettings();
             } elseif ($action === 'personal-bests') {
                 $this->getPersonalBests();
             } elseif ($action === 'monthly-leaders') {
                 $this->getMonthlyLeaders();
             } elseif ($action === 'attendance') {
                 $this->getAttendance();
+            } elseif ($action === 'goal-history') {
+                $this->getGoalHistory();
             } else {
                 $this->getLiveStats();
             }
@@ -139,6 +158,8 @@ class RebotlingController {
                 $this->saveAlertThresholds();
             } elseif ($action === 'save-notification-settings') {
                 $this->saveNotificationSettings();
+            } elseif ($action === 'save-live-ranking-settings') {
+                $this->saveLiveRankingSettings();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -555,6 +576,29 @@ class RebotlingController {
                     'UPDATE rebotling_settings SET ' . implode(', ', $fields) . ' WHERE id = ?'
                 );
                 $stmt->execute($params);
+            }
+
+            // Logga mål-ändringar i historiktoken
+            if ($rebotlingTarget !== null) {
+                $user = $_SESSION['username'] ?? ($_SESSION['user_login'] ?? 'system');
+                try {
+                    $this->pdo->exec("
+                        CREATE TABLE IF NOT EXISTS rebotling_goal_history (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            goal_type VARCHAR(50) NOT NULL DEFAULT 'dagmal',
+                            value INT NOT NULL,
+                            changed_by VARCHAR(100),
+                            changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            INDEX idx_type_time (goal_type, changed_at)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                    ");
+                    $logStmt = $this->pdo->prepare(
+                        "INSERT INTO rebotling_goal_history (goal_type, value, changed_by) VALUES ('dagmal', ?, ?)"
+                    );
+                    $logStmt->execute([intval($rebotlingTarget), $user]);
+                } catch (Exception $logEx) {
+                    error_log('Kunde inte logga mål-historik: ' . $logEx->getMessage());
+                }
             }
 
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
@@ -5682,5 +5726,120 @@ class RebotlingController {
         }
     }
 
+
+    /**
+     * GET ?action=rebotling&run=goal-history
+     * Returnerar historik för dagsmål-ändringar
+     */
+    private function getGoalHistory() {
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+            return;
+        }
+
+        $days = intval($_GET['days'] ?? 180);
+        if ($days < 1 || $days > 730) $days = 180;
+
+        try {
+            // Skapa tabellen om den inte finns
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS rebotling_goal_history (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    goal_type VARCHAR(50) NOT NULL DEFAULT 'dagmal',
+                    value INT NOT NULL,
+                    changed_by VARCHAR(100),
+                    changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_type_time (goal_type, changed_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
+            $stmt = $this->pdo->prepare("
+                SELECT goal_type, value, changed_by, changed_at
+                FROM rebotling_goal_history
+                WHERE changed_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                ORDER BY changed_at ASC
+            ");
+            $stmt->execute([$days]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Om inga rader: returnera nuvarande värde som startpunkt
+            if (empty($rows)) {
+                $current = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1"
+                )->fetchColumn();
+                if ($current !== false) {
+                    $rows = [[
+                        'goal_type'  => 'dagmal',
+                        'value'      => (int)$current,
+                        'changed_by' => 'system',
+                        'changed_at' => date('Y-m-d H:i:s', strtotime('-' . $days . ' days'))
+                    ]];
+                }
+            }
+
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (Exception $e) {
+            error_log('getGoalHistory: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+    /**
+     * GET ?action=rebotling&run=live-ranking-settings
+     */
+    private function getLiveRankingSettings(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        try {
+            $keys = ['lr_show_quality', 'lr_show_progress', 'lr_show_motto', 'lr_poll_interval', 'lr_title'];
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt->execute($keys);
+            $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+            echo json_encode(['success' => true, 'data' => [
+                'lr_show_quality'  => ($rows['lr_show_quality']  ?? '1') === '1',
+                'lr_show_progress' => ($rows['lr_show_progress'] ?? '1') === '1',
+                'lr_show_motto'    => ($rows['lr_show_motto']    ?? '1') === '1',
+                'lr_poll_interval' => intval($rows['lr_poll_interval'] ?? 30),
+                'lr_title'         => $rows['lr_title'] ?? 'Live Ranking',
+            ]]);
+        } catch (Exception $e) {
+            error_log('getLiveRankingSettings: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=save-live-ranking-settings
+     */
+    private function saveLiveRankingSettings(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Ej behörig']);
+            return;
+        }
+        try {
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $settings = [
+                'lr_show_quality'  => isset($body['lr_show_quality'])  ? ($body['lr_show_quality']  ? '1' : '0') : '1',
+                'lr_show_progress' => isset($body['lr_show_progress']) ? ($body['lr_show_progress'] ? '1' : '0') : '1',
+                'lr_show_motto'    => isset($body['lr_show_motto'])    ? ($body['lr_show_motto']    ? '1' : '0') : '1',
+                'lr_poll_interval' => strval(max(10, min(120, intval($body['lr_poll_interval'] ?? 30)))),
+                'lr_title'         => substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
+            ];
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
+            foreach ($settings as $k => $v) {
+                $stmt->execute([$k, $v]);
+            }
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('saveLiveRankingSettings: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
 
 }

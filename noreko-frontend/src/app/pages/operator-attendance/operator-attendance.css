@@ -1,0 +1,43 @@
+.weekday-header-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.weekday-header {
+  text-align: center;
+  font-size: 0.7rem;
+  color: #718096;
+  font-weight: 600;
+  padding: 2px 0;
+  text-transform: uppercase;
+}
+.attendance-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.day-cell {
+  background: #1a202c;
+  border-radius: 4px;
+  padding: 4px 6px;
+  min-height: 64px;
+}
+.day-cell.empty-offset {
+  background: transparent;
+  min-height: 64px;
+}
+.day-cell.weekend {
+  background: #1e2a38;
+}
+.day-cell.empty-day {
+  opacity: 0.5;
+}
+.day-num {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-bottom: 2px;
+}
+.op-badges {
+  display: flex;
+  flex-wrap: wrap;
+}
