@@ -135,6 +135,8 @@ class RebotlingController {
                 $this->getMonthlyStopSummary();
             } elseif ($action === 'goal-exceptions') {
                 $this->getGoalExceptions();
+            } elseif ($action === 'oee-components') {
+                $this->getOeeComponents();
             } else {
                 $this->getLiveStats();
             }
@@ -6848,6 +6850,80 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('deleteGoalException: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort undantag']);
+        }
+    }
+
+
+    /**
+     * GET ?action=rebotling&run=oee-components&days=14
+     * Returnerar dagliga trendlinjer för OEE-komponenterna Tillgänglighet och Kvalitet.
+     */
+    private function getOeeComponents() {
+        $days = isset($_GET['days']) ? (int)$_GET['days'] : 14;
+        if ($days < 1) $days = 1;
+        if ($days > 90) $days = 90;
+
+        try {
+            $sql = "
+                SELECT
+                    datum_day AS dag,
+                    SUM(shift_ibc_ok)     AS daily_ibc_ok,
+                    SUM(shift_ibc_ej_ok)  AS daily_ibc_ej_ok,
+                    SUM(shift_runtime)    AS daily_runtime_min,
+                    SUM(shift_rast)       AS daily_rast_min
+                FROM (
+                    SELECT
+                        DATE(datum)                         AS datum_day,
+                        skiftraknare,
+                        COALESCE(MAX(ibc_ok), 0)            AS shift_ibc_ok,
+                        COALESCE(MAX(bur_ej_ok), 0)         AS shift_ibc_ej_ok,
+                        COALESCE(MAX(runtime_plc), 0)       AS shift_runtime,
+                        COALESCE(MAX(rasttime), 0)          AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) per_shift
+                GROUP BY datum_day
+                ORDER BY datum_day ASC
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':days' => $days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $data = [];
+            foreach ($rows as $row) {
+                $runtime = (float)$row['daily_runtime_min'];
+                $rast    = (float)$row['daily_rast_min'];
+                $ibcOk   = (float)$row['daily_ibc_ok'];
+                $ibcEj   = (float)$row['daily_ibc_ej_ok'];
+
+                $tillganglighet = null;
+                if (($runtime + $rast) > 0) {
+                    $tillganglighet = round($runtime / ($runtime + $rast) * 100, 2);
+                }
+
+                $kvalitet = null;
+                if (($ibcOk + $ibcEj) > 0) {
+                    $kvalitet = round($ibcOk / ($ibcOk + $ibcEj) * 100, 2);
+                }
+
+                $data[] = [
+                    'datum'          => $row['dag'],
+                    'tillganglighet' => $tillganglighet,
+                    'kvalitet'       => $kvalitet,
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days,
+                'data'    => $data,
+            ]);
+        } catch (Exception $e) {
+            error_log('getOeeComponents: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-komponentdata']);
         }
     }
 
