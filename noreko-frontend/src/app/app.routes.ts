@@ -60,6 +60,7 @@ export const routes: Routes = [
       { path: 'admin/skiftplan', canActivate: [adminGuard], loadComponent: () => import('./pages/shift-plan/shift-plan').then(m => m.ShiftPlanPage) },
       { path: 'admin/certifiering', canActivate: [adminGuard], loadComponent: () => import('./pages/certifications/certifications').then(m => m.CertificationsPage) },
       { path: 'admin/operator-dashboard', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-dashboard/operator-dashboard').then(m => m.OperatorDashboardPage) },
+      { path: 'admin/operator-compare', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-compare/operator-compare').then(m => m.OperatorComparePage) },
 
       { path: 'rebotling/andon', loadComponent: () => import('./pages/andon/andon').then(m => m.AndonPage) },
       { path: '**', loadComponent: () => import('./pages/not-found/not-found').then(m => m.NotFoundPage) }

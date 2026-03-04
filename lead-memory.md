@@ -217,8 +217,8 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ### Grafer — mer detaljerad data
 - [x] **Cykeltids-histogram**: Levererat `e4ca058` — histogrambuckets (0-2/2-3/3-4/4-5/5-7/7+min), KPI-brickor (Snitt/P50/P90/P95), grön stapelgraf, datumväljare. Backend: cycle-histogram endpoint med fallback till rebotling_ibc.
 - [x] **Kontrollkort (SPC)**: Levererat `e4ca058` — X̄±2σ kontrollgränser, 4 dataset (IBC/h blå, UCL röd, LCL orange, medelvärde grön), dagar-väljare (3/7/14/30). Backend: spc endpoint med sample stddev.
-- [ ] **Kvalitetstrendkort**: Daglig kvalitet% som linjegraf med 7-dagars rullande medelvärde. Identifiera om kvaliteten försämras gradvis.
-- [ ] **Waterfalldiagram OEE**: Visar hur förluster bryts ned: 100% → -X% tillgänglighet → -Y% prestanda → -Z% kvalitet = faktisk OEE.
+- [x] **Kvalitetstrendkort**: Redan implementerat (verifierat a682f9d) — linjegraf daglig%+7d rullande, KPI-brickor, periodväljare 14/30/90 dagar.
+- [x] **Waterfalldiagram OEE**: Redan implementerat (verifierat a682f9d) — horisontellt staplat A/P/Q/OEE diagram, KPI-brickor färgkodade.
 
 ### Nya vyer/sidor
 - [ ] **Skiftplaneringsvy** (`/admin/skiftplan`): Kalendervy där admin kan se vilka operatörer som är schemalagda per skift. Kan kopplas till bonusberäkning.
@@ -243,7 +243,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## AKTIVA AGENTER (session 2026-03-04)
-- **Tvättlinje-statistik-agent** (a59ff05a): tvattlinje-statistik.ts, tvattlinje-skiftrapport.ts — PÅGÅR
+- **Tvättlinje-statistik-agent** (a59ff05a): KLAR — cdd9411
 - **Kvalitetstrend+OEE-Waterfall-agent** (startas): rebotling-statistik.ts, RebotlingController nya endpoints — STARTAS
 - **Operatörsjämförelse-agent** (startas): ny sida /admin/operator-compare, operatörsjämförelse ts — STARTAS
 
