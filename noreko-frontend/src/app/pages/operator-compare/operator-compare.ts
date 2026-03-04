@@ -8,6 +8,7 @@ import { Chart, registerables } from 'chart.js';
 import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
+Chart.defaults.color = '#e2e8f0';
 
 interface Operator {
   id: number;
@@ -36,6 +37,20 @@ interface CompareResponse {
   success: boolean;
   op_a: OperatorData;
   op_b: OperatorData;
+  error?: string;
+}
+
+interface RadarOperator {
+  op_id: number;
+  namn: string;
+  initialer: string;
+  scores: number[];
+}
+
+interface RadarResponse {
+  success: boolean;
+  labels: string[];
+  operators: RadarOperator[];
   error?: string;
 }
 
@@ -123,6 +138,50 @@ interface CompareResponse {
           <div class="op-name-badge op-b-badge">
             <div class="op-avatar op-b-avatar">{{ getInitials(compareData.op_b.name) }}</div>
             <span>{{ compareData.op_b.name }}</span>
+          </div>
+        </div>
+
+        <!-- Radar-diagram — Multidimensionell jämförelse -->
+        <div class="radar-card">
+          <h3 class="section-title"><i class="fas fa-spider me-2"></i>Multidimensionell jämförelse</h3>
+
+          <!-- Spinner medan radar laddas -->
+          <div *ngIf="radarLoading" class="radar-spinner">
+            <i class="fas fa-spinner fa-spin fa-2x"></i>
+            <p>Hämtar radar-data…</p>
+          </div>
+
+          <!-- Radar-diagram -->
+          <div *ngIf="!radarLoading && radarData" class="radar-content">
+            <div class="radar-chart-wrapper">
+              <canvas #radarChartCanvas id="radarChart"></canvas>
+            </div>
+
+            <!-- Scores under diagrammet -->
+            <div class="radar-scores-row">
+              <div class="radar-score-item" *ngFor="let op of radarData.operators; let i = index">
+                <span class="radar-score-name" [class.score-a]="i === 0" [class.score-b]="i === 1">
+                  {{ op.namn }}:
+                </span>
+                <span class="radar-score-labels">
+                  <span class="score-tag">IBC/h <strong>{{ op.scores[0] }}</strong></span>
+                  <span class="score-sep">·</span>
+                  <span class="score-tag">Kval <strong>{{ op.scores[1] }}</strong></span>
+                  <span class="score-sep">·</span>
+                  <span class="score-tag">Akt <strong>{{ op.scores[2] }}</strong></span>
+                  <span class="score-sep">·</span>
+                  <span class="score-tag">Cykel <strong>{{ op.scores[3] }}</strong></span>
+                  <span class="score-sep">·</span>
+                  <span class="score-tag">Rank <strong>{{ op.scores[4] }}</strong></span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ingen radar-data -->
+          <div *ngIf="!radarLoading && !radarData" class="radar-no-data">
+            <i class="fas fa-chart-pie fa-2x mb-2" style="color:#4a5568"></i>
+            <p>Kunde inte ladda radar-data.</p>
           </div>
         </div>
 
@@ -458,6 +517,84 @@ interface CompareResponse {
     .op-a-avatar { background: #2b6cb0; }
     .op-b-avatar { background: #c05621; }
 
+    /* Radar card */
+    .radar-card {
+      background: #2d3748;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .radar-spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: #718096;
+      gap: 12px;
+    }
+    .radar-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .radar-chart-wrapper {
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 1 / 1;
+      position: relative;
+    }
+    .radar-chart-wrapper canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+    .radar-scores-row {
+      margin-top: 16px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .radar-score-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.85rem;
+      color: #a0aec0;
+    }
+    .radar-score-name {
+      font-weight: 700;
+      white-space: nowrap;
+      min-width: 90px;
+    }
+    .score-a { color: #4299e1; }
+    .score-b { color: #48bb78; }
+    .radar-score-labels {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .score-tag {
+      color: #cbd5e0;
+    }
+    .score-tag strong {
+      color: #e2e8f0;
+      font-weight: 700;
+    }
+    .score-sep {
+      color: #4a5568;
+    }
+    .radar-no-data {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #718096;
+      padding: 40px 24px;
+    }
+
     /* KPI table card */
     .kpi-table-card {
       background: #2d3748;
@@ -602,6 +739,8 @@ interface CompareResponse {
       .kpi-row { grid-template-columns: 1.5fr 1fr 1fr; }
       .kpi-col { padding: 10px 8px; }
       .kpi-value { font-size: 0.9rem; }
+      .radar-chart-wrapper { max-width: 300px; }
+      .radar-score-item { font-size: 0.78rem; }
     }
   `]
 })
@@ -619,10 +758,17 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   isLoading = false;
   errorMsg = '';
 
+  // Radar state
+  radarData: RadarResponse | null = null;
+  radarLoading = false;
+  private radarChart: Chart | null = null;
+  private radarTimer: any = null;
+
   private trendChart: Chart | null = null;
   private chartTimer: any = null;
 
   @ViewChild('trendChartCanvas') trendChartCanvas!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('radarChartCanvas') radarChartCanvas!: ElementRef<HTMLCanvasElement>;
 
   constructor(private http: HttpClient) {}
 
@@ -637,8 +783,14 @@ export class OperatorComparePage implements OnInit, OnDestroy {
       clearTimeout(this.chartTimer);
       this.chartTimer = null;
     }
+    if (this.radarTimer) {
+      clearTimeout(this.radarTimer);
+      this.radarTimer = null;
+    }
     this.trendChart?.destroy();
     this.trendChart = null;
+    this.radarChart?.destroy();
+    this.radarChart = null;
   }
 
   // -------------------------------------------------------------------------
@@ -672,7 +824,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   }
 
   // -------------------------------------------------------------------------
-  // Jämför
+  // Jämför (huvud-endpoint + radar)
   // -------------------------------------------------------------------------
   compare(): void {
     if (!this.selectedOpA || !this.selectedOpB || this.isLoading) return;
@@ -680,6 +832,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
 
     this.isLoading = true;
     this.errorMsg = '';
+    this.radarData = null;
 
     const url =
       `${this.apiBase}?action=operator-compare&run=compare` +
@@ -696,16 +849,137 @@ export class OperatorComparePage implements OnInit, OnDestroy {
         this.isLoading = false;
         if (data?.success) {
           this.compareData = { op_a: data.op_a, op_b: data.op_b };
-          // Vänta en tick så att *ngIf renderar canvas
+          // Vänta en tick så att *ngIf renderar canvaser
           if (this.chartTimer) {
             clearTimeout(this.chartTimer);
           }
           this.chartTimer = setTimeout(() => this.buildTrendChart(), 120);
+
+          // Ladda radar-data parallellt
+          this.loadRadarData();
         } else {
           this.errorMsg = data?.error || 'Kunde inte hämta jämförelsedata. Försök igen.';
           this.compareData = null;
         }
       });
+  }
+
+  // -------------------------------------------------------------------------
+  // Ladda radar-data
+  // -------------------------------------------------------------------------
+  loadRadarData(): void {
+    if (!this.selectedOpA || !this.selectedOpB) return;
+
+    this.radarLoading = true;
+    this.radarData = null;
+
+    const url =
+      `${this.apiBase}?action=operator-compare&run=radar-data` +
+      `&op1=${this.selectedOpA}&op2=${this.selectedOpB}&days=${this.days}`;
+
+    this.http
+      .get<RadarResponse>(url, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((data) => {
+        this.radarLoading = false;
+        if (data?.success) {
+          this.radarData = data;
+          // Vänta en tick så canvas renderas
+          if (this.radarTimer) {
+            clearTimeout(this.radarTimer);
+          }
+          this.radarTimer = setTimeout(() => this.buildRadarChart(), 150);
+        } else {
+          this.radarData = null;
+        }
+      });
+  }
+
+  // -------------------------------------------------------------------------
+  // Bygg radar-diagram
+  // -------------------------------------------------------------------------
+  buildRadarChart(): void {
+    if (!this.radarChartCanvas || !this.radarData) return;
+
+    this.radarChart?.destroy();
+    this.radarChart = null;
+
+    const ctx = this.radarChartCanvas.nativeElement.getContext('2d');
+    if (!ctx) return;
+
+    this.radarChart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: this.radarData.labels,
+        datasets: this.radarData.operators.map((op, i) => ({
+          label: op.namn,
+          data: op.scores,
+          fill: true,
+          backgroundColor: i === 0
+            ? 'rgba(66, 153, 225, 0.2)'
+            : 'rgba(72, 187, 120, 0.2)',
+          borderColor: i === 0 ? '#4299e1' : '#48bb78',
+          pointBackgroundColor: i === 0 ? '#4299e1' : '#48bb78',
+          pointBorderColor: '#1a202c',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+        }))
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          r: {
+            min: 0,
+            max: 100,
+            ticks: {
+              stepSize: 20,
+              color: '#718096',
+              backdropColor: 'transparent',
+              font: { size: 10 },
+            },
+            grid: {
+              color: 'rgba(255,255,255,0.1)',
+            },
+            angleLines: {
+              color: 'rgba(255,255,255,0.1)',
+            },
+            pointLabels: {
+              color: '#a0aec0',
+              font: { size: 12, weight: 'bold' },
+            },
+          },
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#e2e8f0',
+              usePointStyle: true,
+              pointStyleWidth: 10,
+              font: { size: 12 },
+            },
+          },
+          tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => {
+                return ` ${ctx.dataset.label}: ${ctx.parsed.r}`;
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   // -------------------------------------------------------------------------
