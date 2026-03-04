@@ -64,6 +64,7 @@ export const routes: Routes = [
       { path: 'admin/operator-dashboard', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-dashboard/operator-dashboard').then(m => m.OperatorDashboardPage) },
       { path: 'admin/operator-compare', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-compare/operator-compare').then(m => m.OperatorComparePage) },
       { path: 'admin/operator-attendance', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-attendance/operator-attendance').then(m => m.OperatorAttendancePage) },
+      { path: 'admin/operator-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-trend/operator-trend').then(m => m.OperatorTrendPage) },
       { path: 'admin/operator/:id', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-detail/operator-detail').then(m => m.OperatorDetailPage) },
       { path: 'admin/underhall', canActivate: [adminGuard], loadComponent: () => import('./pages/maintenance-log/maintenance-log').then(m => m.MaintenanceLogPage) },
 
