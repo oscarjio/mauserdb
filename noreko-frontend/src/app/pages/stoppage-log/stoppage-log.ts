@@ -4,9 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary, ParetoData, ParetoOrsak } from '../../services/stoppage.service';
 import { Chart, registerables } from 'chart.js';
+import QRCode from 'qrcode';
 
 Chart.register(...registerables);
 
@@ -60,6 +62,17 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   editDuration: string = '';
   editComment: string = '';
   savingId: number | null = null;
+
+  // QR code section
+  qrSectionOpen = false;
+  machines = ['Press 1', 'Press 2', 'Robotstation', 'Transportband', 'Ränna', 'Övrigt'];
+  qrDataUrls: { [maskin: string]: string } = {};
+  qrLoading = false;
+
+  // Template globals
+  window = window;
+  Object = Object;
+  Math = Math;
 
   get filteredStoppages(): StoppageEntry[] {
     let result = this.stoppages;
@@ -141,7 +154,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   constructor(
     private auth: AuthService,
-    private stoppageService: StoppageService
+    private stoppageService: StoppageService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
@@ -149,6 +163,21 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
       this.user = val;
       this.isAdmin = val?.role === 'admin';
+    });
+
+    // Read query params for pre-fill (from QR code scan)
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      if (params['maskin']) {
+        // Open the form and pre-fill comment with machine name
+        this.showForm = true;
+        const maskinNamn = decodeURIComponent(params['maskin']);
+        this.newEntry.comment = maskinNamn;
+        // If a line param is provided, use it
+        if (params['linje']) {
+          this.selectedLine = params['linje'];
+          this.newEntry.line = params['linje'];
+        }
+      }
     });
 
     // Set default times
@@ -545,6 +574,33 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   getMaxCostlyMin(): number {
     if (!this.patternData?.costly_reasons?.length) return 0;
     return Math.max(...this.patternData.costly_reasons.map((r: any) => r.total_min));
+  }
+
+  // QR Code methods
+  toggleQRSection() {
+    this.qrSectionOpen = !this.qrSectionOpen;
+  }
+
+  async generateQRCodes(): Promise<void> {
+    this.qrLoading = true;
+    const baseUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + '#/stopporsaker';
+    for (const maskin of this.machines) {
+      const url = `${baseUrl}?maskin=${encodeURIComponent(maskin)}`;
+      try {
+        this.qrDataUrls[maskin] = await QRCode.toDataURL(url, {
+          width: 200,
+          margin: 1,
+          color: { dark: '#000000', light: '#FFFFFF' }
+        });
+      } catch (e) {
+        console.error('QR-generering misslyckades:', maskin, e);
+      }
+    }
+    this.qrLoading = false;
+  }
+
+  printQRCodes() {
+    window.print();
   }
 
   private buildHourlyChart() {

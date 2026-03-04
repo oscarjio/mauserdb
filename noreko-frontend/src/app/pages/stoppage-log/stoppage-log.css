@@ -1109,3 +1109,66 @@
 .costly-count {
   font-size: 0.7rem;
 }
+
+/* QR-koder sektion */
+.qr-machine-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 8px 8px;
+  transition: box-shadow 0.2s;
+}
+
+.qr-machine-card:hover {
+  box-shadow: 0 0 0 2px #63b3ed;
+}
+
+.qr-img {
+  width: 140px;
+  height: 140px;
+  border-radius: 4px;
+  display: block;
+  margin: 0 auto;
+}
+
+.qr-machine-label {
+  margin-top: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qr-placeholder-card {
+  background: #2d3748;
+  border: 1px dashed #4a5568;
+  border-radius: 8px;
+  padding: 12px 8px 8px;
+}
+
+.qr-placeholder-box {
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a202c;
+  border-radius: 4px;
+  margin: 0 auto;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .qr-machine-card {
+    break-inside: avoid;
+    border: 1px solid #ccc;
+    background: #fff;
+  }
+  .qr-machine-label {
+    color: #000;
+  }
+}
