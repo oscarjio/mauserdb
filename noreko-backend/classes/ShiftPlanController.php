@@ -43,6 +43,12 @@ class ShiftPlanController {
             return;
         }
 
+        if ($method === 'POST' && $run === 'copy-week') {
+            $this->requireAdmin();
+            $this->copyWeek();
+            return;
+        }
+
         if (($method === 'DELETE' || $method === 'POST') && $run === 'remove') {
             $this->requireAdmin();
             $this->remove();
@@ -512,6 +518,94 @@ class ShiftPlanController {
             error_log('ShiftPlanController assign: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till operatör']);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // POST ?action=shift-plan&run=copy-week
+    // Body: { target_week_start: "YYYY-MM-DD" }
+    // Kopierar alla tilldelningar från föregående vecka till angiven vecka.
+    // -----------------------------------------------------------------------
+
+    private function copyWeek() {
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        $targetStart = $data['target_week_start'] ?? '';
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $targetStart)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum för target_week_start']);
+            return;
+        }
+
+        try {
+            $dt = new DateTime($targetStart);
+        } catch (Exception $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
+            return;
+        }
+
+        // Säkerställ att target_week_start är en måndag
+        $dow = (int)$dt->format('N');
+        $dt->modify('-' . ($dow - 1) . ' days');
+        $targetMonday = $dt->format('Y-m-d');
+
+        // Beräkna föregående veckas måndag och söndag
+        $prevMonday = clone $dt;
+        $prevMonday->modify('-7 days');
+        $prevStart = $prevMonday->format('Y-m-d');
+        $prevEnd = clone $prevMonday;
+        $prevEnd->modify('+6 days');
+        $prevEndStr = $prevEnd->format('Y-m-d');
+
+        try {
+            // Hämta alla tilldelningar från föregående vecka
+            $stmt = $this->pdo->prepare('
+                SELECT datum, skift_nr, op_number, note
+                FROM shift_plan
+                WHERE datum BETWEEN :start AND :end
+                ORDER BY datum ASC, skift_nr ASC
+            ');
+            $stmt->execute([':start' => $prevStart, ':end' => $prevEndStr]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($rows)) {
+                echo json_encode(['success' => false, 'error' => 'Inga tilldelningar att kopiera från föregående vecka']);
+                return;
+            }
+
+            // Kopiera varje rad med +7 dagar på datumet
+            $insertStmt = $this->pdo->prepare('
+                INSERT INTO shift_plan (datum, skift_nr, op_number, note)
+                VALUES (:datum, :skift_nr, :op_number, :note)
+                ON DUPLICATE KEY UPDATE note = VALUES(note), updated_at = CURRENT_TIMESTAMP
+            ');
+
+            $copied = 0;
+            foreach ($rows as $row) {
+                $origDate = new DateTime($row['datum']);
+                $origDate->modify('+7 days');
+                $newDatum = $origDate->format('Y-m-d');
+
+                $insertStmt->execute([
+                    ':datum'     => $newDatum,
+                    ':skift_nr'  => (int)$row['skift_nr'],
+                    ':op_number' => (int)$row['op_number'],
+                    ':note'      => $row['note'],
+                ]);
+                $copied++;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => "Kopierade $copied tilldelning(ar) från v." . $prevMonday->format('W') . " till v." . $dt->format('W'),
+                'copied'  => $copied,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('ShiftPlanController copyWeek: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte kopiera schema']);
         }
     }
 

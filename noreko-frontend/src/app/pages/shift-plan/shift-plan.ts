@@ -92,6 +92,9 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   minOperators: number = 2;
   staffingWarningLoading = false;
 
+  // Kopiera schema
+  copyLoading = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -607,6 +610,81 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
         },
         error: () => {
           this.staffingWarningLoading = false;
+        }
+      });
+  }
+
+  // -----------------------------------------------------------------------
+  // Veckoöversikt-panel: sammanfattning per skift
+  // -----------------------------------------------------------------------
+
+  getShiftCount(skiftNr: number): number {
+    let total = 0;
+    for (const day of this.weekDays) {
+      const datum = this.formatDate(day);
+      total += this.getShiftEntries(datum, skiftNr).length;
+    }
+    return total;
+  }
+
+  getShiftCountForDay(datum: string, skiftNr: number): number {
+    return this.getShiftEntries(datum, skiftNr).length;
+  }
+
+  getStaffingClass(datum: string, skiftNr: number): string {
+    const count = this.getShiftCountForDay(datum, skiftNr);
+    if (count >= 2) return 'staffing-ok';
+    if (count === 1) return 'staffing-warning';
+    return 'staffing-danger';
+  }
+
+  getStaffingColor(datum: string, skiftNr: number): string {
+    const count = this.getShiftCountForDay(datum, skiftNr);
+    if (count >= 2) return '#48bb78';
+    if (count === 1) return '#ecc94b';
+    return '#e53e3e';
+  }
+
+  getTotalOpsThisWeek(): number {
+    let total = 0;
+    for (const day of this.weekDays) {
+      const datum = this.formatDate(day);
+      for (const s of this.skifts) {
+        total += this.getShiftEntries(datum, s.nr).length;
+      }
+    }
+    return total;
+  }
+
+  // -----------------------------------------------------------------------
+  // Kopiera förra veckans schema
+  // -----------------------------------------------------------------------
+
+  copyLastWeek() {
+    if (!confirm('Kopiera förra veckans schema till denna vecka? Befintliga tilldelningar behålls.')) return;
+    this.copyLoading = true;
+    const body = { target_week_start: this.formatDate(this.currentWeekStart) };
+    this.http.post<any>(`${API}&run=copy-week`, body, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.copyLoading = false;
+          if (res === null) { this.toast.error('Nätverksfel — kunde inte kopiera schema'); return; }
+          if (res.success) {
+            this.toast.success(res.message || `Kopierade ${res.copied} tilldelning(ar)`);
+            this.loadWeek();
+            this.loadStaffingWarning();
+          } else {
+            this.toast.error(res.error || 'Kunde inte kopiera schema');
+          }
+        },
+        error: () => {
+          this.copyLoading = false;
+          this.toast.error('Kunde inte kopiera schema');
         }
       });
   }

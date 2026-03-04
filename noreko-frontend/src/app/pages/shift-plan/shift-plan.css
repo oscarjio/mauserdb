@@ -362,6 +362,123 @@
 }
 
 /* ===================================================
+   Veckoöversikt-panel (sammanfattning)
+   =================================================== */
+
+.week-summary-panel {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+
+.week-summary-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #90cdf4;
+  margin-bottom: 10px;
+}
+
+.week-summary-grid {
+  display: grid;
+  grid-template-columns: 130px repeat(7, 1fr);
+  gap: 3px;
+}
+
+.week-summary-corner {
+  /* empty top-left */
+}
+
+.week-summary-day-header {
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  padding: 4px 2px;
+}
+
+.week-summary-day-header.ws-today {
+  color: #63b3ed;
+}
+
+.week-summary-skift-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  padding-right: 6px;
+}
+
+.week-summary-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 4px 0;
+  min-height: 28px;
+  transition: background 0.15s;
+}
+
+.week-summary-cell.staffing-ok {
+  background: rgba(72, 187, 120, 0.2);
+  border: 1px solid rgba(72, 187, 120, 0.4);
+}
+
+.week-summary-cell.staffing-warning {
+  background: rgba(236, 201, 75, 0.2);
+  border: 1px solid rgba(236, 201, 75, 0.4);
+}
+
+.week-summary-cell.staffing-danger {
+  background: rgba(229, 62, 62, 0.2);
+  border: 1px solid rgba(229, 62, 62, 0.4);
+}
+
+.ws-count {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.staffing-ok .ws-count { color: #48bb78; }
+.staffing-warning .ws-count { color: #ecc94b; }
+.staffing-danger .ws-count { color: #e53e3e; }
+
+.week-summary-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: #a0aec0;
+}
+
+.ws-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ws-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.ws-dot-green { background: rgba(72, 187, 120, 0.5); border: 1px solid #48bb78; }
+.ws-dot-yellow { background: rgba(236, 201, 75, 0.5); border: 1px solid #ecc94b; }
+.ws-dot-red { background: rgba(229, 62, 62, 0.5); border: 1px solid #e53e3e; }
+
+.ws-total {
+  font-size: 0.75rem;
+  color: #e2e8f0;
+}
+
+/* ===================================================
    Flikar
    =================================================== */
 

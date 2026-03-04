@@ -51,7 +51,7 @@
   <div *ngIf="activeTab === 'veckoplan'">
 
     <!-- Veckonavigering -->
-    <div class="d-flex align-items-center gap-2 mb-4">
+    <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
       <button class="btn btn-sm btn-outline-secondary" (click)="prevWeek(); $event.stopPropagation()">
         <i class="fas fa-chevron-left"></i>
       </button>
@@ -62,6 +62,46 @@
       <button class="btn btn-sm btn-outline-info ms-2" (click)="goToToday(); $event.stopPropagation()">
         <i class="fas fa-calendar-day me-1"></i>Idag
       </button>
+      <button
+        class="btn btn-sm btn-outline-warning ms-2"
+        (click)="copyLastWeek(); $event.stopPropagation()"
+        [disabled]="copyLoading"
+        title="Kopiera förra veckans schema till denna vecka"
+      >
+        <i class="fas fa-spinner fa-spin me-1" *ngIf="copyLoading"></i>
+        <i class="fas fa-copy me-1" *ngIf="!copyLoading"></i>Kopiera förra veckan
+      </button>
+    </div>
+
+    <!-- Veckoöversikt-panel (sammanfattning) -->
+    <div *ngIf="!loading && !error" class="week-summary-panel mb-4" (click)="$event.stopPropagation()">
+      <div class="week-summary-title">
+        <i class="fas fa-chart-bar me-2"></i>Veckoöversikt — Bemanning
+      </div>
+      <div class="week-summary-grid">
+        <div class="week-summary-corner"></div>
+        <div *ngFor="let day of weekDays; let i = index" class="week-summary-day-header" [class.ws-today]="isToday(day)">
+          {{ dayNames[i] }} {{ day | date:'d/M' }}
+        </div>
+        <ng-container *ngFor="let skift of skifts">
+          <div class="week-summary-skift-label">{{ skift.label }} ({{ skift.time }})</div>
+          <div
+            *ngFor="let day of weekDays"
+            class="week-summary-cell"
+            [class.staffing-ok]="getStaffingClass(formatDate(day), skift.nr) === 'staffing-ok'"
+            [class.staffing-warning]="getStaffingClass(formatDate(day), skift.nr) === 'staffing-warning'"
+            [class.staffing-danger]="getStaffingClass(formatDate(day), skift.nr) === 'staffing-danger'"
+          >
+            <span class="ws-count">{{ getShiftCountForDay(formatDate(day), skift.nr) }}</span>
+          </div>
+        </ng-container>
+      </div>
+      <div class="week-summary-footer">
+        <span class="ws-legend-item"><span class="ws-dot ws-dot-green"></span> 2+ operatörer</span>
+        <span class="ws-legend-item"><span class="ws-dot ws-dot-yellow"></span> 1 operatör</span>
+        <span class="ws-legend-item"><span class="ws-dot ws-dot-red"></span> 0 operatörer</span>
+        <span class="ws-total ms-auto">Totalt denna vecka: <strong>{{ getTotalOpsThisWeek() }}</strong> tilldelningar</span>
+      </div>
     </div>
 
     <!-- Laddning -->
