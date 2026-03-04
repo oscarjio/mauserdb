@@ -516,9 +516,9 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Audit-log pagination**: `44f11a5` — LIMIT+OFFSET backend, ladda-fler frontend
 
 ### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Bug Hunt #12 — resterande Chart error-boundary**: Kvarstår ~56% av Chart.js-instanser utan try-catch (andra sidor: production-analysis, bonus-dashboard, exec-dashboard, stoppage-log, operators, historik, etc.) + BonusAdmin threshold-validering (brons<silver<guld<platina).
-- [ ] **Skiftrapport per operatör**: Dropdown-filter i skiftrapport-sidan + KPI-sammanfattning per operatör. Ny query-parameter `?operator=X` i befintligt report-endpoint.
-- [ ] **VD Månadsrapport förbättring**: Föregående månads-jämförelse med diff-indikatorer, "Månadens bästa dag", operator-of-the-month, bättre PDF. Backend month-compare endpoint.
+- [x] **Bug Hunt #12 — resterande Chart error-boundary**: KLAR `6e36544` — 18 filer, ~64 locations fixade med try-catch. BonusAdmin threshold-validering tillagd (negativa, max 100k, stigande ordning).
+- [x] **Skiftrapport per operatör**: KLAR — redan implementerat, verifierat: skiftrapport-list med ?operator=X, skiftrapport-operators endpoint, 5 KPI-kort, responsive grid.
+- [x] **VD Månadsrapport förbättring**: KLAR — diff-indikatorer på KPI-kort, bästa dag-highlight, operator-of-the-month med score, vecko-progress bars, PDF-stöd.
 
 ### 🟡 Medium — planeras efter dessa
 - [ ] **Skiftöverlämning: Email-notis** — PHP mail() vid brådskande not
