@@ -1,13 +1,20 @@
 #!/bin/bash
 # lead-agent.sh — Ledaragenten som orkesterar allt utvecklingsarbete på mauserdb.
-# Körs av cron var 3:e timme. Startar worker-agenter och håller projektet rörligt.
+# Körs av cron var 30 min. Hanterar rate limits och startar om automatiskt.
 
-set -e
+# Viktiga env-variabler för headless/autonom drift
+export DISABLE_AUTOUPDATER=1
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
 PROJECT="/home/clawd/clawd/mauserdb"
 CLAUDE="/home/clawd/.npm-global/bin/claude"
 LOCKFILE="/tmp/mauserdb-lead.lock"
 RUNLOG="/tmp/mauserdb-lead.log"
+RATELIMIT_FILE="/tmp/mauserdb-ratelimit.txt"
+MAX_LOG_LINES=2000
+
+# Se till att node/npm finns i PATH (för npx ng build i worker-agenter)
+export PATH="/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 # Förhindra parallella körningar
 if [ -f "$LOCKFILE" ]; then
@@ -16,14 +23,33 @@ if [ -f "$LOCKFILE" ]; then
         echo "[$(date '+%Y-%m-%d %H:%M')] Lead-agent körs redan (PID $PID), hoppar över." >> "$RUNLOG"
         exit 0
     fi
+    rm -f "$LOCKFILE"
 fi
 echo $$ > "$LOCKFILE"
 trap "rm -f $LOCKFILE" EXIT
 
+# Rotera log om den blir för stor
+if [ -f "$RUNLOG" ]; then
+    LOG_LINES=$(wc -l < "$RUNLOG" 2>/dev/null || echo 0)
+    if [ "$LOG_LINES" -gt "$MAX_LOG_LINES" ]; then
+        tail -n 500 "$RUNLOG" > "${RUNLOG}.tmp" && mv "${RUNLOG}.tmp" "$RUNLOG"
+        echo "[$(date '+%Y-%m-%d %H:%M')] Log roterad (var $LOG_LINES rader)" >> "$RUNLOG"
+    fi
+fi
+
 echo "[$(date '+%Y-%m-%d %H:%M')] ========== Lead-agent session startar ==========" >> "$RUNLOG"
 
 cd "$PROJECT"
-git pull --rebase origin main >> "$RUNLOG" 2>&1 || true
+
+# Synka från remote: stasha lokala ändringar om det behövs
+if git status --porcelain 2>/dev/null | grep -q '^[^?]'; then
+    echo "[$(date '+%Y-%m-%d %H:%M')] Stashar lokala ändringar inför git pull..." >> "$RUNLOG"
+    git stash push -m "lead-agent-auto-stash-$(date +%s)" >> "$RUNLOG" 2>&1 || true
+    git pull --rebase origin main >> "$RUNLOG" 2>&1 || true
+    git stash pop >> "$RUNLOG" 2>&1 || true
+else
+    git pull --rebase origin main >> "$RUNLOG" 2>&1 || true
+fi
 
 # Samla kontext för ledaragenten
 RECENT_COMMITS=$(git log --oneline -10 2>/dev/null || echo "inga commits")
@@ -97,5 +123,21 @@ PROMPT
 )
 
 echo "[$(date '+%Y-%m-%d %H:%M')] Startar lead-agent Claude-session..." >> "$RUNLOG"
-$CLAUDE --print "$PROMPT" >> "$RUNLOG" 2>&1
-echo "[$(date '+%Y-%m-%d %H:%M')] Lead-agent session klar." >> "$RUNLOG"
+
+# Kör Claude och fånga utdata + exit-kod
+CLAUDE_OUTPUT=$($CLAUDE --dangerously-skip-permissions --print "$PROMPT" 2>&1)
+CLAUDE_EXIT=$?
+
+echo "$CLAUDE_OUTPUT" >> "$RUNLOG"
+echo "[$(date '+%Y-%m-%d %H:%M')] Claude avslutade med exit-kod: $CLAUDE_EXIT" >> "$RUNLOG"
+
+# Detektera rate limit
+if echo "$CLAUDE_OUTPUT" | grep -qiE "usage limit|rate limit|out of extra usage|resets [0-9]"; then
+    RESET_MSG=$(echo "$CLAUDE_OUTPUT" | grep -oiE "resets [^\n]+" | head -1 || echo "okänd tid")
+    echo "[$(date '+%Y-%m-%d %H:%M')] RATE LIMIT detekterad. $RESET_MSG. Nästa cron-körning försöker igen." >> "$RUNLOG"
+    # Spara tidsstämpel för rate limit (för diagnostik)
+    echo "$(date '+%Y-%m-%d %H:%M') - $RESET_MSG" > "$RATELIMIT_FILE"
+else
+    rm -f "$RATELIMIT_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M')] Lead-agent session klar." >> "$RUNLOG"
+fi
