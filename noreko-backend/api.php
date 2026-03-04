@@ -126,6 +126,7 @@ $classNameMap = [
     'news' => 'NewsController',
     'historik' => 'HistorikController',
     'operator-compare' => 'OperatorCompareController',
+    'maintenance' => 'MaintenanceController',
 ];
 
 $actionKey = strtolower($action);
