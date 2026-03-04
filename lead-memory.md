@@ -273,8 +273,10 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - **Andon-tavla förbättring** (a53c6ded): KLAR — 8fac87f
 - **Rebotling-skiftrapport trendgraf** (a60553d0): KLAR — 6af3e1e (shift-trend timupplösning, genomsnittsprofil, skiftnavigering)
 - **Tvättlinje/Såglinje/Klassificeringslinje admin** (committade tidigare): KLAR — today-snapshot, alert-thresholds, weekday-goals (all 3 linjer)
-- **Bug hunt #6** (a2d28c2b7f30344d6): PÅGÅR — granskar nya filer sedan bug hunt #5
+- **Bug hunt #6** (a2d28c2b7f30344d6): KLAR — cc9d9bd (12 PHP session-guards, vpn-admin.ts 5 buggar)
 - **Operatörsdashboard förbättring** (a1934683e7c0bf6f6): PÅGÅR — veckovy, trend, summary-kort
+- **Andon-tavla skiftnoter** (ad5e36138558c6ba2): PÅGÅR — okvitterade noter, urgency-badge
+- **Månadsrapport förbättring** (a3d195a564a31c7e0): PÅGÅR — föregående månads-jämförelse, operatör av månaden
 
 ---
 
