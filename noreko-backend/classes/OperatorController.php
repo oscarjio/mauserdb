@@ -172,9 +172,23 @@ class OperatorController {
             return;
         }
 
-        // GET - Hämta alla operatörer
+        // GET - Hämta alla operatörer med senaste aktivitet
         try {
-            $stmt = $pdo->query("SELECT * FROM operators ORDER BY number");
+            $stmt = $pdo->query("
+                SELECT o.*,
+                    MAX(r.datum) AS senaste_aktivitet,
+                    COUNT(DISTINCT DATE(r.datum)) AS aktiva_dagar_30d
+                FROM operators o
+                LEFT JOIN (
+                    SELECT datum, op1_id AS op_id FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    UNION ALL
+                    SELECT datum, op2_id FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op2_id IS NOT NULL
+                    UNION ALL
+                    SELECT datum, op3_id FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op3_id IS NOT NULL
+                ) r ON r.op_id = o.id
+                GROUP BY o.id
+                ORDER BY o.number
+            ");
             $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['operators' => $operators]);
         } catch (PDOException $e) {

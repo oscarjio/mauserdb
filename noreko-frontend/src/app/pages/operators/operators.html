@@ -7,10 +7,16 @@
         <i class="fas fa-id-badge me-2 text-info"></i>
         Operatörer
       </h1>
-      <button class="btn btn-success btn-sm" (click)="showAddForm = !showAddForm">
-        <i class="fas fa-plus me-1"></i>
-        Lägg till operatör
-      </button>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-info btn-sm" (click)="exportToCSV()" title="Exportera till CSV">
+          <i class="fas fa-file-csv me-1"></i>
+          Exportera CSV
+        </button>
+        <button class="btn btn-success btn-sm" (click)="showAddForm = !showAddForm">
+          <i class="fas fa-plus me-1"></i>
+          Lägg till operatör
+        </button>
+      </div>
     </div>
   </div>
 
@@ -254,8 +260,15 @@
 
   <!-- =================== ADMIN-HANTERING =================== -->
   <div class="ops-card mb-4">
-    <div class="ops-card-header">
-      <i class="fas fa-cog me-2 text-secondary"></i>Hantera operatörer
+    <div class="ops-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span><i class="fas fa-cog me-2 text-secondary"></i>Hantera operatörer</span>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-outline-secondary" [class.active]="filterStatus === 'all'" (click)="filterStatus = 'all'">Alla</button>
+          <button class="btn btn-outline-success" [class.active]="filterStatus === 'active'" (click)="filterStatus = 'active'">Aktiva</button>
+          <button class="btn btn-outline-secondary" [class.active]="filterStatus === 'inactive'" (click)="filterStatus = 'inactive'">Inaktiva</button>
+        </div>
+      </div>
     </div>
     <div class="ops-card-body">
       <div *ngIf="loading" class="text-center text-muted py-3">
@@ -269,12 +282,16 @@
               <th>Namn</th>
               <th>Nummer</th>
               <th>Status</th>
+              <th class="sortable-col" (click)="sortBy('senaste_aktivitet')" title="Sortera efter senaste aktivitet">
+                Senast aktiv <i class="fas" [class]="'fas ' + sortIcon('senaste_aktivitet')"></i>
+              </th>
+              <th>Aktiva dagar (30d)</th>
               <th>Skapad</th>
               <th>Åtgärder</th>
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let op of operators">
+            <ng-container *ngFor="let op of filteredOperators">
               <tr [class.inactive-row]="op.active === 0 || op.active === '0'">
                 <td><strong>{{ op.name }}</strong></td>
                 <td><span class="badge bg-info text-dark">#{{ op.number }}</span></td>
@@ -285,9 +302,27 @@
                     {{ op.active == 1 ? 'Aktiv' : 'Inaktiv' }}
                   </span>
                 </td>
+                <td>
+                  <span [class]="getSenasteAktivitetClass(op.senaste_aktivitet)" class="activity-date">
+                    {{ formatSenasteAktivitet(op.senaste_aktivitet) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="aktiva-dagar">
+                    <div class="progress aktiva-progress" title="{{ op.aktiva_dagar_30d ?? 0 }}/30 aktiva dagar">
+                      <div class="progress-bar bg-info"
+                           [style.width.%]="((op.aktiva_dagar_30d ?? 0) / 30) * 100">
+                      </div>
+                    </div>
+                    <span class="aktiva-text">{{ op.aktiva_dagar_30d ?? 0 }}/30</span>
+                  </div>
+                </td>
                 <td class="text-muted small">{{ op.created_at ? (op.created_at | slice:0:10) : '–' }}</td>
                 <td>
                   <div class="btn-group btn-group-sm">
+                    <a class="btn btn-outline-info" [routerLink]="['/admin/operator', op.id]" title="Profil">
+                      <i class="fas fa-user"></i>
+                    </a>
                     <button class="btn btn-outline-primary" (click)="toggleExpand(op.id)" title="Redigera">
                       <i class="fas" [class.fa-edit]="!expanded[op.id]" [class.fa-times]="expanded[op.id]"></i>
                     </button>
@@ -302,7 +337,7 @@
                 </td>
               </tr>
               <tr *ngIf="expanded[op.id]" class="edit-row">
-                <td colspan="5">
+                <td colspan="7">
                   <form (ngSubmit)="saveOperator(op)" class="row g-2 align-items-end p-2">
                     <div class="col-md-4">
                       <label class="form-label">Namn</label>

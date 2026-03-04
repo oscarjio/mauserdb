@@ -589,3 +589,64 @@
     justify-content: flex-start;
   }
 }
+
+/* ======== Senaste aktivitet — färgkodning ======== */
+.activity-date {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.activity-green {
+  color: #48bb78;
+  background: rgba(72, 187, 120, 0.12);
+}
+
+.activity-yellow {
+  color: #ecc94b;
+  background: rgba(236, 201, 75, 0.12);
+}
+
+.activity-red {
+  color: #fc8181;
+  background: rgba(252, 129, 129, 0.12);
+}
+
+.activity-never {
+  color: #718096;
+  background: rgba(113, 128, 150, 0.10);
+}
+
+/* ======== Aktiva dagar progress ======== */
+.aktiva-dagar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 90px;
+}
+
+.aktiva-progress {
+  height: 6px;
+  flex: 1;
+  background: #2d3748;
+  border-radius: 3px;
+  min-width: 50px;
+}
+
+.aktiva-text {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  white-space: nowrap;
+}
+
+/* ======== Sortable column header ======== */
+.sortable-col {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-col:hover {
+  color: #63b3ed;
+}

@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout } from 'rxjs/operators';
 import { catchError } from 'rxjs/operators';
@@ -13,14 +13,14 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
-type SortField = 'name' | 'ibc_per_hour' | 'avg_quality' | 'shifts';
+type SortField = 'name' | 'ibc_per_hour' | 'avg_quality' | 'shifts' | 'senaste_aktivitet';
 type SortDir = 'asc' | 'desc';
 type ActivityStatus = 'active' | 'recent' | 'inactive' | 'never';
 
 @Component({
   standalone: true,
   selector: 'app-operators',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './operators.html',
   styleUrl: './operators.css'
 })
@@ -44,6 +44,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   // Sök + sortering
   searchText = '';
+  filterStatus: 'all' | 'active' | 'inactive' = 'all';
   sortField: SortField = 'ibc_per_hour';
   sortDir: SortDir = 'desc';
 
@@ -115,6 +116,10 @@ export class OperatorsPage implements OnInit, OnDestroy {
           aVal = a.shifts ?? 0;
           bVal = b.shifts ?? 0;
           break;
+        case 'senaste_aktivitet':
+          aVal = a.senaste_aktivitet ? new Date(a.senaste_aktivitet).getTime() : -1;
+          bVal = b.senaste_aktivitet ? new Date(b.senaste_aktivitet).getTime() : -1;
+          break;
         default:
           aVal = a.ibc_per_hour ?? -1;
           bVal = b.ibc_per_hour ?? -1;
@@ -124,6 +129,25 @@ export class OperatorsPage implements OnInit, OnDestroy {
       return 0;
     });
 
+    return result;
+  }
+
+  // ======== Filtrera operatörslistan (admin-listan) ========
+
+  get filteredOperators(): any[] {
+    let result = this.operators;
+    if (this.filterStatus === 'active') {
+      result = result.filter(op => op.active == 1);
+    } else if (this.filterStatus === 'inactive') {
+      result = result.filter(op => op.active == 0);
+    }
+    if (this.searchText.trim()) {
+      const q = this.searchText.toLowerCase();
+      result = result.filter(op =>
+        (op.name || '').toLowerCase().includes(q) ||
+        String(op.number || '').includes(q)
+      );
+    }
     return result;
   }
 
@@ -441,7 +465,51 @@ export class OperatorsPage implements OnInit, OnDestroy {
     });
   }
 
-  // ======== KPI-hjälpfunktioner ========
+  // ======== Senaste aktivitet — hjälpfunktioner ========
+
+  formatSenasteAktivitet(datum: string | null): string {
+    if (!datum) return 'Aldrig';
+    return new Date(datum).toLocaleDateString('sv-SE');
+  }
+
+  getSenasteAktivitetClass(datum: string | null): string {
+    if (!datum) return 'activity-never';
+    const days = (Date.now() - new Date(datum).getTime()) / (1000 * 60 * 60 * 24);
+    if (days < 7) return 'activity-green';
+    if (days <= 30) return 'activity-yellow';
+    return 'activity-red';
+  }
+
+  // ======== CSV-export ========
+
+  exportToCSV() {
+    const rows = this.filteredOperators.map(op => ({
+      ID: op.id,
+      Namn: op.name,
+      Nummer: op.number,
+      Status: op.active == 1 ? 'Aktiv' : 'Inaktiv',
+      'Senast aktiv': op.senaste_aktivitet
+        ? new Date(op.senaste_aktivitet).toLocaleDateString('sv-SE')
+        : 'Aldrig',
+      'Aktiva dagar (30d)': op.aktiva_dagar_30d ?? 0
+    }));
+    if (rows.length === 0) return;
+    const headers = Object.keys(rows[0]).join(',');
+    const csvRows = rows.map(r =>
+      Object.values(r).map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')
+    );
+    const csv = [headers, ...csvRows].join('\n');
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'operatorer.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+    // ======== KPI-hjälpfunktioner ========
 
   getIbcClass(val: number | null): string {
     if (val == null) return 'kpi-neutral';
