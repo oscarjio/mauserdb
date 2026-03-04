@@ -3355,10 +3355,10 @@ class RebotlingController {
                     SELECT
                         DATE(datum) AS datum,
                         skiftraknare,
-                        MAX(ibc_ok) AS shift_ibc,
+                        COALESCE(MAX(ibc_ok), 0) AS shift_ibc,
                         ROUND(
-                            MAX(ibc_ok) * 100.0
-                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                            COALESCE(MAX(ibc_ok), 0) * 100.0
+                            / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
                     WHERE skiftraknare IS NOT NULL
@@ -3467,10 +3467,10 @@ class RebotlingController {
                     SELECT
                         DATE(datum) AS datum,
                         skiftraknare,
-                        MAX(ibc_ok) AS shift_ibc,
+                        COALESCE(MAX(ibc_ok), 0) AS shift_ibc,
                         ROUND(
-                            MAX(ibc_ok) * 100.0
-                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                            COALESCE(MAX(ibc_ok), 0) * 100.0
+                            / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
                     WHERE YEAR(datum) = ?
@@ -3546,10 +3546,10 @@ class RebotlingController {
                     SELECT
                         DATE(datum) AS datum,
                         skiftraknare,
-                        MAX(ibc_ok) AS shift_ibc,
+                        COALESCE(MAX(ibc_ok), 0) AS shift_ibc,
                         ROUND(
-                            MAX(ibc_ok) * 100.0
-                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                            COALESCE(MAX(ibc_ok), 0) * 100.0
+                            / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
                     WHERE skiftraknare IS NOT NULL
@@ -3579,10 +3579,10 @@ class RebotlingController {
                     SELECT
                         DATE(datum) AS datum,
                         skiftraknare,
-                        MAX(ibc_ok) AS shift_ibc,
+                        COALESCE(MAX(ibc_ok), 0) AS shift_ibc,
                         ROUND(
-                            MAX(ibc_ok) * 100.0
-                            / NULLIF(MAX(ibc_ok) + MAX(ibc_ej_ok), 0),
+                            COALESCE(MAX(ibc_ok), 0) * 100.0
+                            / NULLIF(COALESCE(MAX(ibc_ok), 0) + COALESCE(MAX(ibc_ej_ok), 0), 0),
                         1) AS shift_quality
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(LAST_DAY(NOW()), INTERVAL 13 MONTH)

@@ -214,11 +214,15 @@
           </h5>
           <div class="d-flex gap-2 align-items-center flex-wrap">
             <button class="btn btn-sm btn-outline-light" (click)="exportCSV()"
-              *ngIf="filteredReports.length > 0" title="Exportera till CSV">
+              [disabled]="filteredReports.length === 0"
+              [class.disabled]="filteredReports.length === 0"
+              title="Exportera till CSV">
               <i class="fas fa-download me-1"></i>CSV
             </button>
             <button class="btn btn-sm btn-outline-light" (click)="exportExcel()"
-              *ngIf="filteredReports.length > 0" title="Exportera till Excel">
+              [disabled]="filteredReports.length === 0"
+              [class.disabled]="filteredReports.length === 0"
+              title="Exportera till Excel">
               <i class="fas fa-file-excel me-1"></i>Excel
             </button>
             <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
