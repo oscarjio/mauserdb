@@ -327,6 +327,103 @@
       </div>
     </div>
 
+    <!-- ===== DIN PLACERING ===== -->
+    <div class="ranking-card mb-4" *ngIf="savedOperatorId">
+      <div class="ranking-header">
+        <i class="fas fa-list-ol me-2 text-info"></i>Din placering
+        <div class="ranking-period-toggle ms-auto">
+          <button class="ranking-period-btn" [class.active]="rankingPeriod === 'day'" (click)="changeRankingPeriod('day')">Idag</button>
+          <button class="ranking-period-btn" [class.active]="rankingPeriod === 'week'" (click)="changeRankingPeriod('week')">Vecka</button>
+          <button class="ranking-period-btn" [class.active]="rankingPeriod === 'month'" (click)="changeRankingPeriod('month')">Manad</button>
+        </div>
+      </div>
+
+      <!-- Laddar -->
+      <div class="ranking-body text-center py-3" *ngIf="rankingLoading">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        <span class="text-muted ms-2 small">Hamtar rankning...</span>
+      </div>
+
+      <!-- Ingen kopplad operatör -->
+      <div class="ranking-body" *ngIf="!rankingLoading && !savedOperatorId">
+        <p class="text-muted small mb-0 text-center py-2">
+          <i class="fas fa-info-circle me-1"></i>Koppla ditt Operator-ID i kontoinstaellningarna foer att se din placering
+        </p>
+      </div>
+
+      <!-- Ingen data under perioden -->
+      <div class="ranking-body" *ngIf="!rankingLoading && myRanking && myRanking.no_data">
+        <p class="text-muted small mb-0 text-center py-2">
+          <i class="fas fa-info-circle me-1"></i>Ingen data under perioden — jobba ett skift foer att synas!
+        </p>
+      </div>
+
+      <!-- Bara en operatör -->
+      <div class="ranking-body" *ngIf="!rankingLoading && myRanking && !myRanking.no_data && myRanking.total_ops === 1">
+        <p class="text-muted small mb-0 text-center py-2">
+          <i class="fas fa-user me-1"></i>Du aer ensam pa listan idag
+        </p>
+      </div>
+
+      <!-- Rankinginformation -->
+      <div class="ranking-body" *ngIf="!rankingLoading && myRanking && !myRanking.no_data && myRanking.total_ops > 1">
+
+        <!-- Rank rubrik -->
+        <div class="ranking-main">
+          <div class="ranking-position">
+            <span class="rank-hash">#</span><span class="rank-number">{{ myRanking.rank }}</span>
+          </div>
+          <div class="ranking-meta">
+            <div class="ranking-of-total">av {{ myRanking.total_ops }} operatoerer</div>
+            <div class="ranking-period-label text-muted small">{{ myRanking.period_label }}</div>
+          </div>
+          <div class="ranking-kpis ms-auto">
+            <div class="ranking-kpi-item">
+              <span class="ranking-kpi-val">{{ myRanking.ibc_per_h | number:'1.1-1' }}</span>
+              <span class="ranking-kpi-label">IBC/h</span>
+            </div>
+            <div class="ranking-kpi-item">
+              <span class="ranking-kpi-val">{{ myRanking.quality_pct | number:'1.1-1' }}%</span>
+              <span class="ranking-kpi-label">Kvalitet</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress bar mot toppen -->
+        <div class="ranking-progress-wrapper mt-3">
+          <div class="ranking-progress-labels">
+            <span class="text-muted small">Sist</span>
+            <span class="text-muted small">Ledaren</span>
+          </div>
+          <div class="ranking-progress-bar-bg">
+            <div class="ranking-progress-bar-fill"
+                 [style.width.%]="getRankingProgressPct()"
+                 [class.fill-gold]="myRanking.rank === 1"
+                 [class.fill-blue]="myRanking.rank === 2"
+                 [class.fill-gray]="myRanking.rank > 2">
+            </div>
+          </div>
+        </div>
+
+        <!-- Diff från ledaren -->
+        <div class="ranking-diff mt-2" *ngIf="myRanking.rank > 1">
+          <span class="text-muted small">
+            <i class="fas fa-arrow-up me-1"></i>{{ myRanking.diff_from_leader_pct | number:'1.1-1' }}% fran ledaren
+          </span>
+        </div>
+
+        <!-- Motivationstext -->
+        <div class="ranking-motivation mt-2" [ngClass]="getRankingMotivationClass()">
+          <i class="fas fa-bolt me-1" *ngIf="myRanking.rank === 1"></i>
+          <i class="fas fa-chevron-up me-1" *ngIf="myRanking.rank === 2"></i>
+          <i class="fas fa-fire me-1" *ngIf="myRanking.rank > 2 && Math.abs(myRanking.diff_from_leader_pct) < 5"></i>
+          <i class="fas fa-dumbbell me-1" *ngIf="myRanking.rank > 2 && Math.abs(myRanking.diff_from_leader_pct) >= 5"></i>
+          <span class="small fw-semibold">{{ getRankingMotivationText() }}</span>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ===== ACHIEVEMENT-MEDALJER ===== -->
     <div class="achievements-card mb-4" *ngIf="savedOperatorId && stats">
       <div class="achievements-header">

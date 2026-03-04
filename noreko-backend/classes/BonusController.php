@@ -65,6 +65,7 @@ class BonusController {
             case 'loneprognos':    $this->getLoneprognos();       break;
             case 'personal-best':  $this->getPersonalBest();      break;
             case 'streak':         $this->getStreak();            break;
+            case 'my-ranking':    $this->getMyRanking();         break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -1605,4 +1606,179 @@ class BonusController {
             'timestamp' => date('Y-m-d H:i:s'),
         ]);
     }
+    /**
+     * GET /api.php?action=bonus&run=my-ranking&op_id=123&period=week|day|month
+     *
+     * Returnerar anonymiserad rankinginformation för en operatör:
+     * - rank (position bland alla operatörer)
+     * - total_ops (antal operatörer)
+     * - ibc_per_h (operatörens IBC/h)
+     * - quality_pct (operatörens kvalitet %)
+     * - diff_from_leader_pct (differens mot ledaren i %)
+     * - period_label (läsbar periodlabel)
+     *
+     * Säkerhet: kräver inloggning + op_id MÅSTE matcha inloggad användares operator_id.
+     */
+    private function getMyRanking(): void {
+        // Kontrollera att op_id matchar inloggad användares kopplade operatör
+        $requestedOpId = isset($_GET['op_id']) ? intval($_GET['op_id']) : null;
+        $sessionOpId   = isset($_SESSION['operator_id']) ? (int)$_SESSION['operator_id'] : null;
+
+        if (!$requestedOpId || $requestedOpId <= 0) {
+            $this->sendError('op_id saknas');
+            return;
+        }
+
+        if (!$sessionOpId || $sessionOpId !== $requestedOpId) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Obehörig: op_id matchar inte inloggad användare']);
+            return;
+        }
+
+        $period = $_GET['period'] ?? 'week';
+        // Tillåt enbart giltiga perioder
+        $allowedPeriods = ['day', 'today', 'week', 'month'];
+        if (!in_array($period, $allowedPeriods, true)) {
+            $period = 'week';
+        }
+        // Normalisera "day" -> "today"
+        if ($period === 'day') $period = 'today';
+
+        $periodLabels = [
+            'today' => 'Idag',
+            'week'  => 'Denna vecka',
+            'month' => 'Denna månad',
+        ];
+        $periodLabel = $periodLabels[$period] ?? 'Denna vecka';
+
+        $dateFilter = $this->getDateFilter($period);
+
+        try {
+            // Steg 1: Aggregera alla operatörers prestationer via UNION ALL (alla positioner)
+            $s1 = $this->perShiftByPosition(1, $dateFilter);
+            $s2 = $this->perShiftByPosition(2, $dateFilter);
+            $s3 = $this->perShiftByPosition(3, $dateFilter);
+
+            $stmt = $this->pdo->query("
+                SELECT
+                    operator_id,
+                    SUM(total_shifts)   AS total_shifts,
+                    SUM(total_ibc_ok)   AS total_ibc_ok,
+                    SUM(total_runtime)  AS total_runtime,
+                    AVG(avg_kval)       AS avg_kvalitet
+                FROM (
+                    SELECT operator_id,
+                           COUNT(*)            AS total_shifts,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime,
+                           AVG(last_kval)       AS avg_kval
+                    FROM ($s1) AS x1
+                    GROUP BY operator_id
+
+                    UNION ALL
+
+                    SELECT operator_id,
+                           COUNT(*)            AS total_shifts,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime,
+                           AVG(last_kval)       AS avg_kval
+                    FROM ($s2) AS x2
+                    GROUP BY operator_id
+
+                    UNION ALL
+
+                    SELECT operator_id,
+                           COUNT(*)            AS total_shifts,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime,
+                           AVG(last_kval)       AS avg_kval
+                    FROM ($s3) AS x3
+                    GROUP BY operator_id
+                ) AS combined
+                GROUP BY operator_id
+                HAVING total_shifts >= 1
+            ");
+            $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($all)) {
+                // Inga operatörer överhuvudtaget under perioden
+                $this->sendSuccess([
+                    'rank'                => null,
+                    'total_ops'           => 0,
+                    'ibc_per_h'           => null,
+                    'quality_pct'         => null,
+                    'diff_from_leader_pct'=> null,
+                    'period_label'        => $periodLabel,
+                    'no_data'             => true,
+                ]);
+                return;
+            }
+
+            // Beräkna IBC/h per operatör
+            $opStats = [];
+            foreach ($all as $row) {
+                $opId    = (int)$row['operator_id'];
+                $hours   = ($row['total_runtime'] ?? 0) > 0 ? (float)$row['total_runtime'] / 60.0 : 0;
+                $ibcPerH = ($hours > 0) ? round((float)$row['total_ibc_ok'] / $hours, 2) : 0.0;
+                $opStats[] = [
+                    'operator_id' => $opId,
+                    'ibc_per_h'   => $ibcPerH,
+                    'quality_pct' => round((float)($row['avg_kvalitet'] ?? 0), 1),
+                ];
+            }
+
+            // Sortera fallande på IBC/h för ranking
+            usort($opStats, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+            $totalOps = count($opStats);
+            $myRank   = null;
+            $myStats  = null;
+
+            foreach ($opStats as $idx => $op) {
+                if ($op['operator_id'] === $requestedOpId) {
+                    $myRank  = $idx + 1;
+                    $myStats = $op;
+                    break;
+                }
+            }
+
+            if ($myRank === null) {
+                // Operatören har ingen data under perioden
+                $this->sendSuccess([
+                    'rank'                => null,
+                    'total_ops'           => $totalOps,
+                    'ibc_per_h'           => null,
+                    'quality_pct'         => null,
+                    'diff_from_leader_pct'=> null,
+                    'period_label'        => $periodLabel,
+                    'no_data'             => true,
+                ]);
+                return;
+            }
+
+            // Ledarens IBC/h (rank #1)
+            $leaderIbcPerH = $opStats[0]['ibc_per_h'];
+
+            // Diff från ledaren i % (negativ = under ledaren, 0 = är ledaren)
+            $diffFromLeader = 0.0;
+            if ($leaderIbcPerH > 0 && $myRank > 1) {
+                $diffFromLeader = round((($myStats['ibc_per_h'] - $leaderIbcPerH) / $leaderIbcPerH) * 100, 1);
+            }
+
+            $this->sendSuccess([
+                'rank'                => $myRank,
+                'total_ops'           => $totalOps,
+                'ibc_per_h'           => $myStats['ibc_per_h'],
+                'quality_pct'         => $myStats['quality_pct'],
+                'diff_from_leader_pct'=> $diffFromLeader,
+                'period_label'        => $periodLabel,
+                'no_data'             => false,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getMyRanking error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
 }
