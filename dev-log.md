@@ -1,3 +1,30 @@
+## 2026-03-04 kväll #5 — Worker: VD Månadsrapport förbättring
+
+**Backend (RebotlingController.php — getMonthCompare):**
+- Ny data: `operator_ranking` — fullständig topp-10 operatörsranking med poäng (60% volym + 25% effektivitet + 15% kvalitet), initialer, skift, IBC/h, kvalitet%.
+- Ny data: `best_day.operator_count` — antal unika operatörer som jobbade på månadens bästa dag.
+- Alla nya queries använder prepared statements.
+
+**Frontend (monthly-report.ts/.html/.css):**
+1. **Inline diff-indikatorer på KPI-kort**: Varje KPI-kort (Total IBC, Snitt IBC/dag, Kvalitet, OEE) visar nu en liten pill-badge med grön uppåtpil eller röd nedåtpil jämfört med föregående månad, direkt på kortet.
+2. **Månadens bästa dag — highlight-kort**: Nytt dedikerat kort med stort datum, IBC-antal, % av dagsmål och antal operatörer den dagen. Visas sida vid sida med Operatör av månaden.
+3. **Förbättrad operatörsranking**: Ny tabell med initialer-badge (guld/silver/brons gradient), poängkolumn, IBC/h och kvalitet. Ersätter den enklare topp-3-listan när data finns.
+4. **Veckosammanfattning med progressbar**: Varje vecka visar nu en horisontell progressbar proportionell mot bästa veckan. Bäst = grön, sämst = röd, övriga = blå.
+5. **Förbättrad PDF/print-design**: Alla nya sektioner (highlight-kort, diff-indikatorer, initialer-badges, score-badges, veckobars) har ljusa print-versioner med korrekt `break-inside: avoid`.
+
+## 2026-03-04 kväll #4 — Worker: Skiftrapport per operatör — KPI-kort + backend-endpoints
+
+**Backend (RebotlingController.php):**
+- Ny endpoint `skiftrapport-list`: Hämtar skiftrapporter med valfritt `?operator=X` filter (filtrerar på op1/op2/op3 namn via operators-tabell). Stöder `limit`/`offset`-pagination. Returnerar KPI-sammanfattning (total_ibc, snitt_per_skift, antal_skift).
+- Ny endpoint `skiftrapport-operators`: Returnerar DISTINCT lista av alla operatörsnamn som förekommer i skiftrapporter (UNION av op1, op2, op3).
+
+**Frontend (rebotling-skiftrapport):**
+- Förbättrade operatörs-KPI-kort: Ersatte den enkla inline-sammanfattningen med 5 separata kort i dark theme (#2d3748 bg, #4a5568 border):
+  - Total IBC OK, Snitt IBC/skift, Antal skift, Snitt IBC/h, Snitt kvalitet
+- Responsiv layout med Bootstrap grid (col-6/col-md-4/col-lg-2)
+- Kort visas bara när operatörsfilter är aktivt
+- Lade till `total_ibc` och `snitt_per_skift` i `filteredStats` getter
+
 ## 2026-03-04 kväll #3 — Worker: Bug Hunt #12 — Chart error-boundary + BonusAdmin threshold-validering
 
 **Chart.js error-boundary (DEL 1):**

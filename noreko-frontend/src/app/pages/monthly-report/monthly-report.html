@@ -23,7 +23,7 @@
         >
           <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
           <i *ngIf="!isLoading" class="fas fa-search me-2"></i>
-          {{ isLoading ? 'Hämtar…' : 'Hämta rapport' }}
+          {{ isLoading ? 'Hämtar...' : 'Hämta rapport' }}
         </button>
       </div>
     </div>
@@ -32,10 +32,10 @@
   <!-- ===== LADDNING ===== -->
   <div *ngIf="isLoading" class="loading-state">
     <div class="spinner-border text-info" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-3 text-muted">Genererar rapport…</p>
+    <p class="mt-3 text-muted">Genererar rapport...</p>
   </div>
 
-  <!-- ===== FEL / TOMT TILLSTÅND ===== -->
+  <!-- ===== FEL / TOMT TILLSTAND ===== -->
   <div *ngIf="!isLoading && errorMsg" class="empty-state">
     <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
     <p class="text-danger">{{ errorMsg }}</p>
@@ -46,24 +46,25 @@
     <p class="text-muted">Välj en månad och klicka på "Hämta rapport"</p>
   </div>
 
-  <!-- ===== RAPPORTINNEHÅLL ===== -->
+  <!-- ===== RAPPORTINNEHALL ===== -->
   <div *ngIf="hasData && report" class="report-body">
 
     <!-- Rapport-rubrik (synlig i utskrift) -->
     <div class="print-title">
-      <h2>Månadsrapport — {{ report.month_label }}</h2>
+      <h2>Månadsrapport -- {{ report.month_label }}</h2>
       <p class="text-muted">Automatgenererad av Noreko produktionssystem</p>
     </div>
 
-    <!-- ===== REKORDMÅNAD-BANNER ===== -->
+    <!-- ===== REKORDMANAD-BANNER ===== -->
     <div *ngIf="report && report.summary.goal_pct >= 110" class="record-month-banner">
-      🏆 Rekordmånad! {{ report.summary.goal_pct | number:'1.0-0' }}% av målet uppnått
+      Rekordmånad! {{ report.summary.goal_pct | number:'1.0-0' }}% av målet uppnått
     </div>
 
-    <!-- ===== SEKTION 1: KPI-sammanfattning ===== -->
+    <!-- ===== SEKTION 1: KPI-sammanfattning med inline diff-indikatorer ===== -->
     <section class="report-section">
       <h2 class="section-title">
         <i class="fas fa-tachometer-alt me-2"></i>KPI-sammanfattning
+        <span *ngIf="compareData" class="compare-period-label">vs {{ compareData.prev_month }}</span>
       </h2>
       <div class="kpi-grid">
 
@@ -72,9 +73,15 @@
           <div class="kpi-label">Total IBC</div>
           <div class="kpi-value">{{ report.summary.ibc_total | number }}</div>
           <div class="kpi-sub">av mål {{ report.summary.ibc_goal | number }}</div>
+          <div class="kpi-diff" *ngIf="compareData && compareData.diff.total_ibc_pct !== null">
+            <span class="kpi-diff-indicator" [class]="diffClass(compareData.diff.total_ibc_pct)">
+              {{ diffArrow(compareData.diff.total_ibc_pct) }}
+              {{ diffSign(compareData.diff.total_ibc_pct) }}{{ compareData.diff.total_ibc_pct | number:'1.0-1' }}%
+            </span>
+          </div>
         </div>
 
-        <!-- Mål-% -->
+        <!-- Mal-% -->
         <div class="kpi-card">
           <div class="kpi-label">Måluppfyllnad</div>
           <div class="kpi-value" [class]="goalClass(report.summary.goal_pct)">
@@ -92,6 +99,12 @@
           <div class="kpi-label">Snitt IBC/dag</div>
           <div class="kpi-value">{{ report.summary.avg_ibc_per_day | number:'1.0-1' }}</div>
           <div class="kpi-sub">per produktionsdag</div>
+          <div class="kpi-diff" *ngIf="compareData && compareData.diff.avg_ibc_per_day_pct !== null">
+            <span class="kpi-diff-indicator" [class]="diffClass(compareData.diff.avg_ibc_per_day_pct)">
+              {{ diffArrow(compareData.diff.avg_ibc_per_day_pct) }}
+              {{ diffSign(compareData.diff.avg_ibc_per_day_pct) }}{{ compareData.diff.avg_ibc_per_day_pct | number:'1.0-1' }}%
+            </span>
+          </div>
         </div>
 
         <!-- Produktionsdagar -->
@@ -108,6 +121,12 @@
             {{ report.summary.avg_quality }}%
           </div>
           <div class="kpi-sub">IBC godkänt av total</div>
+          <div class="kpi-diff" *ngIf="compareData">
+            <span class="kpi-diff-indicator" [class]="diffClass(compareData.diff.avg_quality_pct_diff)">
+              {{ diffArrow(compareData.diff.avg_quality_pct_diff) }}
+              {{ diffSign(compareData.diff.avg_quality_pct_diff) }}{{ compareData.diff.avg_quality_pct_diff | number:'1.0-1' }} pp
+            </span>
+          </div>
         </div>
 
         <!-- Snitt OEE -->
@@ -120,9 +139,15 @@
             Drifttid {{ report.summary.total_runtime_hours | number:'1.0-1' }}h /
             Stopp {{ report.summary.total_stoppage_hours | number:'1.0-1' }}h
           </div>
+          <div class="kpi-diff" *ngIf="compareData">
+            <span class="kpi-diff-indicator" [class]="diffClass(compareData.diff.avg_oee_pct_diff)">
+              {{ diffArrow(compareData.diff.avg_oee_pct_diff) }}
+              {{ diffSign(compareData.diff.avg_oee_pct_diff) }}{{ compareData.diff.avg_oee_pct_diff | number:'1.0-1' }} pp
+            </span>
+          </div>
         </div>
 
-        <!-- Total stillestånd -->
+        <!-- Total stillestand -->
         <div class="kpi-card">
           <div class="kpi-label">Total stillestånd</div>
           <div class="kpi-value text-warning">
@@ -133,28 +158,28 @@
           </div>
         </div>
 
-        <!-- Bästa vecka -->
+        <!-- Basta vecka -->
         <div class="kpi-card" *ngIf="report.basta_vecka">
           <div class="kpi-label">
             <i class="fas fa-arrow-trend-up me-1 text-success"></i>Bästa vecka
           </div>
           <div class="kpi-value text-success">{{ report.basta_vecka.week }}</div>
-          <div class="kpi-sub">{{ report.basta_vecka.ibc | number }} IBC — OEE {{ report.basta_vecka.avg_oee }}%</div>
+          <div class="kpi-sub">{{ report.basta_vecka.ibc | number }} IBC -- OEE {{ report.basta_vecka.avg_oee }}%</div>
         </div>
 
-        <!-- Sämsta vecka -->
+        <!-- Samsta vecka -->
         <div class="kpi-card" *ngIf="report.samsta_vecka">
           <div class="kpi-label">
             <i class="fas fa-arrow-trend-down me-1 text-danger"></i>Sämsta vecka
           </div>
           <div class="kpi-value text-danger">{{ report.samsta_vecka.week }}</div>
-          <div class="kpi-sub">{{ report.samsta_vecka.ibc | number }} IBC — OEE {{ report.samsta_vecka.avg_oee }}%</div>
+          <div class="kpi-sub">{{ report.samsta_vecka.ibc | number }} IBC -- OEE {{ report.samsta_vecka.avg_oee }}%</div>
         </div>
 
       </div>
     </section>
 
-    <!-- ===== SEKTION 1b: JÄMFÖRELSE MED FÖREGÅENDE MÅNAD ===== -->
+    <!-- ===== SEKTION 1b: JAMFORELSE MED FOREGAENDE MANAD ===== -->
     <section class="report-section" *ngIf="compareData">
       <h2 class="section-title">
         <i class="fas fa-arrows-left-right me-2"></i>Jämförelse föregående månad
@@ -170,7 +195,7 @@
             <ng-container *ngIf="compareData.diff.total_ibc_pct !== null; else noData1">
               {{ diffSign(compareData.diff.total_ibc_pct) }}{{ compareData.diff.total_ibc_pct | number:'1.0-1' }}%
             </ng-container>
-            <ng-template #noData1>—</ng-template>
+            <ng-template #noData1>--</ng-template>
           </div>
           <div class="diff-sub">
             {{ compareData.this_month.total_ibc | number }} vs {{ compareData.prev_month_data.total_ibc | number }} IBC
@@ -185,7 +210,7 @@
             <ng-container *ngIf="compareData.diff.avg_ibc_per_day_pct !== null; else noData2">
               {{ diffSign(compareData.diff.avg_ibc_per_day_pct) }}{{ compareData.diff.avg_ibc_per_day_pct | number:'1.0-1' }}%
             </ng-container>
-            <ng-template #noData2>—</ng-template>
+            <ng-template #noData2>--</ng-template>
           </div>
           <div class="diff-sub">
             {{ compareData.this_month.avg_ibc_per_day | number:'1.0-1' }} vs {{ compareData.prev_month_data.avg_ibc_per_day | number:'1.0-1' }} st/dag
@@ -219,38 +244,72 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 1c: OPERATÖR AV MÅNADEN ===== -->
-    <section class="report-section" *ngIf="compareData?.operator_of_month">
-      <h2 class="section-title">
-        <i class="fas fa-trophy me-2 text-warning"></i>Operatör av månaden
-      </h2>
-      <div class="op-of-month-card">
-        <div class="op-of-month-left">
-          <div class="op-avatar">{{ compareData!.operator_of_month!.initialer }}</div>
-          <div class="op-trophy">&#127942;</div>
-        </div>
-        <div class="op-of-month-center">
-          <div class="op-of-month-title">Operatör av månaden</div>
-          <div class="op-of-month-name">{{ compareData!.operator_of_month!.namn }}</div>
-        </div>
-        <div class="op-of-month-stats">
-          <div class="op-stat">
-            <span class="op-stat-label">Total IBC</span>
-            <span class="op-stat-value text-success">{{ compareData!.operator_of_month!.total_ibc | number }}</span>
+    <!-- ===== SEKTION 1c: OPERATOR AV MANADEN + HIGHLIGHT BASTA DAG ===== -->
+    <div class="highlight-row" *ngIf="compareData?.operator_of_month || compareData?.best_day">
+
+      <!-- Operator av manaden -->
+      <section class="report-section highlight-card-section" *ngIf="compareData?.operator_of_month">
+        <h2 class="section-title">
+          <i class="fas fa-trophy me-2 text-warning"></i>Operatör av månaden
+        </h2>
+        <div class="op-of-month-card">
+          <div class="op-of-month-left">
+            <div class="op-avatar">{{ compareData!.operator_of_month!.initialer }}</div>
+            <div class="op-trophy">&#127942;</div>
           </div>
-          <div class="op-stat">
-            <span class="op-stat-label">Snitt IBC/h</span>
-            <span class="op-stat-value">{{ compareData!.operator_of_month!.avg_ibc_per_h | number:'1.0-1' }}</span>
+          <div class="op-of-month-center">
+            <div class="op-of-month-title">Operatör av månaden</div>
+            <div class="op-of-month-name">{{ compareData!.operator_of_month!.namn }}</div>
           </div>
-          <div class="op-stat">
-            <span class="op-stat-label">Kvalitet</span>
-            <span class="op-stat-value" [class]="goalClass(compareData!.operator_of_month!.avg_quality_pct)">
-              {{ compareData!.operator_of_month!.avg_quality_pct | number:'1.0-1' }}%
-            </span>
+          <div class="op-of-month-stats">
+            <div class="op-stat">
+              <span class="op-stat-label">Total IBC</span>
+              <span class="op-stat-value text-success">{{ compareData!.operator_of_month!.total_ibc | number }}</span>
+            </div>
+            <div class="op-stat">
+              <span class="op-stat-label">Snitt IBC/h</span>
+              <span class="op-stat-value">{{ compareData!.operator_of_month!.avg_ibc_per_h | number:'1.0-1' }}</span>
+            </div>
+            <div class="op-stat">
+              <span class="op-stat-label">Kvalitet</span>
+              <span class="op-stat-value" [class]="goalClass(compareData!.operator_of_month!.avg_quality_pct)">
+                {{ compareData!.operator_of_month!.avg_quality_pct | number:'1.0-1' }}%
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <!-- Manadens basta dag — highlight-kort -->
+      <section class="report-section highlight-card-section" *ngIf="compareData?.best_day">
+        <h2 class="section-title">
+          <i class="fas fa-star me-2 text-warning"></i>Månadens bästa dag
+        </h2>
+        <div class="best-day-highlight-card">
+          <div class="best-day-date-block">
+            <div class="best-day-date-big">{{ formatDate(compareData!.best_day!.datum) }}</div>
+            <div class="best-day-badge">Toppdag</div>
+          </div>
+          <div class="best-day-stats">
+            <div class="best-day-stat">
+              <span class="best-day-stat-value text-success">{{ compareData!.best_day!.ibc | number }}</span>
+              <span class="best-day-stat-label">IBC tvättade</span>
+            </div>
+            <div class="best-day-stat">
+              <span class="best-day-stat-value" [class]="goalClass(compareData!.best_day!.target_pct)">
+                {{ compareData!.best_day!.target_pct | number:'1.0-1' }}%
+              </span>
+              <span class="best-day-stat-label">av dagsmål</span>
+            </div>
+            <div class="best-day-stat" *ngIf="compareData!.best_day!.operator_count">
+              <span class="best-day-stat-value">{{ compareData!.best_day!.operator_count }}</span>
+              <span class="best-day-stat-label">operatörer</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
 
     <!-- ===== SEKTION 2: Daglig produktion (stapeldiagram) ===== -->
     <section class="report-section" *ngIf="report.daily_production.length > 0">
@@ -273,14 +332,14 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 4: Bästa & Sämsta dag ===== -->
+    <!-- ===== SEKTION 4: Basta & Samsta dag ===== -->
     <section class="report-section" *ngIf="report.best_day || report.worst_day || compareData?.best_day || compareData?.worst_day">
       <h2 class="section-title">
         <i class="fas fa-star me-2"></i>Bästa &amp; Sämsta dag
       </h2>
       <div class="best-worst-grid">
 
-        <!-- Bästa dag — från compareData om tillgänglig (har target_pct), annars från report -->
+        <!-- Basta dag -->
         <ng-container *ngIf="compareData?.best_day; else fallbackBestDay">
           <div class="day-card day-best">
             <div class="day-card-header">
@@ -296,6 +355,10 @@
               <span class="day-stat-value" [class]="goalClass(compareData!.best_day!.target_pct)">
                 {{ compareData!.best_day!.target_pct | number:'1.0-1' }}%
               </span>
+            </div>
+            <div class="day-card-stat" *ngIf="compareData!.best_day!.operator_count">
+              <span class="day-stat-label">Operatörer</span>
+              <span class="day-stat-value">{{ compareData!.best_day!.operator_count }}</span>
             </div>
           </div>
         </ng-container>
@@ -316,7 +379,7 @@
           </div>
         </ng-template>
 
-        <!-- Sämsta dag — från compareData om tillgänglig -->
+        <!-- Samsta dag -->
         <ng-container *ngIf="compareData?.worst_day; else fallbackWorstDay">
           <div class="day-card day-worst">
             <div class="day-card-header">
@@ -355,8 +418,53 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 5: Topp-3 operatörer ===== -->
-    <section class="report-section" *ngIf="report.top_operatorer && report.top_operatorer.length > 0">
+    <!-- ===== SEKTION 5: Operatörsranking med medaljer (från month-compare) ===== -->
+    <section class="report-section" *ngIf="compareData?.operator_ranking && compareData!.operator_ranking.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-ranking-star me-2 text-warning"></i>Operatörsranking -- Topp {{ compareData!.operator_ranking.length }}
+      </h2>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover ranking-table">
+          <thead>
+            <tr>
+              <th style="width:55px">Rank</th>
+              <th>Operatör</th>
+              <th class="text-end">Skift</th>
+              <th class="text-end">IBC totalt</th>
+              <th class="text-end">IBC/h</th>
+              <th class="text-end">Kvalitet</th>
+              <th class="text-end">Poäng</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of compareData!.operator_ranking; let i = index"
+                [class.gold-row]="i === 0"
+                [class.silver-row]="i === 1"
+                [class.bronze-row]="i === 2">
+              <td class="rank-cell">
+                <span [style.color]="medalColor(i)" class="rank-medal">{{ rankMedal(i) }}</span>
+              </td>
+              <td class="operator-name">
+                <span class="op-initials-badge" [class]="rankBgClass(i)">{{ op.initialer }}</span>
+                {{ op.namn }}
+              </td>
+              <td class="text-end">{{ op.shifts }}</td>
+              <td class="text-end fw-bold">{{ op.total_ibc | number }}</td>
+              <td class="text-end">{{ op.avg_ibc_per_h | number:'1.0-1' }}</td>
+              <td class="text-end" [class]="goalClass(op.avg_quality_pct)">
+                {{ op.avg_quality_pct | number:'1.0-1' }}%
+              </td>
+              <td class="text-end">
+                <span class="score-badge">{{ op.score | number:'1.0-0' }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 5b: Topp-3 operatörer (fallback om month-compare saknas) ===== -->
+    <section class="report-section" *ngIf="!compareData?.operator_ranking?.length && report.top_operatorer && report.top_operatorer.length > 0">
       <h2 class="section-title">
         <i class="fas fa-trophy me-2 text-warning"></i>Topp 3 operatörer
       </h2>
@@ -378,8 +486,8 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 6: Operatörsranking ===== -->
-    <section class="report-section" *ngIf="report.operator_ranking.length > 0">
+    <!-- ===== SEKTION 6: Operatörsranking (legacy, från monthly-report) ===== -->
+    <section class="report-section" *ngIf="!compareData?.operator_ranking?.length && report.operator_ranking.length > 0">
       <h2 class="section-title">
         <i class="fas fa-users me-2"></i>Operatörsranking
       </h2>
@@ -405,10 +513,10 @@
               <td class="text-end">{{ op.shifts }}</td>
               <td class="text-end fw-bold">{{ op.ibc_ok | number }}</td>
               <td class="text-end">
-                {{ op.avg_ibc_per_hour !== null ? (op.avg_ibc_per_hour | number:'1.0-1') : '—' }}
+                {{ op.avg_ibc_per_hour !== null ? (op.avg_ibc_per_hour | number:'1.0-1') : '--' }}
               </td>
               <td class="text-end" [class]="op.avg_quality !== null ? goalClass(op.avg_quality) : ''">
-                {{ op.avg_quality !== null ? (op.avg_quality | number:'1.0-1') + '%' : '—' }}
+                {{ op.avg_quality !== null ? (op.avg_quality | number:'1.0-1') + '%' : '--' }}
               </td>
             </tr>
           </tbody>
@@ -416,7 +524,7 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 7: Veckosammanfattning ===== -->
+    <!-- ===== SEKTION 7: Veckosammanfattning med progressbar ===== -->
     <section class="report-section" *ngIf="report.week_summary.length > 0">
       <h2 class="section-title">
         <i class="fas fa-calendar-week me-2"></i>Veckosammanfattning
@@ -426,21 +534,31 @@
           <thead>
             <tr>
               <th>Vecka</th>
-              <th class="text-end">IBC totalt</th>
-              <th class="text-end">Snitt Kvalitet</th>
-              <th class="text-end">Snitt OEE</th>
+              <th>IBC</th>
+              <th class="text-end" style="width:100px">Kvalitet</th>
+              <th class="text-end" style="width:100px">OEE</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let w of report.week_summary"
                 [class.gold-row]="report.basta_vecka?.week === w.week"
                 [class.worst-row]="report.samsta_vecka?.week === w.week">
-              <td class="fw-bold">
+              <td class="fw-bold" style="white-space:nowrap">
                 {{ w.week }}
                 <span *ngIf="report.basta_vecka?.week === w.week" class="badge bg-success ms-2 small">Bäst</span>
                 <span *ngIf="report.samsta_vecka?.week === w.week" class="badge bg-danger ms-2 small">Lägst</span>
               </td>
-              <td class="text-end">{{ w.ibc | number }}</td>
+              <td>
+                <div class="week-bar-row">
+                  <span class="week-bar-value">{{ w.ibc | number }}</span>
+                  <div class="week-bar-track">
+                    <div class="week-bar-fill"
+                         [style.width.%]="weekBarPct(w.ibc)"
+                         [style.background]="weekBarColor(w)">
+                    </div>
+                  </div>
+                </div>
+              </td>
               <td class="text-end" [class]="goalClass(w.avg_quality)">{{ w.avg_quality }}%</td>
               <td class="text-end" [class]="goalClass(w.avg_oee)">{{ w.avg_oee }}%</td>
             </tr>
@@ -450,14 +568,14 @@
     </section>
 
 
-    <!-- ===== SEKTION 7b: Stopporsaker denna månad ===== -->
+    <!-- ===== SEKTION 7b: Stopporsaker denna manad ===== -->
     <section class="report-section" *ngIf="stopSummary.length > 0">
       <h2 class="section-title">
         <i class="fas fa-triangle-exclamation me-2 text-warning"></i>Stopporsaker denna månad
       </h2>
       <div class="stopp-list">
         <div *ngIf="stopSummaryLoading" class="text-center text-muted py-3">
-          <span class="spinner-border spinner-border-sm me-2"></span>Laddar stopporsaker…
+          <span class="spinner-border spinner-border-sm me-2"></span>Laddar stopporsaker...
         </div>
         <div *ngFor="let item of stopSummary" class="stopp-row">
           <div class="stopp-label" [title]="item.orsak">{{ item.orsak }}</div>
@@ -487,7 +605,7 @@
           [class.disabled]="!hasData || !report">
           <i class="fas fa-file-csv me-2"></i>Exportera CSV
         </button>
-        <small class="text-muted">PDF: öppnar utskriftsdialog — välj "Spara som PDF"</small>
+        <small class="text-muted">PDF: öppnar utskriftsdialog -- välj "Spara som PDF"</small>
       </div>
     </section>
 

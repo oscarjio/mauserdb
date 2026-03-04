@@ -141,6 +141,10 @@ class RebotlingController {
                 $this->getServiceStatus();
             } elseif ($action === 'production-rate') {
                 $this->getProductionRate();
+            } elseif ($action === 'skiftrapport-list') {
+                $this->getSkiftrapportList();
+            } elseif ($action === 'skiftrapport-operators') {
+                $this->getSkiftrapportOperators();
             } else {
                 $this->getLiveStats();
             }
@@ -4005,6 +4009,104 @@ class RebotlingController {
                 error_log('getMonthCompare: operatör av månaden fel: ' . $e->getMessage());
             }
 
+            // Full operatörsranking (topp 10) med poäng
+            $operatorRanking = [];
+            try {
+                $firstDay = $monthParam . '-01';
+                $lastDay  = date('Y-m-t', strtotime($firstDay));
+                $rankSQL = "
+                    SELECT op_id,
+                           COUNT(DISTINCT skiftraknare) AS shifts,
+                           SUM(shift_ibc) AS total_ibc,
+                           SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
+                           SUM(shift_ok * 100.0) / NULLIF(SUM(shift_total), 0) AS avg_quality_pct
+                    FROM (
+                        SELECT op1 AS op_id, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN ? AND ?
+                          AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY op1, skiftraknare
+                        UNION ALL
+                        SELECT op2 AS op_id, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN ? AND ?
+                          AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY op2, skiftraknare
+                        UNION ALL
+                        SELECT op3 AS op_id, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN ? AND ?
+                          AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY op3, skiftraknare
+                    ) t
+                    GROUP BY op_id
+                    ORDER BY (SUM(shift_ibc) * 0.6 + SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
+                    LIMIT 10
+                ";
+                $stmtRank = $this->pdo->prepare($rankSQL);
+                $stmtRank->execute([$firstDay, $lastDay, $firstDay, $lastDay, $firstDay, $lastDay]);
+                $rankRows = $stmtRank->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rankRows as $rr) {
+                    $nameStmt2 = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
+                    $nameStmt2->execute([$rr['op_id']]);
+                    $nameRow2 = $nameStmt2->fetch(PDO::FETCH_ASSOC);
+                    $opNamn = $nameRow2 ? $nameRow2['name'] : 'Okänd';
+                    $parts2 = explode(' ', trim($opNamn));
+                    $init2 = '';
+                    foreach ($parts2 as $p2) {
+                        if ($p2 !== '') $init2 .= strtoupper(substr($p2, 0, 1));
+                    }
+                    $ibcH = (float)($rr['avg_ibc_per_h'] ?? 0);
+                    $qualP = (float)($rr['avg_quality_pct'] ?? 0);
+                    $totalIbc = (int)($rr['total_ibc'] ?? 0);
+                    $score = round($totalIbc * 0.6 + $ibcH * 100 * 0.25 + $qualP * 0.15, 1);
+                    $operatorRanking[] = [
+                        'op_id'           => (int)$rr['op_id'],
+                        'namn'            => $opNamn,
+                        'initialer'       => substr($init2, 0, 3),
+                        'shifts'          => (int)($rr['shifts'] ?? 0),
+                        'total_ibc'       => $totalIbc,
+                        'avg_ibc_per_h'   => round($ibcH, 1),
+                        'avg_quality_pct' => round($qualP, 1),
+                        'score'           => $score,
+                    ];
+                }
+            } catch (Exception $e) {
+                error_log('getMonthCompare: operatörsranking fel: ' . $e->getMessage());
+            }
+
+            // Antal operatörer på bästa dagen
+            $bestDayData = $thisMonthData['best_day'];
+            try {
+                if ($bestDayData) {
+                    $bdStmt = $this->pdo->prepare("
+                        SELECT COUNT(DISTINCT op_id) AS op_count FROM (
+                            SELECT DISTINCT op1 AS op_id FROM rebotling_ibc WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
+                            UNION SELECT DISTINCT op2 FROM rebotling_ibc WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
+                            UNION SELECT DISTINCT op3 FROM rebotling_ibc WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                        ) ops
+                    ");
+                    $bdDate = $bestDayData['datum'];
+                    $bdStmt->execute([$bdDate, $bdDate, $bdDate]);
+                    $bdRow = $bdStmt->fetch(PDO::FETCH_ASSOC);
+                    $bestDayData['operator_count'] = (int)($bdRow['op_count'] ?? 0);
+                }
+            } catch (Exception $e) {
+                error_log('getMonthCompare: best day operators fel: ' . $e->getMessage());
+            }
+
             echo json_encode([
                 'success'            => true,
                 'month'              => $monthParam,
@@ -4018,7 +4120,8 @@ class RebotlingController {
                     'avg_quality_pct_diff'   => $diffQuality,
                 ],
                 'operator_of_month'  => $opOfMonth,
-                'best_day'           => $thisMonthData['best_day'],
+                'operator_ranking'   => $operatorRanking,
+                'best_day'           => $bestDayData,
                 'worst_day'          => $thisMonthData['worst_day'],
             ]);
 
@@ -7103,6 +7206,139 @@ class RebotlingController {
             error_log("getProductionRate: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(["success" => false, "error" => "Serverfel"]);
+        }
+    }
+
+    // =========================================================
+    // Skiftrapport-lista — med valfritt operatörsfilter
+    // GET ?action=rebotling&run=skiftrapport-list[&operator=X][&limit=50][&offset=0]
+    // =========================================================
+    private function getSkiftrapportList() {
+        try {
+            $operator = $_GET['operator'] ?? '';
+            $limit  = max(1, min(500, (int)($_GET['limit'] ?? 100)));
+            $offset = max(0, (int)($_GET['offset'] ?? 0));
+
+            $where = '';
+            $params = [];
+
+            if ($operator !== '') {
+                $where = 'WHERE (o1.name = :op1 OR o2.name = :op2 OR o3.name = :op3)';
+                $params['op1'] = $operator;
+                $params['op2'] = $operator;
+                $params['op3'] = $operator;
+            }
+
+            // Räkna totalt antal rader (för pagination)
+            $countSql = "
+                SELECT COUNT(*) FROM rebotling_skiftrapport s
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                {$where}
+            ";
+            $countStmt = $this->pdo->prepare($countSql);
+            $countStmt->execute($params);
+            $totalRows = (int)$countStmt->fetchColumn();
+
+            // Hämta rader
+            $sql = "
+                SELECT
+                    s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
+                    s.drifttid, s.rasttime, s.lopnummer, s.skiftraknare,
+                    s.op1, s.op2, s.op3,
+                    s.created_at,
+                    u.username AS user_name,
+                    p.name AS product_name,
+                    o1.name AS op1_name,
+                    o2.name AS op2_name,
+                    o3.name AS op3_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN rebotling_products p ON s.product_id = p.id
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                {$where}
+                ORDER BY s.datum DESC, s.id DESC
+                LIMIT {$limit} OFFSET {$offset}
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // KPI-sammanfattning
+            $kpiSql = "
+                SELECT
+                    COALESCE(SUM(s.ibc_ok), 0)   AS total_ibc_ok,
+                    COALESCE(SUM(s.totalt), 0)    AS total_totalt,
+                    COALESCE(SUM(s.drifttid), 0)  AS total_drifttid,
+                    COUNT(*)                       AS antal_skift
+                FROM rebotling_skiftrapport s
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                {$where}
+            ";
+            $kpiStmt = $this->pdo->prepare($kpiSql);
+            $kpiStmt->execute($params);
+            $kpi = $kpiStmt->fetch(PDO::FETCH_ASSOC);
+
+            $antalSkift = (int)($kpi['antal_skift'] ?? 0);
+            $totalIbc   = (int)($kpi['total_ibc_ok'] ?? 0);
+            $snittPerSkift = $antalSkift > 0 ? round($totalIbc / $antalSkift, 1) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'data' => $rows,
+                'total' => $totalRows,
+                'kpi' => [
+                    'total_ibc'      => $totalIbc,
+                    'snitt_per_skift' => $snittPerSkift,
+                    'antal_skift'    => $antalSkift,
+                ],
+            ]);
+        } catch (Exception $e) {
+            error_log('getSkiftrapportList: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapporter']);
+        }
+    }
+
+    // =========================================================
+    // Unika operatörer i skiftrapporter
+    // GET ?action=rebotling&run=skiftrapport-operators
+    // =========================================================
+    private function getSkiftrapportOperators() {
+        try {
+            $sql = "
+                SELECT DISTINCT name FROM (
+                    SELECT o.name FROM rebotling_skiftrapport s
+                    INNER JOIN operators o ON o.number = s.op1
+                    WHERE s.op1 IS NOT NULL
+                    UNION
+                    SELECT o.name FROM rebotling_skiftrapport s
+                    INNER JOIN operators o ON o.number = s.op2
+                    WHERE s.op2 IS NOT NULL
+                    UNION
+                    SELECT o.name FROM rebotling_skiftrapport s
+                    INNER JOIN operators o ON o.number = s.op3
+                    WHERE s.op3 IS NOT NULL
+                ) AS ops
+                WHERE name IS NOT NULL AND name != ''
+                ORDER BY name
+            ";
+            $stmt = $this->pdo->query($sql);
+            $operators = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            echo json_encode([
+                'success' => true,
+                'operators' => $operators,
+            ]);
+        } catch (Exception $e) {
+            error_log('getSkiftrapportOperators: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista']);
         }
     }
 }

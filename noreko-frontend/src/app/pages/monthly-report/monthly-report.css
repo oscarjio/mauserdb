@@ -691,7 +691,209 @@
 }
 
 /* =============================================
-   Print förbättring — no-print + övriga selektorer
+   KPI inline diff-indikatorer
+   ============================================= */
+.kpi-diff {
+  margin-top: 0.4rem;
+}
+
+.kpi-diff-indicator {
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.kpi-diff-indicator.diff-positive {
+  background: rgba(72, 187, 120, 0.15);
+  color: #68d391;
+}
+
+.kpi-diff-indicator.diff-negative {
+  background: rgba(245, 101, 101, 0.15);
+  color: #fc8181;
+}
+
+.kpi-diff-indicator.diff-neutral {
+  background: rgba(160, 174, 192, 0.15);
+  color: #a0aec0;
+}
+
+/* =============================================
+   Highlight-rad: Operator av manaden + Basta dag
+   ============================================= */
+.highlight-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.highlight-card-section {
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 800px) {
+  .highlight-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =============================================
+   Manadens basta dag — highlight-kort
+   ============================================= */
+.best-day-highlight-card {
+  background: linear-gradient(135deg, #2d3748 0%, #1e3a2d 100%);
+  border: 1px solid rgba(72, 187, 120, 0.35);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  box-shadow: 0 0 20px rgba(72, 187, 120, 0.06);
+}
+
+.best-day-date-block {
+  text-align: center;
+  min-width: 100px;
+  flex-shrink: 0;
+}
+
+.best-day-date-big {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+
+.best-day-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(72, 187, 120, 0.2);
+  color: #68d391;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+.best-day-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: center;
+}
+
+.best-day-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+}
+
+.best-day-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.best-day-stat-label {
+  font-size: 0.7rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.15rem;
+}
+
+/* =============================================
+   Operatorsranking — initialer badge + score
+   ============================================= */
+.op-initials-badge {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  background: #4a5568;
+  margin-right: 0.6rem;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+
+.op-initials-badge.rank-gold {
+  background: linear-gradient(135deg, #b7791f, #f6e05e);
+  color: #1a202c;
+}
+
+.op-initials-badge.rank-silver {
+  background: linear-gradient(135deg, #718096, #cbd5e0);
+  color: #1a202c;
+}
+
+.op-initials-badge.rank-bronze {
+  background: linear-gradient(135deg, #9c4221, #dd6b20);
+  color: #fff;
+}
+
+.rank-medal {
+  font-size: 1.2rem;
+}
+
+.score-badge {
+  display: inline-block;
+  background: rgba(99, 179, 237, 0.15);
+  color: #63b3ed;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 8px;
+}
+
+/* =============================================
+   Veckosammanfattning — progressbar
+   ============================================= */
+.week-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.week-bar-value {
+  min-width: 55px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  text-align: right;
+  color: #e2e8f0;
+}
+
+.week-bar-track {
+  flex: 1;
+  height: 10px;
+  background: #4a5568;
+  border-radius: 5px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.week-bar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+/* =============================================
+   Print forbattring — alla nya sektioner
    ============================================= */
 @media print {
   .month-picker,
@@ -728,9 +930,50 @@
   .stopp-min   { color: #4a5568 !important; }
   .stopp-bar-wrap { background: #e2e8f0 !important; }
 
-  /* Rekordmånad-banner i utskrift */
+  /* Rekordmanad-banner i utskrift */
   .record-month-banner {
     animation: none !important;
     border: 2px solid #b7791f;
   }
+
+  /* Highlight-rad i utskrift */
+  .highlight-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Basta dag highlight i utskrift */
+  .best-day-highlight-card {
+    background: #f0fff4 !important;
+    border-color: #48bb78 !important;
+    break-inside: avoid;
+  }
+
+  .best-day-date-big { color: #1a202c !important; }
+  .best-day-stat-value { color: #1a202c !important; }
+  .best-day-stat-label { color: #4a5568 !important; }
+  .best-day-badge { background: #c6f6d5 !important; color: #276749 !important; }
+
+  /* KPI diff-indikatorer i utskrift */
+  .kpi-diff-indicator.diff-positive { color: #276749 !important; background: rgba(72,187,120,0.1) !important; }
+  .kpi-diff-indicator.diff-negative { color: #9b2c2c !important; background: rgba(245,101,101,0.1) !important; }
+
+  /* Initialer badge i utskrift */
+  .op-initials-badge {
+    background: #e2e8f0 !important;
+    color: #1a202c !important;
+  }
+
+  .op-initials-badge.rank-gold { background: #fefcbf !important; }
+  .op-initials-badge.rank-silver { background: #e2e8f0 !important; }
+  .op-initials-badge.rank-bronze { background: #feebc8 !important; }
+
+  /* Score badge i utskrift */
+  .score-badge {
+    background: #ebf8ff !important;
+    color: #2b6cb0 !important;
+  }
+
+  /* Veckobar i utskrift */
+  .week-bar-value { color: #1a202c !important; }
+  .week-bar-track { background: #e2e8f0 !important; }
 }

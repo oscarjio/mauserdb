@@ -183,26 +183,48 @@
         </span>
       </div>
 
-      <!-- ======== OPERATÖRSSUMMERING (visas när operatörsfilter är aktivt) ======== -->
-      <div class="card mb-3 border-info" style="background: rgba(66,153,225,0.08);" *ngIf="selectedOperatorId !== null && filteredStats">
-        <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-3">
-          <small class="text-info fw-semibold">
-            <i class="fas fa-user-circle me-1"></i>{{ getSelectedOperatorName() }}
-          </small>
-          <span class="text-muted small">
-            <strong class="text-light">{{ filteredStats.total_skift }}</strong> skift
-          </span>
-          <span class="text-muted small">
-            Snitt IBC/h: <strong class="text-warning">{{ filteredStats.avg_ibc_h | number:'1.1-1' }}</strong>
-          </span>
-          <span class="text-muted small">
-            Snitt kvalitet: <strong
-              [class.text-success]="filteredStats.avg_kvalitet >= 90"
-              [class.text-warning]="filteredStats.avg_kvalitet >= 70 && filteredStats.avg_kvalitet < 90"
-              [class.text-danger]="filteredStats.avg_kvalitet < 70">
-              {{ filteredStats.avg_kvalitet | number:'1.1-1' }}%
-            </strong>
-          </span>
+      <!-- ======== OPERATÖRSSUMMERING — KPI-kort (visas när operatörsfilter är aktivt) ======== -->
+      <div *ngIf="selectedOperatorId !== null && filteredStats" class="mb-3">
+        <div class="d-flex align-items-center mb-2">
+          <i class="fas fa-user-circle me-2 text-info"></i>
+          <span class="fw-semibold" style="color: #e2e8f0;">{{ getSelectedOperatorName() }}</span>
+        </div>
+        <div class="row g-2">
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="kpi-card-op text-center">
+              <div class="kpi-card-op-value text-info">{{ filteredStats.total_ibc | number }}</div>
+              <div class="kpi-card-op-label">Total IBC OK</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="kpi-card-op text-center">
+              <div class="kpi-card-op-value text-info">{{ filteredStats.snitt_per_skift | number:'1.1-1' }}</div>
+              <div class="kpi-card-op-label">Snitt IBC/skift</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="kpi-card-op text-center">
+              <div class="kpi-card-op-value text-light">{{ filteredStats.total_skift | number }}</div>
+              <div class="kpi-card-op-label">Antal skift</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="kpi-card-op text-center">
+              <div class="kpi-card-op-value text-warning">{{ filteredStats.avg_ibc_h | number:'1.1-1' }}</div>
+              <div class="kpi-card-op-label">Snitt IBC/h</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-lg-2">
+            <div class="kpi-card-op text-center">
+              <div class="kpi-card-op-value"
+                [class.text-success]="filteredStats.avg_kvalitet >= 90"
+                [class.text-warning]="filteredStats.avg_kvalitet >= 70 && filteredStats.avg_kvalitet < 90"
+                [class.text-danger]="filteredStats.avg_kvalitet < 70">
+                {{ filteredStats.avg_kvalitet | number:'1.1-1' }}%
+              </div>
+              <div class="kpi-card-op-label">Snitt kvalitet</div>
+            </div>
+          </div>
         </div>
       </div>
 
