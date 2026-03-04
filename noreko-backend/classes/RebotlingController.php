@@ -445,6 +445,7 @@ class RebotlingController {
 
         } catch (Exception $e) {
             error_log('Kunde inte hämta statistik (getLiveStats): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
@@ -490,6 +491,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('Kunde inte hämta status (getRunningStatus): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta status'
@@ -580,6 +582,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getRastStatus error: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus']);
         }
     }
@@ -623,6 +626,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $settings]);
         } catch (Exception $e) {
             error_log('Kunde inte hämta admin-inställningar: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta admin-inställningar']);
         }
     }
@@ -692,6 +696,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
         } catch (Exception $e) {
             error_log('Kunde inte spara inställningar: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar']);
         }
     }
@@ -875,6 +880,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('Kunde inte hämta statistik (getStatistics): ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
@@ -982,6 +988,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('Kunde inte hämta dagsstatistik: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta dagsstatistik'
@@ -1094,6 +1101,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('Kunde inte beräkna OEE: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte beräkna OEE'
@@ -1530,6 +1538,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('RebotlingController getWeekComparison: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckojämförelsedata']);
         }
     }
@@ -1667,6 +1676,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $daily]);
         } catch (Exception $e) {
             error_log('RebotlingController getOEETrend: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-trend']);
         }
     }
@@ -1719,6 +1729,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $result]);
         } catch (Exception $e) {
             error_log('RebotlingController getBestShifts: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bästa skift']);
         }
     }
@@ -1811,6 +1822,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $rows]);
         } catch (Exception $e) {
             error_log('getWeekdayGoals: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål']);
         }
     }
@@ -1836,6 +1848,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade']);
         } catch (Exception $e) {
             error_log('saveWeekdayGoals: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål']);
         }
     }
@@ -1901,6 +1914,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $thresholds]);
         } catch (Exception $e) {
             error_log('getAlertThresholds: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar']);
         }
     }
@@ -1932,6 +1946,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'message' => 'Trösklar sparade']);
         } catch (Exception $e) {
             error_log('saveAlertThresholds: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara trösklar']);
         }
     }
@@ -2033,6 +2048,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getTodaySnapshot: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot']);
         }
     }
@@ -2071,6 +2087,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $rows]);
         } catch (Exception $e) {
             error_log('getShiftTimes: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skifttider']);
         }
     }
@@ -2101,6 +2118,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'message' => 'Skifttider sparade']);
         } catch (Exception $e) {
             error_log('saveShiftTimes: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara skifttider']);
         }
     }
@@ -2494,6 +2512,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getExecDashboard: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta executive dashboard-data']);
         }
     }
@@ -2552,6 +2571,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getSystemStatus: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus']);
         }
     }
@@ -2669,6 +2689,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getShiftCompare: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte jämföra skift']);
         }
     }
@@ -2817,6 +2838,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getLiveRanking: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta live ranking']);
         }
     }
@@ -2926,6 +2948,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getCycleHistogram: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta cykeltidsfordelning']);
         }
     }
@@ -3024,6 +3047,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getSPC: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta SPC-data']);
         }
     }
@@ -3161,6 +3185,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getCycleByOperator: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta cykeltid per operatör']);
         }
     }
@@ -3260,6 +3285,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getYearCalendar: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kalenderdata']);
         }
     }
@@ -3449,6 +3475,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getDayDetail: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagdetalj']);
         }
     }
@@ -3791,6 +3818,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getBenchmarking: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta benchmarking-data']);
         }
     }
@@ -4139,6 +4167,7 @@ class RebotlingController {
 
         } catch (Exception $e) {
             error_log('getMonthCompare: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta jämförelsedata']);
         }
     }
@@ -4417,6 +4446,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getMonthlyReport: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsrapport']);
         }
     }
@@ -4528,6 +4558,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getMaintenanceIndicator: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta underhållsindikator']);
         }
     }
@@ -5012,6 +5043,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('RebotlingController getWeekdayStats: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodag-statistik']);
         }
     }
@@ -5037,6 +5069,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'events' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
         } catch (Exception $e) {
             error_log('RebotlingController getEvents: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => true, 'events' => []]);
         }
     }
@@ -5104,6 +5137,7 @@ class RebotlingController {
             }
         } catch (Exception $e) {
             error_log('RebotlingController getStoppageAnalysis check: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => true,
                 'empty'   => true,
@@ -5229,6 +5263,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('RebotlingController getStoppageAnalysis: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success'      => true,
                 'empty'        => true,
@@ -5405,6 +5440,7 @@ class RebotlingController {
             }
         } catch (Exception $e) {
             error_log('RebotlingController getParetoStoppage check: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success'       => true,
                 'empty'         => true,
@@ -5481,6 +5517,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('RebotlingController getParetoStoppage: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success'       => true,
                 'empty'         => true,
@@ -5689,6 +5726,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getNotificationSettings: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta notifikationsinställningar']);
         }
     }
@@ -5732,6 +5770,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'message' => 'Notifikationsinställningar sparade']);
         } catch (Exception $e) {
             error_log('saveNotificationSettings: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara notifikationsinställningar']);
         }
     }
@@ -6381,6 +6420,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'operators' => $operators]);
         } catch (\Exception $e) {
             error_log('getOperatorListForTrend: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista']);
         }
     }
@@ -6534,6 +6574,7 @@ class RebotlingController {
 
         } catch (\Exception $e) {
             error_log('getOperatorWeeklyTrend: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
         }
     }
@@ -6717,6 +6758,7 @@ class RebotlingController {
             } catch (\Exception $tableErr) {
                 // Tabellen finns inte ännu — returnera ändå success så frontend inte kraschar
                 error_log('saveMaintenanceLog: rebotling_maintenance_log saknas: ' . $tableErr->getMessage());
+                http_response_code(500);
                 echo json_encode(['success' => true, 'message' => 'Noterat (logg-tabell ej konfigurerad)']);
             }
         } catch (\Exception $e) {
@@ -7044,6 +7086,7 @@ class RebotlingController {
                     return;
                 }
             } catch (\Exception $e) {
+                http_response_code(500);
                 echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
                 return;
             }
@@ -7118,6 +7161,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'exceptions' => $exceptions]);
         } catch (Exception $e) {
             error_log('getGoalExceptions: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta undantag']);
         }
     }
@@ -7165,6 +7209,7 @@ class RebotlingController {
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
             error_log('saveGoalException: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara undantag']);
         }
     }
@@ -7187,6 +7232,7 @@ class RebotlingController {
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
             error_log('deleteGoalException: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort undantag']);
         }
     }
@@ -7261,6 +7307,7 @@ class RebotlingController {
             ]);
         } catch (Exception $e) {
             error_log('getOeeComponents: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-komponentdata']);
         }
     }
