@@ -959,6 +959,72 @@
   </div>
 
 
+  <!-- ======== AUTOMATISK SKIFTRAPPORT VIA EMAIL ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-file-export me-2 text-warning"></i>Automatisk skiftrapport
+          </h5>
+          <button class="btn btn-sm btn-outline-secondary"
+                  (click)="showShiftReportPanel = !showShiftReportPanel">
+            <i class="fas" [class.fa-chevron-down]="!showShiftReportPanel" [class.fa-chevron-up]="showShiftReportPanel"></i>
+          </button>
+        </div>
+        <div class="card-body" *ngIf="showShiftReportPanel">
+
+          <p class="text-muted small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Skiftrapporten skickas som HTML-email till de mottagare som konfigurerats under <strong>E-postnotifikationer</strong> ovan.
+            Rapporten skickas automatiskt vid skiftslut.
+          </p>
+
+          <div *ngIf="shiftReportError" class="alert alert-danger py-2 mb-3">
+            <i class="fas fa-exclamation-triangle me-1"></i>{{ shiftReportError }}
+          </div>
+
+          <div *ngIf="shiftReportSuccess" class="alert alert-success py-2 mb-3">
+            <i class="fas fa-check-circle me-1"></i>{{ shiftReportSuccess }}
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label class="form-label">Datum</label>
+              <input type="date" class="form-control bg-dark text-light border-secondary"
+                     [(ngModel)]="shiftReportTestDate"
+                     [disabled]="shiftReportSending">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Skift</label>
+              <select class="form-select bg-dark text-light border-secondary"
+                      [(ngModel)]="shiftReportTestShift"
+                      [disabled]="shiftReportSending">
+                <option [ngValue]="1">1 — Förmiddag (06–14)</option>
+                <option [ngValue]="2">2 — Eftermiddag (14–22)</option>
+                <option [ngValue]="3">3 — Natt (22–06)</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button class="btn btn-warning w-100"
+                      (click)="sendTestShiftReport()"
+                      [disabled]="shiftReportSending">
+                <i class="fas" [class.fa-paper-plane]="!shiftReportSending" [class.fa-spinner]="shiftReportSending" [class.fa-spin]="shiftReportSending" class="me-2"></i>
+                {{ shiftReportSending ? 'Skickar...' : 'Skicka testrapport' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="form-text text-muted">
+            <i class="fas fa-lightbulb me-1 text-warning"></i>
+            Välj datum och skift, klicka sedan "Skicka testrapport" för att skicka rapporten till alla konfigurerade mottagare.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
   <!-- ======== DAGSMÅL-HISTORIK ======== -->
   <div class="row mt-4">
     <div class="col-12">

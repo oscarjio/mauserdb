@@ -214,6 +214,8 @@ class RebotlingController {
                 $this->resetService();
             } elseif ($action === 'save-service-interval') {
                 $this->saveServiceInterval();
+            } elseif ($action === 'auto-shift-report') {
+                $this->sendAutoShiftReport();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -7680,5 +7682,273 @@ class RebotlingController {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta korrelationsdata']);
         }
+    }
+
+    // =========================================================
+    // Automatisk skiftrapport via email
+    // POST ?action=rebotling&run=auto-shift-report
+    // =========================================================
+    private function sendAutoShiftReport(): void {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $date  = $data['date']  ?? date('Y-m-d');
+        $shift = (int)($data['shift'] ?? 0);
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $shift < 1 || $shift > 3) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum eller skiftnummer (1-3)']);
+            return;
+        }
+
+        try {
+            // Hämta mottagare
+            $this->ensureNotificationEmailsColumn();
+            $row = $this->pdo->query(
+                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            $emailsRaw = $row['notification_emails'] ?? '';
+            if (empty(trim($emailsRaw))) {
+                echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.']);
+                return;
+            }
+
+            $recipients = [];
+            $parts = array_map('trim', explode(';', str_replace(',', ';', $emailsRaw)));
+            foreach ($parts as $email) {
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $recipients[] = $email;
+                }
+            }
+
+            if (count($recipients) === 0) {
+                echo json_encode(['success' => false, 'error' => 'Inga giltiga e-postadresser konfigurerade.']);
+                return;
+            }
+
+            // Hämta skiftdata
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
+                    s.drifttid, s.rasttime, s.lopnummer, s.skiftraknare,
+                    s.op1, s.op2, s.op3,
+                    u.username AS user_name,
+                    p.name AS product_name,
+                    o1.name AS op1_name,
+                    o2.name AS op2_name,
+                    o3.name AS op3_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN rebotling_products p ON s.product_id = p.id
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                WHERE DATE(s.datum) = :date
+                ORDER BY s.id
+            ");
+            $stmt->execute(['date' => $date]);
+            $allRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Filtrera rader per skift
+            $rows = [];
+            foreach ($allRows as $r) {
+                $timeStr = substr($r['datum'] ?? '', 11, 5);
+                $rowShift = 1;
+                if ($timeStr) {
+                    $p = explode(':', $timeStr);
+                    $minutes = ((int)$p[0]) * 60 + ((int)($p[1] ?? 0));
+                    if ($minutes >= 360 && $minutes < 840) $rowShift = 1;
+                    elseif ($minutes >= 840 && $minutes < 1320) $rowShift = 2;
+                    else $rowShift = 3;
+                }
+                if ($rowShift === $shift) {
+                    $rows[] = $r;
+                }
+            }
+
+            if (count($rows) === 0 && count($allRows) > 0) {
+                $rows = $allRows;
+            }
+
+            // Aggregera KPI:er
+            $totalIbcOk  = 0;
+            $totalBurEj  = 0;
+            $totalIbcEj  = 0;
+            $totalTotalt = 0;
+            $totalDrift  = 0;
+            $totalRast   = 0;
+            $operatorNames = [];
+            $products    = [];
+
+            foreach ($rows as $r) {
+                $totalIbcOk  += (int)($r['ibc_ok']    ?? 0);
+                $totalBurEj  += (int)($r['bur_ej_ok']  ?? 0);
+                $totalIbcEj  += (int)($r['ibc_ej_ok']  ?? 0);
+                $totalTotalt += (int)($r['totalt']      ?? 0);
+                $totalDrift  += (int)($r['drifttid']    ?? 0);
+                $totalRast   += (int)($r['rasttime']    ?? 0);
+
+                foreach (['op1_name', 'op2_name', 'op3_name'] as $opField) {
+                    if (!empty($r[$opField])) {
+                        $operatorNames[$r[$opField]] = true;
+                    }
+                }
+                if (!empty($r['product_name'])) {
+                    $products[$r['product_name']] = true;
+                }
+            }
+
+            $kvalitet = $totalTotalt > 0
+                ? round(($totalIbcOk / $totalTotalt) * 100, 1)
+                : 0;
+
+            $ibcPerH = $totalDrift > 0
+                ? round(($totalIbcOk / ($totalDrift / 60)), 1)
+                : 0;
+
+            $shiftNames = [1 => 'Förmiddag (06-14)', 2 => 'Eftermiddag (14-22)', 3 => 'Natt (22-06)'];
+            $shiftName  = $shiftNames[$shift] ?? "Skift $shift";
+
+            // Bygg HTML-rapport
+            $html = $this->buildShiftReportHtml(
+                $date, $shift, $shiftName,
+                $totalIbcOk, $totalBurEj, $totalIbcEj, $totalTotalt,
+                $totalDrift, $totalRast, $kvalitet, $ibcPerH,
+                array_keys($operatorNames), array_keys($products),
+                $rows
+            );
+
+            // Skicka email
+            $subject = "Skiftrapport — $date — $shiftName";
+            $headers  = "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: Rebotling System <noreply@noreko.se>\r\n";
+
+            $sentTo = [];
+            foreach ($recipients as $email) {
+                if (mail($email, $subject, $html, $headers)) {
+                    $sentTo[] = $email;
+                } else {
+                    error_log("sendAutoShiftReport: Kunde inte skicka till $email");
+                }
+            }
+
+            if (count($sentTo) === 0) {
+                echo json_encode(['success' => false, 'error' => 'Kunde inte skicka till någon mottagare. Kontrollera serverinställningar.']);
+                return;
+            }
+
+            echo json_encode([
+                'success'      => true,
+                'recipients'   => $sentTo,
+                'shift_date'   => $date,
+                'shift_number' => $shift,
+            ]);
+
+        } catch (Exception $e) {
+            error_log('sendAutoShiftReport: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid sändning av skiftrapport']);
+        }
+    }
+
+    /**
+     * Bygg en HTML-baserad skiftrapport.
+     */
+    private function buildShiftReportHtml(
+        string $date, int $shift, string $shiftName,
+        int $ibcOk, int $burEj, int $ibcEj, int $totalt,
+        int $drifttid, int $rasttime, float $kvalitet, float $ibcPerH,
+        array $operators, array $products, array $rows
+    ): string {
+        $driftH = floor($drifttid / 60);
+        $driftM = $drifttid % 60;
+        $rastH  = floor($rasttime / 60);
+        $rastM  = $rasttime % 60;
+        $opList      = !empty($operators) ? implode(', ', $operators) : '<em>Ej angivet</em>';
+        $productList = !empty($products) ? implode(', ', $products) : '<em>Ej angivet</em>';
+
+        $kvalitetColor = $kvalitet >= 95 ? '#38a169' : ($kvalitet >= 85 ? '#d69e2e' : '#e53e3e');
+
+        $rowsHtml = '';
+        foreach ($rows as $r) {
+            $opNames = array_filter([$r['op1_name'] ?? '', $r['op2_name'] ?? '', $r['op3_name'] ?? '']);
+            $rowsHtml .= '<tr>'
+                . '<td>' . htmlspecialchars($r['product_name'] ?? '–') . '</td>'
+                . '<td style="text-align:right;">' . (int)($r['ibc_ok'] ?? 0) . '</td>'
+                . '<td style="text-align:right;">' . (int)($r['bur_ej_ok'] ?? 0) . '</td>'
+                . '<td style="text-align:right;">' . (int)($r['ibc_ej_ok'] ?? 0) . '</td>'
+                . '<td style="text-align:right;">' . (int)($r['totalt'] ?? 0) . '</td>'
+                . '<td>' . htmlspecialchars(implode(', ', $opNames) ?: '–') . '</td>'
+                . '</tr>';
+        }
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="sv">
+<head><meta charset="UTF-8"><title>Skiftrapport {$date}</title></head>
+<body style="margin:0; padding:0; font-family:Arial,Helvetica,sans-serif; background:#f5f5f5;">
+<div style="max-width:640px; margin:20px auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+
+  <!-- Header -->
+  <div style="background:#1a202c; color:#e2e8f0; padding:20px 24px;">
+    <h1 style="margin:0; font-size:20px;">Skiftrapport</h1>
+    <p style="margin:6px 0 0; font-size:14px; color:#a0aec0;">{$date} &mdash; {$shiftName}</p>
+  </div>
+
+  <!-- KPI:er -->
+  <div style="padding:20px 24px;">
+    <table style="width:100%; border-collapse:collapse; margin-bottom:16px;">
+      <tr>
+        <td style="padding:10px 8px; text-align:center; background:#f7fafc; border-radius:6px;">
+          <div style="font-size:24px; font-weight:700; color:#2d3748;">{$ibcOk}</div>
+          <div style="font-size:12px; color:#718096; text-transform:uppercase;">IBC OK</div>
+        </td>
+        <td style="padding:10px 8px; text-align:center; background:#f7fafc; border-radius:6px;">
+          <div style="font-size:24px; font-weight:700; color:{$kvalitetColor};">{$kvalitet}%</div>
+          <div style="font-size:12px; color:#718096; text-transform:uppercase;">Kvalitet</div>
+        </td>
+        <td style="padding:10px 8px; text-align:center; background:#f7fafc; border-radius:6px;">
+          <div style="font-size:24px; font-weight:700; color:#2d3748;">{$ibcPerH}</div>
+          <div style="font-size:12px; color:#718096; text-transform:uppercase;">IBC/h</div>
+        </td>
+      </tr>
+    </table>
+
+    <table style="width:100%; border-collapse:collapse; font-size:14px; color:#4a5568; margin-bottom:16px;">
+      <tr><td style="padding:4px 0;"><strong>Totalt bearbetade:</strong></td><td style="text-align:right;">{$totalt}</td></tr>
+      <tr><td style="padding:4px 0;"><strong>Bur ej OK:</strong></td><td style="text-align:right;">{$burEj}</td></tr>
+      <tr><td style="padding:4px 0;"><strong>IBC ej OK:</strong></td><td style="text-align:right;">{$ibcEj}</td></tr>
+      <tr><td style="padding:4px 0;"><strong>Drifttid:</strong></td><td style="text-align:right;">{$driftH}h {$driftM}min</td></tr>
+      <tr><td style="padding:4px 0;"><strong>Rasttid:</strong></td><td style="text-align:right;">{$rastH}h {$rastM}min</td></tr>
+      <tr><td style="padding:4px 0;"><strong>Operatörer:</strong></td><td style="text-align:right;">{$opList}</td></tr>
+      <tr><td style="padding:4px 0;"><strong>Produkter:</strong></td><td style="text-align:right;">{$productList}</td></tr>
+    </table>
+
+    <!-- Detaljrader -->
+    <h3 style="font-size:14px; color:#2d3748; margin:16px 0 8px;">Rapportrader</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr style="background:#edf2f7; color:#4a5568;">
+          <th style="padding:6px 8px; text-align:left;">Produkt</th>
+          <th style="padding:6px 8px; text-align:right;">OK</th>
+          <th style="padding:6px 8px; text-align:right;">Bur ej</th>
+          <th style="padding:6px 8px; text-align:right;">IBC ej</th>
+          <th style="padding:6px 8px; text-align:right;">Totalt</th>
+          <th style="padding:6px 8px; text-align:left;">Operatörer</th>
+        </tr>
+      </thead>
+      <tbody>{$rowsHtml}</tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#f7fafc; padding:12px 24px; font-size:12px; color:#a0aec0; text-align:center;">
+    Automatiskt genererad av Rebotling-systemet &mdash; Noreko
+  </div>
+
+</div>
+</body>
+</html>
+HTML;
     }
 }

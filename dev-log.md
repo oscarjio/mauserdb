@@ -1,3 +1,5 @@
+**Worker: Automatisk skiftrapport via email** — Ny POST endpoint `auto-shift-report` i RebotlingController som bygger HTML-rapport med KPI:er (IBC OK, kvalitet, IBC/h) och skickar via mail() till konfigurerade mottagare. Admin-panel: ny sektion "Automatisk skiftrapport" med datum/skift-väljare + testknappp. Skiftrapport-vy: "Skicka skiftrapport"-knapp (admin-only) med bekräftelsedialog. Använder befintlig notification_emails-kolumn. Bygge OK.
+
 **Worker: Min bonus kollegjämförelse** — Utökade ranking-position endpoint med percentil (Topp X%) och trend (upp/ner/samma vs förra veckan). Lade till RankingPositionResponse-interface + service-metod i BonusService. Uppdaterade my-bonus HTML med percentil-badge, trendpil och motiverande meddelanden (#1="Du leder! Fortsätt så!", #2-3="Nära toppen!", #4+="Känn motivationen växa!"). Dark theme CSS. Bygge OK.
 
 **Worker: Stub-katalog cleanup** — Tog bort oanvända stub-filer: pages/tvattlinje/ (hela katalogen) + pages/rebotling/rebotling-live.* och rebotling-skiftrapport.* (stubs). Behöll pages/rebotling/rebotling-statistik.* som används av routing. Bygge OK.

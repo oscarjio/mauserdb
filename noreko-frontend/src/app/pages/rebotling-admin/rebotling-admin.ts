@@ -128,6 +128,14 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   notificationSettingsError = '';
   showNotificationPanel = false;
 
+  // ---- Automatisk skiftrapport via email ----
+  showShiftReportPanel = false;
+  shiftReportSending = false;
+  shiftReportError = '';
+  shiftReportSuccess = '';
+  shiftReportTestDate = new Date().toISOString().slice(0, 10);
+  shiftReportTestShift = 1;
+
   // ---- Live Ranking TV-inställningar ----
   lrSettings = {
     lr_show_quality:  true,
@@ -1293,6 +1301,38 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     if (k < -0.3) return '#38a169';  // green — underhåll hjälper
     if (k > 0.3) return '#e53e3e';   // red — reactive pattern
     return '#d69e2e';                 // yellow — neutral
+  }
+
+  // ========== Automatisk skiftrapport via email ==========
+  sendTestShiftReport() {
+    this.shiftReportSending = true;
+    this.shiftReportError   = '';
+    this.shiftReportSuccess = '';
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=auto-shift-report', {
+      date: this.shiftReportTestDate,
+      shift: this.shiftReportTestShift
+    }, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            const count = res.recipients?.length ?? 0;
+            this.shiftReportSuccess = `Skiftrapport skickad till ${count} mottagare (${res.shift_date}, skift ${res.shift_number})`;
+            this.showSuccess(this.shiftReportSuccess);
+          } else {
+            this.shiftReportError = res?.error || 'Kunde inte skicka skiftrapport';
+          }
+          this.shiftReportSending = false;
+        },
+        error: () => {
+          this.shiftReportError   = 'Serverfel vid sändning';
+          this.shiftReportSending = false;
+        }
+      });
   }
 
   private showSuccess(message: string) {

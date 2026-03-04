@@ -61,6 +61,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // Settings for bonus estimate
   private settings: any = { rebotlingTarget: 1000, shiftHours: 8.0 };
 
+  // ---- Skicka skiftrapport via email ----
+  showEmailConfirm = false;
+  emailSending = false;
+  emailReportDate = '';
+  emailReportShift = 1;
+
   // ---- Skiftjämförelse ----
   compareDateA = '';
   compareDateB = '';
@@ -1758,6 +1764,47 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const h = Math.floor(min / 60);
     const m = min % 60;
     return h > 0 ? `${h}h ${m}min` : `${m}min`;
+  }
+
+  // ========== Skicka skiftrapport via email ==========
+  openEmailReport(date: string, shift: number) {
+    this.emailReportDate  = date;
+    this.emailReportShift = shift;
+    this.showEmailConfirm = true;
+  }
+
+  cancelEmailReport() {
+    this.showEmailConfirm = false;
+  }
+
+  confirmSendEmailReport() {
+    this.emailSending = true;
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=auto-shift-report', {
+      date: this.emailReportDate,
+      shift: this.emailReportShift
+    }, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            const count = res.recipients?.length ?? 0;
+            this.showSuccess(`Skiftrapport skickad till ${count} mottagare`);
+          } else {
+            this.errorMessage = res?.error || 'Kunde inte skicka skiftrapport';
+          }
+          this.emailSending     = false;
+          this.showEmailConfirm = false;
+        },
+        error: () => {
+          this.errorMessage     = 'Serverfel vid sändning av skiftrapport';
+          this.emailSending     = false;
+          this.showEmailConfirm = false;
+        }
+      });
   }
 
   // ========== Toast ==========
