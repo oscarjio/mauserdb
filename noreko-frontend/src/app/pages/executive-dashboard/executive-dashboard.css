@@ -598,3 +598,43 @@
   padding: 0.2rem 0.55rem;
   border-radius: 5px;
 }
+
+/* ============================================================
+   TEAMSTÄMNING
+   ============================================================ */
+
+.stamning-bg-green {
+  background: rgba(72, 187, 120, 0.15) !important;
+  border-color: rgba(72, 187, 120, 0.4) !important;
+}
+
+.stamning-bg-yellow {
+  background: rgba(246, 201, 14, 0.15) !important;
+  border-color: rgba(246, 201, 14, 0.4) !important;
+}
+
+.stamning-bg-red {
+  background: rgba(229, 62, 62, 0.15) !important;
+  border-color: rgba(229, 62, 62, 0.4) !important;
+}
+
+.mood-trend-card {
+  background: #1a202c;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #2d3748;
+  height: 100%;
+}
+
+.mood-trend-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-bottom: 0.5rem;
+}
+
+.mood-chart-container {
+  position: relative;
+  height: 160px;
+}

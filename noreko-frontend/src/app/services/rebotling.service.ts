@@ -353,6 +353,20 @@ export class RebotlingService {
     return `/noreko-backend/api.php?action=rebotling&run=shift-pdf-summary&date=${date}&shift=${shift}`;
   }
 
+  getMaintenanceStats(): Observable<MaintenanceStatsResponse> {
+    return this.http.get<MaintenanceStatsResponse>(
+      '/noreko-backend/api.php?action=maintenance&run=stats',
+      { withCredentials: true }
+    );
+  }
+
+  getFeedbackSummary(): Observable<FeedbackSummaryResponse> {
+    return this.http.get<FeedbackSummaryResponse>(
+      '/noreko-backend/api.php?action=feedback&run=summary',
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {
@@ -769,5 +783,31 @@ export interface RejectionAnalysisResponse {
   pareto?: RejectionParetoItem[];
   has_pareto_data?: boolean;
   total_kassation?: number;
+  error?: string;
+}
+
+export interface MaintenanceStatsResponse {
+  success: boolean;
+  stats?: {
+    total_events: number;
+    total_minutes: number;
+    total_cost: number;
+    akut_count: number;
+    pagaende_count: number;
+  };
+  error?: string;
+}
+
+export interface FeedbackSummaryDayEntry {
+  datum: string;
+  snitt: number;
+  antal: number;
+}
+
+export interface FeedbackSummaryResponse {
+  success: boolean;
+  avg_stamning: number | null;
+  total?: number;
+  per_dag?: FeedbackSummaryDayEntry[];
   error?: string;
 }

@@ -6,7 +6,7 @@ import { Subject, Subscription } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService, ExecDashboardResponse } from '../../services/rebotling.service';
+import { RebotlingService, ExecDashboardResponse, MaintenanceStatsResponse, FeedbackSummaryResponse, FeedbackSummaryDayEntry } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -54,6 +54,19 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   latestNews: NewsSnippet[] = [];
   private isFetchingNews = false;
 
+  // Underhållskostnad KPI
+  maintenanceCost: number = 0;
+  maintenanceCount: number = 0;
+  maintenanceDurationMin: number = 0;
+  private isFetchingMaintenance = false;
+
+  // Teamstämning
+  feedbackAvgStamning: number | null = null;
+  feedbackPerDag: FeedbackSummaryDayEntry[] = [];
+  private isFetchingFeedback = false;
+  private moodChart: Chart | null = null;
+  private moodChartTimer: any = null;
+
   private pollInterval: any;
   private dataSub: Subscription | null = null;
   private barChart: Chart | null = null;
@@ -77,7 +90,13 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.loadCertExpiry();
     this.loadServiceWarnings();
     this.loadLatestNews();
-    this.pollInterval = setInterval(() => this.loadData(), 30000);
+    this.loadMaintenanceStats();
+    this.loadFeedbackSummary();
+    this.pollInterval = setInterval(() => {
+      this.loadData();
+      this.loadMaintenanceStats();
+      this.loadFeedbackSummary();
+    }, 30000);
     this.linesStatusInterval = setInterval(() => this.loadAllLinesStatus(), 60000);
   }
 
@@ -87,10 +106,13 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     if (this.pollInterval) clearInterval(this.pollInterval);
     if (this.linesStatusInterval) clearInterval(this.linesStatusInterval);
     clearTimeout(this.barChartTimer);
+    clearTimeout(this.moodChartTimer);
     this.dataSub?.unsubscribe();
     this.linesSub?.unsubscribe();
     try { if (this.barChart) this.barChart.destroy(); } catch (e) {}
     this.barChart = null;
+    try { if (this.moodChart) this.moodChart.destroy(); } catch (e) {}
+    this.moodChart = null;
   }
 
   loadData(): void {
@@ -464,6 +486,129 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
             ticks: { color: '#718096' },
             grid: { color: '#2d3748' },
             beginAtZero: true
+          }
+        }
+      }
+    });
+  }
+
+  // ---- Underhållskostnad ----
+
+  loadMaintenanceStats(): void {
+    if (this.isFetchingMaintenance) return;
+    this.isFetchingMaintenance = true;
+
+    this.rebotlingService.getMaintenanceStats()
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.isFetchingMaintenance = false;
+        if (res?.success && res.stats) {
+          this.maintenanceCost = +res.stats.total_cost || 0;
+          this.maintenanceCount = +res.stats.total_events || 0;
+          this.maintenanceDurationMin = +res.stats.total_minutes || 0;
+        }
+      });
+  }
+
+  formatMaintenanceCost(): string {
+    return this.maintenanceCost.toLocaleString('sv-SE', { maximumFractionDigits: 0 });
+  }
+
+  formatDuration(): string {
+    const h = Math.floor(this.maintenanceDurationMin / 60);
+    const m = this.maintenanceDurationMin % 60;
+    return h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
+  // ---- Teamstämning ----
+
+  loadFeedbackSummary(): void {
+    if (this.isFetchingFeedback) return;
+    this.isFetchingFeedback = true;
+
+    this.rebotlingService.getFeedbackSummary()
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.isFetchingFeedback = false;
+        if (res?.success) {
+          this.feedbackAvgStamning = res.avg_stamning;
+          this.feedbackPerDag = res.per_dag ?? [];
+          clearTimeout(this.moodChartTimer);
+          this.moodChartTimer = setTimeout(() => {
+            if (!this.destroy$.closed) this.buildMoodChart();
+          }, 150);
+        }
+      });
+  }
+
+  getStamningEmoji(): string {
+    const v = this.feedbackAvgStamning ?? 0;
+    if (v >= 3.5) return '\u{1F60A}';
+    if (v >= 2.5) return '\u{1F642}';
+    if (v >= 1.5) return '\u{1F610}';
+    return '\u{1F61F}';
+  }
+
+  getStamningBgClass(): string {
+    const v = this.feedbackAvgStamning ?? 0;
+    if (v > 3.0) return 'stamning-bg-green';
+    if (v >= 2.0) return 'stamning-bg-yellow';
+    return 'stamning-bg-red';
+  }
+
+  private buildMoodChart(): void {
+    try {
+      if (this.moodChart) {
+        this.moodChart.destroy();
+        this.moodChart = null;
+      }
+    } catch (e) { this.moodChart = null; }
+
+    const canvas = document.getElementById('moodTrendChart') as HTMLCanvasElement;
+    if (!canvas || !this.feedbackPerDag.length) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Sort ascending by date
+    const sorted = [...this.feedbackPerDag].sort((a, b) => a.datum.localeCompare(b.datum));
+    const labels = sorted.map(d => {
+      const dt = new Date(d.datum);
+      return dt.getDate() + '/' + (dt.getMonth() + 1);
+    });
+    const data = sorted.map(d => +d.snitt);
+
+    this.moodChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Stämning',
+          data,
+          borderColor: '#667eea',
+          backgroundColor: 'rgba(102,126,234,0.15)',
+          borderWidth: 2,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', font: { size: 10 }, maxTicksLimit: 10 },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            min: 1,
+            max: 4,
+            ticks: { color: '#718096', stepSize: 1 },
+            grid: { color: '#2d3748' }
           }
         }
       }

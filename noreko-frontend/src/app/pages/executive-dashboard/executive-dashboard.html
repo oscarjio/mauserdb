@@ -461,7 +461,85 @@
     </div>
 
     <!-- ============================================================
-         SEKTION 5 — SENASTE NYHETER + SNABBLÄNKAR
+         SEKTION 5 — UNDERHÅLL KPI
+    ============================================================ -->
+    <div class="detail-card mb-4">
+      <div class="detail-card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-wrench me-2 text-warning"></i>Underhåll — senaste 30 dagarna
+        </h6>
+      </div>
+      <div class="detail-card-body">
+        <div class="row g-3">
+          <div class="col-md-4 col-12">
+            <div class="kpi-card">
+              <div class="kpi-icon text-warning"><i class="fas fa-wrench"></i></div>
+              <div class="kpi-label">Underhållskostnad 30d</div>
+              <div class="kpi-value">{{ formatMaintenanceCost() }} <small class="kpi-unit">SEK</small></div>
+              <div class="kpi-sub">Total kostnad senaste 30 dagar</div>
+            </div>
+          </div>
+          <div class="col-md-4 col-12">
+            <div class="kpi-card">
+              <div class="kpi-icon text-info"><i class="fas fa-tools"></i></div>
+              <div class="kpi-label">Underhållshändelser</div>
+              <div class="kpi-value">{{ maintenanceCount }}</div>
+              <div class="kpi-sub">Antal händelser senaste 30 dagar</div>
+            </div>
+          </div>
+          <div class="col-md-4 col-12">
+            <div class="kpi-card">
+              <div class="kpi-icon text-danger"><i class="fas fa-clock"></i></div>
+              <div class="kpi-label">Driftstopptid</div>
+              <div class="kpi-value">{{ formatDuration() }} <small class="kpi-unit">tim</small></div>
+              <div class="kpi-sub">Total stopptid (timmar:minuter)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         SEKTION 6 — TEAMSTÄMNING
+    ============================================================ -->
+    <div class="detail-card mb-4">
+      <div class="detail-card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-smile me-2 text-info"></i>Teamstämning
+        </h6>
+      </div>
+      <div class="detail-card-body">
+        <div class="row g-3">
+          <!-- Stämning KPI-kort -->
+          <div class="col-md-4 col-12">
+            <div class="kpi-card" [ngClass]="getStamningBgClass()">
+              <div class="kpi-icon" style="font-size: 2rem;">{{ getStamningEmoji() }}</div>
+              <div class="kpi-label">Stämning idag</div>
+              <div class="kpi-value" *ngIf="feedbackAvgStamning !== null">
+                {{ feedbackAvgStamning | number:'1.1-1' }} <small class="kpi-unit">/ 4</small>
+              </div>
+              <div class="kpi-value text-muted" *ngIf="feedbackAvgStamning === null">—</div>
+              <div class="kpi-sub">Genomsnittlig stämning (30 dagar)</div>
+            </div>
+          </div>
+          <!-- Trendgraf -->
+          <div class="col-md-8 col-12">
+            <div class="mood-trend-card">
+              <div class="mood-trend-label">30-dagars trend</div>
+              <div class="mood-chart-container">
+                <canvas id="moodTrendChart"></canvas>
+              </div>
+              <div *ngIf="feedbackPerDag.length === 0" class="text-center py-3 text-muted">
+                <i class="fas fa-info-circle me-1"></i>Ingen stämningsdata registrerad.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         SEKTION 7 — SENASTE NYHETER + SNABBLÄNKAR
     ============================================================ -->
     <div class="row g-3 mb-4">
 
