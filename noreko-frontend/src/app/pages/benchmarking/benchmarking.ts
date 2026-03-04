@@ -82,7 +82,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
       clearTimeout(this.chartTimer);
       this.chartTimer = null;
     }
-    this.monthlyChartInstance?.destroy();
+    try { this.monthlyChartInstance?.destroy(); } catch (e) {}
     this.monthlyChartInstance = null;
   }
 
@@ -218,7 +218,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   private buildMonthlyChart(): void {
     if (!this.monthlyChartRef) return;
 
-    this.monthlyChartInstance?.destroy();
+    try { this.monthlyChartInstance?.destroy(); } catch (e) {}
     this.monthlyChartInstance = null;
 
     const months = this.monthlyTotals;

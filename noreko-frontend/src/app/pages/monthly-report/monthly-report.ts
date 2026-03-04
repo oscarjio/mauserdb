@@ -112,6 +112,18 @@ interface CompareDay {
   datum: string;
   ibc: number;
   target_pct: number;
+  operator_count?: number;
+}
+
+interface CompareOperatorRank {
+  op_id: number;
+  namn: string;
+  initialer: string;
+  shifts: number;
+  total_ibc: number;
+  avg_ibc_per_h: number;
+  avg_quality_pct: number;
+  score: number;
 }
 
 interface MonthCompare {
@@ -122,6 +134,7 @@ interface MonthCompare {
   prev_month_data: CompareMonthData;
   diff: CompareDiff;
   operator_of_month: OperatorOfMonth | null;
+  operator_ranking: CompareOperatorRank[];
   best_day: CompareDay | null;
   worst_day: CompareDay | null;
 }
@@ -192,8 +205,10 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.chart?.destroy();
-    this.oeeLineChart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
+    this.chart = null;
+    try { this.oeeLineChart?.destroy(); } catch (e) {}
+    this.oeeLineChart = null;
   }
 
   fetchReport(): void {
@@ -205,9 +220,9 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     this.report = null;
     this.compareData = null;
     this.stopSummary = [];
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
     this.chart = null;
-    this.oeeLineChart?.destroy();
+    try { this.oeeLineChart?.destroy(); } catch (e) {}
     this.oeeLineChart = null;
 
     const reportUrl  = `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
@@ -303,6 +318,28 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     return val >= 0 ? '+' : '';
   }
 
+  /** Beräkna veckans IBC som % av max-veckan (för progressbar) */
+  weekBarPct(weekIbc: number): number {
+    if (!this.report || !this.report.week_summary || this.report.week_summary.length === 0) return 0;
+    const maxIbc = Math.max(...this.report.week_summary.map(w => w.ibc));
+    return maxIbc > 0 ? Math.round(weekIbc / maxIbc * 100) : 0;
+  }
+
+  weekBarColor(weekEntry: WeekEntry): string {
+    if (!this.report) return '#63b3ed';
+    if (this.report.basta_vecka?.week === weekEntry.week) return '#48bb78';
+    if (this.report.samsta_vecka?.week === weekEntry.week) return '#f56565';
+    return '#63b3ed';
+  }
+
+  /** Medalj-bakgrundsklass for operator ranking */
+  rankBgClass(i: number): string {
+    if (i === 0) return 'rank-gold';
+    if (i === 1) return 'rank-silver';
+    if (i === 2) return 'rank-bronze';
+    return '';
+  }
+
   exportPDF(): void {
     window.print();
   }
@@ -331,7 +368,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
 
     const days = this.report.daily_production;
     const dailyGoal = this.report.summary.ibc_goal / Math.max(this.report.summary.production_days, 1);
@@ -424,7 +461,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    this.oeeLineChart?.destroy();
+    try { this.oeeLineChart?.destroy(); } catch (e) {}
 
     const trend = this.report.oee_trend ?? [];
     if (trend.length === 0) return;

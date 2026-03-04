@@ -128,7 +128,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     clearInterval(this.updateInterval);
     clearTimeout(this.successTimerId);
     this.fetchSub?.unsubscribe();
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
@@ -360,14 +360,17 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     // Filtrering sker i filteredReports getter — ingen explicit fetch behövs
   }
 
-  get filteredStats(): { total_skift: number; avg_ibc_h: number; avg_kvalitet: number } | null {
+  get filteredStats(): { total_skift: number; total_ibc: number; snitt_per_skift: number; avg_ibc_h: number; avg_kvalitet: number } | null {
     if (this.selectedOperatorId === null || !this.filteredReports?.length) return null;
     const reports = this.filteredReports;
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const totalIbc = reports.reduce((sum: number, r: any) => sum + (r.ibc_ok ?? 0), 0);
     return {
-      total_skift:  reports.length,
-      avg_ibc_h:    Math.round(avg(reports.map((r: any) => this.getIbcPerHour(r) ?? 0)) * 10) / 10,
-      avg_kvalitet: Math.round(avg(reports.map((r: any) => this.getQualityPct(r) ?? 0)) * 10) / 10
+      total_skift:    reports.length,
+      total_ibc:      totalIbc,
+      snitt_per_skift: reports.length > 0 ? Math.round((totalIbc / reports.length) * 10) / 10 : 0,
+      avg_ibc_h:      Math.round(avg(reports.map((r: any) => this.getIbcPerHour(r) ?? 0)) * 10) / 10,
+      avg_kvalitet:   Math.round(avg(reports.map((r: any) => this.getQualityPct(r) ?? 0)) * 10) / 10
     };
   }
 
@@ -1459,7 +1462,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       // Stäng
       this.selectedTrendReportId = null;
       this.trendData = null;
-      this.trendChart?.destroy();
+      try { this.trendChart?.destroy(); } catch (e) {}
       this.trendChart = null;
       return;
     }
@@ -1467,7 +1470,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.selectedTrendReportId = report.id;
     this.trendData = null;
     this.trendError = '';
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
 
     if (!report.skiftraknare) {
@@ -1503,7 +1506,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const canvasEl = document.getElementById('trendCanvas-' + this.selectedTrendReportId) as HTMLCanvasElement | null;
     if (!canvasEl || !this.trendData) return;
 
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
 
     const trend: any[]      = this.trendData.trend      || [];

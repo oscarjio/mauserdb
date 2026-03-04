@@ -79,7 +79,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     // Förstör alla trenddiagram
-    Object.values(this.trendCharts).forEach(c => c?.destroy());
+    Object.values(this.trendCharts).forEach(c => { try { c?.destroy(); } catch (e) {} });
     Object.values(this.trendTimers).forEach(t => clearTimeout(t));
   }
 
@@ -253,7 +253,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   private buildTrendChart(id: number) {
     if (this.trendCharts[id]) {
-      this.trendCharts[id]?.destroy();
+      try { this.trendCharts[id]?.destroy(); } catch (e) {}
       this.trendCharts[id] = null;
     }
 

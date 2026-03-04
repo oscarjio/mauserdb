@@ -178,14 +178,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
-    if (this.productionChart) {
-      this.productionChart.destroy();
-      this.productionChart = null;
-    }
-    if (this.oeeTrendChart) {
-      this.oeeTrendChart.destroy();
-      this.oeeTrendChart = null;
-    }
+    try { this.productionChart?.destroy(); } catch (e) {}
+    this.productionChart = null;
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
+    this.oeeTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -734,14 +730,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   }
 
   updateChart(data: any) {
-    if (this.productionChart) {
-      this.productionChart.destroy();
-      this.productionChart = null;
-    }
-    if (this.oeeTrendChart) {
-      this.oeeTrendChart.destroy();
-      this.oeeTrendChart = null;
-    }
+    try { this.productionChart?.destroy(); } catch (e) {}
+    this.productionChart = null;
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
+    this.oeeTrendChart = null;
 
     clearTimeout(this.chartUpdateTimer);
     this.chartUpdateTimer = setTimeout(() => {
@@ -1375,10 +1367,8 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   renderOeeTrendChart() {
     if (!this.oeeTrendChartRef?.nativeElement) return;
-    if (this.oeeTrendChart) {
-      this.oeeTrendChart.destroy();
-      this.oeeTrendChart = null;
-    }
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
+    this.oeeTrendChart = null;
     const labels = this.oeeTrendData.map(d => d.dag.substring(5)); // MM-DD
     const oeeValues = this.oeeTrendData.map(d => d.oee_pct);
     const ibcValues = this.oeeTrendData.map(d => d.total_ibc);

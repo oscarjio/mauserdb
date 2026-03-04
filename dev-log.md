@@ -1,3 +1,37 @@
+## 2026-03-04 kväll #3 — Worker: Bug Hunt #12 — Chart error-boundary + BonusAdmin threshold-validering
+
+**Chart.js error-boundary (DEL 1):**
+Alla kvarvarande `.destroy()`-anrop utan `try-catch` har wrappats i `try { chart?.destroy(); } catch (e) {}` med `= null` efteråt. Totalt 18 filer fixade:
+- production-calendar.ts (4 ställen)
+- monthly-report.ts (4 ställen)
+- andon.ts (2 ställen)
+- operator-trend.ts (2 ställen)
+- klassificeringslinje-statistik.ts (6 ställen)
+- rebotling-admin.ts (4 ställen)
+- benchmarking.ts (2 ställen)
+- operator-detail.ts (2 ställen)
+- stoppage-log.ts (10 ställen)
+- weekly-report.ts (3 ställen)
+- rebotling-skiftrapport.ts (4 ställen)
+- saglinje-statistik.ts (6 ställen)
+- audit-log.ts (2 ställen)
+- historik.ts (6 ställen)
+- tvattlinje-statistik.ts (5 ställen)
+- operators.ts (2 ställen)
+- operator-compare.ts (4 ställen)
+- operator-dashboard.ts (2 ställen)
+
+**BonusAdmin threshold-validering (DEL 2):**
+Lade till validering i `saveAmounts()` i bonus-admin.ts:
+- Inga negativa belopp tillåtna
+- Max 100 000 SEK per nivå
+- Stigande ordning: Brons < Silver < Guld < Platina
+- Felmeddelanden på svenska
+
+Bygge lyckat.
+
+---
+
 ## 2026-03-04 kväll #3 — Lead session: commit orphaned changes + 3 nya workers
 
 **Lägesanalys:** Committade orphaned chart error-boundary-ändringar (fd92772) från worker som körde slut på tokens. Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat.

@@ -88,9 +88,12 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     clearTimeout(this.chartTimer);
-    this.qualityChart?.destroy();
-    this.monthlyChart?.destroy();
-    this.oeeTrendChart?.destroy();
+    try { this.qualityChart?.destroy(); } catch (e) {}
+    this.qualityChart = null;
+    try { this.monthlyChart?.destroy(); } catch (e) {}
+    this.monthlyChart = null;
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
+    this.oeeTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -169,7 +172,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
 
   private renderOeeTrendChart() {
     if (!this.oeeTrendChartRef?.nativeElement) return;
-    this.oeeTrendChart?.destroy();
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
     this.oeeTrendChart = null;
     const labels = this.oeeTrendData.map(d => d.dag.substring(5));
     const oeeValues = this.oeeTrendData.map(d => d.oee_pct);
@@ -292,7 +295,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
 
   private buildQualityChart() {
     if (!this.qualityChartRef?.nativeElement) return;
-    this.qualityChart?.destroy();
+    try { this.qualityChart?.destroy(); } catch (e) {}
     const data = this.filteredReports;
     const labels = data.map(r => (r.datum || '').substring(0, 10));
     const qualities = data.map(r => r.totalt > 0 ? Math.round((r.antal_ok / r.totalt) * 100) : 0);
@@ -338,7 +341,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
 
   private buildMonthlyChart() {
     if (!this.monthlyChartRef?.nativeElement) return;
-    this.monthlyChart?.destroy();
+    try { this.monthlyChart?.destroy(); } catch (e) {}
     const data = this.filteredReports;
     const grouped = new Map<string, { ok: number; ejOk: number }>();
     for (const r of data) {

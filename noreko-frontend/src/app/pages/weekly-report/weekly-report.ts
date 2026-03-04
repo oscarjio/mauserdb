@@ -965,7 +965,8 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
+    this.chart = null;
   }
 
   load(): void {
@@ -973,7 +974,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
     this.isLoading = true;
     this.errorMsg  = '';
     this.data      = null;
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
     this.chart = null;
 
     this.http
@@ -1248,7 +1249,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
 
     const daily   = this.data.daily;
     const dagmal  = this.data.kpi.dagmal;

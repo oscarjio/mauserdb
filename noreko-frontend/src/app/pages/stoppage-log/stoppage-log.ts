@@ -196,11 +196,16 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     clearTimeout(this.successTimerId);
     clearTimeout(this.chartTimerId);
     if (this.refreshInterval) clearInterval(this.refreshInterval);
-    if (this.paretoDetailChart) this.paretoDetailChart.destroy();
-    if (this.paretoChart)       this.paretoChart.destroy();
-    if (this.dailyChart)        this.dailyChart.destroy();
-    if (this.weekly14Chart)     this.weekly14Chart.destroy();
-    if (this.hourlyChart)        this.hourlyChart.destroy();
+    try { this.paretoDetailChart?.destroy(); } catch (e) {}
+    this.paretoDetailChart = null;
+    try { this.paretoChart?.destroy(); } catch (e) {}
+    this.paretoChart = null;
+    try { this.dailyChart?.destroy(); } catch (e) {}
+    this.dailyChart = null;
+    try { this.weekly14Chart?.destroy(); } catch (e) {}
+    this.weekly14Chart = null;
+    try { this.hourlyChart?.destroy(); } catch (e) {}
+    this.hourlyChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -625,7 +630,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   private buildHourlyChart() {
-    if (this.hourlyChart) this.hourlyChart.destroy();
+    try { this.hourlyChart?.destroy(); } catch (e) {}
+    this.hourlyChart = null;
     const canvas = document.getElementById('hourlyChart') as HTMLCanvasElement;
     if (!canvas || !this.patternData?.hourly_distribution) return;
 
@@ -699,7 +705,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   private buildParetoChart() {
-    if (this.paretoChart) this.paretoChart.destroy();
+    try { this.paretoChart?.destroy(); } catch (e) {}
+    this.paretoChart = null;
     const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
     if (!canvas || !this.stats) return;
 
@@ -732,7 +739,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   private buildWeekly14Chart() {
-    if (this.weekly14Chart) this.weekly14Chart.destroy();
+    try { this.weekly14Chart?.destroy(); } catch (e) {}
+    this.weekly14Chart = null;
     const canvas = document.getElementById('weekly14Chart') as HTMLCanvasElement;
     if (!canvas || !this.weeklySummary) return;
 
@@ -794,7 +802,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   private buildDailyChart() {
-    if (this.dailyChart) this.dailyChart.destroy();
+    try { this.dailyChart?.destroy(); } catch (e) {}
+    this.dailyChart = null;
     const canvas = document.getElementById('dailyChart') as HTMLCanvasElement;
     if (!canvas || !this.stats) return;
 
@@ -837,7 +846,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   private buildParetoDetailChart() {
-    if (this.paretoDetailChart) this.paretoDetailChart.destroy();
+    try { this.paretoDetailChart?.destroy(); } catch (e) {}
+    this.paretoDetailChart = null;
     const canvas = document.getElementById('paretoDetailChart') as HTMLCanvasElement;
     if (!canvas || !this.paretoData || this.paretoData.orsaker.length === 0) return;
 

@@ -937,9 +937,9 @@ export class OperatorComparePage implements OnInit, OnDestroy {
       clearTimeout(this.radarTimer);
       this.radarTimer = null;
     }
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
-    this.radarChart?.destroy();
+    try { this.radarChart?.destroy(); } catch (e) {}
     this.radarChart = null;
   }
 
@@ -1136,7 +1136,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   buildRadarChart(): void {
     if (!this.radarChartCanvas || !this.radarData) return;
 
-    this.radarChart?.destroy();
+    try { this.radarChart?.destroy(); } catch (e) {}
     this.radarChart = null;
 
     const ctx = this.radarChartCanvas.nativeElement.getContext('2d');
@@ -1213,7 +1213,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   buildTrendChart(): void {
     if (!this.trendChartCanvas || !this.compareData) return;
 
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
 
     const opA = this.compareData.op_a;

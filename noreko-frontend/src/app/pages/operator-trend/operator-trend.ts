@@ -91,7 +91,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
       clearTimeout(this.chartTimer);
       this.chartTimer = null;
     }
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
     this.chart = null;
   }
 
@@ -191,7 +191,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
   }
 
   private buildChart(): void {
-    this.chart?.destroy();
+    try { this.chart?.destroy(); } catch (e) {}
     this.chart = null;
 
     const canvas = document.getElementById('trendMainChart') as HTMLCanvasElement;

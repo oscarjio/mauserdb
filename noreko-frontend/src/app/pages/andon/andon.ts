@@ -270,10 +270,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     if (this.skiftTimerInterval) clearInterval(this.skiftTimerInterval);
     if (this.notesInterval) clearInterval(this.notesInterval);
     if (this.hourlyInterval) clearInterval(this.hourlyInterval);
-    if (this.cumulativeChart) {
-      this.cumulativeChart.destroy();
-      this.cumulativeChart = null;
-    }
+    try { this.cumulativeChart?.destroy(); } catch (e) {}
+    this.cumulativeChart = null;
   }
 
   // ─────────────────────────────────────────────
@@ -628,10 +626,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   private ritaCumulativeChart(): void {
     if (!this.cumulativeChartRef?.nativeElement) return;
 
-    if (this.cumulativeChart) {
-      this.cumulativeChart.destroy();
-      this.cumulativeChart = null;
-    }
+    try { this.cumulativeChart?.destroy(); } catch (e) {}
+    this.cumulativeChart = null;
 
     const ctx = this.cumulativeChartRef.nativeElement.getContext('2d');
     if (!ctx) return;

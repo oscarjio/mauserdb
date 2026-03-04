@@ -176,8 +176,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     clearInterval(this.systemStatusInterval);
     clearInterval(this.maintenanceTimer);
     clearInterval(this.todaySnapshotInterval);
-    this.maintenanceChart?.destroy();
-    this.goalHistoryChart?.destroy();
+    try { this.maintenanceChart?.destroy(); } catch (e) {}
+    this.maintenanceChart = null;
+    try { this.goalHistoryChart?.destroy(); } catch (e) {}
+    this.goalHistoryChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -613,7 +615,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     const canvas = document.getElementById('maintenanceChart') as HTMLCanvasElement | null;
     if (!canvas || !this.maintenanceData?.weeks?.length) return;
 
-    this.maintenanceChart?.destroy();
+    try { this.maintenanceChart?.destroy(); } catch (e) {}
 
     const weeks     = this.maintenanceData.weeks as any[];
     const labels    = weeks.map((w: any) => w.week_label);
@@ -868,7 +870,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     const canvas = document.getElementById('goalHistoryChart') as HTMLCanvasElement | null;
     if (!canvas || this.goalHistory.length < 2) return;
 
-    this.goalHistoryChart?.destroy();
+    try { this.goalHistoryChart?.destroy(); } catch (e) {}
 
     // Bygg steg-data: varje ändring gäller tills nästa ändring
     const labels = this.goalHistory.map((h: any) => {

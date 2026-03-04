@@ -675,7 +675,8 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
     }
-    this.weekChart?.destroy();
+    try { this.weekChart?.destroy(); } catch (e) {}
+    this.weekChart = null;
   }
 
   // ================================================================
@@ -816,7 +817,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     const canvas = document.getElementById('weekChart') as HTMLCanvasElement;
     if (!canvas || !this.historyData) return;
 
-    this.weekChart?.destroy();
+    try { this.weekChart?.destroy(); } catch (e) {}
 
     const top3 = this.historyData.operators.slice(0, 3);
     const chartColors = ['#63b3ed', '#68d391', '#f6e05e'];

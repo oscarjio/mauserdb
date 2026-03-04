@@ -77,7 +77,8 @@ export class AuditLogPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     clearTimeout(this.chartTimer);
     clearTimeout(this.searchTimer);
-    if (this.activityChart) this.activityChart.destroy();
+    try { this.activityChart?.destroy(); } catch (e) {}
+    this.activityChart = null;
   }
 
   loadAvailableActions() {
@@ -356,7 +357,8 @@ export class AuditLogPage implements OnInit, OnDestroy {
   }
 
   private buildActivityChart() {
-    if (this.activityChart) this.activityChart.destroy();
+    try { this.activityChart?.destroy(); } catch (e) {}
+    this.activityChart = null;
     const canvas = document.getElementById('activityChart') as HTMLCanvasElement;
     if (!canvas || !this.stats) return;
 

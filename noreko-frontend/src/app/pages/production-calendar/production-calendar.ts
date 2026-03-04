@@ -131,7 +131,8 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.dayDetailChart?.destroy();
+    try { this.dayDetailChart?.destroy(); } catch (e) {}
+    this.dayDetailChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -217,13 +218,13 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
     this.selectedDay = null;
     this.dayDetail = null;
     this.dayDetailLoading = false;
-    this.dayDetailChart?.destroy();
+    try { this.dayDetailChart?.destroy(); } catch (e) {}
     this.dayDetailChart = null;
   }
 
   loadDayDetail(date: string): void {
     this.dayDetailLoading = true;
-    this.dayDetailChart?.destroy();
+    try { this.dayDetailChart?.destroy(); } catch (e) {}
     this.dayDetailChart = null;
 
     const url = `/noreko-backend/api.php?action=rebotling&run=day-detail&date=${date}`;
@@ -247,7 +248,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   }
 
   buildDayDetailChart(): void {
-    this.dayDetailChart?.destroy();
+    try { this.dayDetailChart?.destroy(); } catch (e) {}
     this.dayDetailChart = null;
 
     const canvas = document.getElementById('dayDetailChart') as HTMLCanvasElement | null;

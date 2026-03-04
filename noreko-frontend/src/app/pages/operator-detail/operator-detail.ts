@@ -468,7 +468,8 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
+    this.trendChart = null;
   }
 
   loadProfile(id: number): void {
@@ -512,7 +513,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
     if (!canvas || !this.profil || this.profil.trend_weekly.length === 0) return;
 
-    this.trendChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (e) {}
 
     const labels = this.profil.trend_weekly.map(w => w.vecka);
     const data   = this.profil.trend_weekly.map(w => w.ibc_per_h ?? 0);

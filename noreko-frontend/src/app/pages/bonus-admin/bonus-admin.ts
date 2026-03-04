@@ -448,6 +448,26 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   }
 
   saveAmounts() {
+    const { brons, silver, guld, platina } = this.amountsForm;
+
+    // Validering: inga negativa värden
+    if (brons < 0 || silver < 0 || guld < 0 || platina < 0) {
+      this.showError('Bonusbelopp får inte vara negativa.');
+      return;
+    }
+
+    // Validering: max 100 000 SEK per nivå
+    if (brons > 100000 || silver > 100000 || guld > 100000 || platina > 100000) {
+      this.showError('Bonusbelopp får inte överstiga 100 000 SEK per nivå.');
+      return;
+    }
+
+    // Validering: stigande ordning brons < silver < guld < platina
+    if (brons >= silver || silver >= guld || guld >= platina) {
+      this.showError('Bonusbeloppen måste vara i stigande ordning: Brons < Silver < Guld < Platina.');
+      return;
+    }
+
     this.amountsSaving = true;
     this.http.post<any>(
       '/noreko-backend/api.php?action=bonusadmin&run=setAmounts',

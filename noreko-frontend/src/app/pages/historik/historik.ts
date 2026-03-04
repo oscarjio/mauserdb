@@ -426,8 +426,10 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.monthlyChart?.destroy();
-    this.yearlyChart?.destroy();
+    try { this.monthlyChart?.destroy(); } catch (e) {}
+    this.monthlyChart = null;
+    try { this.yearlyChart?.destroy(); } catch (e) {}
+    this.yearlyChart = null;
   }
 
   get monthlyDataReversed(): ManadsData[] {
@@ -603,16 +605,16 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private destroyCharts(): void {
-    this.monthlyChart?.destroy();
+    try { this.monthlyChart?.destroy(); } catch (e) {}
     this.monthlyChart = null;
-    this.yearlyChart?.destroy();
+    try { this.yearlyChart?.destroy(); } catch (e) {}
     this.yearlyChart = null;
   }
 
   private buildMonthlyChart(): void {
     if (!this.monthlyChartRef?.nativeElement || this.monthlyData.length === 0) return;
 
-    this.monthlyChart?.destroy();
+    try { this.monthlyChart?.destroy(); } catch (e) {}
 
     const labels = this.monthlyData.map(m => this.getPeriodLabel(m.period));
     const values = this.monthlyData.map(m => m.total_ibc);
@@ -683,7 +685,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   private buildYearlyChart(): void {
     if (!this.yearlyChartRef?.nativeElement || this.arsNyclar.length === 0) return;
 
-    this.yearlyChart?.destroy();
+    try { this.yearlyChart?.destroy(); } catch (e) {}
 
     const veckoEtiketter = Array.from({ length: 52 }, (_, i) => `V${i + 1}`);
 
