@@ -1,3 +1,24 @@
+## 2026-03-04 kväll #8 — Worker: Prediktiv underhåll v2 — korrelationsanalys stopp vs underhåll
+
+**Backend (RebotlingController.php):**
+- Ny endpoint `maintenance-correlation` (GET):
+  - Hämtar underhållshändelser per vecka från `maintenance_log` (grupperat med ISO-veckonr)
+  - Hämtar maskinstopp per vecka från `stoppage_log` (linje: rebotling)
+  - Sammanfogar till tidsserie: vecka, antal_underhall, total_underhallstid, antal_stopp, total_stopptid
+  - Beräknar KPI:er: snitt stopp/vecka (första vs andra halvan av perioden), procentuell förändring
+  - Beräknar Pearson-korrelation mellan underhåll (vecka i) och stopp (vecka i+1) — laggad korrelation
+  - Konfigurerbar period via `weeks`-parameter (standard 12 veckor)
+
+**Frontend (rebotling-admin):**
+- Ny sektion "Underhåll vs. Stopp — Korrelationsanalys" i admin-panelen
+- Dubbelaxel-graf (Chart.js): röda staplar = maskinstopp (vänster Y-axel), blå linje = underhåll (höger Y-axel)
+- 4 KPI-kort:
+  - Snitt stopp/vecka (tidigt vs sent) med färgkodning grön/röd
+  - Stoppförändring i procent
+  - Korrelationskoefficient med tolkningstext
+- Expanderbar tabell med veckodata som fallback
+- All UI-text på svenska, dark theme
+
 ## 2026-03-04 kväll #7 — Worker: Nyhetsflöde förbättring — fler auto-triggers + admin-hantering
 
 **Backend (NewsController.php):**
