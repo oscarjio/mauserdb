@@ -1,7 +1,7 @@
 .stoppage-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  color: #e0e0e0;
+  background: #1a202c;
+  color: #e2e8f0;
 }
 
 /* Header */
@@ -21,7 +21,7 @@
 .filter-select {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
+  color: #e2e8f0;
   min-width: 150px;
 }
 
@@ -33,8 +33,8 @@
 }
 
 .filter-select option {
-  background: #1a1a2e;
-  color: #e0e0e0;
+  background: #1a202c;
+  color: #e2e8f0;
 }
 
 /* KPI Cards */
@@ -134,7 +134,7 @@
 
 /* Dark Cards */
 .dark-card {
-  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
+  background: #2d3748;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   overflow: hidden;
@@ -175,7 +175,7 @@
 .form-control, .form-select {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
+  color: #e2e8f0;
 }
 
 .form-control:focus, .form-select:focus {
@@ -188,7 +188,7 @@
 /* Table */
 .stoppage-table {
   width: 100%;
-  color: #e0e0e0;
+  color: #e2e8f0;
   border-collapse: separate;
   border-spacing: 0;
 }
@@ -272,7 +272,7 @@
   padding-left: 32px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
+  color: #e2e8f0;
   border-radius: 20px;
   font-size: 0.85rem;
 }
@@ -291,7 +291,7 @@
 .summary-row td {
   background: rgba(0, 212, 255, 0.08);
   border-top: 2px solid rgba(0, 212, 255, 0.3);
-  color: #e0e0e0;
+  color: #e2e8f0;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
 }
@@ -517,10 +517,29 @@
   .stoppage-table td, .stoppage-table th {
     padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
+    white-space: normal;
+  }
+
+  .stoppage-table thead th {
+    white-space: normal;
+    font-size: 0.7rem;
+  }
+
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .comment-cell {
     max-width: 120px;
+  }
+
+  .action-cell {
+    white-space: normal;
+  }
+
+  .duration-badge {
+    font-size: 0.6rem;
   }
 }
 
@@ -670,14 +689,14 @@
 .filter-select-sm {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
+  color: #e2e8f0;
   min-width: 140px;
   font-size: 0.85rem;
 }
 
 .filter-select-sm option {
-  background: #1a1a2e;
-  color: #e0e0e0;
+  background: #1a202c;
+  color: #e2e8f0;
 }
 
 .date-range-inputs {
@@ -689,7 +708,7 @@
 .date-input {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #e0e0e0;
+  color: #e2e8f0;
   min-width: 130px;
   font-size: 0.85rem;
 }

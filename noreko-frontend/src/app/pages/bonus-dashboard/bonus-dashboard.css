@@ -365,6 +365,53 @@
 .tier-bas         { background: rgba(66,153,225,0.15); color: #63b3ed; border: 1px solid rgba(66,153,225,0.25); }
 .tier-under       { background: rgba(229,62,62,0.12); color: #fc8181; border: 1px solid rgba(229,62,62,0.2); }
 
+/* ============================================================
+   BOOTSTRAP UTILITY OVERRIDES — custom theme colors
+   ============================================================ */
+.bg-info     { background-color: rgba(66, 153, 225, 0.25) !important; color: #63b3ed !important; }
+.bg-success  { background-color: rgba(72, 187, 120, 0.25) !important; color: #68d391 !important; }
+.bg-warning  { background-color: rgba(236, 201, 75, 0.25) !important; color: #f6e05e !important; }
+.bg-danger   { background-color: rgba(229, 62, 62, 0.25) !important; color: #fc8181 !important; }
+.bg-primary  { background-color: rgba(66, 153, 225, 0.3) !important; color: #90cdf4 !important; }
+
+/* Progress bars keep solid fills */
+.progress-bar.bg-info    { background-color: #4299e1 !important; color: #fff !important; }
+.progress-bar.bg-success { background-color: #48bb78 !important; color: #fff !important; }
+.progress-bar.bg-warning { background-color: #ecc94b !important; color: #1a202c !important; }
+.progress-bar.bg-danger  { background-color: #e53e3e !important; color: #fff !important; }
+.progress-bar.bg-primary { background-color: #4299e1 !important; color: #fff !important; }
+
+.text-info    { color: #63b3ed !important; }
+.text-success { color: #68d391 !important; }
+.text-warning { color: #f6e05e !important; }
+.text-danger  { color: #fc8181 !important; }
+.text-muted   { color: #718096 !important; }
+
+.btn-info {
+  background: #4299e1;
+  border-color: #4299e1;
+  color: #fff;
+}
+.btn-info:hover {
+  background: #3182ce;
+  border-color: #3182ce;
+}
+
+.btn-outline-info {
+  border-color: rgba(66, 153, 225, 0.4);
+  color: #63b3ed;
+}
+.btn-outline-info:hover {
+  background: rgba(66, 153, 225, 0.15);
+  color: #90cdf4;
+}
+
+.badge.bg-info {
+  background-color: rgba(66, 153, 225, 0.2) !important;
+  color: #63b3ed !important;
+  border: 1px solid rgba(66, 153, 225, 0.3);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .bonus-dashboard-container { padding: 0.75rem; }

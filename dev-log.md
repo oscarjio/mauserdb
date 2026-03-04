@@ -1,3 +1,30 @@
+## 2026-03-04 kväll #11 — Worker: Mobilanpassning batch 2 + Design-konsistens fix
+
+### DEL 1: Mobilanpassning (3 sidor)
+
+**audit-log** (`audit-log.css`):
+- Utökade `@media (max-width: 768px)`: `flex-wrap` på header-actions, tab-bar, date-range-row
+- Mindre tab-knappar (0.5rem padding, 0.8rem font) på mobil
+- Filter-search tar full bredd
+
+**stoppage-log** (`stoppage-log.css`):
+- Utökade mobil-query: `white-space: normal` på tabell-celler och headers (inte bara nowrap)
+- `overflow-x: auto` + `-webkit-overflow-scrolling: touch` på table-responsive
+- Mindre duration-badges och action-celler
+
+**rebotling-statistik** (`rebotling-statistik.css`):
+- Canvas `max-height: 250px` på mobil
+- Chart-container 250px höjd
+- KPI-kort tvingas till 1 kolumn (`flex: 0 0 100%`)
+
+### DEL 2: Design-konsistens (3 sidor)
+
+**stoppage-log**: Bytte bakgrund från `linear-gradient(#1a1a2e, #16213e)` till flat `#1a202c`. `#e0e0e0` till `#e2e8f0`. `.dark-card` gradient till flat `#2d3748`.
+
+**audit-log**: Samma färgbyte som stoppage-log. Standardiserade font-sizes: body text 0.875rem, labels 0.75rem. Ersatte `.stat-card` och `.kpi-card` gradienter med flat `#2d3748`.
+
+**bonus-dashboard**: Lade till CSS-overrides för Bootstrap-utilities (`.bg-info`, `.bg-success`, `.bg-warning`, `.bg-danger`, `.bg-primary`) med theme-färger. Progress-bars behåller solida fills. Custom `.btn-info`, `.btn-outline-info`, `.badge.bg-info`.
+
 ## 2026-03-04 kväll #10 — Worker: Empty-states batch 1 — 6 sidor med "Inga data"-meddelanden
 
 Lade till empty-state meddelanden (svensk text, dark theme-stil med inbox-ikon) på 6 sidor som tidigare visade tomma tabeller/listor utan feedback:
