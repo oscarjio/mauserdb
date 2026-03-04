@@ -1478,6 +1478,162 @@
     </div>
   </div>
 
+  <!-- ====== STOPPORSAKSANALYS — PARETO ====== -->
+  <div class="container-fluid mb-4">
+    <div class="row">
+      <div class="col-12">
+        <div class="card mb-0" style="background:#2d3748; border-color:#4a5568;">
+          <div class="card-header" style="background:#1a202c; border-color:#4a5568;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <h6 class="mb-0 text-light">
+                <i class="fas fa-chart-bar me-2 text-warning"></i>Stopporsaksanalys — Pareto
+              </h6>
+              <div class="btn-group btn-group-sm">
+                <button class="btn"
+                  [class]="paretoDays===7?'btn-warning':'btn-outline-warning'"
+                  (click)="paretoDays=7; loadStoppagePareto()">7d</button>
+                <button class="btn"
+                  [class]="paretoDays===30?'btn-warning':'btn-outline-warning'"
+                  (click)="paretoDays=30; loadStoppagePareto()">30d</button>
+                <button class="btn"
+                  [class]="paretoDays===90?'btn-warning':'btn-outline-warning'"
+                  (click)="paretoDays=90; loadStoppagePareto()">90d</button>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+
+            <!-- Laddningsindikator -->
+            <div *ngIf="paretoLoading" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+              <div class="text-muted small mt-2">Hämtar stopporsaksdata...</div>
+            </div>
+
+            <!-- Inga tabeller / ingen data -->
+            <div *ngIf="!paretoLoading && paretoEmpty" class="text-center py-5">
+              <i class="fas fa-info-circle fa-2x text-muted mb-3 d-block"></i>
+              <p class="text-muted mb-1">Ingen stoppdata registrerad för perioden.</p>
+              <p *ngIf="paretoEmptyReason" class="text-muted small">{{ paretoEmptyReason }}</p>
+            </div>
+
+            <!-- KPI-kort -->
+            <div *ngIf="!paretoLoading && !paretoEmpty && paretoItems.length > 0" class="row g-3 mb-4">
+              <div class="col-6 col-md-3">
+                <div style="background:#1a202c; border-radius:8px; padding:12px 16px; border:1px solid #4a5568; text-align:center;">
+                  <div style="color:#a0aec0; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">
+                    Total stopptid
+                  </div>
+                  <div style="color:#e2e8f0; font-size:1.4rem; font-weight:700;">
+                    {{ paretoTotalTimmar | number:'1.1-1' }}
+                    <span style="font-size:0.85rem; color:#a0aec0;">h</span>
+                  </div>
+                  <div style="color:#718096; font-size:0.78rem;">{{ paretoTotalMinuter | number:'1.0-0' }} min</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div style="background:#1a202c; border-radius:8px; padding:12px 16px; border:1px solid #4a5568; text-align:center;">
+                  <div style="color:#a0aec0; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">
+                    Antal stopporsaker
+                  </div>
+                  <div style="color:#e2e8f0; font-size:1.4rem; font-weight:700;">
+                    {{ paretoItems.length }}
+                  </div>
+                  <div style="color:#718096; font-size:0.78rem;">{{ paretoTotalStopp }} stopp totalt</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div style="background:#1a202c; border-radius:8px; padding:12px 16px; border:1px solid #4a5568; text-align:center;">
+                  <div style="color:#a0aec0; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">
+                    Vital Few (80%)
+                  </div>
+                  <div style="color:#4299e1; font-size:1.4rem; font-weight:700;">
+                    {{ paretoVitalFewCount }}
+                    <span style="font-size:0.85rem; color:#a0aec0;">orsaker</span>
+                  </div>
+                  <div style="color:#718096; font-size:0.78rem;">täcker 80% av stopptiden</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div style="background:#1a202c; border-radius:8px; padding:12px 16px; border:1px solid #4a5568; text-align:center;">
+                  <div style="color:#a0aec0; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px;">
+                    Bästa förbättring
+                  </div>
+                  <div style="color:#ed8936; font-size:1rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"
+                       [title]="paretoBastaForbattring">
+                    {{ paretoBastaForbattring }}
+                  </div>
+                  <div style="color:#718096; font-size:0.78rem;">störst stopptid</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pareto-diagram -->
+            <div *ngIf="!paretoLoading && !paretoEmpty && paretoItems.length > 0" style="height:320px; position:relative;">
+              <canvas id="stoppagePareto"></canvas>
+            </div>
+
+            <!-- Förklaring -->
+            <div *ngIf="!paretoLoading && !paretoEmpty && paretoItems.length > 0" class="mt-2 d-flex flex-wrap gap-3 align-items-center">
+              <span style="font-size:0.82rem; color:#a0aec0;">
+                <span style="display:inline-block; width:12px; height:12px; background:rgba(66,153,225,0.85); border-radius:2px; margin-right:4px;"></span>
+                Vital (bidrar till 80%)
+              </span>
+              <span style="font-size:0.82rem; color:#a0aec0;">
+                <span style="display:inline-block; width:12px; height:12px; background:rgba(74,85,104,0.6); border-radius:2px; margin-right:4px;"></span>
+                Trivial (resterande)
+              </span>
+              <span style="font-size:0.82rem; color:#e53e3e;">
+                <span style="display:inline-block; width:16px; height:2px; background:#e53e3e; border-radius:1px; margin-right:4px; vertical-align:middle;"></span>
+                80%-gräns (Vital Few)
+              </span>
+              <span style="font-size:0.82rem; color:#ed8936;">
+                <span style="display:inline-block; width:16px; height:2px; background:#ed8936; border-radius:1px; margin-right:4px; vertical-align:middle;"></span>
+                Kumulativ %
+              </span>
+            </div>
+
+            <!-- Datatabell -->
+            <div *ngIf="!paretoLoading && !paretoEmpty && paretoItems.length > 0" class="mt-4 table-responsive">
+              <table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.85rem;">
+                <thead>
+                  <tr style="border-color:#4a5568; color:#a0aec0;">
+                    <th>#</th>
+                    <th>Orsak</th>
+                    <th class="text-end">Minuter</th>
+                    <th class="text-end">% av totalt</th>
+                    <th class="text-end">Kumulativ %</th>
+                    <th class="text-end">Antal stopp</th>
+                    <th class="text-end">Snitt (min)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of paretoItems; let i = index"
+                      style="border-color:#4a5568;"
+                      [style.background]="item.kumulativ_pct <= 80 ? 'rgba(66,153,225,0.05)' : 'transparent'">
+                    <td style="color:#718096;">{{ i + 1 }}</td>
+                    <td class="fw-bold" [style.color]="item.kumulativ_pct <= 80 ? '#90cdf4' : '#a0aec0'">
+                      {{ item.orsak }}
+                    </td>
+                    <td class="text-end">{{ item.total_minuter | number:'1.0-0' }}</td>
+                    <td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#4299e1' : '#a0aec0'">
+                      {{ item.pct_av_total | number:'1.1-1' }}%
+                    </td>
+                    <td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#ed8936' : '#718096'">
+                      {{ item.kumulativ_pct | number:'1.1-1' }}%
+                    </td>
+                    <td class="text-end text-muted">{{ item.antal_stopp }}</td>
+                    <td class="text-end text-muted">{{ item.snitt_minuter | number:'1.1-1' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== PRODUKTIONSHÄNDELSE-ADMIN ====== -->
   <div class="container-fluid mb-4" *ngIf="isAdmin">
     <div class="row">
