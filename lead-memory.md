@@ -496,3 +496,25 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **Prediktiv underhållsindikator v2**: Korrelationsanalys maskin-stopp vs. underhållshändelser
 - [ ] **Nyhetsflöde förbättring**: Auto-generera nyhet vid ny rekordag (PHP-hook i RebotlingController när ibc_total > rekord)
 - [ ] **Exportknappar disable-state**: Disabla CSV/Excel/PDF-knappar visuellt när data är tom (sätt `[disabled]="!hasData"`)
+
+---
+
+## NÄSTA BATCH (MES-research 2026-03-04 natt)
+
+### 🔴 Hög prioritet (online research + affärsvärde)
+- [ ] **Kassationsorsaksanalys** — Registrera varför IBC kasseras (skada/kontaminering/läckage), Pareto-chart. Ny tabell `kassationsorsak`, formulär i rebotling-admin, Pareto likt stoppage-logg
+- [ ] **Winning-the-Shift scoreboard** — Nytt displayläge i Andon: stor siffra "IBC kvar" + färgkodad bar, visar behövd takt vs faktisk. Inga nya endpoints — bara andon.ts/html
+- [ ] **Flexibla dagsmål per datum** — Admin kan sätta justerat mål för specifikt datum (reducerad bemanning, planerat underhåll). Ny tabell `produktionsmal_undantag(datum, justerat_mal, orsak)` + admin-UI + integration i KPI-beräkningar
+- [ ] **Prediktivt underhåll körningsbaserat** — Serviceintervall baserat på IBC-volym. `last_service_ibc` + `service_interval_ibc` på utrustning, räkna ned i rebotling_ibc kumulativt. Admin-UI + varning när < 10% kvar
+
+### 🟡 Medium prioritet
+- [ ] **MTTR/MTBF per utrustning** — SQL-aggregering på befintlig maintenance_log: medelfelsfri tid + medeltid att reparera. Ny flik i maintenance-log.ts
+- [ ] **OEE A/P/Q-komponentuppdelning v2** — Bryt ned OEE i Tillgänglighet/Prestanda/Kvalitet. Om ej gjort: ny sektion i rebotling-statistik med 3 separata procenttal + trend per komponent
+- [ ] **Certifikat-utgångvarning i exec-dashboard** — Om operator-certifikat upphör < 30 dagar: visa varningsbanner i executive-dashboard. Enkelt SQL-query mot certifications-tabell
+- [ ] **Kumulativ dagskurva (S-kurva)** — Linjediagram: ackumulerade IBC per timme 06-22 vs. plan-pace. Inga nya backend-endpoints — beräknas från befintlig hourly-rhythm data
+- [ ] **Bemanningsvarning i shift-plan** — Admin konfigurerar min_operators. ShiftPlanController varnar om schemalagda < minimum. Varning-banner i shift-plan.ts
+
+### 🟢 Lägre prioritet
+- [ ] **Operatörsfeedback-loop** — Operatör kan lämna kort kommentar i My-bonus efter skiftet, sparas i shift_handover med audience='operator'
+- [ ] **QR-kod till stopplogg** — Generera QR-kod per maskin som pekar till förifyllt stopplogg-formulär
+- [ ] **Push-notiser webbläsare** — Web Push API vid stopp > 10 min eller urgent handover-not
