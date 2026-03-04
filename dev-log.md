@@ -1,3 +1,12 @@
+## 2026-03-04 — Bug Hunt #8 (andra körning) — Resultat utan commit
+- bonus-dashboard.ts: `getDailySummary()`, `getRanking()`, `loadPrevPeriodRanking()` saknar `timeout(8000)` + `catchError()` — KVAR ATT FIXA
+- OperatorController.php: tyst catch-block utan `error_log()` i getProfile certifications — KVAR ATT FIXA
+
+## 2026-03-04 — Agenter pågående (batch 2026-03-04 kväll)
+- Stopporsaksanalys Pareto-diagram i rebotling-statistik (a13095c6)
+- Bonus utbetalningshistorik + min-bonus kollegjämförelse (affb51ef)
+- Executive dashboard multi-linje status + nyhetsflöde admin (adcc5ca5)
+
 ## 2026-03-04 — Worker: Produktionsrytm per timme
 - Lagt till **Produktionsrytm per timme** i `/rebotling/statistik` — visar genomsnittlig IBC/h per klockslag (06:00–22:00).
 - Backend: `hourly-rhythm` endpoint i `RebotlingController.php` — MySQL 8.0 LAG()-fönsterfunktion för korrekt delta per timme inom skift.
