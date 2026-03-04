@@ -225,6 +225,12 @@
               title="Exportera till Excel">
               <i class="fas fa-file-excel me-1"></i>Excel
             </button>
+            <button class="btn btn-sm btn-warning" (click)="exportHandoverPDF()"
+              [disabled]="filteredReports.length === 0"
+              [class.disabled]="filteredReports.length === 0"
+              title="Generera skiftöverlämnings-PDF med KPI, operatörer och mål">
+              <i class="fas fa-handshake me-1"></i>Skiftöverlämnings-PDF
+            </button>
             <div class="btn-group" *ngIf="selectedIds.size > 0 && isAdmin">
               <button class="btn btn-sm btn-outline-light" (click)="bulkMarkInlagd(true)">
                 <i class="fas fa-check me-1"></i>Markera inlagda

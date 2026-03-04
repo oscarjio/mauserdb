@@ -881,6 +881,372 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     });
   }
 
+  exportHandoverPDF() {
+    const reports = this.filteredReports;
+    if (reports.length === 0) return;
+
+    import('pdfmake/build/pdfmake').then((pdfMakeModule: any) => {
+      import('pdfmake/build/vfs_fonts').then((vfsFontsModule: any) => {
+        const pdfMake  = pdfMakeModule.default || pdfMakeModule;
+        const vfsFonts = vfsFontsModule.default || vfsFontsModule;
+        pdfMake.vfs    = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
+        const docDef   = this.buildHandoverPDFDocDef(reports);
+        const dateStr  = new Date().toISOString().split('T')[0];
+        pdfMake.createPdf(docDef).download(`skiftoverlamnning-rebotling-${dateStr}.pdf`);
+      });
+    });
+  }
+
+  private buildHandoverPDFDocDef(reports: any[]): any {
+    const now      = new Date().toLocaleString('sv-SE');
+    const target   = this.settings?.rebotlingTarget || 1000;
+    const shiftsPerDay = 3;
+    const shiftTarget  = Math.round(target / shiftsPerDay);
+
+    // Period-rubrik baserat på filter
+    let periodLabel = 'Alla skift';
+    if (this.filterFrom && this.filterTo) {
+      periodLabel = `${this.filterFrom} – ${this.filterTo}`;
+    } else if (this.filterFrom) {
+      periodLabel = `Från ${this.filterFrom}`;
+    } else if (this.filterTo) {
+      periodLabel = `Till ${this.filterTo}`;
+    }
+    if (this.filterSkift) {
+      const skiftMap: { [k: string]: string } = {
+        förmiddag: 'Förmiddag (06–14)',
+        eftermiddag: 'Eftermiddag (14–22)',
+        natt: 'Natt (22–06)'
+      };
+      periodLabel += ` | ${skiftMap[this.filterSkift] || this.filterSkift}`;
+    }
+
+    // Senaste skiftet för header-info
+    const latestReport = reports[0];
+    const latestDatum  = latestReport ? (latestReport.datum || '').substring(0, 10) : '';
+    const latestSkift  = latestReport ? this.getShiftForReport(latestReport) : '';
+    const skiftNamn: { [k: string]: string } = {
+      förmiddag: 'Förmiddag', eftermiddag: 'Eftermiddag', natt: 'Natt'
+    };
+
+    // KPI-aggregat
+    const totalIbc   = this.summaryTotalIbc;
+    const avgQual    = this.summaryAvgQuality;
+    const avgOee     = this.summaryAvgOee;
+    const totalDrift = this.summaryTotalDrift;
+    const totalRast  = this.summaryTotalRast;
+
+    // Operatörer: samla unika + IBC/h per operatör från alla filtrerade skift
+    const opMap: { [name: string]: { ibc_per_h_vals: number[]; ibc_ok_total: number; shift_count: number } } = {};
+    reports.forEach(r => {
+      ['op1', 'op2', 'op3'].forEach(opKey => {
+        const name = this.getOpLabel(r, opKey as 'op1' | 'op2' | 'op3');
+        if (name === '–') return;
+        if (!opMap[name]) opMap[name] = { ibc_per_h_vals: [], ibc_ok_total: 0, shift_count: 0 };
+        const ibc_h = this.getIbcPerHour(r);
+        if (ibc_h != null) opMap[name].ibc_per_h_vals.push(ibc_h);
+        opMap[name].ibc_ok_total += r.ibc_ok || 0;
+        opMap[name].shift_count++;
+      });
+    });
+
+    const operatorRows: any[][] = Object.entries(opMap)
+      .sort((a, b) => {
+        const avgA = a[1].ibc_per_h_vals.length
+          ? a[1].ibc_per_h_vals.reduce((s, v) => s + v, 0) / a[1].ibc_per_h_vals.length : 0;
+        const avgB = b[1].ibc_per_h_vals.length
+          ? b[1].ibc_per_h_vals.reduce((s, v) => s + v, 0) / b[1].ibc_per_h_vals.length : 0;
+        return avgB - avgA;
+      })
+      .map(([name, data]) => {
+        const avgIbcH = data.ibc_per_h_vals.length
+          ? Math.round(data.ibc_per_h_vals.reduce((s, v) => s + v, 0) / data.ibc_per_h_vals.length * 10) / 10
+          : null;
+        return [
+          { text: name, bold: true },
+          { text: data.shift_count.toString(), alignment: 'center' },
+          { text: data.ibc_ok_total.toString(), alignment: 'center' },
+          { text: avgIbcH != null ? avgIbcH + ' st/h' : '–', alignment: 'center' }
+        ];
+      });
+
+    // Kommentarer (från kommentarMap) — hämta alla som är laddade
+    const kommentarer: any[] = [];
+    reports.forEach(r => {
+      const kommentar = this.kommentarMap[r.id];
+      if (kommentar && kommentar.trim()) {
+        kommentarer.push({
+          text: `${(r.datum || '').substring(0, 10)} (${skiftNamn[this.getShiftForReport(r)] || 'Okänt skift'}): ${kommentar}`,
+          margin: [0, 2, 0, 2],
+          fontSize: 10
+        });
+      }
+    });
+
+    // Skiftlista (senaste 5)
+    const recentRows: any[][] = reports.slice(0, 5).map((r, i) => {
+      const qualPct = this.getQualityPct(r);
+      const ibcH    = this.getIbcPerHour(r);
+      return [
+        { text: (r.datum || '').substring(0, 10), fontSize: 9 },
+        { text: skiftNamn[this.getShiftForReport(r)] || '–', fontSize: 9 },
+        { text: r.product_name || '–', fontSize: 9 },
+        { text: String(r.totalt ?? '–'), alignment: 'center', bold: i === 0, fontSize: 9 },
+        { text: qualPct != null ? qualPct + '%' : '–', alignment: 'center',
+          color: qualPct != null && qualPct >= 90 ? 'green' : (qualPct != null && qualPct < 70 ? 'red' : 'black'),
+          fontSize: 9 },
+        { text: ibcH != null ? ibcH + ' st/h' : '–', alignment: 'center', fontSize: 9 }
+      ];
+    });
+
+    // Uppfyllnadsprocent
+    const achievePct = target > 0 && totalIbc > 0 ? Math.round((totalIbc / target) * 100) : null;
+    const achieveColor = achievePct != null
+      ? (achievePct >= 100 ? 'green' : (achievePct >= 80 ? 'orange' : 'red'))
+      : 'black';
+
+    const driftH = totalDrift > 0 ? `${Math.floor(totalDrift / 60)}h ${totalDrift % 60}min` : '–';
+
+    const content: any[] = [
+      // ---- HEADER ----
+      {
+        columns: [
+          {
+            stack: [
+              { text: 'SKIFTOVERLAMNNING', style: 'mainHeader' },
+              { text: 'Rebotling — IBC-tvätteri', style: 'subHeader' },
+              { text: `Period: ${periodLabel}`, style: 'meta', margin: [0, 4, 0, 0] }
+            ]
+          },
+          {
+            stack: [
+              { text: 'NOREKO', style: 'logoText', alignment: 'right' },
+              { text: latestDatum || now.substring(0, 10), style: 'meta', alignment: 'right' },
+              {
+                text: latestSkift ? skiftNamn[latestSkift] || latestSkift : '',
+                style: 'meta',
+                alignment: 'right'
+              }
+            ]
+          }
+        ]
+      },
+      { canvas: [{ type: 'line', x1: 0, y1: 5, x2: 515, y2: 5, lineWidth: 2, lineColor: '#2b6cb0' }], margin: [0, 8, 0, 12] },
+
+      // ---- KPI-SAMMANFATTNING ----
+      { text: 'KPI-SAMMANFATTNING', style: 'sectionHeader' },
+      {
+        table: {
+          widths: ['*', '*', '*', '*', '*'],
+          body: [
+            [
+              { text: 'Total IBC',   bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+              { text: 'Kvalitet',    bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+              { text: 'OEE',         bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+              { text: 'Drifttid',    bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+              { text: 'Rasttid',     bold: true, fillColor: '#e8f4fd', alignment: 'center' }
+            ],
+            [
+              { text: String(totalIbc), bold: true, fontSize: 22, alignment: 'center', color: '#1a365d' },
+              {
+                text: avgQual != null ? avgQual + '%' : '–',
+                bold: true, fontSize: 22, alignment: 'center',
+                color: avgQual != null ? (avgQual >= 90 ? 'green' : (avgQual >= 70 ? 'orange' : 'red')) : 'gray'
+              },
+              {
+                text: avgOee != null ? avgOee + '%' : '–',
+                bold: true, fontSize: 22, alignment: 'center',
+                color: avgOee != null ? (avgOee >= 75 ? 'green' : (avgOee >= 50 ? 'orange' : 'red')) : 'gray'
+              },
+              { text: driftH, bold: true, fontSize: 16, alignment: 'center', color: '#276749' },
+              { text: totalRast > 0 ? totalRast + ' min' : '–', bold: true, fontSize: 16, alignment: 'center', color: '#744210' }
+            ]
+          ]
+        },
+        layout: {
+          hLineWidth: () => 1,
+          vLineWidth: () => 1,
+          hLineColor: () => '#bee3f8',
+          vLineColor: () => '#bee3f8',
+          paddingTop: () => 10,
+          paddingBottom: () => 10
+        },
+        margin: [0, 4, 0, 4]
+      },
+
+      // Uppfyllnadsprocent vs dagsmål
+      {
+        columns: [
+          {
+            text: [
+              { text: 'Dagsmål: ', fontSize: 10, color: '#4a5568' },
+              { text: String(target) + ' IBC', fontSize: 10, bold: true },
+              { text: '   Uppfyllnad: ', fontSize: 10, color: '#4a5568' },
+              {
+                text: achievePct != null ? achievePct + '%' : '–',
+                fontSize: 10, bold: true, color: achieveColor
+              },
+              { text: '   Nästa skifts mål: ', fontSize: 10, color: '#4a5568' },
+              { text: String(shiftTarget) + ' IBC', fontSize: 10, bold: true, color: '#2b6cb0' }
+            ],
+            margin: [0, 4, 0, 12]
+          }
+        ]
+      },
+
+      // ---- OPERATÖRER ----
+      { text: 'OPERATÖRER DETTA SKIFT', style: 'sectionHeader' },
+    ];
+
+    if (operatorRows.length > 0) {
+      content.push({
+        table: {
+          widths: ['*', 'auto', 'auto', 'auto'],
+          body: [
+            [
+              { text: 'Operatör',     bold: true, fillColor: '#e8f4fd' },
+              { text: 'Antal skift',  bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+              { text: 'IBC OK totalt',bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+              { text: 'Snitt IBC/h',  bold: true, fillColor: '#e8f4fd', alignment: 'center' }
+            ],
+            ...operatorRows
+          ]
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 4, 0, 12]
+      } as any);
+    } else {
+      content.push({ text: 'Ingen operatörsdata tillgänglig.', style: 'meta', margin: [0, 4, 0, 12] });
+    }
+
+    // ---- SENASTE SKIFT ----
+    content.push({ text: 'SENASTE SKIFT (max 5)', style: 'sectionHeader' });
+    if (recentRows.length > 0) {
+      content.push({
+        table: {
+          widths: ['auto', 'auto', '*', 'auto', 'auto', 'auto'],
+          body: [
+            [
+              { text: 'Datum',    bold: true, fillColor: '#e8f4fd', fontSize: 9 },
+              { text: 'Skift',    bold: true, fillColor: '#e8f4fd', fontSize: 9 },
+              { text: 'Produkt',  bold: true, fillColor: '#e8f4fd', fontSize: 9 },
+              { text: 'Totalt',   bold: true, fillColor: '#e8f4fd', alignment: 'center', fontSize: 9 },
+              { text: 'Kvalitet', bold: true, fillColor: '#e8f4fd', alignment: 'center', fontSize: 9 },
+              { text: 'IBC/h',    bold: true, fillColor: '#e8f4fd', alignment: 'center', fontSize: 9 }
+            ],
+            ...recentRows
+          ]
+        },
+        layout: 'lightHorizontalLines',
+        margin: [0, 4, 0, 12]
+      } as any);
+    }
+
+    // ---- KOMMENTARER / NOTERINGAR ----
+    content.push({ text: 'NOTERINGAR FRAN SKIFTEN', style: 'sectionHeader' });
+    if (kommentarer.length > 0) {
+      kommentarer.forEach(k => content.push(k));
+      content.push({ text: '', margin: [0, 0, 0, 8] });
+    } else {
+      content.push({ text: 'Inga skiftkommentarer laddade. Expandera skift i gränssnittet för att ladda kommentarer.', style: 'meta', margin: [0, 4, 0, 12] });
+    }
+
+    // ---- NASTA SKIFTS MAL ----
+    content.push({ text: 'NASTA SKIFTS MAL', style: 'sectionHeader' });
+    content.push({
+      table: {
+        widths: ['*', '*', '*'],
+        body: [
+          [
+            { text: 'Dagsmål (total)',  bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+            { text: 'Skift per dag',    bold: true, fillColor: '#e8f4fd', alignment: 'center' },
+            { text: 'Mål per skift',    bold: true, fillColor: '#e8f4fd', alignment: 'center' }
+          ],
+          [
+            { text: String(target) + ' IBC', alignment: 'center', bold: true, fontSize: 14 },
+            { text: String(shiftsPerDay),     alignment: 'center', fontSize: 14 },
+            { text: String(shiftTarget) + ' IBC', alignment: 'center', bold: true, fontSize: 14, color: '#2b6cb0' }
+          ]
+        ]
+      },
+      layout: {
+        hLineWidth: () => 1,
+        vLineWidth: () => 1,
+        hLineColor: () => '#bee3f8',
+        vLineColor: () => '#bee3f8',
+        paddingTop: () => 8,
+        paddingBottom: () => 8
+      },
+      margin: [0, 4, 0, 16]
+    });
+
+    // ---- ANTECKNINGSRUTA ----
+    content.push({ text: 'ANTECKNINGAR', style: 'sectionHeader' });
+    content.push({
+      table: {
+        widths: ['*'],
+        body: [
+          [{ text: '\n\n\n\n\n', fontSize: 11 }]
+        ]
+      },
+      layout: {
+        hLineWidth: () => 1,
+        vLineWidth: () => 1,
+        hLineColor: () => '#cbd5e0',
+        vLineColor: () => '#cbd5e0'
+      },
+      margin: [0, 4, 0, 16]
+    });
+
+    // ---- FOOTER ----
+    content.push({
+      canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#cbd5e0' }],
+      margin: [0, 0, 0, 6]
+    });
+    content.push({
+      columns: [
+        { text: 'Genererad: ' + now, fontSize: 9, color: '#718096' },
+        { text: 'Noreko – Rebotling skiftöverlämning', fontSize: 9, color: '#718096', alignment: 'right' }
+      ]
+    });
+
+    return {
+      content,
+      styles: {
+        mainHeader: {
+          fontSize: 20,
+          bold: true,
+          color: '#1a365d',
+          margin: [0, 0, 0, 2]
+        },
+        subHeader: {
+          fontSize: 11,
+          color: '#4a5568',
+          margin: [0, 0, 0, 2]
+        },
+        sectionHeader: {
+          fontSize: 11,
+          bold: true,
+          color: '#2b6cb0',
+          margin: [0, 8, 0, 4],
+          decoration: 'underline'
+        },
+        meta: {
+          fontSize: 9,
+          color: '#718096'
+        },
+        logoText: {
+          fontSize: 18,
+          bold: true,
+          color: '#2b6cb0'
+        }
+      },
+      defaultStyle: { fontSize: 10, font: 'Roboto' },
+      pageMargins: [40, 50, 40, 50],
+      pageSize: 'A4'
+    };
+  }
+
   private buildPDFDocDef(r: any): any {
     const qualPct   = this.getQualityPct(r);
     const effPct    = this.getEfficiencyPct(r);
