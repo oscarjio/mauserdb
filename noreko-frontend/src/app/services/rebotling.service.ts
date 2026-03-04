@@ -348,6 +348,11 @@ export class RebotlingService {
     );
   }
 
+  /** Returnerar URL till den utskriftsvanliga skiftsammanfattnings-HTML:en */
+  getShiftPdfSummaryUrl(date: string, shift: number): string {
+    return `/noreko-backend/api.php?action=rebotling&run=shift-pdf-summary&date=${date}&shift=${shift}`;
+  }
+
 }
 
 export interface PersonalBestOperator {

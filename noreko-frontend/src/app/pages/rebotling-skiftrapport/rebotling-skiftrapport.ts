@@ -1759,6 +1759,14 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     window.print();
   }
 
+  /** Oppnar print-optimerad skiftsammanfattning i nytt fonster (backend-genererad HTML) */
+  openShiftPdf(report: any) {
+    const datum = (report.datum || '').substring(0, 10);
+    const shiftNr = this.getShiftNr(report);
+    const url = `/noreko-backend/api.php?action=rebotling&run=shift-pdf-summary&date=${datum}&shift=${shiftNr}`;
+    window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
+  }
+
   formatDrifttid(min: number | null): string {
     if (min == null || min === 0) return '–';
     const h = Math.floor(min / 60);

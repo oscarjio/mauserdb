@@ -153,6 +153,8 @@ class RebotlingController {
                 $this->getShiftSummary();
             } elseif ($action === 'rejection-analysis') {
                 $this->getRejectionAnalysis();
+            } elseif ($action === 'shift-pdf-summary') {
+                $this->getShiftPdfSummary();
             } else {
                 $this->getLiveStats();
             }

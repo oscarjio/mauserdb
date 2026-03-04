@@ -470,6 +470,20 @@
 .threshold-card.threshold-warn   { border-left-color: #d69e2e; }
 .threshold-card.threshold-danger { border-left-color: #e53e3e; }
 
+/* ---- Live Ranking Config — Dark select ---- */
+.form-select {
+  background-color: #4a5568;
+  border-color: #718096;
+  color: #e2e8f0;
+}
+
+.form-select:focus {
+  background-color: #4a5568;
+  border-color: #86b7fe;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
 /* ---- Prediktivt underhåll — Service danger-puls ---- */
 .service-danger-pulse {
   animation: service-pulse 1.4s ease-in-out infinite;

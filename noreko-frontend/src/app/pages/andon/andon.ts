@@ -75,6 +75,11 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   isFetching = false;
   isFetchingStoppages = false;
 
+  // Skiftbyte-notis
+  private previousShift: string | null = null;
+  showShiftChangeNotice = false;
+  shiftChangeDate = '';
+
   // Feature 1: Skifttimer
   skifttimerText = '';
   skifttimerKvar = '';          // "HH:MM:SS"
@@ -300,6 +305,16 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       .subscribe(data => {
         this.isFetching = false;
         if (data) {
+          // Skiftbyte-detektion
+          const currentShift = data.skift;
+          if (this.previousShift !== null && this.previousShift !== currentShift) {
+            this.showShiftChangeNotice = true;
+            this.shiftChangeDate = data.datum ? data.datum.substring(0, 10) : '';
+            // Dolj notisen automatiskt efter 30 sekunder
+            setTimeout(() => { this.showShiftChangeNotice = false; }, 30000);
+          }
+          this.previousShift = currentShift;
+
           this.status = data;
           this.laddas = false;
           this.fel = null;
@@ -740,5 +755,18 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.cumulativeChart.data.datasets[0].data = planData;
     this.cumulativeChart.data.datasets[1].data = faktiskData;
     this.cumulativeChart.update('none');
+  }
+
+  // ─────────────────────────────────────────────
+  // Skiftbyte-notis
+  // ─────────────────────────────────────────────
+
+  dismissShiftNotice() {
+    this.showShiftChangeNotice = false;
+  }
+
+  openShiftReport() {
+    this.showShiftChangeNotice = false;
+    window.open('/rebotling-skiftrapport', '_blank');
   }
 }

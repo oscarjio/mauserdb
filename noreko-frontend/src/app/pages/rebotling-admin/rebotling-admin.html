@@ -1435,6 +1435,93 @@
     </div>
   </div>
 
+  <!-- ======== LIVE RANKING — KPI-KOLUMNER & SORTERING ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-columns me-2 text-warning"></i>TV-skärm (Live Ranking) — KPI-kolumner
+          </h5>
+          <button class="btn btn-sm btn-outline-secondary"
+                  (click)="toggleLrConfigPanel()">
+            <i class="fas" [class.fa-chevron-down]="!showLrConfigPanel" [class.fa-chevron-up]="showLrConfigPanel"></i>
+          </button>
+        </div>
+        <div class="card-body" *ngIf="showLrConfigPanel">
+
+          <p class="text-muted small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Välj vilka KPI-kolumner som visas på TV-skärmen, sorteringsordning och uppdateringsintervall.
+          </p>
+
+          <div class="row g-3">
+            <!-- KPI-kolumner -->
+            <div class="col-12">
+              <label class="form-label fw-bold">Visa KPI-kolumner</label>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="lrcIbcH"
+                       [(ngModel)]="lrConfig.columns.ibc_per_hour">
+                <label class="form-check-label" for="lrcIbcH">IBC/h</label>
+              </div>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="lrcQuality"
+                       [(ngModel)]="lrConfig.columns.quality_pct">
+                <label class="form-check-label" for="lrcQuality">Kvalitet%</label>
+              </div>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="lrcBonus"
+                       [(ngModel)]="lrConfig.columns.bonus_level">
+                <label class="form-check-label" for="lrcBonus">Bonus-nivå</label>
+              </div>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="lrcGoalProgress"
+                       [(ngModel)]="lrConfig.columns.goal_progress">
+                <label class="form-check-label" for="lrcGoalProgress">Dagsmål-progress</label>
+              </div>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="lrcIbcToday"
+                       [(ngModel)]="lrConfig.columns.ibc_today">
+                <label class="form-check-label" for="lrcIbcToday">IBC idag</label>
+              </div>
+            </div>
+
+            <!-- Sortering -->
+            <div class="col-md-6">
+              <label class="form-label">Sortera efter</label>
+              <select class="form-select bg-dark text-light border-secondary"
+                      [(ngModel)]="lrConfig.sort_by">
+                <option value="ibc_per_hour">IBC/h</option>
+                <option value="quality_pct">Kvalitet%</option>
+                <option value="ibc_today">IBC totalt</option>
+              </select>
+            </div>
+
+            <!-- Uppdateringsintervall -->
+            <div class="col-md-6">
+              <label class="form-label">Uppdateringsintervall (sekunder)</label>
+              <input type="number" class="form-control bg-dark text-light border-secondary"
+                     [(ngModel)]="lrConfig.refresh_interval"
+                     min="10" max="120" />
+              <div class="form-text text-muted">Minst 10 s, högst 120 s.</div>
+            </div>
+
+            <!-- Spara -->
+            <div class="col-12">
+              <button class="btn btn-primary"
+                      (click)="saveLrConfig()"
+                      [disabled]="lrConfigSaving">
+                <i class="fas" [class.fa-save]="!lrConfigSaving" [class.fa-spinner]="lrConfigSaving" [class.fa-spin]="lrConfigSaving" class="me-2"></i>
+                {{ lrConfigSaving ? 'Sparar...' : 'Spara KPI-konfiguration' }}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Rekordnyhet — manuell trigger ===== -->
   <div class="row mb-4">
     <div class="col-12">

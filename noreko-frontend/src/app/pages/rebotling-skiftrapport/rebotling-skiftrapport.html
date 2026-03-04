@@ -444,6 +444,10 @@
                           [title]="shiftSummaryReportId === report.id ? 'Dölj skiftsammanfattning' : 'Visa skiftsammanfattning (utskrift)'">
                           <i class="fas fa-print"></i>
                         </button>
+                        <button class="btn btn-outline-warning" (click)="openShiftPdf(report)"
+                          title="Generera PDF-sammanfattning i nytt fonster">
+                          <i class="fas fa-file-export"></i>
+                        </button>
                         <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort">
                           <i class="fas fa-trash"></i>
                         </button>

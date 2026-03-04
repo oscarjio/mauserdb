@@ -10,7 +10,7 @@
       <span class="header-date">{{ formatDate(date) }}</span>
     </div>
     <div class="header-right">
-      <span class="refresh-label">Uppdateras var {{ lrSettings.lr_poll_interval }}s</span>
+      <span class="refresh-label">Uppdateras var {{ lrConfig.refresh_interval }}s</span>
       <span class="refresh-time">{{ formatTime(lastRefresh) }}</span>
       <span class="skift-countdown" *ngIf="skiftSlutOm">
         Skiftet slutar om <strong>{{ skiftSlutOm }}</strong>
@@ -66,7 +66,7 @@
         <div class="op-name">{{ entry.name }}</div>
 
         <!-- IBC/h -->
-        <div class="stat-block">
+        <div class="stat-block" *ngIf="lrConfig.columns.ibc_per_hour">
           <span class="stat-value accent-green">
             {{ entry.ibc_per_hour !== null ? entry.ibc_per_hour : '–' }}
           </span>
@@ -74,7 +74,7 @@
         </div>
 
         <!-- Kvalitet% -->
-        <div class="stat-block" *ngIf="lrSettings.lr_show_quality">
+        <div class="stat-block" *ngIf="lrConfig.columns.quality_pct && lrSettings.lr_show_quality">
           <span class="stat-value accent-yellow">
             {{ entry.quality_pct !== null ? entry.quality_pct : '–' }}
           </span>
@@ -82,13 +82,13 @@
         </div>
 
         <!-- Totalt IBC idag -->
-        <div class="stat-block">
+        <div class="stat-block" *ngIf="lrConfig.columns.ibc_today">
           <span class="stat-value accent-blue">{{ entry.ibc_ok }}</span>
           <span class="stat-unit">IBC totalt</span>
         </div>
 
         <!-- Progress mot dagsmål -->
-        <div class="progress-section" *ngIf="goal > 0 && lrSettings.lr_show_progress">
+        <div class="progress-section" *ngIf="goal > 0 && lrConfig.columns.goal_progress && lrSettings.lr_show_progress">
           <div class="progress-track">
             <div
               class="progress-fill"

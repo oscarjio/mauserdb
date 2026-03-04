@@ -19,6 +19,23 @@
     <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen aktiv data just nu.</p>
   </div>
 
+  <!-- Skiftbyte-notis -->
+  <div class="shift-change-notice" *ngIf="showShiftChangeNotice"
+       style="position:fixed;top:16px;right:16px;z-index:9999;background:#22543d;border:2px solid #48bb78;border-radius:10px;padding:14px 20px;color:#e2e8f0;box-shadow:0 4px 16px rgba(0,0,0,0.4);max-width:360px;animation:slideInRight 0.3s ease-out;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <span style="font-size:1.3rem;">&#128337;</span>
+      <strong style="font-size:0.95rem;">Skiftbyte genomfort</strong>
+      <button (click)="dismissShiftNotice()" style="margin-left:auto;background:none;border:none;color:#a0aec0;font-size:1.2rem;cursor:pointer;padding:0 4px;">&times;</button>
+    </div>
+    <p style="font-size:0.85rem;color:#a0aec0;margin:0 0 10px;">
+      Skiftsammanfattning tillganglig for foregaende skift.
+    </p>
+    <button (click)="openShiftReport()"
+            style="background:#48bb78;color:#fff;border:none;border-radius:6px;padding:6px 16px;font-size:0.85rem;cursor:pointer;font-weight:600;">
+      Visa skiftrapport
+    </button>
+  </div>
+
   <!-- Huvud-layout -->
   <div class="andon-main" *ngIf="status && !laddas">
 

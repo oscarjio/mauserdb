@@ -147,6 +147,21 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   lrSettingsSaving = false;
   showLrPanel = false;
 
+  // ---- Live Ranking Config (KPI-kolumner, sortering) ----
+  lrConfig = {
+    columns: {
+      ibc_per_hour: true,
+      quality_pct: true,
+      bonus_level: false,
+      goal_progress: true,
+      ibc_today: true
+    },
+    sort_by: 'ibc_per_hour',
+    refresh_interval: 30
+  };
+  lrConfigSaving = false;
+  showLrConfigPanel = false;
+
   // ---- Prediktivt underhåll — IBC-baserat serviceintervall ----
   serviceStatus: ServiceStatus | null = null;
   serviceStatusLoading = false;
@@ -211,6 +226,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadAlertThresholds();
     this.loadNotificationSettings();
     this.loadLrSettings();
+    this.loadLrConfig();
     this.loadGoalHistory();
     this.loadGoalExceptions();
     this.loadServiceStatus();
@@ -966,6 +982,36 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       .subscribe((res: any) => {
         this.lrSettingsSaving = false;
         if (res?.success) this.showSuccess('TV-inställningar sparade!');
+      });
+  }
+
+  // ========== Live Ranking Config (KPI-kolumner, sortering) ==========
+  toggleLrConfigPanel() { this.showLrConfigPanel = !this.showLrConfigPanel; }
+
+  loadLrConfig() {
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-config', { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        if (res?.success && res.data) this.lrConfig = res.data;
+      });
+  }
+
+  saveLrConfig() {
+    this.lrConfigSaving = true;
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=set-live-ranking-config',
+      this.lrConfig, { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        this.lrConfigSaving = false;
+        if (res?.success) this.showSuccess('Live Ranking-konfiguration sparad!');
       });
   }
 

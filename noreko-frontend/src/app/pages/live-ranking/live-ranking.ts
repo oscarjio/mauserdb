@@ -86,6 +86,19 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   prognos: number | null = null;
   visaPrognos: boolean = false;
 
+  // Live Ranking Config (KPI-kolumner, sortering, refresh)
+  lrConfig = {
+    columns: {
+      ibc_per_hour: true,
+      quality_pct: true,
+      bonus_level: false,
+      goal_progress: true,
+      ibc_today: true
+    },
+    sort_by: 'ibc_per_hour',
+    refresh_interval: 30
+  };
+
   private readonly apiUrl = '/noreko-backend/api.php?action=rebotling&run=live-ranking';
 
   // Live Ranking-inställningar (från rebotling_settings)
@@ -112,6 +125,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadLrSettings();
+    this.loadLrConfig();
     this.loadData();
     this.pollTimer = setInterval(() => this.loadData(), 30000);
 
@@ -156,6 +170,41 @@ export class LiveRankingPage implements OnInit, OnDestroy {
       });
   }
 
+  loadLrConfig(): void {
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-config', { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((res: any) => {
+        if (res?.success && res.data) {
+          this.lrConfig = res.data;
+          // Uppdatera poll-interval baserat på config
+          const cfgInterval = (this.lrConfig.refresh_interval || 30) * 1000;
+          if (this.pollTimer) {
+            clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(() => this.loadData(), cfgInterval);
+          }
+        }
+      });
+  }
+
+  sortRanking(): void {
+    if (!this.ranking || this.ranking.length === 0) return;
+    const sortBy = this.lrConfig.sort_by;
+    this.ranking.sort((a, b) => {
+      if (sortBy === 'quality_pct') {
+        return (b.quality_pct ?? 0) - (a.quality_pct ?? 0);
+      }
+      if (sortBy === 'ibc_today') {
+        return (b.ibc_ok ?? 0) - (a.ibc_ok ?? 0);
+      }
+      // default: ibc_per_hour
+      return (b.ibc_per_hour ?? 0) - (a.ibc_per_hour ?? 0);
+    });
+  }
+
   loadData(): void {
     if (this.isFetching) return;
     this.isFetching = true;
@@ -178,6 +227,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
             this.rekordDatum    = res.rekord_datum   ?? null;
             this.lastRefresh    = new Date();
             this.error          = null;
+            this.sortRanking();
             this.updateCurrentMottos();
             this.updatePrognos();
           } else if (res && !res.success) {
