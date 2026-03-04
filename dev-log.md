@@ -1,3 +1,23 @@
+## 2026-03-04 — My-bonus: Närvaro-kalender och Streakräknare
+
+Worker-agent lade till närvaro-kalender och streakräknare på `/my-bonus`:
+
+1. **WorkDay interface** (`WorkDay`): Ny interface med `date`, `worked`, `ibc` fält för kalenderdata.
+
+2. **Närvaro-kalender** (`buildWorkCalendar()`): Kompakt månadskalender-grid (7 kolumner, mån-sön) som visar vilka dagar operatören arbetat baserat på befintlig skifthistorik (`history[].datum`). Gröna dagar = arbetat, grå = ledig, blå ram = idag. Anropas automatiskt efter historik laddas.
+
+3. **Kalender-header** (`getCalendarMonthLabel()`): Visar aktuell månad i svenska (t.ex. "mars 2026") i kortets rubrik.
+
+4. **Arbetsdag-räknare** (`getWorkedDaysThisMonth()`): Badge i kalender-rubriken visar antal arbetade dagar denna månad.
+
+5. **Streak från kalender** (`currentStreak` getter): Räknar antal dagar i rad operatören arbetat baserat på kalenderdata. Kompletterar det befintliga `streakData` från backend-API.
+
+6. **Streak-badge** (`.streak-calendar-badge`): Visas bredvid operator-ID i sidhuvudet om `currentStreak > 0`, t.ex. "🔥 5 dagars streak".
+
+7. **CSS**: Ny sektion `.calendar-grid`, `.cal-day`, `.cal-day.worked`, `.cal-day.today`, `.cal-day.empty`, `.calendar-legend`, `.streak-calendar-badge` — dark theme.
+
+Build: OK (inga fel i my-bonus, pre-existing errors i rebotling-admin/skiftrapport ej åtgärdade).
+
 ## 2026-03-04 — Produktionsanalys: CSV-export, stoppstatistik, KPI-brickor, förbättrat tomt-state
 
 Worker-agent förbättrade `/rebotling/produktionsanalys` stoppanalys-fliken:
@@ -1246,3 +1266,4 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 [2026-03-04] BugHunt #11: andon.ts — null-safety minuter_sedan_senaste_ibc (number|null + null-guard i statusEtikett), switch default-return i ibcKvarFarg/behovdTaktFarg; my-bonus.ts — chart-refs nullas i ngOnDestroy; news-admin.ts — withCredentials:true på alla HTTP-anrop (sessions kräver det för admin-list/create/update/delete); operator-trend.ts — oanvänd AfterViewInit-import borttagen; BonusController/BonusAdminController/MaintenanceController PHP — session_start read_and_close för att undvika session-låsning
 [2026-03-04] Worker: Historik-sida — CSV/Excel-export (SheetJS), trendpil per månad (↑↓→ >3%), progressbar mot snitt per rad, ny Trend-kolumn i månadsdetaljatabell, disable-state på knappar — e6a36f5
 [2026-03-04] Worker: Executive dashboard förbättringar — veckoframgångsmätare (IBC denna vecka vs förra, progressbar grön/gul/röd, OEE+kvalitet+toppop KPI-rad), senaste nyheter (3 senaste via news&run=admin-list, kategori-badges), 6 snabblänkar (Andontavla/Skiftrapport/Veckorapport/Statistik/Bonus/Underhåll), lastUpdated property satt vid lyckad fetch — 3d14b95
+[2026-03-04] Worker: Benchmarking — emoji-medaljer (🥇🥈🥉) med glow-animationer, KPI-sammanfattning (4 brickor: veckor/rekord/snitt/OEE), personbästa-kort (AuthService-integration, visar stats om inloggad operatör finns i personalBests annars motiveringstext), CSV-export topplista (knapp i sidhuvud+sektion), rekordmånad guld-stjärnanimation i legend, silver+brons radmarkering i tabellen
