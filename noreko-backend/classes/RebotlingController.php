@@ -8356,4 +8356,199 @@ HTML;
             echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kvalitetsanalys.']);
         }
     }
+
+    // =========================================================
+    // Skiftsammanfattning som utskriftsvanlig HTML (PDF via webblasarens print)
+    // GET ?action=rebotling&run=shift-pdf-summary&date=YYYY-MM-DD&shift=1|2|3
+    // =========================================================
+    private function getShiftPdfSummary() {
+        $date  = $_GET['date']  ?? '';
+        $shift = (int)($_GET['shift'] ?? 0);
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $shift < 1 || $shift > 3) {
+            http_response_code(400);
+            echo '<!DOCTYPE html><html><body><h1>Ogiltigt datum eller skiftnummer (1-3)</h1></body></html>';
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
+                    s.drifttid, s.rasttime, s.lopnummer, s.skiftraknare,
+                    s.op1, s.op2, s.op3,
+                    s.created_at,
+                    u.username AS user_name,
+                    p.name AS product_name,
+                    o1.name AS op1_name,
+                    o2.name AS op2_name,
+                    o3.name AS op3_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN rebotling_products p ON s.product_id = p.id
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                WHERE s.datum = :date
+                ORDER BY s.id
+            ");
+            $stmt->execute(['date' => $date]);
+            $allRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $rows = [];
+            foreach ($allRows as $row) {
+                $timeStr = substr($row['datum'] ?? '', 11, 5);
+                $rowShift = 1;
+                if ($timeStr) {
+                    $parts = explode(':', $timeStr);
+                    $minutes = ((int)$parts[0]) * 60 + ((int)($parts[1] ?? 0));
+                    if ($minutes >= 360 && $minutes < 840) $rowShift = 1;
+                    elseif ($minutes >= 840 && $minutes < 1320) $rowShift = 2;
+                    else $rowShift = 3;
+                }
+                if ($rowShift === $shift) {
+                    $rows[] = $row;
+                }
+            }
+
+            if (count($rows) === 0 && count($allRows) > 0) {
+                $rows = $allRows;
+            }
+
+            $totalIbcOk = 0; $totalBurEj = 0; $totalIbcEj = 0;
+            $totalTotalt = 0; $totalDrift = 0; $totalRast = 0;
+            $operatorNames = []; $products = [];
+
+            foreach ($rows as $r) {
+                $totalIbcOk  += (int)($r['ibc_ok'] ?? 0);
+                $totalBurEj  += (int)($r['bur_ej_ok'] ?? 0);
+                $totalIbcEj  += (int)($r['ibc_ej_ok'] ?? 0);
+                $totalTotalt += (int)($r['totalt'] ?? 0);
+                $totalDrift  += (int)($r['drifttid'] ?? 0);
+                $totalRast   += (int)($r['rasttime'] ?? 0);
+                foreach (['op1_name','op2_name','op3_name'] as $opField) {
+                    if (!empty($r[$opField])) $operatorNames[$r[$opField]] = true;
+                }
+                if (!empty($r['product_name'])) $products[$r['product_name']] = true;
+            }
+
+            $kvalitet = $totalTotalt > 0 ? round(($totalIbcOk / $totalTotalt) * 100, 1) : null;
+            $planned = $totalDrift + $totalRast;
+            $avail = $planned > 0 ? min($totalDrift / $planned, 1) : null;
+            $qr = $totalTotalt > 0 ? ($totalIbcOk / $totalTotalt) : null;
+            $oee = ($avail !== null && $qr !== null) ? round($avail * $qr * 100, 1) : null;
+            $ibcPerH = $totalDrift > 0 ? round(($totalIbcOk / ($totalDrift / 60)), 1) : null;
+
+            $kommentar = '';
+            try {
+                $komStmt = $this->pdo->prepare("SELECT kommentar FROM rebotling_skift_kommentarer WHERE datum = :datum AND skift_nr = :skift_nr LIMIT 1");
+                $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
+                $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
+                if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
+            } catch (Exception $e) {}
+
+            $shiftNames = [1 => 'Formiddag (06-14)', 2 => 'Eftermiddag (14-22)', 3 => 'Natt (22-06)'];
+            $shiftName = $shiftNames[$shift] ?? "Skift $shift";
+
+            $drifttidStr = '-';
+            if ($totalDrift > 0) {
+                $h = floor($totalDrift / 60); $m = $totalDrift % 60;
+                $drifttidStr = $h > 0 ? "{$h}h {$m}min" : "{$m}min";
+            }
+            $rasttidStr = $totalRast > 0 ? "{$totalRast} min" : '-';
+
+            $kvalitetFarg = '#333';
+            if ($kvalitet !== null) {
+                if ($kvalitet >= 90) $kvalitetFarg = '#006600';
+                elseif ($kvalitet >= 70) $kvalitetFarg = '#996600';
+                else $kvalitetFarg = '#cc0000';
+            }
+            $oeeFarg = '#333';
+            if ($oee !== null) {
+                if ($oee >= 75) $oeeFarg = '#006600';
+                elseif ($oee >= 50) $oeeFarg = '#996600';
+                else $oeeFarg = '#cc0000';
+            }
+
+            $operatorHtml = '';
+            $opNames = array_keys($operatorNames);
+            if (count($opNames) > 0) {
+                foreach ($opNames as $op) {
+                    $e = htmlspecialchars($op, ENT_QUOTES, 'UTF-8');
+                    $operatorHtml .= "<span style='display:inline-block;background:#e8e8e8;border-radius:4px;padding:3px 10px;margin:2px 4px 2px 0;font-size:0.9rem;'>{$e}</span>";
+                }
+            } else {
+                $operatorHtml = '<span style="color:#999;">Inga operatorer registrerade</span>';
+            }
+
+            $productHtml = '';
+            $prodNames = array_keys($products);
+            if (count($prodNames) > 0) {
+                $productHtml = '<div style="margin-top:6px;"><small style="color:#666;">Produkter:</small><br>';
+                foreach ($prodNames as $p) {
+                    $e = htmlspecialchars($p, ENT_QUOTES, 'UTF-8');
+                    $productHtml .= "<span style='display:inline-block;background:#d4edfc;border-radius:4px;padding:3px 10px;margin:2px 4px 2px 0;font-size:0.9rem;'>{$e}</span>";
+                }
+                $productHtml .= '</div>';
+            }
+
+            $kommentarHtml = '';
+            if (!empty($kommentar)) {
+                $ke = htmlspecialchars($kommentar, ENT_QUOTES, 'UTF-8');
+                $kommentarHtml = "<div style='margin-top:16px;padding:10px 14px;background:#f9f9f9;border:1px solid #ddd;border-radius:6px;'><strong style='font-size:0.85rem;color:#555;'>Skiftkommentar:</strong><p style='margin:4px 0 0;white-space:pre-wrap;'>{$ke}</p></div>";
+            }
+
+            $opTableHtml = '';
+            if (count($rows) > 0) {
+                $opTableHtml = "<table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:0.85rem;'><thead><tr style='background:#f0f0f0;'><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Tid</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Bur ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Totalt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Operatorer</th></tr></thead><tbody>";
+                foreach ($rows as $r) {
+                    $tid = htmlspecialchars(substr($r['datum'] ?? '', 11, 5) ?: '-', ENT_QUOTES, 'UTF-8');
+                    $prod = htmlspecialchars($r['product_name'] ?? '-', ENT_QUOTES, 'UTF-8');
+                    $ibcOk = (int)($r['ibc_ok'] ?? 0);
+                    $burEj = (int)($r['bur_ej_ok'] ?? 0);
+                    $ibcEj = (int)($r['ibc_ej_ok'] ?? 0);
+                    $totalt = (int)($r['totalt'] ?? 0);
+                    $ops = array_filter([$r['op1_name'] ?? null, $r['op2_name'] ?? null, $r['op3_name'] ?? null]);
+                    $opsStr = htmlspecialchars(implode(', ', $ops) ?: '-', ENT_QUOTES, 'UTF-8');
+                    $opTableHtml .= "<tr><td style='padding:5px 10px;border:1px solid #ddd;'>{$tid}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$prod}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#006600;font-weight:600;'>{$ibcOk}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#996600;'>{$burEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#cc0000;'>{$ibcEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$totalt}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$opsStr}</td></tr>";
+                }
+                $opTableHtml .= "</tbody></table>";
+            }
+
+            $dateEsc = htmlspecialchars($date, ENT_QUOTES, 'UTF-8');
+            $shiftNameEsc = htmlspecialchars($shiftName, ENT_QUOTES, 'UTF-8');
+            $kvalitetStr = $kvalitet !== null ? "{$kvalitet}%" : '-';
+            $oeeStr = $oee !== null ? "{$oee}%" : '-';
+            $ibcPerHStr = $ibcPerH !== null ? "{$ibcPerH} st/h" : '-';
+            $antalRap = count($rows);
+            $genererad = date('Y-m-d H:i');
+
+            header('Content-Type: text/html; charset=utf-8');
+
+            $html = '<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><title>Skiftsammanfattning - ' . $dateEsc . ' ' . $shiftNameEsc . '</title>';
+            $html .= '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#333;background:#fff;padding:20mm;font-size:14px;line-height:1.4}@page{size:A4;margin:15mm}@media print{body{padding:0}.no-print{display:none!important}}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.header h1{font-size:1.4rem;color:#1a202c;margin-bottom:2px}.header h2{font-size:1.1rem;color:#555;font-weight:500}.header .right{text-align:right}.header .right h3{font-size:1.2rem;color:#2d3748;margin-bottom:2px}.header .right p{font-size:0.9rem;color:#666}hr{border:none;border-top:2px solid #e2e8f0;margin:12px 0}.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}.kpi-card{background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:10px 8px;text-align:center}.kpi-label{font-size:0.7rem;color:#555;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}.kpi-value{font-size:1.4rem;font-weight:700;line-height:1.2}.section-title{font-size:0.9rem;font-weight:600;color:#2d3748;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0}.ops-box{margin-bottom:10px}.footer{margin-top:20px;border-top:1px solid #ddd;padding-top:8px;display:flex;justify-content:space-between;font-size:0.8rem;color:#666}.print-btn{position:fixed;bottom:20px;right:20px;padding:10px 24px;background:#198754;color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2)}.print-btn:hover{background:#157347}</style>';
+            $html .= '</head><body>';
+            $html .= '<button class="print-btn no-print" onclick="window.print()">Skriv ut / Spara PDF</button>';
+            $html .= '<div class="header"><div><h1>Skiftsammanfattning</h1><h2>Rebotling - IBC-tvatt</h2></div><div class="right"><h3>NOREKO</h3><p>' . $dateEsc . '</p><p>' . $shiftNameEsc . '</p></div></div><hr>';
+            $html .= '<div class="kpi-grid">';
+            $html .= '<div class="kpi-card"><div class="kpi-label">IBC OK</div><div class="kpi-value" style="color:#0066cc;">' . $totalIbcOk . '</div></div>';
+            $html .= '<div class="kpi-card"><div class="kpi-label">Kvalitet</div><div class="kpi-value" style="color:' . $kvalitetFarg . ';">' . $kvalitetStr . '</div></div>';
+            $html .= '<div class="kpi-card"><div class="kpi-label">OEE</div><div class="kpi-value" style="color:' . $oeeFarg . ';">' . $oeeStr . '</div></div>';
+            $html .= '<div class="kpi-card"><div class="kpi-label">Drifttid</div><div class="kpi-value" style="color:#006600;">' . $drifttidStr . '</div></div>';
+            $html .= '<div class="kpi-card"><div class="kpi-label">Rasttid</div><div class="kpi-value" style="color:#666;">' . $rasttidStr . '</div></div>';
+            $html .= '<div class="kpi-card"><div class="kpi-label">IBC / timme</div><div class="kpi-value" style="color:#996600;">' . $ibcPerHStr . '</div></div>';
+            $html .= '</div>';
+            $html .= '<div class="section-title">Operatorer &amp; produkter</div><div class="ops-box">' . $operatorHtml . $productHtml . '</div>';
+            $html .= $kommentarHtml;
+            $html .= '<div class="section-title">Skiftrapporter (' . $antalRap . ' st)</div>' . $opTableHtml;
+            $html .= '<div class="footer"><span>Genererad: ' . $genererad . ' | Noreko Rebotling</span><span>Antal rapporter: ' . $antalRap . '</span></div>';
+            $html .= '</body></html>';
+
+            echo $html;
+        } catch (Exception $e) {
+            error_log('getShiftPdfSummary: ' . $e->getMessage());
+            http_response_code(500);
+            echo '<!DOCTYPE html><html><body><h1>Serverfel</h1><p>Kunde inte generera skiftsammanfattning</p></body></html>';
+        }
+    }
 }
