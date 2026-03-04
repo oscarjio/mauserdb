@@ -212,6 +212,29 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
+## NÄSTA BATCH (session 2026-03-04 eftermiddag)
+
+### 🔴 Hög prioritet
+- [x] **Rebotling-skiftrapport trendgraf**: KLAR `6af3e1e` — timupplösning vs genomsnittsprofil, skiftnavigering
+- [x] **Operatörsdashboard förbättring**: PÅGÅR (a1934683e7c0bf6f6) — veckovy, trend, summary-kort
+- [x] **Andon-tavla skiftnoter**: PÅGÅR (ad5e36138558c6ba2) — okvitterade noter, urgency-badge
+- [ ] **VD Månadsrapport förbättring**: Månadsrapport (`/rapporter/manad`) behöver: föregående månads-jämförelse med diff-indikatorer, "Månadens bästa dag" highlight, operator-of-the-month tabell, bättre PDF-design. Backend: month-compare endpoint.
+- [ ] **Executive dashboard: multi-linje status**: Lägg till real-time statusrad för alla 4 linjer i executive dashboard — grön/orange/röd per linje baserat på om de körs + senaste OEE.
+
+### 🟡 Medium prioritet
+- [ ] **Rebotling statistik: Pareto-diagram för stopporsaker**: Horisontellt pareto-diagram (80/20-regel) med kumulativ linje i production-analysis. Visar vilka stopporsaker som tar mest produktionstid.
+- [ ] **Skiftplaneringsvy förbättring**: `/admin/skiftplan` — lägg till veckoöversikt (peka ut operatörer per skift med drag-and-drop eller klick-assign), integration med faktisk närvaro från rebotling_ibc.
+- [ ] **Bonus-admin: Utbetalningshistorik** — lista historiska bonusutbetalningar per månad per operatör. Kräver `bonus_payouts`-tabell. Migration + admin-vy med period-filter.
+- [ ] **Min bonus: Jämförelse med kollegor** — anonymiserad rankingtabell i min-bonus: "Du är #2 av 5 operatörer denna vecka" utan att visa andras exacta bonus.
+
+### 🟢 Lägre prioritet
+- [ ] **Cykeltid per operatör** — breakdown av cykeltids-histogrammet per operatör. Visa vilken operatör som har bäst (lägst) median cykeltid. Ny endpoint i RebotlingController.
+- [ ] **Underhållslogg: maskin-koppling** — koppla underhållshändelser till stopporsakskategorier. "Maskin X stoppade Y gånger och underhåll gjordes Z gånger" korrelationsanalys.
+- [ ] **Rebotling-live: mobiloptimering** — responsiv design för `/rebotling/live` på telefon/surfplatta (EJ ändra logic, bara CSS media queries).
+- [ ] **Nyhetsflöde admin-panel** — enkel create/edit/delete för nyheter direkt i admin-dropdownen utan att navigera till separat sida.
+
+---
+
 ## IDÉBANK — Autonomt genererade features (implementera fritt, kunden utvärderar)
 
 ### Grafer — mer detaljerad data
