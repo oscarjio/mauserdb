@@ -1,3 +1,10 @@
+## 2026-03-04 — Worker: Operator-dashboard veckovy förbättringar (8765dd1)
+- operator-dashboard.ts: Inline loading-indikator vid uppdatering av veckodata när befintlig data redan visas (spinner i övre höger).
+- Tom-state veckovyn: Bättre ikon (fa-calendar-times) + tydligare svensk text med vägledning om att välja annan vecka.
+- Toppoperatören (rank 1) i veckotabellen highlight: gul vänsterborder + subtil gul bakgrund via inline [style.background] och [style.border-left].
+- rebotling-admin: systemStatusLastUpdated timestamp, settingsSaved inline-feedback, "Uppdatera nu"-text — kontrollerade och bekräftade vara i HEAD från föregående session (e0a21f7).
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
 ## 2026-03-04 — Worker: Skiftrapport empty+loading states + prediktiv underhåll tooltip+åtgärdsknapp
 - rebotling-skiftrapport.html: loading-spinner ersatt med spinner-border (py-5), empty-state utanför tabellen med clipboard-ikon + text, tabell dold med *ngIf="!loading && filteredReports.length > 0".
 - tvattlinje-skiftrapport.html + saglinje-skiftrapport.html: Liknande uppdatering. Lägger till empty-state när rapporter finns men filtret ger 0 träffar (reports.length > 0 && filteredReports.length === 0). Spinner uppgraderad till spinner-border.
