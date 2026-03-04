@@ -2536,7 +2536,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderSPCChart(points: { label: string; ibc_per_hour: number }[]) {
-    this.spcChart?.destroy();
+    try { this.spcChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('spcChart') as HTMLCanvasElement;
     if (!canvas || !points.length) return;
 
@@ -2676,7 +2676,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderCycleByOpChart() {
-    this.cycleByOpChart?.destroy();
+    try { this.cycleByOpChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('cycleByOpChart') as HTMLCanvasElement;
     if (!canvas || !this.cycleByOpData.length) return;
 
@@ -2819,7 +2819,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderQualityTrendChart() {
-    this.qualityTrendChart?.destroy();
+    try { this.qualityTrendChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('qualityTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.qualityTrendData.length) return;
 
@@ -2936,7 +2936,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderOeeWaterfallChart() {
-    this.oeeWaterfallChart?.destroy();
+    try { this.oeeWaterfallChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('oeeWaterfallChart') as HTMLCanvasElement;
     if (!canvas || !this.oeeWaterfallData) return;
 
@@ -3066,7 +3066,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderCycleTrendChart() {
-    this.cycleTrendChart?.destroy();
+    try { this.cycleTrendChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('cycleTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.cycleTrendData.length) return;
 
@@ -3293,7 +3293,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private buildWeekdayChart(): void {
-    this.weekdayChart?.destroy();
+    try { this.weekdayChart?.destroy(); } catch (e) {}
     const canvas = document.getElementById('weekdayChart') as HTMLCanvasElement;
     if (!canvas || !this.weekdayData.length) return;
     const ctx = canvas.getContext('2d');
@@ -3413,7 +3413,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private buildParetoChart(): void {
-    this.paretoChart?.destroy();
+    try { this.paretoChart?.destroy(); } catch (e) {}
     this.paretoChart = null;
     const canvas = document.getElementById('stoppagePareto') as HTMLCanvasElement;
     if (!canvas || !this.paretoItems.length) return;
@@ -3567,7 +3567,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private buildKassationParetoChart(): void {
-    this.kassationParetoChart?.destroy();
+    try { this.kassationParetoChart?.destroy(); } catch (e) {}
     this.kassationParetoChart = null;
     const canvas = document.getElementById('kassationParetoChart') as HTMLCanvasElement;
     if (!canvas || !this.kassationPareto.length) return;
@@ -3678,7 +3678,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private buildHourlyRhythmChart(): void {
-    this.hourlyRhythmChart?.destroy();
+    try { this.hourlyRhythmChart?.destroy(); } catch (e) {}
     this.hourlyRhythmChart = null;
     const canvas = document.getElementById('hourlyRhythmChart') as HTMLCanvasElement;
     if (!canvas || !this.hourlyRhythm.length) return;

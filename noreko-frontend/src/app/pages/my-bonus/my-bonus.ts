@@ -147,10 +147,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
-    if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
-    if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
-    if (this.weeklyChart) { this.weeklyChart.destroy(); this.weeklyChart = null; }
+    try { if (this.kpiChart) this.kpiChart.destroy(); } catch (e) {}
+    this.kpiChart = null;
+    try { if (this.historyChart) this.historyChart.destroy(); } catch (e) {}
+    this.historyChart = null;
+    try { if (this.ibcTrendChart) this.ibcTrendChart.destroy(); } catch (e) {}
+    this.ibcTrendChart = null;
+    try { if (this.weeklyChart) this.weeklyChart.destroy(); } catch (e) {}
+    this.weeklyChart = null;
   }
 
   saveAndLoad(): void {
@@ -172,10 +176,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.streakData = null;
     this.myRanking = null;
     this.rankingPosition = null;
-    if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
-    if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
-    if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
-    if (this.weeklyChart) { this.weeklyChart.destroy(); this.weeklyChart = null; }
+    try { if (this.kpiChart) this.kpiChart.destroy(); } catch (e) {}
+    this.kpiChart = null;
+    try { if (this.historyChart) this.historyChart.destroy(); } catch (e) {}
+    this.historyChart = null;
+    try { if (this.ibcTrendChart) this.ibcTrendChart.destroy(); } catch (e) {}
+    this.ibcTrendChart = null;
+    try { if (this.weeklyChart) this.weeklyChart.destroy(); } catch (e) {}
+    this.weeklyChart = null;
   }
 
   changePeriod(period: string): void {
@@ -831,7 +839,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   /** Stapeldiagram: bonuspoäng per vecka med referenslinje och färgkodning */
   private buildWeeklyChart(): void {
-    if (this.weeklyChart) this.weeklyChart.destroy();
+    try { this.weeklyChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myWeeklyChart') as HTMLCanvasElement;
     if (!canvas || this.weeklyData.length === 0) return;
@@ -922,7 +930,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   private buildKPIChart(data: any): void {
-    if (this.kpiChart) this.kpiChart.destroy();
+    try { this.kpiChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myKpiChart') as HTMLCanvasElement;
     if (!canvas) return;
@@ -964,7 +972,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   private buildHistoryChart(history: any[]): void {
-    if (this.historyChart) this.historyChart.destroy();
+    try { this.historyChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myHistoryChart') as HTMLCanvasElement;
     if (!canvas || history.length === 0) return;
@@ -1005,7 +1013,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   /** IBC/h de senaste 7 skiften vs ett glidande snitt */
   private buildIbcTrendChart(history: any[]): void {
-    if (this.ibcTrendChart) this.ibcTrendChart.destroy();
+    try { this.ibcTrendChart?.destroy(); } catch (e) {}
 
     const canvas = document.getElementById('myIbcTrendChart') as HTMLCanvasElement;
     if (!canvas || history.length < 2) return;

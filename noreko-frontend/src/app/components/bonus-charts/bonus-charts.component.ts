@@ -53,12 +53,16 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges, O
   }
 
   ngOnDestroy() {
-    if (this.heatmapChart) { this.heatmapChart.destroy(); this.heatmapChart = null; }
+    try { if (this.heatmapChart) this.heatmapChart.destroy(); } catch (e) {}
+    this.heatmapChart = null;
     Object.keys(this.gaugeCharts).forEach(k => {
-      if (this.gaugeCharts[k]) { this.gaugeCharts[k]!.destroy(); this.gaugeCharts[k] = null; }
+      try { if (this.gaugeCharts[k]) this.gaugeCharts[k]!.destroy(); } catch (e) {}
+      this.gaugeCharts[k] = null;
     });
-    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null; }
-    if (this.distributionChart) { this.distributionChart.destroy(); this.distributionChart = null; }
+    try { if (this.trendChart) this.trendChart.destroy(); } catch (e) {}
+    this.trendChart = null;
+    try { if (this.distributionChart) this.distributionChart.destroy(); } catch (e) {}
+    this.distributionChart = null;
   }
 
   private initializeCharts() {
@@ -84,9 +88,7 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges, O
     if (!ctx) return;
 
     // Destroy existing chart
-    if (this.heatmapChart) {
-      this.heatmapChart.destroy();
-    }
+    try { this.heatmapChart?.destroy(); } catch (e) {}
 
     // Create heatmap using matrix data
     const heatmapData = this.prepareHeatmapData();
@@ -182,9 +184,7 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges, O
     if (!ctx) return;
 
     // Destroy existing
-    if (this.gaugeCharts[id]) {
-      this.gaugeCharts[id]?.destroy();
-    }
+    try { this.gaugeCharts[id]?.destroy(); } catch (e) {}
 
     // Normalize value to 0-100 range
     const normalizedValue = Math.min(Math.max(value, 0), 100);
@@ -278,9 +278,7 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges, O
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    if (this.trendChart) {
-      this.trendChart.destroy();
-    }
+    try { this.trendChart?.destroy(); } catch (e) {}
 
     const dates = this.dailyData.map(d => d.date);
 
@@ -359,9 +357,7 @@ export class BonusChartsComponent implements OnInit, AfterViewInit, OnChanges, O
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    if (this.distributionChart) {
-      this.distributionChart.destroy();
-    }
+    try { this.distributionChart?.destroy(); } catch (e) {}
 
     const distribution = this.calculateDistribution();
 
