@@ -1,3 +1,28 @@
+## 2026-03-04 Bug Hunt #13 — session #4 granskning
+
+**Granskade filer (session #4 commits `7996e1f`, `f0a57ba`, `d0b8279`, `0795512`):**
+- `noreko-frontend/src/app/pages/benchmarking/benchmarking.ts` + `.html` + `.css` — OK
+- `noreko-frontend/src/app/pages/shift-plan/shift-plan.ts` + `.html` + `.css` — OK
+- `noreko-frontend/src/app/pages/rebotling-admin/rebotling-admin.ts` + `.html` — OK
+- `noreko-frontend/src/app/pages/rebotling-skiftrapport/rebotling-skiftrapport.ts` + `.html` — OK
+- `noreko-frontend/src/app/pages/my-bonus/my-bonus.ts` — OK
+- `noreko-frontend/src/app/services/rebotling.service.ts` — OK
+- `noreko-backend/classes/ShiftPlanController.php` — OK
+- `noreko-backend/classes/BonusController.php` (ranking-position) — OK
+
+**Buggar hittade och fixade:**
+1. **RebotlingController.php `getPersonalBests()`** — Saknade `http_response_code(500)` i catch-block. Fixat.
+2. **RebotlingController.php `getHallOfFameDays()`** — Saknade `http_response_code(500)` i catch-block. Fixat.
+3. **RebotlingController.php `getMonthlyLeaders()`** — Saknade `http_response_code(500)` i catch-block. Fixat.
+4. **RebotlingController.php `getPersonalBests()` best_day_date subquery** — Ogiltig nästlad aggregat `SUM(COALESCE(MAX(...),0))` som kraschar i MySQL. Omskriven med korrekt tvåstegs-aggregering (MAX per skift, sedan SUM per dag).
+
+**Inga buggar i:**
+- Alla Angular/TS-filer: korrekt `takeUntil(destroy$)`, `timeout()`, `catchError()`, `clearInterval`/`clearTimeout` i ngOnDestroy, try-catch runt chart.destroy(), inga saknade optional chaining.
+- ShiftPlanController.php: korrekt auth-checks, prepared statements, input-validering.
+- BonusController.php: korrekt session-check, `sendError()` med `http_response_code()`.
+
+---
+
 ## 2026-03-04 session #5 — Lead: 3 workers startade
 
 **Analys**: Session #4 batch 2 komplett (Skiftplaneringsvy `f0a57ba` + Benchmarking `7996e1f`). Backlogen tunnades — fyllde på med nya items.

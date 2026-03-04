@@ -151,6 +151,8 @@ class RebotlingController {
                 $this->getSkiftrapportOperators();
             } elseif ($action === 'shift-summary') {
                 $this->getShiftSummary();
+            } elseif ($action === 'rejection-analysis') {
+                $this->getRejectionAnalysis();
             } else {
                 $this->getLiveStats();
             }
@@ -5808,12 +5810,16 @@ class RebotlingController {
                 SELECT
                     t.op_num,
                     MAX(t.day_ibc) AS best_day_ibc,
-                    (SELECT DATE(r2.datum)
-                     FROM rebotling_ibc r2
-                     WHERE (r2.op1 = t.op_num OR r2.op2 = t.op_num OR r2.op3 = t.op_num)
-                       AND r2.ibc_ok IS NOT NULL AND r2.skiftraknare IS NOT NULL
-                     GROUP BY DATE(r2.datum)
-                     ORDER BY SUM(COALESCE(MAX(r2.ibc_ok),0)) DESC
+                    (SELECT ps2.datum
+                     FROM (
+                         SELECT DATE(r2.datum) AS datum, r2.skiftraknare, COALESCE(MAX(r2.ibc_ok),0) AS shift_ibc
+                         FROM rebotling_ibc r2
+                         WHERE (r2.op1 = t.op_num OR r2.op2 = t.op_num OR r2.op3 = t.op_num)
+                           AND r2.ibc_ok IS NOT NULL AND r2.skiftraknare IS NOT NULL
+                         GROUP BY DATE(r2.datum), r2.skiftraknare
+                     ) ps2
+                     GROUP BY ps2.datum
+                     ORDER BY SUM(ps2.shift_ibc) DESC
                      LIMIT 1
                     ) AS best_day_date
                 FROM (
@@ -5964,6 +5970,7 @@ class RebotlingController {
             ]);
         } catch (\Exception $e) {
             error_log('getPersonalBests: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta personbästa-data']);
         }
     }
@@ -6033,6 +6040,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $result]);
         } catch (\Exception $e) {
             error_log('getHallOfFameDays: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta hall of fame-data']);
         }
     }
@@ -6089,6 +6097,7 @@ class RebotlingController {
             echo json_encode(['success' => true, 'data' => $result]);
         } catch (\Exception $e) {
             error_log('getMonthlyLeaders: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsdata']);
         }
     }
@@ -8160,5 +8169,189 @@ class RebotlingController {
 </body>
 </html>
 HTML;
+    }
+
+    // =========================================================================
+    // IBC-kvalitets deep-dive: Rejection Analysis
+    // GET ?action=rebotling&run=rejection-analysis&days=30
+    // =========================================================================
+    private function getRejectionAnalysis() {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+        $toDate = date('Y-m-d');
+
+        try {
+            // 1. Daglig kvalitets% (ibc_ok / totalt * 100) med glidande 7-dagars snitt
+            $stmtDaily = $this->pdo->prepare("
+                SELECT dag,
+                       SUM(ibc_ok) AS ibc_ok,
+                       SUM(ibc_totalt) AS ibc_totalt,
+                       SUM(ibc_ej_ok) AS ibc_ej_ok,
+                       ROUND(SUM(ibc_ok) * 100.0 / NULLIF(SUM(ibc_totalt), 0), 1) AS kvalitet_pct
+                FROM (
+                    SELECT DATE(datum) AS dag,
+                           skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0)) AS ibc_totalt,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL :days DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ");
+            $stmtDaily->execute([':days' => $days]);
+            $dailyRows = $stmtDaily->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna glidande 7-dagars snitt
+            $trendData = [];
+            for ($i = 0; $i < count($dailyRows); $i++) {
+                $window = array_slice($dailyRows, max(0, $i - 6), min(7, $i + 1));
+                $validVals = array_filter(array_column($window, 'kvalitet_pct'), function($v) { return $v !== null; });
+                $glidandeSnitt = count($validVals) > 0 ? round(array_sum($validVals) / count($validVals), 1) : null;
+
+                $trendData[] = [
+                    'datum'          => $dailyRows[$i]['dag'],
+                    'kvalitet_pct'   => $dailyRows[$i]['kvalitet_pct'] !== null ? (float)$dailyRows[$i]['kvalitet_pct'] : null,
+                    'glidande_snitt' => $glidandeSnitt,
+                    'ibc_ok'         => (int)$dailyRows[$i]['ibc_ok'],
+                    'ibc_kasserade'  => (int)$dailyRows[$i]['ibc_ej_ok'],
+                    'ibc_totalt'     => (int)$dailyRows[$i]['ibc_totalt'],
+                ];
+            }
+
+            // 2. KPI-beräkningar
+            $todayStr = date('Y-m-d');
+            $todayRow = null;
+            $last7Rows = array_slice($dailyRows, -7);
+            $prev7Rows = count($dailyRows) >= 14 ? array_slice($dailyRows, -14, 7) : [];
+
+            foreach ($dailyRows as $r) {
+                if ($r['dag'] === $todayStr) {
+                    $todayRow = $r;
+                    break;
+                }
+            }
+
+            $kvalitetIdag = $todayRow && $todayRow['kvalitet_pct'] !== null
+                ? (float)$todayRow['kvalitet_pct'] : null;
+            $kasseradeIdag = $todayRow ? (int)$todayRow['ibc_ej_ok'] : 0;
+
+            // Vecko glidande snitt
+            $last7Vals = array_filter(array_column($last7Rows, 'kvalitet_pct'), function($v) { return $v !== null; });
+            $kvalitetVecka = count($last7Vals) > 0
+                ? round(array_sum($last7Vals) / count($last7Vals), 1)
+                : null;
+
+            // Trend vs förra veckan
+            $prev7Vals = array_filter(array_column($prev7Rows, 'kvalitet_pct'), function($v) { return $v !== null; });
+            $prevAvg = count($prev7Vals) > 0 ? array_sum($prev7Vals) / count($prev7Vals) : null;
+            $trendVsForraVeckan = 'stable';
+            $trendDiff = null;
+            if ($kvalitetVecka !== null && $prevAvg !== null) {
+                $trendDiff = round($kvalitetVecka - $prevAvg, 1);
+                if ($trendDiff > 0.5) $trendVsForraVeckan = 'up';
+                elseif ($trendDiff < -0.5) $trendVsForraVeckan = 'down';
+            }
+
+            // 3. Kassationsorsaker (Pareto) om tabeller finns
+            $paretoData = [];
+            $totalKassation = 0;
+            $hasParetoData = false;
+            try {
+                $stmtPareto = $this->pdo->prepare("
+                    SELECT
+                        t.id,
+                        t.namn,
+                        COALESCE(SUM(r.antal), 0) AS total_antal
+                    FROM kassationsorsak_typer t
+                    LEFT JOIN kassationsregistrering r
+                        ON r.orsak_id = t.id
+                        AND r.datum BETWEEN :from_date AND :to_date
+                    WHERE t.aktiv = 1
+                    GROUP BY t.id, t.namn
+                    ORDER BY total_antal DESC
+                ");
+                $stmtPareto->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+                $paretoRows = $stmtPareto->fetchAll(PDO::FETCH_ASSOC);
+                $totalKassation = array_sum(array_column($paretoRows, 'total_antal'));
+
+                $cumulative = 0;
+                foreach ($paretoRows as $pr) {
+                    $antal = (int)$pr['total_antal'];
+                    $pct = $totalKassation > 0 ? round($antal / $totalKassation * 100, 1) : 0;
+                    $cumulative += $pct;
+                    $paretoData[] = [
+                        'id'            => (int)$pr['id'],
+                        'namn'          => $pr['namn'],
+                        'antal'         => $antal,
+                        'pct'           => $pct,
+                        'kumulativ_pct' => round($cumulative, 1),
+                    ];
+                }
+                $hasParetoData = $totalKassation > 0;
+            } catch (\Exception $e) {
+                // Tabellerna finns inte ännu — pareto-data förblir tom
+                $hasParetoData = false;
+            }
+
+            // 4. Trend per orsak vs föregående period (om Pareto-data finns)
+            $orsakTrend = [];
+            if ($hasParetoData) {
+                $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
+                $prevTo = date('Y-m-d', strtotime("-{$days} days"));
+                try {
+                    $stmtPrev = $this->pdo->prepare("
+                        SELECT
+                            t.id,
+                            t.namn,
+                            COALESCE(SUM(r.antal), 0) AS prev_antal
+                        FROM kassationsorsak_typer t
+                        LEFT JOIN kassationsregistrering r
+                            ON r.orsak_id = t.id
+                            AND r.datum BETWEEN :prev_from AND :prev_to
+                        WHERE t.aktiv = 1
+                        GROUP BY t.id, t.namn
+                    ");
+                    $stmtPrev->execute([':prev_from' => $prevFrom, ':prev_to' => $prevTo]);
+                    $prevRows = $stmtPrev->fetchAll(PDO::FETCH_ASSOC);
+                    $prevMap = [];
+                    foreach ($prevRows as $pv) {
+                        $prevMap[(int)$pv['id']] = (int)$pv['prev_antal'];
+                    }
+                    foreach ($paretoData as &$pd) {
+                        $prevAntal = $prevMap[$pd['id']] ?? 0;
+                        $pd['prev_antal'] = $prevAntal;
+                        $pd['trend'] = $pd['antal'] > $prevAntal ? 'up'
+                            : ($pd['antal'] < $prevAntal ? 'down' : 'stable');
+                    }
+                    unset($pd);
+                } catch (\Exception $e) {
+                    // Ignorera — trend blir otillgänglig
+                }
+            }
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days,
+                'kpi' => [
+                    'kvalitet_idag'          => $kvalitetIdag,
+                    'kvalitet_vecka'         => $kvalitetVecka,
+                    'kasserade_idag'         => $kasseradeIdag,
+                    'trend_vs_forra_veckan'  => $trendVsForraVeckan,
+                    'trend_diff'             => $trendDiff,
+                ],
+                'trend'   => $trendData,
+                'pareto'  => $paretoData,
+                'has_pareto_data' => $hasParetoData,
+                'total_kassation' => (int)$totalKassation,
+            ]);
+        } catch (\Exception $e) {
+            error_log('getRejectionAnalysis: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kvalitetsanalys.']);
+        }
     }
 }
