@@ -36,6 +36,7 @@ export const routes: Routes = [
 
       // Rapporter
       { path: 'rapporter/manad', canActivate: [authGuard], loadComponent: () => import('./pages/monthly-report/monthly-report').then(m => m.MonthlyReportPage) },
+      { path: 'rapporter/vecka', canActivate: [authGuard], loadComponent: () => import('./pages/weekly-report/weekly-report').then(m => m.WeeklyReportPage) },
 
       // Authenticated routes
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
