@@ -137,18 +137,24 @@ export class RebotlingService {
     );
   }
 
-  getHeatmap(days: number = 30): Observable<any> {
-    return this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=heatmap&days=${days}`,
-      { withCredentials: true }
-    );
+  getHeatmap(days: number = 30, fromDate?: string, toDate?: string): Observable<any> {
+    let url: string;
+    if (fromDate && toDate) {
+      url = `/noreko-backend/api.php?action=rebotling&run=heatmap&from_date=${fromDate}&to_date=${toDate}`;
+    } else {
+      url = `/noreko-backend/api.php?action=rebotling&run=heatmap&days=${days}`;
+    }
+    return this.http.get<any>(url, { withCredentials: true });
   }
 
-  getCycleTrend(days: number = 30, granularity: string = 'day'): Observable<CycleTrendResponse> {
-    return this.http.get<CycleTrendResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`,
-      { withCredentials: true }
-    );
+  getCycleTrend(days: number = 30, granularity: string = 'day', fromDate?: string, toDate?: string): Observable<CycleTrendResponse> {
+    let url: string;
+    if (fromDate && toDate) {
+      url = `/noreko-backend/api.php?action=rebotling&run=cycle-trend&from_date=${fromDate}&to_date=${toDate}&granularity=${granularity}`;
+    } else {
+      url = `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`;
+    }
+    return this.http.get<CycleTrendResponse>(url, { withCredentials: true });
   }
 
   getProductionReport(period: string = 'week'): Observable<any> {
@@ -169,11 +175,14 @@ export class RebotlingService {
     );
   }
 
-  getOEETrend(days: number = 30, granularity: string = 'day'): Observable<OEETrendResponse> {
-    return this.http.get<OEETrendResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=oee-trend&days=${days}&granularity=${granularity}`,
-      { withCredentials: true }
-    );
+  getOEETrend(days: number = 30, granularity: string = 'day', fromDate?: string, toDate?: string): Observable<OEETrendResponse> {
+    let url: string;
+    if (fromDate && toDate) {
+      url = `/noreko-backend/api.php?action=rebotling&run=oee-trend&from_date=${fromDate}&to_date=${toDate}&granularity=${granularity}`;
+    } else {
+      url = `/noreko-backend/api.php?action=rebotling&run=oee-trend&days=${days}&granularity=${granularity}`;
+    }
+    return this.http.get<OEETrendResponse>(url, { withCredentials: true });
   }
 
   getBestShifts(limit: number = 10): Observable<BestShiftsResponse> {

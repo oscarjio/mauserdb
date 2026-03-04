@@ -135,6 +135,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   // Heatmap-vy
   heatmapDays: number = 30;
+  // Custom datumintervall för heatmap
+  heatmapCustomFrom: string = '';
+  heatmapCustomTo: string = '';
+  todayStr: string = new Date().toISOString().slice(0, 10);
+  heatmapUseCustomRange: boolean = false;
   heatmapRows: { date: string; label: string; counts: number[]; qualityPct: number[] }[] = [];
   heatmapHours: number[] = Array.from({ length: 18 }, (_, i) => i + 5); // 05–22
   heatmapMax: number = 1;
@@ -1695,7 +1700,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   getViewModeLabel(): string {
     if (this.viewMode === 'year') return 'Månader';
     if (this.viewMode === 'month') return 'Dagar';
-    if (this.viewMode === 'heatmap') return `Senaste ${this.heatmapDays} dagarna`;
+    if (this.viewMode === 'heatmap') {
+      if (this.heatmapUseCustomRange && this.heatmapCustomFrom && this.heatmapCustomTo) {
+        return `${this.heatmapCustomFrom} – ${this.heatmapCustomTo}`;
+      }
+      return `Senaste ${this.heatmapDays} dagarna`;
+    }
     return '10-min intervall';
   }
 
@@ -1710,6 +1720,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   exitHeatmapMode() {
+    // Rensa custom range vid exit
+    this.heatmapUseCustomRange = false;
+    this.heatmapCustomFrom = '';
+    this.heatmapCustomTo = '';
     this.navigateToYear();
   }
 
@@ -1718,14 +1732,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.isLoadingHeatmap = true;
     this.loading = true;
     this.error = null;
-    this.rebotlingService.getHeatmap(this.heatmapDays).pipe(
+    const obs = this.heatmapUseCustomRange && this.heatmapCustomFrom && this.heatmapCustomTo
+      ? this.rebotlingService.getHeatmap(this.heatmapDays, this.heatmapCustomFrom, this.heatmapCustomTo)
+      : this.rebotlingService.getHeatmap(this.heatmapDays);
+    obs.pipe(
       takeUntil(this.destroy$)
     ).subscribe({
       next: (res: any) => {
         this.isLoadingHeatmap = false;
         this.loading = false;
         if (res?.success && Array.isArray(res.data)) {
-          this.buildHeatmapRows(res.data);
+          if (this.heatmapUseCustomRange && this.heatmapCustomFrom && this.heatmapCustomTo) {
+            this.buildHeatmapRowsForRange(res.data, this.heatmapCustomFrom, this.heatmapCustomTo);
+          } else {
+            this.buildHeatmapRows(res.data);
+          }
         } else {
           this.error = 'Kunde inte ladda heatmap-data';
         }
@@ -1736,6 +1757,19 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         this.error = 'Nätverksfel vid hämtning av heatmap';
       }
     });
+  }
+
+  applyHeatmapCustomRange() {
+    if (!this.heatmapCustomFrom || !this.heatmapCustomTo) return;
+    this.heatmapUseCustomRange = true;
+    this.loadHeatmap();
+  }
+
+  clearHeatmapCustomRange() {
+    this.heatmapUseCustomRange = false;
+    this.heatmapCustomFrom = '';
+    this.heatmapCustomTo = '';
+    this.loadHeatmap();
   }
 
   private buildHeatmapRows(data: { date: string; hour: number; count: number; quality_pct?: number }[]) {
@@ -1763,6 +1797,39 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       if (maxVal > this.heatmapMax) this.heatmapMax = maxVal;
 
       const weekdays = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
+      const label = `${weekdays[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
+      rows.push({ date: dateStr, label, counts, qualityPct });
+    }
+
+    this.heatmapRows = rows;
+  }
+
+  private buildHeatmapRowsForRange(
+    data: { date: string; hour: number; count: number; quality_pct?: number }[],
+    fromDate: string,
+    toDate: string
+  ) {
+    // Bygg map: date → { hour → { count, quality_pct } }
+    const map = new Map<string, Map<number, { count: number; quality_pct: number }>>();
+    data.forEach(({ date, hour, count, quality_pct }) => {
+      if (!map.has(date)) map.set(date, new Map());
+      map.get(date)!.set(hour, { count, quality_pct: quality_pct ?? 0 });
+    });
+
+    // Generera alla datum inom intervallet
+    const rows: typeof this.heatmapRows = [];
+    this.heatmapMax = 1;
+    const start = new Date(fromDate + 'T00:00:00');
+    const end = new Date(toDate + 'T00:00:00');
+    const weekdays = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
+
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      const dayMap = map.get(dateStr) || new Map();
+      const counts = this.heatmapHours.map(h => dayMap.get(h)?.count || 0);
+      const qualityPct = this.heatmapHours.map(h => dayMap.get(h)?.quality_pct || 0);
+      const maxVal = Math.max(...counts);
+      if (maxVal > this.heatmapMax) this.heatmapMax = maxVal;
       const label = `${weekdays[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`;
       rows.push({ date: dateStr, label, counts, qualityPct });
     }
@@ -1867,6 +1934,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   onHeatmapDaysChange() {
+    // Rensa custom range när användaren väljer fast period
+    this.heatmapUseCustomRange = false;
+    this.heatmapCustomFrom = '';
+    this.heatmapCustomTo = '';
     if (this.viewMode === 'heatmap') this.loadHeatmap();
   }
 

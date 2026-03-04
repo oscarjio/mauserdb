@@ -51,14 +51,36 @@
           </ng-container>
           <ng-container *ngIf="viewMode === 'heatmap'">
             <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
-                    [(ngModel)]="heatmapDays" (change)="onHeatmapDaysChange()">
+                    [(ngModel)]="heatmapDays" (change)="onHeatmapDaysChange()"
+                    [disabled]="heatmapUseCustomRange">
               <option [value]="7">7 dagar</option>
               <option [value]="14">14 dagar</option>
               <option [value]="30">30 dagar</option>
               <option [value]="60">60 dagar</option>
               <option [value]="90">90 dagar</option>
             </select>
-            <button class="btn btn-outline-secondary btn-sm" (click)="exitHeatmapMode()">
+            <div class="custom-range d-flex align-items-center gap-2 ms-2">
+              <label class="form-label mb-0 text-muted small">Anpassat:</label>
+              <input type="date" class="form-control form-control-sm date-input"
+                [(ngModel)]="heatmapCustomFrom"
+                [max]="heatmapCustomTo || todayStr" />
+              <span class="text-muted">–</span>
+              <input type="date" class="form-control form-control-sm date-input"
+                [(ngModel)]="heatmapCustomTo"
+                [min]="heatmapCustomFrom"
+                [max]="todayStr" />
+              <button class="btn btn-sm btn-outline-primary"
+                (click)="applyHeatmapCustomRange()"
+                [disabled]="!heatmapCustomFrom || !heatmapCustomTo">
+                Visa
+              </button>
+              <button *ngIf="heatmapUseCustomRange" class="btn btn-sm btn-outline-secondary"
+                (click)="clearHeatmapCustomRange()"
+                title="Rensa anpassat intervall">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <button class="btn btn-outline-secondary btn-sm ms-1" (click)="exitHeatmapMode()">
               <i class="fas fa-arrow-left me-1"></i>Tillbaka
             </button>
           </ng-container>

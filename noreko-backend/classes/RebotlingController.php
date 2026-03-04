@@ -92,6 +92,12 @@ class RebotlingController {
                 $this->getAllLinesStatus();
             } elseif ($action === 'notification-settings') {
                 $this->getNotificationSettings();
+            } elseif ($action === 'personal-bests') {
+                $this->getPersonalBests();
+            } elseif ($action === 'monthly-leaders') {
+                $this->getMonthlyLeaders();
+            } elseif ($action === 'attendance') {
+                $this->getAttendance();
             } else {
                 $this->getLiveStats();
             }
@@ -5474,6 +5480,205 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController getAdminEmailsPublic: ' . $e->getMessage());
             return [];
+        }
+    }
+
+
+    // =========================================================
+    // Personbästa per operatör vs teamrekord
+    // GET ?action=rebotling&run=personal-bests
+    // =========================================================
+    private function getPersonalBests() {
+        try {
+            $pdo = $this->pdo;
+            // Beräkna IBC/h och kvalitet per skift per operatör
+            // rebotling_skiftrapport: op1/op2/op3 = operator number, ibc_ok, totalt, drifttid
+            $sql = "
+                SELECT
+                    o.number AS op_number,
+                    o.name   AS op_name,
+                    MAX(CASE WHEN t.drifttid > 0 THEN ROUND(t.ibc_ok / (t.drifttid / 60.0), 2) ELSE NULL END) AS best_ibc_h,
+                    MAX(CASE WHEN t.totalt   > 0 THEN ROUND(t.ibc_ok / t.totalt * 100, 1) ELSE NULL END)     AS best_kvalitet,
+                    COUNT(DISTINCT t.skift_id) AS total_skift
+                FROM (
+                    SELECT s.id AS skift_id, s.op1 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s WHERE s.op1 IS NOT NULL AND s.ibc_ok > 0
+                    UNION ALL
+                    SELECT s.id AS skift_id, s.op2 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s WHERE s.op2 IS NOT NULL AND s.ibc_ok > 0
+                    UNION ALL
+                    SELECT s.id AS skift_id, s.op3 AS op_num, s.ibc_ok, s.totalt, COALESCE(s.drifttid,0) AS drifttid
+                    FROM rebotling_skiftrapport s WHERE s.op3 IS NOT NULL AND s.ibc_ok > 0
+                ) t
+                JOIN operators o ON o.number = t.op_num
+                GROUP BY o.number, o.name
+                ORDER BY best_ibc_h DESC
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Beräkna team-rekord
+            $teamRecord = 0.0;
+            foreach ($rows as $r) {
+                $val = floatval($r['best_ibc_h'] ?? 0);
+                if ($val > $teamRecord) $teamRecord = $val;
+            }
+
+            $result = array_map(function($r) use ($teamRecord) {
+                $bestIbcH = round(floatval($r['best_ibc_h'] ?? 0), 2);
+                return [
+                    'op_number'    => intval($r['op_number']),
+                    'namn'         => $r['op_name'],
+                    'initialer'    => strtoupper(substr($r['op_name'] ?? '', 0, 3)),
+                    'best_ibc_h'   => $bestIbcH,
+                    'best_kvalitet'=> round(floatval($r['best_kvalitet'] ?? 0), 1),
+                    'pct_of_record'=> $teamRecord > 0 ? round($bestIbcH / $teamRecord * 100, 1) : 0,
+                    'total_skift'  => intval($r['total_skift']),
+                ];
+            }, $rows);
+
+            echo json_encode([
+                'success' => true,
+                'data'    => [
+                    'operators'        => $result,
+                    'team_record_ibc_h'=> round($teamRecord, 2),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            error_log('getPersonalBests: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta personbästa-data']);
+        }
+    }
+
+    // =========================================================
+    // Månatliga resultat (senaste N månader)
+    // GET ?action=rebotling&run=monthly-leaders&months=12
+    // =========================================================
+    private function getMonthlyLeaders() {
+        try {
+            $months = max(1, min(24, intval($_GET['months'] ?? 12)));
+            $pdo = $this->pdo;
+
+            $idealRatePerMin = 15.0 / 60.0;
+
+            // rebotling_skiftrapport: varje rad = ett skift
+            $sql = "
+                SELECT
+                    DATE_FORMAT(datum, '%Y-%m')                              AS manad,
+                    SUM(COALESCE(ibc_ok, 0))                                AS total_ibc,
+                    SUM(COALESCE(ibc_ok, 0) + COALESCE(ibc_ej_ok, 0))      AS total_all,
+                    SUM(COALESCE(drifttid, 0))                              AS runtime_min,
+                    SUM(COALESCE(rasttime, 0))                              AS rast_min,
+                    MAX(COALESCE(ibc_ok, 0) / GREATEST(COALESCE(drifttid, 0) / 60.0, 0.01)) AS top_ibc_h
+                FROM rebotling_skiftrapport
+                WHERE datum >= DATE_SUB(NOW(), INTERVAL ? MONTH)
+                  AND ibc_ok IS NOT NULL
+                GROUP BY DATE_FORMAT(datum, '%Y-%m')
+                ORDER BY manad DESC
+                LIMIT ?
+            ";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute([$months, $months]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $result = array_map(function($r) use ($idealRatePerMin) {
+                $totalAll  = floatval($r['total_all']  ?? 0);
+                $totalOk   = floatval($r['total_ibc']  ?? 0);
+                $runtimeM  = max(floatval($r['runtime_min'] ?? 0), 1);
+                $plannedM  = max($runtimeM + floatval($r['rast_min'] ?? 0), 1);
+                $avail     = min($runtimeM / $plannedM, 1.0);
+                $perf      = $totalAll > 0 ? min(($totalAll / $runtimeM) / $idealRatePerMin, 1.0) : 0;
+                $qual      = $totalAll > 0 ? $totalOk / $totalAll : 0;
+                $oee       = round($avail * $perf * $qual * 100, 1);
+
+                return [
+                    'manad'    => $r['manad'],
+                    'total_ibc'=> intval($r['total_ibc']),
+                    'avg_oee'  => $oee,
+                    'top_ibc_h'=> round(floatval($r['top_ibc_h'] ?? 0), 1),
+                ];
+            }, $rows);
+
+            echo json_encode(['success' => true, 'data' => $result]);
+        } catch (\Exception $e) {
+            error_log('getMonthlyLeaders: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsdata']);
+        }
+    }
+
+
+    private function getAttendance() {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad']);
+            return;
+        }
+
+        $month = $_GET['month'] ?? date('Y-m');
+        if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt månadsformat']);
+            return;
+        }
+
+        try {
+            // Hämta alla dagar i månaden där operatörer jobbade (op1, op2, op3 = operator number)
+            $sql = "
+                SELECT DATE(datum) AS dag, op1 AS op_num FROM rebotling_ibc
+                WHERE DATE_FORMAT(datum, '%Y-%m') = ? AND op1 IS NOT NULL
+                UNION
+                SELECT DATE(datum), op2 FROM rebotling_ibc
+                WHERE DATE_FORMAT(datum, '%Y-%m') = ? AND op2 IS NOT NULL
+                UNION
+                SELECT DATE(datum), op3 FROM rebotling_ibc
+                WHERE DATE_FORMAT(datum, '%Y-%m') = ? AND op3 IS NOT NULL
+                ORDER BY dag, op_num
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$month, $month, $month]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Hämta alla aktiva operatörer
+            $opStmt = $this->pdo->query(
+                "SELECT number AS id, name AS namn, COALESCE(initialer, '') AS initialer FROM operators WHERE active=1 ORDER BY name"
+            );
+            $operators = $opStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Generera initialer från namn om kolumnen saknar värde
+            foreach ($operators as &$op) {
+                if ($op['initialer'] === '') {
+                    $parts = explode(' ', trim($op['namn']));
+                    $ini = '';
+                    foreach ($parts as $p) {
+                        if ($p !== '') $ini .= strtoupper(substr($p, 0, 1));
+                    }
+                    $op['initialer'] = substr($ini, 0, 3) ?: ('OP' . $op['id']);
+                }
+                $op['id'] = (int)$op['id'];
+            }
+            unset($op);
+
+            // Bygg kalenderstruktur: dag -> [op_id, ...]
+            $calendar = [];
+            foreach ($rows as $r) {
+                $dag = $r['dag'];
+                if (!isset($calendar[$dag])) $calendar[$dag] = [];
+                $calendar[$dag][] = (int)$r['op_num'];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'month'     => $month,
+                    'calendar'  => $calendar,
+                    'operators' => $operators
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getAttendance: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
 
