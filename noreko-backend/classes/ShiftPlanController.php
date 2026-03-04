@@ -22,6 +22,16 @@ class ShiftPlanController {
             return;
         }
 
+        if ($method === 'GET' && $run === 'week-view') {
+            $this->getWeekView();
+            return;
+        }
+
+        if ($method === 'GET' && $run === 'operators-list') {
+            $this->getOperatorsList();
+            return;
+        }
+
         if ($method === 'POST' && $run === 'assign') {
             $this->requireAdmin();
             $this->assign();
@@ -130,6 +140,205 @@ class ShiftPlanController {
     }
 
     // -----------------------------------------------------------------------
+    // GET ?action=shift-plan&run=week-view&week_start=YYYY-MM-DD
+    // Returnerar 7 dagar × 3 skift med planerade + faktiska operatörer.
+    // Faktisk närvaro hämtas från rebotling_ibc (op1, op2, op3) per datum + skifttid.
+    // Skift 1 = morgon 06–14, Skift 2 = eftermiddag 14–22, Skift 3 = natt 22–06
+    // -----------------------------------------------------------------------
+
+    private function getWeekView() {
+        $weekStartParam = $_GET['week_start'] ?? '';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $weekStartParam)) {
+            $weekStartParam = date('Y-m-d');
+        }
+
+        try {
+            $dt = new DateTime($weekStartParam);
+        } catch (Exception $e) {
+            $dt = new DateTime();
+        }
+
+        // Säkerställ att vi utgår från måndag
+        $dow = (int)$dt->format('N');
+        $dt->modify('-' . ($dow - 1) . ' days');
+        $weekStart = $dt->format('Y-m-d');
+
+        // 7 dagar
+        $days = [];
+        $dagNamn = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+        for ($i = 0; $i < 7; $i++) {
+            $d = clone $dt;
+            $d->modify("+$i days");
+            $days[] = $d->format('Y-m-d');
+        }
+        $weekEnd = end($days);
+
+        try {
+            // --- Planerade operatörer ---
+            $stmtPlan = $this->pdo->prepare('
+                SELECT
+                    sp.datum,
+                    sp.skift_nr,
+                    sp.op_number,
+                    o.name AS op_name
+                FROM shift_plan sp
+                LEFT JOIN operators o ON o.number = sp.op_number
+                WHERE sp.datum BETWEEN :start AND :end
+                ORDER BY sp.datum ASC, sp.skift_nr ASC, sp.op_number ASC
+            ');
+            $stmtPlan->execute([':start' => $weekStart, ':end' => $weekEnd]);
+            $planRows = $stmtPlan->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- Faktiska operatörer från rebotling_ibc ---
+            // Skift 1 (morgon 06–14): MIN(datum) timme 5–13
+            // Skift 2 (eftermiddag 14–22): MIN(datum) timme 13–21
+            // Skift 3 (natt 22–06): MIN(datum) timme 21–05 (dvs >= 21 ELLER < 5)
+            // Vi UNION op1, op2, op3 och tar DISTINCT per dag+skift
+            $stmtFaktisk = $this->pdo->prepare('
+                SELECT
+                    faktisk_datum,
+                    skift_nr,
+                    op_num,
+                    o.name AS op_name
+                FROM (
+                    SELECT DISTINCT
+                        DATE(datum) AS faktisk_datum,
+                        CASE
+                            WHEN HOUR(datum) >= 6  AND HOUR(datum) < 14 THEN 1
+                            WHEN HOUR(datum) >= 14 AND HOUR(datum) < 22 THEN 2
+                            ELSE 3
+                        END AS skift_nr,
+                        op_val AS op_num
+                    FROM (
+                        SELECT datum, op1 AS op_val FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :start1 AND :end1
+                          AND op1 IS NOT NULL AND op1 > 0
+                        UNION ALL
+                        SELECT datum, op2 FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :start2 AND :end2
+                          AND op2 IS NOT NULL AND op2 > 0
+                        UNION ALL
+                        SELECT datum, op3 FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :start3 AND :end3
+                          AND op3 IS NOT NULL AND op3 > 0
+                    ) raw
+                ) distinct_ops
+                LEFT JOIN operators o ON o.number = distinct_ops.op_num
+                WHERE faktisk_datum BETWEEN :start4 AND :end4
+                ORDER BY faktisk_datum ASC, skift_nr ASC, op_num ASC
+            ');
+            $stmtFaktisk->execute([
+                ':start1' => $weekStart, ':end1' => $weekEnd,
+                ':start2' => $weekStart, ':end2' => $weekEnd,
+                ':start3' => $weekStart, ':end3' => $weekEnd,
+                ':start4' => $weekStart, ':end4' => $weekEnd,
+            ]);
+            $faktiskaRows = $stmtFaktisk->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- Bygg index för planerade ---
+            $planIndex = []; // [datum][skift_nr] = [op_number => op_name, ...]
+            foreach ($planRows as $row) {
+                $d = $row['datum'];
+                $s = (int)$row['skift_nr'];
+                $opNum = (int)$row['op_number'];
+                if (!isset($planIndex[$d])) $planIndex[$d] = [1 => [], 2 => [], 3 => []];
+                $planIndex[$d][$s][$opNum] = $row['op_name'] ?? ('Op #' . $opNum);
+            }
+
+            // --- Bygg index för faktiska ---
+            $faktiskIndex = []; // [datum][skift_nr] = [op_number => op_name, ...]
+            foreach ($faktiskaRows as $row) {
+                $d = $row['faktisk_datum'];
+                $s = (int)$row['skift_nr'];
+                $opNum = (int)$row['op_num'];
+                if (!isset($faktiskIndex[$d])) $faktiskIndex[$d] = [1 => [], 2 => [], 3 => []];
+                $faktiskIndex[$d][$s][$opNum] = $row['op_name'] ?? ('Op #' . $opNum);
+            }
+
+            // --- Bygg slots: 7 dagar × 3 skift = 21 slots ---
+            $slots = [];
+            $skiftLabels = [1 => 'Morgon', 2 => 'Eftermiddag', 3 => 'Natt'];
+            $skiftTider  = [1 => '06–14',  2 => '14–22',       3 => '22–06'];
+
+            foreach ($days as $i => $datum) {
+                foreach ([1, 2, 3] as $skiftNr) {
+                    $planOps    = $planIndex[$datum][$skiftNr]    ?? [];
+                    $faktOps    = $faktiskIndex[$datum][$skiftNr] ?? [];
+
+                    // Planerade operatörer
+                    $planeradeLista = [];
+                    foreach ($planOps as $opNum => $opNamn) {
+                        $planeradeLista[] = [
+                            'op_number' => $opNum,
+                            'op_name'   => $opNamn,
+                            'initialer' => $this->getInitials($opNamn),
+                        ];
+                    }
+
+                    // Faktiska operatörer — med matchningsstatus
+                    $faktiskaLista = [];
+                    foreach ($faktOps as $opNum => $opNamn) {
+                        $faktiskaLista[] = [
+                            'op_number' => $opNum,
+                            'op_name'   => $opNamn,
+                            'initialer' => $this->getInitials($opNamn),
+                            'planerad'  => isset($planOps[$opNum]), // grön bock om planerad, röd om oplanerad
+                        ];
+                    }
+
+                    // Planerade som INTE dök upp (planerad men ej faktisk)
+                    $uteblev = [];
+                    foreach ($planOps as $opNum => $opNamn) {
+                        if (!isset($faktOps[$opNum])) {
+                            $uteblev[] = [
+                                'op_number' => $opNum,
+                                'op_name'   => $opNamn,
+                                'initialer' => $this->getInitials($opNamn),
+                            ];
+                        }
+                    }
+
+                    $slots[] = [
+                        'datum'          => $datum,
+                        'skift_nr'       => $skiftNr,
+                        'dag_namn'       => $dagNamn[$i],
+                        'skift_label'    => $skiftLabels[$skiftNr],
+                        'skift_tid'      => $skiftTider[$skiftNr],
+                        'planerade_ops'  => $planeradeLista,
+                        'faktiska_ops'   => $faktiskaLista,
+                        'uteblev_ops'    => $uteblev,
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'success'    => true,
+                'week_start' => $weekStart,
+                'week_end'   => $weekEnd,
+                'slots'      => $slots,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('ShiftPlanController getWeekView: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckoöversikt']);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Hjälpfunktion: initialer från namn
+    // -----------------------------------------------------------------------
+
+    private function getInitials(string $name): string {
+        if (!$name) return '?';
+        $parts = preg_split('/\s+/', trim($name));
+        if (count($parts) >= 2) {
+            return strtoupper(mb_substr($parts[0], 0, 1) . mb_substr(end($parts), 0, 1));
+        }
+        return strtoupper(mb_substr($name, 0, 2));
+    }
+
+    // -----------------------------------------------------------------------
     // GET ?action=shift-plan&run=operators
     // Returnerar lista med aktiva operatörer.
     // -----------------------------------------------------------------------
@@ -150,6 +359,36 @@ class ShiftPlanController {
             echo json_encode(['success' => true, 'operators' => $operators]);
         } catch (PDOException $e) {
             error_log('ShiftPlanController getOperators: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // GET ?action=shift-plan&run=operators-list
+    // Alias för getOperators — exponerar initialer också.
+    // -----------------------------------------------------------------------
+
+    private function getOperatorsList() {
+        try {
+            $stmt = $this->pdo->query('
+                SELECT number AS op_number, name AS op_name
+                FROM operators
+                WHERE active = 1
+                ORDER BY name ASC
+            ');
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $operators = [];
+            foreach ($rows as $row) {
+                $operators[] = [
+                    'op_number' => (int)$row['op_number'],
+                    'op_name'   => $row['op_name'],
+                    'initialer' => $this->getInitials($row['op_name']),
+                ];
+            }
+            echo json_encode(['success' => true, 'operators' => $operators]);
+        } catch (PDOException $e) {
+            error_log('ShiftPlanController getOperatorsList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
         }

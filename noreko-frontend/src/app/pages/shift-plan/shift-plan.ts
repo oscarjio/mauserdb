@@ -18,11 +18,31 @@ interface ShiftEntry {
 interface Operator {
   op_number: number;
   op_name: string;
+  initialer?: string;
 }
 
 interface ActiveCell {
   datum: string;
   skift: number;
+}
+
+// --- Week-view types ---
+interface WeekViewOp {
+  op_number: number;
+  op_name: string;
+  initialer: string;
+  planerad?: boolean;
+}
+
+interface WeekViewSlot {
+  datum: string;
+  skift_nr: number;
+  dag_namn: string;
+  skift_label: string;
+  skift_tid: string;
+  planerade_ops: WeekViewOp[];
+  faktiska_ops: WeekViewOp[];
+  uteblev_ops: WeekViewOp[];
 }
 
 @Component({
@@ -34,6 +54,10 @@ interface ActiveCell {
 })
 export class ShiftPlanPage implements OnInit, OnDestroy {
 
+  // --- Tab state ---
+  activeTab: 'veckoplan' | 'veckoöversikt' = 'veckoplan';
+
+  // ===== Veckoplan (befintlig) =====
   currentWeekStart!: Date;
   weekDays: Date[] = [];
   weekData: { [datum: string]: { [skift: string]: ShiftEntry[] } } = {};
@@ -51,6 +75,18 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
 
   readonly dayNames = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
 
+  // ===== Veckoöversikt (ny) =====
+  weekViewData: WeekViewSlot[] = [];
+  weekViewLoading = false;
+  weekViewError = '';
+  weekViewStart: Date = new Date();
+  operatorsList: Operator[] = [];
+
+  showAssignModal = false;
+  assigningSlot: WeekViewSlot | null = null;
+  assigningOpNumber: number | null = null;
+  assignLoading = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -60,9 +96,11 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.currentWeekStart = this.getMondayOf(new Date());
+    this.weekViewStart = this.getMondayOf(new Date());
     this.buildWeekDays();
     this.loadOperators();
     this.loadWeek();
+    this.loadOperatorsList();
   }
 
   ngOnDestroy() {
@@ -71,12 +109,23 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   }
 
   // -----------------------------------------------------------------------
-  // Veckonavigation
+  // Flik-hantering
+  // -----------------------------------------------------------------------
+
+  setTab(tab: 'veckoplan' | 'veckoöversikt') {
+    this.activeTab = tab;
+    if (tab === 'veckoöversikt' && this.weekViewData.length === 0) {
+      this.loadWeekView();
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Veckonavigation (veckoplan)
   // -----------------------------------------------------------------------
 
   getMondayOf(date: Date): Date {
     const d = new Date(date);
-    const dow = d.getDay(); // 0=sön, 1=mån, ..., 6=lör
+    const dow = d.getDay();
     const diff = dow === 0 ? -6 : 1 - dow;
     d.setDate(d.getDate() + diff);
     d.setHours(0, 0, 0, 0);
@@ -115,6 +164,33 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     this.loadWeek();
   }
 
+  // -----------------------------------------------------------------------
+  // Veckonavigation (veckoöversikt)
+  // -----------------------------------------------------------------------
+
+  prevWeekView() {
+    const d = new Date(this.weekViewStart);
+    d.setDate(d.getDate() - 7);
+    this.weekViewStart = d;
+    this.loadWeekView();
+  }
+
+  nextWeekView() {
+    const d = new Date(this.weekViewStart);
+    d.setDate(d.getDate() + 7);
+    this.weekViewStart = d;
+    this.loadWeekView();
+  }
+
+  goToTodayView() {
+    this.weekViewStart = this.getMondayOf(new Date());
+    this.loadWeekView();
+  }
+
+  // -----------------------------------------------------------------------
+  // Datum/vecka-hjälpare
+  // -----------------------------------------------------------------------
+
   getWeekNumber(date: Date): number {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -126,6 +202,20 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     const w = this.getWeekNumber(this.currentWeekStart);
     const y = this.currentWeekStart.getFullYear();
     return `Vecka ${w}, ${y}`;
+  }
+
+  get weekViewLabel(): string {
+    const w = this.getWeekNumber(this.weekViewStart);
+    const endDate = new Date(this.weekViewStart);
+    endDate.setDate(endDate.getDate() + 6);
+    const startStr = `${this.weekViewStart.getDate()} ${this.getMonthShort(this.weekViewStart)}`;
+    const endStr = `${endDate.getDate()} ${this.getMonthShort(endDate)}`;
+    return `v.${w}, ${startStr}–${endStr}`;
+  }
+
+  getMonthShort(d: Date): string {
+    const months = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+    return months[d.getMonth()];
   }
 
   formatDate(d: Date): string {
@@ -141,12 +231,36 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
            d.getDate() === today.getDate();
   }
 
+  isTodayStr(datum: string): boolean {
+    return datum === this.formatDate(new Date());
+  }
+
   isWeekend(idx: number): boolean {
-    return idx >= 5; // Lör (5) och Sön (6)
+    return idx >= 5;
+  }
+
+  isWeekendDatum(datum: string): boolean {
+    const dow = new Date(datum).getDay();
+    return dow === 0 || dow === 6;
+  }
+
+  getDayIndex(datum: string): number {
+    const dow = new Date(datum).getDay();
+    return dow === 0 ? 6 : dow - 1;
+  }
+
+  getDayShort(datum: string): string {
+    const names = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+    return names[this.getDayIndex(datum)];
+  }
+
+  formatDayDate(datum: string): string {
+    const d = new Date(datum);
+    return `${d.getDate()}/${d.getMonth() + 1}`;
   }
 
   // -----------------------------------------------------------------------
-  // Data loading
+  // Data loading — Veckoplan
   // -----------------------------------------------------------------------
 
   loadOperators() {
@@ -202,7 +316,175 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   }
 
   // -----------------------------------------------------------------------
-  // Cell-interaktion
+  // Data loading — Veckoöversikt
+  // -----------------------------------------------------------------------
+
+  loadOperatorsList() {
+    this.http.get<any>(`${API}&run=operators-list`, { withCredentials: true })
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success) this.operatorsList = res.operators || [];
+        }
+      });
+  }
+
+  loadWeekView() {
+    this.weekViewLoading = true;
+    this.weekViewError = '';
+    const weekStartParam = this.formatDate(this.weekViewStart);
+    this.http.get<any>(`${API}&run=week-view&week_start=${weekStartParam}`, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.weekViewLoading = false;
+          if (res === null) {
+            this.weekViewError = 'Kunde inte hämta veckoöversikt';
+            return;
+          }
+          if (res.success) {
+            this.weekViewData = res.slots || [];
+          } else {
+            this.weekViewError = res.error || 'Okänt fel';
+          }
+        },
+        error: () => {
+          this.weekViewLoading = false;
+          this.weekViewError = 'Kunde inte hämta veckoöversikt';
+        }
+      });
+  }
+
+  getSlot(datum: string, skiftNr: number): WeekViewSlot | undefined {
+    return this.weekViewData.find(s => s.datum === datum && s.skift_nr === skiftNr);
+  }
+
+  get weekViewDates(): string[] {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const slot of this.weekViewData) {
+      if (!seen.has(slot.datum)) {
+        seen.add(slot.datum);
+        result.push(slot.datum);
+      }
+    }
+    return result;
+  }
+
+  // -----------------------------------------------------------------------
+  // Veckoöversikt hjälpmetoder
+  // -----------------------------------------------------------------------
+
+  isOpFactual(slot: WeekViewSlot, opNumber: number): boolean {
+    return slot.faktiska_ops.some(f => f.op_number === opNumber);
+  }
+
+  getUnplannedOps(slot: WeekViewSlot): WeekViewOp[] {
+    return slot.faktiska_ops.filter(f => !f.planerad);
+  }
+
+  hasUnplannedOps(slot: WeekViewSlot): boolean {
+    return slot.faktiska_ops.some(f => !f.planerad);
+  }
+
+  // -----------------------------------------------------------------------
+  // Tilldelning från veckoöversikt
+  // -----------------------------------------------------------------------
+
+  openAssignModal(slot: WeekViewSlot, event: Event) {
+    event.stopPropagation();
+    this.assigningSlot = slot;
+    this.assigningOpNumber = null;
+    this.showAssignModal = true;
+  }
+
+  closeAssignModal() {
+    this.showAssignModal = false;
+    this.assigningSlot = null;
+    this.assigningOpNumber = null;
+  }
+
+  getAvailableOpsForSlot(slot: WeekViewSlot): Operator[] {
+    const assigned = new Set(slot.planerade_ops.map(o => o.op_number));
+    return this.operatorsList.filter(op => !assigned.has(op.op_number));
+  }
+
+  confirmAssign() {
+    if (!this.assigningSlot || !this.assigningOpNumber) return;
+    const slot = this.assigningSlot;
+    const opNumber = this.assigningOpNumber;
+    const op = this.operatorsList.find(o => o.op_number === opNumber);
+    if (!op) return;
+
+    this.assignLoading = true;
+    const body = {
+      datum: slot.datum,
+      skift_nr: slot.skift_nr,
+      op_number: opNumber,
+    };
+    this.http.post<any>(`${API}&run=assign`, body, { withCredentials: true })
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.assignLoading = false;
+          if (res === null) { this.toast.error('Nätverksfel — kunde inte lägga till operatör'); return; }
+          if (res.success) {
+            slot.planerade_ops.push({
+              op_number: opNumber,
+              op_name: op.op_name,
+              initialer: op.initialer ?? this.getInitials(op.op_name),
+            });
+            this.toast.success(`${op.op_name} inlagd i ${slot.skift_label} ${slot.datum}`);
+            this.closeAssignModal();
+          } else {
+            this.toast.error(res.error || 'Kunde inte lägga till operatör');
+          }
+        },
+        error: () => {
+          this.assignLoading = false;
+          this.toast.error('Kunde inte lägga till operatör');
+        }
+      });
+  }
+
+  removeFromWeekView(slot: WeekViewSlot, op: WeekViewOp, event: Event) {
+    event.stopPropagation();
+    if (!confirm(`Ta bort ${op.op_name} från ${slot.skift_label} den ${slot.datum}?`)) return;
+    const body = { datum: slot.datum, skift_nr: slot.skift_nr, op_number: op.op_number };
+    this.http.post<any>(`${API}&run=remove`, body, { withCredentials: true })
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res === null) { this.toast.error('Nätverksfel'); return; }
+          if (res.success) {
+            slot.planerade_ops = slot.planerade_ops.filter(o => o.op_number !== op.op_number);
+            slot.uteblev_ops = slot.uteblev_ops.filter(o => o.op_number !== op.op_number);
+            this.toast.success(`${op.op_name} borttagen`);
+          } else {
+            this.toast.error(res.error || 'Kunde inte ta bort');
+          }
+        }
+      });
+  }
+
+  // -----------------------------------------------------------------------
+  // Cell-interaktion (veckoplan)
   // -----------------------------------------------------------------------
 
   toggleCell(datum: string, skiftNr: number) {
@@ -221,7 +503,6 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     this.activeCell = null;
   }
 
-  // Vilka operatörer är INTE redan tilldelade i aktiv cell?
   get availableOperators(): Operator[] {
     if (!this.activeCell) return this.operators;
     const entries = this.getShiftEntries(this.activeCell.datum, this.activeCell.skift);
@@ -246,7 +527,6 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
         next: (res) => {
           if (res === null) { this.toast.error('Nätverksfel — kunde inte lägga till operatör'); return; }
           if (res.success) {
-            // Lägg till lokalt utan att ladda om hela veckan
             const d = this.activeCell!.datum;
             const s = String(this.activeCell!.skift);
             if (!this.weekData[d]) this.weekData[d] = { '1': [], '2': [], '3': [] };
@@ -282,7 +562,6 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
         next: (res) => {
           if (res === null) { this.toast.error('Nätverksfel — kunde inte ta bort operatör'); return; }
           if (res.success) {
-            // Ta bort lokalt
             const s = String(skiftNr);
             if (this.weekData[datum]?.[s]) {
               this.weekData[datum][s] = this.weekData[datum][s].filter(
@@ -301,7 +580,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   }
 
   // -----------------------------------------------------------------------
-  // Avatarfärg (hash-baserad, samma som operators-sidan)
+  // Avatarfärg (hash-baserad)
   // -----------------------------------------------------------------------
 
   getAvatarColor(name: string): string {

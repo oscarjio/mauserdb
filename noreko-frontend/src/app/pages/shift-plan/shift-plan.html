@@ -2,15 +2,40 @@
 <div class="sp-page" (click)="closePanel()">
 
   <!-- Header -->
-  <div class="sp-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+  <div class="sp-header d-flex justify-content-between align-items-center mb-3 flex-wrap gap-3">
     <div>
       <h2 class="sp-title mb-0">
         <i class="fas fa-calendar-week me-2 text-info"></i>Skiftplanering
       </h2>
       <small class="text-muted">Planera vilka operatörer som arbetar vilket skift</small>
     </div>
+  </div>
 
-    <div class="d-flex align-items-center gap-2">
+  <!-- Flikar -->
+  <div class="sp-tabs mb-4">
+    <button
+      class="sp-tab-btn"
+      [class.active]="activeTab === 'veckoplan'"
+      (click)="setTab('veckoplan')"
+    >
+      <i class="fas fa-th me-2"></i>Veckoplan
+    </button>
+    <button
+      class="sp-tab-btn"
+      [class.active]="activeTab === 'veckoöversikt'"
+      (click)="setTab('veckoöversikt')"
+    >
+      <i class="fas fa-users me-2"></i>Närvaro &amp; Jämförelse
+    </button>
+  </div>
+
+  <!-- ====================================================== -->
+  <!-- FLIK 1: Veckoplan (befintlig) -->
+  <!-- ====================================================== -->
+  <div *ngIf="activeTab === 'veckoplan'">
+
+    <!-- Veckonavigering -->
+    <div class="d-flex align-items-center gap-2 mb-4">
       <button class="btn btn-sm btn-outline-secondary" (click)="prevWeek(); $event.stopPropagation()">
         <i class="fas fa-chevron-left"></i>
       </button>
@@ -22,120 +47,315 @@
         <i class="fas fa-calendar-day me-1"></i>Idag
       </button>
     </div>
-  </div>
 
-  <!-- Laddning -->
-  <div *ngIf="loading" class="text-center py-5">
-    <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
-    <p class="text-muted mt-3">Hämtar skiftplan...</p>
-  </div>
+    <!-- Laddning -->
+    <div *ngIf="loading" class="text-center py-5">
+      <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+      <p class="text-muted mt-3">Hämtar skiftplan...</p>
+    </div>
 
-  <!-- Fel -->
-  <div *ngIf="!loading && error" class="alert alert-warning mb-3">
-    <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
-  </div>
+    <!-- Fel -->
+    <div *ngIf="!loading && error" class="alert alert-warning mb-3">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    </div>
 
-  <!-- Kalendergrid -->
-  <div *ngIf="!loading" class="sp-grid-wrapper">
-    <table class="sp-table">
-      <thead>
-        <tr>
-          <th class="th-skift"></th>
-          <th
-            *ngFor="let day of weekDays; let i = index"
-            class="th-day"
-            [class.th-today]="isToday(day)"
-            [class.th-weekend]="isWeekend(i)"
-          >
-            <div class="day-name">{{ dayNames[i] }}</div>
-            <div class="day-date" [class.today-date]="isToday(day)">
-              {{ day | date:'d/M' }}
-              <span class="today-dot" *ngIf="isToday(day)"></span>
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let skift of skifts">
-          <!-- Skiftlabel -->
-          <td class="td-skift-label">
-            <div class="skift-label-text">{{ skift.label }}</div>
-            <div class="skift-time">{{ skift.time }}</div>
-          </td>
-
-          <!-- En cell per dag -->
-          <td
-            *ngFor="let day of weekDays; let i = index"
-            class="td-cell"
-            [class.td-weekend]="isWeekend(i)"
-            [class.td-today]="isToday(day)"
-            [class.td-active]="isCellActive(formatDate(day), skift.nr)"
-            (click)="$event.stopPropagation(); toggleCell(formatDate(day), skift.nr)"
-          >
-            <!-- Tilldelade operatörer -->
-            <div class="chip-list">
-              <div
-                *ngFor="let entry of getShiftEntries(formatDate(day), skift.nr)"
-                class="op-chip"
-                [style.background-color]="getAvatarColor(entry.op_name)"
-                [title]="entry.op_name + (entry.note ? ' — ' + entry.note : '')"
-                (click)="$event.stopPropagation(); removeOperator(formatDate(day), skift.nr, entry)"
-              >
-                <span class="chip-initials">{{ getInitials(entry.op_name) }}</span>
-                <span class="chip-name">{{ entry.op_name }}</span>
-                <span class="chip-remove"><i class="fas fa-times"></i></span>
-              </div>
-            </div>
-
-            <!-- Lägg till-knapp -->
-            <div class="add-btn-wrapper">
-              <span class="add-icon">
-                <i class="fas fa-plus"></i>
-                <span class="add-label">Lägg till</span>
-              </span>
-            </div>
-
-            <!-- Operatörspanel (dropdown) -->
-            <div
-              class="op-panel"
-              *ngIf="isCellActive(formatDate(day), skift.nr)"
-              (click)="$event.stopPropagation()"
+    <!-- Kalendergrid -->
+    <div *ngIf="!loading" class="sp-grid-wrapper">
+      <table class="sp-table">
+        <thead>
+          <tr>
+            <th class="th-skift"></th>
+            <th
+              *ngFor="let day of weekDays; let i = index"
+              class="th-day"
+              [class.th-today]="isToday(day)"
+              [class.th-weekend]="isWeekend(i)"
             >
-              <div class="op-panel-header">
-                Välj operatör
-                <button class="btn-close-panel" (click)="closePanel()">
-                  <i class="fas fa-times"></i>
-                </button>
+              <div class="day-name">{{ dayNames[i] }}</div>
+              <div class="day-date" [class.today-date]="isToday(day)">
+                {{ day | date:'d/M' }}
+                <span class="today-dot" *ngIf="isToday(day)"></span>
               </div>
-              <div class="op-panel-body">
-                <div *ngIf="availableOperators.length === 0" class="text-muted small p-2">
-                  Alla aktiva operatörer är redan inlagda.
-                </div>
-                <button
-                  *ngFor="let op of availableOperators"
-                  class="op-select-btn"
-                  (click)="assignOperator(op)"
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let skift of skifts">
+            <!-- Skiftlabel -->
+            <td class="td-skift-label">
+              <div class="skift-label-text">{{ skift.label }}</div>
+              <div class="skift-time">{{ skift.time }}</div>
+            </td>
+
+            <!-- En cell per dag -->
+            <td
+              *ngFor="let day of weekDays; let i = index"
+              class="td-cell"
+              [class.td-weekend]="isWeekend(i)"
+              [class.td-today]="isToday(day)"
+              [class.td-active]="isCellActive(formatDate(day), skift.nr)"
+              (click)="$event.stopPropagation(); toggleCell(formatDate(day), skift.nr)"
+            >
+              <!-- Tilldelade operatörer -->
+              <div class="chip-list">
+                <div
+                  *ngFor="let entry of getShiftEntries(formatDate(day), skift.nr)"
+                  class="op-chip"
+                  [style.background-color]="getAvatarColor(entry.op_name)"
+                  [title]="entry.op_name + (entry.note ? ' — ' + entry.note : '')"
+                  (click)="$event.stopPropagation(); removeOperator(formatDate(day), skift.nr, entry)"
                 >
-                  <span
-                    class="op-avatar"
-                    [style.background-color]="getAvatarColor(op.op_name)"
-                  >{{ getInitials(op.op_name) }}</span>
-                  <span class="op-select-name">{{ op.op_name }}</span>
-                  <span class="op-num">#{{ op.op_number }}</span>
-                </button>
+                  <span class="chip-initials">{{ getInitials(entry.op_name) }}</span>
+                  <span class="chip-name">{{ entry.op_name }}</span>
+                  <span class="chip-remove"><i class="fas fa-times"></i></span>
+                </div>
               </div>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+
+              <!-- Lägg till-knapp -->
+              <div class="add-btn-wrapper">
+                <span class="add-icon">
+                  <i class="fas fa-plus"></i>
+                  <span class="add-label">Lägg till</span>
+                </span>
+              </div>
+
+              <!-- Operatörspanel (dropdown) -->
+              <div
+                class="op-panel"
+                *ngIf="isCellActive(formatDate(day), skift.nr)"
+                (click)="$event.stopPropagation()"
+              >
+                <div class="op-panel-header">
+                  Välj operatör
+                  <button class="btn-close-panel" (click)="closePanel()">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+                <div class="op-panel-body">
+                  <div *ngIf="availableOperators.length === 0" class="text-muted small p-2">
+                    Alla aktiva operatörer är redan inlagda.
+                  </div>
+                  <button
+                    *ngFor="let op of availableOperators"
+                    class="op-select-btn"
+                    (click)="assignOperator(op)"
+                  >
+                    <span
+                      class="op-avatar"
+                      [style.background-color]="getAvatarColor(op.op_name)"
+                    >{{ getInitials(op.op_name) }}</span>
+                    <span class="op-select-name">{{ op.op_name }}</span>
+                    <span class="op-num">#{{ op.op_number }}</span>
+                  </button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Förklaring -->
+    <div class="sp-legend mt-4 d-flex flex-wrap gap-3 align-items-center">
+      <span class="legend-item"><span class="legend-dot today-dot-legend"></span> Idag</span>
+      <span class="legend-item"><span class="legend-dot weekend-dot"></span> Helg</span>
+      <small class="text-muted ms-2">Klicka på en cell för att lägga till operatör. Klicka på en badge för att ta bort.</small>
+    </div>
   </div>
 
-  <!-- Förklaring -->
-  <div class="sp-legend mt-4 d-flex flex-wrap gap-3 align-items-center">
-    <span class="legend-item"><span class="legend-dot today-dot-legend"></span> Idag</span>
-    <span class="legend-item"><span class="legend-dot weekend-dot"></span> Helg</span>
-    <small class="text-muted ms-2">Klicka på en cell för att lägga till operatör. Klicka på en badge för att ta bort.</small>
-  </div>
+  <!-- ====================================================== -->
+  <!-- FLIK 2: Närvaro & Jämförelse -->
+  <!-- ====================================================== -->
+  <div *ngIf="activeTab === 'veckoöversikt'">
 
+    <!-- Veckonavigering -->
+    <div class="d-flex align-items-center gap-2 mb-4">
+      <button class="btn btn-sm btn-outline-secondary" (click)="prevWeekView(); $event.stopPropagation()">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <span class="week-label">{{ weekViewLabel }}</span>
+      <button class="btn btn-sm btn-outline-secondary" (click)="nextWeekView(); $event.stopPropagation()">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <button class="btn btn-sm btn-outline-info ms-2" (click)="goToTodayView(); $event.stopPropagation()">
+        <i class="fas fa-calendar-day me-1"></i>Idag
+      </button>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="weekViewLoading" class="text-center py-5">
+      <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+      <p class="text-muted mt-3">Hämtar närvaro...</p>
+    </div>
+
+    <!-- Fel -->
+    <div *ngIf="!weekViewLoading && weekViewError" class="alert alert-warning mb-3">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ weekViewError }}
+    </div>
+
+    <!-- Förklaring av symboler -->
+    <div *ngIf="!weekViewLoading && weekViewData.length > 0" class="wv-legend mb-3 d-flex flex-wrap gap-3 align-items-center">
+      <span class="wv-legend-item">
+        <span class="wv-badge-demo badge-matched-demo">AB</span>
+        <i class="fas fa-check text-success ms-1"></i>
+        Planerad &amp; Var på plats
+      </span>
+      <span class="wv-legend-item">
+        <span class="wv-badge-demo badge-absent-demo">CD</span>
+        <i class="fas fa-times text-danger ms-1"></i>
+        Planerad men uteblev
+      </span>
+      <span class="wv-legend-item">
+        <span class="wv-badge-demo badge-unplanned-demo">EF</span>
+        <i class="fas fa-exclamation text-warning ms-1"></i>
+        Oplanerad närvaro
+      </span>
+    </div>
+
+    <!-- Grid: rader = dagar, kolumner = skift -->
+    <div *ngIf="!weekViewLoading && weekViewData.length > 0" class="wv-grid-wrapper">
+      <table class="wv-table">
+        <thead>
+          <tr>
+            <th class="wv-th-dag">Dag</th>
+            <th class="wv-th-skift" *ngFor="let s of [1,2,3]">
+              <div class="wv-skift-header">
+                <span class="wv-skift-nr">Skift {{ s }}</span>
+                <span class="wv-skift-tid">
+                  {{ s === 1 ? '06–14 Morgon' : s === 2 ? '14–22 Eftermiddag' : '22–06 Natt' }}
+                </span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let datum of weekViewDates"
+            [class.wv-row-weekend]="isWeekendDatum(datum)"
+            [class.wv-row-today]="isTodayStr(datum)"
+          >
+            <!-- Dag-cell -->
+            <td class="wv-td-dag">
+              <div class="wv-dag-name">{{ getDayShort(datum) }}</div>
+              <div class="wv-dag-date" [class.wv-today-date]="isTodayStr(datum)">
+                {{ formatDayDate(datum) }}
+                <span class="wv-today-dot" *ngIf="isTodayStr(datum)"></span>
+              </div>
+            </td>
+
+            <!-- Skift 1, 2, 3 -->
+            <td *ngFor="let skiftNr of [1, 2, 3]" class="wv-td-skift">
+              <ng-container *ngIf="getSlot(datum, skiftNr) as slot">
+
+                <!-- Planerat-rad -->
+                <div class="wv-section">
+                  <div class="wv-section-label">Planerat</div>
+                  <div class="wv-badge-row">
+                    <div
+                      *ngFor="let op of slot.planerade_ops"
+                      class="wv-op-badge"
+                      [class.badge-matched]="isOpFactual(slot, op.op_number)"
+                      [class.badge-absent]="!isOpFactual(slot, op.op_number)"
+                      [title]="op.op_name + (isOpFactual(slot, op.op_number) ? ' — Var på plats' : ' — Uteblev')"
+                      (click)="removeFromWeekView(slot, op, $event)"
+                    >
+                      <span class="wv-avatar" [style.background-color]="getAvatarColor(op.op_name)">{{ op.initialer }}</span>
+                      <i class="fas wv-status-icon"
+                         [class.fa-check]="isOpFactual(slot, op.op_number)"
+                         [class.fa-times]="!isOpFactual(slot, op.op_number)"
+                         [class.text-success]="isOpFactual(slot, op.op_number)"
+                         [class.text-danger]="!isOpFactual(slot, op.op_number)"></i>
+                    </div>
+
+                    <!-- + knapp -->
+                    <button
+                      class="wv-add-btn"
+                      title="Tilldela operatör"
+                      (click)="openAssignModal(slot, $event)"
+                    ><i class="fas fa-plus"></i></button>
+                  </div>
+                </div>
+
+                <!-- Faktisk närvaro (oplanerade) -->
+                <div class="wv-section wv-faktisk-section" *ngIf="hasUnplannedOps(slot)">
+                  <div class="wv-section-label wv-label-faktisk">Oplanerade</div>
+                  <div class="wv-badge-row">
+                    <div
+                      *ngFor="let fop of getUnplannedOps(slot)"
+                      class="wv-op-badge badge-unplanned"
+                      [title]="fop.op_name + ' — Oplanerad närvaro'"
+                    >
+                      <span class="wv-avatar" [style.background-color]="getAvatarColor(fop.op_name)">{{ fop.initialer }}</span>
+                      <i class="fas fa-exclamation wv-status-icon text-warning"></i>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tom cell -->
+                <div class="wv-empty" *ngIf="slot.planerade_ops.length === 0 && slot.faktiska_ops.length === 0">
+                  <button
+                    class="wv-add-empty-btn"
+                    (click)="openAssignModal(slot, $event)"
+                  ><i class="fas fa-plus me-1"></i>Lägg till</button>
+                </div>
+
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /veckoöversikt -->
+
+</div><!-- /sp-page -->
+
+<!-- ====================================================== -->
+<!-- Modal: Tilldela operatör (från veckoöversikt) -->
+<!-- ====================================================== -->
+<div class="wv-modal-backdrop" *ngIf="showAssignModal" (click)="closeAssignModal()">
+  <div class="wv-modal" (click)="$event.stopPropagation()">
+    <div class="wv-modal-header">
+      <div>
+        <div class="wv-modal-title">Tilldela operatör</div>
+        <div class="wv-modal-subtitle" *ngIf="assigningSlot">
+          {{ assigningSlot.dag_namn }}, {{ assigningSlot.datum }} — {{ assigningSlot.skift_label }} ({{ assigningSlot.skift_tid }})
+        </div>
+      </div>
+      <button class="wv-modal-close" (click)="closeAssignModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="wv-modal-body" *ngIf="assigningSlot">
+      <div *ngIf="getAvailableOpsForSlot(assigningSlot).length === 0" class="text-muted text-center py-3 small">
+        Alla aktiva operatörer är redan planerade för detta skift.
+      </div>
+      <div class="wv-op-grid">
+        <button
+          *ngFor="let op of getAvailableOpsForSlot(assigningSlot)"
+          class="wv-op-card"
+          [class.selected]="assigningOpNumber === op.op_number"
+          (click)="assigningOpNumber = op.op_number"
+        >
+          <span class="wv-op-avatar" [style.background-color]="getAvatarColor(op.op_name)">
+            {{ getInitials(op.op_name) }}
+          </span>
+          <span class="wv-op-name">{{ op.op_name }}</span>
+          <i class="fas fa-check-circle wv-selected-icon" *ngIf="assigningOpNumber === op.op_number"></i>
+        </button>
+      </div>
+    </div>
+    <div class="wv-modal-footer">
+      <button class="btn btn-secondary btn-sm" (click)="closeAssignModal()">Avbryt</button>
+      <button
+        class="btn btn-info btn-sm ms-2"
+        [disabled]="!assigningOpNumber || assignLoading"
+        (click)="confirmAssign()"
+      >
+        <i class="fas fa-spinner fa-spin me-1" *ngIf="assignLoading"></i>
+        <i class="fas fa-check me-1" *ngIf="!assignLoading"></i>
+        Tilldela
+      </button>
+    </div>
+  </div>
 </div>

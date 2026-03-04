@@ -360,3 +360,480 @@
   background: #4a5568;
   border-radius: 4px;
 }
+
+/* ===================================================
+   Flikar
+   =================================================== */
+
+.sp-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #2d3748;
+  padding-bottom: 0;
+}
+
+.sp-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 8px 18px;
+  color: #718096;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -2px;
+  border-radius: 4px 4px 0 0;
+}
+
+.sp-tab-btn:hover {
+  color: #e2e8f0;
+  background: rgba(255,255,255,0.04);
+}
+
+.sp-tab-btn.active {
+  color: #63b3ed;
+  border-bottom-color: #4299e1;
+}
+
+/* ===================================================
+   Veckoöversikt — Legend
+   =================================================== */
+
+.wv-legend {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.wv-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wv-badge-demo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.badge-matched-demo {
+  background: #276749;
+  border: 1px solid #48bb78;
+}
+
+.badge-absent-demo {
+  background: #742a2a;
+  border: 1px solid #e53e3e;
+  opacity: 0.85;
+}
+
+.badge-unplanned-demo {
+  background: #744210;
+  border: 1px solid #ed8936;
+}
+
+/* ===================================================
+   Veckoöversikt — Tabell
+   =================================================== */
+
+.wv-grid-wrapper {
+  overflow-x: auto;
+}
+
+.wv-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 2px;
+  min-width: 700px;
+}
+
+.wv-th-dag {
+  width: 80px;
+  min-width: 70px;
+  padding: 8px 10px;
+  background: #2d3748;
+  border-bottom: 2px solid #4a5568;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.wv-th-skift {
+  padding: 8px 12px;
+  background: #2d3748;
+  border-bottom: 2px solid #4a5568;
+  border-left: 1px solid #1a202c;
+}
+
+.wv-skift-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.wv-skift-nr {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.wv-skift-tid {
+  font-size: 0.7rem;
+  color: #718096;
+}
+
+/* Dag-cell */
+
+.wv-td-dag {
+  padding: 10px 10px;
+  background: #2d3748;
+  border-radius: 6px 0 0 6px;
+  border-right: 2px solid #1a202c;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.wv-dag-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a0aec0;
+}
+
+.wv-dag-date {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wv-dag-date.wv-today-date {
+  color: #63b3ed;
+}
+
+.wv-today-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4299e1;
+}
+
+/* Skift-cell */
+
+.wv-td-skift {
+  background: #2d3748;
+  padding: 8px 10px;
+  vertical-align: top;
+  border-left: 1px solid #1a202c;
+  min-height: 80px;
+  min-width: 160px;
+}
+
+/* Rad-varianter */
+
+.wv-row-weekend .wv-td-dag,
+.wv-row-weekend .wv-td-skift {
+  background: #253040;
+}
+
+.wv-row-today .wv-td-dag {
+  border-left: 3px solid #4299e1;
+}
+
+.wv-row-today .wv-td-skift {
+  border-top: 1px solid rgba(66, 153, 225, 0.3);
+  border-bottom: 1px solid rgba(66, 153, 225, 0.3);
+}
+
+/* Sektioner inuti cell */
+
+.wv-section {
+  margin-bottom: 6px;
+}
+
+.wv-faktisk-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #4a5568;
+}
+
+.wv-section-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4a5568;
+  margin-bottom: 4px;
+}
+
+.wv-label-faktisk {
+  color: #744210;
+}
+
+.wv-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Operatörsbadges */
+
+.wv-op-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 5px;
+  padding: 2px 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+.wv-op-badge:hover {
+  filter: brightness(1.15);
+}
+
+.wv-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.wv-status-icon {
+  font-size: 0.6rem;
+  flex-shrink: 0;
+}
+
+/* Badge-typer */
+
+.badge-matched {
+  background: rgba(72, 187, 120, 0.15);
+  border: 1px solid rgba(72, 187, 120, 0.4);
+}
+
+.badge-absent {
+  background: rgba(229, 62, 62, 0.12);
+  border: 1px solid rgba(229, 62, 62, 0.35);
+  opacity: 0.85;
+}
+
+.badge-unplanned {
+  background: rgba(237, 137, 54, 0.15);
+  border: 1px solid rgba(237, 137, 54, 0.4);
+}
+
+/* Lägg till-knapp i badge-rad */
+
+.wv-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px dashed #4a5568;
+  color: #718096;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.wv-add-btn:hover {
+  background: rgba(66, 153, 225, 0.2);
+  border-color: #4299e1;
+  color: #90cdf4;
+}
+
+/* Tom cell knapp */
+
+.wv-empty {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 40px;
+}
+
+.wv-add-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: 1px dashed #4a5568;
+  border-radius: 5px;
+  color: #4a5568;
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.wv-add-empty-btn:hover {
+  color: #90cdf4;
+  border-color: #4299e1;
+}
+
+/* ===================================================
+   Modal — Tilldela operatör
+   =================================================== */
+
+.wv-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wv-modal {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  width: 420px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.wv-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #4a5568;
+}
+
+.wv-modal-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.wv-modal-subtitle {
+  font-size: 0.78rem;
+  color: #90cdf4;
+  margin-top: 3px;
+}
+
+.wv-modal-close {
+  background: transparent;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 4px;
+  transition: color 0.15s;
+}
+
+.wv-modal-close:hover {
+  color: #e2e8f0;
+}
+
+.wv-modal-body {
+  padding: 12px 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.wv-op-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.wv-op-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid #4a5568;
+  border-radius: 7px;
+  padding: 8px 10px;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  text-align: left;
+}
+
+.wv-op-card:hover {
+  background: rgba(66, 153, 225, 0.12);
+  border-color: #4299e1;
+}
+
+.wv-op-card.selected {
+  background: rgba(66, 153, 225, 0.2);
+  border-color: #63b3ed;
+}
+
+.wv-op-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.wv-op-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wv-selected-icon {
+  color: #63b3ed;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.wv-modal-footer {
+  padding: 10px 16px 14px;
+  border-top: 1px solid #4a5568;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ===================================================
+   Scrollbar för modal
+   =================================================== */
+
+.wv-modal-body::-webkit-scrollbar {
+  width: 4px;
+}
+.wv-modal-body::-webkit-scrollbar-thumb {
+  background: #4a5568;
+  border-radius: 4px;
+}
