@@ -93,6 +93,20 @@ export class AndonPage implements OnInit, OnDestroy {
   private readonly SKIFT_SLUT_H = 22;
   private readonly SKIFT_TOTAL_S = (22 - 6) * 3600; // 57600 s
 
+  // Exponerade skifttider (används i template för nedräkningsbaren)
+  readonly shiftStartTime = '06:00';
+  readonly shiftEndTime = '22:00';
+
+  // IBC-måltakt (IBC per timme för att nå dagsmålet på 16h skift)
+  get targetRate(): number {
+    if (!this.status || this.status.mal_idag <= 0) return 0;
+    return this.status.mal_idag / 16; // 16h skift
+  }
+
+  get ibcPerHour(): number {
+    return this.status ? this.status.ibc_per_h : 0;
+  }
+
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
