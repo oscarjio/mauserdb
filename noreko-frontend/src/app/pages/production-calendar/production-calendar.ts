@@ -302,17 +302,28 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
               title: (items) => {
                 const idx = items[0].dataIndex;
                 const h = hourly[idx];
-                return `${String(h.timme).padStart(2, '0')}:00 — Skift ${h.skift}`;
+                const dateLabel = this.selectedDay ? this.formatDayDetailTitle() : '';
+                return [
+                  dateLabel,
+                  `${String(h.timme).padStart(2, '0')}:00 — Skift ${h.skift}`
+                ].filter(s => s !== '');
               },
               label: (item) => {
                 const idx = item.dataIndex;
                 const h = hourly[idx];
-                return [
+                const goal = this.selectedDay?.goal ?? 0;
+                const lines = [
                   `  IBC producerade: ${h.ibc}`,
                   `  IBC per timme: ${h.ibc_per_h}`,
                   `  Drifttid: ${h.runtime_min} min`,
-                  h.ej_ok > 0 ? `  Ej OK: ${h.ej_ok}` : '',
-                ].filter(s => s !== '');
+                ];
+                if (goal > 0) {
+                  lines.push(`  Dagsmål: ${goal} IBC`);
+                }
+                if (h.ej_ok > 0) {
+                  lines.push(`  Ej OK: ${h.ej_ok}`);
+                }
+                return lines;
               }
             },
             backgroundColor: '#2d3748',

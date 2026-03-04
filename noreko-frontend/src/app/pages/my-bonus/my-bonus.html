@@ -648,6 +648,12 @@
     </div>
 
     <!-- ===== MIN BONUSUTVECKLING ===== -->
+    <!-- Empty-state: ingen veckodata -->
+    <div *ngIf="!weeklyLoading && weeklyData.length === 0 && savedOperatorId" class="text-center py-4">
+      <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+      <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen veckodata tillgänglig.</p>
+    </div>
+
     <div class="weekly-dev-card mb-4" *ngIf="weeklyData.length > 0 || weeklyLoading">
       <div class="weekly-dev-header">
         <i class="fas fa-calendar-week me-2 text-warning"></i>Min bonusutveckling
@@ -1012,6 +1018,12 @@
         <!-- Laddningsindikator för historik -->
         <div *ngIf="feedbackHistoryLoading && feedbackHistory.length === 0" class="text-center text-muted py-2" style="font-size:0.85rem;">
           <span class="spinner-border spinner-border-sm me-2" role="status"></span>Laddar historik...
+        </div>
+
+        <!-- Empty-state: ingen feedbackhistorik -->
+        <div *ngIf="!feedbackHistoryLoading && feedbackHistory.length === 0" class="text-center py-4">
+          <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen feedbackhistorik ännu.</p>
         </div>
 
       </div>

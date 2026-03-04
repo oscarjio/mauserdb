@@ -202,9 +202,10 @@
   </ng-container>
 
   <!-- Tom veckodata för vald operatör -->
-  <div *ngIf="!loading && selectedOpId && trendData.length === 0 && !errorMsg" class="ot-empty-state">
-    <i class="fas fa-inbox fa-2x mb-2"></i>
-    <p>Ingen produktionsdata hittad för {{ getSelectedOpName() }} de senaste {{ selectedWeeks }} veckorna.</p>
+  <div *ngIf="!loading && selectedOpId && trendData.length === 0 && !errorMsg" class="text-center py-4">
+    <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+    <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen trenddata tillgänglig.</p>
+    <p style="color: #718096; font-size: 0.85rem;">Ingen produktionsdata hittad för {{ getSelectedOpName() }} de senaste {{ selectedWeeks }} veckorna.</p>
   </div>
 
 </div>

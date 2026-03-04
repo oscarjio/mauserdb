@@ -56,8 +56,11 @@
   </div>
 
   <!-- Laddning -->
-  <div class="loading-state" *ngIf="loading">
-    <i class="fas fa-spinner fa-spin me-2"></i>Hämtar certifieringar...
+  <div *ngIf="loading" class="text-center py-4">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="text-muted mt-2">Hämtar certifieringar...</p>
   </div>
 
   <!-- Fel -->

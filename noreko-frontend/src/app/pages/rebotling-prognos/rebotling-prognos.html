@@ -41,7 +41,12 @@
   </div>
 
   <!-- Laddning / fel -->
-  <div *ngIf="loading" class="text-center py-5 text-muted">Laddar produktionstakt...</div>
+  <div *ngIf="loading" class="text-center py-4">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="text-muted mt-2">Laddar produktionstakt...</p>
+  </div>
   <div *ngIf="loadError && !loading" class="alert alert-warning">
     Kunde inte hämta produktionstakt. Kontrollera backend-anslutning.
   </div>

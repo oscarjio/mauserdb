@@ -665,12 +665,30 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
             callbacks: {
+              title: (items) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx >= 0 && distribution[idx]) {
+                  const timme = distribution[idx].timme;
+                  return `Kl ${String(timme).padStart(2, '0')}:00–${String(timme).padStart(2, '0')}:59`;
+                }
+                return '';
+              },
               label: (ctx: any) => {
                 const h = distribution[ctx.dataIndex];
-                const parts = [` ${ctx.parsed.y} stopp`];
-                if (h.snitt_min) parts.push(`Snitt: ${h.snitt_min} min`);
-                if (topHours.includes(h.timme)) parts.push('Peak-stoptid');
+                const parts = [`  Antal stopp: ${ctx.parsed.y}`];
+                if (h.snitt_min) {
+                  const sm = h.snitt_min;
+                  const sh = Math.floor(sm / 60);
+                  const smin = sm % 60;
+                  parts.push(`  Snitt varaktighet: ${sh > 0 ? sh + 'h ' + smin + 'min' : smin + ' min'}`);
+                }
+                if (topHours.includes(h.timme)) parts.push('  \u26a0 Peak-stoptid');
                 return parts;
               }
             }
@@ -728,7 +746,25 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          title: { display: true, text: 'Stopptid per orsak (Pareto)', color: '#e2e8f0' }
+          title: { display: true, text: 'Stopptid per orsak (Pareto)', color: '#e2e8f0' },
+          tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx) => {
+                const min = ctx.parsed.y ?? 0;
+                const h = Math.floor(min / 60);
+                const m = min % 60;
+                const formatted = h > 0 ? `${h}h ${m}min` : `${m} min`;
+                const r = reasons[ctx.dataIndex];
+                const pct = r && this.stats ? Math.round((r.total_minutes / this.stats.reasons.reduce((s, x) => s + x.total_minutes, 0)) * 100) : 0;
+                return [`  Stopptid: ${formatted}`, `  Andel: ${pct}%`, `  Antal: ${r?.count ?? 0} stopp`];
+              }
+            }
+          }
         },
         scales: {
           x: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' } },
@@ -780,10 +816,28 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           legend: { display: false },
           title: { display: true, text: 'Antal stopp per dag — senaste 14 dagar', color: '#e2e8f0' },
           tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
             callbacks: {
+              title: (items) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                return idx >= 0 ? labels[idx] : '';
+              },
+              label: (ctx) => {
+                const count = ctx.parsed.y;
+                return `  Antal stopp: ${count}`;
+              },
               afterLabel: (ctx) => {
                 const min = minuteData[ctx.dataIndex];
-                return min > 0 ? `Stopptid: ${min} min` : '';
+                if (min > 0) {
+                  const h = Math.floor(min / 60);
+                  const m = min % 60;
+                  return `  Stopptid: ${h > 0 ? h + 'h ' + m + 'min' : m + ' min'}`;
+                }
+                return '';
               }
             }
           }
@@ -834,7 +888,29 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           title: { display: true, text: 'Stopptid per dag', color: '#e2e8f0' },
-          legend: { labels: { color: '#a0aec0' } }
+          legend: { labels: { color: '#a0aec0' } },
+          tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              title: (items) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                return idx >= 0 && daily[idx] ? daily[idx].dag : '';
+              },
+              label: (ctx) => {
+                if (ctx.datasetIndex === 0) {
+                  const min = ctx.parsed.y ?? 0;
+                  const h = Math.floor(min / 60);
+                  const m = min % 60;
+                  return `  Stopptid: ${h > 0 ? h + 'h ' + m + 'min' : m + ' min'}`;
+                }
+                return `  Antal stopp: ${ctx.parsed.y}`;
+              }
+            }
+          }
         },
         scales: {
           x: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' } },

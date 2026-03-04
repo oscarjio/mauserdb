@@ -381,7 +381,29 @@ export class AuditLogPage implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          title: { display: true, text: 'Aktivitet per dag', color: '#e2e8f0' }
+          title: { display: true, text: 'Aktivitet per dag', color: '#e2e8f0' },
+          tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              title: (items) => {
+                const idx = items[0]?.dataIndex ?? -1;
+                if (idx >= 0 && daily[idx]) {
+                  const d = new Date(daily[idx].dag + 'T00:00:00');
+                  const dayNames = ['Son', 'Man', 'Tis', 'Ons', 'Tor', 'Fre', 'Lor'];
+                  return `${dayNames[d.getDay()]} ${daily[idx].dag}`;
+                }
+                return '';
+              },
+              label: (item) => {
+                const count = item.parsed.y;
+                return `  ${count} aktivitet${count !== 1 ? 'er' : ''}`;
+              }
+            }
+          }
         },
         scales: {
           x: { ticks: { color: '#a0aec0' }, grid: { color: '#2d3748' } },
