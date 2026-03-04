@@ -1,3 +1,9 @@
+## 2026-03-04 — Worker: Skiftbyte-PDF export — skiftöverlämnings-rapport (61b42a8)
+- rebotling-skiftrapport.ts: Ny metod exportHandoverPDF() + buildHandoverPDFDocDef() — genererar PDF med pdfmake.
+- PDF-innehåll: Header (period + Noreko-logotyp-text), KPI-sammanfattning (Total IBC, Kvalitet, OEE, Drifttid, Rasttid) med stor text + färgkodning, uppfyllnadsprocent vs dagsmål, nästa skifts mål (dagsmål ÷ 3 skift), operatörstabell (namn, antal skift, IBC OK totalt, snitt IBC/h), senaste 5 skift, skiftkommentarer (laddade), anteckningsruta, footer med genererings-tid.
+- rebotling-skiftrapport.html: Ny gul "Skiftöverlämnings-PDF"-knapp (btn-warning + fa-handshake) i kortets header bredvid CSV/Excel.
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
 ## 2026-03-04 — Worker: Operator-dashboard veckovy förbättringar (8765dd1)
 - operator-dashboard.ts: Inline loading-indikator vid uppdatering av veckodata när befintlig data redan visas (spinner i övre höger).
 - Tom-state veckovyn: Bättre ikon (fa-calendar-times) + tydligare svensk text med vägledning om att välja annan vecka.
