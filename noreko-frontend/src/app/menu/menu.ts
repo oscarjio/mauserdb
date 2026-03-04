@@ -115,7 +115,7 @@ export class Menu implements OnInit, OnDestroy {
     forkJoin({
       rebotling: this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
       tvattlinje: this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
-    }).subscribe(res => {
+    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.rebotlingRunning = res.rebotling?.data?.running ?? false;
       this.tvattlinjeRunning = res.tvattlinje?.data?.running ?? false;
     });
@@ -142,11 +142,12 @@ export class Menu implements OnInit, OnDestroy {
 
     // Ladda i bakgrunden utan att visa loading
     this.http.get<any>('/noreko-backend/api.php?action=vpn', { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          if (response.success) {
+          if (response?.success) {
             this.vpnConnectedCount = response.total_connected || 0;
-            
+
             // Starta auto-refresh om det inte redan är igång
             if (!this.refreshInterval) {
               this.refreshInterval = setInterval(() => {
@@ -156,10 +157,6 @@ export class Menu implements OnInit, OnDestroy {
           } else {
             this.vpnConnectedCount = 0;
           }
-        },
-        error: (error) => {
-          // Tyst hantera fel - visa bara 0
-          this.vpnConnectedCount = 0;
         }
       });
   }

@@ -32,7 +32,7 @@ class KlassificeringslinjeController {
 
         if ($method === 'POST') {
             if ($action === 'settings') {
-                session_start();
+                if (session_status() === PHP_SESSION_NONE) session_start();
                 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
@@ -43,7 +43,7 @@ class KlassificeringslinjeController {
             }
 
             if ($action === 'weekday-goals') {
-                session_start();
+                if (session_status() === PHP_SESSION_NONE) session_start();
                 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);

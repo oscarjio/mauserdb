@@ -115,7 +115,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   // ========== System Stats ==========
   loadSystemStats() {
-    this.bonusAdmin.getSystemStats().subscribe({
+    this.bonusAdmin.getSystemStats().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.systemStats = res.data;
@@ -128,7 +128,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Config ==========
   loadConfig() {
     this.loading = true;
-    this.bonusAdmin.getConfig().subscribe({
+    this.bonusAdmin.getConfig().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.config = res.data;
@@ -173,7 +173,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     }
 
     this.loading = true;
-    this.bonusAdmin.updateWeights(produkt, weights).subscribe({
+    this.bonusAdmin.updateWeights(produkt, weights).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Viktningar uppdaterade!');
@@ -208,7 +208,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   saveTargets() {
     this.loading = true;
-    this.bonusAdmin.setTargets(this.targetsForm).subscribe({
+    this.bonusAdmin.setTargets(this.targetsForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Produktivitetsmål uppdaterade!');
@@ -241,7 +241,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       return;
     }
     this.loading = true;
-    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).subscribe({
+    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Veckobonusmål sparat!');
@@ -278,7 +278,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.forecastError = '';
     this.operatorForecast = null;
 
-    this.bonusAdmin.getOperatorForecast(id).subscribe({
+    this.bonusAdmin.getOperatorForecast(id).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.operatorForecast = res.data;
@@ -304,7 +304,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   // ========== Periods ==========
   loadPeriods() {
-    this.bonusAdmin.getPeriods().subscribe({
+    this.bonusAdmin.getPeriods().pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success && res.data) {
           this.periods = res.data.periods || [];
@@ -318,7 +318,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (!confirm(`Godkänn alla bonusar för period ${period}?`)) return;
 
     this.loading = true;
-    this.bonusAdmin.approveBonuses(period).subscribe({
+    this.bonusAdmin.approveBonuses(period).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess(`Bonusar godkända för ${period}! (${res.data?.cycles_approved} cykler)`);
