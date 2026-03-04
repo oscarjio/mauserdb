@@ -20,6 +20,15 @@ interface AndonStatus {
   linje_status: string;
 }
 
+interface Stoppage {
+  id: number;
+  reason_name: string;
+  category: string;
+  duration_minutes: number;
+  created_at: string;
+  notes: string;
+}
+
 @Component({
   standalone: true,
   selector: 'app-andon',
@@ -32,47 +41,93 @@ export class AndonPage implements OnInit, OnDestroy {
 
   private readonly apiUrl = '/noreko-backend/api.php';
 
+  // Befintlig state
   status: AndonStatus | null = null;
   laddas = true;
   fel: string | null = null;
   klockslag = '';
   nedrakning = 10;
   isFetching = false;
+  isFetchingStoppages = false;
+
+  // Feature 1: Skifttimer
+  skifttimerText = '';
+  skifttimerKvar = '';          // "HH:MM:SS"
+  skiftProgressPct = 0;         // 0–100
+  skiftStatus: 'kör' | 'slut' | 'ej_startat' = 'kör';
+
+  // Feature 2: Senaste stopporsaker
+  stoppages: Stoppage[] = [];
+  stoppagesLaddas = true;
+
+  // Feature 3: Produktionsprognos
+  prognosBanner: {
+    text: string;
+    ibcPrognos: number;
+    niva: 'rekord' | 'ok' | 'warn' | 'critical' | 'ingen';
+  } = { text: '', ibcPrognos: 0, niva: 'ingen' };
 
   private destroy$ = new Subject<void>();
   private pollInterval: any = null;
+  private stoppagePollInterval: any = null;
   private clockInterval: any = null;
   private countdownInterval: any = null;
+  private skiftTimerInterval: any = null;
+
+  // Skifttider (06:00–22:00)
+  private readonly SKIFT_START_H = 6;
+  private readonly SKIFT_SLUT_H = 22;
+  private readonly SKIFT_TOTAL_S = (22 - 6) * 3600; // 57600 s
 
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     this.uppdateraKlocka();
+    this.uppdateraSkiftTimer();
     this.hamtaStatus();
+    this.hamtaStoppages();
 
+    // Klocka + skifttimer uppdateras varje sekund
     this.clockInterval = setInterval(() => {
       this.uppdateraKlocka();
     }, 1000);
 
-    this.pollInterval = setInterval(() => {
-      this.hamtaStatus();
-      this.nedrakning = 10;
-    }, 10000);
+    this.skiftTimerInterval = setInterval(() => {
+      this.uppdateraSkiftTimer();
+    }, 1000);
 
+    // Nedräkning till nästa datapoll
     this.countdownInterval = setInterval(() => {
       if (this.nedrakning > 0) {
         this.nedrakning--;
       }
     }, 1000);
+
+    // Statusdata var 10s
+    this.pollInterval = setInterval(() => {
+      this.hamtaStatus();
+      this.nedrakning = 10;
+    }, 10000);
+
+    // Stopporsaker var 30s
+    this.stoppagePollInterval = setInterval(() => {
+      this.hamtaStoppages();
+    }, 30000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollInterval) clearInterval(this.pollInterval);
+    if (this.stoppagePollInterval) clearInterval(this.stoppagePollInterval);
     if (this.clockInterval) clearInterval(this.clockInterval);
     if (this.countdownInterval) clearInterval(this.countdownInterval);
+    if (this.skiftTimerInterval) clearInterval(this.skiftTimerInterval);
   }
+
+  // ─────────────────────────────────────────────
+  // Befintliga metoder
+  // ─────────────────────────────────────────────
 
   private uppdateraKlocka(): void {
     const nu = new Date();
@@ -85,9 +140,9 @@ export class AndonPage implements OnInit, OnDestroy {
 
     this.http.get<AndonStatus>(`${this.apiUrl}?action=andon&run=status`)
       .pipe(
-        timeout(5000),
+        timeout(8000),
         catchError(() => {
-          this.fel = 'Kunde inte hamta data fran servern.';
+          this.fel = 'Kunde inte hämta data från servern.';
           this.isFetching = false;
           return of(null);
         }),
@@ -99,6 +154,7 @@ export class AndonPage implements OnInit, OnDestroy {
           this.status = data;
           this.laddas = false;
           this.fel = null;
+          this.beraknaPrognos();
         }
       });
   }
@@ -115,8 +171,8 @@ export class AndonPage implements OnInit, OnDestroy {
   get statusText(): string {
     if (!this.status) return '';
     if (this.status.linje_status === 'stopp') return 'STOPP';
-    if (this.status.linje_status === 'väntar') return 'VANTAR';
-    return 'KOR';
+    if (this.status.linje_status === 'väntar') return 'VÄNTAR';
+    return 'KÖR';
   }
 
   get statusEtikett(): string {
@@ -126,9 +182,9 @@ export class AndonPage implements OnInit, OnDestroy {
       return `Senaste IBC: ${min} min sedan`;
     }
     if (this.status.linje_status === 'väntar') {
-      return `Vantar — ${min} min sedan senaste IBC`;
+      return `Väntar — ${min} min sedan senaste IBC`;
     }
-    return `Linjen kor! Senaste IBC for ${min} min sedan`;
+    return `Linjen kör! Senaste IBC för ${min} min sedan`;
   }
 
   get malBreddpct(): number {
@@ -138,9 +194,203 @@ export class AndonPage implements OnInit, OnDestroy {
 
   get oeeEtikett(): string {
     if (!this.status) return '';
-    if (this.status.oee_pct >= 85) return 'Utmarkt!';
+    if (this.status.oee_pct >= 85) return 'Utmärkt!';
     if (this.status.oee_pct >= 75) return 'Bra!';
     if (this.status.oee_pct >= 60) return 'OK';
-    return 'Under mal';
+    return 'Under mål';
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 1: Skifttimer
+  // ─────────────────────────────────────────────
+
+  private uppdateraSkiftTimer(): void {
+    const nu = new Date();
+    const h = nu.getHours();
+    const m = nu.getMinutes();
+    const s = nu.getSeconds();
+
+    // Sekunder från midnatt
+    const sekundFranMidnatt = h * 3600 + m * 60 + s;
+    const skiftStartSek = this.SKIFT_START_H * 3600;   // 21600
+    const skiftSlutSek  = this.SKIFT_SLUT_H * 3600;    // 79200
+
+    if (sekundFranMidnatt < skiftStartSek) {
+      // Före skiftstart
+      this.skiftStatus = 'ej_startat';
+      const kvarTillStart = skiftStartSek - sekundFranMidnatt;
+      this.skifttimerKvar = this.formatSekunder(kvarTillStart);
+      this.skifttimerText = 'Startar 06:00';
+      this.skiftProgressPct = 0;
+    } else if (sekundFranMidnatt >= skiftSlutSek) {
+      // Efter skiftslut
+      this.skiftStatus = 'slut';
+      this.skifttimerKvar = '00:00:00';
+      this.skifttimerText = 'Skiftet är slut';
+      this.skiftProgressPct = 100;
+    } else {
+      // Mitt i skiftet
+      this.skiftStatus = 'kör';
+      const gangen = sekundFranMidnatt - skiftStartSek;
+      const kvar   = skiftSlutSek - sekundFranMidnatt;
+      this.skifttimerKvar = this.formatSekunder(kvar);
+      this.skifttimerText = 'kvar av skiftet';
+      this.skiftProgressPct = Math.round((gangen / this.SKIFT_TOTAL_S) * 100);
+    }
+  }
+
+  private formatSekunder(sek: number): string {
+    const h = Math.floor(sek / 3600);
+    const m = Math.floor((sek % 3600) / 60);
+    const s = sek % 60;
+    return [
+      String(h).padStart(2, '0'),
+      String(m).padStart(2, '0'),
+      String(s).padStart(2, '0')
+    ].join(':');
+  }
+
+  get skifttimerFarg(): string {
+    if (this.skiftStatus === 'slut' || this.skiftStatus === 'ej_startat') return '#718096';
+    if (this.skiftProgressPct >= 90) return '#f44336';
+    if (this.skiftProgressPct >= 75) return '#ff9800';
+    return '#00e676';
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 2: Senaste stopporsaker
+  // ─────────────────────────────────────────────
+
+  hamtaStoppages(): void {
+    if (this.isFetchingStoppages) return;
+    this.isFetchingStoppages = true;
+
+    this.http.get<{ success: boolean; stoppages: Stoppage[] }>(`${this.apiUrl}?action=andon&run=recent-stoppages`)
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(data => {
+        this.isFetchingStoppages = false;
+        this.stoppagesLaddas = false;
+        if (data && data.success) {
+          this.stoppages = data.stoppages;
+        }
+      });
+  }
+
+  stoppageFarg(category: string): string {
+    switch ((category || '').toLowerCase()) {
+      case 'maskin':    return '#f44336';
+      case 'material':  return '#ff9800';
+      case 'operatör':
+      case 'operator':  return '#4299e1';
+      default:          return '#718096';
+    }
+  }
+
+  stoppageTidSedan(createdAt: string): string {
+    const nu  = Date.now();
+    const tid = new Date(createdAt).getTime();
+    const diffMin = Math.max(0, Math.round((nu - tid) / 60000));
+
+    if (diffMin < 1)  return 'Just nu';
+    if (diffMin < 60) return `${diffMin} min sedan`;
+    const h = Math.floor(diffMin / 60);
+    const m = diffMin % 60;
+    return m > 0 ? `${h}h ${m}min sedan` : `${h}h sedan`;
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 3: Produktionsprognos
+  // ─────────────────────────────────────────────
+
+  private beraknaPrognos(): void {
+    if (!this.status) {
+      this.prognosBanner = { text: '', ibcPrognos: 0, niva: 'ingen' };
+      return;
+    }
+
+    const nu = new Date();
+    const h  = nu.getHours();
+    const m  = nu.getMinutes();
+    const s  = nu.getSeconds();
+
+    const sekundFranMidnatt = h * 3600 + m * 60 + s;
+    const skiftStartSek = this.SKIFT_START_H * 3600;
+    const skiftSlutSek  = this.SKIFT_SLUT_H * 3600;
+
+    // Utanför skift → ingen prognos
+    if (sekundFranMidnatt < skiftStartSek || sekundFranMidnatt >= skiftSlutSek) {
+      this.prognosBanner = { text: '', ibcPrognos: 0, niva: 'ingen' };
+      return;
+    }
+
+    const tidGangenH = (sekundFranMidnatt - skiftStartSek) / 3600;
+    const tidKvarH   = (skiftSlutSek - sekundFranMidnatt) / 3600;
+
+    // Visa inte prognos förrän minst 1h gått
+    if (tidGangenH < 1) {
+      this.prognosBanner = { text: '', ibcPrognos: 0, niva: 'ingen' };
+      return;
+    }
+
+    const ibcHittills = this.status.ibc_idag;
+    const mal         = this.status.mal_idag;
+
+    const taktPerH    = ibcHittills / tidGangenH;
+    const prognosIbc  = taktPerH * tidKvarH;
+    const slutPrognos = Math.round(ibcHittills + prognosIbc);
+    const slutPct     = mal > 0 ? (slutPrognos / mal) * 100 : 0;
+
+    let text: string;
+    let niva: 'rekord' | 'ok' | 'warn' | 'critical';
+
+    if (slutPct >= 110) {
+      text = `Rekorddag i sikte! Prognos: ${slutPrognos} IBC`;
+      niva = 'rekord';
+    } else if (slutPct >= 100) {
+      text = `På väg att nå målet! Prognos: ${slutPrognos} IBC`;
+      niva = 'ok';
+    } else if (slutPct >= 80) {
+      text = `Justera takten. Prognos: ${slutPrognos} IBC av mål ${mal}`;
+      niva = 'warn';
+    } else {
+      text = `Takten behöver ökas. Prognos: ${slutPrognos} IBC av mål ${mal}`;
+      niva = 'critical';
+    }
+
+    this.prognosBanner = { text, ibcPrognos: slutPrognos, niva };
+  }
+
+  get prognosBannerFarg(): string {
+    switch (this.prognosBanner.niva) {
+      case 'rekord':   return '#22543d';   // mörkgrön
+      case 'ok':       return '#1a365d';   // mörkblå
+      case 'warn':     return '#7b341e';   // mörkrange
+      case 'critical': return '#742a2a';   // mörkröd
+      default:         return 'transparent';
+    }
+  }
+
+  get prognosBannerBord(): string {
+    switch (this.prognosBanner.niva) {
+      case 'rekord':   return '#48bb78';
+      case 'ok':       return '#4299e1';
+      case 'warn':     return '#ed8936';
+      case 'critical': return '#f44336';
+      default:         return 'transparent';
+    }
+  }
+
+  get prognosBannerIkon(): string {
+    switch (this.prognosBanner.niva) {
+      case 'rekord':   return '🚀';
+      case 'ok':       return '✅';
+      case 'warn':     return '⚠️';
+      case 'critical': return '🔴';
+      default:         return '';
+    }
   }
 }

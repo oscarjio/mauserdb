@@ -79,8 +79,9 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 0.9rem;
   height: 100%;
+  overflow: hidden;
 }
 
 /* ------ Header ------ */
@@ -90,6 +91,7 @@ body {
   gap: 2rem;
   border-bottom: 2px solid #2d3748;
   padding-bottom: 0.5rem;
+  flex-shrink: 0;
 }
 
 .andon-titel {
@@ -132,6 +134,7 @@ body {
   border: 2px solid;
   background: rgba(0,0,0,0.3);
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .status-prick {
@@ -178,23 +181,23 @@ body {
 .kpi-rad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  flex: 1;
+  gap: 1.2rem;
+  flex-shrink: 0;
 }
 
 .kpi-kort {
   background: #1a202c;
   border: 1px solid #2d3748;
   border-radius: 12px;
-  padding: 1.8rem 2rem;
+  padding: 1.4rem 1.8rem;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.5rem;
   justify-content: center;
 }
 
 .kpi-rubrik {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   color: #718096;
@@ -202,32 +205,32 @@ body {
 }
 
 .kpi-varde {
-  font-size: 4.5rem;
+  font-size: 4rem;
   font-weight: 900;
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
 .kpi-enhet {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 400;
   margin-left: 0.2rem;
   opacity: 0.7;
 }
 
 .kpi-sub {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   color: #a0aec0;
   margin-top: 0.2rem;
 }
 
 .kpi-sub2 {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #718096;
 }
 
 .oee-etikett {
-  font-size: 1.8rem;
+  font-size: 1.6rem;
   font-weight: 700;
   margin-top: 0.2rem;
 }
@@ -235,18 +238,213 @@ body {
 /* ------ Progress-bar (dagsmål) ------ */
 .progress-bar-wrap {
   width: 100%;
-  height: 18px;
+  height: 16px;
   background: #2d3748;
-  border-radius: 9px;
+  border-radius: 8px;
   overflow: hidden;
-  margin: 0.4rem 0;
+  margin: 0.3rem 0;
 }
 
 .progress-bar-inner {
   height: 100%;
-  border-radius: 9px;
+  border-radius: 8px;
   transition: width 0.6s ease;
   min-width: 4px;
+}
+
+/* ═══════════════════════════════════════════════════
+   Feature 3: Produktionsprognosbanner
+   ═══════════════════════════════════════════════════ */
+.prognos-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.8rem;
+  border-radius: 10px;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+
+.prognos-ikon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.prognos-text {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════
+   Feature 1 + 2: Nedre rad (skifttimer + stopporsaker)
+   ═══════════════════════════════════════════════════ */
+.nedre-rad {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 1.2rem;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ------ Skifttimer ------ */
+.skift-timer-kort {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.4rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.skift-timer-rubrik {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #718096;
+  text-transform: uppercase;
+}
+
+.skift-timer-klocka {
+  font-size: 3.2rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.skift-timer-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.skift-progress-wrap {
+  width: 100%;
+  height: 14px;
+  background: #2d3748;
+  border-radius: 7px;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.skift-progress-inner {
+  height: 100%;
+  border-radius: 7px;
+  transition: width 1s linear;
+  min-width: 4px;
+}
+
+.skift-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #718096;
+  margin-top: 0.2rem;
+}
+
+/* ------ Senaste stopporsaker ------ */
+.stopp-kort {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.4rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: hidden;
+}
+
+.stopp-rubrik {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #718096;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.stopp-tom {
+  color: #48bb78;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.stopp-laddas {
+  color: #718096;
+  font-size: 1.1rem;
+}
+
+.stopp-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  overflow-y: auto;
+}
+
+.stopp-rad {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #2d3748;
+}
+
+.stopp-rad:last-child {
+  border-bottom: none;
+}
+
+.stopp-ikon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+}
+
+.stopp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stopp-namn {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stopp-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  color: #a0aec0;
+  margin-top: 0.15rem;
+  flex-wrap: wrap;
+}
+
+.stopp-kategori {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.stopp-sep {
+  color: #4a5568;
+}
+
+.stopp-varaktighet {
+  font-weight: 500;
+}
+
+.stopp-tid {
+  color: #718096;
+  font-size: 0.95rem;
 }
 
 /* ------ Händelse-baner ------ */
@@ -255,15 +453,16 @@ body {
   border: 1px solid #2d3748;
   border-left: 6px solid;
   border-radius: 8px;
-  padding: 1rem 1.5rem;
+  padding: 0.8rem 1.5rem;
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .handelse-rubrik {
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.15em;
   color: #718096;
@@ -272,7 +471,7 @@ body {
 }
 
 .handelse-text {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 600;
 }
 
@@ -285,6 +484,7 @@ body {
   padding-top: 0.5rem;
   font-size: 1.2rem;
   color: #718096;
+  flex-shrink: 0;
 }
 
 .klocka {
@@ -306,10 +506,13 @@ body {
 /* ------ Responsivt ------ */
 @media (max-width: 1200px) {
   .kpi-varde {
-    font-size: 3.2rem;
+    font-size: 3rem;
   }
   .andon-titel {
     font-size: 2.2rem;
+  }
+  .skift-timer-klocka {
+    font-size: 2.4rem;
   }
 }
 
@@ -317,7 +520,13 @@ body {
   .kpi-rad {
     grid-template-columns: 1fr;
   }
+  .nedre-rad {
+    grid-template-columns: 1fr;
+  }
   .andon-wrapper {
     padding: 0.5rem 1rem;
+    overflow-y: auto;
+    height: auto;
+    min-height: 100vh;
   }
 }

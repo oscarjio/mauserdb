@@ -19,6 +19,8 @@ class AndonController {
 
         if ($run === 'status') {
             $this->getStatus();
+        } elseif ($run === 'recent-stoppages') {
+            $this->recentStoppages();
         } else {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Okänd metod']);
@@ -152,6 +154,51 @@ class AndonController {
             error_log('AndonController::getStatus fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+        }
+    }
+
+    /**
+     * Returnerar de 5 senaste stoppregistreringarna de senaste 24 timmarna.
+     * Publik endpoint — ingen autentisering krävs.
+     */
+    private function recentStoppages(): void {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    sr.id,
+                    sr.reason_id,
+                    sr.duration_minutes,
+                    sr.created_at,
+                    sr.notes,
+                    r.name  AS reason_name,
+                    r.category
+                FROM stoppage_log sr
+                JOIN stoppage_reasons r ON sr.reason_id = r.id
+                WHERE sr.created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+                ORDER BY sr.created_at DESC
+                LIMIT 5
+            ");
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $result = [];
+            foreach ($rows as $row) {
+                $result[] = [
+                    'id'               => (int)$row['id'],
+                    'reason_name'      => $row['reason_name'],
+                    'category'         => $row['category'],
+                    'duration_minutes' => (int)$row['duration_minutes'],
+                    'created_at'       => $row['created_at'],
+                    'notes'            => $row['notes'] ?? '',
+                ];
+            }
+
+            echo json_encode(['success' => true, 'stoppages' => $result]);
+
+        } catch (\Exception $e) {
+            error_log('AndonController::recentStoppages fel: ' . $e->getMessage());
+            // Tabellen kanske inte finns — returnera tom lista gracefully
+            echo json_encode(['success' => true, 'stoppages' => []]);
         }
     }
 }

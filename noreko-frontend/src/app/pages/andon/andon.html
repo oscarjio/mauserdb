@@ -10,7 +10,7 @@
   <div class="andon-fel" *ngIf="fel">
     <div class="fel-ikon">!</div>
     <p>{{ fel }}</p>
-    <p class="fel-sub">Forsöker igen om {{ nedrakning }}s</p>
+    <p class="fel-sub">Försöker igen om {{ nedrakning }}s</p>
   </div>
 
   <!-- Huvud-layout -->
@@ -33,7 +33,7 @@
       <span class="status-sep">|</span>
       <span class="ibc-idag-label">IBC denna dag:</span>
       <span class="ibc-idag-val">{{ status.ibc_idag }}</span>
-      <span class="ibc-idag-label">Mal:</span>
+      <span class="ibc-idag-label">Mål:</span>
       <span class="ibc-idag-val">{{ status.mal_idag }}</span>
     </div>
 
@@ -42,7 +42,7 @@
 
       <!-- Dagsmål-kort -->
       <div class="kpi-kort">
-        <div class="kpi-rubrik">DAGSMAL</div>
+        <div class="kpi-rubrik">DAGSMÅL</div>
         <div class="kpi-varde" [style.color]="statusFarg">{{ Math.round(status.mal_pct) }}<span class="kpi-enhet">%</span></div>
         <div class="progress-bar-wrap">
           <div class="progress-bar-inner"
@@ -71,9 +71,84 @@
 
     </div>
 
-    <!-- Handelse-baner -->
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 3: Produktionsprognosbanner
+         ═══════════════════════════════════════════════════════ -->
+    <div class="prognos-banner"
+         *ngIf="prognosBanner.niva !== 'ingen'"
+         [style.background-color]="prognosBannerFarg"
+         [style.border-color]="prognosBannerBord">
+      <span class="prognos-ikon">{{ prognosBannerIkon }}</span>
+      <span class="prognos-text" [style.color]="prognosBannerBord">{{ prognosBanner.text }}</span>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 1 + Senaste stopp: Rad med skifttimer & stopp
+         ═══════════════════════════════════════════════════════ -->
+    <div class="nedre-rad">
+
+      <!-- Skifttimer-sektion -->
+      <div class="skift-timer-kort">
+        <div class="skift-timer-rubrik">SKIFTTIMER</div>
+
+        <div class="skift-timer-klocka" [style.color]="skifttimerFarg">
+          {{ skifttimerKvar }}
+        </div>
+        <div class="skift-timer-text" [style.color]="skifttimerFarg">
+          {{ skifttimerText }}
+        </div>
+
+        <!-- Progress-bar -->
+        <div class="skift-progress-wrap">
+          <div class="skift-progress-inner"
+               [style.width.%]="skiftProgressPct"
+               [style.background-color]="skifttimerFarg">
+          </div>
+        </div>
+        <div class="skift-progress-label">
+          <span>06:00</span>
+          <span>{{ skiftProgressPct }}% av skiftet avklarat</span>
+          <span>22:00</span>
+        </div>
+      </div>
+
+      <!-- Senaste stopporsaker -->
+      <div class="stopp-kort">
+        <div class="stopp-rubrik">SENASTE STOPP (24h)</div>
+
+        <!-- Tom state -->
+        <div class="stopp-tom" *ngIf="!stoppagesLaddas && stoppages.length === 0">
+          Inga stopp senaste 24h ✓
+        </div>
+
+        <!-- Laddning -->
+        <div class="stopp-laddas" *ngIf="stoppagesLaddas">
+          Hämtar stopporsaker...
+        </div>
+
+        <!-- Lista -->
+        <div class="stopp-lista" *ngIf="!stoppagesLaddas && stoppages.length > 0">
+          <div class="stopp-rad" *ngFor="let s of stoppages">
+            <span class="stopp-ikon" [style.background-color]="stoppageFarg(s.category)"></span>
+            <div class="stopp-info">
+              <div class="stopp-namn">{{ s.reason_name }}</div>
+              <div class="stopp-meta">
+                <span class="stopp-kategori" [style.color]="stoppageFarg(s.category)">{{ s.category }}</span>
+                <span class="stopp-sep">·</span>
+                <span class="stopp-varaktighet">{{ s.duration_minutes }} min</span>
+                <span class="stopp-sep">·</span>
+                <span class="stopp-tid">{{ stoppageTidSedan(s.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /nedre-rad -->
+
+    <!-- Händelse-baner -->
     <div class="handelse-baner" [style.border-left-color]="statusFarg">
-      <span class="handelse-rubrik">SENASTE HANDELSE:</span>
+      <span class="handelse-rubrik">SENASTE HÄNDELSE:</span>
       <span class="handelse-text" [style.color]="statusFarg">{{ statusEtikett }}</span>
     </div>
 
