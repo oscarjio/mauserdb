@@ -2,6 +2,13 @@
 
 ---
 
+## 2026-03-04 — Feature: OEE WCM referenslinjer — commit 6633497
+
+- `rebotling-statistik.ts`: WCM 85% (grön streckad) och Branschsnitt 70% (orange streckad) tillagda som referenslinjer i OEE-trend-grafen
+- `rebotling-statistik.html`: Legend med dashed-linjer visas ovanför OEE-trendgrafen
+- `environments/environment.ts`: Skapad (pre-existing build-fel fixat, saknad fil)
+
+
 
 ## 2026-03-03 23:07 — Bug hunt #3: 6 buggar fixade — commit 20686bb
 
