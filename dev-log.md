@@ -1,3 +1,8 @@
+## 2026-03-04 — Worker: Chart.js error-boundary + admin rekordnyhet-trigger (17d7cfa)
+- Chart.js error-boundary: try-catch runt alla destroy()-anrop i rebotling-statistik, executive-dashboard, bonus-dashboard, production-analysis. Null-checks på canvas.getContext('2d') i nya chart-render-metoder.
+- Admin-rekordnyhet: Ny knapp i rebotling-admin "Skapa rekordnyhet för idag" → POST run=create-record-news. Backend: checkAndCreateRecordNews() (auto efter 18:00), createRecordNewsManual() (admin-trigger). Noterade att backend-metoderna redan var i HEAD från tidigare agent — frontend-knapp är ny.
+- Byggd utan fel, pushad till main.
+
 ## 2026-03-04 — Worker: Cykeltid per operatör breakdown + export-knappar disable-state (d23d330)
 - Backend: getCycleByOperator beräknar nu median_min och p90_min via PHP percentil-algoritm. Sorterar fallande på antal_skift.
 - Service-interface: CycleByOperatorEntry utökat med median_min, p90_min, vs_team_snitt (optional).
