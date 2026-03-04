@@ -193,6 +193,9 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   savingException = false;
   exceptionSaveMsg = '';
 
+  // ---- Visibilitychange-guard ----
+  private visibilityHandler = () => this.onVisibilityChange();
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -202,6 +205,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    document.removeEventListener('visibilitychange', this.visibilityHandler);
     clearTimeout(this.successTimerId);
     clearInterval(this.systemStatusInterval);
     clearInterval(this.maintenanceTimer);
@@ -217,6 +221,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnInit() {
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+
     this.loadProducts();
     this.loadSettings();
     this.loadWeekdayGoals();
@@ -234,19 +240,49 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadKassationTyper();
     this.loadKassationSenaste();
 
-    // Uppdatera systemstatus + snapshot var 30:e sekund
+    this.startPollingTimers();
+  }
+
+  /** Starta alla polling-timers */
+  private startPollingTimers() {
+    // Systemstatus var 120:e sekund (admin-sida behöver inte 30s)
     this.systemStatusInterval = setInterval(() => {
       if (!this.destroy$.closed) this.loadSystemStatus();
-    }, 30000);
+    }, 120000);
+
+    // Produktionsöversikt var 5:e minut
     this.todaySnapshotInterval = setInterval(() => {
       if (!this.destroy$.closed) this.loadTodaySnapshot();
-    }, 30000);
+    }, 300000);
 
-    // Ladda underhållsindikator vid start och var 5:e minut
+    // Underhållsindikator var 5:e minut
     this.loadMaintenanceIndicator();
     this.maintenanceTimer = setInterval(() => {
       if (!this.destroy$.closed) this.loadMaintenanceIndicator();
     }, 300000);
+  }
+
+  /** Stoppa alla polling-timers */
+  private stopPollingTimers() {
+    clearInterval(this.systemStatusInterval);
+    clearInterval(this.todaySnapshotInterval);
+    clearInterval(this.maintenanceTimer);
+    this.systemStatusInterval = null;
+    this.todaySnapshotInterval = null;
+    this.maintenanceTimer = null;
+  }
+
+  /** Pausa polling när tabben är dold, återuppta när synlig */
+  private onVisibilityChange() {
+    if (document.hidden) {
+      this.stopPollingTimers();
+    } else {
+      // Hämta färsk data direkt vid återkomst
+      this.loadSystemStatus();
+      this.loadTodaySnapshot();
+      this.loadMaintenanceIndicator();
+      this.startPollingTimers();
+    }
   }
 
   ngAfterViewInit() {

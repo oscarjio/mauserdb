@@ -114,8 +114,10 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   private pollInterval: any = null;
   private stoppagePollInterval: any = null;
   private clockInterval: any = null;
-  private countdownInterval: any = null;
   private skiftTimerInterval: any = null;
+
+  // ---- Visibilitychange-guard ----
+  private visibilityHandler = () => this.onVisibilityChange();
 
   // Skifttider (06:00–22:00)
   private readonly SKIFT_START_H = 6;
@@ -215,6 +217,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
+    document.addEventListener('visibilitychange', this.visibilityHandler);
+
     this.uppdateraKlocka();
     this.uppdateraSkiftTimer();
     this.hamtaStatus();
@@ -222,22 +226,24 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.hamtaHandoverNotes();
     this.hamtaHourlyToday();
 
-    // Klocka + skifttimer uppdateras varje sekund
+    // Klocka + skifttimer + nedräkning uppdateras varje sekund
     this.clockInterval = setInterval(() => {
       this.uppdateraKlocka();
+      if (this.nedrakning > 0) {
+        this.nedrakning--;
+      }
     }, 1000);
 
     this.skiftTimerInterval = setInterval(() => {
       this.uppdateraSkiftTimer();
     }, 1000);
 
-    // Nedräkning till nästa datapoll
-    this.countdownInterval = setInterval(() => {
-      if (this.nedrakning > 0) {
-        this.nedrakning--;
-      }
-    }, 1000);
+    // Starta polling-timers (data-hämtning)
+    this.startPollingTimers();
+  }
 
+  /** Starta polling-timers för datahämtning (10s, 30s, 60s) */
+  private startPollingTimers() {
     // Statusdata var 10s
     this.pollInterval = setInterval(() => {
       this.hamtaStatus();
@@ -260,21 +266,45 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     }, 60000);
   }
 
+  /** Stoppa polling-timers */
+  private stopPollingTimers() {
+    clearInterval(this.pollInterval);
+    clearInterval(this.stoppagePollInterval);
+    clearInterval(this.notesInterval);
+    clearInterval(this.hourlyInterval);
+    this.pollInterval = null;
+    this.stoppagePollInterval = null;
+    this.notesInterval = null;
+    this.hourlyInterval = null;
+  }
+
+  /** Pausa polling när tabben är dold, återuppta när synlig */
+  private onVisibilityChange() {
+    if (document.hidden) {
+      this.stopPollingTimers();
+    } else {
+      // Hämta färsk data direkt vid återkomst
+      this.hamtaStatus();
+      this.nedrakning = 10;
+      this.hamtaStoppages();
+      this.hamtaHandoverNotes();
+      this.hamtaHourlyToday();
+      this.startPollingTimers();
+    }
+  }
+
   ngAfterViewInit(): void {
     // Rita chart när vy är klar — data kanske inte finns ännu, men skapar tomma chart
     this.ritaCumulativeChart();
   }
 
   ngOnDestroy(): void {
+    document.removeEventListener('visibilitychange', this.visibilityHandler);
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.pollInterval) clearInterval(this.pollInterval);
-    if (this.stoppagePollInterval) clearInterval(this.stoppagePollInterval);
+    this.stopPollingTimers();
     if (this.clockInterval) clearInterval(this.clockInterval);
-    if (this.countdownInterval) clearInterval(this.countdownInterval);
     if (this.skiftTimerInterval) clearInterval(this.skiftTimerInterval);
-    if (this.notesInterval) clearInterval(this.notesInterval);
-    if (this.hourlyInterval) clearInterval(this.hourlyInterval);
     try { this.cumulativeChart?.destroy(); } catch (e) {}
     this.cumulativeChart = null;
   }

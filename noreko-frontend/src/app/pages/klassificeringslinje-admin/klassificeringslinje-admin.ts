@@ -56,6 +56,9 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
   successMessage = '';
   private successTimerId: any = null;
 
+  // ---- Visibilitychange-guard ----
+  private visibilityHandler = () => this.onVisibilityChange();
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -65,19 +68,42 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    document.addEventListener('visibilitychange', this.visibilityHandler);
     this.loadSettings();
     this.loadWeekdayGoals();
     this.loadSystemStatus();
-    this.systemStatusInterval = setInterval(() => {
-      if (!this.destroy$.closed) this.loadSystemStatus(true);
-    }, 30000);
+    this.startPollingTimers();
   }
 
   ngOnDestroy() {
+    document.removeEventListener('visibilitychange', this.visibilityHandler);
     clearTimeout(this.successTimerId);
-    clearInterval(this.systemStatusInterval);
+    this.stopPollingTimers();
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  /** Starta polling-timers */
+  private startPollingTimers() {
+    this.systemStatusInterval = setInterval(() => {
+      if (!this.destroy$.closed) this.loadSystemStatus(true);
+    }, 120000);
+  }
+
+  /** Stoppa polling-timers */
+  private stopPollingTimers() {
+    clearInterval(this.systemStatusInterval);
+    this.systemStatusInterval = null;
+  }
+
+  /** Pausa polling när tabben är dold, återuppta när synlig */
+  private onVisibilityChange() {
+    if (document.hidden) {
+      this.stopPollingTimers();
+    } else {
+      this.loadSystemStatus(true);
+      this.startPollingTimers();
+    }
   }
 
   // ---- Driftsinställningar ----
