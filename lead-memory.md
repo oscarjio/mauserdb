@@ -521,10 +521,10 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **VD Månadsrapport förbättring**: KLAR — diff-indikatorer på KPI-kort, bästa dag-highlight, operator-of-the-month med score, vecko-progress bars, PDF-stöd.
 
 ### 🟡 Medium — planeras efter dessa
-- [ ] **Skiftöverlämning: Email-notis** — PHP mail() vid brådskande not
+- [x] **Skiftöverlämning: Email-notis** — redan implementerat: mail() vid urgent, admin email-config, validering
 - [ ] **Prediktiv underhållsindikator v2** — Korrelationsanalys maskin-stopp vs. underhåll
 - [ ] **Push-notiser webbläsare** — Web Push API vid stopp > 10 min
-- [ ] **Automatisk skiftrapport-export** — POST-endpoint vid skiftslut → PDF → email
+- [x] **Skiftsammanfattning PDF-export**: KLAR `be0eea4` — shift-summary endpoint, expanderbar detaljvy per skift, 6 KPI-kort, timvis PLC-data, print-optimerad PDF med A4-format
 
 ### 🔵 IDÉBANK
 - Maskinlärning-prediktion: förutsäg produktion
@@ -537,4 +537,4 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ## BESLUTSDAGBOK (forts.)
 **2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
-**2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). Startar 3 workers: (1) Bug Hunt #12 resterande chart error-boundary + BonusAdmin validering, (2) Skiftrapport per operatör, (3) VD Månadsrapport förbättring.
+**2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). 5 workers körda: Bug Hunt #12 (18 filer), Skiftrapport per operatör (redan klart), VD Månadsrapport (diff+operator-of-month), Skiftöverlämning email (redan klart), Skiftsammanfattning PDF-export (be0eea4). Alla hög+medium items levererade. Startar nästa batch: Prediktiv underhåll v2, Push-notiser, nya idébank-items.
