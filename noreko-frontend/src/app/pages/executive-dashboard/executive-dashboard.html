@@ -11,9 +11,9 @@
       <small class="text-muted">Uppdateras automatiskt var 30:e sekund</small>
     </div>
     <div class="d-flex align-items-center gap-3 d-print-none">
-      <div class="text-end">
+      <div class="text-end" *ngIf="lastUpdated">
         <small class="text-muted d-block">Senast uppdaterad</small>
-        <small class="text-info fw-bold">{{ lastRefresh | date:'HH:mm:ss' }}</small>
+        <small class="text-info fw-bold">{{ lastUpdated | date:'HH:mm:ss' }}</small>
       </div>
       <button class="btn btn-sm btn-outline-info" (click)="loadData()" [disabled]="isFetching">
         <i class="fas fa-sync-alt me-1" [class.fa-spin]="isFetching"></i>Uppdatera
@@ -204,6 +204,105 @@
     </div>
 
     <!-- ============================================================
+         VECKOFRAMGÅNGSMÄTARE
+    ============================================================ -->
+    <div class="detail-card mb-4 vecko-framgang-card" *ngIf="dashData.week">
+      <div class="detail-card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-trophy me-2 text-warning"></i>Denna veckans framgång
+        </h6>
+        <span class="badge" [ngClass]="{
+          'bg-success': veckoStatusClass === 'success',
+          'bg-warning text-dark': veckoStatusClass === 'warning',
+          'bg-danger': veckoStatusClass === 'danger'
+        }">
+          <i class="fas me-1" [ngClass]="veckoTrendIcon"></i>{{ veckoStatusText }}
+        </span>
+      </div>
+      <div class="detail-card-body">
+        <div class="row align-items-center g-3">
+
+          <!-- Stor siffra veckans IBC -->
+          <div class="col-md-4 text-center">
+            <div class="vecko-ibc-big" [ngClass]="{
+              'text-success': veckoStatusClass === 'success',
+              'text-warning': veckoStatusClass === 'warning',
+              'text-danger': veckoStatusClass === 'danger'
+            }">{{ dashData.week.this_week_ibc }}</div>
+            <div class="vecko-ibc-label">IBC denna vecka</div>
+            <div class="vecko-vs-text mt-1">
+              <i class="fas me-1" [ngClass]="[veckoTrendIcon, veckoTrendClass]"></i>
+              <span [ngClass]="veckoTrendClass">
+                {{ dashData.week.week_diff_pct > 0 ? '+' : '' }}{{ dashData.week.week_diff_pct }}%
+              </span>
+              <span class="text-muted ms-1">vs förra veckan ({{ dashData.week.prev_week_ibc }} IBC)</span>
+            </div>
+          </div>
+
+          <!-- Progressbar + KPI-kolumn -->
+          <div class="col-md-8">
+            <!-- Veckoframgångsmätare progressbar -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <small class="text-muted">Veckoframgång vs förra veckan</small>
+                <small class="fw-bold" [ngClass]="{
+                  'text-success': veckoStatusClass === 'success',
+                  'text-warning': veckoStatusClass === 'warning',
+                  'text-danger': veckoStatusClass === 'danger'
+                }">{{ veckoUppfyllnadPct | number:'1.0-0' }}%</small>
+              </div>
+              <div class="progress" style="height: 14px; border-radius: 8px;">
+                <div class="progress-bar"
+                     [class.bg-success]="veckoStatusClass === 'success'"
+                     [class.bg-warning]="veckoStatusClass === 'warning'"
+                     [class.bg-danger]="veckoStatusClass === 'danger'"
+                     [style.width.%]="veckoUppfyllnadPct"
+                     style="border-radius: 8px; transition: width 0.8s ease;">
+                </div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <small class="text-muted">0%</small>
+                <small class="text-muted">80% <span class="text-warning">(ok)</span></small>
+                <small class="text-muted">95% <span class="text-success">(bra)</span></small>
+                <small class="text-muted">100%+</small>
+              </div>
+            </div>
+
+            <!-- Vecko-KPI-rad -->
+            <div class="row g-2">
+              <div class="col-4">
+                <div class="vecko-kpi-mini">
+                  <div class="vecko-kpi-mini-label">OEE vecka</div>
+                  <div class="vecko-kpi-mini-value" [ngClass]="getOeeClass(dashData.week.oee_pct)">
+                    {{ dashData.week.oee_pct }}%
+                  </div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="vecko-kpi-mini">
+                  <div class="vecko-kpi-mini-label">Kvalitet vecka</div>
+                  <div class="vecko-kpi-mini-value" [ngClass]="getQualityClass(dashData.week.quality_pct)">
+                    {{ dashData.week.quality_pct }}%
+                  </div>
+                </div>
+              </div>
+              <div class="col-4">
+                <div class="vecko-kpi-mini" *ngIf="dashData.week.best_operator">
+                  <div class="vecko-kpi-mini-label">Toppoperatör</div>
+                  <div class="vecko-kpi-mini-value" style="font-size: 0.9rem; font-weight: 700; color: #e2e8f0;">
+                    {{ dashData.week.best_operator.name }}
+                  </div>
+                  <div style="font-size: 0.7rem; color: #718096;">{{ dashData.week.best_operator.ibc_h }} IBC/h</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
          SEKTION 2 — VECKANS STATUS (4 KPI-kort)
     ============================================================ -->
     <div class="row g-3 mb-4">
@@ -345,6 +444,92 @@
       <div class="detail-card-body text-center py-3 text-muted">
         <i class="fas fa-info-circle me-1"></i>Ingen operatörsdata registrerad för senaste skiftet.
       </div>
+    </div>
+
+    <!-- ============================================================
+         SEKTION 5 — SENASTE NYHETER + SNABBLÄNKAR
+    ============================================================ -->
+    <div class="row g-3 mb-4">
+
+      <!-- Senaste nyheter -->
+      <div class="col-md-6">
+        <div class="detail-card h-100">
+          <div class="detail-card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-newspaper me-2 text-info"></i>Senaste nyheter
+            </h6>
+            <a routerLink="/nyheter" class="btn btn-outline-secondary btn-xs d-print-none">
+              Alla nyheter
+            </a>
+          </div>
+          <div class="detail-card-body">
+            <!-- Nyheter finns -->
+            <ul class="news-snippet-list" *ngIf="latestNews.length > 0">
+              <li *ngFor="let n of latestNews" class="news-snippet-item">
+                <div class="d-flex align-items-start gap-2">
+                  <span class="badge badge-xs" [ngClass]="getCategoryBadgeClass(n.category)">
+                    {{ getCategoryLabel(n.category) }}
+                  </span>
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="news-snippet-title">{{ n.title }}</div>
+                    <div class="news-snippet-date text-muted">{{ formatNewsDate(n.created_at) }}</div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+            <!-- Inga nyheter -->
+            <div *ngIf="latestNews.length === 0" class="text-center py-3 text-muted">
+              <i class="fas fa-info-circle me-1"></i>Inga nyheter att visa.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Snabblänkar -->
+      <div class="col-md-6">
+        <div class="detail-card h-100">
+          <div class="detail-card-header">
+            <h6 class="mb-0">
+              <i class="fas fa-link me-2 text-secondary"></i>Snabblänkar
+            </h6>
+          </div>
+          <div class="detail-card-body">
+            <div class="row g-2">
+              <div class="col-6">
+                <a routerLink="/rebotling/andon" class="btn btn-outline-secondary btn-sm w-100 quick-link-btn">
+                  <i class="fas fa-tv me-1"></i>Andontavla
+                </a>
+              </div>
+              <div class="col-6">
+                <a routerLink="/rebotling/skiftrapport" class="btn btn-outline-secondary btn-sm w-100 quick-link-btn">
+                  <i class="fas fa-clipboard-list me-1"></i>Senaste skiftrapport
+                </a>
+              </div>
+              <div class="col-6">
+                <a routerLink="/rapporter/vecka" class="btn btn-outline-secondary btn-sm w-100 quick-link-btn">
+                  <i class="fas fa-chart-bar me-1"></i>Veckorapport
+                </a>
+              </div>
+              <div class="col-6">
+                <a routerLink="/rebotling/statistik" class="btn btn-outline-secondary btn-sm w-100 quick-link-btn">
+                  <i class="fas fa-chart-line me-1"></i>Statistik
+                </a>
+              </div>
+              <div class="col-6">
+                <a routerLink="/rebotling/bonus" class="btn btn-outline-secondary btn-sm w-100 quick-link-btn">
+                  <i class="fas fa-star me-1"></i>Bonusdashboard
+                </a>
+              </div>
+              <div class="col-6">
+                <a routerLink="/admin/underhall" class="btn btn-outline-secondary btn-sm w-100 quick-link-btn">
+                  <i class="fas fa-wrench me-1"></i>Underhållslogg
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </ng-container>

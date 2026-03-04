@@ -11,6 +11,13 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
+interface NewsSnippet {
+  id: number;
+  title: string;
+  category: string;
+  created_at: string;
+}
+
 @Component({
   selector: 'app-executive-dashboard',
   standalone: true,
@@ -27,6 +34,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   dashData: ExecDashboardResponse['data'] | null = null;
   lastRefresh: Date = new Date();
+  lastUpdated: Date | null = null;
 
   alerts: { type: 'danger' | 'warning' | 'info'; message: string; detail: string }[] = [];
 
@@ -38,6 +46,10 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   private isFetchingLines = false;
   private linesStatusInterval: any = null;
   private linesSub: Subscription | null = null;
+
+  // Senaste nyheter
+  latestNews: NewsSnippet[] = [];
+  private isFetchingNews = false;
 
   private pollInterval: any;
   private dataSub: Subscription | null = null;
@@ -60,6 +72,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.loadData();
     this.loadAllLinesStatus();
     this.loadCertExpiry();
+    this.loadLatestNews();
     this.pollInterval = setInterval(() => this.loadData(), 30000);
     this.linesStatusInterval = setInterval(() => this.loadAllLinesStatus(), 60000);
   }
@@ -88,6 +101,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           if (res?.success && res.data) {
             this.dashData = res.data;
             this.lastRefresh = new Date();
+            this.lastUpdated = new Date();
             this.computeAlerts();
             clearTimeout(this.barChartTimer);
             this.barChartTimer = setTimeout(() => {
@@ -131,6 +145,84 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       .subscribe(res => {
         if (res?.success) this.certExpiryCount = res.count ?? 0;
       });
+  }
+
+  loadLatestNews(): void {
+    if (this.isFetchingNews) return;
+    this.isFetchingNews = true;
+    this.http.get<any>('/noreko-backend/api.php?action=news&run=admin-list',
+      { withCredentials: true })
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.isFetchingNews = false;
+        if (res?.success && res.news) {
+          this.latestNews = (res.news as NewsSnippet[]).slice(0, 3);
+        }
+      });
+  }
+
+  // ---- Veckoframgångsmätare ----
+
+  get veckoUppfyllnadPct(): number {
+    if (!this.dashData?.week) return 0;
+    const diff = this.dashData.week.week_diff_pct ?? 0;
+    // Normalisera: förra veckan = 100%, denna vecka relativt
+    // Om diff är +10% => denna vecka = 110% av förra => framgångspct = min(100, 110) = 100
+    // Om diff är -20% => denna vecka = 80% av förra => framgångspct = 80
+    return Math.min(100, Math.max(0, 100 + diff));
+  }
+
+  get veckoStatusClass(): string {
+    const pct = this.veckoUppfyllnadPct;
+    if (pct >= 95) return 'success';
+    if (pct >= 80) return 'warning';
+    return 'danger';
+  }
+
+  get veckoStatusText(): string {
+    const diff = this.dashData?.week?.week_diff_pct ?? 0;
+    if (diff >= 5) return 'Stark vecka';
+    if (diff >= 0) return 'Stabil vecka';
+    if (diff >= -10) return 'Under förra veckan';
+    return 'Svag vecka';
+  }
+
+  get veckoTrendIcon(): string {
+    const diff = this.dashData?.week?.week_diff_pct ?? 0;
+    if (diff > 1) return 'fa-arrow-trend-up';
+    if (diff < -1) return 'fa-arrow-trend-down';
+    return 'fa-minus';
+  }
+
+  get veckoTrendClass(): string {
+    const diff = this.dashData?.week?.week_diff_pct ?? 0;
+    if (diff > 1) return 'text-success';
+    if (diff < -1) return 'text-danger';
+    return 'text-muted';
+  }
+
+  // ---- Nyhets-helpers ----
+
+  getCategoryBadgeClass(category: string): string {
+    const map: { [key: string]: string } = {
+      produktion: 'bg-success',
+      bonus: 'bg-warning text-dark',
+      viktig: 'bg-danger',
+      system: 'bg-info text-dark',
+      info: 'bg-secondary'
+    };
+    return map[category] ?? 'bg-secondary';
+  }
+
+  getCategoryLabel(category: string): string {
+    const map: { [key: string]: string } = {
+      produktion: 'Produktion',
+      bonus: 'Bonus',
+      viktig: 'Viktig',
+      system: 'System',
+      info: 'Info'
+    };
+    return map[category] ?? category;
   }
 
   // ---- Linjestatus helpers ----
@@ -268,6 +360,12 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     const d = new Date(dateStr);
     const days = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
     return days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+  }
+
+  formatNewsDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + d.getFullYear();
   }
 
   // ---- Bar chart ----
