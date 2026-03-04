@@ -1,3 +1,5 @@
+**Worker: Stub-katalog cleanup** — Tog bort oanvända stub-filer: pages/tvattlinje/ (hela katalogen) + pages/rebotling/rebotling-live.* och rebotling-skiftrapport.* (stubs). Behöll pages/rebotling/rebotling-statistik.* som används av routing. Bygge OK.
+
 ## 2026-03-04 session #4 — Lead: Ny batch — 3 workers
 
 **Analys**: Exec dashboard multi-linje, bonus utbetalningshistorik, halvfärdiga features — alla redan implementerade (verifierat).
