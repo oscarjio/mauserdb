@@ -5905,5 +5905,4 @@ class RebotlingController {
             $this->sendError('Fel vid hämtning av produktionsrytm');
         }
     }
-
 }
