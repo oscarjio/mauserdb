@@ -235,6 +235,30 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
+## NÄSTA BATCH (session 2026-03-04 kväll — pågår)
+
+### 🔴 Hög prioritet
+- [x] **Email-notis brådskande not** (ad06aef): PÅGÅR — PHP mail() + notification_emails setting i admin
+- [x] **Min-bonus historik-export CSV/PDF** (a1c45eeb): PÅGÅR — CSV-download + window.print()
+- [x] **Bug Hunt #8** (a0e7697): PÅGÅR — grep alla .ts/.php sedan senaste bugfix
+- [x] **Dagdetalj drill-down** (ac06df25): PÅGÅR — klick på dag i kalender → timvis bargraf
+
+### 🟡 Medium prioritet
+- [x] **Rebotling statistik custom date range** (aa3b192): PÅGÅR — Från/Till datumfält
+- [x] **Notifikationscentral navbar** (a4d2d65): PÅGÅR — klockikon med badge
+
+### 🟢 Kommande (nästa batch efter dessa är klara)
+- [ ] **Skiftbyte-PDF automatgenerering** — Vid skiftslut: generera PDF-sammanfattning automatiskt, länk i UI
+- [ ] **Operatörsnärvaro-tracker** — Spåra vilka operatörer som faktiskt arbetat (från rebotling_ibc), kalendervy
+- [ ] **Live-ranking admin-konfig** — Konfigurera vilka KPI:er som visas på TV-skärmen (`/rebotling/live-ranking`)
+- [ ] **Benchmarking förbättring** — Lägg till månadsvis topplista, personbästa vs team-rekord
+- [ ] **Skiftrapport per operatör** — Filtrerbara skiftrapporter per specifik operatör
+- [ ] **IBC-kvalitets deep-dive** — Bryt ner ej-godkända IBC-tankar per avvisningsorsak (om data finns)
+- [ ] **Produktionsmål-historik** — Graf som visar hur dagsmålet ändrats över tid (ur rebotling_settings historik)
+- [ ] **Bug Hunt #9** — Granska alla nya features från senaste batchen
+
+---
+
 ## IDÉBANK — Autonomt genererade features (implementera fritt, kunden utvärderar)
 
 ### Grafer — mer detaljerad data
@@ -265,18 +289,16 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-04)
-- **Tvättlinje-statistik-agent** (a59ff05a): KLAR — cdd9411
-- **Kvalitetstrend+OEE-Waterfall-agent** (a35e472a): KLAR — a682f9d (features redan impl, verifierade)
-- **Operatörsjämförelse-agent** (a746769c): KLAR — b63feb9+fe14455 (route+nav)
-- **Bug hunt #5** (a863f91d): KLAR — 0092eaf (5 buggar)
-- **Andon-tavla förbättring** (a53c6ded): KLAR — 8fac87f
-- **Rebotling-skiftrapport trendgraf** (a60553d0): KLAR — 6af3e1e (shift-trend timupplösning, genomsnittsprofil, skiftnavigering)
-- **Tvättlinje/Såglinje/Klassificeringslinje admin** (committade tidigare): KLAR — today-snapshot, alert-thresholds, weekday-goals (all 3 linjer)
-- **Bug hunt #6** (a2d28c2b7f30344d6): KLAR — cc9d9bd (12 PHP session-guards, vpn-admin.ts 5 buggar)
-- **Operatörsdashboard förbättring** (a1934683e7c0bf6f6): PÅGÅR — veckovy, trend, summary-kort
-- **Andon-tavla skiftnoter** (ad5e36138558c6ba2): PÅGÅR — okvitterade noter, urgency-badge
-- **Månadsrapport förbättring** (a3d195a564a31c7e0): PÅGÅR — föregående månads-jämförelse, operatör av månaden
+## AKTIVA AGENTER (session 2026-03-04 kväll)
+- **Bonus-dashboard IBC/h veckotrendgraf** (a73cdefab): KLAR — d319b6b
+- **Operator-compare radar-diagram** (adcaa935): KLAR — 13a24c8
+- **Admin operatörslista förbättring** (afd3a1bb): KLAR — f8ececf
+- **Bug Hunt #8** (a0e7697): PÅGÅR
+- **Dagdetalj drill-down** (ac06df25): PÅGÅR
+- **Email-notis skiftöverlämning** (ad06aef): PÅGÅR
+- **Min-bonus historik-export CSV/PDF** (a1c45eeb): PÅGÅR
+- **Rebotling statistik date range picker** (aa3b192): PÅGÅR
+- **Notifikationscentral navbar** (a4d2d65): PÅGÅR
 
 ---
 
