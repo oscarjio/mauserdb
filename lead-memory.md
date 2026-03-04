@@ -473,3 +473,26 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **Rebotling-statistik: Custom date range** — Lägg till en "Anpassad period"-option i datum-väljarna som öppnar en datepicker-range istället för fasta perioder (7/14/30/90 dagar).
 - [ ] **Bug hunt #8** — Kör när 3+ nya features har tillkommit sedan bug hunt #7. Granska: operator-detail.ts, executive-dashboard.ts, bonus-dashboard.ts, production-calendar.ts, maintenance-log.ts, news-admin.ts.
 - [ ] **Min-bonus: Historik-export** — Knapp för att ladda ned sin personliga bonus-historik som PDF eller CSV.
+
+---
+
+## NÄSTA BATCH (2026-03-04 natt — kodbasanalys-fynd)
+
+### 🔴 Hög prioritet (från automatisk kodbasanalys)
+- [ ] **Bug Hunt #10 — RebotlingController aggregering**: `MAX(ibc_ok)` returnerar NULL (ej 0) för skift utan cykeldata. Lägg till `COALESCE(MAX(ibc_ok), 0)` i perShiftSubquery. Fixa skiftraknare=0/negativt fall.
+- [ ] **Bug Hunt #10 — BonusController parametrar**: `period` saknar whitelist-validering (`week|month|all`). `getOperatorHistory()` saknar LIMIT. Lägg till validering + `LIMIT 500`.
+- [ ] **Bug Hunt #10 — BonusAdmin threshold-validering**: Kontrollera att `brons < silver < guld < platina` vid sparande. Avvisa negativa värden och extrema belopp (> 100000 SEK).
+- [ ] **Bug Hunt #10 — bonus-dashboard.ts**: `getDailySummary()`, `getRanking()`, `loadPrevPeriodRanking()` saknar `timeout(8000)` + `catchError()` (från Bug Hunt #8, ej fixat).
+- [ ] **Skiftrapport empty-state**: Visa "Ingen skiftrapport registrerad för vald period" när data är tom. Export-knappar disableras när data saknas.
+
+### 🟡 Medium prioritet
+- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring/försämring vecka för vecka
+- [ ] **Historik/Audit Log pagination**: Backend LIMIT+OFFSET + frontend "Ladda fler"-knapp — annars kan 10 000+ rader orsaka timeout
+- [ ] **My Bonus — tom-state för ranking**: Visa "Du är inte med i rankingen denna period" istället för att dölja sektionen
+- [ ] **Chart error-boundary**: try-catch runt chart?.destroy() i alla 20+ Chart.js-komponenter
+- [ ] **Cykeltid per operatör**: Breakdown av cykeltids-histogrammet per operatör — vilken operatör har bäst median cykeltid?
+
+### 🟢 Lägre prioritet
+- [ ] **Prediktiv underhållsindikator v2**: Korrelationsanalys maskin-stopp vs. underhållshändelser
+- [ ] **Nyhetsflöde förbättring**: Auto-generera nyhet vid ny rekordag (PHP-hook i RebotlingController när ibc_total > rekord)
+- [ ] **Exportknappar disable-state**: Disabla CSV/Excel/PDF-knappar visuellt när data är tom (sätt `[disabled]="!hasData"`)
