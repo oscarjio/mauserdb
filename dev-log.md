@@ -849,3 +849,9 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 [2026-03-03 23:00] Andon-agent: Andon-tavla /rebotling/andon levererad, commit ddbade9
 [2026-03-03 23:15] Bonusprognos-agent: bonus i kr levererat, commit e472997
 [2026-03-03 23:05] Pareto-agent: Pareto-diagram stopporsaker levererat, commit 0f4865c
+
+## 2026-03-04 — Worker: Senaste händelser på startsidan
+- Lade till "Senaste händelser"-sektion i news.html (längst ner på startsidan)
+- Uppdaterade NewsController.php: fallback-produktion visas alltid (ej bara om inga andra händelser), deduplicering av typ+datum, query för OEE-dagar begränsat till 14 dagar
+- Skapade environments/environment.ts (saknades — orsakade byggfel för operator-dashboard)
+- Bygget OK — inga errors, bara warnings

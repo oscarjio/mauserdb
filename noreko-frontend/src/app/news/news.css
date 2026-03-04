@@ -274,3 +274,39 @@
 
 
 
+
+/* Senaste händelser */
+.events-section {
+  max-width: 1400px;
+}
+
+.event-item {
+  transition: background 0.15s;
+  padding: 0.85rem 1.25rem;
+}
+
+.event-item:hover {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+.event-icon-wrap {
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.event-text {
+  line-height: 1.4;
+}
+
+.event-datum {
+  padding-top: 1px;
+}
+
+/* Färgkodade vänsterborder per händelsetyp */
+.event-typ-rekordag    { border-left: 3px solid #f6e05e !important; }
+.event-typ-hog_oee     { border-left: 3px solid #63b3ed !important; }
+.event-typ-certifiering{ border-left: 3px solid #68d391 !important; }
+.event-typ-urgent_note { border-left: 3px solid #fc8181 !important; }
+.event-typ-produktion  { border-left: 3px solid #667eea !important; }

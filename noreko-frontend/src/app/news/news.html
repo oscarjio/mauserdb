@@ -173,5 +173,56 @@
         </div>
       </div>
     </div>
+
+    <!-- Senaste händelser -->
+    <div class="events-section mt-4 dashboard-grid mx-auto">
+      <div class="card" style="background:#2d3748; border-color:#4a5568; border-radius:1rem; overflow:hidden;">
+        <div class="card-header d-flex align-items-center justify-content-between py-3 px-4" style="background:#1a202c; border-bottom-color:#4a5568;">
+          <h6 class="mb-0" style="color:#e2e8f0; font-size:1rem;">
+            <i class="fas fa-bell me-2 text-warning"></i>Senaste händelser
+          </h6>
+          <span class="badge bg-secondary small" *ngIf="!loadingEvents && events.length > 0">
+            {{ events.length }} händelse{{ events.length !== 1 ? 'r' : '' }}
+          </span>
+        </div>
+
+        <!-- Laddar -->
+        <div *ngIf="loadingEvents" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status">
+            <span class="visually-hidden">Laddar...</span>
+          </div>
+          <p class="text-muted mt-2 mb-0 small">Hämtar händelser...</p>
+        </div>
+
+        <!-- Händelselista -->
+        <ul class="list-group list-group-flush" *ngIf="!loadingEvents && events.length > 0">
+          <li *ngFor="let e of events"
+              class="list-group-item event-item"
+              [ngClass]="'event-typ-' + e.typ"
+              style="background:transparent; border-color:#4a5568;">
+            <div class="d-flex align-items-start justify-content-between gap-2">
+              <div class="event-icon-wrap me-2">
+                <i class="fas" [ngClass]="{
+                  'fa-trophy text-warning':    e.ikon === 'trophy',
+                  'fa-rocket text-info':        e.ikon === 'rocket',
+                  'fa-certificate text-success':e.ikon === 'certificate',
+                  'fa-exclamation-triangle text-danger': e.ikon === 'exclamation-triangle',
+                  'fa-chart-bar text-primary':  e.ikon === 'chart-bar'
+                }"></i>
+              </div>
+              <span class="event-text flex-grow-1" style="color:#e2e8f0; font-size:0.9rem;">{{ e.text }}</span>
+              <small class="event-datum text-muted text-nowrap" style="font-size:0.78rem; min-width:65px; text-align:right;">{{ e.datum }}</small>
+            </div>
+          </li>
+        </ul>
+
+        <!-- Inga händelser -->
+        <p *ngIf="!loadingEvents && events.length === 0"
+           class="text-muted text-center py-4 mb-0 small">
+          Inga händelser att visa för tillfället.
+        </p>
+      </div>
+    </div>
+
   </div>
 </div>

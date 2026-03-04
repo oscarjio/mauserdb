@@ -2148,6 +2148,28 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             borderWidth: 1.5,
             fill: false,
             yAxisID: 'y'
+          },
+          {
+            label: 'WCM 85%',
+            data: labels.map(() => 85),
+            borderColor: '#48bb78',
+            borderDash: [8, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+            type: 'line' as const
+          },
+          {
+            label: 'Branschsnitt 70%',
+            data: labels.map(() => 70),
+            borderColor: '#ed8936',
+            borderDash: [4, 4],
+            borderWidth: 1,
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+            type: 'line' as const
           }
         ]
       },

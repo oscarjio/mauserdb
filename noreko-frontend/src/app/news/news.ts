@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { of, Subject } from 'rxjs';
 import { catchError, timeout, takeUntil } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
@@ -8,16 +9,24 @@ import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvat
 import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService } from '../services/auth.service';
 
+export interface NewsEvent {
+  typ: string;
+  datum: string;
+  text: string;
+  ikon: string;
+}
+
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DatePipe],
   templateUrl: './news.html',
   styleUrl: './news.css'
 })
 export class News implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   intervalId: any;
+  eventsIntervalId: any;
   loggedIn = false;
   isAdmin = false;
 
@@ -47,11 +56,18 @@ export class News implements OnInit, OnDestroy {
   klassificeringslinjeKvalitetPct: number = 0;
   klassificeringslinjeSkiftCount: number = 0;
 
+  // Senaste händelser
+  events: NewsEvent[] = [];
+  loadingEvents = true;
+
+  private apiBase = '/api/api.php';
+
   constructor(
     private rebotlingService: RebotlingService,
     private tvattlinjeService: TvattlinjeService,
     private lineSkiftrapportService: LineSkiftrapportService,
-    private auth: AuthService
+    private auth: AuthService,
+    private http: HttpClient
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
@@ -64,6 +80,12 @@ export class News implements OnInit, OnDestroy {
       this.fetchAllData();
     }, 5000);
     this.fetchAllData();
+
+    // Händelser: ladda direkt och sedan var 5:e minut
+    this.loadEvents();
+    this.eventsIntervalId = setInterval(() => {
+      this.loadEvents();
+    }, 300000);
   }
 
   ngOnDestroy() {
@@ -71,6 +93,9 @@ export class News implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.intervalId) {
       clearInterval(this.intervalId);
+    }
+    if (this.eventsIntervalId) {
+      clearInterval(this.eventsIntervalId);
     }
   }
 
@@ -153,6 +178,21 @@ export class News implements OnInit, OnDestroy {
         this.klassificeringslinjeKvalitetPct = this.klassificeringslinjeTarget > 0
           ? Math.round((this.klassificeringslinjeToday / this.klassificeringslinjeTarget) * 100) : 0;
         this.klassificeringslinjeStatus = reps.length > 0;
+      }
+    });
+  }
+
+  loadEvents() {
+    this.http.get<{ success: boolean; events: NewsEvent[] }>(
+      `${this.apiBase}?action=news&run=events&antal=10`
+    ).pipe(
+      timeout(5000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe(res => {
+      this.loadingEvents = false;
+      if (res?.success && Array.isArray(res.events)) {
+        this.events = res.events;
       }
     });
   }
