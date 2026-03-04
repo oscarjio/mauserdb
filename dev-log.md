@@ -1,3 +1,11 @@
+## 2026-03-04 — Worker: Operatörsfeedback-loop (2981f70)
+- SQL-migration: `operator_feedback` tabell (operator_id, skiftraknare, datum, stämning TINYINT 1-4, kommentar VARCHAR(280))
+- FeedbackController.php: GET my-history (inloggad ops senaste 10), GET summary (admin aggregering 30d), POST submit (max 1/skift)
+- api.php: `feedback` action registrerad i classNameMap
+- my-bonus.ts: FeedbackItem interface, moodEmojis/moodLabels records, loadFeedbackHistory(), submitFeedback() med timeout+catchError+takeUntil
+- my-bonus.html: Skiftfeedback-kort med runda emoji-knappar (😟😐😊🌟), textfält 280 tecken, success/error-meddelanden, historik senaste 3
+- my-bonus.css: dark theme feedback-komponenter (feedback-mood-btn, feedback-history-item, feedback-textarea)
+
 ## 2026-03-04 — Worker: Kassationsorsaksanalys + Bemanningsvarning i shift-plan (f1d0408)
 - SQL-migreringsfil: kassationsorsak_typer (6 standardorsaker) + kassationsregistrering
 - RebotlingController: kassation-pareto (Pareto-data + KPI), kassation-register (POST), kassation-typer, kassation-senaste, staffing-warning
