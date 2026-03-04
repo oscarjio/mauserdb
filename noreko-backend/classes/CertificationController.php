@@ -25,6 +25,16 @@ class CertificationController {
             return;
         }
 
+        if ($method === 'GET' && $run === 'expiry-count') {
+            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                return;
+            }
+            $this->getExpiryCount();
+            return;
+        }
+
         // POST-endpoints kräver admin
         if ($method === 'POST') {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -46,6 +56,50 @@ class CertificationController {
 
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => 'Okänd åtgärd']);
+    }
+
+    private function getExpiryCount() {
+        try {
+            // Kontrollera om tabellen finns
+            $tableCheck = $this->pdo->query("
+                SELECT COUNT(*) FROM information_schema.tables
+                WHERE table_schema = DATABASE()
+                AND table_name = 'operator_certifications'
+            ");
+            if ((int)$tableCheck->fetchColumn() === 0) {
+                echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0]);
+                return;
+            }
+
+            // Certifikat som löper ut inom 30 dagar
+            $stmt = $this->pdo->query("
+                SELECT COUNT(*) AS count
+                FROM operator_certifications
+                WHERE expires_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+                AND expires_date IS NOT NULL
+                AND active = 1
+            ");
+            $count = (int)$stmt->fetchColumn();
+
+            // Certifikat som löper ut inom 7 dagar (urgent)
+            $urgentStmt = $this->pdo->query("
+                SELECT COUNT(*) AS count
+                FROM operator_certifications
+                WHERE expires_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                AND expires_date IS NOT NULL
+                AND active = 1
+            ");
+            $urgentCount = (int)$urgentStmt->fetchColumn();
+
+            echo json_encode([
+                'success'       => true,
+                'count'         => $count,
+                'urgent_count'  => $urgentCount,
+            ]);
+        } catch (Exception $e) {
+            error_log('CertificationController getExpiryCount: ' . $e->getMessage());
+            echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0]);
+        }
     }
 
     private function getAll() {

@@ -23,6 +23,7 @@ export class Menu implements OnInit, OnDestroy {
   rebotlingRunning = false;
   tvattlinjeRunning = false;
   urgentNoteCount = 0;
+  certExpiryCount = 0;
   profileForm = {
     email: '',
     operatorId: '',
@@ -37,6 +38,7 @@ export class Menu implements OnInit, OnDestroy {
   private refreshInterval: any;
   private lineStatusInterval: any;
   private notifTimer: ReturnType<typeof setInterval> | null = null;
+  private certExpiryInterval: any = null;
 
   constructor(
     private router: Router, 
@@ -49,9 +51,12 @@ export class Menu implements OnInit, OnDestroy {
       this.loggedIn = val;
       if (val && this.user?.role === 'admin') {
         this.loadVpnStatus();
+        this.loadCertExpiryCount();
       } else {
         this.vpnConnectedCount = 0;
+        this.certExpiryCount = 0;
         this.clearRefreshInterval();
+        this.clearCertExpiryInterval();
       }
       if (val) {
         this.loadUrgentCount();
@@ -76,9 +81,12 @@ export class Menu implements OnInit, OnDestroy {
       }
       if (val?.role === 'admin' && this.loggedIn) {
         this.loadVpnStatus();
+        this.loadCertExpiryCount();
       } else {
         this.vpnConnectedCount = 0;
+        this.certExpiryCount = 0;
         this.clearRefreshInterval();
+        this.clearCertExpiryInterval();
       }
     });
   }
@@ -87,6 +95,7 @@ export class Menu implements OnInit, OnDestroy {
     this.loadLineStatus();
     if (this.loggedIn && this.user?.role === 'admin') {
       this.loadVpnStatus();
+      this.loadCertExpiryCount();
     }
   }
 
@@ -94,6 +103,7 @@ export class Menu implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.clearRefreshInterval();
+    this.clearCertExpiryInterval();
     if (this.lineStatusInterval) {
       clearInterval(this.lineStatusInterval);
       this.lineStatusInterval = null;
@@ -108,6 +118,13 @@ export class Menu implements OnInit, OnDestroy {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+  }
+
+  private clearCertExpiryInterval() {
+    if (this.certExpiryInterval) {
+      clearInterval(this.certExpiryInterval);
+      this.certExpiryInterval = null;
     }
   }
 
@@ -133,6 +150,19 @@ export class Menu implements OnInit, OnDestroy {
     ).subscribe(r => {
       this.urgentNoteCount = r.antal || 0;
     });
+  }
+
+  loadCertExpiryCount(): void {
+    if (!this.loggedIn || this.user?.role !== 'admin') return;
+    this.http.get<any>('/noreko-backend/api.php?action=certification&run=expiry-count', { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        if (res?.success) this.certExpiryCount = res.count ?? 0;
+      });
+
+    if (!this.certExpiryInterval) {
+      this.certExpiryInterval = setInterval(() => this.loadCertExpiryCount(), 5 * 60 * 1000);
+    }
   }
 
   loadVpnStatus() {
@@ -231,7 +261,9 @@ export class Menu implements OnInit, OnDestroy {
     this.auth.logout();
     this.showMenu = false;
     this.vpnConnectedCount = 0;
+    this.certExpiryCount = 0;
     this.clearRefreshInterval();
+    this.clearCertExpiryInterval();
     this.router.navigate(['/']);
   }
 }
