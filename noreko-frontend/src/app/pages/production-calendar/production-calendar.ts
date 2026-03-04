@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import * as XLSX from 'xlsx';
 
 interface CalendarDay {
   date: string;
@@ -66,6 +67,11 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   private readonly MONTH_NAMES_SV = [
     'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
     'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'
+  ];
+
+  private readonly MONTH_NAMES_FULL_SV = [
+    'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+    'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
   ];
 
   constructor(private http: HttpClient) {}
@@ -274,5 +280,79 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
 
   formatBestDate(): string {
     return this.bestDate ? this.formatSwedishDate(this.bestDate) : '—';
+  }
+
+  // =============================================
+  // EXPORT-FUNKTIONER
+  // =============================================
+
+  private getDayStatus(day: CalendarDay): string {
+    if (day.pct >= 110) return 'Superdag';
+    if (day.pct >= 95)  return 'Bra';
+    if (day.pct >= 80)  return 'OK';
+    if (day.pct >= 60)  return 'Under mål';
+    return 'Låg';
+  }
+
+  private getDayName(dateStr: string): string {
+    const d = new Date(dateStr + 'T00:00:00');
+    const names = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
+    return names[d.getDay()];
+  }
+
+  exportToExcel(): void {
+    if (this.days.length === 0) return;
+
+    // Rubrikrad
+    const headers = ['Datum', 'Dag', 'IBC', 'Mål', '% av mål', 'Status'];
+
+    // Datarows — en per produktionsdag
+    const dataRows = this.days.map(d => [
+      d.date,
+      this.getDayName(d.date),
+      d.ibc,
+      d.goal,
+      d.goal > 0 ? Math.round(d.ibc / d.goal * 100) : 0,
+      this.getDayStatus(d)
+    ]);
+
+    // Tom rad + summering
+    const emptyRow: (string | number)[] = [];
+    const summaryHeader = ['SUMMERING', '', '', '', '', ''];
+    const totalRow = ['Totalt IBC', '', this.totalIbc, '', '', ''];
+    const avgRow = ['Snitt per dag', '', this.avgIbcPerDay, '', '', ''];
+    const bestRow = ['Bästa dag', this.formatBestDate(), this.bestDayIbc, '', '', 'Superdag'];
+    const targetRow = ['Dagar på mål (≥95%)', '', this.daysOnTarget, `av ${this.totalProductionDays}`, `${this.daysOnTargetPct}%`, ''];
+
+    const allRows = [
+      headers,
+      ...dataRows,
+      emptyRow,
+      summaryHeader,
+      totalRow,
+      avgRow,
+      bestRow,
+      targetRow
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+    // Kolumnbredder
+    ws['!cols'] = [
+      { wch: 12 }, // Datum
+      { wch: 12 }, // Dag
+      { wch: 8 },  // IBC
+      { wch: 8 },  // Mål
+      { wch: 10 }, // % av mål
+      { wch: 12 }  // Status
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Produktionskalender ${this.selectedYear}`);
+    XLSX.writeFile(wb, `Produktionskalender_${this.selectedYear}.xlsx`);
+  }
+
+  exportToPDF(): void {
+    window.print();
   }
 }

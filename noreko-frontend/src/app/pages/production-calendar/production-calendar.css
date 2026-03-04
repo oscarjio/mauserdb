@@ -213,3 +213,152 @@
   .day-num { display: none; }
   .day-cell { min-height: 12px; }
 }
+
+/* --- Export-knappar --- */
+.export-divider {
+  width: 1px;
+  height: 24px;
+  background: #4a5568;
+}
+
+/* ============================================================
+   PRINT / PDF — @media print
+   ============================================================ */
+
+@media print {
+  /* Bakgrundsfärger och bilder måste tillåtas */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Dölj allt utom kalender-sidan */
+  body > *:not(app-root) {
+    display: none !important;
+  }
+
+  /* Dölj navbar, sidomeny, och allt utanför kalender-innehållet */
+  nav,
+  .navbar,
+  .sidebar,
+  .no-print,
+  .btn,
+  button {
+    display: none !important;
+  }
+
+  /* Kalender-sidan — vit bakgrund för utskrift */
+  .cal-page {
+    background: #ffffff !important;
+    color: #1a202c !important;
+    padding: 1rem !important;
+    min-height: auto !important;
+  }
+
+  /* Titel */
+  .cal-title {
+    color: #1a202c !important;
+    font-size: 1.2rem !important;
+  }
+
+  /* KPI-kort — vit bakgrund med kantlinje */
+  .kpi-card {
+    background: #f7fafc !important;
+    border: 1px solid #cbd5e0 !important;
+    color: #1a202c !important;
+    break-inside: avoid;
+  }
+
+  .kpi-label,
+  .kpi-sub {
+    color: #4a5568 !important;
+  }
+
+  .kpi-value {
+    color: #1a202c !important;
+  }
+
+  /* Legend */
+  .legend-row {
+    color: #4a5568 !important;
+  }
+
+  .legend-label {
+    color: #2d3748 !important;
+  }
+
+  /* Månadsnamn */
+  .month-name {
+    color: #2d3748 !important;
+  }
+
+  /* Månads-prefix text */
+  .month-block::before {
+    color: #718096 !important;
+  }
+
+  /* Dagcell — behåll färger men lägg till kantlinje */
+  .day-cell {
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+    min-height: 16px !important;
+  }
+
+  .cell-empty {
+    background: #edf2f7 !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .cell-red {
+    background: #fc8181 !important;
+    border: 1px solid #e53e3e !important;
+  }
+
+  .cell-orange {
+    background: #f6ad55 !important;
+    border: 1px solid #dd6b20 !important;
+  }
+
+  .cell-yellow {
+    background: #f6e05e !important;
+    border: 1px solid #d69e2e !important;
+  }
+
+  .cell-green {
+    background: #68d391 !important;
+    border: 1px solid #38a169 !important;
+  }
+
+  .cell-superday {
+    background: #48bb78 !important;
+    border: 2px solid #276749 !important;
+  }
+
+  /* Dagsiffror synliga vid utskrift */
+  .day-num {
+    font-size: 0.45rem !important;
+    color: rgba(0, 0, 0, 0.6) !important;
+    display: block !important;
+  }
+
+  .empty-num {
+    color: rgba(0, 0, 0, 0.25) !important;
+  }
+
+  /* Kalender-grid: 4 månader per rad */
+  .calendar-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  /* Undvik sidbrytning i mitten av månadsblock */
+  .month-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Sidhuvud vid utskrift */
+  @page {
+    size: A4 landscape;
+    margin: 1.5cm;
+  }
+}

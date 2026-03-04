@@ -66,6 +66,11 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   private trendChart: Chart | null = null;
   private kpiRadarChart: Chart | null = null;
   private shiftCompareChart: Chart | null = null;
+  private weekTrendChart: Chart | null = null;
+
+  // Week trend data
+  weekTrendData: any = null;
+  weekTrendLoading = false;
 
   // Subscription tracking
   private pollingInterval: any = null;
@@ -92,6 +97,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.loadWeeklyGoal();
     this.loadHallOfFame();
     this.loadLoneprognos();
+    this.loadWeekTrend();
     this.pollingInterval = setInterval(() => this.loadData(), 30000);
   }
 
@@ -106,6 +112,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (this.trendChart) this.trendChart.destroy();
     if (this.kpiRadarChart) this.kpiRadarChart.destroy();
     if (this.shiftCompareChart) this.shiftCompareChart.destroy();
+    if (this.weekTrendChart) this.weekTrendChart.destroy();
   }
 
   private loadWeeklyGoal() {
@@ -408,6 +415,118 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
             beginAtZero: true,
             grid: { color: 'rgba(255,255,255,0.05)' },
             ticks: { color: '#a0aec0' }
+          }
+        }
+      }
+    });
+  }
+
+  loadWeekTrend() {
+    this.weekTrendLoading = true;
+    this.bonusService.getWeekTrend().pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res && res.success && res.data) {
+          this.weekTrendData = res.data;
+          setTimeout(() => {
+            if (!this.destroy$.closed) this.buildWeekTrendChart();
+          }, 100);
+        }
+        this.weekTrendLoading = false;
+      },
+      error: () => { this.weekTrendLoading = false; }
+    });
+  }
+
+  private buildWeekTrendChart(): void {
+    if (this.weekTrendChart) this.weekTrendChart.destroy();
+
+    const canvas = document.getElementById('weekTrendChart') as HTMLCanvasElement;
+    if (!canvas || !this.weekTrendData) return;
+
+    const { dates, operators, team_avg } = this.weekTrendData;
+    if (!dates || dates.length === 0) return;
+
+    // Färger per operatörsindex
+    const opColors = [
+      { border: '#63b3ed', bg: 'rgba(99,179,237,0.15)' },   // blå
+      { border: '#68d391', bg: 'rgba(104,211,145,0.15)' },  // grön
+      { border: '#f6ad55', bg: 'rgba(246,173,85,0.15)' },   // orange
+      { border: '#b794f4', bg: 'rgba(183,148,244,0.15)' },  // lila
+      { border: '#fc8181', bg: 'rgba(252,129,129,0.15)' },  // röd
+    ];
+
+    const datasets: any[] = (operators || []).map((op: any, i: number) => {
+      const c = opColors[i % opColors.length];
+      return {
+        label: op.namn || op.initialer,
+        data: op.data,
+        borderColor: c.border,
+        backgroundColor: c.bg,
+        tension: 0.3,
+        fill: false,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        spanGaps: false,
+      };
+    });
+
+    // Team-snitt som tjock streckad grå linje
+    if (team_avg && team_avg.length > 0) {
+      datasets.push({
+        label: 'Team-snitt',
+        data: team_avg,
+        borderColor: '#a0aec0',
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        borderDash: [6, 4],
+        tension: 0.3,
+        fill: false,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        spanGaps: false,
+      });
+    }
+
+    this.weekTrendChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets,
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#a0aec0', boxWidth: 14, font: { size: 11 } }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const val = ctx.parsed.y;
+                return ` ${ctx.dataset.label}: ${val !== null ? val.toFixed(1) + ' IBC/h' : 'Ingen data'}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'IBC/h', color: '#718096', font: { size: 11 } },
+            ticks: { color: '#718096' },
+            grid: { color: 'rgba(255,255,255,0.05)' },
           }
         }
       }

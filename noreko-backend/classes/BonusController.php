@@ -66,6 +66,7 @@ class BonusController {
             case 'personal-best':  $this->getPersonalBest();      break;
             case 'streak':         $this->getStreak();            break;
             case 'my-ranking':    $this->getMyRanking();         break;
+            case 'week-trend':    $this->getWeekTrend();         break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -1780,5 +1781,169 @@ class BonusController {
             $this->sendError('Databasfel');
         }
     }
+
+    /**
+     * GET /api.php?action=bonus&run=week-trend
+     *
+     * Returnerar daglig IBC/h per operatör för innevarande vecka (måndag–idag).
+     * Används för att rita veckans IBC/h-trendgraf i bonus-dashboard.
+     *
+     * Returnerar:
+     *   dates:     ["Mån 2 mar", "Tis 3 mar", ...]
+     *   operators: [{ op_id, namn, initialer, data: [12.4, 14.1, null, ...] }]
+     *   team_avg:  [11.2, 13.5, ...]
+     */
+    private function getWeekTrend(): void {
+        try {
+            // Hämta alla dagar från måndag denna vecka till idag
+            $stmt = $this->pdo->query("
+                SELECT DISTINCT DATE(datum) AS dag
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                  AND DATE(datum) <= CURDATE()
+                ORDER BY dag ASC
+            ");
+            $dayRows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+            if (empty($dayRows)) {
+                $this->sendSuccess([
+                    'dates'      => [],
+                    'operators'  => [],
+                    'team_avg'   => [],
+                ]);
+                return;
+            }
+
+            // Hämta IBC/h per dag per operatör (alla tre positioner, aggregerat korrekt)
+            $raw = $this->pdo->query("
+                SELECT
+                    dag,
+                    op_id,
+                    SUM(shift_ibc) / NULLIF(SUM(shift_runtime_h), 0) AS ibc_per_h
+                FROM (
+                    SELECT DATE(datum) AS dag, op1 AS op_id,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                      AND DATE(datum) <= CURDATE()
+                      AND op1 IS NOT NULL AND op1 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare, op1
+
+                    UNION ALL
+
+                    SELECT DATE(datum) AS dag, op2 AS op_id,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                      AND DATE(datum) <= CURDATE()
+                      AND op2 IS NOT NULL AND op2 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare, op2
+
+                    UNION ALL
+
+                    SELECT DATE(datum) AS dag, op3 AS op_id,
+                        skiftraknare,
+                        MAX(ibc_ok) AS shift_ibc,
+                        MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
+                      AND DATE(datum) <= CURDATE()
+                      AND op3 IS NOT NULL AND op3 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare, op3
+                ) AS t
+                GROUP BY dag, op_id
+                ORDER BY dag, op_id
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            // Hämta operatörsnamn
+            $opIds = array_unique(array_column($raw, 'op_id'));
+            $opNames = [];
+            if (!empty($opIds)) {
+                $placeholders = implode(',', array_fill(0, count($opIds), '?'));
+                $nameStmt = $this->pdo->prepare("
+                    SELECT id, namn FROM operators WHERE id IN ($placeholders)
+                ");
+                $nameStmt->execute(array_values($opIds));
+                foreach ($nameStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                    $opNames[(int)$row['id']] = $row['namn'];
+                }
+            }
+
+            // Bygg en lookup: [op_id][dag] => ibc_per_h
+            $lookup = [];
+            foreach ($raw as $row) {
+                $opId = (int)$row['op_id'];
+                $dag  = $row['dag'];
+                $lookup[$opId][$dag] = $row['ibc_per_h'] !== null ? round((float)$row['ibc_per_h'], 2) : null;
+            }
+
+            // Formatera dagsetiketter: "Mån 2 mar" etc.
+            $dayNames = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+            $monthNames = ['jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+            $dates = [];
+            foreach ($dayRows as $dag) {
+                $ts   = strtotime($dag);
+                $dow  = (int)date('N', $ts) - 1; // 0=Mån..6=Sön
+                $day  = (int)date('j', $ts);
+                $mon  = (int)date('n', $ts) - 1;
+                $dates[] = $dayNames[$dow] . ' ' . $day . ' ' . $monthNames[$mon];
+            }
+
+            // Bygg per-operatör dataset
+            $operators = [];
+            foreach ($lookup as $opId => $dagData) {
+                $namn = $opNames[$opId] ?? ('Op ' . $opId);
+                // Initials: första bokstav i varje ord
+                $parts    = preg_split('/\s+/', trim($namn));
+                $initialer = '';
+                foreach ($parts as $p) {
+                    if (strlen($p) > 0) $initialer .= strtoupper($p[0]);
+                }
+                if (strlen($initialer) > 2) $initialer = substr($initialer, 0, 2);
+                if (empty($initialer)) $initialer = 'OP';
+
+                $data = [];
+                foreach ($dayRows as $dag) {
+                    $data[] = isset($dagData[$dag]) ? $dagData[$dag] : null;
+                }
+                $operators[] = [
+                    'op_id'     => $opId,
+                    'namn'      => $namn,
+                    'initialer' => $initialer,
+                    'data'      => $data,
+                ];
+            }
+
+            // Team-snitt per dag
+            $teamAvg = [];
+            foreach ($dayRows as $dag) {
+                $vals = [];
+                foreach ($lookup as $opId => $dagData) {
+                    if (isset($dagData[$dag]) && $dagData[$dag] !== null) {
+                        $vals[] = (float)$dagData[$dag];
+                    }
+                }
+                $teamAvg[] = !empty($vals) ? round(array_sum($vals) / count($vals), 2) : null;
+            }
+
+            $this->sendSuccess([
+                'dates'      => $dates,
+                'operators'  => $operators,
+                'team_avg'   => $teamAvg,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getWeekTrend error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
 
 }

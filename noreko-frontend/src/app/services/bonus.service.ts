@@ -336,4 +336,12 @@ export class BonusService {
       withCredentials: true
     });
   }
+  getWeekTrend(): Observable<any> {
+    const params = new HttpParams().set('run', 'week-trend');
+    return this.http.get<any>(this.baseUrl, {
+      params,
+      withCredentials: true
+    });
+  }
+
 }
