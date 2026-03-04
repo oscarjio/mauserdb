@@ -1,3 +1,12 @@
+## 2026-03-04 — Worker: Kassationsorsaksanalys + Bemanningsvarning i shift-plan (f1d0408)
+- SQL-migreringsfil: kassationsorsak_typer (6 standardorsaker) + kassationsregistrering
+- RebotlingController: kassation-pareto (Pareto-data + KPI), kassation-register (POST), kassation-typer, kassation-senaste, staffing-warning
+- ShiftPlanController: staffing-warning endpoint
+- rebotling-admin: kassationsregistreringsformulär (datum/orsak/antal/kommentar), tabell med senaste 10, min_operators-inställning
+- rebotling-statistik: Pareto-diagram (bar + kumulativ linje + 80%-linje), KPI-kort (total kassation, % av produktion, total produktion, vanligaste orsak), datumfilter 7/30/90 dagar
+- shift-plan: bemanningsvarningsbanner för dagar närmaste 7 med < min_operators operatörer schemalagda
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
 ## 2026-03-04 — Worker: Andon — Winning-the-Shift scoreboard + kumulativ dagskurva S-kurva (9e9812a)
 - Nytt "Skift-progress"-scoreboard ovanför KPI-korten: stor färgkodad "IBC kvar att producera"-siffra, behövd takt i IBC/h, animerad progress-bar mot dagsmål, mini-statistikrad med faktisk takt/målsatt takt/prognos vid skiftslut/hittills idag.
 - Statuslogik: winning (grön) / on-track (orange) / behind (röd) / done (grön glow) baserat på behövd vs faktisk IBC/h.
