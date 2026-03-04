@@ -1,3 +1,9 @@
+## 2026-03-04 — Worker: MTTR/MTBF KPI-analys i maintenance-log + certifikat-utgångvarning i exec-dashboard (6075bfa)
+- MaintenanceController.php: ny endpoint run=mttr-mtbf beräknar MTTR (snitt stilleståndstid/incident i timmar) och MTBF (snitt dagar mellan fel) per utrustning med datumfilter 30/90/180/365 dagar.
+- maintenance-log.ts: ny "KPI-analys"-flik (3:e fliken) med tabell per utrustning — Utrustning | Antal fel | MTBF (dagar) | MTTR (timmar) | Total stillestånd. Färgkodning: grön/gul/röd baserat på tröskelvärden. Datumfilter-knappar. Förklaring av KPI-begrepp i tabellens footer.
+- executive-dashboard.ts + .html: certifikat-utgångvarning — banner visas när certExpiryCount > 0 (certifikat upphör inom 30 dagar). Återanvänder certification&run=expiry-count som menu.ts redan anropar. Länk till /admin/certifiering.
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
 ## 2026-03-04 — Worker: Skiftbyte-PDF export — skiftöverlämnings-rapport (61b42a8)
 - rebotling-skiftrapport.ts: Ny metod exportHandoverPDF() + buildHandoverPDFDocDef() — genererar PDF med pdfmake.
 - PDF-innehåll: Header (period + Noreko-logotyp-text), KPI-sammanfattning (Total IBC, Kvalitet, OEE, Drifttid, Rasttid) med stor text + färgkodning, uppfyllnadsprocent vs dagsmål, nästa skifts mål (dagsmål ÷ 3 skift), operatörstabell (namn, antal skift, IBC OK totalt, snitt IBC/h), senaste 5 skift, skiftkommentarer (laddade), anteckningsruta, footer med genererings-tid.
