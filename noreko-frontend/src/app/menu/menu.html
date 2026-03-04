@@ -73,6 +73,8 @@
           <li><a class="dropdown-item" routerLink="/klassificeringslinje/live">Live</a></li>
           <li><a class="dropdown-item" routerLink="/klassificeringslinje/skiftrapport">Skiftrapport</a></li>
           <li><a class="dropdown-item" routerLink="/klassificeringslinje/statistik">Statistik</a></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/klassificeringslinje/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
         </ul>
       </li>
 
