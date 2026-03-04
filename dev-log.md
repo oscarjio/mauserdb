@@ -1,3 +1,14 @@
+## 2026-03-04 — QR-koder till stopplogg per maskin
+
+Worker-agent implementerade QR-kod-funktionalitet i stoppage-log:
+
+1. **npm qrcode** installerat + `@types/qrcode` + tillagt i `allowedCommonJsDependencies` i angular.json
+2. **Query-param pre-fill** — `?maskin=<namn>` fyller i kommentarfältet automatiskt och öppnar formuläret (för QR-skanning från telefon)
+3. **Admin QR-sektion** (kollapsbar panel, visas enbart för admin) direkt i stoppage-log.ts/html — ej i rebotling-admin.ts som en annan agent jobbade med
+4. **6 maskiner**: Press 1, Press 2, Robotstation, Transportband, Ränna, Övrigt
+5. **Utskrift** via window.print() + @media print CSS för att dölja UI-element
+6. Byggt utan fel — commit b6b0c3f pushat till main
+
 ## 2026-03-04 — Operatörsfeedback admin-vy: Teamstämning i operator-dashboard
 
 Worker-agent implementerade ny flik "Teamstämning" i operator-dashboard:
