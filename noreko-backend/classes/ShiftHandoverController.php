@@ -28,6 +28,12 @@ class ShiftHandoverController {
             return;
         }
 
+        if ($method === 'POST' && $run === 'acknowledge') {
+            $this->requireLogin();
+            $this->acknowledge();
+            return;
+        }
+
         if ($method === 'DELETE' && $run === 'delete') {
             $this->requireLogin();
             $this->deleteNote();
@@ -127,6 +133,7 @@ class ShiftHandoverController {
                 FROM shift_handover
                 WHERE priority = \'urgent\'
                   AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
+                  AND acknowledged_at IS NULL
             ');
             $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -139,26 +146,32 @@ class ShiftHandoverController {
 
     // -------------------------------------------------------------------------
     // GET ?action=shift-handover&run=recent
-    // Returnerar senaste 3 dagars anteckningar (max 10 st), nyast först.
+    // Returnerar senaste 3 dagars anteckningar (max 30 st), nyast först.
+    // Inkluderar kvittensinfo.
     // -------------------------------------------------------------------------
 
     private function getRecent(): void {
         try {
             $stmt = $this->pdo->prepare('
                 SELECT
-                    id,
-                    datum,
-                    skift_nr,
-                    note,
-                    priority,
-                    op_number,
-                    op_name,
-                    created_by_user_id,
-                    created_at
-                FROM shift_handover
-                WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 3 DAY)
-                ORDER BY created_at DESC
-                LIMIT 10
+                    sh.id,
+                    sh.datum,
+                    sh.skift_nr,
+                    sh.note,
+                    sh.priority,
+                    sh.audience,
+                    sh.op_number,
+                    sh.op_name,
+                    sh.created_by_user_id,
+                    sh.created_at,
+                    sh.acknowledged_by,
+                    sh.acknowledged_at,
+                    u.username AS acknowledged_by_name
+                FROM shift_handover sh
+                LEFT JOIN users u ON u.id = sh.acknowledged_by
+                WHERE sh.datum >= DATE_SUB(CURDATE(), INTERVAL 3 DAY)
+                ORDER BY sh.created_at DESC
+                LIMIT 30
             ');
             $stmt->execute();
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -174,17 +187,22 @@ class ShiftHandoverController {
                 $skiftNr        = (int)$row['skift_nr'];
                 $skiftLabelText = $skiftLabels[$skiftNr] ?? "Skift $skiftNr";
                 $notes[] = [
-                    'id'          => (int)$row['id'],
-                    'datum'       => $row['datum'],
-                    'skift_nr'    => $skiftNr,
-                    'skift_label' => "Skift $skiftNr — $skiftLabelText",
-                    'note'        => $row['note'],
-                    'priority'    => $row['priority'],
-                    'op_number'   => $row['op_number'] !== null ? (int)$row['op_number'] : null,
-                    'op_name'     => $row['op_name'],
-                    'created_by_user_id' => $row['created_by_user_id'] !== null ? (int)$row['created_by_user_id'] : null,
-                    'created_at'  => $row['created_at'],
-                    'time_ago'    => $this->timeAgo($row['created_at']),
+                    'id'                   => (int)$row['id'],
+                    'datum'                => $row['datum'],
+                    'skift_nr'             => $skiftNr,
+                    'skift_label'          => "Skift $skiftNr — $skiftLabelText",
+                    'note'                 => $row['note'],
+                    'priority'             => $row['priority'],
+                    'audience'             => $row['audience'] ?? 'alla',
+                    'op_number'            => $row['op_number'] !== null ? (int)$row['op_number'] : null,
+                    'op_name'              => $row['op_name'],
+                    'created_by_user_id'   => $row['created_by_user_id'] !== null ? (int)$row['created_by_user_id'] : null,
+                    'created_at'           => $row['created_at'],
+                    'time_ago'             => $this->timeAgo($row['created_at']),
+                    'acknowledged_by'      => $row['acknowledged_by'] !== null ? (int)$row['acknowledged_by'] : null,
+                    'acknowledged_at'      => $row['acknowledged_at'],
+                    'acknowledged_by_name' => $row['acknowledged_by_name'],
+                    'acknowledged_time_ago'=> $row['acknowledged_at'] ? $this->timeAgo($row['acknowledged_at']) : null,
                 ];
             }
 
@@ -198,7 +216,7 @@ class ShiftHandoverController {
 
     // -------------------------------------------------------------------------
     // POST ?action=shift-handover&run=add
-    // Body: { skift_nr, note, priority, op_number? }
+    // Body: { skift_nr, note, priority, op_number?, audience? }
     // -------------------------------------------------------------------------
 
     private function addNote(): void {
@@ -207,6 +225,7 @@ class ShiftHandoverController {
         $note     = isset($data['note'])       ? trim($data['note'])        : '';
         $priority = isset($data['priority'])   ? trim($data['priority'])    : 'normal';
         $opNumber = isset($data['op_number'])  ? intval($data['op_number']) : null;
+        $audience = isset($data['audience'])   ? trim($data['audience'])    : 'alla';
 
         // Validering
         if ($skiftNr < 1 || $skiftNr > 3) {
@@ -219,9 +238,9 @@ class ShiftHandoverController {
             echo json_encode(['success' => false, 'error' => 'Anteckningstext krävs']);
             return;
         }
-        if (mb_strlen($note) > 1000) {
+        if (mb_strlen($note) > 500) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Anteckning får inte vara längre än 1000 tecken']);
+            echo json_encode(['success' => false, 'error' => 'Anteckning får inte vara längre än 500 tecken']);
             return;
         }
         $allowedPriorities = ['normal', 'important', 'urgent'];
@@ -229,6 +248,10 @@ class ShiftHandoverController {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltig prioritet']);
             return;
+        }
+        $allowedAudiences = ['alla', 'ansvarig', 'teknik'];
+        if (!in_array($audience, $allowedAudiences, true)) {
+            $audience = 'alla';
         }
 
         // Hämta op_name om op_number angivits
@@ -250,14 +273,15 @@ class ShiftHandoverController {
 
         try {
             $stmt = $this->pdo->prepare('
-                INSERT INTO shift_handover (datum, skift_nr, note, priority, op_number, op_name, created_by_user_id)
-                VALUES (:datum, :skift_nr, :note, :priority, :op_number, :op_name, :user_id)
+                INSERT INTO shift_handover (datum, skift_nr, note, priority, audience, op_number, op_name, created_by_user_id)
+                VALUES (:datum, :skift_nr, :note, :priority, :audience, :op_number, :op_name, :user_id)
             ');
             $stmt->execute([
                 ':datum'    => $datum,
                 ':skift_nr' => $skiftNr,
                 ':note'     => $note,
                 ':priority' => $priority,
+                ':audience' => $audience,
                 ':op_number'=> $opNumber ?: null,
                 ':op_name'  => $opName,
                 ':user_id'  => $userId,
@@ -271,23 +295,79 @@ class ShiftHandoverController {
                 'success' => true,
                 'message' => 'Anteckning sparad',
                 'note' => [
-                    'id'          => $newId,
-                    'datum'       => $datum,
-                    'skift_nr'    => $skiftNr,
-                    'skift_label' => $skiftLabel,
-                    'note'        => $note,
-                    'priority'    => $priority,
-                    'op_number'   => $opNumber ?: null,
-                    'op_name'     => $opName,
-                    'created_by_user_id' => $userId,
-                    'created_at'  => date('Y-m-d H:i:s'),
-                    'time_ago'    => 'Just nu',
+                    'id'                   => $newId,
+                    'datum'                => $datum,
+                    'skift_nr'             => $skiftNr,
+                    'skift_label'          => $skiftLabel,
+                    'note'                 => $note,
+                    'priority'             => $priority,
+                    'audience'             => $audience,
+                    'op_number'            => $opNumber ?: null,
+                    'op_name'              => $opName,
+                    'created_by_user_id'   => $userId,
+                    'created_at'           => date('Y-m-d H:i:s'),
+                    'time_ago'             => 'Just nu',
+                    'acknowledged_by'      => null,
+                    'acknowledged_at'      => null,
+                    'acknowledged_by_name' => null,
+                    'acknowledged_time_ago'=> null,
                 ],
             ]);
         } catch (PDOException $e) {
             error_log('ShiftHandoverController addNote: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara anteckning']);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // POST ?action=shift-handover&run=acknowledge
+    // Body: { id }
+    // Markerar en anteckning som sedd av inloggad användare.
+    // -------------------------------------------------------------------------
+
+    private function acknowledge(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['error' => 'Ej inloggad']);
+            return;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        $id   = intval($data['id'] ?? $_POST['id'] ?? 0);
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Saknar id']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'UPDATE shift_handover SET acknowledged_by = ?, acknowledged_at = NOW() WHERE id = ? AND acknowledged_at IS NULL'
+            );
+            $stmt->execute([$_SESSION['user_id'], $id]);
+
+            // Hämta kvittensinfo för svar
+            $sel = $this->pdo->prepare(
+                'SELECT sh.acknowledged_at, u.username AS acknowledged_by_name
+                 FROM shift_handover sh
+                 LEFT JOIN users u ON u.id = sh.acknowledged_by
+                 WHERE sh.id = ?'
+            );
+            $sel->execute([$id]);
+            $row = $sel->fetch(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success'              => true,
+                'acknowledged_at'      => $row['acknowledged_at'] ?? null,
+                'acknowledged_by_name' => $row['acknowledged_by_name'] ?? null,
+                'acknowledged_time_ago'=> 'Just nu',
+            ]);
+        } catch (PDOException $e) {
+            error_log('ShiftHandoverController acknowledge: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte kvittera anteckning']);
         }
     }
 

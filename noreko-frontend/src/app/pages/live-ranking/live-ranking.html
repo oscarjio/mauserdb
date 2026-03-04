@@ -12,8 +12,24 @@
     <div class="header-right">
       <span class="refresh-label">Uppdateras var 30s</span>
       <span class="refresh-time">{{ formatTime(lastRefresh) }}</span>
+      <span class="skift-countdown" *ngIf="skiftSlutOm">
+        Skiftet slutar om <strong>{{ skiftSlutOm }}</strong>
+      </span>
     </div>
   </header>
+
+  <!-- REKORDINDIKATOR -->
+  <div *ngIf="!loading && ibcIdagTotal > 0 && rekordIbc > 0" class="rekord-banner"
+       [class.rekord-rekord]="rekordStatus === 'rekord'"
+       [class.rekord-nara]="rekordStatus === 'nara'"
+       [class.rekord-bra]="rekordStatus === 'bra'">
+    <ng-container [ngSwitch]="rekordStatus">
+      <span *ngSwitchCase="'rekord'" class="rekord-text glow-gold">REKORDDAG! {{ ibcIdagTotal }} IBC — slår rekordet på {{ rekordIbc }} IBC</span>
+      <span *ngSwitchCase="'nara'"   class="rekord-text">Nara rekord! {{ ibcIdagTotal }} / {{ rekordIbc }} IBC — bara {{ rekordIbc - ibcIdagTotal }} kvar!</span>
+      <span *ngSwitchCase="'bra'"    class="rekord-text">Bra dag! {{ ibcIdagTotal }} IBC (rekord: {{ rekordIbc }} IBC)</span>
+      <span *ngSwitchDefault></span>
+    </ng-container>
+  </div>
 
   <!-- LOADING -->
   <div *ngIf="loading" class="tv-loading">
@@ -83,11 +99,41 @@
         </div>
       </div>
     </div>
+
+    <!-- TEAMTOTAL -->
+    <div class="team-total-section" *ngIf="ibcIdagTotal > 0">
+      <div class="team-total-header">
+        <span class="team-label">LAG IDAG</span>
+        <span class="team-ibc">{{ ibcIdagTotal }} IBC</span>
+        <span class="team-goal" *ngIf="goal > 0">MÅL: {{ goal }}</span>
+        <span class="team-pct" *ngIf="goal > 0">{{ teamPct }}% av dagsmålet</span>
+      </div>
+      <div class="team-progress-track" *ngIf="goal > 0">
+        <div
+          class="team-progress-fill progress-fill"
+          [ngClass]="teamProgressClass"
+          [style.width.%]="teamPct"
+        ></div>
+        <div class="team-progress-target"></div>
+      </div>
+
+      <!-- Prognos -->
+      <div class="prognos-row" *ngIf="visaPrognos && prognos !== null">
+        <span class="prognos-label">Prognos vid skiftslut:</span>
+        <span class="prognos-value">~{{ prognos }} IBC</span>
+        <span class="prognos-diff" *ngIf="goal > 0 && prognos >= goal" class="prognos-ok">
+          Mål uppnås!
+        </span>
+        <span class="prognos-diff" *ngIf="goal > 0 && prognos < goal" class="prognos-warn">
+          {{ goal - prognos }} IBC kvar till mål
+        </span>
+      </div>
+    </div>
   </main>
 
   <!-- FOOTER: roterande motto -->
   <footer class="tv-footer">
-    <span class="motto-text">{{ mottos[mottoIndex] }}</span>
+    <span class="motto-text">{{ currentMotto }}</span>
     <span class="goal-label" *ngIf="goal > 0">Dagsmål: {{ goal }} IBC</span>
   </footer>
 

@@ -18,80 +18,121 @@
     </div>
   </div>
 
+  <!-- Sammanfattningsrad -->
+  <div class="summary-bar" *ngIf="!isLoading && notes.length > 0">
+    <span class="summary-item">
+      <i class="fas fa-clipboard-list me-1"></i>
+      <strong>{{ countAll }}</strong> notiser
+    </span>
+    <span class="summary-sep">|</span>
+    <span class="summary-item summary-urgent">
+      <span class="dot dot-red"></span>
+      <strong>{{ countBradskande }}</strong> brådskande
+    </span>
+    <span class="summary-sep">|</span>
+    <span class="summary-item summary-ack">
+      <i class="fas fa-check me-1"></i>
+      <strong>{{ countKvitterade }}</strong> kvitterade
+    </span>
+    <span class="summary-sep">|</span>
+    <span class="summary-item summary-open">
+      <i class="fas fa-hourglass-half me-1"></i>
+      <strong>{{ countOppna }}</strong> öppna
+    </span>
+  </div>
+
   <!-- Formulär: Lägg till anteckning -->
   <div class="form-card">
-    <h2 class="form-title">
-      <i class="fas fa-pen me-2"></i>Lägg till anteckning
-    </h2>
-
-    <div class="form-group">
-      <textarea
-        class="note-textarea"
-        [(ngModel)]="newNote"
-        placeholder="Beskriv maskinens status, pågående problem, uppgifter för nästa skift..."
-        rows="4"
-        maxlength="1000"
-      ></textarea>
-      <div class="char-counter" [class.char-warning]="charCount > 900">
-        {{ charCount }}/1000
-      </div>
+    <div class="form-card-header" (click)="toggleForm()" role="button" tabindex="0" (keyup.enter)="toggleForm()">
+      <h2 class="form-title">
+        <i class="fas fa-pen me-2"></i>Lägg till anteckning
+      </h2>
+      <button class="toggle-form-btn" type="button" [title]="showForm ? 'Minimera formulär' : 'Visa formulär'">
+        <i class="fas" [class.fa-chevron-up]="showForm" [class.fa-chevron-down]="!showForm"></i>
+      </button>
     </div>
 
-    <div class="form-row">
-      <!-- Prioritet -->
-      <div class="form-group-inline">
-        <label class="form-label">Prioritet</label>
-        <div class="priority-buttons">
-          <button
-            class="priority-btn"
-            [class.active-normal]="newPriority === 'normal'"
-            [class.inactive]="newPriority !== 'normal'"
-            (click)="setPriority('normal')"
-            type="button"
-          >
-            ⚪ Normal
-          </button>
-          <button
-            class="priority-btn"
-            [class.active-important]="newPriority === 'important'"
-            [class.inactive]="newPriority !== 'important'"
-            (click)="setPriority('important')"
-            type="button"
-          >
-            🟡 Viktig
-          </button>
-          <button
-            class="priority-btn"
-            [class.active-urgent]="newPriority === 'urgent'"
-            [class.inactive]="newPriority !== 'urgent'"
-            (click)="setPriority('urgent')"
-            type="button"
-          >
-            🔴 Brådskande
-          </button>
+    <div class="form-body" *ngIf="showForm">
+      <div class="form-group">
+        <textarea
+          #noteTextarea
+          class="note-textarea"
+          [(ngModel)]="newNote"
+          placeholder="Beskriv maskinens status, pågående problem, uppgifter för nästa skift..."
+          rows="4"
+          maxlength="500"
+        ></textarea>
+        <div class="char-counter" [class.char-warning]="charCount > 450" [class.char-danger]="charCount >= 500">
+          {{ charCount }}/500
         </div>
       </div>
 
-      <!-- Skift-nr -->
-      <div class="form-group-inline">
-        <label class="form-label" for="skiftSelect">Skift</label>
-        <select id="skiftSelect" class="skift-select" [(ngModel)]="newSkiftNr">
-          <option [value]="1">Skift 1 — Morgon (06–14)</option>
-          <option [value]="2">Skift 2 — Eftermiddag (14–22)</option>
-          <option [value]="3">Skift 3 — Natt (22–06)</option>
-        </select>
-      </div>
-    </div>
+      <div class="form-row">
+        <!-- Prioritet -->
+        <div class="form-group-inline">
+          <label class="form-label">Prioritet</label>
+          <div class="priority-buttons">
+            <button
+              class="priority-btn"
+              [class.active-normal]="newPriority === 'normal'"
+              [class.inactive]="newPriority !== 'normal'"
+              (click)="setPriority('normal')"
+              type="button"
+            >
+              ⚪ Normal
+            </button>
+            <button
+              class="priority-btn"
+              [class.active-important]="newPriority === 'important'"
+              [class.inactive]="newPriority !== 'important'"
+              (click)="setPriority('important')"
+              type="button"
+            >
+              🟡 Viktig
+            </button>
+            <button
+              class="priority-btn"
+              [class.active-urgent]="newPriority === 'urgent'"
+              [class.inactive]="newPriority !== 'urgent'"
+              (click)="setPriority('urgent')"
+              type="button"
+            >
+              🔴 Brådskande
+            </button>
+          </div>
+        </div>
 
-    <button
-      class="submit-btn"
-      (click)="submitNote()"
-      [disabled]="isSubmitting || !newNote.trim()"
-      type="button"
-    >
-      <i class="fas fa-paper-plane me-2"></i>
-      {{ isSubmitting ? 'Sparar...' : 'Skicka anteckning' }}
-    </button>
+        <!-- Skift-nr -->
+        <div class="form-group-inline">
+          <label class="form-label" for="skiftSelect">Skift</label>
+          <select id="skiftSelect" class="skift-select" [(ngModel)]="newSkiftNr">
+            <option [value]="1">Skift 1 — Morgon (06–14)</option>
+            <option [value]="2">Skift 2 — Eftermiddag (14–22)</option>
+            <option [value]="3">Skift 3 — Natt (22–06)</option>
+          </select>
+        </div>
+
+        <!-- Åtkomst -->
+        <div class="form-group-inline">
+          <label class="form-label" for="audienceSelect">Åtkomst</label>
+          <select id="audienceSelect" class="skift-select" [(ngModel)]="newAudience">
+            <option value="alla">👥 Alla</option>
+            <option value="ansvarig">👔 Ansvarig</option>
+            <option value="teknik">🔧 Teknik</option>
+          </select>
+        </div>
+      </div>
+
+      <button
+        class="submit-btn"
+        (click)="submitNote()"
+        [disabled]="isSubmitting || !newNote.trim()"
+        type="button"
+      >
+        <i class="fas fa-paper-plane me-2"></i>
+        {{ isSubmitting ? 'Sparar...' : 'Skicka anteckning' }}
+      </button>
+    </div>
   </div>
 
   <!-- Laddningsindikator -->
@@ -107,10 +148,51 @@
 
   <!-- Anteckningslista -->
   <div class="notes-section" *ngIf="!isLoading">
-    <h2 class="section-title">
-      <i class="fas fa-clipboard-list me-2"></i>Senaste anteckningar
-      <span class="note-count" *ngIf="notes.length > 0">({{ notes.length }})</span>
-    </h2>
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-clipboard-list me-2"></i>Senaste anteckningar
+      </h2>
+    </div>
+
+    <!-- Filterflikar -->
+    <div class="filter-tabs" *ngIf="notes.length > 0">
+      <button
+        class="filter-tab"
+        [class.active]="activeFilter === 'alla'"
+        (click)="setFilter('alla')"
+        type="button"
+      >
+        Alla
+        <span class="tab-badge">{{ countAll }}</span>
+      </button>
+      <button
+        class="filter-tab filter-tab-urgent"
+        [class.active]="activeFilter === 'bradskande'"
+        (click)="setFilter('bradskande')"
+        type="button"
+      >
+        🔴 Brådskande
+        <span class="tab-badge tab-badge-urgent">{{ countBradskande }}</span>
+      </button>
+      <button
+        class="filter-tab filter-tab-open"
+        [class.active]="activeFilter === 'oppna'"
+        (click)="setFilter('oppna')"
+        type="button"
+      >
+        <i class="fas fa-hourglass-half me-1"></i>Öppna
+        <span class="tab-badge tab-badge-open">{{ countOppna }}</span>
+      </button>
+      <button
+        class="filter-tab filter-tab-acked"
+        [class.active]="activeFilter === 'kvitterade'"
+        (click)="setFilter('kvitterade')"
+        type="button"
+      >
+        <i class="fas fa-check me-1"></i>Kvitterade
+        <span class="tab-badge tab-badge-acked">{{ countKvitterade }}</span>
+      </button>
+    </div>
 
     <div class="empty-state" *ngIf="notes.length === 0 && !loadError">
       <i class="fas fa-inbox"></i>
@@ -118,10 +200,20 @@
       <small>Var den första att skriva en skiftöverlämning!</small>
     </div>
 
-    <div class="notes-list" *ngIf="notes.length > 0">
-      <div class="note-card" *ngFor="let note of notes" [class]="priorityClass(note.priority)">
+    <div class="empty-state" *ngIf="notes.length > 0 && filteredNotes.length === 0">
+      <i class="fas fa-filter"></i>
+      <p>Inga anteckningar matchar filtret.</p>
+    </div>
 
-        <!-- Kortets övre rad: prioritet + skiftinfo -->
+    <div class="notes-list" *ngIf="filteredNotes.length > 0">
+      <div
+        class="note-card"
+        *ngFor="let note of filteredNotes"
+        [class]="priorityClass(note.priority)"
+        [class.note-acknowledged]="note.acknowledged_at !== null"
+      >
+
+        <!-- Kortets övre rad: prioritet + skiftinfo + kvittensknapp -->
         <div class="note-header">
           <div class="note-meta-left">
             <span class="priority-indicator">
@@ -131,22 +223,45 @@
             <span class="skift-badge">
               {{ note.skift_label }}
             </span>
+            <span class="audience-badge" [class]="'audience-' + note.audience">
+              {{ audienceIcon(note.audience) }} {{ audienceLabel(note.audience) }}
+            </span>
             <span class="note-date">{{ note.datum }}</span>
           </div>
-          <button
-            class="delete-btn"
-            *ngIf="canDelete(note)"
-            (click)="deleteNote(note)"
-            title="Ta bort anteckning"
-            type="button"
-          >
-            <i class="fas fa-trash-alt"></i>
-          </button>
+          <div class="note-actions">
+            <!-- Kvittensknapp -->
+            <button
+              class="ack-btn"
+              *ngIf="canAcknowledge(note)"
+              (click)="acknowledgeNote(note)"
+              title="Markera som sedd"
+              type="button"
+            >
+              <i class="fas fa-check me-1"></i>Kvittera
+            </button>
+            <!-- Ta bort -->
+            <button
+              class="delete-btn"
+              *ngIf="canDelete(note)"
+              (click)="deleteNote(note)"
+              title="Ta bort anteckning"
+              type="button"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Anteckningstext -->
         <div class="note-body">
           {{ note.note }}
+        </div>
+
+        <!-- Kvittensinfo -->
+        <div class="ack-info" *ngIf="note.acknowledged_at !== null">
+          <i class="fas fa-check-circle me-1"></i>
+          Sedd av <strong>{{ note.acknowledged_by_name ?? 'Okänd' }}</strong>
+          — {{ timeAgo(note.acknowledged_at) }}
         </div>
 
         <!-- Kortets undre rad: operatör + tid -->
@@ -158,7 +273,7 @@
             <i class="fas fa-user-circle me-1"></i>Okänd operatör
           </span>
           <span class="note-time">
-            <i class="fas fa-clock me-1"></i>{{ note.time_ago }}
+            <i class="fas fa-clock me-1"></i>{{ timeAgo(note.created_at) || note.time_ago }}
           </span>
         </div>
 

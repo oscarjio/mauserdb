@@ -2355,12 +2355,45 @@ class RebotlingController {
                 ];
             }
 
+            // Summera ibc_idag_total från ranking-listan
+            $ibcIdagTotal = 0;
+            foreach ($ranking as $r) {
+                $ibcIdagTotal += $r['ibc_ok'];
+            }
+
+            // Hämta historiskt rekord (bästa dag senaste 365 dagar, exkl idag)
+            $rekordIbc = 0;
+            $rekordDatum = null;
+            try {
+                $stmtRecord = $this->pdo->prepare("
+                    SELECT MAX(dag_total) AS rekord_ibc, datum_rekord
+                    FROM (
+                        SELECT DATE(datum) AS datum_rekord, SUM(ibc_ok) AS dag_total
+                        FROM rebotling_skiftrapport
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+                          AND DATE(datum) < CURDATE()
+                        GROUP BY DATE(datum)
+                    ) y
+                ");
+                $stmtRecord->execute();
+                $recordRow = $stmtRecord->fetch(PDO::FETCH_ASSOC);
+                if ($recordRow && $recordRow['rekord_ibc'] !== null) {
+                    $rekordIbc   = (int)$recordRow['rekord_ibc'];
+                    $rekordDatum = $recordRow['datum_rekord'];
+                }
+            } catch (Exception $e) {
+                error_log('getLiveRanking rekord: ' . $e->getMessage());
+            }
+
             echo json_encode([
-                'success' => true,
-                'ranking' => $ranking,
-                'date'    => $today,
-                'period'  => $periodLabel,
-                'goal'    => $dailyGoal,
+                'success'         => true,
+                'ranking'         => $ranking,
+                'date'            => $today,
+                'period'          => $periodLabel,
+                'goal'            => $dailyGoal,
+                'ibc_idag_total'  => $ibcIdagTotal,
+                'rekord_ibc'      => $rekordIbc,
+                'rekord_datum'    => $rekordDatum,
             ]);
         } catch (Exception $e) {
             error_log('getLiveRanking: ' . $e->getMessage());

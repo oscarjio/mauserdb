@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -17,12 +17,19 @@ export interface HandoverNote {
   skift_label: string;
   note: string;
   priority: 'normal' | 'important' | 'urgent';
+  audience: 'alla' | 'ansvarig' | 'teknik';
   op_number: number | null;
   op_name: string | null;
   created_by_user_id: number | null;
   created_at: string;
   time_ago: string;
+  acknowledged_by: number | null;
+  acknowledged_at: string | null;
+  acknowledged_by_name: string | null;
+  acknowledged_time_ago: string | null;
 }
+
+export type FilterTab = 'alla' | 'bradskande' | 'oppna' | 'kvitterade';
 
 @Component({
   standalone: true,
@@ -31,7 +38,9 @@ export interface HandoverNote {
   templateUrl: './shift-handover.html',
   styleUrl: './shift-handover.css'
 })
-export class ShiftHandoverPage implements OnInit, OnDestroy {
+export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit {
+
+  @ViewChild('noteTextarea') noteTextareaRef?: ElementRef<HTMLTextAreaElement>;
 
   notes: HandoverNote[] = [];
   isLoading = false;
@@ -39,11 +48,18 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
   loadError = '';
   lastUpdated = '';
 
+  // Filterflik
+  activeFilter: FilterTab = 'alla';
+
   // Formulärfält
   newNote = '';
   newPriority: 'normal' | 'important' | 'urgent' = 'normal';
+  newAudience: 'alla' | 'ansvarig' | 'teknik' = 'alla';
   newSkiftNr: number;
   isSubmitting = false;
+
+  // Formulär synlig/dold toggle
+  showForm = true;
 
   currentUser: any = null;
 
@@ -71,6 +87,11 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
     }, 60000);
   }
 
+  ngAfterViewInit(): void {
+    // Auto-fokus på textfältet vid start
+    this.focusTextarea();
+  }
+
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -78,6 +99,12 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
+  }
+
+  focusTextarea(): void {
+    setTimeout(() => {
+      this.noteTextareaRef?.nativeElement?.focus();
+    }, 100);
   }
 
   // ---------------------------------------------------------------------------
@@ -120,6 +147,11 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
     return false;
   }
 
+  canAcknowledge(note: HandoverNote): boolean {
+    if (!this.currentUser) return false;
+    return note.acknowledged_at === null;
+  }
+
   // ---------------------------------------------------------------------------
   // Prioritet-hjälpare
   // ---------------------------------------------------------------------------
@@ -143,6 +175,76 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
+  // Åtkomst-hjälpare
+  // ---------------------------------------------------------------------------
+
+  audienceIcon(audience: string): string {
+    if (audience === 'ansvarig') return '👔';
+    if (audience === 'teknik') return '🔧';
+    return '👥';
+  }
+
+  audienceLabel(audience: string): string {
+    if (audience === 'ansvarig') return 'Ansvarig';
+    if (audience === 'teknik') return 'Teknik';
+    return 'Alla';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Relativ tid (klient-sida)
+  // ---------------------------------------------------------------------------
+
+  timeAgo(dateStr: string): string {
+    if (!dateStr) return '';
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diffSec = Math.floor((now.getTime() - then.getTime()) / 1000);
+
+    if (diffSec < 60) return 'Just nu';
+    if (diffSec < 3600) {
+      const mins = Math.floor(diffSec / 60);
+      return `${mins} ${mins === 1 ? 'minut' : 'minuter'} sedan`;
+    }
+    if (diffSec < 86400) {
+      const hours = Math.floor(diffSec / 3600);
+      return `${hours} ${hours === 1 ? 'timme' : 'timmar'} sedan`;
+    }
+    // Kalenderdag-jämförelse
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thenDate = new Date(then.getFullYear(), then.getMonth(), then.getDate());
+    const dayDiff = Math.round((nowDate.getTime() - thenDate.getTime()) / 86400000);
+    if (dayDiff === 1) return 'Igår';
+    return `${dayDiff} dagar sedan`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Filterflikar
+  // ---------------------------------------------------------------------------
+
+  setFilter(filter: FilterTab): void {
+    this.activeFilter = filter;
+  }
+
+  get filteredNotes(): HandoverNote[] {
+    switch (this.activeFilter) {
+      case 'bradskande':
+        return this.notes.filter(n => n.priority === 'urgent');
+      case 'oppna':
+        return this.notes.filter(n => n.acknowledged_at === null);
+      case 'kvitterade':
+        return this.notes.filter(n => n.acknowledged_at !== null);
+      default:
+        return this.notes;
+    }
+  }
+
+  // Räknare per flik
+  get countAll(): number { return this.notes.length; }
+  get countBradskande(): number { return this.notes.filter(n => n.priority === 'urgent').length; }
+  get countOppna(): number { return this.notes.filter(n => n.acknowledged_at === null).length; }
+  get countKvitterade(): number { return this.notes.filter(n => n.acknowledged_at !== null).length; }
+
+  // ---------------------------------------------------------------------------
   // Datahämtning
   // ---------------------------------------------------------------------------
 
@@ -152,7 +254,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
     if (showLoader) this.isLoading = true;
 
     this.http.get<any>(`${API}&run=recent`, { withCredentials: true }).pipe(
-      timeout(5000),
+      timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -176,6 +278,41 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
   }
 
   // ---------------------------------------------------------------------------
+  // Kvittera anteckning
+  // ---------------------------------------------------------------------------
+
+  acknowledgeNote(note: HandoverNote): void {
+    if (!this.canAcknowledge(note)) return;
+
+    // Optimistic update
+    note.acknowledged_at = new Date().toISOString();
+    note.acknowledged_by = this.currentUser?.id ?? null;
+    note.acknowledged_by_name = this.currentUser?.username ?? this.currentUser?.name ?? 'Du';
+    note.acknowledged_time_ago = 'Just nu';
+
+    this.http.post<any>(`${API}&run=acknowledge`, { id: note.id }, { withCredentials: true }).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe(res => {
+      if (res === null || !res.success) {
+        // Rulla tillbaka optimistic update
+        note.acknowledged_at = null;
+        note.acknowledged_by = null;
+        note.acknowledged_by_name = null;
+        note.acknowledged_time_ago = null;
+        this.toast.error('Kunde inte kvittera anteckning');
+        return;
+      }
+      // Uppdatera med server-svar
+      if (res.acknowledged_at) note.acknowledged_at = res.acknowledged_at;
+      if (res.acknowledged_by_name) note.acknowledged_by_name = res.acknowledged_by_name;
+      if (res.acknowledged_time_ago) note.acknowledged_time_ago = res.acknowledged_time_ago;
+      this.toast.success('Anteckning kvitterad');
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Lägg till anteckning
   // ---------------------------------------------------------------------------
 
@@ -185,8 +322,8 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
       this.toast.error('Ange en anteckningstext');
       return;
     }
-    if (text.length > 1000) {
-      this.toast.error('Anteckning får inte vara längre än 1000 tecken');
+    if (text.length > 500) {
+      this.toast.error('Anteckning får inte vara längre än 500 tecken');
       return;
     }
     if (this.isSubmitting) return;
@@ -196,10 +333,11 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
       skift_nr: this.newSkiftNr,
       note: text,
       priority: this.newPriority,
+      audience: this.newAudience,
     };
 
     this.http.post<any>(`${API}&run=add`, body, { withCredentials: true }).pipe(
-      timeout(5000),
+      timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -212,12 +350,15 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
         this.toast.success('Anteckning sparad');
         this.newNote = '';
         this.newPriority = 'normal';
+        this.newAudience = 'alla';
         this.newSkiftNr = this.getCurrentSkift();
         // Lägg in den nya noten direkt överst
         if (res.note) {
           this.notes.unshift(res.note);
-          if (this.notes.length > 10) this.notes.pop();
+          if (this.notes.length > 30) this.notes.pop();
         }
+        // Fokusera textarea igen
+        this.focusTextarea();
       } else {
         this.toast.error(res.error ?? 'Kunde inte spara anteckning');
       }
@@ -232,7 +373,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
     if (!confirm(`Ta bort anteckning från ${note.time_ago}?`)) return;
 
     this.http.post<any>(`${API}&run=delete&id=${note.id}`, {}, { withCredentials: true }).pipe(
-      timeout(5000),
+      timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
@@ -259,5 +400,12 @@ export class ShiftHandoverPage implements OnInit, OnDestroy {
 
   get charCount(): number {
     return this.newNote.length;
+  }
+
+  toggleForm(): void {
+    this.showForm = !this.showForm;
+    if (this.showForm) {
+      this.focusTextarea();
+    }
   }
 }

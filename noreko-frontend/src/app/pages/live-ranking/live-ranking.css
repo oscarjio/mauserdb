@@ -83,18 +83,91 @@
   font-family: monospace;
 }
 
+.skift-countdown {
+  font-size: 1rem;
+  color: #63b3ed;
+  margin-top: 0.15rem;
+}
+
+.skift-countdown strong {
+  color: #90cdf4;
+  font-size: 1.1rem;
+  font-family: monospace;
+}
+
+/* ---- REKORDINDIKATOR ---- */
+.rekord-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 2rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+  transition: background 0.4s;
+  background: #1a202c;
+  border-bottom: 2px solid #2d3748;
+}
+
+.rekord-banner.rekord-rekord {
+  background: linear-gradient(90deg, #2d2000, #1a1200, #2d2000);
+  border-bottom-color: #f6c90e;
+  animation: rekordPulse 2s ease-in-out infinite;
+}
+
+.rekord-banner.rekord-nara {
+  background: #1a1400;
+  border-bottom-color: #ed8936;
+}
+
+.rekord-banner.rekord-bra {
+  background: #1a1800;
+  border-bottom-color: #f6c90e;
+}
+
+@keyframes rekordPulse {
+  0%, 100% { background: linear-gradient(90deg, #2d2000, #1a1200, #2d2000); }
+  50%       { background: linear-gradient(90deg, #3d2d00, #2a1e00, #3d2d00); }
+}
+
+.rekord-text {
+  color: #f6c90e;
+}
+
+.rekord-banner.rekord-nara .rekord-text {
+  color: #ed8936;
+}
+
+.glow-gold {
+  color: #f6c90e;
+  text-shadow:
+    0 0 10px rgba(246, 201, 14, 0.9),
+    0 0 20px rgba(246, 201, 14, 0.6),
+    0 0 40px rgba(246, 201, 14, 0.3);
+  animation: glowPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+  0%, 100% { text-shadow: 0 0 10px rgba(246,201,14,0.9), 0 0 20px rgba(246,201,14,0.6), 0 0 40px rgba(246,201,14,0.3); }
+  50%       { text-shadow: 0 0 20px rgba(246,201,14,1),   0 0 40px rgba(246,201,14,0.8), 0 0 60px rgba(246,201,14,0.5); }
+}
+
 /* ---- MAIN ---- */
 .tv-main {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 2rem;
+  padding: 0.8rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
 /* ---- RANKING LIST ---- */
 .ranking-list {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.5rem;
 }
 
 .ranking-row {
@@ -105,7 +178,7 @@
   background: #1a202c;
   border: 1px solid #2d3748;
   border-radius: 10px;
-  padding: 0.8rem 1.2rem;
+  padding: 0.7rem 1.2rem;
   transition: background 0.2s;
 }
 
@@ -197,6 +270,7 @@
   transition: width 0.6s ease;
 }
 
+.bar-gold   { background: linear-gradient(90deg, #f6c90e, #c9a100); box-shadow: 0 0 8px rgba(246,201,14,0.5); }
 .bar-green  { background: linear-gradient(90deg, #39ff14, #2db814); }
 .bar-yellow { background: linear-gradient(90deg, #f6c90e, #c9a100); }
 .bar-red    { background: linear-gradient(90deg, #e53e3e, #c0392b); }
@@ -205,6 +279,107 @@
   font-size: 0.75rem;
   color: #718096;
   text-align: right;
+}
+
+/* ---- TEAMTOTAL ---- */
+.team-total-section {
+  background: #1a202c;
+  border: 2px solid #3a4a5c;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.team-total-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.team-label {
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a0aec0;
+}
+
+.team-ibc {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #39ff14;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.4);
+}
+
+.team-goal {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #718096;
+}
+
+.team-pct {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #63b3ed;
+}
+
+.team-progress-track {
+  position: relative;
+  height: 18px;
+  background: #2d3748;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.team-progress-fill {
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.8s ease;
+}
+
+.team-progress-target {
+  position: absolute;
+  top: 0; bottom: 0;
+  right: 0;
+  width: 3px;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ---- PROGNOS ---- */
+.prognos-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.prognos-label {
+  font-size: 1.1rem;
+  color: #718096;
+}
+
+.prognos-value {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #76e4f7;
+  line-height: 1;
+}
+
+.prognos-ok {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #39ff14;
+}
+
+.prognos-warn {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ed8936;
 }
 
 /* ---- FOOTER ---- */
