@@ -48,6 +48,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
   bonusAmountsLoading = false;
   bonusAmountsConfigured = false;
 
+  // Personliga rekord
+  pbData: any = null;
+  pbLoading = false;
+
+  // Streak
+  streakData: any = null;
+  streakLoading = false;
+
   constructor(private auth: AuthService, private bonusService: BonusService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
   }
@@ -99,6 +107,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.history = [];
     this.weeklyData = [];
     this.weeklyAvg = 0;
+    this.pbData = null;
+    this.streakData = null;
     if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
     if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
     if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
@@ -172,6 +182,104 @@ export class MyBonusPage implements OnInit, OnDestroy {
       },
       error: () => { this.weeklyLoading = false; }
     });
+
+    // Personliga rekord
+    this.loadPersonalBest();
+
+    // Streak
+    this.loadStreak();
+  }
+
+  loadPersonalBest(): void {
+    if (!this.savedOperatorId) return;
+    this.pbLoading = true;
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonus&run=personal-best&operator_id=${this.savedOperatorId}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.pbData = res;
+        } else {
+          this.pbData = null;
+        }
+        this.pbLoading = false;
+      },
+      error: () => { this.pbLoading = false; }
+    });
+  }
+
+  loadStreak(): void {
+    if (!this.savedOperatorId) return;
+    this.streakLoading = true;
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonus&run=streak&operator_id=${this.savedOperatorId}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.streakData = res;
+        } else {
+          this.streakData = null;
+        }
+        this.streakLoading = false;
+      },
+      error: () => { this.streakLoading = false; }
+    });
+  }
+
+  // ===== Achievement-medaljer =====
+  getEarnedAchievementsCount(): number {
+    return this.getAchievements().filter(a => a.earned).length;
+  }
+
+  getAchievements(): { icon: string; label: string; earned: boolean; desc: string }[] {
+    return [
+      {
+        icon: 'trophy',
+        label: 'Guldnivå',
+        earned: (this.stats?.kpis?.bonus_avg ?? 0) >= 90,
+        desc: 'Nått minst Guld-nivå i bonus (90+ poäng)'
+      },
+      {
+        icon: 'bolt',
+        label: 'Snabbaste',
+        earned: (this.stats?.kpis?.produktivitet ?? 0) >= 45,
+        desc: 'Snitt IBC/h på minst 45'
+      },
+      {
+        icon: 'gem',
+        label: 'Perfekt kvalitet',
+        earned: (this.stats?.kpis?.kvalitet ?? 0) >= 99,
+        desc: 'Kvalitet på minst 99%'
+      },
+      {
+        icon: 'fire',
+        label: 'Veckostreak',
+        earned: (this.streakData?.current_streak ?? 0) >= 5,
+        desc: 'Jobbat 5 dagar i rad'
+      },
+      {
+        icon: 'star',
+        label: 'Rekordstjärna',
+        earned: (this.pbData?.best_ibc_per_h ?? 0) >= 50,
+        desc: 'Personligt rekord IBC/h >= 50'
+      },
+      {
+        icon: 'box-open',
+        label: '100 IBC/skift',
+        earned: (this.pbData?.best_skift_ibc ?? 0) >= 100,
+        desc: 'Minst 100 IBC OK i ett skift'
+      },
+    ];
   }
 
   // ===== Motivational status badge =====

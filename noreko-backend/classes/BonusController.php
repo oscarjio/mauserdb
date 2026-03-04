@@ -63,6 +63,8 @@ class BonusController {
             case 'weekly_history': $this->getWeeklyHistory();     break;
             case 'hall-of-fame':   $this->getHallOfFame();        break;
             case 'loneprognos':    $this->getLoneprognos();       break;
+            case 'personal-best':  $this->getPersonalBest();      break;
+            case 'streak':         $this->getStreak();            break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -1121,6 +1123,211 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getLoneprognos error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=personal-best&operator_id=X
+     *
+     * Returnerar operatörens personliga rekord senaste 365 dagarna:
+     * - Bästa IBC/h i ett enskilt skift
+     * - Bästa kvalitet% i ett enskilt skift
+     * - Bästa skift (flest IBC OK)
+     */
+    private function getPersonalBest(): void {
+        $opId = intval($_GET['operator_id'] ?? 0);
+        if (!$opId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Saknar operator_id']);
+            return;
+        }
+
+        try {
+            // Bästa IBC/h i ett enskilt skift (senaste 365 dagar)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(first_datum) AS dag,
+                    skiftraknare,
+                    shift_ibc_ok,
+                    shift_ibc_ej_ok,
+                    shift_runtime_h,
+                    CASE WHEN shift_runtime_h > 0 THEN shift_ibc_ok / shift_runtime_h ELSE 0 END AS ibc_per_h,
+                    CASE WHEN (shift_ibc_ok + shift_ibc_ej_ok) > 0
+                         THEN shift_ibc_ok / (shift_ibc_ok + shift_ibc_ej_ok) * 100
+                         ELSE 0 END AS kvalitet_pct
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum) AS first_datum,
+                        MAX(ibc_ok) - MIN(ibc_ok)       AS shift_ibc_ok,
+                        MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS shift_ibc_ej_ok,
+                        MAX(runtime_plc) / 3600.0        AS shift_runtime_h
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) AS per_shift
+                ORDER BY ibc_per_h DESC
+                LIMIT 1
+            ");
+            $stmt->execute([$opId, $opId, $opId]);
+            $bestIbcH = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            // Bästa kvalitet% i ett enskilt skift
+            $stmt2 = $this->pdo->prepare("
+                SELECT
+                    DATE(first_datum) AS dag,
+                    skiftraknare,
+                    shift_ibc_ok,
+                    shift_ibc_ej_ok,
+                    CASE WHEN (shift_ibc_ok + shift_ibc_ej_ok) > 0
+                         THEN shift_ibc_ok / (shift_ibc_ok + shift_ibc_ej_ok) * 100
+                         ELSE 0 END AS kvalitet_pct
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum) AS first_datum,
+                        MAX(ibc_ok) - MIN(ibc_ok)       AS shift_ibc_ok,
+                        MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS shift_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                       AND (MAX(ibc_ok) + MAX(ibc_ej_ok) - MIN(ibc_ok) - MIN(ibc_ej_ok)) > 0
+                ) AS per_shift
+                ORDER BY kvalitet_pct DESC
+                LIMIT 1
+            ");
+            $stmt2->execute([$opId, $opId, $opId]);
+            $bestKvalitet = $stmt2->fetch(PDO::FETCH_ASSOC);
+
+            // Bästa skift: flest IBC OK
+            $stmt3 = $this->pdo->prepare("
+                SELECT
+                    DATE(first_datum) AS dag,
+                    skiftraknare,
+                    shift_ibc_ok
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MIN(datum) AS first_datum,
+                        MAX(ibc_ok) - MIN(ibc_ok) AS shift_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) AS per_shift
+                ORDER BY shift_ibc_ok DESC
+                LIMIT 1
+            ");
+            $stmt3->execute([$opId, $opId, $opId]);
+            $bestSkift = $stmt3->fetch(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success'             => true,
+                'best_ibc_per_h'      => $bestIbcH ? round(floatval($bestIbcH['ibc_per_h']), 1) : null,
+                'best_ibc_per_h_date' => $bestIbcH ? $bestIbcH['dag'] : null,
+                'best_kvalitet'       => $bestKvalitet ? round(floatval($bestKvalitet['kvalitet_pct']), 1) : null,
+                'best_kvalitet_date'  => $bestKvalitet ? $bestKvalitet['dag'] : null,
+                'best_skift_ibc'      => $bestSkift ? intval($bestSkift['shift_ibc_ok']) : null,
+                'best_skift_ibc_date' => $bestSkift ? $bestSkift['dag'] : null,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getPersonalBest error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=streak&operator_id=X
+     *
+     * Räknar konsekutiva dagar operatören jobbat (senaste 60 dagar).
+     * Returnerar nuvarande streak och längsta streak under perioden.
+     */
+    private function getStreak(): void {
+        $opId = intval($_GET['operator_id'] ?? 0);
+        if (!$opId) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Saknar operator_id']);
+            return;
+        }
+
+        try {
+            // Hämta dagliga IBC per skift senaste 60 dagar (nyast först)
+            $stmt = $this->pdo->prepare("
+                SELECT DATE(datum) AS dag, SUM(delta_ok) AS ibc_dag
+                FROM (
+                    SELECT DATE(datum) AS datum, skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) x
+                GROUP BY DATE(datum)
+                ORDER BY dag DESC
+            ");
+            $stmt->execute([$opId, $opId, $opId]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna nuvarande streak (dagar i rad med ibc_dag > 0, bakifrån idag)
+            $streak   = 0;
+            $prevDate = null;
+            $today    = new DateTime('today');
+
+            foreach ($rows as $row) {
+                $dag = new DateTime($row['dag']);
+                if ($row['ibc_dag'] <= 0) {
+                    if ($streak > 0) break;
+                    if ($prevDate === null && $dag->diff($today)->days <= 1) continue;
+                    break;
+                }
+                if ($prevDate !== null) {
+                    $diff = $prevDate->diff($dag)->days;
+                    if ($diff > 1) break;
+                }
+                $streak++;
+                $prevDate = $dag;
+            }
+
+            // Längsta streak senaste 60 dagar (kronologisk ordning ASC)
+            $rowsAsc = array_reverse($rows);
+            $longest  = 0;
+            $current  = 0;
+            $prevD    = null;
+
+            foreach ($rowsAsc as $row) {
+                $d = new DateTime($row['dag']);
+                if ($row['ibc_dag'] > 0) {
+                    if ($prevD !== null && $prevD->diff($d)->days <= 1) {
+                        $current++;
+                    } else {
+                        $current = 1;
+                    }
+                    if ($current > $longest) $longest = $current;
+                } else {
+                    $current = 0;
+                }
+                $prevD = $d;
+            }
+
+            echo json_encode([
+                'success'        => true,
+                'current_streak' => $streak,
+                'longest_streak' => $longest,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getStreak error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }

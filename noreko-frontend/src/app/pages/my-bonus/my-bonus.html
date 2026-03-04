@@ -232,6 +232,128 @@
       </div>
     </div>
 
+    <!-- ===== PERSONLIGA REKORD ===== -->
+    <div class="pb-card mb-4" *ngIf="savedOperatorId">
+      <div class="pb-header">
+        <i class="fas fa-trophy me-2 text-warning"></i>Dina personliga rekord (senaste 12 månader)
+      </div>
+      <div class="pb-body" *ngIf="!pbLoading && pbData">
+        <div class="pb-row">
+          <div class="pb-item">
+            <span class="pb-icon text-warning"><i class="fas fa-bolt"></i></span>
+            <div class="pb-content">
+              <div class="pb-label">Bästa IBC/h</div>
+              <div class="pb-value text-warning" *ngIf="pbData.best_ibc_per_h != null">
+                {{ pbData.best_ibc_per_h | number:'1.1-1' }}
+              </div>
+              <div class="pb-value text-muted" *ngIf="pbData.best_ibc_per_h == null">—</div>
+              <div class="pb-date" *ngIf="pbData.best_ibc_per_h_date">{{ pbData.best_ibc_per_h_date }}</div>
+            </div>
+          </div>
+          <div class="pb-sep"></div>
+          <div class="pb-item">
+            <span class="pb-icon text-success"><i class="fas fa-check-circle"></i></span>
+            <div class="pb-content">
+              <div class="pb-label">Bästa kvalitet</div>
+              <div class="pb-value text-success" *ngIf="pbData.best_kvalitet != null">
+                {{ pbData.best_kvalitet | number:'1.1-1' }}%
+              </div>
+              <div class="pb-value text-muted" *ngIf="pbData.best_kvalitet == null">—</div>
+              <div class="pb-date" *ngIf="pbData.best_kvalitet_date">{{ pbData.best_kvalitet_date }}</div>
+            </div>
+          </div>
+          <div class="pb-sep"></div>
+          <div class="pb-item">
+            <span class="pb-icon text-info"><i class="fas fa-box"></i></span>
+            <div class="pb-content">
+              <div class="pb-label">Bästa skift</div>
+              <div class="pb-value text-info" *ngIf="pbData.best_skift_ibc != null">
+                {{ pbData.best_skift_ibc }} IBC
+              </div>
+              <div class="pb-value text-muted" *ngIf="pbData.best_skift_ibc == null">—</div>
+              <div class="pb-date" *ngIf="pbData.best_skift_ibc_date">{{ pbData.best_skift_ibc_date }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pb-body" *ngIf="pbLoading">
+        <div class="text-center py-2">
+          <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+          <span class="text-muted ms-2 small">Laddar rekord...</span>
+        </div>
+      </div>
+      <div class="pb-body" *ngIf="!pbLoading && !pbData">
+        <p class="text-muted small mb-0 text-center py-2">Inga rekord hittade.</p>
+      </div>
+    </div>
+
+    <!-- ===== STREAK-RÄKNARE ===== -->
+    <div class="streak-card mb-4" *ngIf="savedOperatorId">
+      <div class="streak-header">
+        <i class="fas fa-fire me-2 text-danger"></i>Aktiva dagar i rad
+      </div>
+      <div class="streak-body" *ngIf="!streakLoading && streakData">
+        <div class="streak-row">
+          <div class="streak-current" [class.streak-hot]="(streakData.current_streak ?? 0) > 5">
+            <div class="streak-num" [class.streak-num-hot]="(streakData.current_streak ?? 0) > 5">
+              {{ streakData.current_streak ?? 0 }}
+            </div>
+            <div class="streak-label">dagar i rad<span *ngIf="(streakData.current_streak ?? 0) > 5"> <i class="fas fa-fire text-danger"></i></span></div>
+          </div>
+          <div class="streak-divider"></div>
+          <div class="streak-longest">
+            <div class="streak-longest-num">{{ streakData.longest_streak ?? 0 }}</div>
+            <div class="streak-label text-muted">bästa streak (60d)</div>
+          </div>
+        </div>
+        <div class="streak-message mt-2" *ngIf="(streakData.current_streak ?? 0) === 0">
+          <span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Ingen aktiv streak — börja jobba för att starta en ny!</span>
+        </div>
+        <div class="streak-message mt-2" *ngIf="(streakData.current_streak ?? 0) > 0 && (streakData.current_streak ?? 0) <= 3">
+          <span class="text-info small"><i class="fas fa-seedling me-1"></i>Bra start! Fortsätt för att bygga din streak.</span>
+        </div>
+        <div class="streak-message mt-2" *ngIf="(streakData.current_streak ?? 0) > 3 && (streakData.current_streak ?? 0) <= 5">
+          <span class="text-warning small"><i class="fas fa-fire-alt me-1"></i>Imponerande! {{ 6 - (streakData.current_streak ?? 0) }} dag(ar) kvar till Veckostreak-medaljen!</span>
+        </div>
+        <div class="streak-message mt-2" *ngIf="(streakData.current_streak ?? 0) > 5">
+          <span class="text-danger small"><i class="fas fa-fire me-1"></i>Du är på streak! Fantastisk disciplin!</span>
+        </div>
+      </div>
+      <div class="streak-body" *ngIf="streakLoading">
+        <div class="text-center py-2">
+          <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+          <span class="text-muted ms-2 small">Laddar streak...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ACHIEVEMENT-MEDALJER ===== -->
+    <div class="achievements-card mb-4" *ngIf="savedOperatorId && stats">
+      <div class="achievements-header">
+        <i class="fas fa-medal me-2 text-warning"></i>Dina medaljer
+      </div>
+      <div class="achievements-body">
+        <div class="achievements-grid">
+          <div class="achievement-item"
+               *ngFor="let ach of getAchievements()"
+               [class.achievement-earned]="ach.earned"
+               [class.achievement-locked]="!ach.earned"
+               [title]="ach.desc">
+            <div class="achievement-icon">
+              <i class="fas fa-{{ ach.icon }}"></i>
+            </div>
+            <div class="achievement-label">{{ ach.label }}</div>
+            <div class="achievement-lock" *ngIf="!ach.earned">
+              <i class="fas fa-lock"></i>
+            </div>
+          </div>
+        </div>
+        <div class="achievements-count text-muted small mt-2">
+          {{ getEarnedAchievementsCount() }} / {{ getAchievements().length }} medaljer upplåsta
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
       <div class="col-md-3 col-6">

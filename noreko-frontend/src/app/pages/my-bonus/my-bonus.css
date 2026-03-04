@@ -548,4 +548,44 @@
   .dial-num{font-size:1.3rem}
 }
 
+/* Personliga rekord */
+.pb-card,.streak-card,.achievements-card{background:#1e2535;border:1px solid #4a5568;border-radius:12px;overflow:hidden;margin-bottom:0}
+.pb-header,.streak-header,.achievements-header{background:#161c29;padding:.75rem 1.1rem;font-size:.87rem;font-weight:600;color:#cbd5e0;border-bottom:1px solid #2d3748;display:flex;align-items:center}
+.pb-card{background:linear-gradient(135deg,#1a202c 0%,#2a2f42 100%)}
+.pb-body,.streak-body,.achievements-body{padding:1rem 1.25rem}
+.pb-row{display:flex;flex-wrap:wrap;align-items:stretch}
+.pb-item{display:flex;align-items:center;gap:.75rem;flex:1;min-width:140px;padding:.5rem .75rem}
+.pb-sep{width:1px;background:#2d3748;flex-shrink:0;margin:.25rem 0}
+.pb-icon{font-size:1.4rem;flex-shrink:0;opacity:.85}
+.pb-content{flex:1;min-width:0}
+.pb-label{font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;color:#718096;margin-bottom:.15rem}
+.pb-value{font-size:1.35rem;font-weight:800;line-height:1.1}
+.pb-date{font-size:.68rem;color:#4a5568;margin-top:.1rem}
+/* Streak */
+.streak-card{background:linear-gradient(135deg,#1a202c 0%,#2a2535 100%)}
+.streak-row{display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap}
+.streak-current,.streak-longest{display:flex;flex-direction:column;align-items:center;min-width:90px}
+.streak-num{font-size:2.8rem;font-weight:900;line-height:1;color:#a0aec0;transition:color .3s}
+.streak-num-hot{color:#fc8181;text-shadow:0 0 20px rgba(229,62,62,.5)}
+@keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.75}}
+.streak-hot .streak-num{animation:streakPulse 2s ease-in-out infinite}
+.streak-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:#718096;margin-top:.2rem;text-align:center}
+.streak-divider{width:1px;height:50px;background:#2d3748;flex-shrink:0}
+.streak-longest-num{font-size:2rem;font-weight:800;color:#4a5568;line-height:1}
+.streak-message{text-align:center}
+/* Achievements */
+.achievements-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.75rem}
+.achievement-item{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:.75rem .5rem;border-radius:10px;border:1px solid transparent;cursor:default;transition:transform .2s,box-shadow .2s;position:relative;text-align:center}
+.achievement-item:hover{transform:translateY(-2px)}
+.achievement-earned{background:rgba(246,224,94,.08);border-color:rgba(246,224,94,.3);box-shadow:0 2px 12px rgba(246,224,94,.12)}
+.achievement-locked{background:rgba(255,255,255,.02);border-color:rgba(255,255,255,.05);filter:grayscale(1);opacity:.4}
+.achievement-locked:hover{opacity:.55;transform:none}
+.achievement-icon{font-size:1.6rem}
+.achievement-earned .achievement-icon{color:#f6e05e}
+.achievement-locked .achievement-icon{color:#4a5568}
+.achievement-label{font-size:.62rem;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:#a0aec0;line-height:1.2}
+.achievement-earned .achievement-label{color:#f6e05e}
+.achievement-lock{position:absolute;top:6px;right:8px;font-size:.6rem;color:#4a5568}
+.achievements-count{text-align:center}
+
 .bonus-kr-card{background:#2d3748;border-radius:12px;border:1px solid #4a5568;padding:1.25rem 1.5rem}.bonus-kr-not-configured{color:#718096;font-size:.9rem}.bonus-kr-header{font-weight:600;font-size:1.05rem;color:#e2e8f0;margin-bottom:1rem}.bonus-kr-body{display:flex;flex-direction:column;gap:.75rem}.bonus-kr-current{background:rgba(255,255,255,.03);border-radius:8px;padding:.9rem 1rem;border:1px solid #4a5568}.bkc-label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#718096;margin-bottom:.35rem}.bkc-level{font-size:1.1rem}.bkc-progress-wrap{display:flex;align-items:center}.bkc-progress-bar{flex:1;height:8px;background:#1a202c;border-radius:99px;overflow:hidden}.bkc-progress-fill{height:100%;border-radius:99px;background:currentColor;transition:width .5s ease}.bkc-amount{font-size:.95rem;color:#e2e8f0}.bkc-sek{font-size:1.1rem}.bonus-kr-next{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;background:rgba(72,187,120,.07);border:1px solid rgba(72,187,120,.2);border-radius:8px;padding:.7rem 1rem}.bkn-label{font-size:.85rem;color:#a0aec0}.bkn-value{font-size:.95rem}.bonus-kr-top,.bonus-kr-below{font-size:.9rem}.bonus-kr-top{padding:.7rem 1rem;background:rgba(72,187,120,.07);border-radius:8px;border:1px solid rgba(72,187,120,.2)}@media(max-width:576px){.bonus-kr-card{padding:.9rem 1rem}.bonus-kr-next{flex-direction:column;gap:.25rem}}
