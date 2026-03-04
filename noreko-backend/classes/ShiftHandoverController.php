@@ -288,6 +288,11 @@ class ShiftHandoverController {
             ]);
             $newId = (int)$this->pdo->lastInsertId();
 
+            // Skicka e-post vid brådskande anteckning
+            if ($priority === 'urgent') {
+                $this->sendUrgentNotification($note);
+            }
+
             $skiftLabels = [1 => 'Morgon', 2 => 'Eftermiddag', 3 => 'Natt'];
             $skiftLabel  = "Skift $skiftNr — " . ($skiftLabels[$skiftNr] ?? "Skift $skiftNr");
 
@@ -415,4 +420,73 @@ class ShiftHandoverController {
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort anteckning']);
         }
     }
+    // -------------------------------------------------------------------------
+    // E-postnotifikation vid brådskande anteckning
+    // -------------------------------------------------------------------------
+
+    private function getAdminEmails(): array {
+        try {
+            // Kontrollera att notification_emails-kolumnen finns, annars returnera tom array
+            $col = $this->pdo->query(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'rebotling_settings'
+                   AND COLUMN_NAME  = 'notification_emails'"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            if (!$col) {
+                return [];
+            }
+
+            $row = $this->pdo->query(
+                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            if (empty($row['notification_emails'])) {
+                return [];
+            }
+
+            $parts  = array_map('trim', explode(';', $row['notification_emails']));
+            $emails = [];
+            foreach ($parts as $email) {
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $emails[] = $email;
+                }
+            }
+            return $emails;
+        } catch (Exception $e) {
+            error_log('ShiftHandoverController getAdminEmails: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function sendUrgentNotification(string $noteText): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        $adminEmails = $this->getAdminEmails();
+        if (empty($adminEmails)) {
+            return;
+        }
+
+        $username = $_SESSION['username'] ?? 'Okänd användare';
+        $subject  = "BRÅDSKANDE: Ny skiftnotering - " . date('Y-m-d H:i');
+        $message  = "En ny brådskande notering har skapats i skiftöverlämningen.
+
+";
+        $message .= "Notis: " . $noteText . "
+";
+        $message .= "Av: " . $username . "
+";
+        $message .= "Tid: " . date('Y-m-d H:i:s') . "
+";
+        $headers  = "From: noreply@noreko.se
+Content-Type: text/plain; charset=UTF-8";
+
+        foreach ($adminEmails as $email) {
+            @mail($email, $subject, $message, $headers);
+        }
+    }
+
+
 }

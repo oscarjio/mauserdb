@@ -749,6 +749,61 @@
 
     </div>
   </div>
+
+
+  <!-- ======== E-POSTNOTIFIKATIONER ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-envelope me-2 text-info"></i>E-postnotifikationer
+          </h5>
+          <button class="btn btn-sm btn-outline-secondary"
+                  (click)="showNotificationPanel = !showNotificationPanel">
+            <i class="fas" [class.fa-chevron-down]="!showNotificationPanel" [class.fa-chevron-up]="showNotificationPanel"></i>
+          </button>
+        </div>
+        <div class="card-body" *ngIf="showNotificationPanel">
+
+          <p class="text-muted small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Ange e-postadresser separerade med semikolon. Dessa mottar notiser vid brådskande skiftnoteringar (prioritet: Brådskande).
+          </p>
+
+          <div *ngIf="notificationSettingsError" class="alert alert-danger py-2 mb-3">
+            {{ notificationSettingsError }}
+          </div>
+
+          <div *ngIf="notificationSettingsLoading" class="text-muted text-center py-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar inställningar...
+          </div>
+
+          <div *ngIf="!notificationSettingsLoading">
+            <div class="mb-3">
+              <label class="form-label">E-postadresser för notifikationer</label>
+              <input type="text"
+                     class="form-control bg-dark text-light border-secondary"
+                     [(ngModel)]="notificationSettings.notification_emails"
+                     placeholder="chef@noreko.se;vd@noreko.se"
+                     [disabled]="notificationSettingsSaving">
+              <div class="form-text text-muted">
+                Separera flera adresser med semikolon (;). Lämna tomt för att inaktivera e-postnotifikationer.
+              </div>
+            </div>
+
+            <button class="btn btn-primary"
+                    (click)="saveNotificationSettings()"
+                    [disabled]="notificationSettingsSaving">
+              <i class="fas" [class.fa-save]="!notificationSettingsSaving" [class.fa-spinner]="notificationSettingsSaving" [class.fa-spin]="notificationSettingsSaving" class="me-2"></i>
+              {{ notificationSettingsSaving ? 'Sparar...' : 'Spara notifikationsinställningar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Åtkomst nekad -->

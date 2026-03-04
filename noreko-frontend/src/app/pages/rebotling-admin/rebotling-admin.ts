@@ -94,6 +94,13 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   alertThresholdsError   = '';
   showAlertPanel         = false;
 
+  // ---- E-postnotifikationer ----
+  notificationSettings = { notification_emails: '' };
+  notificationSettingsLoading = false;
+  notificationSettingsSaving = false;
+  notificationSettingsError = '';
+  showNotificationPanel = false;
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -120,6 +127,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadSystemStatus();
     this.loadTodaySnapshot();
     this.loadAlertThresholds();
+    this.loadNotificationSettings();
 
     // Uppdatera systemstatus + snapshot var 30:e sekund
     this.systemStatusInterval = setInterval(() => {
@@ -678,6 +686,58 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
         error: () => {
           this.alertThresholdsError = 'Serverfel vid sparning';
           this.alertThresholdsSaving = false;
+        }
+      });
+  }
+
+  // ========== E-postnotifikationer ==========
+  loadNotificationSettings() {
+    this.notificationSettingsLoading = true;
+    this.notificationSettingsError   = '';
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=notification-settings', { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success && res.data) {
+            this.notificationSettings = { ...this.notificationSettings, ...res.data };
+          } else if (!res?.success) {
+            this.notificationSettingsError = 'Kunde inte ladda notifikationsinställningar';
+          }
+          this.notificationSettingsLoading = false;
+        },
+        error: () => {
+          this.notificationSettingsError   = 'Serverfel vid hämtning';
+          this.notificationSettingsLoading = false;
+        }
+      });
+  }
+
+  saveNotificationSettings() {
+    this.notificationSettingsSaving = true;
+    this.notificationSettingsError  = '';
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-notification-settings',
+      this.notificationSettings, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.showSuccess('Notifikationsinställningar sparade!');
+          } else {
+            this.notificationSettingsError = res?.error || 'Kunde inte spara inställningar';
+          }
+          this.notificationSettingsSaving = false;
+        },
+        error: () => {
+          this.notificationSettingsError  = 'Serverfel vid sparning';
+          this.notificationSettingsSaving = false;
         }
       });
   }

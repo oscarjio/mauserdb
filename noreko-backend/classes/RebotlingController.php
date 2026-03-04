@@ -969,7 +969,20 @@ class RebotlingController {
      */
     private function getCycleTrend() {
         try {
-            $days = min(90, max(7, intval($_GET['days'] ?? 30)));
+            $fromDate = $_GET['from_date'] ?? null;
+            $toDate   = $_GET['to_date']   ?? null;
+            if ($fromDate && $toDate) {
+                if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+                    echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                    return;
+                }
+                $cycleStart = $fromDate;
+                $cycleEnd   = $toDate;
+            } else {
+                $days = min(365, max(7, intval($_GET['days'] ?? 30)));
+                $cycleStart = date('Y-m-d', strtotime("-{$days} days"));
+                $cycleEnd   = date('Y-m-d');
+            }
             $granularity = $_GET['granularity'] ?? 'day';
 
             if ($granularity === 'shift') {
@@ -985,12 +998,12 @@ class RebotlingController {
                         MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime
                     FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                    WHERE datum >= :cycle_start AND datum <= :cycle_end
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                     ORDER BY dag ASC, skiftraknare ASC
                 ");
-                $stmt->execute([$days]);
+                $stmt->execute(['cycle_start' => $cycleStart . ' 00:00:00', 'cycle_end' => $cycleEnd . ' 23:59:59']);
                 $shiftRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 $shiftData = [];
@@ -1051,14 +1064,14 @@ class RebotlingController {
                         MAX(COALESCE(bur_ej_ok,  0)) AS shift_bur_ej_ok,
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime
                     FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                    WHERE datum >= :cycle_start AND datum <= :cycle_end
                       AND skiftraknare IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
                 GROUP BY dag
                 ORDER BY dag
             ");
-            $stmt->execute([$days]);
+            $stmt->execute(['cycle_start' => $cycleStart . ' 00:00:00', 'cycle_end' => $cycleEnd . ' 23:59:59']);
             $daily = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Calculate 7-day moving average and trend
@@ -1388,7 +1401,22 @@ class RebotlingController {
      * OEE-trend senaste N dagarna (Availability, Performance, Quality, OEE per dag eller per skift).
      */
     private function getOEETrend() {
-        $days = min(90, max(7, intval($_GET['days'] ?? 30)));
+        $fromDate = $_GET['from_date'] ?? null;
+        $toDate   = $_GET['to_date']   ?? null;
+        if ($fromDate && $toDate) {
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                return;
+            }
+            $oeeStart = $fromDate;
+            $oeeEnd   = $toDate;
+            $useDateRange = true;
+        } else {
+            $days = min(365, max(7, intval($_GET['days'] ?? 30)));
+            $oeeStart = date('Y-m-d', strtotime("-{$days} days"));
+            $oeeEnd   = date('Y-m-d');
+            $useDateRange = false;
+        }
         $granularity = $_GET['granularity'] ?? 'day';
         try {
             if ($granularity === 'shift') {
@@ -1403,13 +1431,13 @@ class RebotlingController {
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
                         MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                    WHERE datum >= :oee_start AND datum <= :oee_end
                       AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
                     ORDER BY dag ASC, skiftraknare ASC
                 ");
-                $stmt->execute([$days]);
+                $stmt->execute(['oee_start' => $oeeStart . ' 00:00:00', 'oee_end' => $oeeEnd . ' 23:59:59']);
                 $shiftRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 $idealRatePerMin = 15.0 / 60.0;
@@ -1463,7 +1491,7 @@ class RebotlingController {
                         MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
                         MAX(COALESCE(rasttime,   0)) AS shift_rast
                     FROM rebotling_ibc
-                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                    WHERE datum >= :oee_start AND datum <= :oee_end
                       AND skiftraknare IS NOT NULL
                       AND ibc_ok IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare
@@ -1471,7 +1499,7 @@ class RebotlingController {
                 GROUP BY dag
                 ORDER BY dag ASC
             ");
-            $stmt->execute([$days]);
+            $stmt->execute(['oee_start' => $oeeStart . ' 00:00:00', 'oee_end' => $oeeEnd . ' 23:59:59']);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $idealRatePerMin = 15.0 / 60.0;
@@ -1564,9 +1592,22 @@ class RebotlingController {
      * Används av statistiksidans heatmap-vy.
      */
     private function getHeatmap() {
-        $days = isset($_GET['days']) ? max(7, min(90, intval($_GET['days']))) : 30;
-        $end   = date('Y-m-d');
-        $start = date('Y-m-d', strtotime("-{$days} days"));
+        $fromDate = $_GET['from_date'] ?? null;
+        $toDate   = $_GET['to_date']   ?? null;
+
+        if ($fromDate && $toDate) {
+            // Validera datumformat
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                return;
+            }
+            $start = $fromDate;
+            $end   = $toDate;
+        } else {
+            $days  = isset($_GET['days']) ? max(7, min(365, intval($_GET['days']))) : 30;
+            $end   = date('Y-m-d');
+            $start = date('Y-m-d', strtotime("-{$days} days"));
+        }
 
         try {
             $stmt = $this->pdo->prepare(
