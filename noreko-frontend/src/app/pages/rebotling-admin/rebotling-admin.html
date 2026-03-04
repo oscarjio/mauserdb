@@ -138,9 +138,12 @@
             Systemstatus
           </h5>
           <div class="d-flex align-items-center gap-2">
+            <span *ngIf="systemStatusLastUpdated" class="text-muted small">
+              <i class="fas fa-clock me-1"></i>Senast uppdaterad: {{ systemStatusLastUpdated | date:'HH:mm:ss' }}
+            </span>
             <span *ngIf="systemStatusLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
             <button class="btn btn-sm btn-outline-secondary" (click)="loadSystemStatus()" [disabled]="systemStatusLoading">
-              <i class="fas fa-sync-alt me-1"></i>Uppdatera
+              <i class="fas fa-sync-alt me-1"></i>Uppdatera nu
             </button>
           </div>
         </div>
@@ -269,7 +272,7 @@
               <div class="form-text">Startar automatiskt vid skiftbyte</div>
             </div>
           </div>
-          <div class="mt-4 d-flex gap-2">
+          <div class="mt-4 d-flex gap-2 align-items-center">
             <button class="btn btn-primary" (click)="saveSettings()" [disabled]="settingsSaving">
               <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
@@ -278,6 +281,9 @@
             <button class="btn btn-outline-secondary" (click)="loadSettings()" [disabled]="settingsLoading">
               <i class="fas fa-sync-alt me-2"></i>Återställ
             </button>
+            <span *ngIf="settingsSaved" class="text-success small">
+              <i class="fas fa-check-circle me-1"></i>Sparat!
+            </span>
           </div>
         </div>
       </div>
@@ -674,15 +680,59 @@
           <h5 class="card-title mb-0">
             <i class="fas fa-tools me-2 text-warning"></i>
             Maskinstatus &amp; Underhållsprediktor
+            <span
+              class="ms-2 text-muted"
+              style="cursor:help;font-size:0.85rem;"
+              title="Baserat på genomsnittlig cykeltid senaste 4 veckor jämfört med baseline-perioden. En stigande cykeltid indikerar att maskinen kan behöva underhåll.">
+              &#9432;
+            </span>
           </h5>
           <div class="d-flex align-items-center gap-2">
             <span *ngIf="maintenanceLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+            <button *ngIf="maintenanceStatus === 'warning' || maintenanceStatus === 'danger'"
+              class="btn btn-sm"
+              [class.btn-outline-warning]="maintenanceStatus === 'warning'"
+              [class.btn-outline-danger]="maintenanceStatus === 'danger'"
+              (click)="showMaintenanceLogForm = !showMaintenanceLogForm">
+              <i class="fas fa-wrench me-1"></i>Logga underhåll
+            </button>
             <button class="btn btn-sm btn-outline-secondary" (click)="loadMaintenanceIndicator()" [disabled]="maintenanceLoading">
               <i class="fas fa-sync-alt me-1"></i>Uppdatera
             </button>
           </div>
         </div>
         <div class="card-body">
+
+          <!-- Logga underhåll — inline formulär -->
+          <div *ngIf="showMaintenanceLogForm" class="card mb-3" style="background:#2a3344;border:1px solid #4a5568;">
+            <div class="card-body py-3">
+              <div class="d-flex align-items-center mb-2 gap-2">
+                <i class="fas fa-wrench text-warning"></i>
+                <span class="fw-semibold text-warning">Logga underhållsåtgärd</span>
+              </div>
+              <div *ngIf="maintenanceLogError" class="alert alert-danger py-2 mb-2 small">{{ maintenanceLogError }}</div>
+              <div *ngIf="maintenanceLogSaved" class="alert alert-success py-2 mb-2 small">
+                <i class="fas fa-check-circle me-1"></i>Åtgärd loggad!
+              </div>
+              <div class="d-flex gap-2 flex-wrap">
+                <input type="text"
+                  class="form-control form-control-sm bg-dark text-light border-secondary flex-grow-1"
+                  placeholder="Beskriv utförd åtgärd, t.ex. 'Rengörde pump, bytte tätning'"
+                  [(ngModel)]="maintenanceLogText"
+                  [disabled]="maintenanceLogSaving"
+                  style="min-width:250px;" />
+                <button class="btn btn-sm btn-warning text-dark"
+                  (click)="saveMaintenanceLog()"
+                  [disabled]="maintenanceLogSaving || !maintenanceLogText.trim()">
+                  <i class="fas" [class.fa-save]="!maintenanceLogSaving" [class.fa-spinner]="maintenanceLogSaving" [class.fa-spin]="maintenanceLogSaving" class="me-1"></i>
+                  {{ maintenanceLogSaving ? 'Sparar...' : 'Spara' }}
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="showMaintenanceLogForm = false; maintenanceLogText = ''; maintenanceLogError = ''">
+                  Avbryt
+                </button>
+              </div>
+            </div>
+          </div>
 
           <!-- Status-banners -->
           <div *ngIf="maintenanceStatus === 'danger'" class="alert alert-danger">
@@ -742,7 +792,7 @@
 
           <small class="text-muted d-block mt-2">
             <i class="fas fa-info-circle me-1"></i>
-            Baserat på de senaste 8 veckorna. Uppdateras var 5:e minut.
+            Baserat på genomsnittlig cykeltid senaste 4 veckor jämfört med baseline-perioden. Uppdateras var 5:e minut.
           </small>
         </div>
       </div>

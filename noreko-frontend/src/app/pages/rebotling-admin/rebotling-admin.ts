@@ -42,6 +42,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   settingsLoading = false;
   settingsSaving  = false;
   settingsError   = '';
+  settingsSaved   = false;
 
   // ---- Veckodagsmål ----
   weekdayGoals: { weekday: number; daily_goal: number; label: string }[] = [];
@@ -65,6 +66,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   systemStatus: any = null;
   systemStatusLoading = false;
   systemStatusError   = '';
+  systemStatusLastUpdated: Date | null = null;
   private systemStatusInterval: any = null;
 
   // ---- Underhållsindikator ----
@@ -73,6 +75,13 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   maintenanceStatus: 'ok' | 'warning' | 'danger' | null = null;
   maintenanceChart: Chart | null = null;
   private maintenanceTimer: any = null;
+
+  // ---- Logga underhåll ----
+  showMaintenanceLogForm = false;
+  maintenanceLogText = '';
+  maintenanceLogSaving = false;
+  maintenanceLogSaved = false;
+  maintenanceLogError = '';
 
   // ---- Snabb produktionsöversikt idag ----
   todaySnapshot: any = null;
@@ -198,12 +207,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   saveSettings() {
     this.settingsSaving = true;
     this.settingsError  = '';
+    this.settingsSaved  = false;
     this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', this.settings, { withCredentials: true })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res.success) {
+            this.settingsSaved = true;
             this.showSuccess('Inställningar sparade!');
+            setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000);
           } else {
             this.settingsError = res.error || 'Kunde inte spara inställningar';
           }
@@ -358,6 +370,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
         next: (res) => {
           if (res.success) {
             this.systemStatus = res.data;
+            this.systemStatusLastUpdated = new Date();
           } else {
             this.systemStatusError = res.error || 'Kunde inte ladda systemstatus';
           }
@@ -621,6 +634,40 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           },
         },
       },
+    });
+  }
+
+  // ========== Logga underhåll ==========
+  saveMaintenanceLog() {
+    const text = (this.maintenanceLogText || '').trim();
+    if (!text) {
+      this.maintenanceLogError = 'Ange en beskrivning av åtgärden';
+      return;
+    }
+    this.maintenanceLogSaving = true;
+    this.maintenanceLogError  = '';
+    this.maintenanceLogSaved  = false;
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=save-maintenance-log',
+      { action_text: text },
+      { withCredentials: true }
+    )
+    .pipe(
+      timeout(8000),
+      catchError(() => of({ success: false, error: 'Nätverksfel' })),
+      takeUntil(this.destroy$)
+    )
+    .subscribe((res: any) => {
+      this.maintenanceLogSaving = false;
+      if (res?.success) {
+        this.maintenanceLogSaved  = true;
+        this.maintenanceLogText   = '';
+        this.showMaintenanceLogForm = false;
+        this.showSuccess('Underhållsåtgärd loggad!');
+        setTimeout(() => { if (!this.destroy$.closed) this.maintenanceLogSaved = false; }, 4000);
+      } else {
+        this.maintenanceLogError = res?.error || 'Kunde inte spara underhållslogg';
+      }
     });
   }
 

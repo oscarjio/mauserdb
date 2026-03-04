@@ -1,3 +1,16 @@
+## 2026-03-04 — Worker: Skiftrapport empty+loading states + prediktiv underhåll tooltip+åtgärdsknapp
+- rebotling-skiftrapport.html: loading-spinner ersatt med spinner-border (py-5), empty-state utanför tabellen med clipboard-ikon + text, tabell dold med *ngIf="!loading && filteredReports.length > 0".
+- tvattlinje-skiftrapport.html + saglinje-skiftrapport.html: Liknande uppdatering. Lägger till empty-state när rapporter finns men filtret ger 0 träffar (reports.length > 0 && filteredReports.length === 0). Spinner uppgraderad till spinner-border.
+- rebotling-admin.html: Underhållsprediktor: info-ikon (ⓘ) med tooltip-förklaring, "Logga underhåll"-knapp synlig vid warning/danger-status, inline-formulär med fritext-fält + spara/avbryt.
+- rebotling-admin.ts: Nya properties showMaintenanceLogForm, maintenanceLogText, maintenanceLogSaving/Saved/Error. Ny metod saveMaintenanceLog() via POST run=save-maintenance-log.
+- RebotlingController.php: Ny metod saveMaintenanceLog() — sparar till rebotling_maintenance_log om tabellen finns, annars graceful fallback med success:true.
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
+## 2026-03-04 — Worker: My-bonus rankingposition tom-state + produktionsanalys per-sektion loading/empty-states (334af16)
+- my-bonus.html: Separerar loading-skeleton (Bootstrap placeholder-glow) och tom-state-kort (medalj-ikon + "Du är inte med i rankingen denna vecka") från den existerande rankingPosition-sektionen. Tom-state visas när !rankingPosition && !rankingPositionLoading.
+- production-analysis.html: Per-sektion loading-spinners och empty-state-meddelanden för operators-ranking-diagram, daglig-trend, veckodagssnitt, heatmap (ng-container-wrap), timdiagram, bubble-diagram (skiftöversikt).
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
 ## 2026-03-04 — Worker: Chart.js error-boundary + admin rekordnyhet-trigger (17d7cfa)
 - Chart.js error-boundary: try-catch runt alla destroy()-anrop i rebotling-statistik, executive-dashboard, bonus-dashboard, production-analysis. Null-checks på canvas.getContext('2d') i nya chart-render-metoder.
 - Admin-rekordnyhet: Ny knapp i rebotling-admin "Skapa rekordnyhet för idag" → POST run=create-record-news. Backend: checkAndCreateRecordNews() (auto efter 18:00), createRecordNewsManual() (admin-trigger). Noterade att backend-metoderna redan var i HEAD från tidigare agent — frontend-knapp är ny.

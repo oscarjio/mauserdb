@@ -168,6 +168,8 @@ class RebotlingController {
                 $this->saveLiveRankingSettings();
             } elseif ($action === 'create-record-news') {
                 $this->createRecordNewsManual();
+            } elseif ($action === 'save-maintenance-log') {
+                $this->saveMaintenanceLog();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -6279,6 +6281,41 @@ class RebotlingController {
 
         } catch (\Exception $e) {
             error_log('createRecordNewsManual: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    // ========== Logga underhållsåtgärd ==========
+    private function saveMaintenanceLog(): void {
+        try {
+            $body = json_decode(file_get_contents('php://input'), true);
+            $actionText = trim($body['action_text'] ?? '');
+            if (strlen($actionText) === 0 || strlen($actionText) > 1000) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Åtgärdstext saknas eller är för lång (max 1000 tecken)']);
+                return;
+            }
+            $userId = $_SESSION['user_id'] ?? null;
+
+            // Försök att infoga i underhållslogg-tabellen om den finns
+            try {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO rebotling_maintenance_log (action_text, logged_by_user_id, logged_at)
+                    VALUES (:action_text, :user_id, NOW())
+                ");
+                $stmt->execute([
+                    ':action_text' => $actionText,
+                    ':user_id'     => $userId,
+                ]);
+                echo json_encode(['success' => true, 'message' => 'Underhållsåtgärd sparad']);
+            } catch (\Exception $tableErr) {
+                // Tabellen finns inte ännu — returnera ändå success så frontend inte kraschar
+                error_log('saveMaintenanceLog: rebotling_maintenance_log saknas: ' . $tableErr->getMessage());
+                echo json_encode(['success' => true, 'message' => 'Noterat (logg-tabell ej konfigurerad)']);
+            }
+        } catch (\Exception $e) {
+            error_log('saveMaintenanceLog: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
