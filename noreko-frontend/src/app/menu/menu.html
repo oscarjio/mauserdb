@@ -16,6 +16,7 @@
         <a class="nav-link dropdown-toggle" href="#" id="rebotlingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="line-dot" [class.line-dot-on]="rebotlingRunning" [class.line-dot-off]="!rebotlingRunning"></span>
           Rebotling
+          <span class="badge bg-danger ms-1" *ngIf="loggedIn && urgentNoteCount > 0">{{ urgentNoteCount }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="rebotlingDropdown">
           <li><a class="dropdown-item" routerLink="/rebotling/andon"><i class="fas fa-tv me-2 text-success"></i>Andon-tavla</a></li>
@@ -24,7 +25,12 @@
           <li><a class="dropdown-item" routerLink="/rebotling/statistik">Statistik</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/benchmarking"><i class="fas fa-trophy me-2 text-warning"></i>Benchmarking</a></li>
           <li *ngIf="loggedIn"><hr class="dropdown-divider"></li>
-          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/overlamnin"><i class="fas fa-exchange-alt me-2"></i>Skiftöverlämning</a></li>
+          <li *ngIf="loggedIn">
+            <a class="dropdown-item" routerLink="/rebotling/overlamnin">
+              <i class="fas fa-exchange-alt me-2"></i>Skiftöverlämning
+              <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
+            </a>
+          </li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/min-bonus"><i class="fas fa-star me-2 text-info"></i>Min Bonus</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>

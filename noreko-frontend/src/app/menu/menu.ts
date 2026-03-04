@@ -22,6 +22,7 @@ export class Menu implements OnInit, OnDestroy {
   vpnConnectedCount: number = 0;
   rebotlingRunning = false;
   tvattlinjeRunning = false;
+  urgentNoteCount = 0;
   profileForm = {
     email: '',
     operatorId: '',
@@ -35,6 +36,7 @@ export class Menu implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private refreshInterval: any;
   private lineStatusInterval: any;
+  private notifTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private router: Router, 
@@ -50,6 +52,18 @@ export class Menu implements OnInit, OnDestroy {
       } else {
         this.vpnConnectedCount = 0;
         this.clearRefreshInterval();
+      }
+      if (val) {
+        this.loadUrgentCount();
+        if (!this.notifTimer) {
+          this.notifTimer = setInterval(() => this.loadUrgentCount(), 60000);
+        }
+      } else {
+        this.urgentNoteCount = 0;
+        if (this.notifTimer) {
+          clearInterval(this.notifTimer);
+          this.notifTimer = null;
+        }
       }
     });
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -84,6 +98,10 @@ export class Menu implements OnInit, OnDestroy {
       clearInterval(this.lineStatusInterval);
       this.lineStatusInterval = null;
     }
+    if (this.notifTimer) {
+      clearInterval(this.notifTimer);
+      this.notifTimer = null;
+    }
   }
 
   private clearRefreshInterval() {
@@ -105,6 +123,16 @@ export class Menu implements OnInit, OnDestroy {
     if (!this.lineStatusInterval) {
       this.lineStatusInterval = setInterval(() => this.loadLineStatus(), 30000);
     }
+  }
+
+  loadUrgentCount(): void {
+    this.http.get<any>('/noreko-backend/api.php?action=shift-handover&run=unread-count', { withCredentials: true }).pipe(
+      timeout(4000),
+      catchError(() => of({ antal: 0 })),
+      takeUntil(this.destroy$)
+    ).subscribe(r => {
+      this.urgentNoteCount = r.antal || 0;
+    });
   }
 
   loadVpnStatus() {

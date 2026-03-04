@@ -17,6 +17,11 @@ class ShiftHandoverController {
             return;
         }
 
+        if ($method === 'GET' && $run === 'unread-count') {
+            $this->unreadCount();
+            return;
+        }
+
         if ($method === 'POST' && $run === 'add') {
             $this->requireLogin();
             $this->addNote();
@@ -99,6 +104,37 @@ class ShiftHandoverController {
             return 'Igår';
         }
         return $dayDiff . ' dagar sedan';
+    }
+
+    // -------------------------------------------------------------------------
+    // GET ?action=shift-handover&run=unread-count
+    // Returnerar antal urgenta notat från de senaste 12 timmarna.
+    // Kräver inloggad session.
+    // -------------------------------------------------------------------------
+
+    private function unreadCount(): void {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['antal' => 0]);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare('
+                SELECT COUNT(*) AS antal
+                FROM shift_handover
+                WHERE priority = \'urgent\'
+                  AND created_at >= DATE_SUB(NOW(), INTERVAL 12 HOUR)
+            ');
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            echo json_encode(['antal' => (int)($row['antal'] ?? 0)]);
+        } catch (PDOException $e) {
+            error_log('ShiftHandoverController unreadCount: ' . $e->getMessage());
+            echo json_encode(['antal' => 0]);
+        }
     }
 
     // -------------------------------------------------------------------------
