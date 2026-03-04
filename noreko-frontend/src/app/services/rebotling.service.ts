@@ -326,6 +326,14 @@ export class RebotlingService {
     );
   }
 
+
+  getHourlyRhythm(days: number = 30): Observable<any> {
+    return this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=hourly-rhythm&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {

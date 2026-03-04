@@ -1,3 +1,17 @@
+## 2026-03-04 — Worker: Produktionsrytm per timme
+- Lagt till **Produktionsrytm per timme** i `/rebotling/statistik` — visar genomsnittlig IBC/h per klockslag (06:00–22:00).
+- Backend: `hourly-rhythm` endpoint i `RebotlingController.php` — MySQL 8.0 LAG()-fönsterfunktion för korrekt delta per timme inom skift.
+- Service: `getHourlyRhythm(days)` i `rebotling.service.ts`.
+- Frontend: stapeldiagram med färgkodning (grön = topp 85%, orange = 60–85%, röd = under 60%), datatabell med kvalitet% och antal dagar. Dag-val 7/30/90 dagar.
+- Fix: `skift_count` tillagd i `DayEntry`-interface i `monthly-report.ts` (pre-existing build error).
+
+## 2026-03-04 — Worker: Benchmarking-sida förbättrad
+- Lagt till **Personbästa vs. Teamrekord** (sektion 5): tabell per operatör med bästa IBC/h, bästa kvalitet%, procentjämförelse mot teamrekord, progress-bar med grön/gul/röd.
+- Lagt till **Månatliga resultat** (sektion 6): tabell för senaste 12 månader, total IBC, snitt OEE (färgkodad), topp IBC/h.
+- Backend: `personal-bests` + `monthly-leaders` endpoints i RebotlingController. SQL mot `rebotling_skiftrapport` + `operators` (kolumn `number`/`name`).
+- Service: `getPersonalBests()` + `getMonthlyLeaders()` + TypeScript-interfaces i `rebotling.service.ts`.
+- Byggt och pushat: commit `2fbf201`.
+
 # MauserDB Dev Log
 
 - **2026-03-04**: Worker: Live Ranking admin-konfiguration implementerad. Backend: RebotlingController.php — ny GET endpoint live-ranking-settings (hämtar lr_show_quality, lr_show_progress, lr_show_motto, lr_poll_interval, lr_title från rebotling_settings med FETCH_KEY_PAIR) + POST save-live-ranking-settings (admin-skyddad, validerar poll_interval 10–120s, saniterar lr_title med strip_tags). Frontend live-ranking.ts: lrSettings typed interface property; loadLrSettings() med timeout(5000)+catchError+takeUntil, kallar loadData om poll-interval ändras; ngOnInit kallar loadLrSettings(). live-ranking.html: header-title binder lrSettings.lr_title | uppercase, refresh-label visar dynamiskt intervall, kvalitet%-blocket har *ngIf lrSettings.lr_show_quality, progress-section har *ngIf goal>0 && lrSettings.lr_show_progress, footer motto-text har *ngIf lrSettings.lr_show_motto. rebotling-admin.ts: lrSettings/lrSettingsSaving/showLrPanel properties; toggleLrPanel(); loadLrSettings()+saveLrSettings() med timeout(8000)+catchError+takeUntil; ngOnInit kallar loadLrSettings(). rebotling-admin.html: collapsible sektion "Live Ranking — TV-konfiguration" med inputs för sidrubrik, uppdateringsintervall (10–120s), toggle-switchar för kvalitet/progress/motto, spara-knapp med spinner. Build OK. Push: main.
