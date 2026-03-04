@@ -1,3 +1,22 @@
+## 2026-03-04 — Audit-log + Stoppage-log: KPI-sammanfattning, export disable-state
+
+Worker-agent förbättrade `audit-log` och `stoppage-log` med bättre UI och KPI-sammanfattning:
+
+**Audit-log (`audit-log.ts` / `audit-log.html` / `audit-log.css`)**:
+- `auditStats` getter beräknar client-side: totalt poster (filtrerade), aktiviteter idag, senaste användare
+- 3 KPI-brickor ovanför loggtabellen i logg-fliken (database-ikon, kalenderdag-ikon, user-clock-ikon)
+- Export-knapp disabled när `logs.length === 0` (utöver exportingAll-guard)
+- KPI CSS-klasser tillagda: `kpi-card`, `kpi-icon`, `kpi-icon-blue`, `kpi-icon-green`, `kpi-value-sm`
+
+**Stoppage-log (`stoppage-log.ts` / `stoppage-log.html`)**:
+- `stopSummaryStats` getter: antal stopp, total stopptid (min), snitt stopplängd (min) — från filtrerad vy
+- `formatMinutes(min)` hjälpmetod: formaterar minuter som "Xh Ymin" eller "Y min"
+- `calcDuration(stopp)` hjälpmetod: beräknar varaktighet från `duration_minutes` eller start/sluttid
+- 3 KPI-brickor ovanför filterraden i logg-fliken (filtrerade värden uppdateras live)
+- Export CSV + Excel: `[disabled]` när `filteredStoppages.length === 0`
+
+Bygg lyckades, commit + push klart.
+
 ## 2026-03-04 — Operator-compare: Periodval, CSV-export, diff-badges
 
 Worker-agent förbättrade `/operator-compare` med:
