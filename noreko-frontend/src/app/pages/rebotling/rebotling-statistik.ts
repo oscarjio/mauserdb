@@ -2606,7 +2606,18 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     ).subscribe((res: CycleByOperatorResponse | null) => {
       this.cycleByOpLoading = false;
       if (res?.success && res.data) {
-        this.cycleByOpData = res.data;
+        // Beräkna teamsnitt (median av alla operatörers median_min)
+        const medians = res.data.map(op => op.median_min ?? (op.snitt_cykel_sek / 60));
+        const teamSnitt = medians.length > 0 ? medians.reduce((a, b) => a + b, 0) / medians.length : 0;
+        // Lägg till vs_team_snitt (avvikelse i %) och sortera på antal_skift DESC
+        this.cycleByOpData = res.data
+          .map(op => ({
+            ...op,
+            vs_team_snitt: teamSnitt > 0
+              ? Math.round(((op.median_min ?? op.snitt_cykel_sek / 60) - teamSnitt) / teamSnitt * 100)
+              : 0
+          }))
+          .sort((a, b) => b.antal_skift - a.antal_skift);
         this.cycleByOpLoaded = true;
         setTimeout(() => this.renderCycleByOpChart(), 100);
       } else {
@@ -2621,23 +2632,22 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const canvas = document.getElementById('cycleByOpChart') as HTMLCanvasElement;
     if (!canvas || !this.cycleByOpData.length) return;
 
-    const sorted = [...this.cycleByOpData].sort((a, b) => a.snitt_cykel_sek - b.snitt_cykel_sek);
-    const labels = sorted.map(op => op.initialer);
-    const values = sorted.map(op => op.snitt_cykel_sek);
-    const bast   = sorted.map(op => op.bast_cykel_sek);
-    const samst  = sorted.map(op => op.samst_cykel_sek);
+    // Sorterat fallande på antal_skift (redan sorterat i data)
+    const sorted = [...this.cycleByOpData];
+    // För horisontell graf: visa i omvänd ordning så flest är längst upp
+    const chartData = [...sorted].reverse();
+    const labels = chartData.map(op => op.initialer);
+    const values = chartData.map(op => op.median_min ?? (op.snitt_cykel_sek / 60));
 
-    // Beräkna median för färgläggning
-    const median = (() => {
-      const v = [...values].sort((a, b) => a - b);
-      const mid = Math.floor(v.length / 2);
-      return v.length % 2 === 0 ? (v[mid - 1] + v[mid]) / 2 : v[mid];
-    })();
+    // Beräkna teamsnitt för färgläggning
+    const teamSnitt = values.reduce((a, b) => a + b, 0) / values.length;
+    const maxVal = Math.max(...values);
+    const xMax = maxVal * 1.2;
 
-    const colors = values.map(v => {
-      if (v < median * 0.95) return 'rgba(72, 187, 120, 0.8)';   // grön — under median
-      if (v > median * 1.05) return 'rgba(252, 129, 129, 0.8)';  // röd  — över median
-      return 'rgba(66, 153, 225, 0.8)';                           // blå  — nära median
+    const colors = chartData.map(op => {
+      const v = op.median_min ?? (op.snitt_cykel_sek / 60);
+      if (v <= teamSnitt) return 'rgba(72, 187, 120, 0.8)';    // grön — under eller lika med teamsnitt
+      return 'rgba(252, 129, 129, 0.8)';                        // röd  — över teamsnitt
     });
     const borderColors = colors.map(c => c.replace('0.8)', '1)'));
 
@@ -2647,7 +2657,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         labels,
         datasets: [
           {
-            label: 'Snitt cykeltid (sek)',
+            label: 'Median cykeltid (min)',
             data: values,
             backgroundColor: colors,
             borderColor: borderColors,
@@ -2671,15 +2681,16 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             callbacks: {
               title: (items: any[]) => {
                 const idx = items[0].dataIndex;
-                return sorted[idx].namn;
+                return chartData[idx].namn;
               },
               label: (ctx: any) => {
-                const op = sorted[ctx.dataIndex];
+                const op = chartData[ctx.dataIndex];
+                const vsSign = (op.vs_team_snitt ?? 0) >= 0 ? '+' : '';
                 return [
-                  ` Snitt: ${op.snitt_cykel_sek} sek`,
-                  ` Bäst:  ${op.bast_cykel_sek} sek`,
-                  ` Sämst: ${op.samst_cykel_sek} sek`,
-                  ` Skift: ${op.antal_skift} st`,
+                  ` Median: ${op.median_min?.toFixed(2) ?? '–'} min`,
+                  ` P90: ${op.p90_min?.toFixed(2) ?? '–'} min`,
+                  ` vs Teamsnitt: ${vsSign}${op.vs_team_snitt ?? 0}%`,
+                  ` Antal skift: ${op.antal_skift} st`,
                   ` Total IBC: ${op.total_ibc}`,
                 ];
               }
@@ -2689,9 +2700,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         scales: {
           x: {
             beginAtZero: true,
-            ticks: { color: '#a0aec0', callback: (v: any) => v + ' s' },
+            max: xMax,
+            ticks: { color: '#a0aec0', callback: (v: any) => v.toFixed(1) + ' min' },
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'Cykeltid (sekunder)', color: '#a0aec0', font: { size: 12 } }
+            title: { display: true, text: 'Median cykeltid (minuter)', color: '#a0aec0', font: { size: 12 } }
           },
           y: {
             ticks: { color: '#e2e8f0', font: { size: 12 } },

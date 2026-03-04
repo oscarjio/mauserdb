@@ -166,6 +166,8 @@ class RebotlingController {
                 $this->saveNotificationSettings();
             } elseif ($action === 'save-live-ranking-settings') {
                 $this->saveLiveRankingSettings();
+            } elseif ($action === 'create-record-news') {
+                $this->createRecordNewsManual();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -370,6 +372,13 @@ class RebotlingController {
                     'utetemperatur' => $utetemperatur
                 ]
             ]);
+
+            // Auto-kontroll: skapa rekordnyhet om klockan är efter 18:00 och det finns produktion
+            $currentHour = (int)date('G');
+            if ($currentHour >= 18 && $ibcToday > 0) {
+                $this->checkAndCreateRecordNews();
+            }
+
         } catch (Exception $e) {
             error_log('Kunde inte hämta statistik (getLiveStats): ' . $e->getMessage());
             echo json_encode([
@@ -2945,18 +2954,11 @@ class RebotlingController {
         }
 
         try {
-            // Aggregera cykeltid per operatör via rebotling_skiftrapport
+            // Hämta alla enskilda skift-rader per operatör för att kunna beräkna median och P90
             // Cykeltid (sek/IBC) = (drifttid minuter * 60) / ibc_ok
-            // Använder UNION för op1/op2/op3 och JOIN mot operators-tabellen
-            $sql = "
-                SELECT
-                    o.number                                AS op_id,
-                    o.name                                  AS namn,
-                    COUNT(*)                                AS antal_skift,
-                    ROUND(AVG(snitt_cykel_sek), 1)          AS snitt_cykel_sek,
-                    ROUND(MIN(snitt_cykel_sek), 1)          AS bast_cykel_sek,
-                    ROUND(MAX(snitt_cykel_sek), 1)          AS samst_cykel_sek,
-                    ROUND(SUM(ibc_ok_shift), 0)             AS total_ibc
+            $sqlRaw = "
+                SELECT t.op_num, o.number AS op_id, o.name AS namn,
+                       t.ibc_ok_shift, t.snitt_cykel_sek
                 FROM (
                     SELECT s.op1 AS op_num,
                            s.ibc_ok AS ibc_ok_shift,
@@ -2987,38 +2989,76 @@ class RebotlingController {
                 ) t
                 JOIN operators o ON o.number = t.op_num
                 WHERE t.snitt_cykel_sek BETWEEN 30 AND 600
-                GROUP BY o.number, o.name
-                HAVING antal_skift >= 1
-                ORDER BY snitt_cykel_sek ASC
+                ORDER BY t.op_num, t.snitt_cykel_sek ASC
             ";
 
-            $stmt = $this->pdo->prepare($sql);
+            $stmt = $this->pdo->prepare($sqlRaw);
             $stmt->execute([
                 $startDate, $endDate,
                 $startDate, $endDate,
                 $startDate, $endDate,
             ]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rawRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Generera initialer från namn
-            $operators = array_map(function($r) {
-                $nameParts = array_filter(explode(' ', trim($r['namn'])));
+            // Gruppera per operatör och beräkna statistik inklusive median och P90
+            $grouped = [];
+            foreach ($rawRows as $r) {
+                $id = (int)$r['op_id'];
+                if (!isset($grouped[$id])) {
+                    $grouped[$id] = [
+                        'op_id'  => $id,
+                        'namn'   => $r['namn'],
+                        'values' => [],
+                        'total_ibc' => 0,
+                    ];
+                }
+                $grouped[$id]['values'][] = (float)$r['snitt_cykel_sek'];
+                $grouped[$id]['total_ibc'] += (int)$r['ibc_ok_shift'];
+            }
+
+            // Hjälpfunktion: percentil (linjär interpolation)
+            $percentile = function(array $sorted, float $p): float {
+                $n = count($sorted);
+                if ($n === 0) return 0.0;
+                if ($n === 1) return $sorted[0];
+                $idx = $p / 100.0 * ($n - 1);
+                $lo  = (int)floor($idx);
+                $hi  = (int)ceil($idx);
+                if ($lo === $hi) return $sorted[$lo];
+                return $sorted[$lo] + ($idx - $lo) * ($sorted[$hi] - $sorted[$lo]);
+            };
+
+            $operators = [];
+            foreach ($grouped as $id => $g) {
+                $vals = $g['values']; // redan sorterat ASC från SQL
+                sort($vals);
+                $n = count($vals);
+                $nameParts = array_filter(explode(' ', trim($g['namn'])));
                 $initialer = '';
                 foreach ($nameParts as $p) {
                     if ($p !== '') $initialer .= strtoupper(substr($p, 0, 1));
                 }
-                $initialer = substr($initialer, 0, 3);
-                return [
-                    'op_id'          => (int)$r['op_id'],
-                    'namn'           => $r['namn'],
-                    'initialer'      => $initialer ?: ('OP' . $r['op_id']),
-                    'antal_skift'    => (int)$r['antal_skift'],
-                    'snitt_cykel_sek'=> (float)$r['snitt_cykel_sek'],
-                    'bast_cykel_sek' => (float)$r['bast_cykel_sek'],
-                    'samst_cykel_sek'=> (float)$r['samst_cykel_sek'],
-                    'total_ibc'      => (int)$r['total_ibc'],
+                $initialer = substr($initialer, 0, 3) ?: ('OP' . $id);
+
+                $median_sek = $percentile($vals, 50);
+                $p90_sek    = $percentile($vals, 90);
+
+                $operators[] = [
+                    'op_id'          => $id,
+                    'namn'           => $g['namn'],
+                    'initialer'      => $initialer,
+                    'antal_skift'    => $n,
+                    'snitt_cykel_sek'=> round(array_sum($vals) / $n, 1),
+                    'bast_cykel_sek' => round($vals[0], 1),
+                    'samst_cykel_sek'=> round($vals[$n - 1], 1),
+                    'median_min'     => round($median_sek / 60.0, 2),
+                    'p90_min'        => round($p90_sek / 60.0, 2),
+                    'total_ibc'      => (int)$g['total_ibc'],
                 ];
-            }, $rows);
+            }
+
+            // Sortera fallande på antal_skift (flest registrerade cykler överst)
+            usort($operators, fn($a, $b) => $b['antal_skift'] - $a['antal_skift']);
 
             echo json_encode([
                 'success'    => true,
@@ -6088,6 +6128,159 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getOperatorWeeklyTrend: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
+        }
+    }
+
+    // =========================================================
+    // Auto-kontrollera och skapa rekordnyhet
+    // Anropas från getLiveStats() efter kl 18:00
+    // Använder guard: max en rekordnyhet per dag
+    // =========================================================
+    private function checkAndCreateRecordNews(): void {
+        try {
+            // Kontrollera om en rekordnyhet redan skapats idag
+            $stmtCheck = $this->pdo->prepare("
+                SELECT COUNT(*) AS cnt
+                FROM news
+                WHERE DATE(created_at) = CURDATE()
+                  AND category = 'rekord'
+            ");
+            $stmtCheck->execute();
+            $checkRow = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+            if ($checkRow && (int)$checkRow['cnt'] > 0) {
+                // Rekordnyhet redan skapad idag, skippa
+                return;
+            }
+
+            // Hämta dagens IBC-total (alla skift idag, korrekta aggregerade värden)
+            $stmtToday = $this->pdo->query("
+                SELECT COALESCE(SUM(dag_ibc), 0) AS idag_total
+                FROM (
+                    SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = CURDATE()
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+            $todayRow = $stmtToday->fetch(PDO::FETCH_ASSOC);
+            $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
+
+            if ($ibcIdag <= 0) return;
+
+            // Hämta historiskt rekord (bästa dag före idag)
+            $stmtRekord = $this->pdo->query("
+                SELECT MAX(dag_total) AS rekord_ibc, datum_rekord
+                FROM (
+                    SELECT DATE(datum) AS datum_rekord, SUM(shift_ibc) AS dag_total
+                    FROM (
+                        SELECT DATE(datum) AS datum, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) < CURDATE()
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift
+                    GROUP BY datum_rekord
+                ) AS per_day
+            ");
+            $rekordRow = $stmtRekord->fetch(PDO::FETCH_ASSOC);
+            $rekordIbc = (int)($rekordRow['rekord_ibc'] ?? 0);
+
+            // Slå bara om idag är bättre än rekordet
+            if ($ibcIdag <= $rekordIbc) return;
+
+            // Skapa rekordnyhet
+            $titel = 'Ny rekordag!';
+            $body = 'Idag producerades ' . $ibcIdag . ' IBC — ett nytt rekord! '
+                  . ($rekordIbc > 0 ? 'Förra rekordet var ' . $rekordIbc . ' IBC.' : 'Det är det bästa resultatet hittills!');
+
+            $stmtInsert = $this->pdo->prepare("
+                INSERT INTO news (title, body, category, pinned, published, priority, created_at, updated_at)
+                VALUES (:title, :body, 'rekord', 1, 1, 5, NOW(), NOW())
+            ");
+            $stmtInsert->execute([
+                ':title' => $titel,
+                ':body'  => $body,
+            ]);
+            error_log('checkAndCreateRecordNews: Rekordnyhet skapad! Idag=' . $ibcIdag . ', Rekord=' . $rekordIbc);
+
+        } catch (\Exception $e) {
+            error_log('checkAndCreateRecordNews: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================
+    // Manuell admin-trigger: Skapa rekordnyhet för idag
+    // POST ?action=rebotling&run=create-record-news
+    // Kräver admin-session
+    // =========================================================
+    private function createRecordNewsManual(): void {
+        try {
+            // Hämta dagens IBC-total
+            $stmtToday = $this->pdo->query("
+                SELECT COALESCE(SUM(dag_ibc), 0) AS idag_total
+                FROM (
+                    SELECT MAX(COALESCE(ibc_ok, 0)) AS dag_ibc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = CURDATE()
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+            $todayRow = $stmtToday->fetch(PDO::FETCH_ASSOC);
+            $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
+
+            if ($ibcIdag <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Ingen IBC-data för idag']);
+                return;
+            }
+
+            // Hämta historiskt rekord (bästa dag före idag)
+            $stmtRekord = $this->pdo->query("
+                SELECT MAX(dag_total) AS rekord_ibc
+                FROM (
+                    SELECT DATE(datum) AS datum_rekord, SUM(shift_ibc) AS dag_total
+                    FROM (
+                        SELECT DATE(datum) AS datum, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) < CURDATE()
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift
+                    GROUP BY datum_rekord
+                ) AS per_day
+            ");
+            $rekordRow = $stmtRekord->fetch(PDO::FETCH_ASSOC);
+            $rekordIbc = (int)($rekordRow['rekord_ibc'] ?? 0);
+
+            $titel = 'Ny rekordag!';
+            $body = 'Idag producerades ' . $ibcIdag . ' IBC — ett nytt rekord! '
+                  . ($rekordIbc > 0 ? 'Förra rekordet var ' . $rekordIbc . ' IBC.' : 'Det är det bästa resultatet hittills!');
+
+            $stmtInsert = $this->pdo->prepare("
+                INSERT INTO news (title, body, category, pinned, published, priority, created_at, updated_at)
+                VALUES (:title, :body, 'rekord', 1, 1, 5, NOW(), NOW())
+            ");
+            $stmtInsert->execute([
+                ':title' => $titel,
+                ':body'  => $body,
+            ]);
+            $newId = (int)$this->pdo->lastInsertId();
+
+            echo json_encode([
+                'success'   => true,
+                'id'        => $newId,
+                'ibc_idag'  => $ibcIdag,
+                'rekord_ibc'=> $rekordIbc,
+                'message'   => 'Rekordnyhet skapad!'
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('createRecordNewsManual: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
 }

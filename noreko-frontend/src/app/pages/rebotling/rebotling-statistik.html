@@ -1059,36 +1059,37 @@
                 <tr style="background:#1a202c;color:#a0aec0;">
                   <th style="width:40px;">Rang</th>
                   <th>Operatör</th>
-                  <th class="text-end">Snitt (sek)</th>
-                  <th class="text-end">Bäst (sek)</th>
-                  <th class="text-end">Sämst (sek)</th>
+                  <th class="text-end">Median (min)</th>
+                  <th class="text-end">P90 (min)</th>
                   <th class="text-end">Antal skift</th>
-                  <th class="text-end">Total IBC</th>
+                  <th class="text-end">vs. Teamsnitt</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   *ngFor="let op of cycleByOpData; let i = index"
-                  [style.background]="i === 0 ? 'rgba(72,187,120,0.08)' : i === cycleByOpData.length - 1 ? 'rgba(252,129,129,0.08)' : 'transparent'"
+                  [style.background]="(op.vs_team_snitt ?? 0) <= 0 ? 'rgba(72,187,120,0.06)' : 'rgba(252,129,129,0.06)'"
                 >
                   <td>
-                    <span *ngIf="i === 0" style="color:#48bb78;font-weight:700;">🥇 1</span>
-                    <span *ngIf="i === cycleByOpData.length - 1 && cycleByOpData.length > 1" style="color:#fc8181;">{{ i + 1 }}</span>
-                    <span *ngIf="i !== 0 && i !== cycleByOpData.length - 1">{{ i + 1 }}</span>
+                    <span *ngIf="i === 0" style="color:#48bb78;font-weight:700;">1</span>
+                    <span *ngIf="i !== 0">{{ i + 1 }}</span>
                   </td>
                   <td>
                     <span class="fw-semibold">{{ op.namn }}</span>
                     <span class="text-muted ms-1 small">({{ op.initialer }})</span>
                   </td>
                   <td class="text-end fw-bold">
-                    <span [style.color]="i === 0 ? '#48bb78' : i === cycleByOpData.length - 1 && cycleByOpData.length > 1 ? '#fc8181' : '#e2e8f0'">
-                      {{ op.snitt_cykel_sek | number:'1.0-1' }}
+                    <span [style.color]="(op.vs_team_snitt ?? 0) <= 0 ? '#48bb78' : '#fc8181'">
+                      {{ op.median_min | number:'1.2-2' }}
                     </span>
                   </td>
-                  <td class="text-end" style="color:#48bb78;">{{ op.bast_cykel_sek | number:'1.0-1' }}</td>
-                  <td class="text-end" style="color:#fc8181;">{{ op.samst_cykel_sek | number:'1.0-1' }}</td>
+                  <td class="text-end" style="color:#a0aec0;">{{ op.p90_min | number:'1.2-2' }}</td>
                   <td class="text-end">{{ op.antal_skift }}</td>
-                  <td class="text-end">{{ op.total_ibc }}</td>
+                  <td class="text-end fw-semibold">
+                    <span [style.color]="(op.vs_team_snitt ?? 0) <= 0 ? '#48bb78' : '#fc8181'">
+                      {{ (op.vs_team_snitt ?? 0) > 0 ? '+' : '' }}{{ op.vs_team_snitt ?? 0 }}%
+                    </span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -1096,7 +1097,7 @@
 
           <p class="small text-muted mt-2 mb-0">
             <i class="fas fa-info-circle me-1" style="color:#9f7aea;"></i>
-            Cykeltid = drifttid / antal godkända IBC per skift. Lägre är bättre. Grön = under median, röd = över median.
+            Median cykeltid per skift, omräknad till minuter. Sorterat på antal registrerade skift (flest överst). Grön = under teamsnitt, röd = över teamsnitt.
           </p>
         </ng-container>
       </div>

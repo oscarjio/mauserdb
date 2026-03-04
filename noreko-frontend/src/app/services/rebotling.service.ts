@@ -681,7 +681,11 @@ export interface CycleByOperatorEntry {
   snitt_cykel_sek: number;
   bast_cykel_sek: number;
   samst_cykel_sek: number;
+  median_min: number;
+  p90_min: number;
   total_ibc: number;
+  // Beräknat i frontend
+  vs_team_snitt?: number;
 }
 
 export interface CycleByOperatorResponse {

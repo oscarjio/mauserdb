@@ -575,7 +575,7 @@ interface WeekCompare {
         <i class="fas fa-file-excel me-1"></i>Excel
       </button>
 
-      <button class="btn-pdf no-print" (click)="exportPDF()">
+      <button class="btn-pdf no-print" (click)="exportPDF()" [disabled]="!data">
         <i class="fas fa-file-pdf me-1"></i>PDF
       </button>
     </div>

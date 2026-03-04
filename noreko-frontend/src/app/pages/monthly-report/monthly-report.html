@@ -447,10 +447,14 @@
     <!-- ===== SEKTION 8: PDF-export ===== -->
     <section class="report-section no-print-controls">
       <div class="export-row d-flex gap-3 align-items-center flex-wrap">
-        <button class="btn btn-outline-light btn-export" (click)="exportPDF()">
+        <button class="btn btn-outline-light btn-export" (click)="exportPDF()"
+          [disabled]="!hasData || !report"
+          [class.disabled]="!hasData || !report">
           <i class="fas fa-file-pdf me-2 text-danger"></i>Exportera som PDF
         </button>
-        <button class="btn btn-outline-success btn-export" (click)="exportCSV()" *ngIf="report">
+        <button class="btn btn-outline-success btn-export" (click)="exportCSV()"
+          [disabled]="!hasData || !report"
+          [class.disabled]="!hasData || !report">
           <i class="fas fa-file-csv me-2"></i>Exportera CSV
         </button>
         <small class="text-muted">PDF: öppnar utskriftsdialog — välj "Spara som PDF"</small>
