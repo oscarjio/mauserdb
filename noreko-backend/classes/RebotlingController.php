@@ -74,6 +74,10 @@ class RebotlingController {
                 $this->getEvents();
             } elseif ($action === 'stoppage-analysis') {
                 $this->getStoppageAnalysis();
+            } elseif ($action === 'alert-thresholds') {
+                $this->getAlertThresholds();
+            } elseif ($action === 'today-snapshot') {
+                $this->getTodaySnapshot();
             } else {
                 $this->getLiveStats();
             }
@@ -111,6 +115,8 @@ class RebotlingController {
                 $this->saveWeekdayGoals();
             } elseif ($action === 'shift-times') {
                 $this->saveShiftTimes();
+            } elseif ($action === 'save-alert-thresholds') {
+                $this->saveAlertThresholds();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -1636,6 +1642,193 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('saveWeekdayGoals: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål']);
+        }
+    }
+
+    // =========================================================
+    // Alert-trösklar
+    // =========================================================
+
+    /**
+     * Säkerställ att alert_thresholds-kolumnen finns i rebotling_settings.
+     * Kolumnen lagrar ett JSON-objekt med tröskelvärden.
+     */
+    private function ensureAlertThresholdsColumn() {
+        try {
+            $this->ensureSettingsTable();
+            // Kontrollera om kolumnen finns
+            $col = $this->pdo->query(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'rebotling_settings'
+                   AND COLUMN_NAME  = 'alert_thresholds'"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            if (!$col) {
+                $this->pdo->exec(
+                    "ALTER TABLE rebotling_settings
+                     ADD COLUMN alert_thresholds TEXT NULL DEFAULT NULL"
+                );
+            }
+        } catch (Exception $e) {
+            error_log('ensureAlertThresholdsColumn: ' . $e->getMessage());
+        }
+    }
+
+    private function defaultAlertThresholds(): array {
+        return [
+            'oee_warn'     => 80,
+            'oee_danger'   => 70,
+            'prod_warn'    => 80,
+            'prod_danger'  => 60,
+            'plc_max_min'  => 15,
+            'quality_warn' => 95,
+        ];
+    }
+
+    private function getAlertThresholds() {
+        try {
+            $this->ensureAlertThresholdsColumn();
+            $row = $this->pdo->query(
+                "SELECT alert_thresholds FROM rebotling_settings WHERE id = 1"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            $defaults   = $this->defaultAlertThresholds();
+            $thresholds = $defaults;
+
+            if ($row && !empty($row['alert_thresholds'])) {
+                $saved = json_decode($row['alert_thresholds'], true);
+                if (is_array($saved)) {
+                    $thresholds = array_merge($defaults, $saved);
+                }
+            }
+
+            echo json_encode(['success' => true, 'data' => $thresholds]);
+        } catch (Exception $e) {
+            error_log('getAlertThresholds: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar']);
+        }
+    }
+
+    private function saveAlertThresholds() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            return;
+        }
+        try {
+            $this->ensureAlertThresholdsColumn();
+
+            $allowed = array_keys($this->defaultAlertThresholds());
+            $cleaned = [];
+            foreach ($allowed as $key) {
+                if (isset($data[$key])) {
+                    $cleaned[$key] = max(0, intval($data[$key]));
+                }
+            }
+
+            $json = json_encode($cleaned);
+            $stmt = $this->pdo->prepare(
+                "UPDATE rebotling_settings SET alert_thresholds = ? WHERE id = 1"
+            );
+            $stmt->execute([$json]);
+
+            echo json_encode(['success' => true, 'message' => 'Trösklar sparade']);
+        } catch (Exception $e) {
+            error_log('saveAlertThresholds: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara trösklar']);
+        }
+    }
+
+    // =========================================================
+    // Snabb produktionsöversikt — idag
+    // =========================================================
+
+    private function getTodaySnapshot() {
+        try {
+            $tz  = new DateTimeZone('Europe/Stockholm');
+            $now = new DateTime('now', $tz);
+
+            // IBC idag
+            $ibcToday = (int)$this->pdo->query(
+                "SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()"
+            )->fetchColumn();
+
+            // Dagsmål — försök veckodagsmål annars settings
+            $dailyTarget = 1000;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
+
+                // Veckodagsmål: ISO weekday 1=Måndag
+                $iso = (int)$now->format('N');
+                try {
+                    $wg = $this->pdo->prepare(
+                        "SELECT daily_goal FROM rebotling_weekday_goals WHERE weekday = ?"
+                    );
+                    $wg->execute([$iso]);
+                    $wgRow = $wg->fetch(PDO::FETCH_ASSOC);
+                    if ($wgRow && (int)$wgRow['daily_goal'] > 0) {
+                        $dailyTarget = (int)$wgRow['daily_goal'];
+                    }
+                } catch (Exception $e) { /* tabell saknas */ }
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Linjen kör?
+            $isRunning = false;
+            try {
+                $row = $this->pdo->query(
+                    "SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                $isRunning = $row ? (bool)$row['running'] : false;
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Takt: IBC per timme baserat på produktion senaste 2 timmar
+            $ratePerHour = 0.0;
+            try {
+                $cnt = (int)$this->pdo->query(
+                    "SELECT COUNT(*) FROM rebotling_ibc
+                     WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
+                )->fetchColumn();
+                $ratePerHour = round($cnt / 2.0, 1);
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Skiftlängd från settings
+            $shiftHours = 8.0;
+            try {
+                $sh = $this->pdo->query(
+                    "SELECT shift_hours FROM rebotling_settings WHERE id = 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                if ($sh) $shiftHours = (float)$sh['shift_hours'];
+            } catch (Exception $e) { /* ignorera */ }
+
+            // Prognos: skiftstart 06:00 lokal tid
+            $shiftStart = new DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
+            $minutesSinceStart = max(1, ($now->getTimestamp() - $shiftStart->getTimestamp()) / 60);
+            $remainingMin = max(0, ($shiftHours * 60) - $minutesSinceStart);
+            $forecast = (int)round($ibcToday + ($ratePerHour / 60.0) * $remainingMin);
+
+            $pct = $dailyTarget > 0 ? round($ibcToday / $dailyTarget * 100, 1) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'ibc_today'    => $ibcToday,
+                    'daily_target' => $dailyTarget,
+                    'pct_of_goal'  => $pct,
+                    'rate_per_h'   => $ratePerHour,
+                    'forecast'     => $forecast,
+                    'is_running'   => $isRunning,
+                    'server_time'  => $now->format('H:i:s'),
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getTodaySnapshot: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot']);
         }
     }
 

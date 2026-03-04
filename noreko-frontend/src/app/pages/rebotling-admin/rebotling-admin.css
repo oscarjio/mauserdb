@@ -381,3 +381,91 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.85; }
 }
+
+/* ---- Snabb produktionsöversikt (Today Snapshot) ---- */
+.snapshot-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.3s ease;
+}
+
+.snapshot-card.snapshot-green { border-color: #38a169; }
+.snapshot-card.snapshot-orange { border-color: #d69e2e; }
+.snapshot-card.snapshot-red   { border-color: #e53e3e; }
+
+.snapshot-kpi {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.snapshot-kpi-label {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.snapshot-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.snapshot-kpi-sub {
+  font-size: 0.7rem;
+  margin-top: 3px;
+}
+
+.snapshot-kpi-bar-bg {
+  background: #2d3748;
+  border-radius: 4px;
+  height: 5px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.snapshot-kpi-bar {
+  height: 5px;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.snapshot-kpi-bar.bar-green  { background: #38a169; }
+.snapshot-kpi-bar.bar-orange { background: #d69e2e; }
+.snapshot-kpi-bar.bar-red    { background: #e53e3e; }
+
+/* ---- Veckodagsmål — förbättringar ---- */
+.weekday-today {
+  border-color: #4a90e2 !important;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.25);
+}
+
+.badge-today {
+  font-size: 0.6rem;
+  padding: 2px 5px;
+}
+
+.weekday-status-icon {
+  font-size: 0.85rem;
+}
+
+.weekday-tools {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+/* ---- Alert-trösklar ---- */
+.threshold-card {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 14px;
+  border-left: 3px solid transparent;
+  height: 100%;
+}
+
+.threshold-card.threshold-warn   { border-left-color: #d69e2e; }
+.threshold-card.threshold-danger { border-left-color: #e53e3e; }

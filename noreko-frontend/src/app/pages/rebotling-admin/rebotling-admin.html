@@ -41,6 +41,95 @@
         </div>
       </div>
 
+      <!-- ======== SNABB PRODUKTIONSÖVERSIKT IDAG ======== -->
+      <div class="card mb-4" [class]="'snapshot-card ' + snapshotBorderClass">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tachometer-alt me-2 text-info"></i>
+            Produktionsläge — idag
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            <span *ngIf="todaySnapshotLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+            <span class="badge" [class.bg-success]="todaySnapshot?.is_running" [class.bg-secondary]="!todaySnapshot?.is_running">
+              <i class="fas" [class.fa-circle]="todaySnapshot?.is_running" [class.fa-stop-circle]="!todaySnapshot?.is_running"></i>
+              {{ todaySnapshot?.is_running ? 'Linjen kör' : 'Linjen stoppad' }}
+            </span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="loadTodaySnapshot()" [disabled]="todaySnapshotLoading">
+              <i class="fas fa-sync-alt me-1"></i>Uppdatera
+            </button>
+          </div>
+        </div>
+        <div class="card-body" *ngIf="todaySnapshot">
+          <div class="row g-3 align-items-center">
+            <!-- IBC idag -->
+            <div class="col-6 col-md-2">
+              <div class="snapshot-kpi">
+                <div class="snapshot-kpi-label">IBC idag</div>
+                <div class="snapshot-kpi-value" [class]="snapshotColorClass">
+                  {{ todaySnapshot.ibc_today }}
+                </div>
+              </div>
+            </div>
+            <!-- Mål -->
+            <div class="col-6 col-md-2">
+              <div class="snapshot-kpi">
+                <div class="snapshot-kpi-label">Dagsmål</div>
+                <div class="snapshot-kpi-value text-info">{{ todaySnapshot.daily_target }}</div>
+              </div>
+            </div>
+            <!-- Procent -->
+            <div class="col-6 col-md-2">
+              <div class="snapshot-kpi">
+                <div class="snapshot-kpi-label">Uppfyllnad</div>
+                <div class="snapshot-kpi-value" [class]="snapshotColorClass">
+                  {{ todaySnapshot.pct_of_goal }}%
+                </div>
+                <div class="snapshot-kpi-bar-bg">
+                  <div class="snapshot-kpi-bar"
+                    [style.width.%]="todaySnapshot.pct_of_goal > 100 ? 100 : todaySnapshot.pct_of_goal"
+                    [class.bar-green]="todaySnapshot.pct_of_goal >= 100"
+                    [class.bar-orange]="todaySnapshot.pct_of_goal >= 80 && todaySnapshot.pct_of_goal < 100"
+                    [class.bar-red]="todaySnapshot.pct_of_goal < 80">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Takt -->
+            <div class="col-6 col-md-2">
+              <div class="snapshot-kpi">
+                <div class="snapshot-kpi-label">Takt (IBC/h)</div>
+                <div class="snapshot-kpi-value text-warning">{{ todaySnapshot.rate_per_h }}</div>
+                <div class="snapshot-kpi-sub">senaste 2 tim</div>
+              </div>
+            </div>
+            <!-- Prognos -->
+            <div class="col-6 col-md-2">
+              <div class="snapshot-kpi">
+                <div class="snapshot-kpi-label">Prognos</div>
+                <div class="snapshot-kpi-value"
+                  [class.text-success]="todaySnapshot.forecast >= todaySnapshot.daily_target"
+                  [class.text-warning]="todaySnapshot.forecast >= todaySnapshot.daily_target * 0.8 && todaySnapshot.forecast < todaySnapshot.daily_target"
+                  [class.text-danger]="todaySnapshot.forecast < todaySnapshot.daily_target * 0.8">
+                  {{ todaySnapshot.forecast }}
+                </div>
+                <div class="snapshot-kpi-sub text-muted">vid skiftets slut</div>
+              </div>
+            </div>
+            <!-- Uppdaterad -->
+            <div class="col-6 col-md-2 text-end">
+              <div class="snapshot-kpi">
+                <div class="snapshot-kpi-label">Servertid</div>
+                <div class="snapshot-kpi-value text-secondary" style="font-size:1rem;">{{ todaySnapshot.server_time }}</div>
+                <div class="snapshot-kpi-sub text-muted">Uppdateras var 30s</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body text-muted text-center py-3" *ngIf="!todaySnapshot && !todaySnapshotLoading">
+          <i class="fas fa-spinner fa-spin me-2"></i>Laddar produktionsöversikt...
+        </div>
+      </div>
+
       <!-- ======== SYSTEMSTATUS ======== -->
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
@@ -209,11 +298,43 @@
           <div *ngIf="weekdayError" class="alert alert-danger mb-3">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayError }}
           </div>
+
+          <!-- Snabbverktygsfält -->
+          <div class="d-flex flex-wrap gap-2 mb-3 align-items-center weekday-tools">
+            <button class="btn btn-sm btn-outline-info" (click)="copyWeekdayToWeekend()" title="Räknar snittet mån-fre och sätter lördag och söndag till samma">
+              <i class="fas fa-copy me-1"></i>Kopiera mån–fre till helg
+            </button>
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0 small fw-semibold">Sätt alla till:</label>
+              <input type="number" class="form-control form-control-sm weekday-input" style="width:90px;"
+                [(ngModel)]="quickSetValue" min="0" step="10" placeholder="IBC" />
+              <button class="btn btn-sm btn-outline-warning" (click)="setAllWeekdayGoals()">
+                <i class="fas fa-magic me-1"></i>Applicera
+              </button>
+            </div>
+          </div>
+
           <div class="row g-2" *ngIf="weekdayGoals.length > 0">
             <div class="col-6 col-sm-4 col-md-3 col-lg-2"
               *ngFor="let goal of weekdayGoals; let i = index">
-              <div class="weekday-goal-card" [class.weekday-disabled]="goal.daily_goal === 0">
-                <div class="weekday-label">{{ goal.label }}</div>
+              <div class="weekday-goal-card"
+                [class.weekday-disabled]="goal.daily_goal === 0"
+                [class.weekday-today]="isToday(goal.weekday)">
+                <div class="weekday-label d-flex justify-content-between align-items-center">
+                  <span>{{ goal.label }}</span>
+                  <!-- Status-ikon för idag -->
+                  <span *ngIf="isToday(goal.weekday) && todaySnapshot && goal.daily_goal > 0"
+                    class="weekday-status-icon"
+                    [title]="weekdayGoalStatus(goal.daily_goal) === 'on-goal' ? 'På mål' : 'Under mål'">
+                    <i class="fas"
+                      [class.fa-check-circle]="weekdayGoalStatus(goal.daily_goal) === 'on-goal'"
+                      [class.text-success]="weekdayGoalStatus(goal.daily_goal) === 'on-goal'"
+                      [class.fa-times-circle]="weekdayGoalStatus(goal.daily_goal) === 'below-goal'"
+                      [class.text-danger]="weekdayGoalStatus(goal.daily_goal) === 'below-goal'">
+                    </i>
+                  </span>
+                  <span *ngIf="isToday(goal.weekday)" class="badge bg-info badge-today ms-1">Idag</span>
+                </div>
                 <input type="number" class="form-control form-control-sm weekday-input"
                   [(ngModel)]="goal.daily_goal" min="0" step="10" />
                 <div class="weekday-sub text-muted">IBC</div>
@@ -232,6 +353,114 @@
             <span *ngIf="weekdaySaved" class="text-success small">
               <i class="fas fa-check me-1"></i>Sparat
             </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== ALERT-TRÖSKLAR (KOLLAPSBAR) ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-bell me-2 text-danger"></i>
+            Alert-tröskelkonfiguration
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            <span *ngIf="alertThresholdsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+            <button class="btn btn-sm btn-outline-secondary" (click)="showAlertPanel = !showAlertPanel">
+              <i class="fas" [class.fa-chevron-down]="!showAlertPanel" [class.fa-chevron-up]="showAlertPanel"></i>
+              {{ showAlertPanel ? 'Dölj' : 'Visa' }}
+            </button>
+          </div>
+        </div>
+        <div class="card-body" *ngIf="showAlertPanel">
+          <p class="text-muted small mb-3">
+            Konfigurera tröskelvärden för automatiska varningar i dashboards. Ändringarna gäller omedelbart när de sparas.
+          </p>
+          <div *ngIf="alertThresholdsError" class="alert alert-danger mb-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ alertThresholdsError }}
+          </div>
+          <div class="row g-3">
+            <!-- OEE-varning -->
+            <div class="col-md-4">
+              <div class="threshold-card threshold-warn">
+                <label class="form-label fw-semibold">
+                  <i class="fas fa-exclamation-circle me-1 text-warning"></i>OEE-varning under (%)
+                </label>
+                <input type="number" class="form-control" [(ngModel)]="alertThresholds.oee_warn" min="0" max="100" />
+                <div class="form-text">Gul varning i executive dashboard</div>
+              </div>
+            </div>
+            <!-- OEE-fara -->
+            <div class="col-md-4">
+              <div class="threshold-card threshold-danger">
+                <label class="form-label fw-semibold">
+                  <i class="fas fa-times-circle me-1 text-danger"></i>OEE-fara under (%)
+                </label>
+                <input type="number" class="form-control" [(ngModel)]="alertThresholds.oee_danger" min="0" max="100" />
+                <div class="form-text">Röd varning i executive dashboard</div>
+              </div>
+            </div>
+            <!-- Produktion-varning -->
+            <div class="col-md-4">
+              <div class="threshold-card threshold-warn">
+                <label class="form-label fw-semibold">
+                  <i class="fas fa-chart-bar me-1 text-warning"></i>Produktion-varning under (% av mål)
+                </label>
+                <input type="number" class="form-control" [(ngModel)]="alertThresholds.prod_warn" min="0" max="100" />
+                <div class="form-text">Gul signal när produktionen är låg</div>
+              </div>
+            </div>
+            <!-- Produktion-fara -->
+            <div class="col-md-4">
+              <div class="threshold-card threshold-danger">
+                <label class="form-label fw-semibold">
+                  <i class="fas fa-chart-bar me-1 text-danger"></i>Produktion-fara under (% av mål)
+                </label>
+                <input type="number" class="form-control" [(ngModel)]="alertThresholds.prod_danger" min="0" max="100" />
+                <div class="form-text">Röd signal vid kritiskt låg produktion</div>
+              </div>
+            </div>
+            <!-- PLC-max min -->
+            <div class="col-md-4">
+              <div class="threshold-card threshold-danger">
+                <label class="form-label fw-semibold">
+                  <i class="fas fa-plug me-1 text-danger"></i>Max tid utan PLC-data (min)
+                </label>
+                <input type="number" class="form-control" [(ngModel)]="alertThresholds.plc_max_min" min="1" max="480" />
+                <div class="form-text">Triggrar PLC-varningsbanner efter X minuter</div>
+              </div>
+            </div>
+            <!-- Kvalitet-varning -->
+            <div class="col-md-4">
+              <div class="threshold-card threshold-warn">
+                <label class="form-label fw-semibold">
+                  <i class="fas fa-star me-1 text-warning"></i>Kvalitet-varning under (%)
+                </label>
+                <input type="number" class="form-control" [(ngModel)]="alertThresholds.quality_warn" min="0" max="100" />
+                <div class="form-text">Gul varning om kvalitetsprocenten sjunker</div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-4 d-flex gap-2 align-items-center">
+            <button class="btn btn-danger" (click)="saveAlertThresholds()" [disabled]="alertThresholdsSaving">
+              <span *ngIf="alertThresholdsSaving" class="spinner-border spinner-border-sm me-2"></span>
+              <i *ngIf="!alertThresholdsSaving" class="fas fa-save me-2"></i>
+              {{ alertThresholdsSaving ? 'Sparar...' : 'Spara trösklar' }}
+            </button>
+            <span *ngIf="alertThresholdsSaved" class="text-success small">
+              <i class="fas fa-check me-1"></i>Trösklar sparade
+            </span>
+          </div>
+        </div>
+        <!-- Sammanfattning när panelen är dold -->
+        <div class="card-body py-2" *ngIf="!showAlertPanel && !alertThresholdsLoading">
+          <div class="d-flex flex-wrap gap-3 text-muted small">
+            <span><i class="fas fa-circle text-warning me-1"></i>OEE-varning: {{ alertThresholds.oee_warn }}%</span>
+            <span><i class="fas fa-circle text-danger me-1"></i>OEE-fara: {{ alertThresholds.oee_danger }}%</span>
+            <span><i class="fas fa-circle text-warning me-1"></i>Prod-varning: {{ alertThresholds.prod_warn }}% av mål</span>
+            <span><i class="fas fa-circle text-danger me-1"></i>Prod-fara: {{ alertThresholds.prod_danger }}% av mål</span>
+            <span><i class="fas fa-plug text-danger me-1"></i>PLC max: {{ alertThresholds.plc_max_min }} min</span>
+            <span><i class="fas fa-star text-warning me-1"></i>Kvalitet: {{ alertThresholds.quality_warn }}%</span>
           </div>
         </div>
       </div>

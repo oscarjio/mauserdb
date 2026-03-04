@@ -49,6 +49,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   weekdaySaving  = false;
   weekdayError   = '';
   weekdaySaved   = false;
+  // Snabbval
+  quickSetValue: number = 0;
+  // ISO-veckodagsnummer idag (1=Måndag ... 7=Söndag)
+  todayWeekday: number = new Date().getDay() === 0 ? 7 : new Date().getDay();
 
   // ---- Skifttider ----
   shiftTimes: { shift_name: string; start_time: string; end_time: string; enabled: boolean }[] = [];
@@ -70,6 +74,26 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   maintenanceChart: Chart | null = null;
   private maintenanceTimer: any = null;
 
+  // ---- Snabb produktionsöversikt idag ----
+  todaySnapshot: any = null;
+  todaySnapshotLoading = false;
+  private todaySnapshotInterval: any = null;
+
+  // ---- Alert-trösklar ----
+  alertThresholds = {
+    oee_warn:    80,
+    oee_danger:  70,
+    prod_warn:   80,
+    prod_danger: 60,
+    plc_max_min: 15,
+    quality_warn: 95,
+  };
+  alertThresholdsLoading = false;
+  alertThresholdsSaving  = false;
+  alertThresholdsSaved   = false;
+  alertThresholdsError   = '';
+  showAlertPanel         = false;
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -82,6 +106,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     clearTimeout(this.successTimerId);
     clearInterval(this.systemStatusInterval);
     clearInterval(this.maintenanceTimer);
+    clearInterval(this.todaySnapshotInterval);
     this.maintenanceChart?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
@@ -93,10 +118,17 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadWeekdayGoals();
     this.loadShiftTimes();
     this.loadSystemStatus();
-    // Uppdatera systemstatus var 30:e sekund
+    this.loadTodaySnapshot();
+    this.loadAlertThresholds();
+
+    // Uppdatera systemstatus + snapshot var 30:e sekund
     this.systemStatusInterval = setInterval(() => {
       if (!this.destroy$.closed) this.loadSystemStatus();
     }, 30000);
+    this.todaySnapshotInterval = setInterval(() => {
+      if (!this.destroy$.closed) this.loadTodaySnapshot();
+    }, 30000);
+
     // Ladda underhållsindikator vid start och var 5:e minut
     this.loadMaintenanceIndicator();
     this.maintenanceTimer = setInterval(() => {
@@ -200,6 +232,35 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           this.weekdaySaving = false;
         }
       });
+  }
+
+  /** Kopiera mån-fre-snittet till helgen (lör+sön) */
+  copyWeekdayToWeekend() {
+    const weekdays = this.weekdayGoals.filter(g => g.weekday >= 1 && g.weekday <= 5);
+    if (!weekdays.length) return;
+    const avg = Math.round(weekdays.reduce((s, g) => s + g.daily_goal, 0) / weekdays.length);
+    this.weekdayGoals.forEach(g => {
+      if (g.weekday === 6 || g.weekday === 7) g.daily_goal = avg;
+    });
+  }
+
+  /** Sätt alla veckodagsmål till quickSetValue */
+  setAllWeekdayGoals() {
+    const val = Math.max(0, Math.round(this.quickSetValue || 0));
+    this.weekdayGoals.forEach(g => g.daily_goal = val);
+  }
+
+  /** Returnerar true om veckodagets weekday är idag */
+  isToday(weekday: number): boolean {
+    return weekday === this.todayWeekday;
+  }
+
+  /** Returnerar 'on-goal'|'below-goal'|null beroende på om snapshot finns */
+  weekdayGoalStatus(goal: number): 'on-goal' | 'below-goal' | null {
+    if (!this.todaySnapshot) return null;
+    if (goal === 0) return null;
+    const pct = this.todaySnapshot.pct_of_goal;
+    return pct >= 100 ? 'on-goal' : 'below-goal';
   }
 
   // ========== Skifttider ==========
@@ -534,6 +595,91 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
         },
       },
     });
+  }
+
+  // ========== Snabb produktionsöversikt idag ==========
+  loadTodaySnapshot() {
+    if (this.todaySnapshotLoading) return;
+    this.todaySnapshotLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=today-snapshot', { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success) this.todaySnapshot = res.data;
+          this.todaySnapshotLoading = false;
+        },
+        error: () => { this.todaySnapshotLoading = false; }
+      });
+  }
+
+  get snapshotColorClass(): string {
+    if (!this.todaySnapshot) return 'text-secondary';
+    const pct = this.todaySnapshot.pct_of_goal;
+    if (pct >= 100) return 'text-success';
+    if (pct >= 80)  return 'text-warning';
+    return 'text-danger';
+  }
+
+  get snapshotBorderClass(): string {
+    if (!this.todaySnapshot) return '';
+    const pct = this.todaySnapshot.pct_of_goal;
+    if (pct >= 100) return 'snapshot-green';
+    if (pct >= 80)  return 'snapshot-orange';
+    return 'snapshot-red';
+  }
+
+  // ========== Alert-trösklar ==========
+  loadAlertThresholds() {
+    this.alertThresholdsLoading = true;
+    this.alertThresholdsError   = '';
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=alert-thresholds', { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success && res.data) {
+            this.alertThresholds = { ...this.alertThresholds, ...res.data };
+          }
+          this.alertThresholdsLoading = false;
+        },
+        error: () => { this.alertThresholdsLoading = false; }
+      });
+  }
+
+  saveAlertThresholds() {
+    this.alertThresholdsSaving = true;
+    this.alertThresholdsSaved  = false;
+    this.alertThresholdsError  = '';
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-alert-thresholds',
+      this.alertThresholds, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.alertThresholdsSaved = true;
+            this.showSuccess('Alert-trösklar sparade!');
+            setTimeout(() => { if (!this.destroy$.closed) this.alertThresholdsSaved = false; }, 3000);
+          } else {
+            this.alertThresholdsError = res?.error || 'Kunde inte spara trösklar';
+          }
+          this.alertThresholdsSaving = false;
+        },
+        error: () => {
+          this.alertThresholdsError = 'Serverfel vid sparning';
+          this.alertThresholdsSaving = false;
+        }
+      });
   }
 
   private showSuccess(message: string) {
