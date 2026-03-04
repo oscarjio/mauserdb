@@ -81,6 +81,12 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   private stopRastChart: Chart | null = null;
   private stoppageDailyChart: Chart | null = null;
 
+  // Tab 7: Pareto-analys
+  paretoData: any[] = [];
+  paretoLoading = false;
+  paretoPeriod = 30;
+  private paretoChart: Chart | null = null;
+
   // Charts
   private destroy$ = new Subject<void>();
   private rankingChart: Chart | null = null;
@@ -123,7 +129,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   private destroyAllCharts() {
     [this.rankingChart, this.radarChart, this.dailyTrendChart,
      this.weekdayChart, this.hourlyBarChart, this.bubbleChart,
-     this.bestShiftsChart, this.stopRastChart, this.stoppageDailyChart].forEach(c => c?.destroy());
+     this.bestShiftsChart, this.stopRastChart, this.stoppageDailyChart,
+     this.paretoChart].forEach(c => c?.destroy());
     this.rankingChart = null;
     this.radarChart = null;
     this.dailyTrendChart = null;
@@ -133,6 +140,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     this.bestShiftsChart = null;
     this.stopRastChart = null;
     this.stoppageDailyChart = null;
+    this.paretoChart = null;
   }
 
   setTab(tab: string) {
@@ -154,6 +162,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       case 'shifts':      this.loadShiftData();     break;
       case 'bestshifts':  this.loadBestShifts();    break;
       case 'stopanalysis': this.loadStopAnalysis();  break;
+      case 'pareto':       this.loadParetoData();    break;
     }
   }
 
@@ -971,5 +980,180 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     a.download = `ranking-${this.selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ======== TAB 7: PARETO-ANALYS ========
+
+  loadParetoData() {
+    this.paretoLoading = true;
+    this.error = '';
+    this.rebotlingService.getParetoStoppage(this.paretoPeriod).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => { this.error = 'Kunde inte ladda paretodata'; this.paretoLoading = false; return of(null); })
+    ).subscribe(res => {
+      if (res?.success) {
+        this.paretoData = res.items ?? [];
+      }
+      this.paretoLoading = false;
+      clearTimeout(this.chartTimeout);
+      this.chartTimeout = setTimeout(() => {
+        if (!this.destroy$.closed) this.buildParetoChart();
+      }, 150);
+    });
+  }
+
+  onParetoPeriodChange(days: number) {
+    this.paretoPeriod = days;
+    this.loadParetoData();
+  }
+
+  getParetoTotalMinuter(): number {
+    return this.paretoData.reduce((s, d) => s + (d.total_minuter ?? 0), 0);
+  }
+
+  getParetoTotalStopp(): number {
+    return this.paretoData.reduce((s, d) => s + (d.antal_stopp ?? 0), 0);
+  }
+
+  getParetoEightyPctGroup(): number {
+    let count = 0;
+    for (const item of this.paretoData) {
+      count++;
+      if ((item.kumulativ_pct ?? 0) >= 80) break;
+    }
+    return count;
+  }
+
+  private getParetoBarColor(kategori: string, alpha = 0.8): string {
+    const map: { [k: string]: string } = {
+      maskin:     `rgba(229,62,62,${alpha})`,
+      material:   `rgba(237,137,54,${alpha})`,
+      'operatör': `rgba(66,153,225,${alpha})`,
+      övrigt:     `rgba(160,174,192,${alpha})`
+    };
+    return map[kategori] ?? `rgba(160,174,192,${alpha})`;
+  }
+
+  buildParetoChart() {
+    if (this.paretoChart) this.paretoChart.destroy();
+    this.paretoChart = null;
+    const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
+    if (!canvas || !this.paretoData.length) return;
+
+    const labels = this.paretoData.map(d => d.orsak ?? 'Okänd');
+    const minuterData = this.paretoData.map(d => d.total_minuter ?? 0);
+    const kumulativData = this.paretoData.map(d => d.kumulativ_pct ?? 0);
+    const barColors = this.paretoData.map(d => this.getParetoBarColor(d.kategori));
+
+    // Referenslinje 80% som annotation-dataset (horisontell linje)
+    const eightyLine = this.paretoData.map(() => 80);
+
+    this.paretoChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Stopptid (min)',
+            data: minuterData,
+            backgroundColor: barColors,
+            borderColor: barColors.map(c => c.replace('0.8)', '1)')),
+            borderWidth: 1,
+            borderRadius: 3,
+            yAxisID: 'y',
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Kumulativt %',
+            data: kumulativData,
+            borderColor: '#ecc94b',
+            backgroundColor: 'rgba(236,201,75,0.12)',
+            pointBackgroundColor: '#ecc94b',
+            pointRadius: 4,
+            tension: 0.2,
+            fill: false,
+            yAxisID: 'y1',
+            order: 1
+          },
+          {
+            type: 'line',
+            label: '80%-gräns',
+            data: eightyLine,
+            borderColor: 'rgba(229,62,62,0.85)',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            yAxisID: 'y1',
+            order: 0
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: { color: '#a0aec0', font: { size: 11 } }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.97)',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              label: (ctx: any) => {
+                const item = this.paretoData[ctx.dataIndex];
+                if (!item) return '';
+                if (ctx.datasetIndex === 0) {
+                  return [
+                    ` Stopptid: ${item.total_minuter} min`,
+                    ` Antal stopp: ${item.antal_stopp}`,
+                    ` % av total: ${item.pct_av_total}%`
+                  ];
+                }
+                if (ctx.datasetIndex === 1) {
+                  return ` Kumulativt: ${item.kumulativ_pct}%`;
+                }
+                return '';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#718096',
+              maxRotation: 45,
+              font: { size: 10 }
+            },
+            grid: { color: '#2d3748' }
+          },
+          y: {
+            position: 'left',
+            beginAtZero: true,
+            ticks: { color: '#718096' },
+            grid: { color: '#2d3748' },
+            title: { display: true, text: 'Stopptid (min)', color: '#718096', font: { size: 11 } }
+          },
+          y1: {
+            position: 'right',
+            min: 0,
+            max: 100,
+            ticks: {
+              color: '#a0aec0',
+              callback: (v: any) => v + '%'
+            },
+            grid: { display: false },
+            title: { display: true, text: 'Kumulativt %', color: '#718096', font: { size: 11 } }
+          }
+        }
+      }
+    });
   }
 }

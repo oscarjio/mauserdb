@@ -282,6 +282,13 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getParetoStoppage(days: number = 30): Observable<any> {
+    return this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=pareto-stoppage&days=${days}`,
+      { withCredentials: true }
+    );
+  }
 }
 
 export interface StoppageDayEntry {

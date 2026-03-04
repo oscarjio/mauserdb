@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 
@@ -83,6 +82,49 @@ interface MonthlyReport {
   week_summary: WeekEntry[];
 }
 
+interface CompareMonthData {
+  total_ibc: number;
+  avg_ibc_per_day: number;
+  avg_oee_pct: number;
+  avg_quality_pct: number;
+  working_days: number;
+  month_goal: number;
+}
+
+interface CompareDiff {
+  total_ibc_pct: number | null;
+  avg_ibc_per_day_pct: number | null;
+  avg_oee_pct_diff: number;
+  avg_quality_pct_diff: number;
+}
+
+interface OperatorOfMonth {
+  op_id: number;
+  namn: string;
+  initialer: string;
+  total_ibc: number;
+  avg_ibc_per_h: number;
+  avg_quality_pct: number;
+}
+
+interface CompareDay {
+  datum: string;
+  ibc: number;
+  target_pct: number;
+}
+
+interface MonthCompare {
+  success: boolean;
+  month: string;
+  prev_month: string;
+  this_month: CompareMonthData;
+  prev_month_data: CompareMonthData;
+  diff: CompareDiff;
+  operator_of_month: OperatorOfMonth | null;
+  best_day: CompareDay | null;
+  worst_day: CompareDay | null;
+}
+
 @Component({
   standalone: true,
   selector: 'app-monthly-report',
@@ -110,6 +152,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   hasData = false;
   errorMsg = '';
   report: MonthlyReport | null = null;
+  compareData: MonthCompare | null = null;
 
   Math = Math;
 
@@ -139,27 +182,38 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     this.hasData = false;
     this.errorMsg = '';
     this.report = null;
+    this.compareData = null;
     this.chart?.destroy();
     this.chart = null;
     this.oeeLineChart?.destroy();
     this.oeeLineChart = null;
 
-    const url = `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
+    const reportUrl  = `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
+    const compareUrl = `/noreko-backend/api.php?action=rebotling&run=month-compare&month=${this.selectedMonth}`;
 
-    this.http.get<any>(url, { withCredentials: true }).pipe(
+    const report$ = this.http.get<any>(reportUrl, { withCredentials: true }).pipe(
       timeout(20000),
-      catchError(err => {
-        return of({ success: false, error: 'Nätverksfel — kunde inte nå servern' });
-      }),
+      catchError(() => of({ success: false, error: 'Nätverksfel — kunde inte nå servern' }))
+    );
+
+    const compare$ = this.http.get<any>(compareUrl, { withCredentials: true }).pipe(
+      timeout(20000),
+      catchError(() => of(null))
+    );
+
+    forkJoin({ report: report$, compare: compare$ }).pipe(
       takeUntil(this.destroy$)
-    ).subscribe(res => {
+    ).subscribe(({ report, compare }) => {
       this.isLoading = false;
-      if (res?.success && res.summary) {
-        this.report = res as MonthlyReport;
+      if (report?.success && report.summary) {
+        this.report = report as MonthlyReport;
         this.hasData = true;
         this.chartPendingRender = true;
       } else {
-        this.errorMsg = res?.error || 'Ingen data hittades för vald månad';
+        this.errorMsg = report?.error || 'Ingen data hittades för vald månad';
+      }
+      if (compare?.success) {
+        this.compareData = compare as MonthCompare;
       }
     });
   }
@@ -194,6 +248,25 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     const parts = dateStr.split('-');
     if (parts.length !== 3) return dateStr;
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  diffClass(val: number | null): string {
+    if (val === null || val === undefined) return 'diff-neutral';
+    if (val > 0) return 'diff-positive';
+    if (val < 0) return 'diff-negative';
+    return 'diff-neutral';
+  }
+
+  diffArrow(val: number | null): string {
+    if (val === null || val === undefined) return '—';
+    if (val > 0) return '↑';
+    if (val < 0) return '↓';
+    return '→';
+  }
+
+  diffSign(val: number | null): string {
+    if (val === null || val === undefined) return '';
+    return val >= 0 ? '+' : '';
   }
 
   exportPDF(): void {
@@ -310,7 +383,6 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
       return `${parts[2]}/${parts[1]}`;
     });
 
-    // WCM 85% referenslinje
     const wcmRef = trend.map(() => 85);
 
     this.oeeLineChart = new Chart(ctx, {

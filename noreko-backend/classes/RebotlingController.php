@@ -58,6 +58,8 @@ class RebotlingController {
                 $this->getBenchmarking();
             } elseif ($action === 'monthly-report') {
                 $this->getMonthlyReport();
+            } elseif ($action === 'month-compare') {
+                $this->getMonthCompare();
             } elseif ($action === 'maintenance-indicator') {
                 $this->getMaintenanceIndicator();
             } elseif ($action === 'annotations') {
@@ -74,6 +76,8 @@ class RebotlingController {
                 $this->getEvents();
             } elseif ($action === 'stoppage-analysis') {
                 $this->getStoppageAnalysis();
+            } elseif ($action === 'pareto-stoppage') {
+                $this->getParetoStoppage();
             } elseif ($action === 'alert-thresholds') {
                 $this->getAlertThresholds();
             } elseif ($action === 'today-snapshot') {
@@ -3257,6 +3261,255 @@ class RebotlingController {
     }
 
     // =========================================================
+    // Månadsrapport — Jämförelse föregående månad
+    // GET ?action=rebotling&run=month-compare&month=YYYY-MM
+    // =========================================================
+    private function getMonthCompare() {
+        try {
+            $monthParam = $_GET['month'] ?? date('Y-m');
+            if (!preg_match('/^\d{4}-\d{2}$/', $monthParam)) {
+                $monthParam = date('Y-m');
+            }
+
+            [$year, $mon] = explode('-', $monthParam);
+            $year = (int)$year;
+            $mon  = (int)$mon;
+
+            // Beräkna föregående månad
+            $prevMon  = $mon - 1;
+            $prevYear = $year;
+            if ($prevMon < 1) {
+                $prevMon  = 12;
+                $prevYear = $year - 1;
+            }
+            $prevMonth = sprintf('%04d-%02d', $prevYear, $prevMon);
+
+            // Dagsmål
+            $dailyGoal = 1000;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sr && isset($sr['rebotling_target'])) {
+                    $dailyGoal = (int)$sr['rebotling_target'];
+                }
+            } catch (Exception $e) {
+                error_log('getMonthCompare: kunde ej läsa dagsmål: ' . $e->getMessage());
+            }
+
+            // Hjälpfunktion: hämta summering för en månad
+            $fetchMonthData = function(string $m) use ($dailyGoal): array {
+                // Räkna vardagar
+                $daysInMonth = (int)date('t', strtotime($m . '-01'));
+                $workdays = 0;
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $dow = (int)date('N', strtotime(sprintf('%s-%02d', $m, $d)));
+                    if ($dow < 6) $workdays++;
+                }
+                $monthGoal = $dailyGoal * $workdays;
+
+                $perShiftSQL = "
+                    SELECT
+                        DATE(datum)                                                               AS dag,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0))                                                 AS shift_ibc,
+                        MAX(COALESCE(ibc_ej_ok, 0))                                              AS shift_ej_ok,
+                        ROUND(MAX(COALESCE(ibc_ok,0))*100.0 /
+                            NULLIF(MAX(COALESCE(ibc_ok,0))+MAX(COALESCE(ibc_ej_ok,0)),0),1)     AS shift_quality,
+                        MAX(COALESCE(runtime_plc, 0))                                            AS shift_runtime,
+                        MAX(COALESCE(rasttime, 0))                                               AS shift_rast
+                    FROM rebotling_ibc
+                    WHERE DATE_FORMAT(datum,'%Y-%m') = ?
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ";
+
+                $summarySQL = "
+                    SELECT
+                        COUNT(DISTINCT dag)                   AS production_days,
+                        SUM(shift_ibc)                        AS ibc_total,
+                        ROUND(AVG(shift_quality),1)           AS avg_quality,
+                        ROUND(SUM(shift_runtime)/60.0,1)      AS total_runtime_hours,
+                        ROUND(SUM(shift_rast)/60.0,1)         AS total_stoppage_hours
+                    FROM ({$perShiftSQL}) AS per_shift
+                ";
+                $stmt = $this->pdo->prepare($summarySQL);
+                $stmt->execute([$m]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                $ibcTotal       = (int)($row['ibc_total'] ?? 0);
+                $prodDays       = (int)($row['production_days'] ?? 0);
+                $avgQuality     = (float)($row['avg_quality'] ?? 0);
+                $runtimeH       = (float)($row['total_runtime_hours'] ?? 0);
+                $stoppageH      = (float)($row['total_stoppage_hours'] ?? 0);
+
+                // OEE daglig för snittberäkning
+                $oeeSQL = "
+                    SELECT dag,
+                           SUM(shift_ibc)     AS ibc_ok,
+                           SUM(shift_ej_ok)   AS ibc_ej_ok,
+                           SUM(shift_runtime) AS runtime_min,
+                           SUM(shift_rast)    AS rast_min
+                    FROM ({$perShiftSQL}) AS ps2
+                    GROUP BY dag
+                ";
+                $stmt2 = $this->pdo->prepare($oeeSQL);
+                $stmt2->execute([$m]);
+                $oeeRows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+                $idealRatePerMin = 15.0 / 60.0;
+                $oeeSum = 0.0;
+                $oeeDays = 0;
+                $bestDay  = null;
+                $worstDay = null;
+                foreach ($oeeRows as $r) {
+                    $ibcOk   = (float)$r['ibc_ok'];
+                    $ibcEjOk = (float)$r['ibc_ej_ok'];
+                    $total   = $ibcOk + $ibcEjOk;
+                    $opMin   = max((float)$r['runtime_min'], 1);
+                    $planMin = max($opMin + (float)$r['rast_min'], 1);
+                    $avail   = min($opMin / $planMin, 1.0);
+                    $perf    = min(($total / $opMin) / $idealRatePerMin, 1.0);
+                    $qual    = $total > 0 ? $ibcOk / $total : 0;
+                    $oee     = round($avail * $perf * $qual * 100, 1);
+                    if ($ibcOk > 0) {
+                        $oeeSum += $oee;
+                        $oeeDays++;
+                        $targetPct = $dailyGoal > 0 ? round($ibcOk / $dailyGoal * 100, 1) : 0;
+                        if ($bestDay === null || $ibcOk > $bestDay['ibc']) {
+                            $bestDay = ['datum' => $r['dag'], 'ibc' => (int)$ibcOk, 'target_pct' => $targetPct];
+                        }
+                        if ($worstDay === null || $ibcOk < $worstDay['ibc']) {
+                            $worstDay = ['datum' => $r['dag'], 'ibc' => (int)$ibcOk, 'target_pct' => $targetPct];
+                        }
+                    }
+                }
+                $avgOee = $oeeDays > 0 ? round($oeeSum / $oeeDays, 1) : 0;
+                $avgIbcPerDay = $prodDays > 0 ? round($ibcTotal / $prodDays, 1) : 0;
+
+                return [
+                    'total_ibc'       => $ibcTotal,
+                    'avg_ibc_per_day' => $avgIbcPerDay,
+                    'avg_oee_pct'     => $avgOee,
+                    'avg_quality_pct' => $avgQuality,
+                    'working_days'    => $prodDays,
+                    'month_goal'      => $monthGoal,
+                    'best_day'        => $bestDay,
+                    'worst_day'       => $worstDay,
+                ];
+            };
+
+            $thisMonthData = $fetchMonthData($monthParam);
+            $prevMonthData = $fetchMonthData($prevMonth);
+
+            // Beräkna diff
+            $diffIbcPct = null;
+            if ($prevMonthData['total_ibc'] > 0) {
+                $diffIbcPct = round(($thisMonthData['total_ibc'] - $prevMonthData['total_ibc']) / $prevMonthData['total_ibc'] * 100, 1);
+            }
+            $diffAvgIbcPerDayPct = null;
+            if ($prevMonthData['avg_ibc_per_day'] > 0) {
+                $diffAvgIbcPerDayPct = round(($thisMonthData['avg_ibc_per_day'] - $prevMonthData['avg_ibc_per_day']) / $prevMonthData['avg_ibc_per_day'] * 100, 1);
+            }
+            $diffOee     = round($thisMonthData['avg_oee_pct'] - $prevMonthData['avg_oee_pct'], 1);
+            $diffQuality = round($thisMonthData['avg_quality_pct'] - $prevMonthData['avg_quality_pct'], 1);
+
+            // Operatör av månaden — använder rebotling_ibc
+            $opOfMonth = null;
+            try {
+                $firstDay = $monthParam . '-01';
+                $lastDay  = date('Y-m-t', strtotime($firstDay));
+                $opSQL = "
+                    SELECT op_id, SUM(shift_ibc) AS total_ibc,
+                           SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
+                           SUM(shift_ok * 100.0) / NULLIF(SUM(shift_total), 0) AS avg_quality_pct
+                    FROM (
+                        SELECT op1 AS op_id, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN ? AND ?
+                          AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY op1, skiftraknare
+                        UNION ALL
+                        SELECT op2 AS op_id, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN ? AND ?
+                          AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY op2, skiftraknare
+                        UNION ALL
+                        SELECT op3 AS op_id, skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_total,
+                               MAX(COALESCE(runtime_plc, 0)) / 60.0 AS runtime_h
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN ? AND ?
+                          AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY op3, skiftraknare
+                    ) t
+                    GROUP BY op_id
+                    ORDER BY (SUM(shift_ibc) * 0.6 + SUM(shift_ibc) / NULLIF(SUM(runtime_h), 0) * 0.4) DESC
+                    LIMIT 1
+                ";
+                $stmtOp = $this->pdo->prepare($opSQL);
+                $stmtOp->execute([$firstDay, $lastDay, $firstDay, $lastDay, $firstDay, $lastDay]);
+                $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
+                if ($opRow && $opRow['op_id']) {
+                    // Hämta operatörens namn
+                    $nameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
+                    $nameStmt->execute([$opRow['op_id']]);
+                    $nameRow = $nameStmt->fetch(PDO::FETCH_ASSOC);
+                    $namn = $nameRow ? $nameRow['name'] : 'Okänd';
+                    // Generera initialer från namn
+                    $parts = explode(' ', trim($namn));
+                    $initialer = '';
+                    foreach ($parts as $p) {
+                        if ($p !== '') $initialer .= strtoupper(substr($p, 0, 1));
+                    }
+                    $initialer = substr($initialer, 0, 3);
+                    $opOfMonth = [
+                        'op_id'           => (int)$opRow['op_id'],
+                        'namn'            => $namn,
+                        'initialer'       => $initialer,
+                        'total_ibc'       => (int)($opRow['total_ibc'] ?? 0),
+                        'avg_ibc_per_h'   => round((float)($opRow['avg_ibc_per_h'] ?? 0), 1),
+                        'avg_quality_pct' => round((float)($opRow['avg_quality_pct'] ?? 0), 1),
+                    ];
+                }
+            } catch (Exception $e) {
+                error_log('getMonthCompare: operatör av månaden fel: ' . $e->getMessage());
+            }
+
+            echo json_encode([
+                'success'            => true,
+                'month'              => $monthParam,
+                'prev_month'         => $prevMonth,
+                'this_month'         => $thisMonthData,
+                'prev_month_data'    => $prevMonthData,
+                'diff'               => [
+                    'total_ibc_pct'          => $diffIbcPct,
+                    'avg_ibc_per_day_pct'    => $diffAvgIbcPerDayPct,
+                    'avg_oee_pct_diff'       => $diffOee,
+                    'avg_quality_pct_diff'   => $diffQuality,
+                ],
+                'operator_of_month'  => $opOfMonth,
+                'best_day'           => $thisMonthData['best_day'],
+                'worst_day'          => $thisMonthData['worst_day'],
+            ]);
+
+        } catch (Exception $e) {
+            error_log('getMonthCompare: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta jämförelsedata']);
+        }
+    }
+
+    // =========================================================
     // Månadsrapport
     // GET ?action=rebotling&run=monthly-report&month=YYYY-MM
     // =========================================================
@@ -4490,4 +4743,119 @@ class RebotlingController {
         }
     }
 
+
+    // GET ?action=rebotling&run=pareto-stoppage&days=30
+    // Returnerar Pareto-analys (80/20) av stopporsaker.
+    private function getParetoStoppage(): void {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+
+        // Kontrollera att tabellerna finns
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name IN ('stoppage_log','stoppage_reasons')"
+            );
+            $found = (int)$check->fetchColumn();
+            if ($found < 2) {
+                echo json_encode([
+                    'success'       => true,
+                    'empty'         => true,
+                    'reason'        => 'Tabellerna stoppage_log/stoppage_reasons finns inte än.',
+                    'items'         => [],
+                    'period_days'   => $days,
+                    'total_stopp'   => 0,
+                    'total_minuter' => 0
+                ]);
+                return;
+            }
+        } catch (Exception $e) {
+            error_log('RebotlingController getParetoStoppage check: ' . $e->getMessage());
+            echo json_encode([
+                'success'       => true,
+                'empty'         => true,
+                'reason'        => 'Kunde inte kontrollera tabeller.',
+                'items'         => [],
+                'period_days'   => $days,
+                'total_stopp'   => 0,
+                'total_minuter' => 0
+            ]);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                   COALESCE(r.name, s.reason_free) AS orsak,
+                   COALESCE(r.category, 'övrigt')  AS kategori,
+                   COUNT(*)                         AS antal_stopp,
+                   COALESCE(SUM(s.duration_minutes), 0) AS total_minuter,
+                   COALESCE(AVG(s.duration_minutes), 0) AS snitt_minuter
+                 FROM stoppage_log s
+                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
+                 WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                   AND s.deleted_at IS NULL
+                 GROUP BY r.id, COALESCE(r.name, s.reason_free)
+                 ORDER BY total_minuter DESC
+                 LIMIT 20"
+            );
+            $stmt->execute([$days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Summering
+            $stmtSum = $this->pdo->prepare(
+                "SELECT COUNT(*) AS total_stopp,
+                        COALESCE(SUM(duration_minutes), 0) AS total_minuter
+                 FROM stoppage_log
+                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                   AND deleted_at IS NULL"
+            );
+            $stmtSum->execute([$days]);
+            $summary = $stmtSum->fetch(PDO::FETCH_ASSOC);
+
+            $totalStopp   = (int)($summary['total_stopp']   ?? 0);
+            $totalMinuter = (float)($summary['total_minuter'] ?? 0);
+
+            // Beräkna kumulativ procent
+            $items = [];
+            $kumulativMin = 0.0;
+            foreach ($rows as $row) {
+                $min = (float)$row['total_minuter'];
+                $kumulativMin += $min;
+                $pctAvTotal   = $totalMinuter > 0 ? round($min / $totalMinuter * 100, 1) : 0;
+                $kumulativPct = $totalMinuter > 0 ? round($kumulativMin / $totalMinuter * 100, 1) : 0;
+                $items[] = [
+                    'orsak'         => $row['orsak'] ?? 'Okänd',
+                    'kategori'      => $row['kategori'],
+                    'antal_stopp'   => (int)$row['antal_stopp'],
+                    'total_minuter' => round($min, 1),
+                    'snitt_minuter' => round((float)$row['snitt_minuter'], 1),
+                    'pct_av_total'  => $pctAvTotal,
+                    'kumulativ_pct' => $kumulativPct
+                ];
+            }
+
+            $empty = ($totalStopp === 0);
+
+            echo json_encode([
+                'success'       => true,
+                'empty'         => $empty,
+                'items'         => $items,
+                'period_days'   => $days,
+                'total_stopp'   => $totalStopp,
+                'total_minuter' => round($totalMinuter, 1)
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getParetoStoppage: ' . $e->getMessage());
+            echo json_encode([
+                'success'       => true,
+                'empty'         => true,
+                'reason'        => 'Databasfel vid hämtning av paretodata.',
+                'items'         => [],
+                'period_days'   => $days,
+                'total_stopp'   => 0,
+                'total_minuter' => 0
+            ]);
+        }
+    }
 }

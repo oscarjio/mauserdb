@@ -149,6 +149,104 @@
       </div>
     </section>
 
+    <!-- ===== SEKTION 1b: JÄMFÖRELSE MED FÖREGÅENDE MÅNAD ===== -->
+    <section class="report-section" *ngIf="compareData">
+      <h2 class="section-title">
+        <i class="fas fa-arrows-left-right me-2"></i>Jämförelse föregående månad
+        <span class="compare-period-label">vs {{ compareData.prev_month }}</span>
+      </h2>
+      <div class="diff-grid">
+
+        <!-- Total IBC diff -->
+        <div class="diff-card" [class]="diffClass(compareData.diff.total_ibc_pct)">
+          <div class="diff-label">Total IBC</div>
+          <div class="diff-arrow">{{ diffArrow(compareData.diff.total_ibc_pct) }}</div>
+          <div class="diff-value">
+            <ng-container *ngIf="compareData.diff.total_ibc_pct !== null; else noData1">
+              {{ diffSign(compareData.diff.total_ibc_pct) }}{{ compareData.diff.total_ibc_pct | number:'1.0-1' }}%
+            </ng-container>
+            <ng-template #noData1>—</ng-template>
+          </div>
+          <div class="diff-sub">
+            {{ compareData.this_month.total_ibc | number }} vs {{ compareData.prev_month_data.total_ibc | number }} IBC
+          </div>
+        </div>
+
+        <!-- Snitt/dag diff -->
+        <div class="diff-card" [class]="diffClass(compareData.diff.avg_ibc_per_day_pct)">
+          <div class="diff-label">Snitt IBC/dag</div>
+          <div class="diff-arrow">{{ diffArrow(compareData.diff.avg_ibc_per_day_pct) }}</div>
+          <div class="diff-value">
+            <ng-container *ngIf="compareData.diff.avg_ibc_per_day_pct !== null; else noData2">
+              {{ diffSign(compareData.diff.avg_ibc_per_day_pct) }}{{ compareData.diff.avg_ibc_per_day_pct | number:'1.0-1' }}%
+            </ng-container>
+            <ng-template #noData2>—</ng-template>
+          </div>
+          <div class="diff-sub">
+            {{ compareData.this_month.avg_ibc_per_day | number:'1.0-1' }} vs {{ compareData.prev_month_data.avg_ibc_per_day | number:'1.0-1' }} st/dag
+          </div>
+        </div>
+
+        <!-- OEE diff -->
+        <div class="diff-card" [class]="diffClass(compareData.diff.avg_oee_pct_diff)">
+          <div class="diff-label">Snitt OEE</div>
+          <div class="diff-arrow">{{ diffArrow(compareData.diff.avg_oee_pct_diff) }}</div>
+          <div class="diff-value">
+            {{ diffSign(compareData.diff.avg_oee_pct_diff) }}{{ compareData.diff.avg_oee_pct_diff | number:'1.0-1' }} pp
+          </div>
+          <div class="diff-sub">
+            {{ compareData.this_month.avg_oee_pct | number:'1.0-1' }}% vs {{ compareData.prev_month_data.avg_oee_pct | number:'1.0-1' }}%
+          </div>
+        </div>
+
+        <!-- Kvalitet diff -->
+        <div class="diff-card" [class]="diffClass(compareData.diff.avg_quality_pct_diff)">
+          <div class="diff-label">Snitt Kvalitet</div>
+          <div class="diff-arrow">{{ diffArrow(compareData.diff.avg_quality_pct_diff) }}</div>
+          <div class="diff-value">
+            {{ diffSign(compareData.diff.avg_quality_pct_diff) }}{{ compareData.diff.avg_quality_pct_diff | number:'1.0-1' }} pp
+          </div>
+          <div class="diff-sub">
+            {{ compareData.this_month.avg_quality_pct | number:'1.0-1' }}% vs {{ compareData.prev_month_data.avg_quality_pct | number:'1.0-1' }}%
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 1c: OPERATÖR AV MÅNADEN ===== -->
+    <section class="report-section" *ngIf="compareData?.operator_of_month">
+      <h2 class="section-title">
+        <i class="fas fa-trophy me-2 text-warning"></i>Operatör av månaden
+      </h2>
+      <div class="op-of-month-card">
+        <div class="op-of-month-left">
+          <div class="op-avatar">{{ compareData!.operator_of_month!.initialer }}</div>
+          <div class="op-trophy">&#127942;</div>
+        </div>
+        <div class="op-of-month-center">
+          <div class="op-of-month-title">Operatör av månaden</div>
+          <div class="op-of-month-name">{{ compareData!.operator_of_month!.namn }}</div>
+        </div>
+        <div class="op-of-month-stats">
+          <div class="op-stat">
+            <span class="op-stat-label">Total IBC</span>
+            <span class="op-stat-value text-success">{{ compareData!.operator_of_month!.total_ibc | number }}</span>
+          </div>
+          <div class="op-stat">
+            <span class="op-stat-label">Snitt IBC/h</span>
+            <span class="op-stat-value">{{ compareData!.operator_of_month!.avg_ibc_per_h | number:'1.0-1' }}</span>
+          </div>
+          <div class="op-stat">
+            <span class="op-stat-label">Kvalitet</span>
+            <span class="op-stat-value" [class]="goalClass(compareData!.operator_of_month!.avg_quality_pct)">
+              {{ compareData!.operator_of_month!.avg_quality_pct | number:'1.0-1' }}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== SEKTION 2: Daglig produktion (stapeldiagram) ===== -->
     <section class="report-section" *ngIf="report.daily_production.length > 0">
       <h2 class="section-title">
@@ -171,41 +269,83 @@
     </section>
 
     <!-- ===== SEKTION 4: Bästa & Sämsta dag ===== -->
-    <section class="report-section" *ngIf="report.best_day || report.worst_day">
+    <section class="report-section" *ngIf="report.best_day || report.worst_day || compareData?.best_day || compareData?.worst_day">
       <h2 class="section-title">
         <i class="fas fa-star me-2"></i>Bästa &amp; Sämsta dag
       </h2>
       <div class="best-worst-grid">
 
-        <div class="day-card day-best" *ngIf="report.best_day">
-          <div class="day-card-header">
-            <i class="fas fa-arrow-up me-2"></i>Bästa dag
+        <!-- Bästa dag — från compareData om tillgänglig (har target_pct), annars från report -->
+        <ng-container *ngIf="compareData?.best_day; else fallbackBestDay">
+          <div class="day-card day-best">
+            <div class="day-card-header">
+              <i class="fas fa-arrow-up me-2"></i>Bästa dag
+            </div>
+            <div class="day-card-date">{{ formatDate(compareData!.best_day!.datum) }}</div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">IBC tvättade</span>
+              <span class="day-stat-value">{{ compareData!.best_day!.ibc | number }}</span>
+            </div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">% av dagsmål</span>
+              <span class="day-stat-value" [class]="goalClass(compareData!.best_day!.target_pct)">
+                {{ compareData!.best_day!.target_pct | number:'1.0-1' }}%
+              </span>
+            </div>
           </div>
-          <div class="day-card-date">{{ formatDate(report.best_day.date) }}</div>
-          <div class="day-card-stat">
-            <span class="day-stat-label">IBC tvättade</span>
-            <span class="day-stat-value">{{ report.best_day.ibc | number }}</span>
+        </ng-container>
+        <ng-template #fallbackBestDay>
+          <div class="day-card day-best" *ngIf="report.best_day">
+            <div class="day-card-header">
+              <i class="fas fa-arrow-up me-2"></i>Bästa dag
+            </div>
+            <div class="day-card-date">{{ formatDate(report.best_day.date) }}</div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">IBC tvättade</span>
+              <span class="day-stat-value">{{ report.best_day.ibc | number }}</span>
+            </div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">Kvalitet</span>
+              <span class="day-stat-value">{{ report.best_day.quality }}%</span>
+            </div>
           </div>
-          <div class="day-card-stat">
-            <span class="day-stat-label">Kvalitet</span>
-            <span class="day-stat-value">{{ report.best_day.quality }}%</span>
-          </div>
-        </div>
+        </ng-template>
 
-        <div class="day-card day-worst" *ngIf="report.worst_day">
-          <div class="day-card-header">
-            <i class="fas fa-arrow-down me-2"></i>Sämsta dag
+        <!-- Sämsta dag — från compareData om tillgänglig -->
+        <ng-container *ngIf="compareData?.worst_day; else fallbackWorstDay">
+          <div class="day-card day-worst">
+            <div class="day-card-header">
+              <i class="fas fa-arrow-down me-2"></i>Sämsta dag
+            </div>
+            <div class="day-card-date">{{ formatDate(compareData!.worst_day!.datum) }}</div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">IBC tvättade</span>
+              <span class="day-stat-value">{{ compareData!.worst_day!.ibc | number }}</span>
+            </div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">% av dagsmål</span>
+              <span class="day-stat-value" [class]="goalClass(compareData!.worst_day!.target_pct)">
+                {{ compareData!.worst_day!.target_pct | number:'1.0-1' }}%
+              </span>
+            </div>
           </div>
-          <div class="day-card-date">{{ formatDate(report.worst_day.date) }}</div>
-          <div class="day-card-stat">
-            <span class="day-stat-label">IBC tvättade</span>
-            <span class="day-stat-value">{{ report.worst_day.ibc | number }}</span>
+        </ng-container>
+        <ng-template #fallbackWorstDay>
+          <div class="day-card day-worst" *ngIf="report.worst_day">
+            <div class="day-card-header">
+              <i class="fas fa-arrow-down me-2"></i>Sämsta dag
+            </div>
+            <div class="day-card-date">{{ formatDate(report.worst_day.date) }}</div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">IBC tvättade</span>
+              <span class="day-stat-value">{{ report.worst_day.ibc | number }}</span>
+            </div>
+            <div class="day-card-stat">
+              <span class="day-stat-label">Kvalitet</span>
+              <span class="day-stat-value">{{ report.worst_day.quality }}%</span>
+            </div>
           </div>
-          <div class="day-card-stat">
-            <span class="day-stat-label">Kvalitet</span>
-            <span class="day-stat-value">{{ report.worst_day.quality }}%</span>
-          </div>
-        </div>
+        </ng-template>
 
       </div>
     </section>

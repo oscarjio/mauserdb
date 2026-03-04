@@ -399,3 +399,202 @@
 
   .report-title { color: #1a202c !important; }
 }
+
+/* =============================================
+   Jämförelse föregående månad — diff brickor
+   ============================================= */
+.compare-period-label {
+  font-size: 0.82rem;
+  color: #718096;
+  font-weight: 400;
+  margin-left: 0.75rem;
+}
+
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.diff-card {
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border: 1px solid #3d4a5c;
+  background: #2d3748;
+  transition: border-color 0.2s;
+}
+
+.diff-card.diff-positive {
+  background: rgba(72, 187, 120, 0.08);
+  border-color: rgba(72, 187, 120, 0.45);
+}
+
+.diff-card.diff-negative {
+  background: rgba(245, 101, 101, 0.08);
+  border-color: rgba(245, 101, 101, 0.45);
+}
+
+.diff-card.diff-neutral {
+  background: #2d3748;
+  border-color: #3d4a5c;
+}
+
+.diff-label {
+  font-size: 0.76rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.diff-arrow {
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.diff-positive .diff-arrow { color: #68d391; }
+.diff-negative .diff-arrow { color: #fc8181; }
+.diff-neutral .diff-arrow  { color: #a0aec0; }
+
+.diff-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+
+.diff-positive .diff-value { color: #68d391; }
+.diff-negative .diff-value { color: #fc8181; }
+.diff-neutral .diff-value  { color: #a0aec0; }
+
+.diff-sub {
+  font-size: 0.73rem;
+  color: #718096;
+}
+
+/* =============================================
+   Operatör av månaden
+   ============================================= */
+.op-of-month-card {
+  background: linear-gradient(135deg, #2d3748 0%, #1e2c3d 100%);
+  border: 1px solid rgba(246, 224, 94, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  box-shadow: 0 0 20px rgba(246, 224, 94, 0.06);
+}
+
+.op-of-month-left {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.op-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4a5568, #2d3748);
+  border: 3px solid #f6e05e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #f6e05e;
+  letter-spacing: 0.05em;
+}
+
+.op-trophy {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.op-of-month-center {
+  flex: 1;
+  min-width: 120px;
+}
+
+.op-of-month-title {
+  font-size: 0.76rem;
+  color: #f6e05e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+
+.op-of-month-name {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.op-of-month-stats {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.op-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+}
+
+.op-stat-label {
+  font-size: 0.72rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+
+.op-stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+@media (max-width: 600px) {
+  .op-of-month-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  .op-of-month-stats {
+    justify-content: center;
+  }
+  .diff-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Print — diff/op-of-month */
+@media print {
+  .diff-card {
+    background: #f7fafc !important;
+    border-color: #bee3f8 !important;
+    break-inside: avoid;
+  }
+  .diff-positive { background: rgba(72,187,120,0.08) !important; border-color: #48bb78 !important; }
+  .diff-negative { background: rgba(245,101,101,0.08) !important; border-color: #f56565 !important; }
+  .diff-label { color: #4a5568 !important; }
+  .diff-sub   { color: #718096 !important; }
+  .op-of-month-card {
+    background: #f7fafc !important;
+    border-color: #f6e05e !important;
+    break-inside: avoid;
+  }
+  .op-of-month-name { color: #1a202c !important; }
+  .op-avatar { border-color: #f6e05e !important; color: #975a16 !important; background: #fffbeb !important; }
+}
