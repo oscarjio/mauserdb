@@ -527,7 +527,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Skiftsammanfattning PDF-export**: KLAR `be0eea4` — shift-summary endpoint, expanderbar detaljvy per skift, 6 KPI-kort, timvis PLC-data, print-optimerad PDF med A4-format
 
 ### 🔵 Batch 3
-- [ ] **Prediktiv underhåll v2** — korrelationsanalys stopp vs underhåll, dubbelaxel-graf (worker kör)
+- [x] **Prediktiv underhåll v2** — KLAR: Pearson-korrelation med lagg, 4 KPI-kort, dubbelaxel-graf (staplar+linje), datatabell
 - [x] **Nyhetsflöde förbättring** — KLAR: 4 nya auto-triggers (produktionsrekord, OEE≥85%, bonus-milstolpe, 5+ dagars streak), admin redan på plats
 
 ---
@@ -535,9 +535,9 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ## NY BATCH (från behovsanalys kväll #3 — 53 fynd)
 
 ### 🔴 Hög prioritet (UX-kritiskt)
-- [ ] **Empty-states batch 1**: Lägg till "Inga data"-meddelanden på 6 sidor: operator-attendance, weekly-report, rebotling-prognos, benchmarking, live-ranking, certifications
+- [x] **Empty-states batch 1**: KLAR `164e0d0` — 6 sidor: operator-attendance, weekly-report, rebotling-prognos, benchmarking, live-ranking, certifications
 - [ ] **Empty-states batch 2**: Lägg till "Inga data"-meddelanden på 6 sidor: my-bonus (weeklyData+feedback), operator-detail, saglinje-admin, tvattlinje-admin, andon, operator-trend
-- [ ] **Mobilanpassning batch 1**: operator-attendance kalender (grid responsive), bonus-dashboard (ranking-tabell, period-toggle), operators (op-cards-grid responsive)
+- [x] **Mobilanpassning batch 1**: KLAR `c472c8e` — operator-attendance (768/480px), bonus-dashboard (toggle+tabell+kort), operators (2-kol tablet, 1-kol mobil)
 - [ ] **Mobilanpassning batch 2**: audit-log (filter-bar flex-wrap), stoppage-log (tabell läsbarhet), statistik-sidor (chart-containers storlek)
 
 ### 🟡 Medium prioritet
