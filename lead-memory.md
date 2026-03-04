@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-04 (session kväll #2)*
+*Senast uppdaterad: 2026-03-04 (session kväll #3)*
 
 ---
 
@@ -509,27 +509,32 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ---
 
-## AKTIV BATCH (2026-03-04 kväll #2 — DENNA SESSION)
+## AKTIV BATCH (2026-03-04 kväll #3 — DENNA SESSION)
 
-### 🔴 Hög prioritet — Startas denna session
-- [ ] **Bug Hunt #12 — Chart error-boundary + threshold-validering**: 59% av Chart.js-instanser saknar try-catch runt destroy(). BonusAdmin saknar brons<silver<guld<platina-validering. Comprehensive scan av alla nya features.
-- [ ] **Historik/Audit Log pagination**: Backend LIMIT+OFFSET + frontend "Ladda fler"-knapp — 10 000+ rader kan orsaka timeout. Berör audit-log.ts/html + AuditController.php + historik.ts.
-- [ ] **Skiftrapport per operatör**: Filtrerbara skiftrapporter per specifik operatör — dropdown-filter i skiftrapport-sidan. Ny endpoint eller query-parameter i befintligt report-endpoint.
+### ✅ Levererat denna session
+- [x] **Chart error-boundary (delvis)**: `fd92772` — try-catch runt destroy() i bonus-charts, my-bonus, rebotling-statistik (3 filer)
+- [x] **Audit-log pagination**: `44f11a5` — LIMIT+OFFSET backend, ladda-fler frontend
+
+### 🔴 Hög prioritet — Workers startas NU
+- [ ] **Bug Hunt #12 — resterande Chart error-boundary**: Kvarstår ~56% av Chart.js-instanser utan try-catch (andra sidor: production-analysis, bonus-dashboard, exec-dashboard, stoppage-log, operators, historik, etc.) + BonusAdmin threshold-validering (brons<silver<guld<platina).
+- [ ] **Skiftrapport per operatör**: Dropdown-filter i skiftrapport-sidan + KPI-sammanfattning per operatör. Ny query-parameter `?operator=X` i befintligt report-endpoint.
+- [ ] **VD Månadsrapport förbättring**: Föregående månads-jämförelse med diff-indikatorer, "Månadens bästa dag", operator-of-the-month, bättre PDF. Backend month-compare endpoint.
 
 ### 🟡 Medium — planeras efter dessa
-- [ ] **Prediktivt underhåll körningsbaserat** — IBC-volymbaserat serviceintervall
 - [ ] **Skiftöverlämning: Email-notis** — PHP mail() vid brådskande not
-- [ ] **BonusAdmin threshold-validering** — brons < silver < guld < platina
 - [ ] **Prediktiv underhållsindikator v2** — Korrelationsanalys maskin-stopp vs. underhåll
+- [ ] **Push-notiser webbläsare** — Web Push API vid stopp > 10 min
+- [ ] **Automatisk skiftrapport-export** — POST-endpoint vid skiftslut → PDF → email
 
 ### 🔵 IDÉBANK
 - Maskinlärning-prediktion: förutsäg produktion
 - Flödesanalys: visualisera IBC-flödet genom anläggningen
 - Kundportal: extern vy
-- Push-notiser webbläsare
 - Energieffektivitet-vy
+- Nyhetsflöde förbättring: rekord-triggers, certifieringsuppdateringar
 
 ---
 
 ## BESLUTSDAGBOK (forts.)
 **2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
+**2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). Startar 3 workers: (1) Bug Hunt #12 resterande chart error-boundary + BonusAdmin validering, (2) Skiftrapport per operatör, (3) VD Månadsrapport förbättring.
