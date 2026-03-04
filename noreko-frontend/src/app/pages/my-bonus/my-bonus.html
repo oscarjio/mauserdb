@@ -333,6 +333,97 @@
       </div>
     </div>
 
+    <!-- ===== ANONYM KOLLEGJÄMFÖRELSE (veckobaserad) ===== -->
+    <div class="ranking-card mb-4" *ngIf="rankingPosition || rankingPositionLoading">
+      <div class="ranking-header">
+        <i class="fas fa-users me-2 text-info"></i>Din placering denna vecka
+      </div>
+
+      <!-- Laddar -->
+      <div class="ranking-body text-center py-3" *ngIf="rankingPositionLoading">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        <span class="text-muted ms-2 small">Hämtar placering...</span>
+      </div>
+
+      <!-- Ingen data denna vecka -->
+      <div class="ranking-body" *ngIf="!rankingPositionLoading && rankingPosition && rankingPosition.my_rank === null && (rankingPosition.total_operators ?? 0) > 0">
+        <p class="text-muted small mb-0 text-center py-2">
+          <i class="fas fa-info-circle me-1"></i>Ingen data denna vecka — jobba ett skift för att synas!
+        </p>
+        <p class="text-muted small text-center mb-2">{{ rankingPosition.week_label }}</p>
+      </div>
+
+      <!-- Inga operatörer alls -->
+      <div class="ranking-body" *ngIf="!rankingPositionLoading && rankingPosition && (rankingPosition.total_operators ?? 0) === 0">
+        <p class="text-muted small mb-0 text-center py-2">
+          <i class="fas fa-info-circle me-1"></i>Ingen data registrerad denna vecka
+        </p>
+      </div>
+
+      <!-- Rankinginformation -->
+      <div class="ranking-body"
+           *ngIf="!rankingPositionLoading && rankingPosition && rankingPosition.my_rank !== null && (rankingPosition.total_operators ?? 0) > 0">
+
+        <!-- Rubrik: stor siffra -->
+        <div class="ranking-main">
+          <div class="ranking-position">
+            <span class="rank-hash">#</span><span class="rank-number">{{ rankingPosition.my_rank }}</span>
+          </div>
+          <div class="ranking-meta">
+            <div class="ranking-of-total">av {{ rankingPosition.total_operators }} operatörer</div>
+            <div class="ranking-period-label text-muted small">{{ rankingPosition.week_label }}</div>
+          </div>
+        </div>
+
+        <!-- Progress mot topplace (IBC/h) -->
+        <div class="ranking-progress-wrapper mt-3" *ngIf="rankingPosition.top_ibc_per_h">
+          <div class="ranking-progress-labels">
+            <span class="text-muted small">0</span>
+            <span class="text-muted small">Topp: {{ rankingPosition.top_ibc_per_h | number:'1.1-1' }} IBC/h</span>
+          </div>
+          <div class="ranking-progress-bar-bg">
+            <div class="ranking-progress-bar-fill"
+                 [style.width.%]="getRankingPositionProgressPct()"
+                 [class.fill-gold]="rankingPosition.my_rank === 1"
+                 [class.fill-blue]="rankingPosition.my_rank !== null && rankingPosition.my_rank === 2"
+                 [class.fill-gray]="rankingPosition.my_rank !== null && rankingPosition.my_rank > 2">
+            </div>
+          </div>
+        </div>
+
+        <!-- 3 mini-brickor -->
+        <div class="row g-2 mt-3">
+          <div class="col-4">
+            <div class="text-center p-2 rounded" style="background:#2d3748;">
+              <div class="fw-bold text-success" style="font-size:1.1rem;">{{ rankingPosition.my_ibc_per_h | number:'1.1-1' }}</div>
+              <div class="text-muted" style="font-size:.75rem;">Min: /h</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="text-center p-2 rounded" style="background:#2d3748;">
+              <div class="fw-bold text-warning" style="font-size:1.1rem;">{{ rankingPosition.avg_ibc_per_h | number:'1.1-1' }}</div>
+              <div class="text-muted" style="font-size:.75rem;">Snitt: /h</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="text-center p-2 rounded" style="background:#2d3748;">
+              <div class="fw-bold text-secondary" style="font-size:1.1rem;">{{ rankingPosition.top_ibc_per_h | number:'1.1-1' }}</div>
+              <div class="text-muted" style="font-size:.75rem;">Bäst: /h</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Motivationstext -->
+        <div class="ranking-motivation mt-3" [ngClass]="getRankingPositionMotivationClass()">
+          <i class="fas fa-bolt me-1" *ngIf="rankingPosition.my_rank === 1"></i>
+          <i class="fas fa-chevron-up me-1" *ngIf="rankingPosition.my_rank !== null && rankingPosition.my_rank > 1 && rankingPosition.my_rank <= 3"></i>
+          <i class="fas fa-dumbbell me-1" *ngIf="rankingPosition.my_rank !== null && rankingPosition.my_rank > 3"></i>
+          <span class="small fw-semibold">{{ getRankingPositionMotivation() }}</span>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ===== DIN PLACERING ===== -->
     <div class="ranking-card mb-4" *ngIf="savedOperatorId">
       <div class="ranking-header">

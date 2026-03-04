@@ -98,6 +98,17 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   availableOperators: any[] = [];
   payoutSummaryYear = new Date().getFullYear();
 
+  // ========== Utbetalningshistorik (ny flik) ==========
+  payoutHistory: any[] = [];
+  payoutHistoryLoading = false;
+  payoutHistoryYear = new Date().getFullYear();
+  payoutHistoryStatusFilter = '';
+  payoutHistoryYears = [
+    new Date().getFullYear(),
+    new Date().getFullYear() - 1,
+    new Date().getFullYear() - 2
+  ];
+
   // Toast timer IDs
   private successTimerId: any = null;
   private errorTimerId: any = null;
@@ -469,6 +480,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (tab === 'payouts') {
       this.onPayoutsTabActivated();
     }
+    if (tab === 'payout-history') {
+      this.loadPayoutHistory();
+    }
   }
 
   getProductName(id: number): string {
@@ -642,6 +656,114 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (this.availableOperators.length === 0) this.loadOperators();
     this.loadPayouts();
     this.loadPayoutSummary();
+  }
+
+  // ========== Utbetalningshistorik ==========
+  loadPayoutHistory(): void {
+    this.payoutHistoryLoading = true;
+    let url = `/noreko-backend/api.php?action=bonusadmin&run=list-payouts&year=${this.payoutHistoryYear}`;
+    if (this.payoutHistoryStatusFilter) {
+      url += `&status=${encodeURIComponent(this.payoutHistoryStatusFilter)}`;
+    }
+    this.http.get<any>(url, { withCredentials: true }).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.payoutHistory = res.data?.payouts ?? [];
+        } else {
+          this.payoutHistory = [];
+        }
+        this.payoutHistoryLoading = false;
+      },
+      error: () => { this.payoutHistoryLoading = false; }
+    });
+  }
+
+  updatePayoutStatus(id: number, status: string): void {
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=update-payout-status',
+      JSON.stringify({ id, status }),
+      { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.showSuccess('Status uppdaterad!');
+          this.loadPayoutHistory();
+        } else {
+          this.showError(res?.error || 'Fel vid statusuppdatering');
+        }
+      },
+      error: () => { this.showError('Nätverksfel vid statusuppdatering'); }
+    });
+  }
+
+  get payoutHistoryTotal(): number {
+    return this.payoutHistory.reduce((sum, p) => sum + (p.amount_sek || 0), 0);
+  }
+
+  getPayoutStatusLabel(status: string): string {
+    switch (status) {
+      case 'pending':  return 'Väntande';
+      case 'approved': return 'Godkänd';
+      case 'paid':     return 'Utbetald';
+      default: return status;
+    }
+  }
+
+  getPayoutStatusClass(status: string): string {
+    switch (status) {
+      case 'pending':  return 'bg-warning text-dark';
+      case 'approved': return 'bg-primary';
+      case 'paid':     return 'bg-success';
+      default: return 'bg-secondary';
+    }
+  }
+
+  getBonusLevelLabel(level: string): string {
+    switch (level?.toLowerCase()) {
+      case 'bronze': return 'Brons';
+      case 'silver': return 'Silver';
+      case 'gold':   return 'Guld';
+      case 'platinum': return 'Platina';
+      default: return '—';
+    }
+  }
+
+  getBonusLevelStyle(level: string): string {
+    switch (level?.toLowerCase()) {
+      case 'bronze':   return 'color:#cd7f32; border-color:#cd7f32;';
+      case 'silver':   return 'color:#a8a9ad; border-color:#a8a9ad;';
+      case 'gold':     return 'color:#ffd700; border-color:#ffd700;';
+      case 'platinum': return 'color:#90caf9; border-color:#90caf9;';
+      default: return 'color:#6c757d; border-color:#6c757d;';
+    }
+  }
+
+  exportPayoutHistoryCSV(): void {
+    if (!this.payoutHistory.length) return;
+    const headers = ['Operatör', 'Period', 'Bonusnivå', 'Belopp (SEK)', 'Status'];
+    const rows = this.payoutHistory.map(p => [
+      p.namn || '',
+      (p.period_label || (p.period_start + ' – ' + p.period_end)),
+      this.getBonusLevelLabel(p.bonus_level),
+      String(p.amount_sek || 0),
+      this.getPayoutStatusLabel(p.status)
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `utbetalningshistorik-${this.payoutHistoryYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   formatSek(amount: number): string {

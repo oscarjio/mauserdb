@@ -70,6 +70,17 @@ export class MyBonusPage implements OnInit, OnDestroy {
   rankingPeriod: 'day' | 'week' | 'month' = 'week';
   rankingLoading = false;
 
+  // Anonym kollegjämförelse (ny sektion, veckobaserad via ranking-position endpoint)
+  rankingPosition: {
+    my_rank: number | null;
+    total_operators: number;
+    my_ibc_per_h: number | null;
+    top_ibc_per_h: number | null;
+    avg_ibc_per_h: number | null;
+    week_label: string;
+  } | null = null;
+  rankingPositionLoading = false;
+
   constructor(private auth: AuthService, private bonusService: BonusService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
   }
@@ -95,6 +106,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       }
     });
     this.loadBonusAmounts();
+    this.loadRankingPosition();
   }
 
   ngOnDestroy(): void {
@@ -124,6 +136,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.pbData = null;
     this.streakData = null;
     this.myRanking = null;
+    this.rankingPosition = null;
     if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
     if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
     if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
@@ -252,6 +265,47 @@ export class MyBonusPage implements OnInit, OnDestroy {
       },
       error: () => { this.streakLoading = false; }
     });
+  }
+
+  loadRankingPosition(): void {
+    this.rankingPositionLoading = true;
+    this.http.get<any>(
+      '/noreko-backend/api.php?action=bonus&run=ranking-position',
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        this.rankingPosition = res?.success ? res : null;
+        this.rankingPositionLoading = false;
+      },
+      error: () => { this.rankingPositionLoading = false; }
+    });
+  }
+
+  getRankingPositionProgressPct(): number {
+    if (!this.rankingPosition?.my_ibc_per_h || !this.rankingPosition?.top_ibc_per_h) return 0;
+    if (this.rankingPosition.top_ibc_per_h <= 0) return 0;
+    return Math.min(Math.round((this.rankingPosition.my_ibc_per_h / this.rankingPosition.top_ibc_per_h) * 100), 100);
+  }
+
+  getRankingPositionMotivation(): string {
+    if (!this.rankingPosition?.my_rank) return '';
+    const rank = this.rankingPosition.my_rank;
+    const avg  = this.rankingPosition.avg_ibc_per_h ?? 0;
+    if (rank === 1) return 'Du leder laget! Fortsätt!';
+    if (rank <= 3) return 'Du är i toppen! Ge allt nu!';
+    return `Kämpa på! Nästa mål är snitt: ${avg.toFixed(1)} IBC/h`;
+  }
+
+  getRankingPositionMotivationClass(): string {
+    if (!this.rankingPosition?.my_rank) return 'text-muted';
+    const rank = this.rankingPosition.my_rank;
+    if (rank === 1) return 'text-warning';
+    if (rank <= 3) return 'text-info';
+    return 'text-secondary';
   }
 
   loadMyRanking(): void {

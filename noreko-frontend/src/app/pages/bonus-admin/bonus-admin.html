@@ -60,6 +60,11 @@
         <i class="fas fa-money-bill-wave me-1"></i>Utbetalningar
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'payout-history'" (click)="setTab('payout-history')">
+        <i class="fas fa-history me-1"></i>Utbetalningshistorik
+      </a>
+    </li>
   </ul>
 
   <!-- Loading -->
@@ -987,6 +992,132 @@
       </div>
     </div>
 
+  </div>
+
+
+  <!-- ===== TAB: Utbetalningshistorik ===== -->
+  <div *ngIf="activeTab === 'payout-history'">
+    <div class="card" style="background:#2d3748; border:none;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="mb-0"><i class="fas fa-history me-2 text-info"></i>Utbetalningshistorik</h5>
+          <button class="btn btn-outline-success btn-sm" (click)="exportPayoutHistoryCSV()" [disabled]="payoutHistory.length === 0">
+            <i class="fas fa-file-csv me-1"></i>Exportera CSV
+          </button>
+        </div>
+
+        <!-- Filterrad -->
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-auto">
+            <label class="form-label small text-muted mb-1">År</label>
+            <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:100px;"
+                    [(ngModel)]="payoutHistoryYear">
+              <option *ngFor="let y of payoutHistoryYears" [value]="y">{{ y }}</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small text-muted mb-1">Status</label>
+            <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;min-width:140px;"
+                    [(ngModel)]="payoutHistoryStatusFilter">
+              <option value="">Alla</option>
+              <option value="pending">Väntande</option>
+              <option value="approved">Godkänd</option>
+              <option value="paid">Utbetald</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label small text-muted mb-1">&nbsp;</label>
+            <button class="btn btn-info btn-sm d-block" (click)="loadPayoutHistory()" [disabled]="payoutHistoryLoading">
+              <i class="fas fa-search me-1"></i>Hämta
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="payoutHistoryLoading" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="text-muted ms-2">Laddar historik...</span>
+        </div>
+
+        <!-- Ingen data -->
+        <div *ngIf="!payoutHistoryLoading && payoutHistory.length === 0" class="text-muted text-center py-4">
+          <i class="fas fa-inbox me-1"></i>Inga utbetalningar hittades för valda filter
+        </div>
+
+        <!-- Tabell -->
+        <div class="table-responsive" *ngIf="!payoutHistoryLoading && payoutHistory.length > 0">
+          <table class="table table-dark table-hover table-sm mb-0">
+            <thead>
+              <tr style="color:#a0aec0; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
+                <th>Operatör</th>
+                <th>Period</th>
+                <th class="text-end">IBC</th>
+                <th>Bonusnivå</th>
+                <th class="text-end">Belopp (SEK)</th>
+                <th>Status</th>
+                <th>Åtgärd</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let p of payoutHistory">
+                <td>
+                  <span class="badge me-1"
+                        style="background:#4a5568;color:#e2e8f0;font-size:.7rem;min-width:1.8rem;">{{ p.initialer }}</span>
+                  {{ p.namn }}
+                </td>
+                <td class="text-muted small">
+                  <span *ngIf="p.period_label">{{ p.period_label }}</span>
+                  <span *ngIf="!p.period_label">{{ p.period_start }}<br>{{ p.period_end }}</span>
+                </td>
+                <td class="text-end text-muted">{{ p.ibc_count }}</td>
+                <td>
+                  <span *ngIf="p.bonus_level && p.bonus_level !== 'none'"
+                        class="badge border"
+                        [style]="getBonusLevelStyle(p.bonus_level)">
+                    {{ getBonusLevelLabel(p.bonus_level) }}
+                  </span>
+                  <span *ngIf="!p.bonus_level || p.bonus_level === 'none'" class="text-muted small">—</span>
+                </td>
+                <td class="text-end fw-bold text-success">{{ formatSek(p.amount_sek) }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getPayoutStatusClass(p.status)">
+                    {{ getPayoutStatusLabel(p.status) }}
+                  </span>
+                </td>
+                <td>
+                  <button *ngIf="p.status === 'pending'"
+                          class="btn btn-outline-primary btn-sm py-0 px-2"
+                          (click)="updatePayoutStatus(p.id, 'approved')"
+                          title="Godkänn">
+                    <i class="fas fa-check" style="font-size:.75rem;"></i> Godkänn
+                  </button>
+                  <button *ngIf="p.status === 'approved'"
+                          class="btn btn-outline-success btn-sm py-0 px-2"
+                          (click)="updatePayoutStatus(p.id, 'paid')"
+                          title="Markera utbetald">
+                    <i class="fas fa-money-bill-wave" style="font-size:.75rem;"></i> Markera utbetald
+                  </button>
+                  <button *ngIf="p.status === 'paid'"
+                          class="btn btn-outline-secondary btn-sm py-0 px-2"
+                          (click)="updatePayoutStatus(p.id, 'pending')"
+                          title="Återställ till väntande">
+                    <i class="fas fa-undo" style="font-size:.75rem;"></i> Återställ
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="table-active">
+                <td colspan="4"><strong>Totalt</strong></td>
+                <td class="text-end fw-bold text-warning">{{ formatSek(payoutHistoryTotal) }}</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+      </div>
+    </div>
   </div>
 
 

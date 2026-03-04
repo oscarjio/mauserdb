@@ -65,8 +65,9 @@ class BonusController {
             case 'loneprognos':    $this->getLoneprognos();       break;
             case 'personal-best':  $this->getPersonalBest();      break;
             case 'streak':         $this->getStreak();            break;
-            case 'my-ranking':    $this->getMyRanking();         break;
-            case 'week-trend':    $this->getWeekTrend();         break;
+            case 'my-ranking':        $this->getMyRanking();         break;
+            case 'week-trend':        $this->getWeekTrend();         break;
+            case 'ranking-position':  $this->getRankingPosition();   break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -1941,6 +1942,134 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getWeekTrend error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=ranking-position
+     *
+     * Returnerar anonymiserad kollegajämförelse för den inloggade operatören,
+     * baserat på aktuell ISO-vecka. Kräver session user_id + kopplat operator_id.
+     *
+     * Returnerar:
+     * {
+     *   success: true,
+     *   my_rank: 2,
+     *   total_operators: 5,
+     *   my_ibc_per_h: 14.5,
+     *   top_ibc_per_h: 16.2,
+     *   avg_ibc_per_h: 12.8,
+     *   week_label: "Vecka 10"
+     * }
+     * Om operatören saknar data denna vecka: my_rank = null men övriga fält fylls i.
+     */
+    private function getRankingPosition(): void {
+        // Hämta session-operatör
+        $sessionOpId = isset($_SESSION['operator_id']) ? (int)$_SESSION['operator_id'] : null;
+
+        if (!$sessionOpId || $sessionOpId <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Inget operator_id kopplat till kontot']);
+            return;
+        }
+
+        // Vecka-filter: innevarande ISO-vecka
+        $dateFilter = "YEARWEEK(DATE(datum), 3) = YEARWEEK(NOW(), 3)";
+        $weekNum    = (int)date('W');
+        $weekLabel  = "Vecka $weekNum";
+
+        try {
+            $s1 = $this->perShiftByPosition(1, $dateFilter);
+            $s2 = $this->perShiftByPosition(2, $dateFilter);
+            $s3 = $this->perShiftByPosition(3, $dateFilter);
+
+            $stmt = $this->pdo->query("
+                SELECT
+                    operator_id,
+                    SUM(total_ibc_ok)   AS total_ibc_ok,
+                    SUM(total_runtime)  AS total_runtime
+                FROM (
+                    SELECT operator_id,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime
+                    FROM ($s1) AS x1
+                    GROUP BY operator_id
+
+                    UNION ALL
+
+                    SELECT operator_id,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime
+                    FROM ($s2) AS x2
+                    GROUP BY operator_id
+
+                    UNION ALL
+
+                    SELECT operator_id,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime
+                    FROM ($s3) AS x3
+                    GROUP BY operator_id
+                ) AS combined
+                GROUP BY operator_id
+                HAVING total_runtime > 0
+            ");
+            $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($all)) {
+                echo json_encode([
+                    'success'          => true,
+                    'my_rank'          => null,
+                    'total_operators'  => 0,
+                    'my_ibc_per_h'     => null,
+                    'top_ibc_per_h'    => null,
+                    'avg_ibc_per_h'    => null,
+                    'week_label'       => $weekLabel,
+                ]);
+                return;
+            }
+
+            // Beräkna IBC/h per operatör
+            $opStats = [];
+            foreach ($all as $row) {
+                $hours   = (float)$row['total_runtime'] / 60.0;
+                $ibcPerH = $hours > 0 ? round((float)$row['total_ibc_ok'] / $hours, 2) : 0.0;
+                $opStats[] = [
+                    'operator_id' => (int)$row['operator_id'],
+                    'ibc_per_h'   => $ibcPerH,
+                ];
+            }
+
+            // Sortera fallande på IBC/h
+            usort($opStats, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+            $totalOps   = count($opStats);
+            $topIbcPerH = $opStats[0]['ibc_per_h'];
+            $avgIbcPerH = round(array_sum(array_column($opStats, 'ibc_per_h')) / $totalOps, 2);
+
+            // Finn min placering
+            $myRank     = null;
+            $myIbcPerH  = null;
+            foreach ($opStats as $idx => $op) {
+                if ($op['operator_id'] === $sessionOpId) {
+                    $myRank    = $idx + 1;
+                    $myIbcPerH = $op['ibc_per_h'];
+                    break;
+                }
+            }
+
+            echo json_encode([
+                'success'         => true,
+                'my_rank'         => $myRank,
+                'total_operators' => $totalOps,
+                'my_ibc_per_h'    => $myIbcPerH,
+                'top_ibc_per_h'   => $topIbcPerH,
+                'avg_ibc_per_h'   => $avgIbcPerH,
+                'week_label'      => $weekLabel,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getRankingPosition error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }
