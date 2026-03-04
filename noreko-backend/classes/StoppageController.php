@@ -36,7 +36,7 @@ class StoppageController {
     }
 
     public function handle() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run = $_GET['run'] ?? '';
 
@@ -336,7 +336,12 @@ class StoppageController {
             }
             if (isset($data['comment'])) {
                 $fields[] = 'comment = ?';
-                $params[] = trim($data['comment']);
+                $params[] = strip_tags(trim($data['comment']));
+            }
+            if (isset($data['duration_minutes'])) {
+                $dm = $data['duration_minutes'];
+                $fields[] = 'duration_minutes = ?';
+                $params[] = ($dm === null || $dm === '') ? null : max(0, intval($dm));
             }
 
             if (empty($fields)) {

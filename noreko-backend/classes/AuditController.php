@@ -17,7 +17,7 @@ class AuditController {
     }
 
     public function handle() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
 
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);

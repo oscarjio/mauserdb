@@ -87,7 +87,7 @@ class RebotlingController {
         }
 
         if ($method === 'POST') {
-            session_start();
+            if (session_status() === PHP_SESSION_NONE) session_start();
             // Kommentar-endpoint kräver enbart inloggning, inte admin
             if ($action === 'set-skift-kommentar') {
                 if (!isset($_SESSION['user_id'])) {
@@ -1113,7 +1113,7 @@ class RebotlingController {
     }
 
     private function getProductionReport() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs']);

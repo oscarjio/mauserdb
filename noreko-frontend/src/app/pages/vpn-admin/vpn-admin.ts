@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
@@ -30,16 +30,17 @@ export class VpnAdminPage implements OnInit, OnDestroy {
   loggedIn = false;
   user: any = null;
   isAdmin = false;
-  
+
   clients: VpnClient[] = [];
   loading = false;
+  isFetching = false;
   error: string | null = null;
   totalConnected = 0;
   totalClients = 0;
   disconnecting: Record<string, boolean> = {};
   disconnectMessage: string | null = null;
   disconnectError: string | null = null;
-  
+
   private refreshInterval: any;
   private destroy$ = new Subject<void>();
 
@@ -63,11 +64,11 @@ export class VpnAdminPage implements OnInit, OnDestroy {
     if (!this.isAdmin) {
       return;
     }
-    
+
     this.loadVpnStatus();
     // Uppdatera var 30:e sekund
     this.refreshInterval = setInterval(() => {
-      this.loadVpnStatus();
+      if (!this.destroy$.closed) this.loadVpnStatus();
     }, 30000);
   }
 
@@ -80,32 +81,36 @@ export class VpnAdminPage implements OnInit, OnDestroy {
   }
 
   loadVpnStatus() {
+    if (this.isFetching) return;
+    this.isFetching = true;
+
     // Sätt loading endast första gången, annars uppdatera i bakgrunden
     if (this.clients.length === 0) {
       this.loading = true;
     }
     this.error = null;
-    
-    // Kör i bakgrunden - använd catchError för att hantera fel utan att blockera
+
     this.http.get<any>('/noreko-backend/api.php?action=vpn', { withCredentials: true })
-      .subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.clients = response.clients || [];
-            this.totalConnected = response.total_connected || 0;
-            this.totalClients = response.total_clients || 0;
-            
-          } else {
-            this.error = response.error || response.message || 'Kunde inte hämta VPN-status';
-            this.clients = [];
-          }
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Fel vid hämtning av VPN-status:', error);
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(response => {
+        this.isFetching = false;
+        this.loading = false;
+        if (response === null) {
           this.error = 'Kunde inte ansluta till VPN-servern. Kontrollera att OpenVPN management interface är aktiverat.';
           this.clients = [];
-          this.loading = false;
+          return;
+        }
+        if (response.success) {
+          this.clients = response.clients || [];
+          this.totalConnected = response.total_connected || 0;
+          this.totalClients = response.total_clients || 0;
+        } else {
+          this.error = response.error || response.message || 'Kunde inte hämta VPN-status';
+          this.clients = [];
         }
       });
   }
@@ -125,26 +130,28 @@ export class VpnAdminPage implements OnInit, OnDestroy {
     this.disconnectError = null;
     this.disconnecting[commonName] = true;
 
-    const request = this.http.post<any>('/noreko-backend/api.php?action=vpn', {
+    this.http.post<any>('/noreko-backend/api.php?action=vpn', {
       command: 'disconnect',
       commonName
-    }, { withCredentials: true }).subscribe({
-      next: (response) => {
+    }, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(response => {
+        delete this.disconnecting[commonName];
+        if (response === null) {
+          this.disconnectError = 'Kunde inte nå VPN-backend.';
+          return;
+        }
         if (response?.success) {
           this.disconnectMessage = response.message || `Anslutningen för ${commonName} har avslutats.`;
           this.loadVpnStatus();
         } else {
           this.disconnectError = response?.message || 'Kunde inte avbryta anslutningen.';
         }
-      },
-      error: (error) => {
-        this.disconnectError = error?.error?.message || 'Kunde inte nå VPN-backend.';
-      }
-    });
-
-    request.add(() => {
-      delete this.disconnecting[commonName];
-    });
+      });
   }
 
   formatBytes(bytes: number): string {
@@ -173,5 +180,3 @@ export class VpnAdminPage implements OnInit, OnDestroy {
     return connected ? 'Ansluten' : 'Frånkopplad';
   }
 }
-
-

@@ -10,7 +10,7 @@ class OperatorController {
     }
 
     public function handle() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
             echo json_encode(['error' => 'Endast admin har behörighet.']);

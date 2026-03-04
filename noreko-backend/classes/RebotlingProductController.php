@@ -10,7 +10,7 @@ class RebotlingProductController {
     }
 
     public function handle() {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
 
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $action = $_GET['run'] ?? '';
