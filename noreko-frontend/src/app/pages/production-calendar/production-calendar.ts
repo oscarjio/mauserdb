@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import * as XLSX from 'xlsx';
+import Chart from 'chart.js/auto';
 
 interface CalendarDay {
   date: string;
@@ -29,6 +30,40 @@ interface MonthBlock {
   month: number;        // 0–11
   monthName: string;
   weeks: WeekRow[];
+}
+
+interface HourlyData {
+  timme: number;
+  ibc: number;
+  ibc_per_h: number;
+  runtime_min: number;
+  ej_ok: number;
+  skift: number;
+}
+
+interface DaySummary {
+  total_ibc: number;
+  avg_ibc_per_h: number;
+  skift1_ibc: number;
+  skift2_ibc: number;
+  skift3_ibc: number;
+  total_ej_ok: number;
+  quality_pct: number;
+  active_hours: number;
+}
+
+interface Operator {
+  id: number;
+  name: string;
+  initials: string;
+}
+
+interface DayDetailResponse {
+  success: boolean;
+  date: string;
+  hourly: HourlyData[];
+  summary: DaySummary;
+  operators: Operator[];
 }
 
 @Component({
@@ -62,6 +97,12 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   // Grid: 12 months each with a grid of weeks
   monthBlocks: MonthBlock[] = [];
 
+  // === Dagdetalj ===
+  selectedDay: CalendarDay | null = null;
+  dayDetail: DayDetailResponse | null = null;
+  dayDetailLoading = false;
+  private dayDetailChart: Chart | null = null;
+
   private destroy$ = new Subject<void>();
 
   private readonly MONTH_NAMES_SV = [
@@ -72,6 +113,10 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   private readonly MONTH_NAMES_FULL_SV = [
     'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
     'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'
+  ];
+
+  private readonly DAY_NAMES_FULL_SV = [
+    'Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'
   ];
 
   constructor(private http: HttpClient) {}
@@ -86,6 +131,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.dayDetailChart?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -93,12 +139,14 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   onYearChange(event: Event): void {
     const val = (event.target as HTMLSelectElement).value;
     this.selectedYear = parseInt(val, 10);
+    this.closeDayDetail();
     this.loadCalendar();
   }
 
   prevYear(): void {
     if (this.selectedYear > 2023) {
       this.selectedYear--;
+      this.closeDayDetail();
       this.loadCalendar();
     }
   }
@@ -106,6 +154,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   nextYear(): void {
     if (this.selectedYear < new Date().getFullYear()) {
       this.selectedYear++;
+      this.closeDayDetail();
       this.loadCalendar();
     }
   }
@@ -145,6 +194,165 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
         }
       });
   }
+
+  // =============================================
+  // DAGDETALJ — DRILL-DOWN
+  // =============================================
+
+  selectDay(day: CalendarDay | null): void {
+    if (!day) return;
+
+    // Toggle: klick på samma dag stänger panelen
+    if (this.selectedDay?.date === day.date) {
+      this.closeDayDetail();
+      return;
+    }
+
+    this.selectedDay = day;
+    this.dayDetail = null;
+    this.loadDayDetail(day.date);
+  }
+
+  closeDayDetail(): void {
+    this.selectedDay = null;
+    this.dayDetail = null;
+    this.dayDetailLoading = false;
+    this.dayDetailChart?.destroy();
+    this.dayDetailChart = null;
+  }
+
+  loadDayDetail(date: string): void {
+    this.dayDetailLoading = true;
+    this.dayDetailChart?.destroy();
+    this.dayDetailChart = null;
+
+    const url = `/noreko-backend/api.php?action=rebotling&run=day-detail&date=${date}`;
+
+    this.http.get<DayDetailResponse>(url, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.dayDetailLoading = false;
+          if (res?.success) {
+            this.dayDetail = res;
+            // Ge Angular tid att rendera canvas-elementet
+            setTimeout(() => this.buildDayDetailChart(), 50);
+          }
+        }
+      });
+  }
+
+  buildDayDetailChart(): void {
+    this.dayDetailChart?.destroy();
+    this.dayDetailChart = null;
+
+    const canvas = document.getElementById('dayDetailChart') as HTMLCanvasElement | null;
+    if (!canvas || !this.dayDetail) return;
+
+    const hourly = this.dayDetail.hourly;
+    const avgIbc = this.dayDetail.summary.avg_ibc_per_h;
+
+    const labels = hourly.map(h => `${String(h.timme).padStart(2, '0')}:00`);
+    const data   = hourly.map(h => h.ibc_per_h);
+
+    // Färg per IBC/h vs genomsnitt
+    const colors = hourly.map(h => {
+      if (h.ibc === 0) return 'rgba(74, 85, 104, 0.6)';      // grå — ingen produktion
+      if (h.ibc_per_h >= avgIbc * 1.1) return 'rgba(72, 187, 120, 0.85)';  // grön — bra
+      if (h.ibc_per_h >= avgIbc * 0.8) return 'rgba(214, 158, 46, 0.85)';  // gul — nära
+      return 'rgba(229, 62, 62, 0.85)';                        // röd — lågt
+    });
+
+    // Skift-bakgrundsfärger som annotations (via plugin-fri metod: alternativa dataset)
+    const skiftColors = hourly.map(h => {
+      switch (h.skift) {
+        case 1: return 'rgba(66, 153, 225, 0.08)';   // blå — skift 1
+        case 2: return 'rgba(72, 187, 120, 0.08)';   // grön — skift 2
+        default: return 'rgba(159, 122, 234, 0.08)'; // lila — skift 3
+      }
+    });
+
+    this.dayDetailChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'IBC/h',
+            data,
+            backgroundColor: colors,
+            borderColor: colors.map(c => c.replace('0.85', '1').replace('0.6', '1')),
+            borderWidth: 1,
+            borderRadius: 4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                const h = hourly[idx];
+                return `${String(h.timme).padStart(2, '0')}:00 — Skift ${h.skift}`;
+              },
+              label: (item) => {
+                const idx = item.dataIndex;
+                const h = hourly[idx];
+                return [
+                  `  IBC producerade: ${h.ibc}`,
+                  `  IBC per timme: ${h.ibc_per_h}`,
+                  `  Drifttid: ${h.runtime_min} min`,
+                  h.ej_ok > 0 ? `  Ej OK: ${h.ej_ok}` : '',
+                ].filter(s => s !== '');
+              }
+            },
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#718096', font: { size: 11 } },
+            grid: { color: 'rgba(74,85,104,0.3)' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#718096', font: { size: 11 } },
+            grid: { color: 'rgba(74,85,104,0.3)' },
+            title: {
+              display: true,
+              text: 'IBC / timme',
+              color: '#718096',
+              font: { size: 11 }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  formatDayDetailTitle(): string {
+    if (!this.selectedDay) return '';
+    const d = new Date(this.selectedDay.date + 'T00:00:00');
+    const dayName = this.DAY_NAMES_FULL_SV[d.getDay()];
+    const monthName = this.MONTH_NAMES_FULL_SV[d.getMonth()];
+    return `${dayName} ${d.getDate()} ${monthName} ${d.getFullYear()}`;
+  }
+
+  // =============================================
+  // KALENDER-GRID
+  // =============================================
 
   private computeKpis(): void {
     if (this.days.length === 0) {
@@ -254,13 +462,16 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
     return this.formatDateStr(this.selectedYear, month + 1, cellIdx + 1);
   }
 
-  getCellColorClass(cell: CalendarDay | null): string {
-    if (!cell) return 'cell-empty';
-    if (cell.pct >= 110) return 'cell-superday';
-    if (cell.pct >= 95)  return 'cell-green';
-    if (cell.pct >= 80)  return 'cell-yellow';
-    if (cell.pct >= 60)  return 'cell-orange';
-    return 'cell-red';
+  getCellColorClass(cell: CalendarDay | null, selected: boolean = false): string {
+    const base = (() => {
+      if (!cell) return 'cell-empty';
+      if (cell.pct >= 110) return 'cell-superday';
+      if (cell.pct >= 95)  return 'cell-green';
+      if (cell.pct >= 80)  return 'cell-yellow';
+      if (cell.pct >= 60)  return 'cell-orange';
+      return 'cell-red';
+    })();
+    return selected ? base + ' cell-selected' : base;
   }
 
   getTooltip(cell: CalendarDay | null, month: number, weekIndex: number, dayIndex: number): string {
@@ -268,7 +479,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
     if (!cell) {
       return dateStr ? this.formatSwedishDate(dateStr) + ' — Ingen produktion' : '';
     }
-    return `${this.formatSwedishDate(cell.date)}\n${cell.ibc} IBC av ${cell.goal} planerade\n${cell.pct.toFixed(0)}% av dagsmål`;
+    return `${this.formatSwedishDate(cell.date)}\n${cell.ibc} IBC av ${cell.goal} planerade\n${cell.pct.toFixed(0)}% av dagsmål\nKlicka för timvis detalj`;
   }
 
   private formatSwedishDate(dateStr: string): string {

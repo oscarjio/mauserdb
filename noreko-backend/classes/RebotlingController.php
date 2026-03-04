@@ -54,6 +54,8 @@ class RebotlingController {
                 $this->getSPC();
             } elseif ($action === 'year-calendar') {
                 $this->getYearCalendar();
+            } elseif ($action === 'day-detail') {
+                $this->getDayDetail();
             } elseif ($action === 'benchmarking') {
                 $this->getBenchmarking();
             } elseif ($action === 'monthly-report') {
@@ -88,6 +90,8 @@ class RebotlingController {
                 $this->getShiftTrend();
             } elseif ($action === 'all-lines-status') {
                 $this->getAllLinesStatus();
+            } elseif ($action === 'notification-settings') {
+                $this->getNotificationSettings();
             } else {
                 $this->getLiveStats();
             }
@@ -127,6 +131,8 @@ class RebotlingController {
                 $this->saveShiftTimes();
             } elseif ($action === 'save-alert-thresholds') {
                 $this->saveAlertThresholds();
+            } elseif ($action === 'save-notification-settings') {
+                $this->saveNotificationSettings();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -3028,6 +3034,195 @@ class RebotlingController {
         }
     }
 
+
+    // =========================================================
+    // Dagdetalj — timvis nedbrytning för en vald dag
+    // GET ?action=rebotling&run=day-detail&date=YYYY-MM-DD
+    // =========================================================
+    private function getDayDetail() {
+        $date = $_GET['date'] ?? '';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
+            return;
+        }
+
+        try {
+            // Hämta timvis ackumulerad data från rebotling_ibc
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    HOUR(datum) AS timme,
+                    MAX(ibc_ok)        AS ackumulerat_ibc,
+                    MAX(ibc_ej_ok)     AS ej_ok_ackumulerat,
+                    MAX(runtime_plc)   AS runtime_sek,
+                    COUNT(DISTINCT skiftraknare) AS skift_count
+                FROM rebotling_ibc
+                WHERE DATE(datum) = ?
+                  AND skiftraknare IS NOT NULL
+                GROUP BY HOUR(datum)
+                ORDER BY timme
+            ");
+            $stmt->execute([$date]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna delta-IBC per timme (differens från föregående ackumulerat värde per skift)
+            // Vi hämtar rådata per skift och timme för att kunna beräkna deltas korrekt
+            $rawStmt = $this->pdo->prepare("
+                SELECT
+                    HOUR(datum)      AS timme,
+                    skiftraknare,
+                    MAX(ibc_ok)      AS acc_ibc,
+                    MAX(ibc_ej_ok)   AS acc_ej_ok,
+                    MAX(runtime_plc) AS runtime_sek
+                FROM rebotling_ibc
+                WHERE DATE(datum) = ?
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare, HOUR(datum)
+                ORDER BY skiftraknare, timme
+            ");
+            $rawStmt->execute([$date]);
+            $rawRows = $rawStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Bygg delta-beräkning per skift
+            // key: skiftraknare → [timme → delta_ibc]
+            $shiftPrevIbc   = [];
+            $shiftPrevEjOk  = [];
+            $deltaMap       = []; // timme → delta_ibc (summerat över alla skift)
+            $deltaEjOkMap   = []; // timme → delta_ej_ok
+            $runtimeMap     = []; // timme → runtime_sek (max över skift)
+
+            foreach ($rawRows as $r) {
+                $t    = (int)$r['timme'];
+                $sk   = (int)$r['skiftraknare'];
+                $acc  = (int)$r['acc_ibc'];
+                $eo   = (int)$r['acc_ej_ok'];
+                $rt   = (int)$r['runtime_sek'];
+
+                // Delta IBC
+                $prev = $shiftPrevIbc[$sk] ?? 0;
+                $delta = max(0, $acc - $prev);
+                $shiftPrevIbc[$sk] = $acc;
+
+                // Delta ej_ok
+                $prevEo = $shiftPrevEjOk[$sk] ?? 0;
+                $deltaEo = max(0, $eo - $prevEo);
+                $shiftPrevEjOk[$sk] = $eo;
+
+                $deltaMap[$t] = ($deltaMap[$t] ?? 0) + $delta;
+                $deltaEjOkMap[$t] = ($deltaEjOkMap[$t] ?? 0) + $deltaEo;
+                $runtimeMap[$t] = max($runtimeMap[$t] ?? 0, $rt);
+            }
+
+            // Bestäm skift (1=06-13, 2=14-21, 3=22-05)
+            $hourToSkift = function(int $h): int {
+                if ($h >= 6 && $h <= 13) return 1;
+                if ($h >= 14 && $h <= 21) return 2;
+                return 3; // 22-05
+            };
+
+            // Bygg timvis array
+            $hourly = [];
+            $totalIbc    = 0;
+            $totalEjOk   = 0;
+            $skift1Ibc   = 0;
+            $skift2Ibc   = 0;
+            $skift3Ibc   = 0;
+            $activeHours = 0;
+            $ibcPerHList = [];
+
+            foreach ($deltaMap as $timme => $deltaIbc) {
+                $rt      = $runtimeMap[$timme] ?? 0;
+                $rtMin   = round($rt / 60, 1);
+                $deltaEo = $deltaEjOkMap[$timme] ?? 0;
+                $skift   = $hourToSkift($timme);
+
+                // IBC/h: ibc producerat under timmen / effektiv drifttid (eller per heltimme om rt=0)
+                $ibcPerH = $rtMin > 0 ? round($deltaIbc / ($rtMin / 60), 1) : 0.0;
+
+                if ($deltaIbc > 0) {
+                    $activeHours++;
+                    $ibcPerHList[] = $ibcPerH;
+                }
+
+                $totalIbc  += $deltaIbc;
+                $totalEjOk += $deltaEo;
+                if ($skift === 1) $skift1Ibc += $deltaIbc;
+                elseif ($skift === 2) $skift2Ibc += $deltaIbc;
+                else $skift3Ibc += $deltaIbc;
+
+                $hourly[] = [
+                    'timme'      => $timme,
+                    'ibc'        => $deltaIbc,
+                    'ibc_per_h'  => $ibcPerH,
+                    'runtime_min'=> $rtMin,
+                    'ej_ok'      => $deltaEo,
+                    'skift'      => $skift,
+                ];
+            }
+
+            // Sortera på timme
+            usort($hourly, fn($a, $b) => $a['timme'] - $b['timme']);
+
+            $avgIbcPerH  = count($ibcPerHList) > 0 ? round(array_sum($ibcPerHList) / count($ibcPerHList), 1) : 0.0;
+            $totalProduced = $totalIbc + $totalEjOk;
+            $qualityPct    = $totalProduced > 0 ? round($totalIbc / $totalProduced * 100, 1) : 0.0;
+
+            // Hämta aktiva operatörer för denna dag
+            $opStmt = $this->pdo->prepare("
+                SELECT DISTINCT op_id, o.name AS op_name
+                FROM (
+                    SELECT op1 AS op_id FROM rebotling_ibc
+                    WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
+                    UNION ALL
+                    SELECT op2 FROM rebotling_ibc
+                    WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
+                    UNION ALL
+                    SELECT op3 FROM rebotling_ibc
+                    WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                ) AS ops
+                LEFT JOIN operators o ON o.number = op_id
+                WHERE op_id IS NOT NULL
+            ");
+            $opStmt->execute([$date, $date, $date]);
+            $operators = $opStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Formatera operatörer — initials + namn
+            $opList = [];
+            foreach ($operators as $op) {
+                $name = $op['op_name'] ?? 'Op ' . $op['op_id'];
+                $parts = explode(' ', trim($name));
+                $initials = '';
+                foreach ($parts as $p) {
+                    if (strlen($p) > 0) $initials .= strtoupper($p[0]);
+                }
+                $opList[] = [
+                    'id'       => (int)$op['op_id'],
+                    'name'     => $name,
+                    'initials' => $initials,
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'date'    => $date,
+                'hourly'  => $hourly,
+                'summary' => [
+                    'total_ibc'     => $totalIbc,
+                    'avg_ibc_per_h' => $avgIbcPerH,
+                    'skift1_ibc'    => $skift1Ibc,
+                    'skift2_ibc'    => $skift2Ibc,
+                    'skift3_ibc'    => $skift3Ibc,
+                    'total_ej_ok'   => $totalEjOk,
+                    'quality_pct'   => $qualityPct,
+                    'active_hours'  => $activeHours,
+                ],
+                'operators' => $opList,
+            ]);
+        } catch (Exception $e) {
+            error_log('getDayDetail: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagdetalj']);
+        }
+    }
+
     // =========================================================
     // Benchmarking — denna vecka vs rekordveckan
     // =========================================================
@@ -5117,5 +5312,129 @@ class RebotlingController {
             return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
         }
     }
+
+    // =========================================================
+    // E-postnotifikationer — inställningar
+    // =========================================================
+
+    /**
+     * Säkerställ att notification_emails-kolumnen finns i rebotling_settings.
+     */
+    private function ensureNotificationEmailsColumn(): void {
+        try {
+            $this->ensureSettingsTable();
+            $col = $this->pdo->query(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'rebotling_settings'
+                   AND COLUMN_NAME  = 'notification_emails'"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            if (!$col) {
+                $this->pdo->exec(
+                    "ALTER TABLE rebotling_settings
+                     ADD COLUMN notification_emails TEXT NULL DEFAULT NULL"
+                );
+            }
+        } catch (Exception $e) {
+            error_log('ensureNotificationEmailsColumn: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=notification-settings
+     * Returnerar aktuella e-postadresser för notifikationer.
+     */
+    private function getNotificationSettings(): void {
+        try {
+            $this->ensureNotificationEmailsColumn();
+            $row = $this->pdo->query(
+                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success' => true,
+                'data'    => [
+                    'notification_emails' => $row['notification_emails'] ?? '',
+                ],
+            ]);
+        } catch (Exception $e) {
+            error_log('getNotificationSettings: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta notifikationsinställningar']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=save-notification-settings
+     * Sparar e-postadresser (semikolonseparerade) för brådskande notifikationer.
+     */
+    private function saveNotificationSettings(): void {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            return;
+        }
+        try {
+            $this->ensureNotificationEmailsColumn();
+
+            $rawEmails = isset($data['notification_emails']) ? trim($data['notification_emails']) : '';
+            // Tillåt komma eller semikolon som separator — normalisera till semikolon
+            $rawEmails = str_replace(',', ';', $rawEmails);
+            // Validera varje e-postadress
+            $parts  = array_map('trim', explode(';', $rawEmails));
+            $valid  = [];
+            foreach ($parts as $email) {
+                if ($email === '') continue;
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'error' => "Ogiltig e-postadress: $email"]);
+                    return;
+                }
+                $valid[] = $email;
+            }
+            $normalized = implode(';', $valid);
+
+            $stmt = $this->pdo->prepare(
+                "UPDATE rebotling_settings SET notification_emails = ? WHERE id = 1"
+            );
+            $stmt->execute([$normalized]);
+
+            echo json_encode(['success' => true, 'message' => 'Notifikationsinställningar sparade']);
+        } catch (Exception $e) {
+            error_log('saveNotificationSettings: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara notifikationsinställningar']);
+        }
+    }
+
+    /**
+     * Hämta admin-e-postadresser från rebotling_settings.
+     * Returnerar array med validerade e-postadresser.
+     * Används av ShiftHandoverController vid brådskande notiser.
+     */
+    public function getAdminEmailsPublic(): array {
+        try {
+            $this->ensureNotificationEmailsColumn();
+            $row = $this->pdo->query(
+                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            if (empty($row['notification_emails'])) {
+                return [];
+            }
+            $parts  = array_map('trim', explode(';', $row['notification_emails']));
+            $emails = [];
+            foreach ($parts as $email) {
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $emails[] = $email;
+                }
+            }
+            return $emails;
+        } catch (Exception $e) {
+            error_log('RebotlingController getAdminEmailsPublic: ' . $e->getMessage());
+            return [];
+        }
+    }
+
 
 }

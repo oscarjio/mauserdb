@@ -107,6 +107,7 @@
       <span class="legend-item"><span class="legend-dot cell-yellow"></span> 80–94%</span>
       <span class="legend-item"><span class="legend-dot cell-green"></span> ≥95%</span>
       <span class="legend-item"><span class="legend-dot cell-superday"></span> ≥110% Superdag!</span>
+      <span class="legend-hint no-print"><i class="fas fa-mouse-pointer me-1"></i>Klicka på en dag för timvis detalj</span>
     </div>
 
     <!-- Veckodagar-header -->
@@ -123,8 +124,10 @@
             <div
               class="day-cell"
               *ngFor="let cell of week.cells; let di = index"
-              [ngClass]="getCellColorClass(cell)"
+              [ngClass]="getCellColorClass(cell, selectedDay?.date === cell?.date)"
               [title]="getTooltip(cell, mb.month, wi, di)"
+              [class.has-data]="!!cell"
+              (click)="selectDay(cell)"
             >
               <span class="day-num" *ngIf="cell">{{ getDayNum(cell.date) }}</span>
               <span class="day-num empty-num" *ngIf="!cell">
@@ -135,6 +138,98 @@
         </div>
       </div>
     </div>
+
+    <!-- ===== DAGDETALJ-PANEL (slide-in) ===== -->
+    <div class="day-detail-panel" [class.open]="!!selectedDay" *ngIf="selectedDay">
+
+      <!-- Panel-header -->
+      <div class="dd-header d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h4 class="dd-title mb-0">
+            <i class="fas fa-clock me-2 text-info"></i>{{ formatDayDetailTitle() }}
+          </h4>
+          <small class="text-muted">Timvis produktionsdetalj</small>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeDayDetail()" title="Stäng">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Laddning av detalj -->
+      <div *ngIf="dayDetailLoading" class="text-center py-4">
+        <i class="fas fa-spinner fa-spin text-info"></i>
+        <span class="ms-2 text-muted">Hämtar timdata...</span>
+      </div>
+
+      <!-- Detalj-innehåll -->
+      <ng-container *ngIf="!dayDetailLoading && dayDetail">
+
+        <!-- KPI-rad -->
+        <div class="dd-kpi-row mb-3">
+          <div class="dd-kpi">
+            <div class="dd-kpi-value text-info">{{ dayDetail.summary.total_ibc }}</div>
+            <div class="dd-kpi-label">Totalt IBC</div>
+          </div>
+          <div class="dd-kpi-sep">·</div>
+          <div class="dd-kpi">
+            <div class="dd-kpi-value text-warning">{{ dayDetail.summary.avg_ibc_per_h }}</div>
+            <div class="dd-kpi-label">Snitt IBC/h</div>
+          </div>
+          <div class="dd-kpi-sep">·</div>
+          <div class="dd-kpi">
+            <div class="dd-kpi-value" [class.text-success]="dayDetail.summary.quality_pct >= 95" [class.text-warning]="dayDetail.summary.quality_pct < 95">
+              {{ dayDetail.summary.quality_pct }}%
+            </div>
+            <div class="dd-kpi-label">Kvalitet</div>
+          </div>
+          <div class="dd-kpi-sep">·</div>
+          <div class="dd-kpi">
+            <div class="dd-kpi-value text-muted">{{ dayDetail.summary.active_hours }}h</div>
+            <div class="dd-kpi-label">Aktiva timmar</div>
+          </div>
+        </div>
+
+        <!-- Skiftuppdelning -->
+        <div class="dd-skift-row mb-3">
+          <div class="dd-skift skift1">
+            <span class="dd-skift-label">Skift 1 (06–13)</span>
+            <span class="dd-skift-value">{{ dayDetail.summary.skift1_ibc }} IBC</span>
+          </div>
+          <div class="dd-skift skift2">
+            <span class="dd-skift-label">Skift 2 (14–21)</span>
+            <span class="dd-skift-value">{{ dayDetail.summary.skift2_ibc }} IBC</span>
+          </div>
+          <div class="dd-skift skift3">
+            <span class="dd-skift-label">Skift 3 (22–05)</span>
+            <span class="dd-skift-value">{{ dayDetail.summary.skift3_ibc }} IBC</span>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="dd-chart-wrapper mb-3">
+          <canvas id="dayDetailChart"></canvas>
+        </div>
+
+        <!-- Operatörer -->
+        <div class="dd-operators" *ngIf="dayDetail.operators.length > 0">
+          <span class="dd-op-label">Operatörer:</span>
+          <span class="dd-op-badge" *ngFor="let op of dayDetail.operators" [title]="op.name">
+            {{ op.initials }}
+          </span>
+        </div>
+        <div class="dd-operators" *ngIf="dayDetail.operators.length === 0">
+          <span class="text-muted" style="font-size:0.8rem">Inga operatörsdata registrerade för denna dag.</span>
+        </div>
+
+      </ng-container>
+
+      <!-- Ingen data -->
+      <div *ngIf="!dayDetailLoading && !dayDetail" class="text-center py-3 text-muted">
+        <i class="fas fa-exclamation-circle me-2"></i>Kunde inte hämta timdata för denna dag.
+      </div>
+
+    </div>
+    <!-- /DAGDETALJ-PANEL -->
 
   </ng-container>
 

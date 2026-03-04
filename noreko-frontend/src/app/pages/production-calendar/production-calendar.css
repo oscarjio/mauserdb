@@ -362,3 +362,203 @@
     margin: 1.5cm;
   }
 }
+
+/* ============================================================
+   DAGDETALJ — klickbar drill-down
+   ============================================================ */
+
+/* Celler med data: pointer + hover-effekt */
+.day-cell.has-data {
+  cursor: pointer;
+}
+
+/* Vald dag — markering med ring */
+.day-cell.cell-selected {
+  outline: 2px solid #63b3ed;
+  outline-offset: 1px;
+  filter: brightness(1.3);
+  z-index: 5;
+}
+
+/* Legend-hint */
+.legend-hint {
+  font-size: 0.75rem;
+  color: #4a5568;
+  margin-left: auto;
+  font-style: italic;
+}
+
+/* ---- Dagdetalj-panel ---- */
+.day-detail-panel {
+  margin-top: 2rem;
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 14px;
+  padding: 1.5rem;
+  overflow: hidden;
+
+  /* Slide-in animation */
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  transition: max-height 0.35s ease, opacity 0.3s ease, padding 0.3s ease;
+}
+
+.day-detail-panel.open {
+  max-height: 700px;
+  opacity: 1;
+  padding-top: 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.dd-header {
+  border-bottom: 1px solid #4a5568;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem !important;
+}
+
+.dd-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* KPI-rad i dagdetalj */
+.dd-kpi-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: #1a202c;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.dd-kpi {
+  text-align: center;
+  flex: 1;
+  min-width: 80px;
+}
+
+.dd-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.dd-kpi-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
+  margin-top: 2px;
+}
+
+.dd-kpi-sep {
+  color: #4a5568;
+  font-size: 1.3rem;
+  font-weight: 300;
+  align-self: center;
+}
+
+/* Skiftuppdelning */
+.dd-skift-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dd-skift {
+  flex: 1;
+  min-width: 120px;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dd-skift.skift1 {
+  background: rgba(66, 153, 225, 0.15);
+  border: 1px solid rgba(66, 153, 225, 0.3);
+}
+
+.dd-skift.skift2 {
+  background: rgba(72, 187, 120, 0.15);
+  border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+.dd-skift.skift3 {
+  background: rgba(159, 122, 234, 0.15);
+  border: 1px solid rgba(159, 122, 234, 0.3);
+}
+
+.dd-skift-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #718096;
+}
+
+.dd-skift-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* Chart */
+.dd-chart-wrapper {
+  background: #1a202c;
+  border-radius: 10px;
+  padding: 0.75rem;
+  height: 220px;
+  position: relative;
+}
+
+.dd-chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Operatörs-badges */
+.dd-operators {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.dd-op-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dd-op-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #4a5568;
+  color: #e2e8f0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: default;
+  border: 1px solid #718096;
+}
+
+/* Print: dölj dagdetalj-panel */
+@media print {
+  .day-detail-panel {
+    display: none !important;
+  }
+  .legend-hint {
+    display: none !important;
+  }
+}
