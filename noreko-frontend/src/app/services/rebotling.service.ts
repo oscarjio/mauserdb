@@ -341,6 +341,13 @@ export class RebotlingService {
     );
   }
 
+  getRejectionAnalysis(days: number = 30): Observable<RejectionAnalysisResponse> {
+    return this.http.get<RejectionAnalysisResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=rejection-analysis&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {
@@ -721,5 +728,41 @@ export interface CycleByOperatorResponse {
   start_date?: string;
   end_date?: string;
   data?: CycleByOperatorEntry[];
+  error?: string;
+}
+
+export interface RejectionTrendDay {
+  datum: string;
+  kvalitet_pct: number | null;
+  glidande_snitt: number | null;
+  ibc_ok: number;
+  ibc_kasserade: number;
+  ibc_totalt: number;
+}
+
+export interface RejectionParetoItem {
+  id: number;
+  namn: string;
+  antal: number;
+  pct: number;
+  kumulativ_pct: number;
+  prev_antal?: number;
+  trend?: 'up' | 'down' | 'stable';
+}
+
+export interface RejectionAnalysisResponse {
+  success: boolean;
+  days?: number;
+  kpi?: {
+    kvalitet_idag: number | null;
+    kvalitet_vecka: number | null;
+    kasserade_idag: number;
+    trend_vs_forra_veckan: 'up' | 'down' | 'stable';
+    trend_diff: number | null;
+  };
+  trend?: RejectionTrendDay[];
+  pareto?: RejectionParetoItem[];
+  has_pareto_data?: boolean;
+  total_kassation?: number;
   error?: string;
 }

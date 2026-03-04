@@ -881,3 +881,60 @@
 .date-input::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
+
+/* ============================================
+   IBC Kvalitetsanalys Deep-Dive
+   ============================================ */
+
+.kvalitetsanalys-section {
+  padding: 1.5rem;
+}
+
+.kvalitet-kpi-card {
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.25rem 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.kvalitet-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.15);
+  border-color: rgba(66, 153, 225, 0.3);
+}
+
+.kvalitet-kpi-icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+.kvalitet-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.3rem;
+  line-height: 1.2;
+}
+
+.kvalitet-kpi-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .kvalitet-kpi-value {
+    font-size: 1.2rem;
+  }
+  .kvalitet-kpi-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+}
