@@ -804,6 +804,123 @@
     </div>
   </div>
 
+
+  <!-- ======== DAGSMÅL-HISTORIK ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card" style="background-color:#2d3748; border:1px solid #4a5568;">
+        <div class="card-header d-flex align-items-center" style="background-color:#2d3748; border-bottom:1px solid #4a5568;">
+          <h5 class="mb-0" style="color:#e2e8f0;">
+            <i class="fas fa-history text-warning me-2"></i>Dagsmål-historik
+          </h5>
+          <span class="ms-auto text-muted small">Senaste 180 dagarna</span>
+        </div>
+        <div class="card-body">
+
+          <div *ngIf="goalHistoryLoading" class="text-center py-3" style="color:#a0aec0;">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar historik...
+          </div>
+
+          <div *ngIf="!goalHistoryLoading && goalHistory.length === 0"
+               class="text-center py-3" style="color:#718096;">
+            <i class="fas fa-info-circle me-2"></i>
+            Inga historiska mål-ändringar registrerade än. Ändringar loggas automatiskt när dagsmålet sparas.
+          </div>
+
+          <!-- Steg-diagram om fler än 1 post -->
+          <canvas id="goalHistoryChart" height="80"
+                  *ngIf="!goalHistoryLoading && goalHistory.length > 1"
+                  class="mb-3"></canvas>
+
+          <!-- Tabell med senaste 10 ändringar -->
+          <div *ngIf="!goalHistoryLoading && goalHistory.length > 0">
+            <h6 class="mb-2" style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em;">
+              Senaste ändringar
+            </h6>
+            <div class="goal-history-list">
+              <div class="d-flex align-items-center gap-3 py-2"
+                   style="border-bottom:1px solid #4a5568;"
+                   *ngFor="let h of goalHistory | slice:-10">
+                <i class="fas fa-flag text-warning" style="width:16px;"></i>
+                <span class="fw-bold" style="color:#63b3ed; min-width:110px;">{{ h.value }} IBC/dag</span>
+                <span class="text-muted small">{{ h.changed_at | date:'yyyy-MM-dd HH:mm' }}</span>
+                <span class="badge ms-auto" style="background-color:#4a5568; color:#e2e8f0;">{{ h.changed_by }}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== LIVE RANKING TV-KONFIGURATION ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tv me-2 text-info"></i>Live Ranking — TV-konfiguration
+          </h5>
+          <button class="btn btn-sm btn-outline-secondary"
+                  (click)="toggleLrPanel()">
+            <i class="fas" [class.fa-chevron-down]="!showLrPanel" [class.fa-chevron-up]="showLrPanel"></i>
+          </button>
+        </div>
+        <div class="card-body" *ngIf="showLrPanel">
+
+          <p class="text-muted small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Konfigurera vad som visas på TV-skärmen /rebotling/live-ranking.
+          </p>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Sidrubrik</label>
+              <input type="text" class="form-control bg-dark text-light border-secondary"
+                     [(ngModel)]="lrSettings.lr_title"
+                     placeholder="Live Ranking"
+                     maxlength="80" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Uppdateringsintervall (sekunder)</label>
+              <input type="number" class="form-control bg-dark text-light border-secondary"
+                     [(ngModel)]="lrSettings.lr_poll_interval"
+                     min="10" max="120" />
+              <div class="form-text text-muted">Minst 10 s, högst 120 s.</div>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="lrQuality"
+                       [(ngModel)]="lrSettings.lr_show_quality">
+                <label class="form-check-label" for="lrQuality">Visa Kvalitet%</label>
+              </div>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="lrProgress"
+                       [(ngModel)]="lrSettings.lr_show_progress">
+                <label class="form-check-label" for="lrProgress">Visa dagsmål-progress</label>
+              </div>
+              <div class="form-check form-switch mt-2">
+                <input class="form-check-input" type="checkbox" id="lrMotto"
+                       [(ngModel)]="lrSettings.lr_show_motto">
+                <label class="form-check-label" for="lrMotto">Visa motton/citat</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <button class="btn btn-primary"
+                      (click)="saveLrSettings()"
+                      [disabled]="lrSettingsSaving">
+                <i class="fas" [class.fa-save]="!lrSettingsSaving" [class.fa-spinner]="lrSettingsSaving" [class.fa-spin]="lrSettingsSaving" class="me-2"></i>
+                {{ lrSettingsSaving ? 'Sparar...' : 'Spara TV-inställningar' }}
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Åtkomst nekad -->

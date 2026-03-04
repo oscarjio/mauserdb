@@ -101,6 +101,22 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   notificationSettingsError = '';
   showNotificationPanel = false;
 
+  // ---- Live Ranking TV-inställningar ----
+  lrSettings = {
+    lr_show_quality:  true,
+    lr_show_progress: true,
+    lr_show_motto:    true,
+    lr_poll_interval: 30,
+    lr_title:         'Live Ranking'
+  };
+  lrSettingsSaving = false;
+  showLrPanel = false;
+
+  // ---- Dagsmål-historik ----
+  goalHistory: any[] = [];
+  goalHistoryLoading = false;
+  private goalHistoryChart: Chart | null = null;
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -115,6 +131,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     clearInterval(this.maintenanceTimer);
     clearInterval(this.todaySnapshotInterval);
     this.maintenanceChart?.destroy();
+    this.goalHistoryChart?.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -128,6 +145,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadTodaySnapshot();
     this.loadAlertThresholds();
     this.loadNotificationSettings();
+    this.loadLrSettings();
+    this.loadGoalHistory();
 
     // Uppdatera systemstatus + snapshot var 30:e sekund
     this.systemStatusInterval = setInterval(() => {
@@ -742,7 +761,106 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-  private showSuccess(message: string) {
+  // ========== Dagsmål-historik ==========
+  loadGoalHistory() {
+    this.goalHistoryLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=goal-history&days=180', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe(res => {
+        this.goalHistoryLoading = false;
+        if (res?.success) {
+          this.goalHistory = res.data;
+          setTimeout(() => this.buildGoalHistoryChart(), 100);
+        }
+      });
+  }
+
+  buildGoalHistoryChart() {
+    const canvas = document.getElementById('goalHistoryChart') as HTMLCanvasElement | null;
+    if (!canvas || this.goalHistory.length < 2) return;
+
+    this.goalHistoryChart?.destroy();
+
+    // Bygg steg-data: varje ändring gäller tills nästa ändring
+    const labels = this.goalHistory.map((h: any) => {
+      const d = new Date(h.changed_at);
+      return d.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric', year: '2-digit' });
+    });
+    const values = this.goalHistory.map((h: any) => h.value);
+
+    this.goalHistoryChart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Dagsmål (IBC/dag)',
+          data: values,
+          borderColor: '#f6ad55',
+          backgroundColor: 'rgba(246,173,85,0.12)',
+          borderWidth: 2,
+          pointRadius: 5,
+          pointBackgroundColor: '#f6ad55',
+          stepped: true,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => `Mål: ${ctx.parsed.y} IBC/dag`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxTicksLimit: 10 },
+            grid: { color: 'rgba(255,255,255,0.06)' }
+          },
+          y: {
+            title: { display: true, text: 'IBC per dag', color: '#a0aec0' },
+            ticks: { color: '#a0aec0' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            beginAtZero: false
+          }
+        }
+      }
+    });
+  }
+
+  // ========== Live Ranking TV-inställningar ==========
+  toggleLrPanel() { this.showLrPanel = !this.showLrPanel; }
+
+  loadLrSettings() {
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-settings', { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        if (res?.success && res.data) this.lrSettings = res.data;
+      });
+  }
+
+  saveLrSettings() {
+    this.lrSettingsSaving = true;
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-live-ranking-settings',
+      this.lrSettings, { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        this.lrSettingsSaving = false;
+        if (res?.success) this.showSuccess('TV-inställningar sparade!');
+      });
+  }
+
+    private showSuccess(message: string) {
     this.successMessage     = message;
     this.showSuccessMessage = true;
     clearTimeout(this.successTimerId);

@@ -4,13 +4,13 @@
   <header class="tv-header">
     <div class="header-left">
       <span class="pulse-dot"></span>
-      <span class="header-title">LIVE RANKING</span>
+      <span class="header-title">{{ lrSettings.lr_title | uppercase }}</span>
     </div>
     <div class="header-center">
       <span class="header-date">{{ formatDate(date) }}</span>
     </div>
     <div class="header-right">
-      <span class="refresh-label">Uppdateras var 30s</span>
+      <span class="refresh-label">Uppdateras var {{ lrSettings.lr_poll_interval }}s</span>
       <span class="refresh-time">{{ formatTime(lastRefresh) }}</span>
       <span class="skift-countdown" *ngIf="skiftSlutOm">
         Skiftet slutar om <strong>{{ skiftSlutOm }}</strong>
@@ -73,7 +73,7 @@
         </div>
 
         <!-- Kvalitet% -->
-        <div class="stat-block">
+        <div class="stat-block" *ngIf="lrSettings.lr_show_quality">
           <span class="stat-value accent-yellow">
             {{ entry.quality_pct !== null ? entry.quality_pct : '–' }}
           </span>
@@ -87,7 +87,7 @@
         </div>
 
         <!-- Progress mot dagsmål -->
-        <div class="progress-section" *ngIf="goal > 0">
+        <div class="progress-section" *ngIf="goal > 0 && lrSettings.lr_show_progress">
           <div class="progress-track">
             <div
               class="progress-fill"
@@ -133,7 +133,7 @@
 
   <!-- FOOTER: roterande motto -->
   <footer class="tv-footer">
-    <span class="motto-text">{{ currentMotto }}</span>
+    <span class="motto-text" *ngIf="lrSettings.lr_show_motto">{{ currentMotto }}</span>
     <span class="goal-label" *ngIf="goal > 0">Dagsmål: {{ goal }} IBC</span>
   </footer>
 
