@@ -263,6 +263,7 @@
 .gold-row   { border-left: 3px solid #f6e05e; }
 .silver-row { border-left: 3px solid #a0aec0; }
 .bronze-row { border-left: 3px solid #c05621; }
+.worst-row  { border-left: 3px solid #f56565; }
 
 /* Text colors for quality/OEE */
 .text-success { color: #68d391 !important; }

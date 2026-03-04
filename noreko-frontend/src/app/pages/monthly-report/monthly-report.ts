@@ -20,6 +20,7 @@ interface MonthlySummary {
   avg_oee: number;
   total_runtime_hours: number;
   total_stoppage_hours: number;
+  total_stopp_min: number;
 }
 
 interface DayEntry {
@@ -51,12 +52,32 @@ interface BestWorstDay {
   quality: number;
 }
 
+interface BestWorstWeek {
+  week: string;
+  ibc: number;
+  avg_oee: number;
+}
+
+interface OeeTrendEntry {
+  date: string;
+  oee: number;
+}
+
+interface TopOperator {
+  namn: string;
+  ibc_total: number;
+}
+
 interface MonthlyReport {
   month: string;
   month_label: string;
   summary: MonthlySummary;
   best_day: BestWorstDay | null;
   worst_day: BestWorstDay | null;
+  basta_vecka: BestWorstWeek | null;
+  samsta_vecka: BestWorstWeek | null;
+  oee_trend: OeeTrendEntry[];
+  top_operatorer: TopOperator[];
   operator_ranking: OperatorEntry[];
   daily_production: DayEntry[];
   week_summary: WeekEntry[];
@@ -71,9 +92,11 @@ interface MonthlyReport {
 })
 export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('oeeChart') oeeChartRef!: ElementRef<HTMLCanvasElement>;
 
   private destroy$ = new Subject<void>();
   private chart: Chart | null = null;
+  private oeeLineChart: Chart | null = null;
   private chartPendingRender = false;
 
   // Månadsväljare: standard = förra månaden
@@ -98,6 +121,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     if (this.chartPendingRender && this.productionChartRef && this.report) {
       this.chartPendingRender = false;
       this.renderChart();
+      this.renderOeeChart();
     }
   }
 
@@ -105,6 +129,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     this.destroy$.next();
     this.destroy$.complete();
     this.chart?.destroy();
+    this.oeeLineChart?.destroy();
   }
 
   fetchReport(): void {
@@ -116,6 +141,8 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     this.report = null;
     this.chart?.destroy();
     this.chart = null;
+    this.oeeLineChart?.destroy();
+    this.oeeLineChart = null;
 
     const url = `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
 
@@ -154,6 +181,12 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     if (i === 1) return '🥈';
     if (i === 2) return '🥉';
     return String(i + 1);
+  }
+
+  medalColor(i: number): string {
+    if (i === 0) return '#f6e05e';
+    if (i === 1) return '#a0aec0';
+    return '#c05621';
   }
 
   formatDate(dateStr: string): string {
@@ -255,6 +288,83 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
             ticks: { color: '#63b3ed', callback: (v) => v + '%' },
             grid: { drawOnChartArea: false },
             title: { display: true, text: 'Kvalitet %', color: '#63b3ed' }
+          }
+        }
+      }
+    });
+  }
+
+  private renderOeeChart(): void {
+    if (!this.oeeChartRef || !this.report) return;
+    const canvas = this.oeeChartRef.nativeElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    this.oeeLineChart?.destroy();
+
+    const trend = this.report.oee_trend ?? [];
+    if (trend.length === 0) return;
+
+    const labels = trend.map(d => {
+      const parts = d.date.split('-');
+      return `${parts[2]}/${parts[1]}`;
+    });
+
+    // WCM 85% referenslinje
+    const wcmRef = trend.map(() => 85);
+
+    this.oeeLineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'OEE %',
+            data: trend.map(d => d.oee),
+            borderColor: 'rgba(72, 187, 120, 1)',
+            backgroundColor: 'rgba(72, 187, 120, 0.12)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: 'rgba(72, 187, 120, 1)',
+            fill: true,
+            tension: 0.3,
+          },
+          {
+            label: 'WCM 85%',
+            data: wcmRef,
+            borderColor: 'rgba(246, 224, 94, 0.7)',
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            labels: { color: '#e2e8f0' }
+          },
+          tooltip: {
+            callbacks: {
+              label: (item) => `${item.dataset.label}: ${item.parsed.y}%`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxRotation: 60 },
+            grid: { color: 'rgba(255,255,255,0.05)' }
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: { color: '#a0aec0', callback: (v) => v + '%' },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            title: { display: true, text: 'OEE %', color: '#a0aec0' }
           }
         }
       }

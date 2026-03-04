@@ -3233,6 +3233,34 @@ class RebotlingController {
                 ];
             }
 
+            // ---- Bästa & sämsta vecka (baserat på IBC) ----
+            $bastaVecka  = null;
+            $samstaVecka = null;
+            foreach ($weekSummary as $wk) {
+                if ($bastaVecka === null || $wk['ibc'] > $bastaVecka['ibc']) {
+                    $bastaVecka = ['week' => $wk['week'], 'ibc' => $wk['ibc'], 'avg_oee' => $wk['avg_oee']];
+                }
+                if ($samstaVecka === null || $wk['ibc'] < $samstaVecka['ibc']) {
+                    $samstaVecka = ['week' => $wk['week'], 'ibc' => $wk['ibc'], 'avg_oee' => $wk['avg_oee']];
+                }
+            }
+
+            // ---- OEE-trend (daglig OEE% för linjegraf) ----
+            $oeeTrend = array_map(function($d) {
+                return ['date' => $d['date'], 'oee' => $d['oee']];
+            }, $dailyProduction);
+
+            // ---- Topp-3 operatörer ----
+            $topOperatorer = array_map(function($op) {
+                return [
+                    'namn'      => $op['name'],
+                    'ibc_total' => $op['ibc_ok'],
+                ];
+            }, array_slice($operatorRanking, 0, 3));
+
+            // ---- Total stilleståndstid i minuter ----
+            $totalStoppMin = (int)round($totalStoppageHours * 60);
+
             echo json_encode([
                 'success'          => true,
                 'month'            => $month,
@@ -3248,9 +3276,14 @@ class RebotlingController {
                     'avg_oee'              => $avgOee,
                     'total_runtime_hours'  => $totalRuntimeHours,
                     'total_stoppage_hours' => $totalStoppageHours,
+                    'total_stopp_min'      => $totalStoppMin,
                 ],
                 'best_day'         => $bestDay,
                 'worst_day'        => $worstDay,
+                'basta_vecka'      => $bastaVecka,
+                'samsta_vecka'     => $samstaVecka,
+                'oee_trend'        => $oeeTrend,
+                'top_operatorer'   => $topOperatorer,
                 'operator_ranking' => $operatorRanking,
                 'daily_production' => $dailyProduction,
                 'week_summary'     => $weekSummary,

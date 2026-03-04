@@ -117,6 +117,35 @@
           </div>
         </div>
 
+        <!-- Total stillestånd -->
+        <div class="kpi-card">
+          <div class="kpi-label">Total stillestånd</div>
+          <div class="kpi-value text-warning">
+            {{ report.summary.total_stopp_min | number }} min
+          </div>
+          <div class="kpi-sub">
+            = {{ report.summary.total_stoppage_hours | number:'1.0-1' }} timmar
+          </div>
+        </div>
+
+        <!-- Bästa vecka -->
+        <div class="kpi-card" *ngIf="report.basta_vecka">
+          <div class="kpi-label">
+            <i class="fas fa-arrow-trend-up me-1 text-success"></i>Bästa vecka
+          </div>
+          <div class="kpi-value text-success">{{ report.basta_vecka.week }}</div>
+          <div class="kpi-sub">{{ report.basta_vecka.ibc | number }} IBC — OEE {{ report.basta_vecka.avg_oee }}%</div>
+        </div>
+
+        <!-- Sämsta vecka -->
+        <div class="kpi-card" *ngIf="report.samsta_vecka">
+          <div class="kpi-label">
+            <i class="fas fa-arrow-trend-down me-1 text-danger"></i>Sämsta vecka
+          </div>
+          <div class="kpi-value text-danger">{{ report.samsta_vecka.week }}</div>
+          <div class="kpi-sub">{{ report.samsta_vecka.ibc | number }} IBC — OEE {{ report.samsta_vecka.avg_oee }}%</div>
+        </div>
+
       </div>
     </section>
 
@@ -130,7 +159,18 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 3: Bästa & Sämsta dag ===== -->
+    <!-- ===== SEKTION 3: OEE-trend (linjegraf) ===== -->
+    <section class="report-section" *ngIf="report.oee_trend && report.oee_trend.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-chart-line me-2"></i>OEE-trend per dag
+      </h2>
+      <p class="text-muted small mb-2">Grön linje = faktisk OEE&nbsp;&nbsp;|&nbsp;&nbsp;Gul streckad linje = WCM-mål 85%</p>
+      <div class="chart-container">
+        <canvas #oeeChart></canvas>
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 4: Bästa & Sämsta dag ===== -->
     <section class="report-section" *ngIf="report.best_day || report.worst_day">
       <h2 class="section-title">
         <i class="fas fa-star me-2"></i>Bästa &amp; Sämsta dag
@@ -170,7 +210,30 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 4: Operatörsranking ===== -->
+    <!-- ===== SEKTION 5: Topp-3 operatörer ===== -->
+    <section class="report-section" *ngIf="report.top_operatorer && report.top_operatorer.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-trophy me-2 text-warning"></i>Topp 3 operatörer
+      </h2>
+      <div class="card" style="background:#2d3748; border:1px solid #4a5568;">
+        <div class="card-body p-0">
+          <div
+            *ngFor="let op of report.top_operatorer; let i = index"
+            class="d-flex align-items-center p-3"
+            [class.border-bottom]="i < report.top_operatorer.length - 1"
+            style="border-color:#4a5568 !important;"
+          >
+            <span class="me-3 fw-bold fs-5" [style.color]="medalColor(i)">
+              {{ rankMedal(i) }}
+            </span>
+            <span class="text-light fw-semibold">{{ op.namn }}</span>
+            <span class="ms-auto text-info fw-bold">{{ op.ibc_total | number }} IBC</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SEKTION 6: Operatörsranking ===== -->
     <section class="report-section" *ngIf="report.operator_ranking.length > 0">
       <h2 class="section-title">
         <i class="fas fa-users me-2"></i>Operatörsranking
@@ -208,7 +271,7 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 5: Veckosammanfattning ===== -->
+    <!-- ===== SEKTION 7: Veckosammanfattning ===== -->
     <section class="report-section" *ngIf="report.week_summary.length > 0">
       <h2 class="section-title">
         <i class="fas fa-calendar-week me-2"></i>Veckosammanfattning
@@ -224,8 +287,14 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let w of report.week_summary">
-              <td class="fw-bold">{{ w.week }}</td>
+            <tr *ngFor="let w of report.week_summary"
+                [class.gold-row]="report.basta_vecka?.week === w.week"
+                [class.worst-row]="report.samsta_vecka?.week === w.week">
+              <td class="fw-bold">
+                {{ w.week }}
+                <span *ngIf="report.basta_vecka?.week === w.week" class="badge bg-success ms-2 small">Bäst</span>
+                <span *ngIf="report.samsta_vecka?.week === w.week" class="badge bg-danger ms-2 small">Lägst</span>
+              </td>
               <td class="text-end">{{ w.ibc | number }}</td>
               <td class="text-end" [class]="goalClass(w.avg_quality)">{{ w.avg_quality }}%</td>
               <td class="text-end" [class]="goalClass(w.avg_oee)">{{ w.avg_oee }}%</td>
@@ -235,7 +304,7 @@
       </div>
     </section>
 
-    <!-- ===== SEKTION 6: PDF-export ===== -->
+    <!-- ===== SEKTION 8: PDF-export ===== -->
     <section class="report-section no-print-controls">
       <div class="export-row">
         <button class="btn btn-outline-light btn-export" (click)="exportPDF()">
