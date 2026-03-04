@@ -416,6 +416,163 @@ class NewsController {
             error_log("NewsController produktion: " . $e->getMessage());
         }
 
+        // 6. Produktionsrekord — dagens produktion slog bästa dagen senaste 30 dagarna
+        try {
+            $sql = "
+                SELECT sub.event_datum, sub.today_ibc, sub.prev_best
+                FROM (
+                    SELECT DATE(t.datum) AS event_datum,
+                           MAX(t.ibc_ok) AS today_ibc,
+                           (SELECT MAX(ibc_ok) FROM rebotling_ibc
+                            WHERE DATE(datum) >= DATE_SUB(DATE(t.datum), INTERVAL 30 DAY)
+                              AND DATE(datum) < DATE(t.datum)) AS prev_best
+                    FROM rebotling_ibc t
+                    WHERE DATE(t.datum) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                    GROUP BY DATE(t.datum)
+                ) sub
+                WHERE sub.today_ibc > sub.prev_best
+                  AND sub.prev_best IS NOT NULL
+                ORDER BY sub.event_datum DESC
+                LIMIT 3
+            ";
+            $stmt = $this->pdo->query($sql);
+            while ($row = $stmt->fetch()) {
+                if ($row['event_datum']) {
+                    $events[] = [
+                        'id'       => null,
+                        'typ'      => 'produktionsrekord',
+                        'datum'    => $row['event_datum'],
+                        'datetime' => $row['event_datum'] . ' 18:00:00',
+                        'text'     => '🏅 Produktionsrekord! ' . date('d M', strtotime($row['event_datum'])) . ': '
+                                      . $row['today_ibc'] . ' IBC — slog föregående bästa (' . $row['prev_best'] . ')!',
+                        'ikon'     => 'medal',
+                        'category' => 'rekord',
+                        'pinned'   => false,
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            error_log("NewsController produktionsrekord: " . $e->getMessage());
+        }
+
+        // 7. OEE-milstolpe — WCM-klass (OEE >= 85%) senaste 14 dagarna
+        try {
+            $sql = "
+                SELECT DATE(datum) AS event_datum,
+                       ROUND(MAX(oee_pct), 1) AS oee_val
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                GROUP BY DATE(datum)
+                HAVING MAX(oee_pct) >= 85 AND MAX(oee_pct) < 90
+                ORDER BY event_datum DESC
+                LIMIT 3
+            ";
+            $stmt = $this->pdo->query($sql);
+            while ($row = $stmt->fetch()) {
+                if ($row['event_datum']) {
+                    $events[] = [
+                        'id'       => null,
+                        'typ'      => 'oee_milstolpe',
+                        'datum'    => $row['event_datum'],
+                        'datetime' => $row['event_datum'] . ' 16:00:00',
+                        'text'     => '🎯 OEE-milstolpe! ' . date('d M', strtotime($row['event_datum'])) . ': OEE '
+                                      . $row['oee_val'] . '% — World Class Manufacturing-nivå!',
+                        'ikon'     => 'bullseye',
+                        'category' => 'produktion',
+                        'pinned'   => false,
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            error_log("NewsController oee_milstolpe: " . $e->getMessage());
+        }
+
+        // 8. Bonus-milstolpe — nya bonusutbetalningar senaste 14 dagarna
+        try {
+            $sql = "
+                SELECT bp.id,
+                       o.name AS op_name,
+                       bp.bonus_level,
+                       bp.amount_sek,
+                       bp.period_label,
+                       DATE(bp.created_at) AS event_datum,
+                       DATE_FORMAT(bp.created_at, '%Y-%m-%d %H:%i:%s') AS event_datetime
+                FROM bonus_payouts bp
+                JOIN operators o ON o.operator_id = bp.op_id
+                WHERE bp.created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                  AND bp.status IN ('pending', 'approved', 'paid')
+                  AND bp.bonus_level IS NOT NULL
+                  AND bp.bonus_level != 'none'
+                ORDER BY bp.created_at DESC
+                LIMIT 5
+            ";
+            $stmt = $this->pdo->query($sql);
+            while ($row = $stmt->fetch()) {
+                if ($row['event_datum']) {
+                    $levelLabel = ucfirst(str_replace('_', ' ', $row['bonus_level'] ?? ''));
+                    $events[] = [
+                        'id'       => null,
+                        'typ'      => 'bonus_milstolpe',
+                        'datum'    => $row['event_datum'],
+                        'datetime' => $row['event_datetime'],
+                        'text'     => '💰 Bonusmilstolpe! ' . $row['op_name'] . ' nådde ' . $levelLabel
+                                      . ($row['period_label'] ? ' (' . $row['period_label'] . ')' : ''),
+                        'ikon'     => 'coins',
+                        'category' => 'bonus',
+                        'pinned'   => false,
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            error_log("NewsController bonus_milstolpe: " . $e->getMessage());
+        }
+
+        // 9. Lång streak — operatörer med 5+ dagar i rad (beräknas i realtid)
+        try {
+            $sql = "
+                SELECT o.operator_id, o.name AS op_name,
+                       GROUP_CONCAT(DISTINCT DATE(ri.datum) ORDER BY DATE(ri.datum) DESC) AS dagar
+                FROM operators o
+                JOIN rebotling_ibc ri ON (ri.op1 = o.operator_id OR ri.op2 = o.operator_id OR ri.op3 = o.operator_id)
+                WHERE ri.datum >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
+                GROUP BY o.operator_id, o.name
+                HAVING COUNT(DISTINCT DATE(ri.datum)) >= 5
+                ORDER BY COUNT(DISTINCT DATE(ri.datum)) DESC
+                LIMIT 5
+            ";
+            $stmt = $this->pdo->query($sql);
+            while ($row = $stmt->fetch()) {
+                // Beräkna faktisk streak (konsekutiva dagar bakåt från senaste dag)
+                $dates = explode(',', $row['dagar']);
+                $streak = 0;
+                $prevDate = null;
+                foreach ($dates as $ds) {
+                    $d = new \DateTime(trim($ds));
+                    if ($prevDate !== null) {
+                        $diff = $prevDate->diff($d)->days;
+                        if ($diff > 1) break;
+                    }
+                    $streak++;
+                    $prevDate = $d;
+                }
+                if ($streak >= 5) {
+                    $events[] = [
+                        'id'       => null,
+                        'typ'      => 'lang_streak',
+                        'datum'    => $dates[0],
+                        'datetime' => $dates[0] . ' 08:00:00',
+                        'text'     => '🔥 Lång streak! ' . $row['op_name'] . ' har arbetat '
+                                      . $streak . ' dagar i rad!',
+                        'ikon'     => 'fire',
+                        'category' => 'bonus',
+                        'pinned'   => false,
+                    ];
+                }
+            }
+        } catch (Exception $e) {
+            error_log("NewsController lang_streak: " . $e->getMessage());
+        }
+
         // Filtrera på kategori om angiven
         if ($filterCategory && in_array($filterCategory, $allowedCategories, true)) {
             $events = array_filter($events, function($e) use ($filterCategory) {
@@ -454,14 +611,15 @@ class NewsController {
     private function ikonForCategory(string $category): string {
         $map = [
             'produktion'   => 'chart-bar',
-            'bonus'        => 'trophy',
+            'bonus'        => 'coins',
             'system'       => 'cog',
             'info'         => 'info-circle',
             'viktig'       => 'exclamation-triangle',
-            'rekord'       => 'trophy',
+            'rekord'       => 'medal',
             'hog_oee'      => 'rocket',
             'certifiering' => 'certificate',
             'urgent'       => 'exclamation-circle',
+            'varning'      => 'exclamation-triangle',
         ];
         return $map[$category] ?? 'bell';
     }

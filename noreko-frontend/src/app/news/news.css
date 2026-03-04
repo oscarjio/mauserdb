@@ -443,13 +443,50 @@
 }
 
 /* --- Händelsetyp vänsterborder (befintliga + utökade) --- */
-.event-typ-rekordag      { border-left: 3px solid #f6e05e !important; }
-.event-typ-hog_oee       { border-left: 3px solid #63b3ed !important; }
-.event-typ-certifiering  { border-left: 3px solid #68d391 !important; }
-.event-typ-urgent_note   { border-left: 3px solid #fc8181 !important; }
-.event-typ-produktion    { border-left: 3px solid #667eea !important; }
+.event-typ-rekordag        { border-left: 3px solid #f6e05e !important; }
+.event-typ-produktionsrekord { border-left: 3px solid #ecc94b !important; background: rgba(236,201,75,0.03) !important; }
+.event-typ-hog_oee         { border-left: 3px solid #63b3ed !important; }
+.event-typ-oee_milstolpe   { border-left: 3px solid #68d391 !important; background: rgba(104,211,145,0.03) !important; }
+.event-typ-bonus_milstolpe { border-left: 3px solid #63b3ed !important; background: rgba(99,179,237,0.03) !important; }
+.event-typ-lang_streak     { border-left: 3px solid #ed8936 !important; background: rgba(237,137,54,0.03) !important; }
+.event-typ-certifiering    { border-left: 3px solid #68d391 !important; }
+.event-typ-urgent_note     { border-left: 3px solid #fc8181 !important; }
+.event-typ-produktion      { border-left: 3px solid #667eea !important; }
 .event-typ-news_produktion { border-left: 3px solid #68d391 !important; }
-.event-typ-news_bonus    { border-left: 3px solid #f6c90e !important; }
-.event-typ-news_system   { border-left: 3px solid #63b3ed !important; }
-.event-typ-news_info     { border-left: 3px solid #a0aec0 !important; }
-.event-typ-news_viktig   { border-left: 3px solid #fc8181 !important; }
+.event-typ-news_bonus      { border-left: 3px solid #63b3ed !important; }
+.event-typ-news_system     { border-left: 3px solid #63b3ed !important; }
+.event-typ-news_info       { border-left: 3px solid #a0aec0 !important; }
+.event-typ-news_viktig     { border-left: 3px solid #fc8181 !important; }
+.event-typ-news_rekord     { border-left: 3px solid #ecc94b !important; }
+.event-typ-news_hog_oee    { border-left: 3px solid #68d391 !important; }
+.event-typ-news_certifiering { border-left: 3px solid #68d391 !important; }
+.event-typ-news_urgent     { border-left: 3px solid #fc8181 !important; }
+.event-typ-news_varning    { border-left: 3px solid #fc8181 !important; }
+
+/* Badge för rekord-kategori */
+.badge-cat-rekord {
+  background: rgba(236, 201, 75, 0.2);
+  color: #ecc94b;
+  border: 1px solid rgba(236, 201, 75, 0.4);
+}
+
+/* Badge för hog_oee-kategori */
+.badge-cat-hog_oee {
+  background: rgba(104, 211, 145, 0.15);
+  color: #68d391;
+  border: 1px solid rgba(104, 211, 145, 0.35);
+}
+
+/* Badge för certifiering-kategori */
+.badge-cat-certifiering {
+  background: rgba(104, 211, 145, 0.12);
+  color: #68d391;
+  border: 1px solid rgba(104, 211, 145, 0.3);
+}
+
+/* Badge för urgent-kategori */
+.badge-cat-urgent {
+  background: rgba(245, 101, 101, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(245, 101, 101, 0.4);
+}

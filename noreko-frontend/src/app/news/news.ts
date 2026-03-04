@@ -324,22 +324,30 @@ export class News implements OnInit, OnDestroy {
 
   getCategoryLabel(cat: string): string {
     const labels: Record<string, string> = {
-      produktion: 'Produktion',
-      bonus:      'Bonus',
-      system:     'System',
-      info:       'Info',
-      viktig:     'Viktig',
+      produktion:    'Produktion',
+      bonus:         'Bonus',
+      system:        'System',
+      info:          'Info',
+      viktig:        'Viktig',
+      rekord:        'Rekord',
+      hog_oee:       'Hog OEE',
+      certifiering:  'Certifiering',
+      urgent:        'Brådskande',
     };
     return labels[cat] ?? cat;
   }
 
   getCategoryClass(cat: string): string {
     const classes: Record<string, string> = {
-      produktion: 'badge-cat-produktion',
-      bonus:      'badge-cat-bonus',
-      system:     'badge-cat-system',
-      info:       'badge-cat-info',
-      viktig:     'badge-cat-viktig',
+      produktion:    'badge-cat-produktion',
+      bonus:         'badge-cat-bonus',
+      system:        'badge-cat-system',
+      info:          'badge-cat-info',
+      viktig:        'badge-cat-viktig',
+      rekord:        'badge-cat-rekord',
+      hog_oee:       'badge-cat-hog_oee',
+      certifiering:  'badge-cat-certifiering',
+      urgent:        'badge-cat-urgent',
     };
     return 'badge-category ' + (classes[cat] ?? 'badge-cat-info');
   }
