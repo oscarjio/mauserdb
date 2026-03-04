@@ -274,12 +274,18 @@ interface SummaryData {
       <!-- ============================================================ -->
       <ng-container *ngIf="activeTab === 'vecka'">
 
-        <!-- Laddning veckodata -->
+        <!-- Laddning veckodata (initial) -->
         <div *ngIf="laddarVecka && weeklyData.length === 0" class="text-center py-5">
           <div class="spinner-border" style="color:#63b3ed;" role="status">
             <span class="visually-hidden">Laddar&hellip;</span>
           </div>
           <p style="color:#718096;margin-top:12px;">Hämtar veckostats&hellip;</p>
+        </div>
+
+        <!-- Laddning veckodata (uppdatering med befintlig data) -->
+        <div *ngIf="laddarVecka && weeklyData.length > 0"
+             style="text-align:right;margin-bottom:8px;color:#63b3ed;font-size:13px;">
+          <i class="fas fa-sync-alt fa-spin me-1"></i>Uppdaterar veckostats&hellip;
         </div>
 
         <!-- Summary-kort (3 kort) -->
@@ -337,6 +343,8 @@ interface SummaryData {
               </thead>
               <tbody>
                 <tr *ngFor="let op of weeklyData; let i = index"
+                    [style.background]="i === 0 ? 'rgba(246,224,94,0.08)' : ''"
+                    [style.border-left]="i === 0 ? '3px solid #f6e05e' : '3px solid transparent'"
                     style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
                   <!-- Rang -->
                   <td style="padding:14px 16px;vertical-align:middle;text-align:center;">
@@ -412,8 +420,9 @@ interface SummaryData {
 
         <!-- Tom state vecka -->
         <div *ngIf="!laddarVecka && weeklyData.length === 0" class="text-center py-5">
-          <i class="fas fa-inbox" style="font-size:2rem;color:#4a5568;"></i>
-          <p style="color:#718096;margin-top:12px;">Ingen data för senaste 7 dagarna</p>
+          <i class="fas fa-calendar-times mb-3" style="font-size:2rem;opacity:.4;color:#718096;"></i>
+          <p style="color:#718096;margin-top:12px;">Ingen veckodata tillgänglig.</p>
+          <p class="small" style="color:#4a5568;">Välj en annan vecka eller kontrollera att skift registrerats.</p>
         </div>
 
       </ng-container>
