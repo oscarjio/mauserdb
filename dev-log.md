@@ -1,4 +1,14 @@
-## 2026-03-04 — Flexibla dagsmål per datum (datum-undantag)
+## 2026-03-04 — Operatörsfeedback admin-vy: Teamstämning i operator-dashboard
+
+Worker-agent implementerade ny flik "Teamstämning" i operator-dashboard:
+
+1. **FeedbackSummary interface** — `avg_stamning`, `total`, `per_dag[]` med datum och snitt.
+2. **Ny tab-knapp** "Teamstämning" (lila, #805ad5) i tab-navigationen.
+3. **KPI-sektion** — Snitt-stämning med gradient-progressbar (grön/gul/röd beroende på nivå), antal feedbacks, färgkodad varningsnivå (≥3.5=bra, 2.5-3.5=neutral, <2.5=varning).
+4. **Dagslista** — zebra-ränder, stämningsikoner (😟😐😊🌟), progressbar per dag, procent-värde.
+5. **loadFeedbackSummary()** — HTTP GET `action=feedback&run=summary`, `timeout(8000)`, `takeUntil(destroy$)`, laddas i ngOnInit och vid tab-byte.
+6. **Empty-state** + **loading-state** med spinner.
+7. Bygg OK, commit + push till main (82783a5).## 2026-03-04 — Flexibla dagsmål per datum (datum-undantag)
 
 Worker-agent implementerade "Flexibla dagsmål per datum":
 
