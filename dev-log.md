@@ -1,3 +1,10 @@
+## 2026-03-04 — Worker: BonusController parameter-validering + historik/audit pagination-analys (7c1d898)
+- BonusController.php: whitelist-validering av $period (today|week|month|year|all) i getOperatorStats(), getRanking(), getTeamStats(), getKPIDetails(). Ogiltiga värden fallback till 'week'.
+- AuditController.php: redan fullt paginerat med page/limit/offset/total/pages — ingen ändring behövdes.
+- HistorikController.php: manader-parametern redan clampad till 1-60 — ingen ändring behövdes.
+- historik.ts: infotext om dataomfång tillagd i månadsdetaljvyn.
+- RebotlingController.php: operator-weekly-trend + operator-list-trend endpoints committade (från föregående session).
+
 ## 2026-03-04 — Worker: Executive Dashboard multi-linje statusrad + nyhetsflöde admin-panel
 - Executive dashboard: Multi-linje statusrad och getAllLinesStatus redan fullt implementerade sedan tidigare (backend + frontend + CSS). Ingen förändring behövdes.
 - NewsController.php: Lade till priority-fält (1-5) i adminList, create, update. Utökade allowedCategories med: rekord, hog_oee, certifiering, urgent. getEvents hanterar nu priority-sortering och backward-compatibility.
