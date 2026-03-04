@@ -1,3 +1,17 @@
+
+## 2026-03-04 — Certifieringssidan: Statusfilter, dagar-kvar-kolumn, visuell highlight, CSV-export
+
+Worker-agent förbättrade `/admin/certifiering` (certifications-sidan) med:
+
+1. **Statusfilter**: Ny rad med knappar — Alla / Aktiva / Upphör snart / Utgångna. Färgkodade: rött för utgångna, orange för upphör snart, grönt för aktiva. Visar räknar-badge på knappar när det finns utgångna/upphörande certifikat.
+2. **Rad-level visuell highlight**: `certRowClass()` lägger till `cert-expired` (röd border-left), `cert-expiring-soon` (orange) eller `cert-valid` (grön) på varje certifikatrad i operatörskorten.
+3. **Dagar kvar-badge**: `certDaysLeft()` och `certDaysLeftBadgeClass()` — färgkodad badge per certifikat som visar "X dagar kvar" / "X dagar sedan" / "Idag".
+4. **CSV-export uppdaterad**: Respekterar nu aktiva filter (statusfilter + linjefilter) via `filteredOperators`. Semikolon-separerat, BOM för Excel-kompatibilitet.
+5. **Summary-badges**: Stats-bar visar Bootstrap badges (bg-secondary/danger/warning/success) med totalt/utgångna/upphör snart/aktiva räknare.
+6. **`expiredCount`, `expiringSoonCount`, `activeCount` alias-getters** tillagda som mappar mot `expired`, `expiringSoon`, `validCount`.
+7. **Ny CSS**: `.cert-expired`, `.cert-expiring-soon`, `.cert-valid`, `.days-badge-*`, `.filter-btn-expired/warning/success`, `.filter-count`, `.filter-group`, `.filter-block`.
+8. Bygge OK — commit 8c1fad6 (ingick i föregående commit, alla certifications-filer synkade).
+
 ## 2026-03-04 — Bonus-dashboard: Veckans hjälte-kort, differens-indikatorer, CSV-export
 
 Worker-agent förbättrade bonus-dashboard med:
