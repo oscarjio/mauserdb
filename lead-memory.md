@@ -162,9 +162,24 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - `BonusController.php`: `sendError()` saknade `http_response_code()` — returnerade alltid HTTP 200 vid fel (klienter kunde inte detektera fel korrekt)
 - `BonusAdminController.php`: `FILTER_SANITIZE_STRING` användes i `approveBonuses()` — deprecated sedan PHP 8.1, borttagen i PHP 8.2. Ersatt med `strip_tags()`.
 
+### Åtgärdat `d9bc8f0` — 2026-03-04 (Bug Hunt #9)
+
+**PHP — Saknade auth-kontroller på admin GET-endpoints:**
+- `RebotlingController.php`: 8 admin-only GET-endpoints saknade sessionskontroll — `admin-settings`, `weekday-goals`, `shift-times`, `system-status`, `alert-thresholds`, `today-snapshot`, `notification-settings`, `all-lines-status` var åtkomliga utan autentisering. En angripare som kände till API-URL:erna kunde läsa konfigurations- och notifikationsdata.
+- ÅTGÄRD: Tidig kontroll i GET-dispatchern med `$adminOnlyActions`-array + `session_start(['read_and_close'])` + `user_id/role=admin`-check.
+
+**Granskat och godkänt (inga buggar):**
+- `OperatorCompareController.php`: auth korrekt i `handle()` (session_start + role=admin check)
+- `MaintenanceController.php`: auth korrekt i `handle()` (session_status guard + admin check)
+- `BonusAdminController.php`: auth korrekt via `isAdmin()` i `handle()`
+- `ShiftPlanController.php`: `requireAdmin()` kallas korrekt före alla mutations-endpoints
+- `RebotlingController.php POST-block`: session_start + admin-check på korrekt plats
+- Angular HTTP-anrop: Alla polling-calls har `timeout()+catchError()+takeUntil(destroy$)`. Admin save-calls har `takeUntil(destroy$)` (timeout ej obligatoriskt för user-triggered one-shot calls).
+- Angular routes: Alla `/admin/`-rutter har `adminGuard`. `rebotling/benchmarking` har `authGuard`. `live-ranking`/`andon` är publika avsiktligt.
+
 ### Kvarstående observerat (ej buggar, men noteringar):
 - `rebotling-statistik.ts` hade **pre-existing uncommitted changes** när bug-hunting kördes — ett heatmap-KPI-val feature i progress. Ej påverkat av bug-hunting-committen.
-- GET-endpoints i RebotlingController saknar auth-check — detta är by design (produktionsgolvet ska kunna se live-data utan inloggning)
+- GET-endpoints för live-data i RebotlingController (status, rast, statistics, day-stats, osv.) är publika by design — produktionsgolvet ska kunna se live-data utan inloggning
 
 ---
 
