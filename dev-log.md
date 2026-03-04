@@ -1,3 +1,24 @@
+## 2026-03-04 kväll #7 — Worker: Nyhetsflöde förbättring — fler auto-triggers + admin-hantering
+
+**Backend (NewsController.php):**
+- 4 nya automatiska triggers i `getEvents()`:
+  - **Produktionsrekord**: Detekterar dagar där IBC-produktion slog bästa dagen senaste 30 dagarna
+  - **OEE-milstolpe**: Visar dagar med OEE >= 85% (WCM-klass, kompletterar befintliga >= 90%)
+  - **Bonus-milstolpe**: Visar nya bonusutbetalningar per operatör från bonus_payouts-tabellen
+  - **Lång streak**: Beräknar i realtid vilka operatörer som arbetat 5+ konsekutiva dagar
+- Admin-endpoints (GET admin-list, POST create/update/delete) fanns redan implementerade
+
+**Frontend (news.ts, news.html, news.css):**
+- Nya ikoner i nyhetsflödet: medal, bullseye, coins, fire, exclamation-circle
+- Färgkodning per nyhetstyp:
+  - Produktionsrekord: guld/gul border
+  - OEE-milstolpe: grön border
+  - Bonus-milstolpe: blå border
+  - Lång streak: orange border
+  - Manuell info: grå border, Varning: röd border
+- Utökade kategori-badges: rekord, hog_oee, certifiering, urgent
+- Utökade kategori-labels i getCategoryLabel() och getCategoryClass()
+
 ## 2026-03-04 kväll #6 — Worker: Skiftsammanfattning — detaljvy med PDF-export per skift
 
 **Backend (RebotlingController.php):**
