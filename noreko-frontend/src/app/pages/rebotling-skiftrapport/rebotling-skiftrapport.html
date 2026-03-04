@@ -211,7 +211,7 @@
         <div>
           <label class="form-label small mb-1">Sök</label>
           <input type="text" class="form-control form-control-sm" [(ngModel)]="searchText"
-            placeholder="Produkt, användare..." style="width:200px;" />
+            (ngModelChange)="onSearchInput()" placeholder="Produkt, användare..." style="width:200px;" />
         </div>
         <div>
           <label class="form-label small mb-1">Filtrera på operatör</label>

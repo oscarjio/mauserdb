@@ -36,56 +36,62 @@ class LoginController {
             return;
         }
 
-        $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($user && AuthHelper::verifyPassword($password, $user['password'], $pdo, $user['id'])) {
-            AuthHelper::clearAttempts($pdo, $ip);
-            AuthHelper::recordAttempt($pdo, $ip, $username, true);
+            if ($user && AuthHelper::verifyPassword($password, $user['password'], $pdo, $user['id'])) {
+                AuthHelper::clearAttempts($pdo, $ip);
+                AuthHelper::recordAttempt($pdo, $ip, $username, true);
 
-            // Update last login
-            $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
+                // Update last login
+                $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
 
-            // Starta session FÖRST HÄR (efter verifiering) — inga gamla session-ID:n
-            // att regenerera, så exakt EN Set-Cookie: PHPSESSID skickas till browsern.
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+                // Starta session FÖRST HÄR (efter verifiering) — inga gamla session-ID:n
+                // att regenerera, så exakt EN Set-Cookie: PHPSESSID skickas till browsern.
+                if (session_status() === PHP_SESSION_NONE) {
+                    session_start();
+                }
+
+                // Set session
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['username'];
+                $_SESSION['role'] = ($user['admin'] == 1) ? 'admin' : 'user';
+                $_SESSION['email'] = $user['email'] ?? null;
+                $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
+
+                // Audit log
+                AuditLogger::log($pdo, 'login', 'user', $user['id'], "Inloggning: {$user['username']}");
+
+                echo json_encode(['success' => true, 'user' => [
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'email' => $user['email'] ?? null,
+                    'role' => $_SESSION['role'],
+                    'operator_id' => $_SESSION['operator_id']
+                ]]);
+            } else {
+                AuthHelper::recordAttempt($pdo, $ip, $username, false);
+                $attemptsLeft = 5 - AuthHelper::getFailedAttemptCount($pdo, $ip);
+                $msg = 'Felaktigt användarnamn eller lösenord';
+                if ($attemptsLeft <= 2 && $attemptsLeft > 0) {
+                    $msg .= '. Kontot låses snart tillfälligt vid ytterligare misslyckade försök.';
+                }
+
+                AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
+
+                echo json_encode(['success' => false, 'message' => $msg]);
             }
 
-            // Set session
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = ($user['admin'] == 1) ? 'admin' : 'user';
-            $_SESSION['email'] = $user['email'] ?? null;
-            $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
-
-            // Audit log
-            AuditLogger::log($pdo, 'login', 'user', $user['id'], "Inloggning: {$user['username']}");
-
-            echo json_encode(['success' => true, 'user' => [
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'email' => $user['email'] ?? null,
-                'role' => $_SESSION['role'],
-                'operator_id' => $_SESSION['operator_id']
-            ]]);
-        } else {
-            AuthHelper::recordAttempt($pdo, $ip, $username, false);
-            $attemptsLeft = 5 - AuthHelper::getFailedAttemptCount($pdo, $ip);
-            $msg = 'Felaktigt användarnamn eller lösenord';
-            if ($attemptsLeft <= 2 && $attemptsLeft > 0) {
-                $msg .= '. Kontot låses snart tillfälligt vid ytterligare misslyckade försök.';
+            // Cleanup old attempts ~1% of requests
+            if (mt_rand(1, 100) === 1) {
+                AuthHelper::cleanupOldAttempts($pdo);
             }
-
-            AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
-
-            echo json_encode(['success' => false, 'message' => $msg]);
-        }
-
-        // Cleanup old attempts ~1% of requests
-        if (mt_rand(1, 100) === 1) {
-            AuthHelper::cleanupOldAttempts($pdo);
+        } catch (PDOException $e) {
+            error_log('LoginController handle: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Databasfel — försök igen senare.']);
         }
     }
 

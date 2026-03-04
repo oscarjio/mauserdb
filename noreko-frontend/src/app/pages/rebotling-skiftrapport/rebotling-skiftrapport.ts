@@ -44,6 +44,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
 
   // Search
   searchText = '';
+  private _debouncedSearchText: string = '';
+  private searchTimer: any = null;
 
   // Operatörsfilter
   operators: any[] = [];
@@ -139,6 +141,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     clearInterval(this.updateInterval);
     clearTimeout(this.successTimerId);
+    clearTimeout(this.searchTimer);
     this.fetchSub?.unsubscribe();
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
@@ -180,8 +183,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       if (this.filterSkift) {
         if (this.getShiftForReport(r) !== this.filterSkift) return false;
       }
-      if (this.searchText) {
-        const q = this.searchText.toLowerCase();
+      if (this._debouncedSearchText) {
+        const q = this._debouncedSearchText.toLowerCase();
         const searchable = [
           r.datum || '',
           r.product_name || '',
@@ -243,11 +246,19 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
   }
 
+  onSearchInput() {
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this._debouncedSearchText = this.searchText;
+    }, 350);
+  }
+
   clearFilter() {
     this.filterFrom         = '';
     this.filterTo           = '';
     this.filterSkift        = '';
     this.searchText         = '';
+    this._debouncedSearchText = '';
     this.selectedOperatorId = null;
   }
 

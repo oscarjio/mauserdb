@@ -28,7 +28,7 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/benchmarking"><i class="fas fa-trophy me-2 text-warning"></i>Benchmarking</a></li>
           <li *ngIf="loggedIn"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn">
-            <a class="dropdown-item" routerLink="/rebotling/overlamnin">
+            <a class="dropdown-item" routerLink="/rebotling/overlamning">
               <i class="fas fa-exchange-alt me-2"></i>Skiftöverlämning
               <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
             </a>
@@ -109,7 +109,7 @@
             <span class="dropdown-item-text text-muted small px-3 py-2 d-block">Inga nya notifikationer</span>
           </li>
           <li *ngIf="urgentNoteCount > 0">
-            <a class="dropdown-item" routerLink="/rebotling/overlamnin">
+            <a class="dropdown-item" routerLink="/rebotling/overlamning">
               <i class="fas fa-exclamation-triangle text-danger me-2"></i>
               {{ urgentNoteCount }} brådskande {{ urgentNoteCount === 1 ? 'notering' : 'noteringar' }}
             </a>

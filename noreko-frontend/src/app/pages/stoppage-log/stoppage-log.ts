@@ -49,6 +49,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   // Sorting & search
   searchQuery: string = '';
+  private _debouncedSearchQuery: string = '';
+  private searchTimer: any = null;
   sortColumn: string = 'start_time';
   sortDirection: 'asc' | 'desc' = 'desc';
 
@@ -77,9 +79,9 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   get filteredStoppages(): StoppageEntry[] {
     let result = this.stoppages;
 
-    // Text search
-    if (this.searchQuery.trim()) {
-      const q = this.searchQuery.toLowerCase();
+    // Text search (debounced)
+    if (this._debouncedSearchQuery.trim()) {
+      const q = this._debouncedSearchQuery.toLowerCase();
       result = result.filter(s =>
         (s.reason_name || '').toLowerCase().includes(q) ||
         (s.comment || '').toLowerCase().includes(q) ||
@@ -130,6 +132,13 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   getSortIcon(column: string): string {
     if (this.sortColumn !== column) return 'fas fa-sort';
     return this.sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+  }
+
+  onSearchInput() {
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      this._debouncedSearchQuery = this.searchQuery;
+    }, 350);
   }
 
   newEntry = {
@@ -195,6 +204,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     clearTimeout(this.successTimerId);
     clearTimeout(this.chartTimerId);
+    clearTimeout(this.searchTimer);
     if (this.refreshInterval) clearInterval(this.refreshInterval);
     try { this.paretoDetailChart?.destroy(); } catch (e) {}
     this.paretoDetailChart = null;

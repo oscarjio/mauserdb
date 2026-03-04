@@ -392,7 +392,7 @@
           <div class="search-box">
             <i class="fas fa-search search-icon"></i>
             <input type="text" class="form-control form-control-sm" placeholder="Sök orsak, kommentar, användare..."
-                   [(ngModel)]="searchQuery">
+                   [(ngModel)]="searchQuery" (ngModelChange)="onSearchInput()">
           </div>
         </div>
         <div class="card-body p-0">
@@ -515,7 +515,7 @@
       <div class="dark-card text-center py-4 mt-2" *ngIf="!loading && stoppages.length > 0 && filteredStoppages.length === 0">
         <i class="fas fa-filter fa-2x text-muted mb-2"></i>
         <p class="text-muted mb-1">Inga poster matchar nuvarande filter.</p>
-        <button class="btn btn-sm btn-outline-light" (click)="filterFromDate=''; filterToDate=''; filterCategory=''; searchQuery=''">
+        <button class="btn btn-sm btn-outline-light" (click)="filterFromDate=''; filterToDate=''; filterCategory=''; searchQuery=''; onSearchInput()">
           <i class="fas fa-times me-1"></i>Rensa filter
         </button>
       </div>

@@ -235,7 +235,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
   private loadTrend(s: any) {
     const id = s.id;
     this.trendLoading[id] = true;
-    this.operatorsService.getTrend(s.number).pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.getTrend(s.number).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false, data: [] }))).subscribe({
       next: (res) => {
         this.trendLoading[id] = false;
         this.trendData[id] = res.success ? res.data : [];
@@ -340,8 +340,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   fetchOperators() {
     this.loading = true;
-    this.operatorsService.getOperators().pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.getOperators().pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null))).subscribe({
       next: (res) => {
+        if (!res) { this.error = 'Kunde inte hämta operatörer.'; this.loading = false; return; }
         this.operators = res.operators || [];
         this.loading = false;
       },
@@ -357,8 +358,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
   }
 
   saveOperator(op: any) {
-    this.operatorsService.updateOperator({ id: op.id, name: op.name, number: op.number }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.updateOperator({ id: op.id, name: op.name, number: op.number }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null))).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte spara operatör.'); return; }
         if (res.success) {
           this.expanded[op.id] = false;
           this.toast.success('Operatör sparad');
@@ -378,8 +380,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
     if (!confirm(`Är du säker på att du vill ta bort operatören "${op.name}"?`)) {
       return;
     }
-    this.operatorsService.deleteOperator(op.id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.deleteOperator(op.id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null))).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte ta bort operatör'); return; }
         if (res.success) {
           this.toast.success('Operatör borttagen');
           this.fetchOperators();
@@ -395,8 +398,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
   }
 
   toggleActive(op: any) {
-    this.operatorsService.toggleActive(op.id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.toggleActive(op.id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null))).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte ändra status'); return; }
         if (res.success) {
           op.active = res.active;
           this.fetchOperators();
@@ -412,8 +416,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   loadOpStats() {
     this.opStatsLoading = true;
-    this.operatorsService.getStats().pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.getStats().pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null))).subscribe({
       next: (res) => {
+        if (!res) { this.opStatsLoading = false; return; }
         this.opStats = res.stats || [];
         this.opStatsLoading = false;
         this.statsLoaded = true;
@@ -447,8 +452,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
       this.toast.error('Namn och giltigt nummer krävs');
       return;
     }
-    this.operatorsService.createOperator({ name: this.addForm.name.trim(), number: this.addForm.number }).pipe(takeUntil(this.destroy$)).subscribe({
+    this.operatorsService.createOperator({ name: this.addForm.name.trim(), number: this.addForm.number }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null))).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte skapa operatör.'); return; }
         if (res.success) {
           this.toast.success('Operatör skapad');
           this.addForm = { name: '', number: null };
