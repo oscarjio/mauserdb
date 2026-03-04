@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { UsersService } from '../../services/users.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -23,6 +23,13 @@ export class UsersPage implements OnInit, OnDestroy {
   expanded: { [id: number]: boolean } = {};
   loading = false;
   error = '';
+
+  // Sök, sortering, filter
+  searchText = '';
+  private searchTimer: any = null;
+  sortColumn: 'username' | 'email' | 'last_login' | 'admin' = 'username';
+  sortDirection: 'asc' | 'desc' = 'asc';
+  statusFilter: 'alla' | 'aktiva' | 'admin' | 'inaktiva' = 'alla';
 
   constructor(
     private usersService: UsersService,
@@ -45,10 +52,14 @@ export class UsersPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    clearTimeout(this.searchTimer);
   }
 
   fetchOperators() {
-    this.operatorsService.getOperators().subscribe({
+    this.operatorsService.getOperators().pipe(
+      timeout(8000),
+      catchError(() => of({ operators: [] }))
+    ).subscribe({
       next: (res) => { this.operators = res.operators || []; },
       error: () => {}
     });
@@ -61,8 +72,16 @@ export class UsersPage implements OnInit, OnDestroy {
 
   fetchUsers() {
     this.loading = true;
-    this.usersService.getUsers().subscribe({
+    this.usersService.getUsers().pipe(
+      timeout(8000),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
+        if (!res) {
+          this.error = 'Kunde inte hämta användare.';
+          this.loading = false;
+          return;
+        }
         this.users = res.users || [];
         this.loading = false;
       },
@@ -73,13 +92,101 @@ export class UsersPage implements OnInit, OnDestroy {
     });
   }
 
+  // --- Sök med debounce ---
+  onSearchInput() {
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => {
+      // Trigga ändring (filteredUsers getter körs automatiskt)
+      this.searchText = this.searchText; // force change detection if needed
+    }, 350);
+  }
+
+  // --- Sortering ---
+  toggleSort(column: 'username' | 'email' | 'last_login' | 'admin') {
+    if (this.sortColumn === column) {
+      this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortColumn = column;
+      this.sortDirection = 'asc';
+    }
+  }
+
+  getSortIcon(column: string): string {
+    if (this.sortColumn !== column) return '▲▼';
+    return this.sortDirection === 'asc' ? '▲' : '▼';
+  }
+
+  // --- Statusfilter ---
+  setStatusFilter(filter: 'alla' | 'aktiva' | 'admin' | 'inaktiva') {
+    this.statusFilter = filter;
+  }
+
+  // --- Filtrerad & sorterad lista ---
+  get filteredUsers(): any[] {
+    let result = [...this.users];
+
+    // Statusfilter
+    if (this.statusFilter === 'aktiva') {
+      result = result.filter(u => u.active === 1);
+    } else if (this.statusFilter === 'inaktiva') {
+      result = result.filter(u => u.active === 0);
+    } else if (this.statusFilter === 'admin') {
+      result = result.filter(u => u.admin === 1);
+    }
+
+    // Söktext
+    if (this.searchText.trim()) {
+      const q = this.searchText.trim().toLowerCase();
+      result = result.filter(u =>
+        (u.username || '').toLowerCase().includes(q) ||
+        (u.email || '').toLowerCase().includes(q) ||
+        (u.phone || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Sortering
+    result.sort((a, b) => {
+      let valA: any;
+      let valB: any;
+
+      switch (this.sortColumn) {
+        case 'username':
+          valA = (a.username || '').toLowerCase();
+          valB = (b.username || '').toLowerCase();
+          break;
+        case 'email':
+          valA = (a.email || '').toLowerCase();
+          valB = (b.email || '').toLowerCase();
+          break;
+        case 'last_login':
+          valA = a.last_login || '';
+          valB = b.last_login || '';
+          break;
+        case 'admin':
+          valA = a.admin || 0;
+          valB = b.admin || 0;
+          break;
+      }
+
+      if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1;
+      if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }
+
   toggleExpand(id: number) {
     this.expanded[id] = !this.expanded[id];
   }
 
   saveUser(user: any) {
-    this.usersService.updateUser(user).subscribe({
+    this.usersService.updateUser(user).pipe(
+      timeout(8000),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte spara användare.'); return; }
         if (res.success) {
           this.expanded[user.id] = false;
           this.toast.success('Användare sparad');
@@ -98,9 +205,13 @@ export class UsersPage implements OnInit, OnDestroy {
     if (!confirm(`Är du säker på att du vill ta bort användaren "${user.username}"?`)) {
       return;
     }
-    
-    this.usersService.deleteUser(user.id).subscribe({
+
+    this.usersService.deleteUser(user.id).pipe(
+      timeout(8000),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte ta bort användare'); return; }
         if (res.success) {
           this.toast.success('Användare borttagen');
           this.fetchUsers();
@@ -115,8 +226,12 @@ export class UsersPage implements OnInit, OnDestroy {
   }
 
   toggleAdmin(user: any) {
-    this.usersService.toggleAdmin(user.id).subscribe({
+    this.usersService.toggleAdmin(user.id).pipe(
+      timeout(8000),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte ändra admin-status'); return; }
         if (res.success) {
           user.admin = res.admin;
           user.role = res.admin === 1 ? 'admin' : 'user';
@@ -132,8 +247,12 @@ export class UsersPage implements OnInit, OnDestroy {
   }
 
   toggleActive(user: any) {
-    this.usersService.toggleActive(user.id).subscribe({
+    this.usersService.toggleActive(user.id).pipe(
+      timeout(8000),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
+        if (!res) { this.toast.error('Kunde inte ändra status'); return; }
         if (res.success) {
           user.active = res.active;
           this.fetchUsers();
@@ -146,4 +265,4 @@ export class UsersPage implements OnInit, OnDestroy {
       }
     });
   }
-} 
+}

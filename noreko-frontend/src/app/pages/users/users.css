@@ -162,4 +162,126 @@
 
 .border-primary {
   border-color: #0d6efd !important;
-} 
+}
+
+/* --- Sökfält --- */
+.search-icon {
+  background-color: #4a5568;
+  border-color: #718096;
+  color: #a0aec0;
+}
+
+.input-group .form-control {
+  border-left: none;
+}
+
+.input-group .form-control:focus {
+  border-left: none;
+}
+
+.input-group .search-icon + .form-control:focus ~ .search-icon,
+.input-group:focus-within .search-icon {
+  border-color: #86b7fe;
+  color: #e2e8f0;
+}
+
+/* --- Statusfilter pills --- */
+.filter-pills {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.filter-pill {
+  background-color: #4a5568;
+  border: 1px solid #718096;
+  color: #a0aec0;
+  border-radius: 1rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+}
+
+.filter-pill:hover {
+  background-color: #5a6a80;
+  color: #e2e8f0;
+  transform: none;
+  box-shadow: none;
+}
+
+.filter-pill.active {
+  background-color: #3182ce;
+  border-color: #3182ce;
+  color: #fff;
+}
+
+.filter-pill.active:hover {
+  background-color: #2b6cb0;
+  border-color: #2b6cb0;
+  color: #fff;
+}
+
+/* --- Statistik-badge --- */
+.stats-badge {
+  display: inline-block;
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* --- Sorterbara kolumnrubriker --- */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color 0.15s ease;
+}
+
+.sortable-header:hover {
+  background-color: #2d3748 !important;
+}
+
+.sort-icon {
+  font-size: 0.7rem;
+  margin-left: 0.375rem;
+  color: #718096;
+  letter-spacing: -1px;
+}
+
+.sort-icon.active-sort {
+  color: #63b3ed;
+  font-weight: 700;
+}
+
+/* --- Inga resultat --- */
+.no-results {
+  font-size: 1rem;
+  color: #a0aec0;
+}
+
+/* --- Toolbar --- */
+.users-toolbar {
+  padding: 0.5rem 0;
+}
+
+/* --- Responsive tablet --- */
+@media (max-width: 768px) {
+  .filter-pills {
+    justify-content: flex-start;
+  }
+
+  .stats-badge {
+    display: block;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+
+  .sortable-header .sort-icon {
+    font-size: 0.6rem;
+  }
+}
