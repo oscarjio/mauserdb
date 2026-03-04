@@ -1,3 +1,14 @@
+## 2026-03-04 — Worker: Executive Dashboard multi-linje statusrad + nyhetsflöde admin-panel
+- Executive dashboard: Multi-linje statusrad och getAllLinesStatus redan fullt implementerade sedan tidigare (backend + frontend + CSS). Ingen förändring behövdes.
+- NewsController.php: Lade till priority-fält (1-5) i adminList, create, update. Utökade allowedCategories med: rekord, hog_oee, certifiering, urgent. getEvents hanterar nu priority-sortering och backward-compatibility.
+- news-admin.ts: Lade till priority-slider (1-5), nya kategori-typer (Rekord/Hög OEE/Certifiering/Brådskande), priority-badge i tabellen, CSS-klasser för prioritetsnivåer.
+- Migration: 2026-03-04_news_priority_published.sql — ALTER TABLE news ADD COLUMN published + priority, utöka category-enum.
+
+## 2026-03-04 — Worker: Bonus-admin utbetalningshistorik + min-bonus kollegjämförelse (06b0b9c)
+- bonus-admin.ts/html: Ny flik "Utbetalningshistorik" med år/status-filter, tabell med status-badges, bonusnivå-badges, åtgärdsknappar (Godkänn/Markera utbetald/Återställ), summeringsrad och CSV-export
+- my-bonus.ts/html: Ny sektion "Din placering denna vecka" med anonym kollegjämförelse, stor placerings-siffra, progress-bar mot topp, 3 mini-brickor (Min/Snitt/Bäst IBC/h), motivationstext
+- BonusController.php: Ny endpoint ranking-position — hämtar aktuell veckas IBC/h per operatör via session operator_id
+
 ## 2026-03-04 — Bug Hunt #8 (andra körning) — Resultat utan commit
 - bonus-dashboard.ts: `getDailySummary()`, `getRanking()`, `loadPrevPeriodRanking()` saknar `timeout(8000)` + `catchError()` — KVAR ATT FIXA
 - OperatorController.php: tyst catch-block utan `error_log()` i getProfile certifications — KVAR ATT FIXA

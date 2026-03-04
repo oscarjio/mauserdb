@@ -42,9 +42,9 @@ class NewsController {
 
         try {
             $stmt = $this->pdo->query("
-                SELECT id, title, body, category, pinned, published, created_at, updated_at
+                SELECT id, title, body, category, pinned, published, priority, created_at, updated_at
                 FROM news
-                ORDER BY created_at DESC
+                ORDER BY priority DESC, created_at DESC
             ");
             $rows = $stmt->fetchAll();
             $news = array_map(function($row) {
@@ -55,6 +55,7 @@ class NewsController {
                     'category'   => $row['category'],
                     'pinned'     => (bool)$row['pinned'],
                     'published'  => (bool)$row['published'],
+                    'priority'   => isset($row['priority']) ? (int)$row['priority'] : 3,
                     'created_at' => $row['created_at'],
                     'updated_at' => $row['updated_at'],
                 ];
@@ -82,8 +83,9 @@ class NewsController {
         $category  = trim($body['category'] ?? 'info');
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
+        $priority  = max(1, min(5, intval($body['priority'] ?? 3)));
 
-        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig'];
+        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig', 'rekord', 'hog_oee', 'certifiering', 'urgent'];
         if (!in_array($category, $allowedCategories, true)) {
             $category = 'info';
         }
@@ -96,8 +98,8 @@ class NewsController {
 
         try {
             $stmt = $this->pdo->prepare("
-                INSERT INTO news (title, body, category, pinned, published, created_at, updated_at)
-                VALUES (:title, :body, :category, :pinned, :published, NOW(), NOW())
+                INSERT INTO news (title, body, category, pinned, published, priority, created_at, updated_at)
+                VALUES (:title, :body, :category, :pinned, :published, :priority, NOW(), NOW())
             ");
             $stmt->execute([
                 ':title'     => $title,
@@ -105,6 +107,7 @@ class NewsController {
                 ':category'  => $category,
                 ':pinned'    => $pinned,
                 ':published' => $published,
+                ':priority'  => $priority,
             ]);
             $id = (int)$this->pdo->lastInsertId();
             echo json_encode(['success' => true, 'id' => $id]);
@@ -131,8 +134,9 @@ class NewsController {
         $category  = trim($body['category'] ?? 'info');
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
+        $priority  = max(1, min(5, intval($body['priority'] ?? 3)));
 
-        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig'];
+        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig', 'rekord', 'hog_oee', 'certifiering', 'urgent'];
         if (!in_array($category, $allowedCategories, true)) {
             $category = 'info';
         }
@@ -153,7 +157,7 @@ class NewsController {
             $stmt = $this->pdo->prepare("
                 UPDATE news
                 SET title = :title, body = :body, category = :category,
-                    pinned = :pinned, published = :published, updated_at = NOW()
+                    pinned = :pinned, published = :published, priority = :priority, updated_at = NOW()
                 WHERE id = :id
             ");
             $stmt->execute([
@@ -162,6 +166,7 @@ class NewsController {
                 ':category'  => $category,
                 ':pinned'    => $pinned,
                 ':published' => $published,
+                ':priority'  => $priority,
                 ':id'        => $id,
             ]);
             echo json_encode(['success' => true]);
@@ -198,11 +203,11 @@ class NewsController {
     private function getEvents() {
         $antal = min(20, max(1, intval($_GET['antal'] ?? 15)));
         $filterCategory = trim($_GET['category'] ?? '');
-        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig'];
+        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig', 'rekord', 'hog_oee', 'certifiering', 'urgent'];
 
         $events = [];
 
-        // 0. Manuella nyheter från news-tabellen (inkl. pinned)
+        // 0. Manuella nyheter från news-tabellen (inkl. pinned + priority)
         try {
             $sql = "
                 SELECT id,
@@ -210,13 +215,14 @@ class NewsController {
                        body,
                        category,
                        pinned,
+                       COALESCE(priority, 3) AS priority,
                        DATE(created_at) AS event_datum,
                        created_at AS event_datetime,
                        NULL AS value
                 FROM news
                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-                  AND published = 1
-                ORDER BY pinned DESC, created_at DESC
+                  AND (published IS NULL OR published = 1)
+                ORDER BY pinned DESC, priority DESC, created_at DESC
                 LIMIT 10
             ";
             $stmt = $this->pdo->query($sql);
@@ -230,6 +236,7 @@ class NewsController {
                     'ikon'     => $this->ikonForCategory($row['category']),
                     'category' => $row['category'],
                     'pinned'   => (bool)$row['pinned'],
+                    'priority' => isset($row['priority']) ? (int)$row['priority'] : 3,
                 ];
             }
         } catch (Exception $e) {
@@ -446,11 +453,15 @@ class NewsController {
 
     private function ikonForCategory(string $category): string {
         $map = [
-            'produktion' => 'chart-bar',
-            'bonus'      => 'trophy',
-            'system'     => 'cog',
-            'info'       => 'info-circle',
-            'viktig'     => 'exclamation-triangle',
+            'produktion'   => 'chart-bar',
+            'bonus'        => 'trophy',
+            'system'       => 'cog',
+            'info'         => 'info-circle',
+            'viktig'       => 'exclamation-triangle',
+            'rekord'       => 'trophy',
+            'hog_oee'      => 'rocket',
+            'certifiering' => 'certificate',
+            'urgent'       => 'exclamation-circle',
         ];
         return $map[$category] ?? 'bell';
     }

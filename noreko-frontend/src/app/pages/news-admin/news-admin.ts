@@ -14,6 +14,7 @@ interface NewsItem {
   category: string;
   pinned: boolean;
   published: boolean;
+  priority: number;
   created_at: string;
   updated_at: string;
 }
@@ -67,14 +68,39 @@ interface NewsItem {
             </div>
 
             <div class="mb-3">
-              <label class="form-label">Kategori</label>
+              <label class="form-label">Typ</label>
               <select class="form-select form-control-dark" [(ngModel)]="form.category">
-                <option value="produktion">Produktion</option>
-                <option value="bonus">Bonus</option>
-                <option value="system">System</option>
-                <option value="info">Info</option>
-                <option value="viktig">Viktig</option>
+                <optgroup label="Nyhetstyper">
+                  <option value="rekord">Rekord</option>
+                  <option value="hog_oee">Hög OEE</option>
+                  <option value="certifiering">Certifiering</option>
+                  <option value="urgent">Brådskande</option>
+                  <option value="info">Info</option>
+                </optgroup>
+                <optgroup label="Övriga">
+                  <option value="produktion">Produktion</option>
+                  <option value="bonus">Bonus</option>
+                  <option value="system">System</option>
+                  <option value="viktig">Viktig</option>
+                </optgroup>
               </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Prioritet <small class="text-muted ms-1">(1=låg, 5=hög)</small></label>
+              <div class="d-flex align-items-center gap-2">
+                <input
+                  type="range"
+                  class="form-range priority-range"
+                  min="1"
+                  max="5"
+                  step="1"
+                  [(ngModel)]="form.priority"
+                />
+                <span class="priority-badge" [ngClass]="priorityBadgeClass(form.priority)">
+                  {{ priorityLabel(form.priority) }}
+                </span>
+              </div>
             </div>
 
             <div class="mb-3 d-flex gap-4">
@@ -139,7 +165,8 @@ interface NewsItem {
                   <tr>
                     <th class="text-muted small" style="width:50px">ID</th>
                     <th class="text-muted small">Rubrik</th>
-                    <th class="text-muted small" style="width:130px">Kategori</th>
+                    <th class="text-muted small" style="width:130px">Typ</th>
+                    <th class="text-muted small text-center" style="width:70px">Prio</th>
                     <th class="text-muted small text-center" style="width:80px">Pinnad</th>
                     <th class="text-muted small text-center" style="width:100px">Publicerad</th>
                     <th class="text-muted small" style="width:160px">Datum</th>
@@ -147,7 +174,7 @@ interface NewsItem {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let item of newsList" [class.row-pinned]="item.pinned">
+                  <tr *ngFor="let item of newsList" [class.row-pinned]="item.pinned" [class.row-urgent]="item.category === 'urgent'">
                     <td class="text-muted">{{ item.id }}</td>
                     <td>
                       <div class="news-title">{{ item.title }}</div>
@@ -158,6 +185,11 @@ interface NewsItem {
                     <td>
                       <span class="badge" [ngClass]="categoryBadgeClass(item.category)">
                         {{ categoryLabel(item.category) }}
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <span class="priority-dot" [ngClass]="priorityBadgeClass(item.priority ?? 3)" title="Prioritet {{ item.priority ?? 3 }}">
+                        {{ item.priority ?? 3 }}
                       </span>
                     </td>
                     <td class="text-center">
@@ -187,7 +219,7 @@ interface NewsItem {
                     </td>
                   </tr>
                   <tr *ngIf="newsList.length === 0 && !loading">
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="8" class="text-center text-muted py-4">
                       Inga nyheter hittades. Skapa en ny nyhet ovan.
                     </td>
                   </tr>
@@ -273,6 +305,9 @@ interface NewsItem {
     .row-pinned td:first-child {
       border-left: 3px solid #ecc94b;
     }
+    .row-urgent td:first-child {
+      border-left: 3px solid #e53e3e;
+    }
     .news-title {
       font-weight: 500;
       color: #e2e8f0;
@@ -280,6 +315,37 @@ interface NewsItem {
     .news-body-preview {
       margin-top: 2px;
     }
+    /* Priority range */
+    .priority-range {
+      flex: 1;
+      accent-color: #4299e1;
+    }
+    .priority-badge {
+      min-width: 72px;
+      text-align: center;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .priority-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .prio-low      { background: rgba(113,128,150,0.2); color: #a0aec0; }
+    .prio-normal   { background: rgba(56,178,172,0.2);  color: #38b2ac; }
+    .prio-medium   { background: rgba(66,153,225,0.2);  color: #4299e1; }
+    .prio-high     { background: rgba(237,137,54,0.2);  color: #ed8936; }
+    .prio-critical { background: rgba(229,62,62,0.2);   color: #e53e3e; }
+    /* Custom badge colors */
+    .bg-teal   { background-color: #0d9488 !important; }
+    .bg-purple { background-color: #7c3aed !important; }
   `]
 })
 export class NewsAdminPage implements OnInit, OnDestroy {
@@ -302,6 +368,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
     category: 'info',
     pinned: false,
     published: true,
+    priority: 3,
   };
 
   constructor(private http: HttpClient) {}
@@ -347,7 +414,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
   }
 
   resetForm() {
-    this.form = { title: '', content: '', category: 'info', pinned: false, published: true };
+    this.form = { title: '', content: '', category: 'info', pinned: false, published: true, priority: 3 };
     this.formError = '';
     this.formSuccess = '';
   }
@@ -361,6 +428,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       category: item.category,
       pinned: item.pinned,
       published: item.published,
+      priority: item.priority ?? 3,
     };
     this.formError = '';
     this.formSuccess = '';
@@ -384,6 +452,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       category: this.form.category,
       pinned: this.form.pinned,
       published: this.form.published,
+      priority: this.form.priority,
     };
     if (this.editingId) {
       payload.id = this.editingId;
@@ -431,24 +500,45 @@ export class NewsAdminPage implements OnInit, OnDestroy {
 
   categoryLabel(cat: string): string {
     const map: Record<string, string> = {
-      produktion: 'Produktion',
-      bonus: 'Bonus',
-      system: 'System',
-      info: 'Info',
-      viktig: 'Viktig',
+      produktion:    'Produktion',
+      bonus:         'Bonus',
+      system:        'System',
+      info:          'Info',
+      viktig:        'Viktig',
+      rekord:        'Rekord',
+      hog_oee:       'Hög OEE',
+      certifiering:  'Certifiering',
+      urgent:        'Brådskande',
     };
     return map[cat] ?? cat;
   }
 
   categoryBadgeClass(cat: string): string {
     const map: Record<string, string> = {
-      produktion: 'bg-primary',
-      bonus:      'bg-warning text-dark',
-      system:     'bg-secondary',
-      info:       'bg-info text-dark',
-      viktig:     'bg-danger',
+      produktion:    'bg-primary',
+      bonus:         'bg-warning text-dark',
+      system:        'bg-secondary',
+      info:          'bg-info text-dark',
+      viktig:        'bg-danger',
+      rekord:        'bg-success',
+      hog_oee:       'bg-teal text-dark',
+      certifiering:  'bg-purple',
+      urgent:        'bg-danger',
     };
     return map[cat] ?? 'bg-secondary';
+  }
+
+  priorityLabel(p: number): string {
+    const labels: Record<number, string> = { 1: 'Låg', 2: 'Normal', 3: 'Medel', 4: 'Hög', 5: 'Kritisk' };
+    return labels[p] ?? 'Medel';
+  }
+
+  priorityBadgeClass(p: number): string {
+    if (p >= 5) return 'prio-critical';
+    if (p >= 4) return 'prio-high';
+    if (p >= 3) return 'prio-medium';
+    if (p >= 2) return 'prio-normal';
+    return 'prio-low';
   }
 
   formatDate(dateStr: string): string {
