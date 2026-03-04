@@ -246,10 +246,12 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - **Tvättlinje-statistik-agent** (a59ff05a): KLAR — cdd9411
 - **Kvalitetstrend+OEE-Waterfall-agent** (a35e472a): KLAR — a682f9d (features redan impl, verifierade)
 - **Operatörsjämförelse-agent** (a746769c): KLAR — b63feb9+fe14455 (route+nav)
-- **Bug hunt #5** (a863f91d): KLAR — 0092eaf (5 buggar: menu.ts POST-läcka, session_start SaglinjeCtrl x2, datumvalidering Saglinje+Tvättlinje, session_start TvattlinjeCtrl x3)
-- **Andon-tavla förbättring** (a53c6ded): KLAR — 8fac87f (skifttimer+nedräkning, stopporsaker 24h, prognosbanner 4 nivåer)
-- **Såglinje+Klassificeringslinje statistik** (a3d6a8b6): KPI-kort, OEE-trend — PÅGÅR
-- **Skiftöverlämning förbättring** (startas): shift-handover.ts förbättring — STARTAS
+- **Bug hunt #5** (a863f91d): KLAR — 0092eaf (5 buggar)
+- **Andon-tavla förbättring** (a53c6ded): KLAR — 8fac87f
+- **Rebotling-skiftrapport trendgraf** (a60553d0): KLAR — 6af3e1e (shift-trend timupplösning, genomsnittsprofil, skiftnavigering)
+- **Tvättlinje/Såglinje/Klassificeringslinje admin** (committade tidigare): KLAR — today-snapshot, alert-thresholds, weekday-goals (all 3 linjer)
+- **Bug hunt #6** (a2d28c2b7f30344d6): PÅGÅR — granskar nya filer sedan bug hunt #5
+- **Operatörsdashboard förbättring** (a1934683e7c0bf6f6): PÅGÅR — veckovy, trend, summary-kort
 
 ---
 
