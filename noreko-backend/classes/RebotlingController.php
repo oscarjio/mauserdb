@@ -137,6 +137,8 @@ class RebotlingController {
                 $this->getGoalExceptions();
             } elseif ($action === 'oee-components') {
                 $this->getOeeComponents();
+            } elseif ($action === 'service-status') {
+                $this->getServiceStatus();
             } else {
                 $this->getLiveStats();
             }
@@ -198,6 +200,10 @@ class RebotlingController {
                 $this->saveGoalException();
             } elseif ($action === 'delete-goal-exception') {
                 $this->deleteGoalException();
+            } elseif ($action === 'reset-service') {
+                $this->resetService();
+            } elseif ($action === 'save-service-interval') {
+                $this->saveServiceInterval();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -6924,6 +6930,134 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getOeeComponents: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-komponentdata']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=service-status  (publik — ingen auth)
+     */
+    private function getServiceStatus(): void {
+        try {
+            // Hämta inställningar från rebotling_settings (key-value)
+            $keys = ['service_interval_ibc', 'last_service_ibc_total', 'last_service_at', 'last_service_note'];
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt->execute($keys);
+            $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+            $serviceInterval     = max(1, intval($rows['service_interval_ibc']   ?? 5000));
+            $lastServiceIbcTotal = intval($rows['last_service_ibc_total']         ?? 0);
+            $lastServiceAt       = $rows['last_service_at']                       ?? null;
+            $lastServiceNote     = $rows['last_service_note']                     ?? null;
+
+            // Beräkna total IBC producerat (MAX per skift, summerat)
+            $stmtIbc = $this->pdo->query(
+                "SELECT COALESCE(SUM(shift_max), 0) AS total FROM (
+                    SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_max
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) t"
+            );
+            $totalIbc = intval($stmtIbc->fetchColumn());
+
+            $ibcSedanService = $totalIbc - $lastServiceIbcTotal;
+            $ibcKvar         = $serviceInterval - $ibcSedanService;
+            $pctKvar         = $serviceInterval > 0
+                ? round(max(0, $ibcKvar) / $serviceInterval * 100, 1)
+                : 0;
+
+            if ($pctKvar > 25) {
+                $status = 'ok';
+            } elseif ($pctKvar > 10) {
+                $status = 'warning';
+            } else {
+                $status = 'danger';
+            }
+
+            echo json_encode([
+                'success'                => true,
+                'service_interval'       => $serviceInterval,
+                'last_service_at'        => $lastServiceAt,
+                'last_service_note'      => $lastServiceNote,
+                'ibc_total'              => $totalIbc,
+                'ibc_sedan_service'      => $ibcSedanService,
+                'ibc_kvar_till_service'  => $ibcKvar,
+                'pct_kvar'               => $pctKvar,
+                'status'                 => $status,
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getServiceStatus: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=reset-service  (kräver admin)
+     */
+    private function resetService(): void {
+        try {
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $note = isset($body['note']) ? substr(strip_tags($body['note']), 0, 255) : '';
+
+            // Hämta aktuell total IBC
+            $stmtIbc = $this->pdo->query(
+                "SELECT COALESCE(SUM(shift_max), 0) AS total FROM (
+                    SELECT MAX(COALESCE(ibc_ok, 0)) AS shift_max
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) t"
+            );
+            $totalIbc = intval($stmtIbc->fetchColumn());
+
+            // Uppdatera last_service_ibc_total, last_service_at, last_service_note
+            $settings = [
+                'last_service_ibc_total' => strval($totalIbc),
+                'last_service_at'        => date('Y-m-d H:i:s'),
+                'last_service_note'      => $note,
+            ];
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
+            );
+            foreach ($settings as $k => $v) {
+                $stmt->execute([$k, $v]);
+            }
+
+            echo json_encode([
+                'success'            => true,
+                'message'            => 'Service registrerad',
+                'ibc_total_at_reset' => $totalIbc,
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController resetService: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=save-service-interval  (kräver admin)
+     */
+    private function saveServiceInterval(): void {
+        try {
+            $body    = json_decode(file_get_contents('php://input'), true) ?? [];
+            $interval = intval($body['service_interval_ibc'] ?? 5000);
+            if ($interval < 100 || $interval > 50000) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Intervall måste vara mellan 100 och 50 000 IBC.']);
+                return;
+            }
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)"
+            );
+            $stmt->execute(['service_interval_ibc', strval($interval)]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('RebotlingController saveServiceInterval: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
 

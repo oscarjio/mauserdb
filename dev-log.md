@@ -1,3 +1,15 @@
+## 2026-03-04 — Operator-compare: Periodval, CSV-export, diff-badges
+
+Worker-agent förbättrade `/operator-compare` med:
+
+1. **Kalenderperiodval** (Denna vecka / Förra veckan / Denna månad / Förra månaden) — pill-knappar ovanför jämförelsekortet.
+2. **Dagar-snabbval bevaras** (14/30/90 dagar) som "custom"-period.
+3. **CSV-export** — knapp "Exportera CSV" exporterar alla 6 KPI:er sida vid sida (A | B | Diff) med BOM för Excel-kompatibilitet.
+4. **Diff-badges** i KPI-tabellen (4-kolumners grid): grön `↑ +X` = A bättre, röd `↓ -X` = B bättre, grå `→ 0` = lika.
+5. **Tom-state** — "Välj två operatörer för att jämföra" visas när ingen operatör är vald.
+6. **Period-label** visas i header-raden och i KPI-tabellens rubrik.
+7. **Byggt**: dist/noreko-frontend/ uppdaterad.
+
 ## 2026-03-04 — My-bonus: Närvaro-kalender och Streakräknare
 
 Worker-agent lade till närvaro-kalender och streakräknare på `/my-bonus`:

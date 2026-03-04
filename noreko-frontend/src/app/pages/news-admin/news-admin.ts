@@ -15,6 +15,8 @@ interface NewsItem {
   pinned: boolean;
   published: boolean;
   priority: number;
+  arkiveras_efter_dagar: number | null;
+  arkiverad: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -103,7 +105,7 @@ interface NewsItem {
               </div>
             </div>
 
-            <div class="mb-3 d-flex gap-4">
+            <div class="mb-3 d-flex flex-wrap gap-4">
               <div class="form-check">
                 <input
                   class="form-check-input"
@@ -112,8 +114,8 @@ interface NewsItem {
                   [(ngModel)]="form.pinned"
                 />
                 <label class="form-check-label" for="pinnedCheck">
-                  <i class="fas fa-thumbtack me-1 text-warning"></i>Pinnad
-                  <small class="text-muted ms-1">(visas med gul kant)</small>
+                  <i class="fas fa-thumbtack me-1 text-warning"></i>Pinnning
+                  <small class="text-muted ms-1">(visas alltid överst)</small>
                 </label>
               </div>
               <div class="form-check">
@@ -127,6 +129,29 @@ interface NewsItem {
                   <i class="fas fa-eye me-1 text-success"></i>Publicerad
                   <small class="text-muted ms-1">(syns på startsidan)</small>
                 </label>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">
+                <i class="fas fa-archive me-1 text-secondary"></i>Auto-arkivera efter dagar
+                <small class="text-muted ms-1">(0 eller tomt = aldrig)</small>
+              </label>
+              <div class="d-flex align-items-center gap-3">
+                <input
+                  type="number"
+                  class="form-control form-control-dark auto-archive-input"
+                  [(ngModel)]="form.arkiverasEfterDagar"
+                  placeholder="0"
+                  min="0"
+                  max="365"
+                />
+                <div class="quick-archive-btns d-flex gap-2">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="form.arkiverasEfterDagar = null">Aldrig</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="form.arkiverasEfterDagar = 7">7 dagar</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="form.arkiverasEfterDagar = 30">30 dagar</button>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="form.arkiverasEfterDagar = 90">90 dagar</button>
+                </div>
               </div>
             </div>
 
@@ -149,6 +174,28 @@ interface NewsItem {
           </div>
         </div>
 
+        <!-- KPI-kort -->
+        <div class="row g-3 mb-4" *ngIf="!loading">
+          <div class="col-md-4">
+            <div class="kpi-card kpi-aktiv">
+              <div class="kpi-value">{{ aktiva }}</div>
+              <div class="kpi-label"><i class="fas fa-newspaper me-2"></i>Aktiva nyheter</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="kpi-card kpi-pinnad">
+              <div class="kpi-value">{{ pinnade }}</div>
+              <div class="kpi-label"><i class="fas fa-thumbtack me-2"></i>Pinnade nyheter</div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="kpi-card kpi-arkiverad">
+              <div class="kpi-value">{{ arkiverade }}</div>
+              <div class="kpi-label"><i class="fas fa-archive me-2"></i>Arkiverade nyheter</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Laddning / Fel -->
         <div class="text-center py-5" *ngIf="loading">
           <div class="spinner-border text-info" role="status"></div>
@@ -156,8 +203,51 @@ interface NewsItem {
         </div>
         <div class="alert alert-danger" *ngIf="loadError && !loading">{{ loadError }}</div>
 
-        <!-- Tabell -->
-        <div class="card table-card" *ngIf="!loading">
+        <!-- Sök och filter -->
+        <div class="card table-card mb-0" *ngIf="!loading">
+          <div class="card-body border-bottom" style="border-color: #4a5568 !important;">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <div class="search-wrapper flex-grow-1">
+                <div class="input-group">
+                  <span class="input-group-text search-icon">
+                    <i class="fas fa-search text-muted"></i>
+                  </span>
+                  <input
+                    type="text"
+                    class="form-control form-control-dark"
+                    [(ngModel)]="newsSearchQuery"
+                    placeholder="Sök rubrik, innehåll eller kategori..."
+                    style="border-left: 0;"
+                  />
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    *ngIf="newsSearchQuery"
+                    (click)="newsSearchQuery = ''"
+                    title="Rensa sökning"
+                  >
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="form-check mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="showArchivedCheck"
+                  [(ngModel)]="visaArkiverade"
+                />
+                <label class="form-check-label text-muted" for="showArchivedCheck">
+                  <i class="fas fa-archive me-1"></i>Visa arkiverade
+                </label>
+              </div>
+            </div>
+            <div class="mt-2 text-muted small" *ngIf="newsSearchQuery">
+              Visar {{ filtreradeListan.length }} av {{ adminNews.length }} nyheter
+            </div>
+          </div>
+
+          <!-- Tabell -->
           <div class="card-body p-0">
             <div class="table-responsive">
               <table class="table table-dark table-hover mb-0">
@@ -167,19 +257,32 @@ interface NewsItem {
                     <th class="text-muted small">Rubrik</th>
                     <th class="text-muted small" style="width:130px">Typ</th>
                     <th class="text-muted small text-center" style="width:70px">Prio</th>
-                    <th class="text-muted small text-center" style="width:80px">Pinnad</th>
-                    <th class="text-muted small text-center" style="width:100px">Publicerad</th>
+                    <th class="text-muted small text-center" style="width:70px">Pinnad</th>
+                    <th class="text-muted small text-center" style="width:90px">Publicerad</th>
+                    <th class="text-muted small text-center" style="width:90px">Arkiv</th>
                     <th class="text-muted small" style="width:160px">Datum</th>
                     <th class="text-muted small text-end" style="width:140px">Åtgärder</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let item of newsList" [class.row-pinned]="item.pinned" [class.row-urgent]="item.category === 'urgent'">
+                  <tr
+                    *ngFor="let item of filtreradeListan"
+                    [class.row-pinned]="item.pinned && !item.arkiverad"
+                    [class.row-urgent]="item.category === 'urgent' && !item.arkiverad"
+                    [class.row-archived]="item.arkiverad"
+                  >
                     <td class="text-muted">{{ item.id }}</td>
                     <td>
-                      <div class="news-title">{{ item.title }}</div>
+                      <div class="news-title">
+                        <i class="fas fa-thumbtack text-warning me-1" *ngIf="item.pinned" title="Pinnad"></i>
+                        <i class="fas fa-archive text-muted me-1" *ngIf="item.arkiverad" title="Arkiverad"></i>
+                        {{ item.title }}
+                      </div>
                       <div class="news-body-preview text-muted small" *ngIf="item.body">
                         {{ item.body | slice:0:80 }}{{ item.body.length > 80 ? '...' : '' }}
+                      </div>
+                      <div class="text-muted small mt-1" *ngIf="item.arkiveras_efter_dagar">
+                        <i class="fas fa-clock me-1"></i>Auto-arkiveras efter {{ item.arkiveras_efter_dagar }} dagar
                       </div>
                     </td>
                     <td>
@@ -188,8 +291,8 @@ interface NewsItem {
                       </span>
                     </td>
                     <td class="text-center">
-                      <span class="priority-dot" [ngClass]="priorityBadgeClass(item.priority ?? 3)" title="Prioritet {{ item.priority ?? 3 }}">
-                        {{ item.priority ?? 3 }}
+                      <span class="priority-dot" [ngClass]="priorityBadgeClass(item.priority)" title="Prioritet {{ item.priority }}">
+                        {{ item.priority }}
                       </span>
                     </td>
                     <td class="text-center">
@@ -199,6 +302,11 @@ interface NewsItem {
                     <td class="text-center">
                       <i class="fas fa-eye text-success" *ngIf="item.published" title="Publicerad"></i>
                       <i class="fas fa-eye-slash text-muted" *ngIf="!item.published" title="Opublicerad"></i>
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-secondary" *ngIf="item.arkiverad" title="Arkiverad">Arkiverad</span>
+                      <span class="text-muted small" *ngIf="!item.arkiverad && item.arkiveras_efter_dagar">{{ item.arkiveras_efter_dagar }}d</span>
+                      <span class="text-muted" *ngIf="!item.arkiverad && !item.arkiveras_efter_dagar">—</span>
                     </td>
                     <td class="text-muted small">{{ formatDate(item.created_at) }}</td>
                     <td class="text-end">
@@ -218,9 +326,10 @@ interface NewsItem {
                       </button>
                     </td>
                   </tr>
-                  <tr *ngIf="newsList.length === 0 && !loading">
-                    <td colspan="8" class="text-center text-muted py-4">
-                      Inga nyheter hittades. Skapa en ny nyhet ovan.
+                  <tr *ngIf="filtreradeListan.length === 0 && !loading">
+                    <td colspan="9" class="text-center text-muted py-4">
+                      <span *ngIf="newsSearchQuery">Inga nyheter matchar din sökning.</span>
+                      <span *ngIf="!newsSearchQuery">Inga nyheter hittades. Skapa en ny nyhet ovan.</span>
                     </td>
                   </tr>
                 </tbody>
@@ -238,23 +347,14 @@ interface NewsItem {
       min-height: 100vh;
       color: #e2e8f0;
     }
-    .page-title {
-      color: #e2e8f0;
-      font-size: 1.5rem;
-    }
+    .page-title { color: #e2e8f0; font-size: 1.5rem; }
     .form-card, .table-card {
       background: #2d3748;
       border: 1px solid #4a5568;
       border-radius: 8px;
     }
-    .card-title {
-      color: #e2e8f0;
-    }
-    .form-label {
-      color: #a0aec0;
-      font-size: 0.875rem;
-      margin-bottom: 4px;
-    }
+    .card-title { color: #e2e8f0; }
+    .form-label { color: #a0aec0; font-size: 0.875rem; margin-bottom: 4px; }
     .form-control-dark,
     .form-select.form-control-dark {
       background: #1a202c;
@@ -269,21 +369,32 @@ interface NewsItem {
       color: #e2e8f0;
       box-shadow: 0 0 0 2px rgba(99,179,237,0.2);
     }
-    .form-control-dark::placeholder {
-      color: #718096;
+    .form-control-dark::placeholder { color: #718096; }
+    .form-check-label { color: #a0aec0; font-size: 0.875rem; }
+    .form-check-input { background-color: #1a202c; border-color: #4a5568; }
+    .form-check-input:checked { background-color: #4299e1; border-color: #4299e1; }
+    .auto-archive-input { max-width: 120px; }
+    .quick-archive-btns .btn { font-size: 0.75rem; padding: 0.2rem 0.5rem; color: #a0aec0; border-color: #4a5568; }
+    .quick-archive-btns .btn:hover { background: #4a5568; color: #e2e8f0; }
+    .kpi-card {
+      background: #2d3748;
+      border: 1px solid #4a5568;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    .form-check-label {
-      color: #a0aec0;
-      font-size: 0.875rem;
-    }
-    .form-check-input {
-      background-color: #1a202c;
-      border-color: #4a5568;
-    }
-    .form-check-input:checked {
-      background-color: #4299e1;
-      border-color: #4299e1;
-    }
+    .kpi-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+    .kpi-label { font-size: 0.8rem; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi-aktiv    { border-left: 3px solid #4299e1; }
+    .kpi-aktiv .kpi-value    { color: #63b3ed; }
+    .kpi-pinnad   { border-left: 3px solid #ecc94b; }
+    .kpi-pinnad .kpi-value   { color: #ecc94b; }
+    .kpi-arkiverad { border-left: 3px solid #718096; }
+    .kpi-arkiverad .kpi-value { color: #718096; }
+    .search-wrapper { min-width: 220px; }
+    .search-icon { background: #1a202c; border: 1px solid #4a5568; border-right: 0; }
     .table-dark {
       background: transparent;
       --bs-table-bg: transparent;
@@ -302,24 +413,13 @@ interface NewsItem {
       padding: 10px 16px;
       vertical-align: middle;
     }
-    .row-pinned td:first-child {
-      border-left: 3px solid #ecc94b;
-    }
-    .row-urgent td:first-child {
-      border-left: 3px solid #e53e3e;
-    }
-    .news-title {
-      font-weight: 500;
-      color: #e2e8f0;
-    }
-    .news-body-preview {
-      margin-top: 2px;
-    }
-    /* Priority range */
-    .priority-range {
-      flex: 1;
-      accent-color: #4299e1;
-    }
+    .row-pinned td:first-child { border-left: 3px solid #ecc94b; }
+    .row-urgent td:first-child { border-left: 3px solid #e53e3e; }
+    .row-archived { opacity: 0.5; }
+    .row-archived td { color: #718096 !important; }
+    .news-title { font-weight: 500; color: #e2e8f0; }
+    .news-body-preview { margin-top: 2px; }
+    .priority-range { flex: 1; accent-color: #4299e1; }
     .priority-badge {
       min-width: 72px;
       text-align: center;
@@ -343,7 +443,6 @@ interface NewsItem {
     .prio-medium   { background: rgba(66,153,225,0.2);  color: #4299e1; }
     .prio-high     { background: rgba(237,137,54,0.2);  color: #ed8936; }
     .prio-critical { background: rgba(229,62,62,0.2);   color: #e53e3e; }
-    /* Custom badge colors */
     .bg-teal   { background-color: #0d9488 !important; }
     .bg-purple { background-color: #7c3aed !important; }
   `]
@@ -352,7 +451,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiBase = environment.apiUrl;
 
-  newsList: NewsItem[] = [];
+  adminNews: NewsItem[] = [];
   loading = false;
   loadError = '';
 
@@ -362,13 +461,25 @@ export class NewsAdminPage implements OnInit, OnDestroy {
   formError = '';
   formSuccess = '';
 
-  form = {
+  newsSearchQuery = '';
+  visaArkiverade = false;
+
+  form: {
+    title: string;
+    content: string;
+    category: string;
+    pinned: boolean;
+    published: boolean;
+    priority: number;
+    arkiverasEfterDagar: number | null;
+  } = {
     title: '',
     content: '',
     category: 'info',
     pinned: false,
     published: true,
     priority: 3,
+    arkiverasEfterDagar: null,
   };
 
   constructor(private http: HttpClient) {}
@@ -380,6 +491,33 @@ export class NewsAdminPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  get aktiva(): number {
+    return this.adminNews.filter(n => !n.arkiverad).length;
+  }
+
+  get pinnade(): number {
+    return this.adminNews.filter(n => n.pinned && !n.arkiverad).length;
+  }
+
+  get arkiverade(): number {
+    return this.adminNews.filter(n => n.arkiverad).length;
+  }
+
+  get filtreradeListan(): NewsItem[] {
+    let lista = this.visaArkiverade
+      ? this.adminNews
+      : this.adminNews.filter(n => !n.arkiverad);
+    if (this.newsSearchQuery) {
+      const q = this.newsSearchQuery.toLowerCase();
+      lista = lista.filter(n =>
+        (n.title ?? '').toLowerCase().includes(q) ||
+        (n.body ?? '').toLowerCase().includes(q) ||
+        (n.category ?? '').toLowerCase().includes(q)
+      );
+    }
+    return lista;
   }
 
   loadNews() {
@@ -395,7 +533,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
     ).subscribe(res => {
       this.loading = false;
       if (res && res.success) {
-        this.newsList = res.news;
+        this.adminNews = res.news;
       } else {
         this.loadError = 'Kunde inte hämta nyheter. Försök igen.';
       }
@@ -415,7 +553,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
   }
 
   resetForm() {
-    this.form = { title: '', content: '', category: 'info', pinned: false, published: true, priority: 3 };
+    this.form = { title: '', content: '', category: 'info', pinned: false, published: true, priority: 3, arkiverasEfterDagar: null };
     this.formError = '';
     this.formSuccess = '';
   }
@@ -429,7 +567,8 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       category: item.category,
       pinned: item.pinned,
       published: item.published,
-      priority: item.priority ?? 3,
+      priority: item.priority,
+      arkiverasEfterDagar: item.arkiveras_efter_dagar,
     };
     this.formError = '';
     this.formSuccess = '';
@@ -441,12 +580,14 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       this.formError = 'Rubrik krävs.';
       return;
     }
-
     this.saving = true;
     this.formError = '';
     this.formSuccess = '';
-
     const run = this.editingId ? 'update' : 'create';
+    const arkiverasEfterDagar =
+      this.form.arkiverasEfterDagar && this.form.arkiverasEfterDagar > 0
+        ? this.form.arkiverasEfterDagar
+        : null;
     const payload: any = {
       title: this.form.title.trim(),
       content: this.form.content.trim(),
@@ -454,11 +595,9 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       pinned: this.form.pinned,
       published: this.form.published,
       priority: this.form.priority,
+      arkiveras_efter_dagar: arkiverasEfterDagar,
     };
-    if (this.editingId) {
-      payload.id = this.editingId;
-    }
-
+    if (this.editingId) payload.id = this.editingId;
     this.http.post<{ success: boolean; id?: number; error?: string }>(
       `${this.apiBase}?action=news&run=${run}`,
       payload,
@@ -471,10 +610,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       this.saving = false;
       if (res && res.success) {
         this.formSuccess = this.editingId ? 'Nyhet uppdaterad.' : 'Nyhet skapad.';
-        setTimeout(() => {
-          this.cancelForm();
-          this.loadNews();
-        }, 800);
+        setTimeout(() => { this.cancelForm(); this.loadNews(); }, 800);
       } else {
         this.formError = res?.error ?? 'Kunde inte spara. Försök igen.';
       }
@@ -483,7 +619,6 @@ export class NewsAdminPage implements OnInit, OnDestroy {
 
   deleteNews(item: NewsItem) {
     if (!confirm(`Ta bort nyheten "${item.title}"? Detta kan inte ångras.`)) return;
-
     this.http.post<{ success: boolean; error?: string }>(
       `${this.apiBase}?action=news&run=delete`,
       { id: item.id },
@@ -494,7 +629,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(res => {
       if (res && res.success) {
-        this.newsList = this.newsList.filter(n => n.id !== item.id);
+        this.adminNews = this.adminNews.filter(n => n.id !== item.id);
       } else {
         alert('Kunde inte ta bort nyheten. Försök igen.');
       }
@@ -503,30 +638,17 @@ export class NewsAdminPage implements OnInit, OnDestroy {
 
   categoryLabel(cat: string): string {
     const map: Record<string, string> = {
-      produktion:    'Produktion',
-      bonus:         'Bonus',
-      system:        'System',
-      info:          'Info',
-      viktig:        'Viktig',
-      rekord:        'Rekord',
-      hog_oee:       'Hög OEE',
-      certifiering:  'Certifiering',
-      urgent:        'Brådskande',
+      produktion: 'Produktion', bonus: 'Bonus', system: 'System', info: 'Info',
+      viktig: 'Viktig', rekord: 'Rekord', hog_oee: 'Hög OEE', certifiering: 'Certifiering', urgent: 'Brådskande',
     };
     return map[cat] ?? cat;
   }
 
   categoryBadgeClass(cat: string): string {
     const map: Record<string, string> = {
-      produktion:    'bg-primary',
-      bonus:         'bg-warning text-dark',
-      system:        'bg-secondary',
-      info:          'bg-info text-dark',
-      viktig:        'bg-danger',
-      rekord:        'bg-success',
-      hog_oee:       'bg-teal text-dark',
-      certifiering:  'bg-purple',
-      urgent:        'bg-danger',
+      produktion: 'bg-primary', bonus: 'bg-warning text-dark', system: 'bg-secondary',
+      info: 'bg-info text-dark', viktig: 'bg-danger', rekord: 'bg-success',
+      hog_oee: 'bg-teal text-dark', certifiering: 'bg-purple', urgent: 'bg-danger',
     };
     return map[cat] ?? 'bg-secondary';
   }
@@ -550,8 +672,6 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       const d = new Date(dateStr);
       return d.toLocaleDateString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit' })
         + ' ' + d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return dateStr;
-    }
+    } catch { return dateStr; }
   }
 }

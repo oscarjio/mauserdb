@@ -54,6 +54,8 @@ interface RadarResponse {
   error?: string;
 }
 
+type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | 'custom';
+
 @Component({
   selector: 'app-operator-compare',
   standalone: true,
@@ -71,14 +73,37 @@ interface RadarResponse {
 
       <!-- Period + väljare -->
       <div class="controls-card">
-        <!-- Periodknappar -->
+
+        <!-- Kalenderperiod-knappar -->
         <div class="period-row">
-          <span class="control-label">Period:</span>
+          <span class="control-label">Kalenderperiod:</span>
           <div class="period-buttons">
-            <button class="period-btn" [class.active]="days === 14" (click)="setDays(14)">14 dagar</button>
-            <button class="period-btn" [class.active]="days === 30" (click)="setDays(30)">30 dagar</button>
-            <button class="period-btn" [class.active]="days === 90" (click)="setDays(90)">90 dagar</button>
+            <button class="period-btn"
+              [class.active]="comparePeriod === 'this_week'"
+              (click)="setComparePeriod('this_week')">Denna vecka</button>
+            <button class="period-btn"
+              [class.active]="comparePeriod === 'last_week'"
+              (click)="setComparePeriod('last_week')">Förra veckan</button>
+            <button class="period-btn"
+              [class.active]="comparePeriod === 'this_month'"
+              (click)="setComparePeriod('this_month')">Denna månad</button>
+            <button class="period-btn"
+              [class.active]="comparePeriod === 'last_month'"
+              (click)="setComparePeriod('last_month')">Förra månaden</button>
           </div>
+        </div>
+
+        <!-- Dagar-snabbval (custom) -->
+        <div class="period-row">
+          <span class="control-label">Eller antal dagar:</span>
+          <div class="period-buttons">
+            <button class="period-btn" [class.active]="comparePeriod === 'custom' && days === 14" (click)="setDays(14)">14 dagar</button>
+            <button class="period-btn" [class.active]="comparePeriod === 'custom' && days === 30" (click)="setDays(30)">30 dagar</button>
+            <button class="period-btn" [class.active]="comparePeriod === 'custom' && days === 90" (click)="setDays(90)">90 dagar</button>
+          </div>
+          <span class="period-info" *ngIf="periodLabel">
+            <i class="fas fa-calendar-alt me-1"></i>{{ periodLabel }}
+          </span>
         </div>
 
         <!-- Operatörsväljare -->
@@ -102,8 +127,13 @@ interface RadarResponse {
           </div>
         </div>
 
-        <!-- Jämför-knapp -->
+        <!-- Knappar: Jämför + CSV-export -->
         <div class="compare-btn-row">
+          <!-- Tom tillstånd: ingen operatör vald -->
+          <div *ngIf="!selectedOpA || !selectedOpB" class="empty-hint">
+            <i class="fas fa-info-circle me-2"></i>Välj två operatörer för att jämföra
+          </div>
+
           <button
             class="btn-compare"
             [disabled]="!selectedOpA || !selectedOpB || isLoading || selectedOpA === selectedOpB"
@@ -115,6 +145,14 @@ interface RadarResponse {
               <i class="fas fa-spinner fa-spin me-2"></i>Hämtar…
             </span>
           </button>
+
+          <button
+            *ngIf="compareData"
+            class="btn-export"
+            (click)="exportCompareCSV()">
+            <i class="fas fa-file-csv me-2"></i>Exportera CSV
+          </button>
+
           <p *ngIf="selectedOpA && selectedOpB && selectedOpA === selectedOpB" class="same-op-warning">
             Välj två olika operatörer
           </p>
@@ -134,6 +172,9 @@ interface RadarResponse {
           <div class="op-name-badge op-a-badge">
             <div class="op-avatar op-a-avatar">{{ getInitials(compareData.op_a.name) }}</div>
             <span>{{ compareData.op_a.name }}</span>
+          </div>
+          <div class="period-badge-center" *ngIf="periodLabel">
+            <i class="fas fa-calendar me-1"></i>{{ periodLabel }}
           </div>
           <div class="op-name-badge op-b-badge">
             <div class="op-avatar op-b-avatar">{{ getInitials(compareData.op_b.name) }}</div>
@@ -187,17 +228,20 @@ interface RadarResponse {
 
         <!-- KPI-jämförelsetabell -->
         <div class="kpi-table-card">
-          <h3 class="section-title"><i class="fas fa-table me-2"></i>KPI-jämförelse — senaste {{ days }} dagar</h3>
+          <div class="kpi-table-header-row">
+            <h3 class="section-title"><i class="fas fa-table me-2"></i>KPI-jämförelse — {{ periodLabel }}</h3>
+          </div>
           <div class="kpi-table">
 
             <!-- Header -->
             <div class="kpi-row kpi-header-row">
               <div class="kpi-col kpi-label-col">Mätetal</div>
               <div class="kpi-col kpi-a-col op-a-color">{{ compareData.op_a.name }}</div>
+              <div class="kpi-col kpi-diff-col">Diff (A vs B)</div>
               <div class="kpi-col kpi-b-col op-b-color">{{ compareData.op_b.name }}</div>
             </div>
 
-            <!-- Total IBC -->
+            <!-- Total IBC OK -->
             <div class="kpi-row" [class.winner-a]="wins('total_ibc_ok', 'a')" [class.winner-b]="wins('total_ibc_ok', 'b')">
               <div class="kpi-col kpi-label-col">
                 <i class="fas fa-box me-2 kpi-icon"></i>Total IBC (OK)
@@ -205,6 +249,11 @@ interface RadarResponse {
               <div class="kpi-col kpi-a-col" [class.winner-cell]="wins('total_ibc_ok', 'a')">
                 <span class="kpi-value">{{ compareData.op_a.total_ibc_ok }}</span>
                 <span *ngIf="wins('total_ibc_ok', 'a')" class="winner-badge">Bäst</span>
+              </div>
+              <div class="kpi-col kpi-diff-col">
+                <span class="diff-badge" [ngClass]="getDiffClass('total_ibc_ok')">
+                  {{ getDiffText('total_ibc_ok') }}
+                </span>
               </div>
               <div class="kpi-col kpi-b-col" [class.winner-cell]="wins('total_ibc_ok', 'b')">
                 <span class="kpi-value">{{ compareData.op_b.total_ibc_ok }}</span>
@@ -218,13 +267,24 @@ interface RadarResponse {
                 <i class="fas fa-check-circle me-2 kpi-icon"></i>Kvalitet %
               </div>
               <div class="kpi-col kpi-a-col" [class.winner-cell]="wins('kvalitet_pct', 'a')">
-                <span class="kpi-value" [class.kpi-good]="compareData.op_a.kvalitet_pct >= 97" [class.kpi-warn]="compareData.op_a.kvalitet_pct >= 90 && compareData.op_a.kvalitet_pct < 97" [class.kpi-bad]="compareData.op_a.kvalitet_pct < 90">
+                <span class="kpi-value"
+                  [class.kpi-good]="compareData.op_a.kvalitet_pct >= 97"
+                  [class.kpi-warn]="compareData.op_a.kvalitet_pct >= 90 && compareData.op_a.kvalitet_pct < 97"
+                  [class.kpi-bad]="compareData.op_a.kvalitet_pct < 90">
                   {{ compareData.op_a.kvalitet_pct | number:'1.1-1' }}%
                 </span>
                 <span *ngIf="wins('kvalitet_pct', 'a')" class="winner-badge">Bäst</span>
               </div>
+              <div class="kpi-col kpi-diff-col">
+                <span class="diff-badge" [ngClass]="getDiffClass('kvalitet_pct')">
+                  {{ getDiffText('kvalitet_pct', true) }}
+                </span>
+              </div>
               <div class="kpi-col kpi-b-col" [class.winner-cell]="wins('kvalitet_pct', 'b')">
-                <span class="kpi-value" [class.kpi-good]="compareData.op_b.kvalitet_pct >= 97" [class.kpi-warn]="compareData.op_b.kvalitet_pct >= 90 && compareData.op_b.kvalitet_pct < 97" [class.kpi-bad]="compareData.op_b.kvalitet_pct < 90">
+                <span class="kpi-value"
+                  [class.kpi-good]="compareData.op_b.kvalitet_pct >= 97"
+                  [class.kpi-warn]="compareData.op_b.kvalitet_pct >= 90 && compareData.op_b.kvalitet_pct < 97"
+                  [class.kpi-bad]="compareData.op_b.kvalitet_pct < 90">
                   {{ compareData.op_b.kvalitet_pct | number:'1.1-1' }}%
                 </span>
                 <span *ngIf="wins('kvalitet_pct', 'b')" class="winner-badge">Bäst</span>
@@ -240,6 +300,11 @@ interface RadarResponse {
                 <span class="kpi-value">{{ compareData.op_a.snitt_ibc_per_h | number:'1.1-1' }}</span>
                 <span *ngIf="wins('snitt_ibc_per_h', 'a')" class="winner-badge">Bäst</span>
               </div>
+              <div class="kpi-col kpi-diff-col">
+                <span class="diff-badge" [ngClass]="getDiffClass('snitt_ibc_per_h')">
+                  {{ getDiffText('snitt_ibc_per_h') }}
+                </span>
+              </div>
               <div class="kpi-col kpi-b-col" [class.winner-cell]="wins('snitt_ibc_per_h', 'b')">
                 <span class="kpi-value">{{ compareData.op_b.snitt_ibc_per_h | number:'1.1-1' }}</span>
                 <span *ngIf="wins('snitt_ibc_per_h', 'b')" class="winner-badge">Bäst</span>
@@ -253,6 +318,11 @@ interface RadarResponse {
               </div>
               <div class="kpi-col kpi-a-col">
                 <span class="kpi-value">{{ compareData.op_a.antal_skift }}</span>
+              </div>
+              <div class="kpi-col kpi-diff-col">
+                <span class="diff-badge" [ngClass]="getDiffClass('antal_skift')">
+                  {{ getDiffText('antal_skift') }}
+                </span>
               </div>
               <div class="kpi-col kpi-b-col">
                 <span class="kpi-value">{{ compareData.op_b.antal_skift }}</span>
@@ -268,6 +338,11 @@ interface RadarResponse {
                 <span class="kpi-value">{{ compareData.op_a.total_runtime_h | number:'1.1-1' }} h</span>
                 <span *ngIf="wins('total_runtime_h', 'a')" class="winner-badge">Bäst</span>
               </div>
+              <div class="kpi-col kpi-diff-col">
+                <span class="diff-badge" [ngClass]="getDiffClass('total_runtime_h')">
+                  {{ getDiffText('total_runtime_h') }}
+                </span>
+              </div>
               <div class="kpi-col kpi-b-col" [class.winner-cell]="wins('total_runtime_h', 'b')">
                 <span class="kpi-value">{{ compareData.op_b.total_runtime_h | number:'1.1-1' }} h</span>
                 <span *ngIf="wins('total_runtime_h', 'b')" class="winner-badge">Bäst</span>
@@ -281,6 +356,11 @@ interface RadarResponse {
               </div>
               <div class="kpi-col kpi-a-col">
                 <span class="kpi-value">{{ compareData.op_a.total_ibc }}</span>
+              </div>
+              <div class="kpi-col kpi-diff-col">
+                <span class="diff-badge" [ngClass]="getDiffClass('total_ibc')">
+                  {{ getDiffText('total_ibc') }}
+                </span>
               </div>
               <div class="kpi-col kpi-b-col">
                 <span class="kpi-value">{{ compareData.op_b.total_ibc }}</span>
@@ -360,7 +440,8 @@ interface RadarResponse {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
     }
     .control-label {
       color: #a0aec0;
@@ -371,6 +452,7 @@ interface RadarResponse {
     .period-buttons {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
     .period-btn {
       background: #1a202c;
@@ -391,6 +473,14 @@ interface RadarResponse {
       border-color: #4299e1;
       color: #fff;
       font-weight: 600;
+    }
+    .period-info {
+      font-size: 0.8rem;
+      color: #68d391;
+      background: rgba(104, 211, 145, 0.12);
+      border-radius: 12px;
+      padding: 3px 10px;
+      white-space: nowrap;
     }
 
     /* Selectors */
@@ -444,6 +534,7 @@ interface RadarResponse {
       display: flex;
       align-items: center;
       gap: 12px;
+      flex-wrap: wrap;
     }
     .btn-compare {
       background: linear-gradient(135deg, #4299e1, #3182ce);
@@ -465,10 +556,32 @@ interface RadarResponse {
       cursor: not-allowed;
       transform: none;
     }
+    .btn-export {
+      background: #2f855a;
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-export:hover {
+      background: #38a169;
+      transform: translateY(-1px);
+    }
     .same-op-warning {
       color: #fc8181;
       font-size: 0.85rem;
       margin: 0;
+    }
+    .empty-hint {
+      color: #a0aec0;
+      font-size: 0.88rem;
+      background: rgba(74, 85, 104, 0.3);
+      border-radius: 8px;
+      padding: 8px 14px;
     }
 
     /* Error */
@@ -487,6 +600,7 @@ interface RadarResponse {
       gap: 16px;
       margin-bottom: 16px;
       flex-wrap: wrap;
+      align-items: center;
     }
     .op-name-badge {
       display: flex;
@@ -516,6 +630,15 @@ interface RadarResponse {
     }
     .op-a-avatar { background: #2b6cb0; }
     .op-b-avatar { background: #c05621; }
+    .period-badge-center {
+      font-size: 0.82rem;
+      color: #a0aec0;
+      background: #1a202c;
+      border-radius: 8px;
+      padding: 6px 12px;
+      white-space: nowrap;
+      text-align: center;
+    }
 
     /* Radar card */
     .radar-card {
@@ -576,16 +699,12 @@ interface RadarResponse {
       gap: 6px;
       flex-wrap: wrap;
     }
-    .score-tag {
-      color: #cbd5e0;
-    }
+    .score-tag { color: #cbd5e0; }
     .score-tag strong {
       color: #e2e8f0;
       font-weight: 700;
     }
-    .score-sep {
-      color: #4a5568;
-    }
+    .score-sep { color: #4a5568; }
     .radar-no-data {
       display: flex;
       flex-direction: column;
@@ -602,11 +721,17 @@ interface RadarResponse {
       padding: 20px 24px;
       margin-bottom: 20px;
     }
+    .kpi-table-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
     .section-title {
       font-size: 1rem;
       font-weight: 600;
       color: #e2e8f0;
-      margin: 0 0 16px 0;
+      margin: 0;
     }
 
     .kpi-table {
@@ -616,14 +741,12 @@ interface RadarResponse {
     }
     .kpi-row {
       display: grid;
-      grid-template-columns: 2fr 1fr 1fr;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
       border-bottom: 1px solid #4a5568;
       transition: background 0.15s;
     }
     .kpi-row:last-child { border-bottom: none; }
-    .kpi-header-row {
-      background: #1a202c;
-    }
+    .kpi-header-row { background: #1a202c; }
     .kpi-col {
       padding: 12px 16px;
       display: flex;
@@ -636,6 +759,7 @@ interface RadarResponse {
     }
     .kpi-icon { font-size: 0.8rem; opacity: 0.7; }
     .kpi-a-col { justify-content: center; border-left: 1px solid #4a5568; }
+    .kpi-diff-col { justify-content: center; border-left: 1px solid #4a5568; }
     .kpi-b-col { justify-content: center; border-left: 1px solid #4a5568; }
     .op-a-color { color: #63b3ed; font-weight: 600; font-size: 0.85rem; }
     .op-b-color { color: #f6ad55; font-weight: 600; font-size: 0.85rem; }
@@ -645,9 +769,7 @@ interface RadarResponse {
       font-weight: 600;
       color: #e2e8f0;
     }
-    .winner-cell {
-      background: rgba(72, 187, 120, 0.12);
-    }
+    .winner-cell { background: rgba(72, 187, 120, 0.12); }
     .winner-badge {
       font-size: 0.65rem;
       background: #48bb78;
@@ -661,9 +783,33 @@ interface RadarResponse {
     .kpi-good { color: #68d391; }
     .kpi-warn { color: #f6ad55; }
     .kpi-bad  { color: #fc8181; }
-
     .winner-a { background: rgba(66, 153, 225, 0.05); }
     .winner-b { background: rgba(237, 137, 54, 0.05); }
+
+    /* Diff badges */
+    .diff-badge {
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 3px 10px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .diff-positive {
+      background: rgba(72, 187, 120, 0.18);
+      color: #68d391;
+      border: 1px solid rgba(72, 187, 120, 0.35);
+    }
+    .diff-negative {
+      background: rgba(252, 129, 74, 0.18);
+      color: #fc8181;
+      border: 1px solid rgba(252, 129, 74, 0.35);
+    }
+    .diff-neutral {
+      background: rgba(74, 85, 104, 0.3);
+      color: #a0aec0;
+      border: 1px solid #4a5568;
+    }
 
     /* Summary row */
     .summary-row {
@@ -736,11 +882,12 @@ interface RadarResponse {
       .compare-page { padding: 12px; }
       .selectors-row { flex-direction: column; }
       .vs-divider { align-self: center; }
-      .kpi-row { grid-template-columns: 1.5fr 1fr 1fr; }
-      .kpi-col { padding: 10px 8px; }
-      .kpi-value { font-size: 0.9rem; }
+      .kpi-row { grid-template-columns: 1.5fr 1fr 0.7fr 1fr; }
+      .kpi-col { padding: 10px 6px; }
+      .kpi-value { font-size: 0.85rem; }
       .radar-chart-wrapper { max-width: 300px; }
       .radar-score-item { font-size: 0.78rem; }
+      .diff-badge { font-size: 0.7rem; padding: 2px 6px; }
     }
   `]
 })
@@ -754,6 +901,9 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   selectedOpA: number | null = null;
   selectedOpB: number | null = null;
   days = 30;
+  comparePeriod: ComparePeriod = 'custom';
+  periodLabel = 'senaste 30 dagar';
+
   compareData: { op_a: OperatorData; op_b: OperatorData } | null = null;
   isLoading = false;
   errorMsg = '';
@@ -794,14 +944,91 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   }
 
   // -------------------------------------------------------------------------
-  // Period
+  // Kalenderperiod-val
   // -------------------------------------------------------------------------
-  setDays(d: number): void {
-    this.days = d;
-    // Re-compare om data redan är laddad
+  setComparePeriod(period: ComparePeriod): void {
+    this.comparePeriod = period;
+    const { from, to } = this.getPeriodDates();
+    // Beräkna antal dagar från "from" till och med "to" (inklusive)
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const diffDays = Math.round((toDate.getTime() - fromDate.getTime()) / msPerDay) + 1;
+    this.days = Math.max(1, diffDays);
+    this.updatePeriodLabel(from, to);
+
     if (this.compareData && this.selectedOpA && this.selectedOpB) {
       this.compare();
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Dagar-snabbval (custom)
+  // -------------------------------------------------------------------------
+  setDays(d: number): void {
+    this.days = d;
+    this.comparePeriod = 'custom';
+    this.periodLabel = `senaste ${d} dagar`;
+    if (this.compareData && this.selectedOpA && this.selectedOpB) {
+      this.compare();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Beräkna datumintervall för vald kalenderperiod
+  // -------------------------------------------------------------------------
+  getPeriodDates(): { from: string; to: string } {
+    const today = new Date();
+    const toISO = (d: Date) => d.toISOString().slice(0, 10);
+
+    const getMondayOf = (d: Date): Date => {
+      const copy = new Date(d);
+      const day = copy.getDay();
+      const diff = copy.getDate() - day + (day === 0 ? -6 : 1);
+      copy.setDate(diff);
+      return copy;
+    };
+
+    switch (this.comparePeriod) {
+      case 'this_week': {
+        const start = getMondayOf(new Date(today));
+        return { from: toISO(start), to: toISO(today) };
+      }
+      case 'last_week': {
+        const thisMonday = getMondayOf(new Date(today));
+        const start = new Date(thisMonday);
+        start.setDate(start.getDate() - 7);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 6);
+        return { from: toISO(start), to: toISO(end) };
+      }
+      case 'this_month': {
+        const start = new Date(today.getFullYear(), today.getMonth(), 1);
+        return { from: toISO(start), to: toISO(today) };
+      }
+      case 'last_month': {
+        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const end = new Date(today.getFullYear(), today.getMonth(), 0);
+        return { from: toISO(start), to: toISO(end) };
+      }
+      default: {
+        const start = new Date(today);
+        start.setDate(start.getDate() - this.days + 1);
+        return { from: toISO(start), to: toISO(today) };
+      }
+    }
+  }
+
+  private updatePeriodLabel(from: string, to: string): void {
+    const periodNames: Record<ComparePeriod, string> = {
+      this_week: 'Denna vecka',
+      last_week: 'Förra veckan',
+      this_month: 'Denna månad',
+      last_month: 'Förra månaden',
+      custom: `senaste ${this.days} dagar`,
+    };
+    const name = periodNames[this.comparePeriod] ?? `senaste ${this.days} dagar`;
+    this.periodLabel = `${name} (${from} – ${to})`;
   }
 
   // -------------------------------------------------------------------------
@@ -834,6 +1061,14 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     this.errorMsg = '';
     this.radarData = null;
 
+    // Uppdatera period-label vid varje anrop
+    if (this.comparePeriod !== 'custom') {
+      const { from, to } = this.getPeriodDates();
+      this.updatePeriodLabel(from, to);
+    } else {
+      this.periodLabel = `senaste ${this.days} dagar`;
+    }
+
     const url =
       `${this.apiBase}?action=operator-compare&run=compare` +
       `&op_a=${this.selectedOpA}&op_b=${this.selectedOpB}&days=${this.days}`;
@@ -849,13 +1084,10 @@ export class OperatorComparePage implements OnInit, OnDestroy {
         this.isLoading = false;
         if (data?.success) {
           this.compareData = { op_a: data.op_a, op_b: data.op_b };
-          // Vänta en tick så att *ngIf renderar canvaser
           if (this.chartTimer) {
             clearTimeout(this.chartTimer);
           }
           this.chartTimer = setTimeout(() => this.buildTrendChart(), 120);
-
-          // Ladda radar-data parallellt
           this.loadRadarData();
         } else {
           this.errorMsg = data?.error || 'Kunde inte hämta jämförelsedata. Försök igen.';
@@ -888,7 +1120,6 @@ export class OperatorComparePage implements OnInit, OnDestroy {
         this.radarLoading = false;
         if (data?.success) {
           this.radarData = data;
-          // Vänta en tick så canvas renderas
           if (this.radarTimer) {
             clearTimeout(this.radarTimer);
           }
@@ -943,12 +1174,8 @@ export class OperatorComparePage implements OnInit, OnDestroy {
               backdropColor: 'transparent',
               font: { size: 10 },
             },
-            grid: {
-              color: 'rgba(255,255,255,0.1)',
-            },
-            angleLines: {
-              color: 'rgba(255,255,255,0.1)',
-            },
+            grid: { color: 'rgba(255,255,255,0.1)' },
+            angleLines: { color: 'rgba(255,255,255,0.1)' },
             pointLabels: {
               color: '#a0aec0',
               font: { size: 12, weight: 'bold' },
@@ -972,9 +1199,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             borderColor: '#4a5568',
             borderWidth: 1,
             callbacks: {
-              label: (ctx) => {
-                return ` ${ctx.dataset.label}: ${ctx.parsed.r}`;
-              },
+              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.r}`,
             },
           },
         },
@@ -994,7 +1219,6 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     const opA = this.compareData.op_a;
     const opB = this.compareData.op_b;
 
-    // Samla alla unika veckor
     const allWeeks = Array.from(
       new Set([
         ...opA.trend_veckor.map((t) => t.vecka),
@@ -1004,18 +1228,14 @@ export class OperatorComparePage implements OnInit, OnDestroy {
 
     if (allWeeks.length === 0) return;
 
-    // Mappa vecka → IBC
     const mapA = new Map(opA.trend_veckor.map((t) => [t.vecka, t.ibc_vecka]));
     const mapB = new Map(opB.trend_veckor.map((t) => [t.vecka, t.ibc_vecka]));
 
     const dataA = allWeeks.map((w) => mapA.get(w) ?? 0);
     const dataB = allWeeks.map((w) => mapB.get(w) ?? 0);
 
-    // Formattera veckoetikett: "202406" → "V06"
     const labels = allWeeks.map((w) => {
-      if (w.length === 6) {
-        return `V${w.slice(4)}`;
-      }
+      if (w.length === 6) return `V${w.slice(4)}`;
       return w;
     });
 
@@ -1056,10 +1276,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false,
-        },
+        interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -1069,9 +1286,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             borderColor: '#4a5568',
             borderWidth: 1,
             callbacks: {
-              label: (ctx) => {
-                return ` ${ctx.dataset.label}: ${ctx.parsed.y} IBC`;
-              },
+              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} IBC`,
             },
           },
         },
@@ -1097,10 +1312,117 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   }
 
   // -------------------------------------------------------------------------
+  // CSV-export av jämförelsedata
+  // -------------------------------------------------------------------------
+  exportCompareCSV(): void {
+    if (!this.compareData) return;
+
+    const a = this.compareData.op_a;
+    const b = this.compareData.op_b;
+
+    const escapeField = (v: string | number): string => {
+      const s = String(v);
+      return s.includes(';') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const rows: string[][] = [
+      ['Operatörsjämförelse', this.periodLabel, '', ''],
+      ['Exporterad', new Date().toLocaleDateString('sv-SE', { dateStyle: 'long' }), '', ''],
+      [''],
+      ['KPI', a.name, b.name, 'Diff (A - B)'],
+      [
+        'Total IBC (OK)',
+        String(a.total_ibc_ok),
+        String(b.total_ibc_ok),
+        this.csvDiff(a.total_ibc_ok, b.total_ibc_ok),
+      ],
+      [
+        'Kvalitet %',
+        a.kvalitet_pct.toFixed(1) + '%',
+        b.kvalitet_pct.toFixed(1) + '%',
+        this.csvDiff(a.kvalitet_pct, b.kvalitet_pct, true),
+      ],
+      [
+        'IBC / timme',
+        a.snitt_ibc_per_h.toFixed(1),
+        b.snitt_ibc_per_h.toFixed(1),
+        this.csvDiff(a.snitt_ibc_per_h, b.snitt_ibc_per_h),
+      ],
+      [
+        'Antal skift',
+        String(a.antal_skift),
+        String(b.antal_skift),
+        this.csvDiff(a.antal_skift, b.antal_skift),
+      ],
+      [
+        'Total drifttid (h)',
+        a.total_runtime_h.toFixed(1),
+        b.total_runtime_h.toFixed(1),
+        this.csvDiff(a.total_runtime_h, b.total_runtime_h),
+      ],
+      [
+        'Totalt IBC (inkl. ej OK)',
+        String(a.total_ibc),
+        String(b.total_ibc),
+        this.csvDiff(a.total_ibc, b.total_ibc),
+      ],
+    ];
+
+    const csvContent = '\uFEFF' + rows.map((r) => r.map(escapeField).join(';')).join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    const safeLabel = this.periodLabel.replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '_');
+    link.download = `operatörsjamförelse_${a.name.replace(/\s+/g, '_')}_vs_${b.name.replace(/\s+/g, '_')}_${safeLabel}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private csvDiff(a: number, b: number, isPercent = false): string {
+    const diff = a - b;
+    if (diff === 0) return '0';
+    const sign = diff > 0 ? '+' : '';
+    return `${sign}${isPercent ? diff.toFixed(1) + '%' : diff.toFixed(1)}`;
+  }
+
+  // -------------------------------------------------------------------------
+  // Diff-badges
+  // -------------------------------------------------------------------------
+
+  getDiffClass(
+    metric: 'total_ibc_ok' | 'kvalitet_pct' | 'snitt_ibc_per_h' | 'total_runtime_h' | 'antal_skift' | 'total_ibc'
+  ): string {
+    if (!this.compareData) return 'diff-neutral';
+    const a = (this.compareData.op_a as any)[metric] as number;
+    const b = (this.compareData.op_b as any)[metric] as number;
+    if (a === b) return 'diff-neutral';
+    return a > b ? 'diff-positive' : 'diff-negative';
+  }
+
+  getDiffText(
+    metric: 'total_ibc_ok' | 'kvalitet_pct' | 'snitt_ibc_per_h' | 'total_runtime_h' | 'antal_skift' | 'total_ibc',
+    isPercent = false
+  ): string {
+    if (!this.compareData) return '→ 0';
+    const a = (this.compareData.op_a as any)[metric] as number;
+    const b = (this.compareData.op_b as any)[metric] as number;
+    const diff = a - b;
+    if (diff === 0) return '→ 0';
+    const absDiff = Math.abs(diff);
+    const formatted = isPercent
+      ? absDiff.toFixed(1) + '%'
+      : Number.isInteger(a) && Number.isInteger(b)
+        ? String(Math.round(absDiff))
+        : absDiff.toFixed(1);
+    return diff > 0 ? `↑ +${formatted}` : `↓ -${formatted}`;
+  }
+
+  // -------------------------------------------------------------------------
   // Hjälpmetoder
   // -------------------------------------------------------------------------
 
-  /** Returnerar true om operatör op vinner på metricen (högre = bättre) */
   wins(
     metric: 'total_ibc_ok' | 'kvalitet_pct' | 'snitt_ibc_per_h' | 'total_runtime_h',
     op: 'a' | 'b'
@@ -1108,15 +1430,12 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     if (!this.compareData) return false;
     const a = this.compareData.op_a;
     const b = this.compareData.op_b;
-
     const valA = a[metric] as number;
     const valB = b[metric] as number;
-
     if (valA === valB) return false;
     return op === 'a' ? valA > valB : valB > valA;
   }
 
-  /** Räknar hur många KPI:er varje operatör vinner och returnerar en summeringstext */
   getWinnerSummary(): string {
     if (!this.compareData) return '';
     const metrics: Array<'total_ibc_ok' | 'kvalitet_pct' | 'snitt_ibc_per_h' | 'total_runtime_h'> =
