@@ -11,6 +11,9 @@
  * GET  ?action=maintenance&run=stats           → KPI-statistik senaste 30 dagar
  * GET  ?action=maintenance&run=equipment-list  → Hämta aktiva utrustningar
  * GET  ?action=maintenance&run=equipment-stats → Statistik per utrustning (90 dagar)
+ * GET  ?action=maintenance&run=service-intervals → Alla serviceintervall med aktuell status
+ * POST ?action=maintenance&run=set-service-interval → Skapa/uppdatera serviceintervall (admin)
+ * POST ?action=maintenance&run=reset-service-counter → Nollställ räknare efter utförd service (admin)
  */
 class MaintenanceController {
     private $pdo;
@@ -46,8 +49,11 @@ class MaintenanceController {
             'stats'            => $this->getStats(),
             'equipment-list'   => $this->getEquipmentList(),
             'equipment-stats'  => $this->getEquipmentStats(),
-            'mttr-mtbf'        => $this->getMttrMtbf(),
-            default            => $this->sendError('Okänd metod', 400)
+            'mttr-mtbf'              => $this->getMttrMtbf(),
+            'service-intervals'      => $this->getServiceIntervals(),
+            'set-service-interval'   => $method === 'POST' ? $this->setServiceInterval() : $this->sendError('POST krävs', 405),
+            'reset-service-counter'  => $method === 'POST' ? $this->resetServiceCounter() : $this->sendError('POST krävs', 405),
+            default                  => $this->sendError('Okänd metod', 400)
         };
     }
 
@@ -487,6 +493,175 @@ class MaintenanceController {
         } catch (PDOException $e) {
             error_log('MaintenanceController::getMttrMtbf: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta MTTR/MTBF-data', 500);
+        }
+    }
+
+    // ---- Serviceintervall (prediktivt underhåll) ----
+
+    private function getServiceIntervals(): void {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc, skapad, uppdaterad
+                FROM service_intervals
+                ORDER BY maskin_namn
+            ");
+            $intervals = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Hämta nuvarande total IBC (max ibc_ok från rebotling_ibc)
+            $ibcStmt = $this->pdo->query("SELECT COALESCE(MAX(ibc_ok), 0) AS total_ibc FROM rebotling_ibc");
+            $totalIbc = (int)$ibcStmt->fetchColumn();
+
+            // Beräkna status för varje intervall
+            foreach ($intervals as &$row) {
+                $row['id'] = (int)$row['id'];
+                $row['intervall_ibc'] = (int)$row['intervall_ibc'];
+                $row['senaste_service_ibc'] = (int)$row['senaste_service_ibc'];
+
+                // Räkna IBC sedan senaste service
+                if ($row['senaste_service_datum']) {
+                    $countStmt = $this->pdo->prepare("
+                        SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_now FROM rebotling_ibc WHERE datum >= :datum
+                    ");
+                    $countStmt->execute([':datum' => $row['senaste_service_datum']]);
+                    $ibcSinceService = (int)$countStmt->fetchColumn();
+                } else {
+                    $ibcSinceService = $totalIbc - $row['senaste_service_ibc'];
+                }
+
+                $intervall = $row['intervall_ibc'];
+                $kvar = max(0, $intervall - $ibcSinceService);
+                $procentKvar = $intervall > 0
+                    ? round((($intervall - $ibcSinceService) / $intervall) * 100, 1)
+                    : 0;
+                $procentKvar = max(0, min(100, $procentKvar));
+
+                $row['ibc_sedan_service'] = $ibcSinceService;
+                $row['kvar'] = $kvar;
+                $row['procent_kvar'] = $procentKvar;
+
+                if ($procentKvar > 25) {
+                    $row['status'] = 'ok';
+                } elseif ($procentKvar > 10) {
+                    $row['status'] = 'varning';
+                } else {
+                    $row['status'] = 'kritisk';
+                }
+            }
+            unset($row);
+
+            echo json_encode([
+                'success'   => true,
+                'intervals' => $intervals,
+                'total_ibc' => $totalIbc
+            ]);
+        } catch (PDOException $e) {
+            error_log('MaintenanceController::getServiceIntervals: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta serviceintervall', 500);
+        }
+    }
+
+    private function setServiceInterval(): void {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true) ?? [];
+
+            $maskinNamn       = strip_tags(trim($data['maskin_namn'] ?? ''));
+            $intervallIbc     = isset($data['intervall_ibc']) ? intval($data['intervall_ibc']) : 0;
+            $senasteDatum     = $data['senaste_service_datum'] ?? null;
+            $senasteIbc       = isset($data['senaste_service_ibc']) ? intval($data['senaste_service_ibc']) : 0;
+            $id               = isset($data['id']) ? intval($data['id']) : 0;
+
+            if (empty($maskinNamn) || mb_strlen($maskinNamn) > 100) {
+                $this->sendError('Maskinnamn krävs (max 100 tecken)', 400);
+                return;
+            }
+            if ($intervallIbc <= 0) {
+                $this->sendError('Intervall måste vara > 0', 400);
+                return;
+            }
+            if ($senasteDatum !== null && !preg_match('/^\d{4}-\d{2}-\d{2}/', $senasteDatum)) {
+                $senasteDatum = null;
+            }
+            if ($senasteDatum) {
+                $senasteDatum = substr(str_replace('T', ' ', $senasteDatum), 0, 19);
+            }
+
+            if ($id > 0) {
+                // Uppdatera befintligt
+                $stmt = $this->pdo->prepare("
+                    UPDATE service_intervals
+                    SET maskin_namn = :maskin_namn, intervall_ibc = :intervall_ibc,
+                        senaste_service_datum = :senaste_datum, senaste_service_ibc = :senaste_ibc
+                    WHERE id = :id
+                ");
+                $stmt->execute([
+                    ':maskin_namn'    => $maskinNamn,
+                    ':intervall_ibc'  => $intervallIbc,
+                    ':senaste_datum'  => $senasteDatum,
+                    ':senaste_ibc'    => $senasteIbc,
+                    ':id'             => $id
+                ]);
+            } else {
+                // Skapa ny
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO service_intervals (maskin_namn, intervall_ibc, senaste_service_datum, senaste_service_ibc)
+                    VALUES (:maskin_namn, :intervall_ibc, :senaste_datum, :senaste_ibc)
+                ");
+                $stmt->execute([
+                    ':maskin_namn'    => $maskinNamn,
+                    ':intervall_ibc'  => $intervallIbc,
+                    ':senaste_datum'  => $senasteDatum,
+                    ':senaste_ibc'    => $senasteIbc
+                ]);
+                $id = (int)$this->pdo->lastInsertId();
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Serviceintervall sparat',
+                'id'      => $id
+            ]);
+        } catch (PDOException $e) {
+            error_log('MaintenanceController::setServiceInterval: ' . $e->getMessage());
+            $this->sendError('Kunde inte spara serviceintervall', 500);
+        }
+    }
+
+    private function resetServiceCounter(): void {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true) ?? [];
+            $id = intval($data['id'] ?? 0);
+
+            if ($id <= 0) {
+                $this->sendError('Ogiltigt ID', 400);
+                return;
+            }
+
+            // Hämta aktuell total IBC
+            $ibcStmt = $this->pdo->query("SELECT COALESCE(MAX(ibc_ok), 0) FROM rebotling_ibc");
+            $currentIbc = (int)$ibcStmt->fetchColumn();
+
+            $stmt = $this->pdo->prepare("
+                UPDATE service_intervals
+                SET senaste_service_datum = NOW(), senaste_service_ibc = :ibc
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':ibc' => $currentIbc,
+                ':id'  => $id
+            ]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->sendError('Serviceintervall hittades inte', 404);
+                return;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Serviceräknare nollställd'
+            ]);
+        } catch (PDOException $e) {
+            error_log('MaintenanceController::resetServiceCounter: ' . $e->getMessage());
+            $this->sendError('Kunde inte nollställa serviceräknare', 500);
         }
     }
 

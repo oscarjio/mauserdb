@@ -106,6 +106,20 @@
     <a routerLink="/admin/certifiering" class="alert-link">Hantera certifieringar</a></span>
   </div>
 
+  <!-- ---- Serviceintervall-varning ---- -->
+  <div *ngIf="serviceWarnings.length > 0" class="alert d-flex align-items-center mb-3 d-print-none"
+       [class.alert-danger]="serviceWarnings[0].status === 'kritisk'"
+       [class.alert-warning]="serviceWarnings[0].status !== 'kritisk'">
+    <i class="fas fa-oil-can me-2"></i>
+    <span>
+      <strong>Service snart!</strong>
+      <span *ngFor="let sw of serviceWarnings; let last = last">
+        {{ sw.maskin_namn }} ({{ sw.kvar }} IBC kvar, {{ sw.procent_kvar }}%){{ last ? '' : ', ' }}
+      </span>
+      — <a routerLink="/admin/underhall" class="alert-link">Hantera underhåll</a>
+    </span>
+  </div>
+
   <ng-container *ngIf="!loading && dashData">
 
     <!-- ============================================================

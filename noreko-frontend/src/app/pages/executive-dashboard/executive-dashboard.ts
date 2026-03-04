@@ -41,6 +41,9 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   // Certifikat-utgångvarning
   certExpiryCount: number = 0;
 
+  // Serviceintervall-varning
+  serviceWarnings: { maskin_namn: string; procent_kvar: number; kvar: number; status: string }[] = [];
+
   // Multi-line status
   allLinesStatus: any[] = [];
   private isFetchingLines = false;
@@ -72,6 +75,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.loadData();
     this.loadAllLinesStatus();
     this.loadCertExpiry();
+    this.loadServiceWarnings();
     this.loadLatestNews();
     this.pollInterval = setInterval(() => this.loadData(), 30000);
     this.linesStatusInterval = setInterval(() => this.loadAllLinesStatus(), 60000);
@@ -144,6 +148,24 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) this.certExpiryCount = res.count ?? 0;
+      });
+  }
+
+  loadServiceWarnings(): void {
+    this.http.get<any>('/noreko-backend/api.php?action=maintenance&run=service-intervals',
+      { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        if (res?.success && res.intervals) {
+          this.serviceWarnings = res.intervals
+            .filter((s: any) => s.procent_kvar <= 25)
+            .map((s: any) => ({
+              maskin_namn: s.maskin_namn,
+              procent_kvar: s.procent_kvar,
+              kvar: s.kvar,
+              status: s.status
+            }));
+        }
       });
   }
 

@@ -1,3 +1,5 @@
+**Worker: Prediktivt underhåll körningsbaserat** — Serviceintervall-system baserat på IBC-volym. Backend: 3 nya endpoints i MaintenanceController (service-intervals GET, set-service-interval POST, reset-service-counter POST) med prepared statements. Ny tabell service_intervals med default-rad. Frontend: ny flik "Serviceintervall" i underhållsloggen med tabell (maskin/intervall/IBC sedan service/kvar/status-badge), progress-bar per rad, admin-knappar (registrera utförd service, redigera intervall via modal). Status-badges: grön >25%, gul 10-25%, röd <10%. Varning-banner överst vid kritisk. Exec-dashboard: service-varnings-banner om maskin <25% kvar. Bygge OK.
+
 ## 2026-03-04 Bug Hunt #13 — session #4 granskning
 
 **Granskade filer (session #4 commits `7996e1f`, `f0a57ba`, `d0b8279`, `0795512`):**
