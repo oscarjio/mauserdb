@@ -305,7 +305,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## AKTIVA AGENTER (session 2026-03-04 session #6)
-*(Workers startas nu)*
+*(Batch 1 klar — 3/3 workers levererade. Startar batch 2...)*
 
 ---
 
@@ -606,9 +606,9 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ## AKTIV BATCH (2026-03-04 session #6)
 
 ### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Bug Hunt #14 — Systematisk felhantering**: LoginController saknar try-catch helt, OperatorCompareController 3 catch-block utan http_response_code(500), users.ts/operators.ts saknar timeout/catchError, stoppage-log/skiftrapport sökning saknar debounce
-- [ ] **Executive Dashboard: Underhållskostnad + Stämningsöversikt**: Maintenance cost KPI-kort (data redan beräknad i MaintenanceController run=stats), operatör-stämningstrend (FeedbackController run=summary) — bägge endpoints redan finns, bara visualisering saknas
-- [ ] **Users Admin UX-förbättring**: Sök/sortera/filtrera i användartabellen (nu: ingen sök, ingen sortering), URL-typo fix (overlamnin → overlamning)
+- [x] **Bug Hunt #14 — Systematisk felhantering**: KLAR `78de494` — LoginController try-catch, operators.ts timeout×7, stoppage-log+skiftrapport debounce 350ms, URL-typo overlamning, OperatorCompareController redan OK
+- [x] **Executive Dashboard: Underhållskostnad + Stämningsöversikt**: KLAR `ee9e933` — 3 underhålls-KPI-kort (kostnad SEK, händelser, stopptid h:mm), stämning-KPI med emoji + 30d trendgraf
+- [x] **Users Admin UX-förbättring**: KLAR `1a145dc` — sök med debounce, sorterbar tabell, statusfilter, statistik-rad
 
 ### 🟡 Medium prioritet — Nästa batch
 - [ ] **RebotlingController catch-block audit**: ~100 catch-block returnerar HTTP 200 vid fel — systematisk genomgång behövs

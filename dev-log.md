@@ -2,6 +2,12 @@
 
 **Analys**: Session #5 komplett (6 features, 4 bugfixar). Backlog var nere i 2 items. Kodbasanalys (15 fynd) + MES-research (7 idéer) genererade 12 nya items. Startade 3 workers: Bug Hunt #14 (felhantering), Exec Dashboard (underhållskostnad+stämning), Users Admin UX.
 
+**Worker: Bug Hunt #14** — LoginController.php try-catch (PDOException → HTTP 500), operators.ts timeout(8000)+catchError på 7 anrop, stoppage-log.ts 350ms debounce med onSearchInput(), rebotling-skiftrapport.ts 350ms debounce, URL-typo overlamnin→overlamning i routes+menu. OperatorCompareController redan korrekt. Bygge OK.
+
+**Worker: Executive Dashboard underhållskostnad+stämning** — 3 underhålls-KPI-kort (kostnad SEK 30d, händelser, stopptid h:mm) från MaintenanceController run=stats. Teamstämning: emoji-KPI + 30d trendgraf (Chart.js). getMaintenanceStats()+getFeedbackSummary() i service. Bygge OK.
+
+**Worker: Users Admin UX** — Sökfält 350ms debounce, sorterbar tabell (4 kolumner), statusfilter-pills (Alla/Aktiva/Admin/Inaktiva), statistik-rad. Dark theme, responsive. Bygge OK.
+
 ---
 
 **Worker: Skiftbyte-PDF automatgenerering** — Print-optimerad skiftsammanfattning som oppnas i nytt fonster. Backend: nytt endpoint `shift-pdf-summary` i RebotlingController.php som returnerar fullt HTML-dokument med A4-format, print-CSS, 6 KPI-kort (IBC OK, Kvalitet%, OEE, Drifttid, Rasttid, IBC/h), operatorstabell med per-rapport-rader (tid, produkt, IBC OK/ej OK, operatorer), skiftkommentar om tillganglig. Operatorer och produkter visas som badges. Knapp "Skriv ut / Spara PDF" for webblasarens print-dialog. Frontend skiftrapport: ny knapp (fa-file-export) per skiftrapport-rad som oppnar backend-HTML i nytt fonster via window.open(). Frontend andon: skiftbyte-detektion i polling — nar `status.skift` andras visas en notis "Skiftbyte genomfort — Skiftsammanfattning tillganglig" med lank till skiftrapporten, auto-dismiss efter 30s. Service: `getShiftPdfSummaryUrl()` i rebotling.service.ts. CSS: slideInRight-animation for notisen. Prepared statements, takeUntil(destroy$), timeout(8000)+catchError(). Bygge OK.
