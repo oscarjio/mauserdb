@@ -636,3 +636,50 @@
     color: black;
   }
 }
+
+/* ---- OEE Trend Panel ---- */
+.ej-i-drift-banner {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  border: 1px dashed #4a5568;
+  color: #e2e8f0;
+}
+
+.mini-kpi {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 10px 14px;
+  text-align: center;
+}
+.mini-kpi-val {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+.mini-kpi-lbl {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-top: 4px;
+}
+
+/* KPI highlight (bästa dag) */
+.kpi-highlight {
+  border-color: #d69e2e !important;
+}
+.kpi-sub {
+  font-size: 0.7rem;
+  color: #a0aec0;
+  margin-top: 2px;
+}
+
+/* Demo banner orange variant */
+.demo-banner-orange {
+  background: rgba(237,137,54,0.15);
+  border-left-color: #ed8936;
+}

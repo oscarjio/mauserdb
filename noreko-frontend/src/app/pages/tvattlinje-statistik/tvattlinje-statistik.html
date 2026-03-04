@@ -1,7 +1,13 @@
 <div class="tvattlinje-statistik-page">
 
-  <!-- Ej i drift-banner (visas när data är exempeldata) -->
-  <div class="demo-banner" *ngIf="error">
+  <!-- Ej i drift-banner (visas när OEE-trend är tom) -->
+  <div class="demo-banner" *ngIf="oeeTrendLoaded && oeeTrendEmpty">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Tvättlinjen är ej i drift</strong> — historisk statistik visas när produktion har startats.
+  </div>
+
+  <!-- Exempeldata-banner (visas när statistik-backend ej svarar) -->
+  <div class="demo-banner demo-banner-orange" *ngIf="error">
     <i class="fas fa-exclamation-triangle me-2"></i>
     <strong>Tvättlinjen är ej igång</strong> — visar exempeldata. Riktiga mätvärden visas när linjen är i drift.
   </div>
@@ -17,8 +23,8 @@
           </h2>
           <!-- Breadcrumb Navigation -->
           <nav class="breadcrumb-nav">
-            <button 
-              class="breadcrumb-btn" 
+            <button
+              class="breadcrumb-btn"
               (click)="navigateToYear()"
               [class.active]="viewMode === 'year'">
               {{ breadcrumb[0] || currentYear }}
@@ -26,9 +32,9 @@
             <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 1">
               <i class="fas fa-chevron-right"></i>
             </span>
-            <button 
+            <button
               *ngIf="breadcrumb.length > 1"
-              class="breadcrumb-btn" 
+              class="breadcrumb-btn"
               (click)="navigateToMonth()"
               [class.active]="viewMode === 'month'">
               {{ breadcrumb[1] }}
@@ -36,14 +42,14 @@
             <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 2">
               <i class="fas fa-chevron-right"></i>
             </span>
-            <button 
+            <button
               *ngIf="breadcrumb.length > 2"
               class="breadcrumb-btn active">
               {{ breadcrumb[2] }}
             </button>
           </nav>
         </div>
-        
+
         <!-- Navigation Controls -->
         <div class="d-flex align-items-center gap-2">
           <a href="/tvattlinje/live" class="btn btn-outline-secondary btn-sm me-2">
@@ -64,48 +70,74 @@
   </div>
 
   <div class="container-fluid py-4">
-    
-    <!-- KPI Cards -->
+
+    <!-- KPI Cards — 6 kort inkl OEE-trend-data -->
     <div class="row mb-4">
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-6 col-lg-2 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon">
-            <i class="fas fa-cubes"></i>
+            <i class="fas fa-cubes text-primary"></i>
           </div>
           <div class="kpi-value">{{ totalCycles }}</div>
           <div class="kpi-label">Totalt Cykler</div>
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-6 col-lg-2 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon">
-            <i class="fas fa-clock"></i>
+            <i class="fas fa-clock text-info"></i>
           </div>
           <div class="kpi-value">{{ avgCycleTime }} min</div>
           <div class="kpi-label">Snitt Cykeltid</div>
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-6 col-lg-2 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon">
-            <i class="fas fa-percentage"></i>
+            <i class="fas fa-percentage text-warning"></i>
           </div>
           <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">
             {{ avgEfficiency | number:'1.1-1' }}%
           </div>
-          <div class="kpi-label">Genomsnittlig Effektivitet</div>
+          <div class="kpi-label">Snitt Effektivitet</div>
         </div>
       </div>
 
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-6 col-lg-2 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon">
-            <i class="fas fa-hourglass-half"></i>
+            <i class="fas fa-hourglass-half text-secondary"></i>
           </div>
           <div class="kpi-value">{{ totalRuntimeHours }}h</div>
           <div class="kpi-label">Total Körtid</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-2 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <i class="fas fa-chart-bar text-success"></i>
+          </div>
+          <div class="kpi-value text-success">
+            {{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}
+          </div>
+          <div class="kpi-label">Snitt IBC / dag (30d)</div>
+        </div>
+      </div>
+
+      <div class="col-6 col-lg-2 mb-3">
+        <div class="kpi-card"
+          [class.kpi-highlight]="bastaDagIbc > 0">
+          <div class="kpi-icon">
+            <i class="fas fa-trophy text-warning"></i>
+          </div>
+          <div class="kpi-value text-warning">
+            {{ bastaDagIbc > 0 ? bastaDagIbc : '–' }}
+          </div>
+          <div class="kpi-label">Bästa dag (IBC)</div>
+          <div class="kpi-sub" *ngIf="bastaDagLabel !== '–'">{{ bastaDagLabel }}</div>
         </div>
       </div>
     </div>
@@ -118,7 +150,7 @@
       <p class="mt-3">Hämtar statistik...</p>
     </div>
 
-    <!-- Error State (visas som info, exempeldata-banner hanteras separat) -->
+    <!-- Error State -->
     <div class="alert alert-info d-flex align-items-center" *ngIf="error && !loading" style="border-radius:10px;">
       <i class="fas fa-flask me-2"></i>
       <div>
@@ -126,9 +158,97 @@
       </div>
     </div>
 
+    <!-- OEE Trend Panel -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="dark-card">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+              <h5 class="mb-0">
+                <i class="fas fa-chart-line me-2 text-primary"></i>
+                OEE-trend — Kvalitet &amp; IBC per dag
+              </h5>
+              <small class="text-muted">Baserat på skiftrapporter. Orange linje = WCM-mål 85%.</small>
+            </div>
+            <div class="d-flex gap-2 align-items-center">
+              <select class="form-select form-select-sm"
+                style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
+                [(ngModel)]="oeeTrendDagar"
+                (change)="onOeeTrendDagarChange()">
+                <option [value]="14">14 dagar</option>
+                <option [value]="30">30 dagar</option>
+                <option [value]="60">60 dagar</option>
+                <option [value]="90">90 dagar</option>
+              </select>
+              <button class="btn btn-sm btn-outline-secondary" (click)="loadOeeTrend()" [disabled]="oeeTrendLoading">
+                <i class="fas fa-sync-alt" [class.fa-spin]="oeeTrendLoading"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+
+            <!-- Laddning -->
+            <div *ngIf="oeeTrendLoading" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+              Hämtar trenddata...
+            </div>
+
+            <!-- Ej i drift -->
+            <div *ngIf="oeeTrendLoaded && oeeTrendEmpty && !oeeTrendLoading"
+              class="ej-i-drift-banner">
+              <i class="fas fa-pause-circle fa-2x mb-2 text-muted"></i>
+              <h6 class="mb-1">Linjen ej i drift</h6>
+              <p class="mb-0 text-muted small">{{ oeeTrendMessage || 'Ingen historisk data tillgänglig ännu.' }}</p>
+              <p class="text-muted small mt-1">Diagrammet fylls automatiskt när produktion startar.</p>
+            </div>
+
+            <!-- KPI-sammanfattning OEE-trend -->
+            <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
+              class="row g-2 mb-3">
+              <div class="col-6 col-md-3">
+                <div class="mini-kpi">
+                  <div class="mini-kpi-val">{{ oeeTrendSummary.total_ibc | number }}</div>
+                  <div class="mini-kpi-lbl">Totalt IBC ({{ oeeTrendDagar }}d)</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="mini-kpi">
+                  <div class="mini-kpi-val">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-1' }}</div>
+                  <div class="mini-kpi-lbl">Snitt IBC/dag</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="mini-kpi">
+                  <div class="mini-kpi-val"
+                    [class.text-success]="oeeTrendSummary.snitt_oee_pct >= 90"
+                    [class.text-warning]="oeeTrendSummary.snitt_oee_pct >= 70 && oeeTrendSummary.snitt_oee_pct < 90"
+                    [class.text-danger]="oeeTrendSummary.snitt_oee_pct < 70">
+                    {{ oeeTrendSummary.snitt_oee_pct | number:'1.1-1' }}%
+                  </div>
+                  <div class="mini-kpi-lbl">Snitt Kvalitet %</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="mini-kpi">
+                  <div class="mini-kpi-val text-warning">{{ oeeTrendSummary.basta_ibc }}</div>
+                  <div class="mini-kpi-lbl">Bästa dag — {{ oeeTrendSummary.basta_dag || '–' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Graf -->
+            <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
+              class="chart-container" style="height:260px;">
+              <canvas #oeeTrendChart></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Content Grid -->
     <div class="row" *ngIf="!loading">
-      
+
       <!-- Calendar/Period Selector -->
       <div class="col-lg-3 mb-4">
         <div class="dark-card">
@@ -146,7 +266,7 @@
           </div>
           <div class="card-body">
             <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
-              <div 
+              <div
                 *ngFor="let cell of getVisiblePeriodCells()"
                 class="period-cell"
                 [class.has-data]="cell.hasData"
@@ -169,7 +289,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="mt-3" *ngIf="viewMode !== 'day'">
               <!-- I månadsvy: växla visa alla dagar / bara dagar med cykler -->
               <div class="d-grid gap-2 mb-2" *ngIf="viewMode === 'month'">
@@ -184,7 +304,7 @@
               </div>
               <!-- Action Buttons -->
               <div class="d-grid gap-2 mb-3">
-                <button 
+                <button
                   class="btn btn-primary btn-lg"
                   (click)="showStatistics()"
                   [disabled]="loading">
@@ -196,7 +316,7 @@
                     Uppdatera Statistik
                   </span>
                 </button>
-                <button 
+                <button
                   class="btn btn-outline-secondary"
                   (click)="clearSelection()"
                   [disabled]="selectedPeriods.length === 0">
@@ -204,7 +324,7 @@
                   Rensa markering
                 </button>
               </div>
-              
+
               <small class="legend d-block text-center">
                 <span class="legend-item">
                   <span class="legend-color" style="background: #228b22"></span>
@@ -216,10 +336,10 @@
                 </span>
               </small>
               <small class="text-muted d-block text-center mt-2">
-                💡 Dra musen för att markera flera
+                Dra musen för att markera flera
               </small>
             </div>
-            
+
             <div class="mt-3" *ngIf="viewMode === 'day'">
               <small class="legend d-block text-center">
                 <span class="legend-item">
@@ -228,7 +348,7 @@
                 </span>
               </small>
               <small class="text-muted d-block text-center mt-2">
-                💡 Visar genomsnittlig cykeltid per 10-minutersintervall
+                Visar genomsnittlig cykeltid per 10-minutersintervall
               </small>
             </div>
           </div>
@@ -279,12 +399,14 @@
                 Klicka på en rad för att öppna detaljvy
               </small>
             </div>
-            <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="tableData.length > 0" title="Exportera till CSV">
-              <i class="fas fa-download me-1"></i>CSV
-            </button>
-            <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="tableData.length > 0" title="Exportera till Excel">
-              <i class="fas fa-file-excel me-1"></i>Excel
-            </button>
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="tableData.length > 0" title="Exportera till CSV">
+                <i class="fas fa-download me-1"></i>CSV
+              </button>
+              <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="tableData.length > 0" title="Exportera till Excel">
+                <i class="fas fa-file-excel me-1"></i>Excel
+              </button>
+            </div>
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
@@ -299,7 +421,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr 
+                  <tr
                     *ngFor="let row of tableData"
                     [class.clickable]="row.clickable"
                     (click)="onTableRowClick(row)">
@@ -307,35 +429,23 @@
                       <i class="fas fa-calendar-day me-2 text-muted"></i>
                       {{ row.period }}
                     </td>
-                    <td class="text-end">
-                      <strong>{{ row.cycles }}</strong>
-                    </td>
-                    <td class="text-end">
-                      {{ row.avgCycleTime }} min
-                    </td>
+                    <td class="text-end"><strong>{{ row.cycles }}</strong></td>
+                    <td class="text-end">{{ row.avgCycleTime }} min</td>
                     <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
                       <strong>{{ row.efficiency | number:'1.1-1' }}%</strong>
                     </td>
-                    <td class="text-end">
-                      {{ row.runtime | number:'1.0-0' }}
-                    </td>
+                    <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
                   </tr>
                 </tbody>
                 <tfoot *ngIf="tableData.length > 1">
                   <tr class="total-row">
                     <td><strong>Totalt</strong></td>
-                    <td class="text-end">
-                      <strong>{{ totalCycles }}</strong>
-                    </td>
-                    <td class="text-end">
-                      <strong>{{ avgCycleTime }} min</strong>
-                    </td>
+                    <td class="text-end"><strong>{{ totalCycles }}</strong></td>
+                    <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
                     <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
                       <strong>{{ avgEfficiency | number:'1.1-1' }}%</strong>
                     </td>
-                    <td class="text-end">
-                      <strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong>
-                    </td>
+                    <td class="text-end"><strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong></td>
                   </tr>
                 </tfoot>
               </table>
@@ -351,7 +461,7 @@
         <div class="dark-card text-center py-5">
           <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
           <h5>Ingen data för vald period</h5>
-          <p class="text-muted">Välj en annan period eller vänta på att produktionen startar</p>
+          <p class="text-muted">Välj en annan period eller vänta på att produktionen startar.</p>
         </div>
       </div>
     </div>

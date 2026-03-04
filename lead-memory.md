@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-03*
+*Senast uppdaterad: 2026-03-04*
 
 ---
 
@@ -126,6 +126,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - *2026-03-03*: Tänk som en ambitiös teamleader — ge kunden det de bad om OCH det de inte visste de behövde. Analysera verksamheten (IBC-tvätteri, operatörsbonus, VD-översikt), identifiera smärtpunkter, ta initiativ. Var inte rädd att bygga djärva features och lägga i menyn — kunden och VD utvärderar efteråt.
 - *2026-03-03*: **DYGNET RUNT** — Ägaren sover. Ni som inte behöver sova SKA fortsätta jobba aktivt tills ägaren explicit säger stopp. Det finns alltid något att fixa. Håll alltid minst 2 worker-agenter i arbete — om en blir klar, starta en ny direkt. Backlogen tar aldrig slut: granska koden, hitta buggar, sök internet, uppfinn nya features, förbättra befintliga. Ingen väntetid accepteras.
 - *2026-03-03*: **GRAFKVALITET** — Graferna behöver mer detaljerade datapunkter. "En punkt var 10:e [enhet] när man är per dygn är lite dåligt." Implementera adaptiv granularitet med toggle-knappar (Timme/Skift/Dag) i graferna. Se TEKNISK PLAN nedan.
+- *2026-03-04*: **RATE LIMIT / AVBROTT** — "Ni ska fortsätta hela tiden automatiskt, lös det så det inte stannar." + "Ledaragenten ska ha koll på allt detta och se till att jobb utförs, även efter man får nya tokens." → Ledaragenten ska OMEDELBART starta om misslyckade agenter när rate-limit upphör (token-reset). Inget avbrott tolereras. Om worker-agenter returnerar "out of extra usage" — starta om dem direkt i nästa svar. Ledaragenten ska självständigt hålla koll på vad som misslyckades och driva arbetet vidare utan att ägaren behöver påminna.
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
@@ -241,9 +242,10 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-03 natt)
-- **Benchmarking-agent** (a57caa3bcc447d235): benchmarking/, app.routes.ts, RebotlingController (benchmarking endpoint), nav
-- **What-if-simulator-agent** (a25400e70cec4e981): bonus-admin.ts, BonusController (simulate endpoint)
+## AKTIVA AGENTER (session 2026-03-04)
+- **Tvättlinje-statistik-agent** (a59ff05a): tvattlinje-statistik.ts, tvattlinje-skiftrapport.ts — PÅGÅR
+- **Kvalitetstrend+OEE-Waterfall-agent** (startas): rebotling-statistik.ts, RebotlingController nya endpoints — STARTAS
+- **Operatörsjämförelse-agent** (startas): ny sida /admin/operator-compare, operatörsjämförelse ts — STARTAS
 
 ---
 
@@ -270,6 +272,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - `92cbcb1` — **Bug hunt #1**: 8 buggar fixade — takeUntil-läckor i bonus-dashboard, timeout saknas i my-bonus HTTP-anrop, isFetching-guard i rebotling-admin, prematur loading-reset i production-analysis, BonusController sendError() HTTP 200 vid fel, FILTER_SANITIZE_STRING deprecated PHP 8.2.
 - `82173ec` — **Bonus-agent**: My-bonus: statusbricka (rekordnivå/uppåt/etc.), IBC/h-trendgraf 7 skift med glidande snitt, skiftprognos-banner, PDF-export. Bonus-dashboard: trendpilar ↑↓→ vs föregående period, veckobonusmål-progressbar för team + per operatör. Bonus-admin: ny Prognos-flik (sök operatör → snittbonus/tier/IBC/h), veckobonusmål-konfiguration. Backend: operator_forecast endpoint, set_weekly_goal endpoint. Migration: `2026-03-03_bonus_weekly_goal.sql`.
 - StatusController.php: session_start(['read_and_close']) för att undvika PHP-session-låsning
+- `4442ed5`+`611dbff` — **Historisk jämförelse**: `/rebotling/historik` — månadsöversikt stapeldiagram (grön/röd vs snitt), år-mot-år linjegraf per ISO-vecka, månadsdetaljstabell med trendpilar, KPI-sammanfattningskort (total/snitt/bästa månad), periodval 12–48 månader. Backend HistorikController monthly+yearly endpoints.
 
 ---
 
@@ -328,14 +331,58 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 1. Kör `git log --oneline -15` för att se vad som committats sedan förra sessionen
 2. Uppdatera backlog — markera klara items [x], notera commit-hash
 3. Starta 2-3 nya worker-agenter DIREKT på nästa prioriterade öppna items
-4. Återstående IDÉBANK-features att implementera:
-   - **What-if bonussimulator**: Admin justerar bonusparametrar → ser live-effekt på utbetalningar
-   - **Månadsrapport PDF**: Auto-genererad sammanfattning för månaden — total prod, snitt OEE, bästa/sämsta dag, bonusutbetalningar
-   - **Skiftplaneringsvy** (`/admin/skiftplan`): Kalendervy, vilka operatörer är schemalagda per skift
-   - **Benchmarking-vy**: Jämför denna vecka vs bästa veckan någonsin
-   - **Korrelationsanalys**: Operatör A presterar X% bättre när partnern är Operatör B
-   - **Operatörscertifiering** (`/admin/certifiering`): Spåra certifieringar per linje/maskin
-   - **Annotationer i grafer**: Markera driftstopp, helgdagar, nya operatörer direkt i tidslinjen
-   - **Skiftrapport auto-export**: Skicka skiftsammanfattning som PDF till chef vid skiftslut
-5. Om ovan är klara: granska koden, leta buggar, sök internet efter nya MES/OEE-features
-6. Uppdatera denna fil med beslut och observationer
+4. Om backlogen mot förmodan är tom: starta behovsanalys-agent + bug hunting-agent parallellt
+5. Uppdatera denna fil med beslut och observationer
+
+## BACKLOG — NY BATCH (2026-03-03 natt)
+
+### ✅ Levererat denna session (natt)
+- `a3d5b49` — Live-ranking TV-skärm
+- `e4ca058` — Histogram + SPC
+- `cc4ba9f` — Kalender + Executive alerts
+- `28dae83` — Adaptiv grafgranularitet
+- `9001021` — Benchmarking + What-if simulator
+- `d44a4fe` — Kvalitetstrendkort + OEE Waterfall
+- `22bfe7c` — Operatörscertifiering
+- `078e804` — Graf-annotationer
+- `ad4429e` — Korrelationsanalys
+- `153729e` — Prediktiv underhållsindikator
+- `e9e7590`+`d997b06` — Månadsrapport + Skiftplaneringsvy
+- `ca4b8f2` — Digital skiftöverlämning
+- `1feb15e` — Skiftrapportkommentar
+- Bonusprognos i kr — pågår (a74a34ff)
+- `ddbade9` — Andon-tavla full-screen TV (`/rebotling/andon`) — AndonController, OEE/dagsmål/IBC-per-h KPI-kort, 10s polling, linjestatus (kör/väntar/stopp), färgkodad grön/orange/röd, navbar dold automatiskt
+- `1feb15e` — Skiftrapportkommentar — rebotling_skift_kommentar-tabell, GET/POST endpoints, lazy-load, teckenräknare, PDF-inkluderat
+- `ca4b8f2` — Digital skiftöverlämning — shift_handover-tabell, prioritetskort (normal/viktig/brådskande), 60s polling, authGuard
+
+### 🔴 Hög prioritet — ÖPPNA
+- [x] **Stopporsaksanalys Pareto** (`/stopporsaker`): Levererat `0f4865c` — ny Pareto-flik, kombinerat Chart.js (staplar+linje), custom 80%-referenslinje, vital/trivial-badges, KPI-kort, datumfilter 7/30/90 dagar.
+- [x] **Bug hunt #3**: Levererat `20686bb` — 6 buggar fixade: shift-plan timeout/catchError, live-ranking withCredentials+Subscription-rensning, production-calendar withCredentials, benchmarking setTimeout-referens, CertificationController session_start() utan guard.
+
+### 🟡 Medium prioritet — ÖPPNA
+- [x] **Bonusprognos i kr**: Levererat `e472997` — bonus_level_amounts-tabell, admin konfigurerar SEK/nivå (Brons/Silver/Guld/Platina), my-bonus visar "~1 000 kr denna månad" + nästa nivå delta-kr + progress-bar.
+- [x] **Operatörsdashboard** (`/admin/operator-dashboard`): Levererat `4fb35a1` — live-vy med 4 KPI-kort, operatörstabell (initialer-avatar, IBC/h, kvalitet%, status-badge), 60s polling, adminGuard.
+- [x] **OEE World-class benchmark**: Levererat `6633497` — WCM 85% grön streckad linje + Branschsnitt 70% orange streckad linje i OEE-trend-grafen, legend-förklaring ovanför canvas.
+- [x] **Nyhetsflöde startsidan**: Levererat `6633497` (bundlad med OEE benchmark) — NewsController.php, 4 händelsetyper (rekordag/hög OEE/certifiering/urgentnotat), färgkodade vänsterborders, 5-min polling.
+- [x] **Klassificeringslinje förberedelsearbete**: Levererat `d01b2d8`+`e7374f4` — KlassificeringslinjeController.php (settings/systemstatus/weekday-goals), klassificeringslinje-admin, migration, route `/klassificeringslinje/admin`, nav-länk.
+- [x] **Såglinje förberedelsearbete**: Levererat `d01b2d8` — SaglinjeController.php, saglinje-admin (formulär+systemstatus+veckodagsmål), migration, route, nav.
+- [x] **Notifikationsbadge**: Levererat `208eb8d` — röd badge på Rebotling-dropdown + Skiftöverlämning-länk, 60s polling, kräver inloggning, session_start read_and_close.
+- [ ] **Push-notifikation my-bonus**: Web Push API — notifiera operatör när de passerar bonusnivå (Brons→Silver→Guld).
+- [ ] **OEE World-class benchmark**: Referenslinje i OEE-grafer: "WCM = 85%". Informationsruta om branschsnitt (65-75%). — PÅGÅR
+- [ ] **Automatisk skiftrapport-export**: POST-endpoint vid skiftslut → genererar PDF → emailar till konfigurerade mottagare.
+
+### 🟢 Lägre prioritet — ÖPPNA
+- [ ] **Energieffektivitet-vy** (`/rebotling/energi`): Om energidata finns — IBC per kWh, energikostnad per IBC.
+- [x] **Bug hunt #4**: Levererat `dc5c4df` — 14 fixes: news.ts subscriptions (4), menu.ts takeUntil+timeout/catchError (3), KlassificeringslinjeController session_start guard (2), bonus-admin.ts subscriptions (8).
+- [x] **Månadsrapport förbättring**: Levererat `ba533b7` — OEE-trend linjegraf (WCM 85% referens), topp-3 operatörer med medaljer, bästa/sämsta vecka, total stillestånd KPI, gold/worst-row markering i veckosammanfattning.
+- [x] **Veckodag-analys**: Levererat `632c0fe` — ny sektion i rebotling-statistik, bästa dag grön/sämsta röd, tooltip med OEE+max+min, datatabell, dropdown 30/90/180/365 dagar, weekday-stats endpoint i RebotlingController.
+- [x] **Tvättlinje förberedelsearbete**: Levererat `8040402` — TvattlinjeController getSettings/setSettings/getSystemStatus/getWeekdayGoals, tvattlinje_settings + tvattlinje_weekday_goals tabeller, tvattlinje-admin utbyggd med formulär+systemstatus+veckodagsmål.
+- [ ] **Nyhetsflöde förbättring**: "Senaste händelser"-sektion på startsidan — ny rekordag, certifiering uppnådd, bonusnivå ändrad.
+- [x] **Export förbättring**: Levererat `8040402` — SheetJS aoa_to_sheet, kolumnbredder, fryst header-rad, sammanfattningsblad. Alla 3 skiftrapportsidor (rebotling/tvattlinje/saglinje).
+- [x] **Operatörsdashboard**: Levererat `4fb35a1` — UNION ALL op1/op2/op3 från rebotling_skiftrapport, IBC/h, kvalitet%, status-badge, 60s polling, adminGuard.
+
+### 🔵 IDÉBANK — framtida sessioner
+- Maskinlärning-prediktion: förutsäg morgondagens produktion baserat på historik
+- QR-kod per tank: scanna → se hela historiken för just den tanken
+- Flödesanalys: visualisera IBC-flödet genom hela anläggningen (in → tvätt → ut)
+- Kundportal: extern vy för kunder (kräver auth + sub-domain)

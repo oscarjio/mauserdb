@@ -26,8 +26,8 @@ export interface ProductionCycle {
   ibc_count: number;
   produktion_procent: number;
   skiftraknare: number;
-  cycle_time: number;  // Faktisk cykeltid i minuter
-  target_cycle_time?: number;  // Mål cykeltid från produkt
+  cycle_time: number;
+  target_cycle_time?: number;
 }
 
 export interface OnOffEvent {
@@ -50,6 +50,53 @@ export interface StatisticsResponse {
       days_with_production: number;
     };
   };
+}
+
+export interface ReportDayData {
+  total_ibc: number;
+  total_ok: number;
+  total_ej_ok: number;
+  kvalitet_pct: number;
+  runtime_minutes: number;
+  rast_minutes: number;
+  ibc_per_hour: number;
+  delta_ibc: number;
+  prev_ibc: number;
+  skift_count: number;
+  skift_data: any[];
+}
+
+export interface ReportDayResponse {
+  success: boolean;
+  empty: boolean;
+  message?: string;
+  datum: string;
+  data: ReportDayData;
+}
+
+export interface OeeTrendDay {
+  dag: string;
+  total_ibc: number;
+  total_ok: number;
+  total_ej_ok: number;
+  oee_pct: number;
+  skift_count: number;
+}
+
+export interface OeeTrendSummary {
+  total_ibc: number;
+  snitt_per_dag: number;
+  snitt_oee_pct: number;
+  basta_dag: string | null;
+  basta_ibc: number;
+}
+
+export interface OeeTrendResponse {
+  success: boolean;
+  empty: boolean;
+  message?: string;
+  data: OeeTrendDay[];
+  summary: OeeTrendSummary;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -76,5 +123,18 @@ export class TvattlinjeService {
       { withCredentials: true }
     );
   }
-}
 
+  getReport(datum: string): Observable<ReportDayResponse> {
+    return this.http.get<ReportDayResponse>(
+      `/noreko-backend/api.php?action=tvattlinje&run=report&datum=${datum}`,
+      { withCredentials: true }
+    );
+  }
+
+  getOeeTrend(dagar: number = 30): Observable<OeeTrendResponse> {
+    return this.http.get<OeeTrendResponse>(
+      `/noreko-backend/api.php?action=tvattlinje&run=oee-trend&dagar=${dagar}`,
+      { withCredentials: true }
+    );
+  }
+}

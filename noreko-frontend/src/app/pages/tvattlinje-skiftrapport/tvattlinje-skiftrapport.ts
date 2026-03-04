@@ -329,6 +329,37 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
     return total > 0 ? Math.round((totalOk / total) * 1000) / 10 : 0;
   }
 
+
+  // Snitt IBC/skift
+  getAvgIbcPerSkift(): number {
+    const reports = this.filteredReports.filter(r => r.totalt > 0);
+    if (reports.length === 0) return 0;
+    const total = this.getTotalOk() + this.getTotalEjOk();
+    return Math.round((total / reports.length) * 10) / 10;
+  }
+
+  // Delta: IBC denna period vs föregående lika långa period
+  getDeltaIbc(): number {
+    if (this.filteredReports.length === 0 || this.reports.length === 0) return 0;
+    const current = this.getTotalOk() + this.getTotalEjOk();
+    // Hitta föregående period (rapporter INTE i filtret)
+    const unfiltered = this.reports.filter(r => {
+      const d = (r.datum || '').substring(0, 10);
+      if (this.filterFrom && d >= this.filterFrom) return false;
+      if (this.filterTo && d > this.filterTo) return false;
+      return true;
+    });
+    if (unfiltered.length === 0) return 0;
+    const prev = unfiltered.slice(0, this.filteredReports.length)
+      .reduce((sum: number, r: any) => sum + (parseInt(r.antal_ok, 10) || 0) + (parseInt(r.antal_ej_ok, 10) || 0), 0);
+    return current - prev;
+  }
+
+  // Total IBC (ok + ej ok)
+  getTotalIbc(): number {
+    return this.getTotalOk() + this.getTotalEjOk();
+  }
+
   showSuccess(msg: string) {
     this.successMessage = msg;
     this.showSuccessMessage = true;

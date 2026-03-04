@@ -32,34 +32,37 @@
     <button type="button" class="btn-close float-end" (click)="errorMessage=''"></button>
   </div>
 
-  <!-- Sammanfattningskort -->
+  <!-- Sammanfattningskort (6 KPI-kort) -->
   <div class="row g-3 mb-4" *ngIf="filteredReports.length > 0">
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon"><i class="fas fa-clipboard-list"></i></div>
         <div class="summary-value">{{ filteredReports.length }}</div>
         <div class="summary-label">Skift totalt</div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-info"><i class="fas fa-boxes"></i></div>
+        <div class="summary-value text-info">{{ getTotalIbc() }}</div>
+        <div class="summary-label">Total IBC</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon text-success"><i class="fas fa-check-circle"></i></div>
-        <div class="summary-value text-success">
-          {{ getTotalOk() }}
-        </div>
+        <div class="summary-value text-success">{{ getTotalOk() }}</div>
         <div class="summary-label">Totalt OK</div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon text-danger"><i class="fas fa-times-circle"></i></div>
-        <div class="summary-value text-danger">
-          {{ getTotalEjOk() }}
-        </div>
+        <div class="summary-value text-danger">{{ getTotalEjOk() }}</div>
         <div class="summary-label">Totalt ej OK</div>
       </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-md-2">
       <div class="summary-card">
         <div class="summary-icon"
           [class.text-success]="getAvgQuality() >= 90"
@@ -74,6 +77,20 @@
           {{ getAvgQuality() | number:'1.1-1' }}%
         </div>
         <div class="summary-label">Snitt kvalitet</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon"
+          [class.text-success]="getAvgIbcPerSkift() > 0"
+          [class.text-muted]="getAvgIbcPerSkift() === 0">
+          <i class="fas fa-tachometer-alt"></i>
+        </div>
+        <div class="summary-value"
+          [class.text-success]="getAvgIbcPerSkift() > 0">
+          {{ getAvgIbcPerSkift() | number:'1.0-0' }}
+        </div>
+        <div class="summary-label">Snitt IBC / skift</div>
       </div>
     </div>
   </div>

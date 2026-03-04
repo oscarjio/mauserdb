@@ -3,9 +3,10 @@ import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { TvattlinjeService } from '../../services/tvattlinje.service';
+import { TvattlinjeService, OeeTrendDay, OeeTrendSummary } from '../../services/tvattlinje.service';
 
 Chart.register(...registerables);
 
@@ -41,6 +42,7 @@ interface TableRow {
 })
 export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;
+  @ViewChild('oeeTrendChart') oeeTrendChartRef!: ElementRef<HTMLCanvasElement>;
 
   viewMode: ViewMode = 'month';
   currentYear: number = new Date().getFullYear();
@@ -76,6 +78,23 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
   showOnlyDaysWithCycles: boolean = true;
 
+  // OEE Trend panel
+  oeeTrendLoading: boolean = false;
+  oeeTrendLoaded: boolean = false;
+  oeeTrendEmpty: boolean = false;
+  oeeTrendMessage: string = '';
+  oeeTrendDagar: number = 30;
+  oeeTrendData: OeeTrendDay[] = [];
+  oeeTrendSummary: OeeTrendSummary = {
+    total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0,
+    basta_dag: null, basta_ibc: 0
+  };
+  private oeeTrendChart: Chart | null = null;
+
+  // "Bästa dag" KPI (fylls av OEE-trend)
+  bastaDagLabel: string = '–';
+  bastaDagIbc: number = 0;
+
   isDragging: boolean = false;
 
   private destroy$ = new Subject<void>();
@@ -98,6 +117,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.generatePeriodCells();
     this.syncStateToUrl();
     this.loadStatistics();
+    this.loadOeeTrend();
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -161,6 +181,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     if (this.productionChart) {
       this.productionChart.destroy();
       this.productionChart = null;
+    }
+    if (this.oeeTrendChart) {
+      this.oeeTrendChart.destroy();
+      this.oeeTrendChart = null;
     }
     this.destroy$.next();
     this.destroy$.complete();
@@ -713,6 +737,10 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     if (this.productionChart) {
       this.productionChart.destroy();
       this.productionChart = null;
+    }
+    if (this.oeeTrendChart) {
+      this.oeeTrendChart.destroy();
+      this.oeeTrendChart = null;
     }
 
     clearTimeout(this.chartUpdateTimer);
@@ -1305,4 +1333,145 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       XLSX.writeFile(wb, `tvattlinje-statistik-${this.breadcrumb.join('-')}.xlsx`);
     });
   }
+  // =========================================================
+  // OEE Trend — hämta och rendera 30-dagars OEE-graf
+  // =========================================================
+
+  loadOeeTrend() {
+    this.oeeTrendLoading = true;
+    this.tvattlinjeService.getOeeTrend(this.oeeTrendDagar)
+      .pipe(
+        timeout(8000),
+        catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 } } as any)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.oeeTrendLoading = false;
+          this.oeeTrendLoaded = true;
+          if (!res.success || res.empty) {
+            this.oeeTrendEmpty = true;
+            this.oeeTrendMessage = res.message || 'Linjen ej i drift';
+            this.oeeTrendData = [];
+            this.oeeTrendSummary = { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
+          } else {
+            this.oeeTrendEmpty = false;
+            this.oeeTrendData = res.data || [];
+            this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
+            if (this.oeeTrendSummary.basta_dag) {
+              this.bastaDagLabel = this.oeeTrendSummary.basta_dag;
+              this.bastaDagIbc = this.oeeTrendSummary.basta_ibc;
+            }
+            setTimeout(() => this.renderOeeTrendChart(), 100);
+          }
+        },
+        error: () => {
+          this.oeeTrendLoading = false;
+          this.oeeTrendEmpty = true;
+          this.oeeTrendMessage = 'Linjen ej i drift';
+        }
+      });
+  }
+
+  renderOeeTrendChart() {
+    if (!this.oeeTrendChartRef?.nativeElement) return;
+    if (this.oeeTrendChart) {
+      this.oeeTrendChart.destroy();
+      this.oeeTrendChart = null;
+    }
+    const labels = this.oeeTrendData.map(d => d.dag.substring(5)); // MM-DD
+    const oeeValues = this.oeeTrendData.map(d => d.oee_pct);
+    const ibcValues = this.oeeTrendData.map(d => d.total_ibc);
+
+    this.oeeTrendChart = new Chart(this.oeeTrendChartRef.nativeElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Kvalitet % (OEE-proxy)',
+            data: oeeValues,
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66,153,225,0.15)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 3,
+            yAxisID: 'yOee',
+          },
+          {
+            label: 'Totalt IBC',
+            data: ibcValues,
+            borderColor: '#68d391',
+            backgroundColor: 'rgba(104,211,145,0.0)',
+            fill: false,
+            tension: 0.3,
+            pointRadius: 2,
+            borderDash: [4, 3],
+            yAxisID: 'yIbc',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+          tooltip: { mode: 'index', intersect: false }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', font: { size: 10 }, maxRotation: 45 },
+            grid: { color: 'rgba(255,255,255,0.06)' }
+          },
+          yOee: {
+            type: 'linear',
+            position: 'left',
+            min: 0,
+            max: 100,
+            title: { display: true, text: 'Kvalitet %', color: '#4299e1' },
+            ticks: { color: '#a0aec0' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            // WCM 85% referenslinje via annotation workaround (afterDraw)
+          },
+          yIbc: {
+            type: 'linear',
+            position: 'right',
+            min: 0,
+            title: { display: true, text: 'IBC', color: '#68d391' },
+            ticks: { color: '#a0aec0' },
+            grid: { display: false }
+          }
+        }
+      },
+      plugins: [{
+        id: 'wcmLine',
+        afterDraw(chart: any) {
+          const yAxis = chart.scales['yOee'];
+          const xAxis = chart.scales['x'];
+          if (!yAxis || !xAxis) return;
+          const y = yAxis.getPixelForValue(85);
+          const ctx = chart.ctx;
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(xAxis.left, y);
+          ctx.lineTo(xAxis.right, y);
+          ctx.strokeStyle = '#f6ad55';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 4]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = '#f6ad55';
+          ctx.font = '10px sans-serif';
+          ctx.fillText('WCM 85%', xAxis.right - 55, y - 4);
+          ctx.restore();
+        }
+      }]
+    });
+  }
+
+  onOeeTrendDagarChange() {
+    this.oeeTrendLoaded = false;
+    this.loadOeeTrend();
+  }
+
 }

@@ -16,30 +16,241 @@ class TvattlinjeController {
         if ($method === 'GET') {
             if ($action === 'admin-settings') {
                 $this->getAdminSettings();
+            } elseif ($action === 'settings') {
+                $this->getSettings();
+            } elseif ($action === 'weekday-goals') {
+                $this->getWeekdayGoals();
+            } elseif ($action === 'system-status') {
+                $this->getSystemStatus();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
             } elseif ($action === 'statistics') {
                 $this->getStatistics();
+            } elseif ($action === 'report') {
+                $this->getReport();
+            } elseif ($action === 'oee-trend') {
+                $this->getOeeTrend();
             } else {
                 $this->getLiveStats();
             }
             return;
         }
 
-        if ($method === 'POST' && $action === 'admin-settings') {
-            session_start();
-            if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-                http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+        if ($method === 'POST') {
+            if ($action === 'admin-settings') {
+                session_start();
+                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    return;
+                }
+                $this->saveAdminSettings();
                 return;
             }
-            $this->saveAdminSettings();
-            return;
+
+            if ($action === 'settings') {
+                session_start();
+                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    return;
+                }
+                $this->setSettings();
+                return;
+            }
+
+            if ($action === 'weekday-goals') {
+                session_start();
+                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    return;
+                }
+                $this->setWeekdayGoals();
+                return;
+            }
         }
 
         // Om ingen matchande metod finns
         echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
     }
+
+    // =========================================================
+    // Ny key-value settings (tvattlinje_settings tabell)
+    // =========================================================
+
+    private function ensureSettingsTable() {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS tvattlinje_settings (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                setting VARCHAR(100) NOT NULL UNIQUE,
+                value VARCHAR(255),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $defaults = [
+            ['dagmal',       '80'],
+            ['takt_mal',     '15'],
+            ['skift_start',  '06:00'],
+            ['skift_slut',   '22:00'],
+        ];
+        foreach ($defaults as [$k, $v]) {
+            $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES (?, ?)");
+            $stmt->execute([$k, $v]);
+        }
+    }
+
+    private function getSettings() {
+        try {
+            $this->ensureSettingsTable();
+            $rows = $this->pdo->query("SELECT setting, value FROM tvattlinje_settings ORDER BY id")->fetchAll(PDO::FETCH_KEY_PAIR);
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getSettings: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar']);
+        }
+    }
+
+    private function setSettings() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $allowed = ['dagmal', 'takt_mal', 'skift_start', 'skift_slut'];
+        try {
+            $this->ensureSettingsTable();
+            $stmt = $this->pdo->prepare("INSERT INTO tvattlinje_settings (setting, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP");
+            foreach ($allowed as $key) {
+                if (!isset($data[$key])) continue;
+                $value = trim($data[$key]);
+                // Validera tidsfält
+                if (in_array($key, ['skift_start', 'skift_slut'])) {
+                    if (!preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $value)) continue;
+                } else {
+                    $value = (string)max(0, intval($value));
+                }
+                $stmt->execute([$key, $value]);
+            }
+            AuditLogger::log($this->pdo, 'update_tvattlinje_settings_v2', 'tvattlinje_settings', null,
+                json_encode(array_intersect_key($data, array_flip($allowed))));
+            echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController setSettings: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar']);
+        }
+    }
+
+    // =========================================================
+    // Systemstatus — returnerar null-värden tills linjen är i drift
+    // =========================================================
+
+    private function getSystemStatus() {
+        try {
+            $plcLastSeen   = null;
+            $plcAgeMinutes = null;
+
+            // Försök hämta senaste PLC-signal (tvattlinje_ibc)
+            try {
+                $row = $this->pdo->query("SELECT MAX(datum) as last_ping FROM tvattlinje_ibc")->fetch(\PDO::FETCH_ASSOC);
+                if ($row && $row['last_ping']) {
+                    $plcLastSeen   = $row['last_ping'];
+                    $lastDt        = new \DateTime($plcLastSeen);
+                    $now           = new \DateTime();
+                    $diff          = $now->diff($lastDt);
+                    $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
+                }
+            } catch (\Exception $e) { /* ignorera — tabellen kanske inte finns */ }
+
+            // Lösnummer: försök om tabellen finns
+            $losnummer = null;
+            try {
+                $row = $this->pdo->query("SELECT ibc_count FROM tvattlinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
+                $losnummer = $row ? (int)$row['ibc_count'] : null;
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Databas OK
+            $dbStatus = 'ok';
+            try {
+                $this->pdo->query("SELECT 1");
+            } catch (\Exception $e) {
+                $dbStatus = 'error';
+            }
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'plc_last_seen'    => $plcLastSeen,
+                    'plc_age_minutes'  => $plcAgeMinutes,
+                    'db_status'        => $dbStatus,
+                    'losnummer'        => $losnummer,
+                    'note'             => 'Linjen ej i drift',
+                    'server_time'      => date('Y-m-d H:i:s'),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getSystemStatus: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus']);
+        }
+    }
+
+    // =========================================================
+    // Veckodagsmål
+    // =========================================================
+
+    private function ensureWeekdayGoalsTable() {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS tvattlinje_weekday_goals (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                weekday TINYINT NOT NULL UNIQUE COMMENT '0=Måndag, 6=Söndag',
+                mal INT NOT NULL DEFAULT 80,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        $defaults = [[0,80],[1,80],[2,80],[3,80],[4,80],[5,60],[6,0]];
+        foreach ($defaults as [$wd, $mal]) {
+            $stmt = $this->pdo->prepare("INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES (?, ?)");
+            $stmt->execute([$wd, $mal]);
+        }
+    }
+
+    private function getWeekdayGoals() {
+        try {
+            $this->ensureWeekdayGoalsTable();
+            $rows = $this->pdo->query("SELECT weekday, mal FROM tvattlinje_weekday_goals ORDER BY weekday")->fetchAll(\PDO::FETCH_ASSOC);
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getWeekdayGoals: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål']);
+        }
+    }
+
+    private function setWeekdayGoals() {
+        $data  = json_decode(file_get_contents('php://input'), true);
+        $goals = $data['goals'] ?? [];
+        if (!is_array($goals)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            return;
+        }
+        try {
+            $this->ensureWeekdayGoalsTable();
+            $stmt = $this->pdo->prepare("UPDATE tvattlinje_weekday_goals SET mal = ? WHERE weekday = ?");
+            foreach ($goals as $item) {
+                $wd  = intval($item['weekday'] ?? -1);
+                $mal = max(0, intval($item['mal'] ?? 0));
+                if ($wd >= 0 && $wd <= 6) {
+                    $stmt->execute([$mal, $wd]);
+                }
+            }
+            AuditLogger::log($this->pdo, 'update_tvattlinje_weekday_goals', 'tvattlinje_weekday_goals', null,
+                'goals=' . count($goals));
+            echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade']);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController setWeekdayGoals: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål']);
+        }
+    }
+
+    // =========================================================
+    // Befintliga metoder (oförändrade)
+    // =========================================================
 
     private function getLiveStats() {
         try {
@@ -57,11 +268,9 @@ class TvattlinjeController {
             $ibcTarget = $settings['antal_per_dag'] ?? 150;
 
             // Beräkna hourlyTarget baserat på 8 timmars arbetstid
-            // hourlyTarget = antal IBC per timme för att nå dagens mål
             $hourlyTarget = $ibcTarget / 8;
 
             // Beräkna total runtime för idag
-            // Runtime räknas som summan av alla perioder när maskinen var running
             $totalRuntimeMinutes = 0;
             $now = new DateTime();
 
@@ -82,12 +291,9 @@ class TvattlinjeController {
                     $entryTime = new DateTime($entry['datum']);
                     $isRunning = (bool)($entry['running'] ?? false);
                     
-                    // Om maskinen startar (running=1) och vi inte redan räknar en period
                     if ($isRunning && $lastRunningStart === null) {
                         $lastRunningStart = $entryTime;
-                    }
-                    // Om maskinen stoppar (running=0) och vi räknar en period
-                    elseif (!$isRunning && $lastRunningStart !== null) {
+                    } elseif (!$isRunning && $lastRunningStart !== null) {
                         $diff = $lastRunningStart->diff($entryTime);
                         $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                         $totalRuntimeMinutes += $periodMinutes;
@@ -95,22 +301,18 @@ class TvattlinjeController {
                     }
                 }
                 
-                // Om maskinen fortfarande kör (senaste entry är running=1)
                 if ($lastRunningStart !== null) {
                     $lastEntryTime = new DateTime($todayEntries[count($todayEntries) - 1]['datum']);
-                    // Räkna från när maskinen startade till senaste entry
                     $diff = $lastRunningStart->diff($lastEntryTime);
                     $periodMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
                     $totalRuntimeMinutes += $periodMinutes;
                     
-                    // Lägg till tiden från senaste entry till nu
                     $diffSinceLast = $lastEntryTime->diff($now);
                     $minutesSinceLastUpdate = ($diffSinceLast->days * 24 * 60) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
                     $totalRuntimeMinutes += $minutesSinceLastUpdate;
                 }
             }
 
-            // Fallback: om inga onoff-händelser finns men IBC-cykler finns, uppskatta körtid från IBC-tidsspann
             if ($totalRuntimeMinutes == 0 && $ibcToday > 0) {
                 $stmt = $this->pdo->prepare(
                     'SELECT MIN(datum) as first_ibc, MAX(datum) as last_ibc FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()'
@@ -122,9 +324,7 @@ class TvattlinjeController {
                     $lastIbc  = new DateTime($ibcRange['last_ibc']);
                     $spanDiff = $firstIbc->diff($lastIbc);
                     $spanMin  = ($spanDiff->days * 1440) + ($spanDiff->h * 60) + $spanDiff->i + ($spanDiff->s / 60);
-                    // Om bara en IBC idag, anta en standard cykeltid
                     if ($spanMin < 1) { $spanMin = 5; }
-                    // Lägg till tid sedan senaste IBC om maskinen verkar köra (< 30 min sedan)
                     $diffSinceLast = $lastIbc->diff($now);
                     $minSinceLast  = ($diffSinceLast->days * 1440) + ($diffSinceLast->h * 60) + $diffSinceLast->i + ($diffSinceLast->s / 60);
                     if ($minSinceLast < 30) { $spanMin += $minSinceLast; }
@@ -132,14 +332,12 @@ class TvattlinjeController {
                 }
             }
 
-            // Beräkna produktionsprocent: faktisk IBC/h vs mål IBC/h
             $productionPercentage = 0;
             if ($totalRuntimeMinutes > 0 && $ibcToday > 0 && $hourlyTarget > 0) {
                 $actualProductionPerHour = ($ibcToday * 60) / $totalRuntimeMinutes;
                 $productionPercentage = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
             }
 
-            // Hämta senaste utetemperatur
             $utetemperatur = null;
             try {
                 $stmt = $this->pdo->prepare('
@@ -154,7 +352,6 @@ class TvattlinjeController {
                     $utetemperatur = (float)$weatherData['utetemperatur'];
                 }
             } catch (Exception $e) {
-                // Ignorera fel vid hämtning av väderdata
                 error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
             }
 
@@ -168,7 +365,6 @@ class TvattlinjeController {
                 ]
             ];
             
-            // Lägg till debug-info om productionPercentage är 0 eller saknas
             if ($productionPercentage === 0 || $productionPercentage === null) {
                 $response['debug'] = [
                     'totalRuntimeMinutes' => $totalRuntimeMinutes,
@@ -195,7 +391,6 @@ class TvattlinjeController {
 
     private function getRunningStatus() {
         try {
-            // Hämta senaste running status för tvattlinje
             $stmt = $this->pdo->prepare('
                 SELECT running, datum
                 FROM tvattlinje_onoff 
@@ -257,7 +452,6 @@ class TvattlinjeController {
             $timtakt       = isset($data['timtakt'])    ? intval($data['timtakt'])         : 20;
             $skiftlangd    = isset($data['skiftlangd']) ? floatval($data['skiftlangd'])     : 8.0;
 
-            // Säkerställ att kolumnerna finns (idempotent ADD COLUMN)
             try {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
             } catch (\Exception $e) { /* Kolumn finns redan */ }
@@ -265,7 +459,6 @@ class TvattlinjeController {
                 $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
             } catch (\Exception $e) { /* Kolumn finns redan */ }
 
-            // Kontrollera om settings existerar
             $stmt = $this->pdo->query("SELECT COUNT(*) FROM tvattlinje_settings");
             $exists = $stmt->fetchColumn() > 0;
 
@@ -302,7 +495,6 @@ class TvattlinjeController {
     }
 
     private function loadSettings() {
-        // Säkerställ att kolumnerna finns
         try {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN timtakt INT NOT NULL DEFAULT 20");
         } catch (\Exception $e) { /* Kolumn finns redan */ }
@@ -315,14 +507,13 @@ class TvattlinjeController {
 
         if (!$settings) {
             return [
-                'id'           => 1,
+                'id'            => 1,
                 'antal_per_dag' => 150,
-                'timtakt'      => 20,
-                'skiftlangd'   => 8.0
+                'timtakt'       => 20,
+                'skiftlangd'    => 8.0
             ];
         }
 
-        // Sätt standardvärden för eventuellt saknade kolumner
         $settings['timtakt']    = isset($settings['timtakt'])    ? intval($settings['timtakt'])      : 20;
         $settings['skiftlangd'] = isset($settings['skiftlangd']) ? floatval($settings['skiftlangd']) : 8.0;
 
@@ -334,8 +525,6 @@ class TvattlinjeController {
             $start = $_GET['start'] ?? date('Y-m-d');
             $end = $_GET['end'] ?? date('Y-m-d');
 
-            // Tvättlinje har enkel struktur: bara s_count, ibc_count och datum
-            // Vi beräknar cykeltid från tiden mellan varje IBC
             $stmt = $this->pdo->prepare('
                 SELECT 
                     i.datum,
@@ -355,20 +544,16 @@ class TvattlinjeController {
             $stmt->execute(['start' => $start, 'end' => $end]);
             $rawCycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Filtrera bort felaktiga cykeltider
-            // Tvättlinje har kortare cykeltider, så max 15 minuter istället för 30
             $cycles = [];
             foreach ($rawCycles as $cycle) {
                 if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 0 && $cycle['cycle_time'] <= 15) {
                     $cycles[] = $cycle;
                 } else if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 15) {
-                    // Behåll cykeln men sätt cycle_time till NULL för långa pauser
                     $cycle['cycle_time'] = null;
                     $cycles[] = $cycle;
                 }
             }
 
-            // Hämta on/off events för perioden
             $stmt = $this->pdo->prepare('
                 SELECT 
                     datum,
@@ -381,15 +566,13 @@ class TvattlinjeController {
             $stmt->execute(['start' => $start, 'end' => $end]);
             $onoff_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Beräkna sammanfattning
             $total_cycles = count($cycles);
-            $avg_production_percent = 100; // Tvättlinje har alltid 100% eftersom den inte trackar produktion_procent
+            $avg_production_percent = 100;
             $avg_cycle_time = 0;
             $total_runtime_hours = 0;
-            $target_cycle_time = 3; // Tvättlinje mål är 3 minuter
+            $target_cycle_time = 3;
             
             if ($total_cycles > 0) {
-                // Beräkna genomsnittlig cykeltid
                 $cycle_times = array_filter(array_column($cycles, 'cycle_time'), function($val) {
                     return $val !== null && $val > 0;
                 });
@@ -399,7 +582,6 @@ class TvattlinjeController {
                 }
             }
 
-            // Beräkna total runtime från on/off events
             $totalRuntimeMinutes = 0;
             
             if (count($onoff_events) > 0) {
@@ -419,7 +601,6 @@ class TvattlinjeController {
                     }
                 }
                 
-                // Om maskinen fortfarande kör vid slutet av perioden
                 if ($lastRunningStart !== null) {
                     $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum']);
                     $diff = $lastRunningStart->diff($lastEventTime);
@@ -428,8 +609,6 @@ class TvattlinjeController {
                 }
             }
             
-            // Alternativ beräkning: Om vi inte fick runtime från events men har cykler,
-            // uppskatta runtime från första till sista cykeln
             if ($totalRuntimeMinutes == 0 && $total_cycles > 0) {
                 $firstCycle = new DateTime($cycles[0]['datum']);
                 $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum']);
@@ -439,7 +618,6 @@ class TvattlinjeController {
             
             $total_runtime_hours = $totalRuntimeMinutes / 60;
 
-            // Räkna dagar med produktion
             $unique_dates = array_unique(array_map(function($cycle) {
                 return date('Y-m-d', strtotime($cycle['datum']));
             }, $cycles));
@@ -468,4 +646,240 @@ class TvattlinjeController {
             ]);
         }
     }
+
+    // =========================================================
+    // Skiftrapport daglig — returnerar KPI-sammanfattning för ett datum
+    // Om tabellen saknas eller är tom → graceful empty-state
+    // =========================================================
+
+    private function getReport() {
+        $datum = $_GET['datum'] ?? date('Y-m-d');
+        // Validera datumformat
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            return;
+        }
+
+        try {
+            // Hämta skiftrapporter för datumet via line_skiftrapporter tabellen
+            $rows = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT ls.*, u.name as user_name
+                    FROM line_skiftrapporter ls
+                    LEFT JOIN users u ON ls.user_id = u.id
+                    WHERE ls.line = 'tvattlinje' AND DATE(ls.datum) = :datum
+                    ORDER BY ls.datum ASC
+                ");
+                $stmt->execute(['datum' => $datum]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {
+                // Tabell finns inte eller fel — returnera tom data
+            }
+
+            // Föregående dags data för delta-beräkning
+            $prevDatum = date('Y-m-d', strtotime($datum . ' -1 day'));
+            $prevRows  = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT ls.*
+                    FROM line_skiftrapporter ls
+                    WHERE ls.line = 'tvattlinje' AND DATE(ls.datum) = :datum
+                    ORDER BY ls.datum ASC
+                ");
+                $stmt->execute(['datum' => $prevDatum]);
+                $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
+
+            // Beräkna KPI för aktuellt datum
+            $totalOk   = 0;
+            $totalEjOk = 0;
+            foreach ($rows as $r) {
+                $totalOk   += (int)($r['antal_ok']    ?? 0);
+                $totalEjOk += (int)($r['antal_ej_ok'] ?? 0);
+            }
+            $totalIbc  = $totalOk + $totalEjOk;
+            $kvalitetPct = $totalIbc > 0 ? round(($totalOk / $totalIbc) * 100, 1) : 0;
+
+            // Föregående dag
+            $prevOk   = 0;
+            $prevEjOk = 0;
+            foreach ($prevRows as $r) {
+                $prevOk   += (int)($r['antal_ok']    ?? 0);
+                $prevEjOk += (int)($r['antal_ej_ok'] ?? 0);
+            }
+            $prevIbc   = $prevOk + $prevEjOk;
+            $deltaIbc  = $totalIbc - $prevIbc;
+
+            // Hämta runtime från tvattlinje_ibc om det finns
+            $runtimeMinutes = 0;
+            $rastMinutes    = 0;
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT MIN(datum) as first_ts, MAX(datum) as last_ts, COUNT(*) as cnt
+                    FROM tvattlinje_ibc
+                    WHERE DATE(datum) = :datum
+                ");
+                $stmt->execute(['datum' => $datum]);
+                $ibcRange = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if ($ibcRange && $ibcRange['cnt'] > 0 && $ibcRange['first_ts']) {
+                    $first = new \DateTime($ibcRange['first_ts']);
+                    $last  = new \DateTime($ibcRange['last_ts']);
+                    $diff  = $first->diff($last);
+                    $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
+                    if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
+                }
+            } catch (\Exception $e) {}
+
+            // Snitt IBC/h
+            $ibcPerHour = ($runtimeMinutes > 0 && $totalIbc > 0)
+                ? round(($totalIbc / $runtimeMinutes) * 60, 1)
+                : 0;
+
+            $isEmpty = (count($rows) === 0 && $totalIbc === 0);
+
+            echo json_encode([
+                'success'  => true,
+                'empty'    => $isEmpty,
+                'message'  => $isEmpty ? 'Linjen ej i drift' : null,
+                'datum'    => $datum,
+                'data' => [
+                    'total_ibc'       => $totalIbc,
+                    'total_ok'        => $totalOk,
+                    'total_ej_ok'     => $totalEjOk,
+                    'kvalitet_pct'    => $kvalitetPct,
+                    'runtime_minutes' => $runtimeMinutes,
+                    'rast_minutes'    => $rastMinutes,
+                    'ibc_per_hour'    => $ibcPerHour,
+                    'delta_ibc'       => $deltaIbc,
+                    'prev_ibc'        => $prevIbc,
+                    'skift_count'     => count($rows),
+                    'skift_data'      => $rows,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getReport: ' . $e->getMessage());
+            echo json_encode([
+                'success' => true,
+                'empty'   => true,
+                'message' => 'Linjen ej i drift',
+                'datum'   => $datum,
+                'data'    => [
+                    'total_ibc' => 0, 'total_ok' => 0, 'total_ej_ok' => 0,
+                    'kvalitet_pct' => 0, 'runtime_minutes' => 0,
+                    'rast_minutes' => 0, 'ibc_per_hour' => 0,
+                    'delta_ibc' => 0, 'prev_ibc' => 0,
+                    'skift_count' => 0, 'skift_data' => [],
+                ],
+            ]);
+        }
+    }
+
+    // =========================================================
+    // OEE-trend — daglig statistik över N dagar (standard 30)
+    // Returnerar { empty: true } om ingen data finns
+    // =========================================================
+
+    private function getOeeTrend() {
+        $dagar = max(7, min(365, intval($_GET['dagar'] ?? 30)));
+
+        try {
+            $rows = [];
+
+            // Försök hämta daglig data från line_skiftrapporter
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum)               AS dag,
+                        SUM(antal_ok)             AS total_ok,
+                        SUM(antal_ej_ok)          AS total_ej_ok,
+                        SUM(antal_ok + antal_ej_ok) AS total_ibc,
+                        COUNT(*)                  AS skift_count
+                    FROM line_skiftrapporter
+                    WHERE line = 'tvattlinje'
+                      AND datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                    GROUP BY DATE(datum)
+                    ORDER BY dag ASC
+                ");
+                $stmt->execute(['dagar' => $dagar]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {
+                // Tabell finns inte — returnera empty
+            }
+
+            if (empty($rows)) {
+                echo json_encode([
+                    'success' => true,
+                    'empty'   => true,
+                    'message' => 'Linjen ej i drift',
+                    'data'    => [],
+                    'summary' => [
+                        'total_ibc'      => 0,
+                        'snitt_per_dag'  => 0,
+                        'snitt_oee_pct'  => 0,
+                        'basta_dag'      => null,
+                        'basta_ibc'      => 0,
+                    ],
+                ]);
+                return;
+            }
+
+            // Bygg daglig OEE (här: kvalitet som OEE-proxy eftersom linjen saknar runtime-data)
+            $dagData = [];
+            $totalIbcSum = 0;
+            $bestaDag    = null;
+            $bestaIbc    = 0;
+            $oeeSum      = 0;
+
+            foreach ($rows as $r) {
+                $tot = (int)$r['total_ibc'];
+                $ok  = (int)$r['total_ok'];
+                $oee = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
+                $totalIbcSum += $tot;
+                $oeeSum      += $oee;
+                if ($tot > $bestaIbc) {
+                    $bestaIbc = $tot;
+                    $bestaDag = $r['dag'];
+                }
+                $dagData[] = [
+                    'dag'        => $r['dag'],
+                    'total_ibc'  => $tot,
+                    'total_ok'   => $ok,
+                    'total_ej_ok'=> (int)$r['total_ej_ok'],
+                    'oee_pct'    => $oee,
+                    'skift_count'=> (int)$r['skift_count'],
+                ];
+            }
+
+            $antalDagar = count($dagData);
+            $snittPerDag = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1) : 0;
+            $snittOee    = $antalDagar > 0 ? round($oeeSum / $antalDagar, 1)      : 0;
+
+            echo json_encode([
+                'success' => true,
+                'empty'   => false,
+                'data'    => $dagData,
+                'summary' => [
+                    'total_ibc'      => $totalIbcSum,
+                    'snitt_per_dag'  => $snittPerDag,
+                    'snitt_oee_pct'  => $snittOee,
+                    'basta_dag'      => $bestaDag,
+                    'basta_ibc'      => $bestaIbc,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getOeeTrend: ' . $e->getMessage());
+            echo json_encode([
+                'success' => true,
+                'empty'   => true,
+                'message' => 'Linjen ej i drift',
+                'data'    => [],
+                'summary' => [
+                    'total_ibc' => 0, 'snitt_per_dag' => 0,
+                    'snitt_oee_pct' => 0, 'basta_dag' => null, 'basta_ibc' => 0,
+                ],
+            ]);
+        }
+    }
+
 }
