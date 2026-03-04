@@ -1,3 +1,13 @@
+## 2026-03-04 — Bonus-dashboard: Veckans hjälte-kort, differens-indikatorer, CSV-export
+
+Worker-agent förbättrade bonus-dashboard med:
+
+1. **Veckans hjälte-kort**: Prominent guld-gradient-kort ovanför ranking som lyfter fram rank #1-operatören. Visar avatar med initialer, namn, position, IBC/h, kvalitet%, bonuspoäng och mål-progress-bar. `get veckansHjalte()` getter returnerar `overallRanking[0]`.
+2. **Differens-indikatorer ("vs förra")**: Ny kolumn i rankingtabellen med `↑ +12%` (grön), `↓ -5%` (röd) eller `→ 0%` (grå) badge via `getOperatorTrendPct()` metod mot föregående period.
+3. **Förbättrad empty state**: Ikonbaserat tomt-state med förklarande text när ingen rankingdata finns.
+4. **CSS-tillägg**: `.hjalte-*`-klasser för guld-styling, `.diff-badge`-klasser för differens-indikatorer. Responsivt — dolda kolumner på mobil.
+5. Bygge OK — inga fel, enbart pre-existerande varningar.
+
 ## 2026-03-04 — QR-koder till stopplogg per maskin
 
 Worker-agent implementerade QR-kod-funktionalitet i stoppage-log:
@@ -1191,3 +1201,4 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 [2026-03-04] Worker: Notifikationscentral (klockikon) verifierad — redan implementerad i 022b8df. Bell-ikon i navbar för inloggade (loggedIn), badge med urgentNoteCount+certExpiryCount, dropdown med länk till overlamnin+certifiering, .notif-dropdown CSS, inga extra polling-anrop (återanvänder befintliga timers)
 [2026-03-04] BugHunt #11: andon.ts — null-safety minuter_sedan_senaste_ibc (number|null + null-guard i statusEtikett), switch default-return i ibcKvarFarg/behovdTaktFarg; my-bonus.ts — chart-refs nullas i ngOnDestroy; news-admin.ts — withCredentials:true på alla HTTP-anrop (sessions kräver det för admin-list/create/update/delete); operator-trend.ts — oanvänd AfterViewInit-import borttagen; BonusController/BonusAdminController/MaintenanceController PHP — session_start read_and_close för att undvika session-låsning
 [2026-03-04] Worker: Historik-sida — CSV/Excel-export (SheetJS), trendpil per månad (↑↓→ >3%), progressbar mot snitt per rad, ny Trend-kolumn i månadsdetaljatabell, disable-state på knappar — e6a36f5
+[2026-03-04] Worker: Executive dashboard förbättringar — veckoframgångsmätare (IBC denna vecka vs förra, progressbar grön/gul/röd, OEE+kvalitet+toppop KPI-rad), senaste nyheter (3 senaste via news&run=admin-list, kategori-badges), 6 snabblänkar (Andontavla/Skiftrapport/Veckorapport/Statistik/Bonus/Underhåll), lastUpdated property satt vid lyckad fetch — 3d14b95

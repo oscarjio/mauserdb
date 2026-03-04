@@ -296,6 +296,65 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       VECKANS HJÄLTE — Rank #1 operatör, prominent guld-kort
+       ============================================================ -->
+  <div class="hjalte-outer mb-4" *ngIf="!loading && veckansHjalte">
+    <div class="hjalte-card">
+      <div class="hjalte-header">
+        <i class="fas fa-trophy me-2"></i>VECKANS HJÄLTE
+        <span class="hjalte-period-badge ms-2">{{ selectedPeriod === 'today' ? 'Idag' : selectedPeriod === 'week' ? 'Senaste 7 dagar' : selectedPeriod === 'month' ? 'Senaste 30 dagar' : 'Senaste året' }}</span>
+      </div>
+      <div class="hjalte-body">
+        <div class="hjalte-avatar-wrap">
+          <div class="hjalte-avatar">
+            {{ getOperatorInitials(veckansHjalte.operator_name || '') }}
+          </div>
+          <div class="hjalte-crown">
+            <i class="fas fa-crown"></i>
+          </div>
+        </div>
+        <div class="hjalte-info">
+          <div class="hjalte-name">{{ veckansHjalte.operator_name || ('Operatör ' + veckansHjalte.operator_id) }}</div>
+          <div class="hjalte-position" *ngIf="veckansHjalte.position">{{ veckansHjalte.position }}</div>
+          <div class="hjalte-stats">
+            <span class="hjalte-stat">
+              <i class="fas fa-tachometer-alt me-1"></i>{{ veckansHjalte.produktivitet | number:'1.1-1' }} IBC/h
+            </span>
+            <span class="hjalte-stat-sep">•</span>
+            <span class="hjalte-stat">
+              <i class="fas fa-check-circle me-1"></i>Kvalitet {{ veckansHjalte.kvalitet | number:'1.0-0' }}%
+            </span>
+            <span class="hjalte-stat-sep">•</span>
+            <span class="hjalte-stat hjalte-stat-bonus">
+              Bonus: <strong>{{ veckansHjalte.bonus_avg | number:'1.0-0' }} p</strong>
+              <span *ngIf="veckansHjalte.bonus_avg >= 95" class="ms-1">&#x1F947;</span>
+              <span *ngIf="veckansHjalte.bonus_avg >= 90 && veckansHjalte.bonus_avg < 95" class="ms-1">&#x1F948;</span>
+              <span *ngIf="veckansHjalte.bonus_avg >= 80 && veckansHjalte.bonus_avg < 90" class="ms-1">&#x1F949;</span>
+            </span>
+          </div>
+          <!-- Mål-progress -->
+          <div class="hjalte-goal-wrap mt-2" *ngIf="weeklyGoal > 0">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <small class="hjalte-goal-label">Framsteg mot veckobonusmål ({{ weeklyGoal }} p)</small>
+              <small class="hjalte-goal-pct">{{ getGoalProgress(veckansHjalte.bonus_avg) }}%</small>
+            </div>
+            <div class="hjalte-progress-bar">
+              <div class="hjalte-progress-fill"
+                   [style.width.%]="getGoalProgress(veckansHjalte.bonus_avg)">
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- IBC-total badge -->
+        <div class="hjalte-ibc-badge">
+          <div class="hjalte-ibc-num">{{ veckansHjalte.total_ibc_ok }}</div>
+          <div class="hjalte-ibc-label">IBC OK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Ranking -->
   <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -329,8 +388,15 @@
         </li>
       </ul>
 
-      <div class="table-responsive">
-        <table class="table table-dark table-sm table-hover" *ngIf="getActiveRanking().length > 0">
+      <!-- Empty state -->
+      <div *ngIf="getActiveRanking().length === 0 && !loading" class="text-center py-5">
+        <i class="fas fa-trophy fa-3x mb-3" style="color:#4a5568; opacity:0.4;"></i>
+        <div class="text-muted" style="font-size:0.95rem;">Ingen rankingdata för vald period</div>
+        <small class="text-muted" style="font-size:0.8rem;">Prova en annan period eller vänta på att data samlas in</small>
+      </div>
+
+      <div class="table-responsive" *ngIf="getActiveRanking().length > 0">
+        <table class="table table-dark table-sm table-hover">
           <thead>
             <tr>
               <th>#</th>
@@ -343,15 +409,16 @@
               <th>Produktivitet</th>
               <th>Kvalitet</th>
               <th>Bonus</th>
+              <th>vs förra</th>
               <th>Mål</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let op of getActiveRanking()" [class.top-three]="op.rank <= 3">
               <td>
-                <span class="rank-medal" *ngIf="op.rank === 1">🥇</span>
-                <span class="rank-medal" *ngIf="op.rank === 2">🥈</span>
-                <span class="rank-medal" *ngIf="op.rank === 3">🥉</span>
+                <span class="rank-medal" *ngIf="op.rank === 1">&#x1F947;</span>
+                <span class="rank-medal" *ngIf="op.rank === 2">&#x1F948;</span>
+                <span class="rank-medal" *ngIf="op.rank === 3">&#x1F949;</span>
                 <span class="rank-num" *ngIf="op.rank > 3" [ngClass]="getRankBadge(op.rank)">{{ op.rank }}</span>
               </td>
               <!-- Trend arrow -->
@@ -380,6 +447,21 @@
               <td [ngClass]="getBonusClass(op.bonus_avg)">
                 <strong>{{ op.bonus_avg }}</strong>
               </td>
+              <!-- Differensindikator vs förra perioden -->
+              <td class="diff-cell">
+                <ng-container *ngIf="prevRanking.length > 0">
+                  <span *ngIf="getOperatorTrend(op) === 'up'" class="diff-badge diff-up">
+                    &#x2191; +{{ getOperatorTrendPct(op) }}%
+                  </span>
+                  <span *ngIf="getOperatorTrend(op) === 'down'" class="diff-badge diff-down">
+                    &#x2193; {{ getOperatorTrendPct(op) }}%
+                  </span>
+                  <span *ngIf="getOperatorTrend(op) === 'flat'" class="diff-badge diff-flat">
+                    &#x2192; 0%
+                  </span>
+                </ng-container>
+                <span *ngIf="prevRanking.length === 0" class="diff-badge diff-flat">—</span>
+              </td>
               <!-- Mini progress bar toward weekly goal -->
               <td class="goal-col">
                 <div class="goal-mini-bar" title="Framsteg mot veckobonusmål {{ weeklyGoal }} p">
@@ -395,9 +477,6 @@
             </tr>
           </tbody>
         </table>
-        <p class="text-muted text-center" *ngIf="getActiveRanking().length === 0 && !loading">
-          Ingen rankingdata tillgänglig för vald period.
-        </p>
       </div>
     </div>
   </div>
@@ -427,9 +506,9 @@
             <div class="hof-entries" *ngIf="hallOfFame.ibc_per_h.length > 0; else hofEmpty">
               <div *ngFor="let e of hallOfFame.ibc_per_h" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
                 <div class="hof-medal">
-                  <span *ngIf="e.badge === 'gold'">🥇</span>
-                  <span *ngIf="e.badge === 'silver'">🥈</span>
-                  <span *ngIf="e.badge === 'bronze'">🥉</span>
+                  <span *ngIf="e.badge === 'gold'">&#x1F947;</span>
+                  <span *ngIf="e.badge === 'silver'">&#x1F948;</span>
+                  <span *ngIf="e.badge === 'bronze'">&#x1F949;</span>
                 </div>
                 <div class="hof-avatar">{{ getOperatorInitials(e.name) }}</div>
                 <div class="hof-info">
@@ -453,9 +532,9 @@
             <div class="hof-entries" *ngIf="hallOfFame.kvalitet_pct.length > 0">
               <div *ngFor="let e of hallOfFame.kvalitet_pct" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
                 <div class="hof-medal">
-                  <span *ngIf="e.badge === 'gold'">🥇</span>
-                  <span *ngIf="e.badge === 'silver'">🥈</span>
-                  <span *ngIf="e.badge === 'bronze'">🥉</span>
+                  <span *ngIf="e.badge === 'gold'">&#x1F947;</span>
+                  <span *ngIf="e.badge === 'silver'">&#x1F948;</span>
+                  <span *ngIf="e.badge === 'bronze'">&#x1F949;</span>
                 </div>
                 <div class="hof-avatar hof-avatar-green">{{ getOperatorInitials(e.name) }}</div>
                 <div class="hof-info">
@@ -476,9 +555,9 @@
             <div class="hof-entries" *ngIf="hallOfFame.mest_aktiv.length > 0">
               <div *ngFor="let e of hallOfFame.mest_aktiv" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
                 <div class="hof-medal">
-                  <span *ngIf="e.badge === 'gold'">🥇</span>
-                  <span *ngIf="e.badge === 'silver'">🥈</span>
-                  <span *ngIf="e.badge === 'bronze'">🥉</span>
+                  <span *ngIf="e.badge === 'gold'">&#x1F947;</span>
+                  <span *ngIf="e.badge === 'silver'">&#x1F948;</span>
+                  <span *ngIf="e.badge === 'bronze'">&#x1F949;</span>
                 </div>
                 <div class="hof-avatar hof-avatar-purple">{{ getOperatorInitials(e.name) }}</div>
                 <div class="hof-info">

@@ -375,3 +375,190 @@
   .period-toggle-group { flex-wrap: wrap; }
   .hof-category { margin-bottom: 0.5rem; }
 }
+
+/* ============================================================
+   VECKANS HJÄLTE KORT
+   ============================================================ */
+.hjalte-outer {
+  /* Guldram runt hela kortet */
+  border-radius: 16px;
+  padding: 3px;
+  background: linear-gradient(135deg, #b7791f, #f6e05e, #b7791f, #f6e05e, #b7791f);
+  box-shadow: 0 0 32px rgba(246,224,94,0.18), 0 4px 24px rgba(0,0,0,0.4);
+}
+
+.hjalte-card {
+  background: linear-gradient(135deg, #1a1508 0%, #2d2208 50%, #1a1508 100%);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.hjalte-header {
+  background: linear-gradient(135deg, #b7791f 0%, #f6e05e 40%, #d69e2e 70%, #b7791f 100%);
+  color: #1a1508;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 0.55rem 1.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.hjalte-period-badge {
+  background: rgba(0,0,0,0.2);
+  color: #1a1508;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.55rem;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-transform: none;
+}
+
+.hjalte-body {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem 1.5rem;
+  flex-wrap: wrap;
+}
+
+.hjalte-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hjalte-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b7791f, #f6e05e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1a1508;
+  border: 3px solid #f6e05e;
+  box-shadow: 0 0 20px rgba(246,224,94,0.35);
+  letter-spacing: -1px;
+}
+
+.hjalte-crown {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.1rem;
+  color: #f6e05e;
+  filter: drop-shadow(0 0 4px rgba(246,224,94,0.7));
+}
+
+.hjalte-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.hjalte-name {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #f6e05e;
+  line-height: 1.2;
+  margin-bottom: 0.1rem;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
+.hjalte-position {
+  font-size: 0.78rem;
+  color: #d69e2e;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  margin-bottom: 0.5rem;
+}
+
+.hjalte-stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: #ecc94b;
+}
+
+.hjalte-stat { color: #e2c97e; }
+.hjalte-stat-sep { color: #b7791f; font-weight: 700; }
+.hjalte-stat-bonus { color: #f6e05e; font-weight: 600; }
+
+.hjalte-goal-label { color: #b7791f; font-size: 0.72rem; font-weight: 600; }
+.hjalte-goal-pct   { color: #f6e05e; font-size: 0.75rem; font-weight: 700; }
+
+.hjalte-progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.hjalte-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #b7791f, #f6e05e);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  box-shadow: 0 0 8px rgba(246,224,94,0.4);
+}
+
+.hjalte-ibc-badge {
+  flex-shrink: 0;
+  text-align: center;
+  background: rgba(246,224,94,0.1);
+  border: 1px solid rgba(246,224,94,0.25);
+  border-radius: 12px;
+  padding: 0.75rem 1.25rem;
+}
+
+.hjalte-ibc-num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #f6e05e;
+  line-height: 1;
+}
+
+.hjalte-ibc-label {
+  font-size: 0.68rem;
+  color: #b7791f;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+/* ============================================================
+   DIFFERENSINDIKATOR — "vs förra" kolumn
+   ============================================================ */
+.diff-cell { width: 80px; white-space: nowrap; }
+
+.diff-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  line-height: 1.3;
+}
+
+.diff-up   { background: rgba(72,187,120,0.15);  color: #68d391; }
+.diff-down { background: rgba(229,62,62,0.15);   color: #fc8181; }
+.diff-flat { background: rgba(113,128,150,0.1);  color: #718096; }
+
+/* ============================================================
+   RESPONSIVE — dölj diff-kolumn på mobil
+   ============================================================ */
+@media (max-width: 768px) {
+  .diff-cell { display: none; }
+  .hjalte-body { gap: 0.85rem; padding: 1rem; }
+  .hjalte-avatar { width: 54px; height: 54px; font-size: 1.1rem; }
+  .hjalte-name  { font-size: 1.15rem; }
+  .hjalte-ibc-badge { display: none; }
+}

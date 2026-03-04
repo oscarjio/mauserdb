@@ -76,7 +76,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
   matrixLoading = false;
   matrixError = '';
 
-  // Filter
+  // Linje-filter
   activeLineFilter = 'alla';
   readonly lineFilters = [
     { key: 'alla', label: 'Alla' },
@@ -92,6 +92,15 @@ export class CertificationsPage implements OnInit, OnDestroy {
     saglinje: 'Såglinje',
     klassificeringslinje: 'Klassificeringslinje'
   };
+
+  // Statusfilter
+  statusFilter: 'all' | 'active' | 'expiring_soon' | 'expired' = 'all';
+  readonly statusFilters: { key: 'all' | 'active' | 'expiring_soon' | 'expired'; label: string }[] = [
+    { key: 'all',           label: 'Alla' },
+    { key: 'active',        label: 'Aktiva' },
+    { key: 'expiring_soon', label: 'Upphör snart' },
+    { key: 'expired',       label: 'Utgångna' }
+  ];
 
   // Sortering
   sortBy: 'name' | 'expiry' = 'name';
@@ -248,6 +257,11 @@ export class CertificationsPage implements OnInit, OnDestroy {
     return this.expiringSoon > 0 || this.expired > 0;
   }
 
+  // Alias-getters för summary-badges
+  get expiredCount(): number { return this.expired; }
+  get expiringSoonCount(): number { return this.expiringSoon; }
+  get activeCount(): number { return this.validCount; }
+
   // ====== "Snart utgångna" lista (< 30 dagar) ======
 
   get expiringSoonList(): { opName: string; cert: Certification }[] {
@@ -268,14 +282,45 @@ export class CertificationsPage implements OnInit, OnDestroy {
     return list;
   }
 
+  // ====== Statusfilter-hantering ======
+
+  setStatusFilter(key: 'all' | 'active' | 'expiring_soon' | 'expired') {
+    this.statusFilter = key;
+  }
+
+  /**
+   * Kontrollerar om ett certifikat matchar nuvarande statusfilter
+   */
+  private certMatchesStatusFilter(cert: Certification): boolean {
+    const d = cert.days_until_expiry;
+    switch (this.statusFilter) {
+      case 'active':
+        // Aktivt = inget utgångsdatum ELLER mer än 30 dagar kvar
+        return d === null || d > 30;
+      case 'expiring_soon':
+        // Upphör snart = 0–30 dagar kvar
+        return d !== null && d >= 0 && d <= 30;
+      case 'expired':
+        // Utgångna = negativt antal dagar
+        return d !== null && d < 0;
+      default:
+        return true;
+    }
+  }
+
   // ====== Filtrering och sortering ======
 
   get filteredOperators(): OperatorCerts[] {
     let result = this.operators
       .map(op => {
         let certs = op.certifications.filter(c => c.active === 1);
+        // Linje-filter
         if (this.activeLineFilter !== 'alla') {
           certs = certs.filter(c => c.line === this.activeLineFilter);
+        }
+        // Statusfilter
+        if (this.statusFilter !== 'all') {
+          certs = certs.filter(c => this.certMatchesStatusFilter(c));
         }
         return { ...op, certifications: certs };
       })
@@ -301,6 +346,29 @@ export class CertificationsPage implements OnInit, OnDestroy {
 
   setSortBy(val: 'name' | 'expiry') {
     this.sortBy = val;
+  }
+
+  // ====== Rad-klass för visuell highlight ======
+
+  certRowClass(cert: Certification): string {
+    if (cert.days_until_expiry === null) return 'cert-valid';
+    if (cert.days_until_expiry < 0) return 'cert-expired';
+    if (cert.days_until_expiry <= 30) return 'cert-expiring-soon';
+    return 'cert-valid';
+  }
+
+  certDaysLeft(cert: Certification): string {
+    if (cert.days_until_expiry === null) return '—';
+    if (cert.days_until_expiry < 0) return `${Math.abs(cert.days_until_expiry)} dagar sedan`;
+    if (cert.days_until_expiry === 0) return 'Idag';
+    return `${cert.days_until_expiry} dagar kvar`;
+  }
+
+  certDaysLeftBadgeClass(cert: Certification): string {
+    if (cert.days_until_expiry === null) return 'days-badge days-badge-valid';
+    if (cert.days_until_expiry < 0) return 'days-badge days-badge-expired';
+    if (cert.days_until_expiry <= 30) return 'days-badge days-badge-warning';
+    return 'days-badge days-badge-valid';
   }
 
   // ====== Badge-klassificering ======
@@ -464,39 +532,36 @@ export class CertificationsPage implements OnInit, OnDestroy {
     });
   }
 
-  // ====== CSV-export ======
+  // ====== CSV-export (respekterar statusfilter + linjefilter) ======
 
   exportCSV(): void {
-    const rows: string[][] = [
-      ['Operatör', 'Certifiering', 'Certifierad datum', 'Utgångsdatum', 'Dagar kvar', 'Status']
-    ];
+    const headers = ['Operatör', 'Certifikat', 'Utfärdat', 'Utgångsdatum', 'Dagar kvar', 'Status'];
 
-    for (const op of this.operators) {
-      for (const cert of op.certifications) {
-        if (cert.active !== 1) continue;
+    const rows: string[][] = this.filteredOperators.flatMap(op =>
+      op.certifications.map(cert => {
         const line = this.lineLabels[cert.line] ?? cert.line;
         const certDate = this.formatDate(cert.certified_date);
         const expiryDate = this.formatDate(cert.expires_date);
-        const daysLeft = cert.days_until_expiry !== null ? String(cert.days_until_expiry) : '—';
+        const daysLeft = cert.days_until_expiry !== null ? String(cert.days_until_expiry) : '';
         let status = 'Giltig';
         if (cert.days_until_expiry !== null && cert.days_until_expiry < 0) {
-          status = 'Utgången';
+          status = 'Utgånget';
         } else if (cert.days_until_expiry !== null && cert.days_until_expiry <= 30) {
-          status = 'Löper ut snart';
+          status = 'Upphör snart';
         }
-        rows.push([op.name, line, certDate, expiryDate, daysLeft, status]);
-      }
-    }
+        return [op.name, line, certDate, expiryDate, daysLeft, status];
+      })
+    );
 
-    const csv = rows.map(r =>
-      r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
-    ).join('\n');
+    const csv = [headers, ...rows]
+      .map(r => r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(';'))
+      .join('\n');
 
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'certifieringar.csv';
+    a.download = `certifieringar-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

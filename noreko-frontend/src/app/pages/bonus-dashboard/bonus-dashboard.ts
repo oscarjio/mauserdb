@@ -265,10 +265,24 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     return 'flat';
   }
 
+  /** Get the percent change vs previous period for an operator */
+  getOperatorTrendPct(op: RankingEntry): number {
+    if (!this.prevRanking || this.prevRanking.length === 0) return 0;
+    const prev = this.prevRanking.find(p => p.operator_id === op.operator_id);
+    if (!prev || !prev.bonus_avg || prev.bonus_avg === 0) return 0;
+    return Math.round(((op.bonus_avg - prev.bonus_avg) / prev.bonus_avg) * 100);
+  }
+
   /** Get previous period rank for an operator */
   getPrevRank(op: RankingEntry): number | null {
     const prev = this.prevRanking.find(p => p.operator_id === op.operator_id);
     return prev ? prev.rank : null;
+  }
+
+  /** Veckans hjälte — rank #1 operatör från overall-ranking */
+  get veckansHjalte(): RankingEntry | null {
+    if (!this.overallRanking || this.overallRanking.length === 0) return null;
+    return this.overallRanking[0];
   }
 
   /** Progress toward weekly goal as percentage */

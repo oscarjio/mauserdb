@@ -47,15 +47,12 @@
     </div>
   </div>
 
-  <!-- Statistiksammanfattning -->
+  <!-- Statistiksammanfattning med räknar-badges -->
   <div class="stats-bar" *ngIf="!loading && totalCertifications > 0">
-    <span><strong>Totalt:</strong> {{ totalCertifications }} certifieringar</span>
-    <span class="stats-sep">|</span>
-    <span style="color:#68d391"><strong>Giltiga:</strong> {{ validCount }}</span>
-    <span class="stats-sep">|</span>
-    <span style="color:#f6ad55"><strong>Snart utgår:</strong> {{ expiringSoon }}</span>
-    <span class="stats-sep">|</span>
-    <span style="color:#fc8181"><strong>Utgångna:</strong> {{ expired }}</span>
+    <span class="badge bg-secondary">Totalt: {{ totalCertifications }}</span>
+    <span class="badge bg-danger">Utgångna: {{ expiredCount }}</span>
+    <span class="badge bg-warning text-dark">Upphör snart: {{ expiringSoonCount }}</span>
+    <span class="badge bg-success">Aktiva: {{ activeCount }}</span>
   </div>
 
   <!-- Laddning -->
@@ -113,7 +110,7 @@
         <i class="fas fa-table me-1"></i>Kompetensmatris
       </button>
     </div>
-    <button class="btn-export" (click)="exportCSV()" title="Exportera till CSV">
+    <button class="btn-export" (click)="exportCSV()" title="Exportera filtrerad vy till CSV">
       <i class="fas fa-download me-1"></i>Exportera CSV
     </button>
   </div>
@@ -121,33 +118,64 @@
   <!-- ===== OPERATÖRSLISTA-FLIK ===== -->
   <div *ngIf="activeTab === 'lista' && !loading">
 
-    <!-- Filter + sortering -->
-    <div class="filter-sort-row">
-      <div class="filter-row">
-        <button
-          *ngFor="let f of lineFilters"
-          class="filter-btn"
-          [class.filter-btn-active]="activeLineFilter === f.key"
-          (click)="setLineFilter(f.key)">
-          {{ f.label }}
-        </button>
+    <!-- Statusfilter + linje-filter + sortering -->
+    <div class="filter-block">
+
+      <!-- Statusfilter -->
+      <div class="filter-group">
+        <span class="filter-group-label">Status:</span>
+        <div class="filter-row">
+          <button
+            *ngFor="let sf of statusFilters"
+            class="filter-btn"
+            [class.filter-btn-active]="statusFilter === sf.key"
+            [class.filter-btn-expired]="sf.key === 'expired' && statusFilter === sf.key"
+            [class.filter-btn-warning]="sf.key === 'expiring_soon' && statusFilter === sf.key"
+            [class.filter-btn-success]="sf.key === 'active' && statusFilter === sf.key"
+            (click)="setStatusFilter(sf.key)">
+            <i class="fas fa-circle-dot me-1" *ngIf="sf.key === 'expired'" style="color:#fc8181"></i>
+            <i class="fas fa-circle-dot me-1" *ngIf="sf.key === 'expiring_soon'" style="color:#f6ad55"></i>
+            <i class="fas fa-circle-dot me-1" *ngIf="sf.key === 'active'" style="color:#68d391"></i>
+            {{ sf.label }}
+            <span class="filter-count" *ngIf="sf.key === 'expired' && expiredCount > 0">{{ expiredCount }}</span>
+            <span class="filter-count filter-count-warn" *ngIf="sf.key === 'expiring_soon' && expiringSoonCount > 0">{{ expiringSoonCount }}</span>
+          </button>
+        </div>
       </div>
-      <div class="sort-row">
-        <span class="sort-label">Sortera:</span>
-        <button class="filter-btn" [class.filter-btn-active]="sortBy === 'name'" (click)="setSortBy('name')">
-          Namn
-        </button>
-        <button class="filter-btn" [class.filter-btn-active]="sortBy === 'expiry'" (click)="setSortBy('expiry')">
-          Utgångsdatum
-        </button>
+
+      <!-- Linje-filter + sortering -->
+      <div class="filter-sort-row">
+        <div class="filter-group">
+          <span class="filter-group-label">Linje:</span>
+          <div class="filter-row">
+            <button
+              *ngFor="let f of lineFilters"
+              class="filter-btn"
+              [class.filter-btn-active]="activeLineFilter === f.key"
+              (click)="setLineFilter(f.key)">
+              {{ f.label }}
+            </button>
+          </div>
+        </div>
+        <div class="sort-row">
+          <span class="sort-label">Sortera:</span>
+          <button class="filter-btn" [class.filter-btn-active]="sortBy === 'name'" (click)="setSortBy('name')">
+            Namn
+          </button>
+          <button class="filter-btn" [class.filter-btn-active]="sortBy === 'expiry'" (click)="setSortBy('expiry')">
+            Utgångsdatum
+          </button>
+        </div>
       </div>
+
     </div>
 
     <!-- Tom vy -->
     <div class="empty-state" *ngIf="!error && filteredOperators.length === 0">
       <i class="fas fa-certificate fa-3x mb-3 text-muted"></i>
-      <p *ngIf="activeLineFilter === 'alla'">Inga certifieringar registrerade ännu.</p>
-      <p *ngIf="activeLineFilter !== 'alla'">Inga certifieringar för vald linje.</p>
+      <p *ngIf="statusFilter !== 'all'">Inga certifikat matchar valt statusfilter.</p>
+      <p *ngIf="statusFilter === 'all' && activeLineFilter === 'alla'">Inga certifieringar registrerade ännu.</p>
+      <p *ngIf="statusFilter === 'all' && activeLineFilter !== 'alla'">Inga certifieringar för vald linje.</p>
     </div>
 
     <!-- Operatörskort-grid -->
@@ -166,15 +194,22 @@
         <div class="cert-list">
           <div
             class="cert-badge-row"
-            *ngFor="let cert of op.certifications">
+            *ngFor="let cert of op.certifications"
+            [ngClass]="certRowClass(cert)">
             <span class="cert-badge" [ngClass]="getBadgeClass(cert)">
               <i class="fas fa-check-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-valid'"></i>
               <i class="fas fa-clock me-1" *ngIf="getBadgeClass(cert) === 'badge-warning'"></i>
               <i class="fas fa-times-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-expired'"></i>
               <span [class.text-strikethrough]="getBadgeClass(cert) === 'badge-expired'">
-                {{ getBadgeLabel(cert) }}
+                {{ lineLabels[cert.line] ?? cert.line }}
               </span>
             </span>
+
+            <!-- Dagar kvar-badge -->
+            <span [ngClass]="certDaysLeftBadgeClass(cert)" *ngIf="cert.expires_date">
+              {{ certDaysLeft(cert) }}
+            </span>
+
             <span class="cert-date text-muted">
               {{ formatDate(cert.certified_date) }}
               <span *ngIf="cert.expires_date" class="cert-expiry-date"
