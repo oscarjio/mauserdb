@@ -805,3 +805,96 @@
   color: #e2e8f0;
   word-break: break-word;
 }
+
+/* ============================================================
+   NÄRVARO-KALENDER
+   ============================================================ */
+.calendar-header-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.calendar-header-row span {
+  text-align: center;
+  font-size: 0.65rem;
+  color: #718096;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  background: #2d3748;
+  color: #718096;
+  cursor: default;
+  transition: transform 0.1s;
+  border: 2px solid transparent;
+}
+.cal-day:not(.empty):hover {
+  transform: scale(1.08);
+}
+.cal-day.worked {
+  background: rgba(72, 187, 120, 0.25);
+  color: #48bb78;
+  font-weight: 700;
+}
+.cal-day.today {
+  border: 2px solid #63b3ed !important;
+  color: #e2e8f0 !important;
+  font-weight: 700;
+}
+.cal-day.worked.today {
+  background: rgba(72, 187, 120, 0.35);
+  border-color: #63b3ed !important;
+  color: #e2e8f0 !important;
+}
+.cal-day.empty {
+  background: transparent;
+  border-color: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+.calendar-legend {
+  border-top: 1px solid #2d3748;
+  padding-top: 0.5rem;
+}
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.legend-dot.worked-dot {
+  background: rgba(72, 187, 120, 0.35);
+  border: 1px solid #48bb78;
+}
+.legend-dot.free-dot {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+}
+
+/* Streak-badge i operatörshuvudet */
+.streak-calendar-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(246, 224, 94, 0.12);
+  border: 1px solid rgba(246, 224, 94, 0.35);
+  color: #f6e05e;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}

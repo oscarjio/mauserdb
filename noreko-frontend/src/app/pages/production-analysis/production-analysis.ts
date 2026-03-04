@@ -995,6 +995,64 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
+
+  // ======== STOPPANALYS — EXPORT & STATISTIK ========
+
+  /** Beräkna periodstatistik för stoppdata (alla laddade dagar) */
+  get veckoStoppStats(): { total: number; snittMin: number; langstMin: number } {
+    if (!this.stoppageByDay || this.stoppageByDay.length === 0) {
+      return { total: 0, snittMin: 0, langstMin: 0 };
+    }
+    const total = this.stoppageByDay.reduce((s, d) => s + (d.antal ?? 0), 0);
+    const totMin = this.stoppageByDay.reduce((s, d) => s + (d.total_minuter ?? 0), 0);
+    const snittMin = total > 0 ? Math.round((totMin / total) * 10) / 10 : 0;
+    const langstMin = this.stoppageByDay.length > 0
+      ? Math.max(...this.stoppageByDay.map(d => d.total_minuter ?? 0))
+      : 0;
+    return { total, snittMin, langstMin };
+  }
+
+  /** Procent körtid vs rasttid för tidslinjens procent-bar */
+  getTimelinePercentages(): { runPct: number; rastPct: number } {
+    if (!this.rastStatus) return { runPct: 100, rastPct: 0 };
+    const totalMin = 16 * 60; // 06:00–22:00 = 960 min
+    const rastMin = Math.min(this.rastStatus.rast_minutes_today ?? 0, totalMin);
+    const runMin = Math.max(0, totalMin - rastMin);
+    return {
+      runPct: Math.round((runMin / totalMin) * 100),
+      rastPct: Math.round((rastMin / totalMin) * 100)
+    };
+  }
+
+  /** Exportera stoppdata per dag som CSV */
+  exportStopCSV(): void {
+    if (!this.stoppageByDay || this.stoppageByDay.length === 0) return;
+
+    const header = ['Datum', 'Antal stopp', 'Total stoppid (min)', 'Maskin (min)', 'Material (min)', 'Operatör (min)', 'Övrigt (min)'];
+    const sorted = [...this.stoppageByDay].sort((a, b) => a.dag.localeCompare(b.dag));
+    const rows = sorted.map(d => [
+      d.dag,
+      d.antal ?? 0,
+      d.total_minuter ?? 0,
+      d.kategorier?.['maskin'] ?? 0,
+      d.kategorier?.['material'] ?? 0,
+      d.kategorier?.['operatör'] ?? 0,
+      d.kategorier?.['övrigt'] ?? 0
+    ]);
+
+    const csv = [header, ...rows]
+      .map(r => r.map((c: any) => `"${c}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stoppdata-${this.stopDays}dagar-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ======== TAB 7: PARETO-ANALYS ========
 
   loadParetoData() {

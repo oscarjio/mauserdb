@@ -38,6 +38,10 @@
       <button class="btn btn-sm btn-outline-secondary" (click)="clearOperator()" *ngIf="!operatorIdFromAccount">
         <i class="fas fa-times me-1"></i>Byt
       </button>
+      <!-- Streak-badge från kalender -->
+      <span class="streak-calendar-badge" *ngIf="currentStreak > 0">
+        🔥 {{ currentStreak }} dagars streak
+      </span>
     </div>
     <div class="d-flex align-items-center gap-2">
       <div class="period-group">
@@ -762,6 +766,51 @@
           <button class="btn btn-sm btn-outline-danger" (click)="exportShiftHistoryPDF()">
             <i class="fas fa-file-pdf me-1"></i>Skriv ut / Spara PDF
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== NÄRVARO-KALENDER ===== -->
+    <div class="card mb-4 no-print" style="background:#1a202c; border:1px solid #2d3748; border-radius:12px;" *ngIf="workCalendar.length > 0">
+      <div class="card-header d-flex align-items-center justify-content-between" style="background:#2d3748; border-radius:12px 12px 0 0; border-bottom:1px solid #4a5568; padding:0.75rem 1rem;">
+        <h6 class="mb-0" style="color:#e2e8f0; font-size:0.9rem;">
+          <i class="fas fa-calendar-alt me-2 text-info"></i>Din närvaro denna månad
+          <span class="ms-2 text-muted" style="font-size:0.75rem;">({{ getCalendarMonthLabel() }})</span>
+        </h6>
+        <span class="badge bg-success" style="font-size:0.75rem;">
+          {{ getWorkedDaysThisMonth() }} dagar arbetat
+        </span>
+      </div>
+      <div class="card-body" style="padding:1rem;">
+        <div class="calendar-header-row">
+          <span>Mån</span>
+          <span>Tis</span>
+          <span>Ons</span>
+          <span>Tor</span>
+          <span>Fre</span>
+          <span>Lör</span>
+          <span>Sön</span>
+        </div>
+        <div class="calendar-grid">
+          <!-- Tomma celler för att starta rätt veckodag -->
+          <div class="cal-day empty" *ngFor="let _ of calendarLeadingDays"></div>
+          <!-- Dagarna -->
+          <div class="cal-day"
+               *ngFor="let day of workCalendar"
+               [class.worked]="day.worked"
+               [class.today]="isToday(day.date)"
+               [attr.title]="day.worked ? (day.ibc + ' IBC') : 'Ej arbetat'">
+            {{ day.date.slice(8) }}
+          </div>
+        </div>
+        <div class="calendar-legend mt-2 d-flex align-items-center gap-1">
+          <span class="legend-dot worked-dot"></span>
+          <span class="small text-muted me-2">Arbetat</span>
+          <span class="legend-dot free-dot"></span>
+          <span class="small text-muted">Ledig</span>
+          <span *ngIf="currentStreak > 0" class="ms-auto small" style="color:#f6e05e;">
+            🔥 {{ currentStreak }} dagar i rad denna månad
+          </span>
         </div>
       </div>
     </div>

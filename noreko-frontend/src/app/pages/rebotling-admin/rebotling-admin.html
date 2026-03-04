@@ -1008,6 +1008,190 @@
     </div>
   </div>
 
+
+  <!-- ======== PREDIKTIVT UNDERHÅLL — IBC-BASERAT SERVICEINTERVALL ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card" [ngClass]="{
+        'border-success': serviceStatus?.status === 'ok',
+        'border-warning': serviceStatus?.status === 'warning',
+        'border-danger':  serviceStatus?.status === 'danger'
+      }">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-tools me-2 text-warning"></i>Prediktivt underhåll — IBC-baserat serviceintervall
+          </h5>
+        </div>
+        <div class="card-body">
+
+          <!-- Laddar -->
+          <div *ngIf="serviceStatusLoading && !serviceStatus" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+            <span class="ms-2 text-muted">Hämtar servicedata…</span>
+          </div>
+
+          <div *ngIf="serviceStatus">
+
+            <!-- Statusbadge -->
+            <div class="mb-3">
+              <span *ngIf="serviceStatus.status === 'ok'"
+                    class="badge bg-success fs-6 px-3 py-2">
+                <i class="fas fa-check-circle me-2"></i>OK — Service inte nödvändig
+              </span>
+              <span *ngIf="serviceStatus.status === 'warning'"
+                    class="badge bg-warning text-dark fs-6 px-3 py-2">
+                <i class="fas fa-exclamation-triangle me-2"></i>VARNING — Service behövs snart
+              </span>
+              <span *ngIf="serviceStatus.status === 'danger'"
+                    class="badge bg-danger fs-6 px-3 py-2 service-danger-pulse">
+                <i class="fas fa-exclamation-circle me-2"></i>SERVICE BEHÖVS NU
+              </span>
+            </div>
+
+            <!-- Statistikrader -->
+            <div class="row g-3 mb-3">
+              <div class="col-sm-4">
+                <div class="p-3 rounded" style="background:#2d3748;">
+                  <div class="text-muted small">IBC sedan senaste service</div>
+                  <div class="fs-4 fw-bold text-light">{{ serviceStatus.ibc_sedan_service | number }}</div>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="p-3 rounded" style="background:#2d3748;">
+                  <div class="text-muted small">Service-intervall</div>
+                  <div class="fs-4 fw-bold text-light">{{ serviceStatus.service_interval | number }}</div>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <div class="p-3 rounded" style="background:#2d3748;">
+                  <div class="text-muted small">IBC kvar till service</div>
+                  <div class="fs-4 fw-bold"
+                       [ngClass]="{
+                         'text-success': serviceStatus.status === 'ok',
+                         'text-warning': serviceStatus.status === 'warning',
+                         'text-danger':  serviceStatus.status === 'danger'
+                       }">
+                    {{ serviceStatus.ibc_kvar_till_service | number }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progressbar -->
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted">Kapacitet kvar till service</small>
+                <small [ngClass]="{
+                  'text-success': serviceStatus.status === 'ok',
+                  'text-warning': serviceStatus.status === 'warning',
+                  'text-danger':  serviceStatus.status === 'danger'
+                }">{{ serviceStatus.pct_kvar }}%</small>
+              </div>
+              <div class="progress" style="height: 18px; background:#1a202c;">
+                <div class="progress-bar"
+                     role="progressbar"
+                     [style.width.%]="serviceStatus.pct_kvar"
+                     [ngClass]="{
+                       'bg-success': serviceStatus.status === 'ok',
+                       'bg-warning': serviceStatus.status === 'warning',
+                       'bg-danger':  serviceStatus.status === 'danger'
+                     }"
+                     [attr.aria-valuenow]="serviceStatus.pct_kvar"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+                </div>
+              </div>
+            </div>
+
+            <!-- Senaste service -->
+            <div class="mb-4 text-muted small">
+              <ng-container *ngIf="serviceStatus.last_service_at; else ingenService">
+                <i class="fas fa-history me-1"></i>
+                Senaste service:
+                <strong class="text-light">{{ serviceStatus.last_service_at | date:'yyyy-MM-dd HH:mm' }}</strong>
+                <span *ngIf="serviceStatus.last_service_note">
+                  &mdash; "{{ serviceStatus.last_service_note }}"
+                </span>
+              </ng-container>
+              <ng-template #ingenService>
+                <i class="fas fa-info-circle me-1"></i>Ingen service registrerad ännu.
+              </ng-template>
+            </div>
+
+            <hr style="border-color:#4a5568;" />
+
+            <!-- Konfigurera intervall -->
+            <div class="row g-2 align-items-end mb-4">
+              <div class="col-auto">
+                <label class="form-label mb-1">Service var</label>
+                <div class="input-group">
+                  <input type="number"
+                         class="form-control bg-dark text-light border-secondary"
+                         style="width: 110px;"
+                         [(ngModel)]="serviceInterval"
+                         min="100" max="50000" step="100" />
+                  <span class="input-group-text bg-dark text-muted border-secondary">IBC</span>
+                </div>
+              </div>
+              <div class="col-auto">
+                <button class="btn btn-outline-primary"
+                        (click)="saveServiceInterval()"
+                        [disabled]="savingServiceInterval">
+                  <i class="fas me-1"
+                     [class.fa-save]="!savingServiceInterval"
+                     [class.fa-spinner]="savingServiceInterval"
+                     [class.fa-spin]="savingServiceInterval"></i>
+                  {{ savingServiceInterval ? 'Sparar...' : 'Spara' }}
+                </button>
+              </div>
+              <div *ngIf="serviceIntervalError" class="col-12">
+                <small class="text-danger">{{ serviceIntervalError }}</small>
+              </div>
+            </div>
+
+            <!-- Registrera service -->
+            <div>
+              <label class="form-label">Registrera service utförd</label>
+              <div class="row g-2 align-items-end">
+                <div class="col-md-6">
+                  <input type="text"
+                         class="form-control bg-dark text-light border-secondary"
+                         [(ngModel)]="serviceNote"
+                         placeholder="Anteckning (valfri) — t.ex. Filterbyte + smörjning"
+                         maxlength="255" />
+                </div>
+                <div class="col-auto">
+                  <button class="btn btn-warning text-dark"
+                          (click)="resetService()"
+                          [disabled]="savingServiceReset">
+                    <i class="fas me-1"
+                       [class.fa-wrench]="!savingServiceReset"
+                       [class.fa-spinner]="savingServiceReset"
+                       [class.fa-spin]="savingServiceReset"></i>
+                    {{ savingServiceReset ? 'Registrerar...' : 'Registrera service (nollställ räknare)' }}
+                  </button>
+                </div>
+              </div>
+              <div *ngIf="serviceResetMsg" class="mt-2">
+                <small [ngClass]="serviceResetMsg.startsWith('Fel') ? 'text-danger' : 'text-success'">
+                  <i class="fas fa-check-circle me-1" *ngIf="!serviceResetMsg.startsWith('Fel')"></i>
+                  {{ serviceResetMsg }}
+                </small>
+              </div>
+            </div>
+
+          </div><!-- /serviceStatus -->
+
+          <!-- Inga data ännu -->
+          <div *ngIf="!serviceStatusLoading && !serviceStatus" class="text-muted small">
+            <i class="fas fa-info-circle me-1"></i>Ingen servicedata tillgänglig.
+          </div>
+
+        </div><!-- /card-body -->
+      </div><!-- /card -->
+    </div>
+  </div>
+
   <!-- ======== LIVE RANKING TV-KONFIGURATION ======== -->
   <div class="row mt-4">
     <div class="col-12">

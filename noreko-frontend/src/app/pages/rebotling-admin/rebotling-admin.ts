@@ -16,6 +16,17 @@ interface GoalException {
   orsak: string;
 }
 
+interface ServiceStatus {
+  service_interval: number;
+  last_service_at: string | null;
+  last_service_note: string | null;
+  ibc_total: number;
+  ibc_sedan_service: number;
+  ibc_kvar_till_service: number;
+  pct_kvar: number;
+  status: 'ok' | 'warning' | 'danger';
+}
+
 @Component({
   standalone: true,
   selector: 'app-rebotling-admin',
@@ -128,6 +139,16 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   lrSettingsSaving = false;
   showLrPanel = false;
 
+  // ---- Prediktivt underhåll — IBC-baserat serviceintervall ----
+  serviceStatus: ServiceStatus | null = null;
+  serviceStatusLoading = false;
+  serviceInterval = 5000;
+  serviceNote = '';
+  savingServiceReset = false;
+  serviceResetMsg = '';
+  savingServiceInterval = false;
+  serviceIntervalError = '';
+
   // ---- Dagsmål-historik ----
   goalHistory: any[] = [];
   goalHistoryLoading = false;
@@ -173,6 +194,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadLrSettings();
     this.loadGoalHistory();
     this.loadGoalExceptions();
+    this.loadServiceStatus();
     this.loadKassationTyper();
     this.loadKassationSenaste();
 
@@ -1086,6 +1108,57 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
         if (res?.success) {
           this.loadGoalExceptions();
           this.showSuccess('Undantag borttaget');
+        }
+      });
+  }
+
+  // ========== Prediktivt underhåll — Serviceintervall ==========
+  loadServiceStatus(): void {
+    this.serviceStatusLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=service-status', { withCredentials: true })
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.serviceStatusLoading = false;
+        if (res?.success) {
+          this.serviceStatus = res as ServiceStatus;
+          this.serviceInterval = res.service_interval || 5000;
+        }
+      });
+  }
+
+  resetService(): void {
+    if (!confirm('Registrera service utförd? IBC-räknaren nollställs.')) return;
+    this.savingServiceReset = true;
+    this.serviceResetMsg = '';
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=reset-service',
+      { note: this.serviceNote }, { withCredentials: true })
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.savingServiceReset = false;
+        if (res?.success) {
+          this.serviceResetMsg = 'Service registrerad!';
+          this.serviceNote = '';
+          this.loadServiceStatus();
+          setTimeout(() => { if (!this.destroy$.closed) this.serviceResetMsg = ''; }, 3000);
+        } else {
+          this.serviceResetMsg = 'Fel vid registrering av service.';
+        }
+      });
+  }
+
+  saveServiceInterval(): void {
+    this.savingServiceInterval = true;
+    this.serviceIntervalError = '';
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-service-interval',
+      { service_interval_ibc: this.serviceInterval }, { withCredentials: true })
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.savingServiceInterval = false;
+        if (res?.success) {
+          this.loadServiceStatus();
+          this.showSuccess('Service-intervall sparat!');
+        } else {
+          this.serviceIntervalError = res?.error || 'Kunde inte spara intervall.';
         }
       });
   }

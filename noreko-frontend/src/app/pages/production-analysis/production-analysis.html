@@ -538,14 +538,18 @@
 
     <div *ngIf="!stopAnalysisLoading">
 
-      <!-- Tom databas — informationsruta -->
-      <div *ngIf="stoppageEmpty" class="alert stop-data-notice mb-4">
-        <i class="fas fa-database me-2"></i>
-        <strong>Inga stoppregistreringar hittades</strong> för de senaste {{ stopDays }} dagarna.
-        <span *ngIf="stoppageEmptyReason"> — {{ stoppageEmptyReason }}</span>
-        <div class="mt-2 small text-muted">
-          Stopphändelser registreras i <code>stoppage_log</code>-tabellen. Kör migreringsfil
-          <code>2026-03-04_stoppage_log.sql</code> för att aktivera funktionen.
+      <!-- Tom databas — förbättrat tomt-state -->
+      <div *ngIf="stoppageEmpty" class="mb-4">
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-check-circle fa-3x text-success mb-3 d-block"></i>
+          <div class="fw-bold fs-5">Inga registrerade stopp denna period</div>
+          <div class="small mt-1">Det verkar ha gått bra under de senaste {{ stopDays }} dagarna!</div>
+          <div *ngIf="stoppageEmptyReason" class="small mt-2 text-muted fst-italic">{{ stoppageEmptyReason }}</div>
+        </div>
+        <div class="alert stop-data-notice mt-3 small" *ngIf="stoppageTotalEvents === 0">
+          <i class="fas fa-database me-2"></i>
+          Stopphändelser registreras i <code>stoppage_log</code>-tabellen.
+          Kör migreringsfil <code>2026-03-04_stoppage_log.sql</code> för att aktivera funktionen.
         </div>
       </div>
 
@@ -577,6 +581,39 @@
             <div class="kpi-label">Värst kategori</div>
             <div class="kpi-value" style="font-size:1.4rem;">{{ getWorstCategory() }}</div>
             <div class="kpi-sub">mest stoppid totalt</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Veckosammanfattning + CSV-export -->
+      <div class="card mb-3" *ngIf="!stoppageEmpty && stoppageByDay.length > 0">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between">
+            <div class="d-flex flex-wrap gap-3 align-items-center">
+              <span class="text-muted small fw-bold"><i class="fas fa-calendar-week me-1"></i>Period ({{ stopDays }} dagar):</span>
+              <span class="small">
+                <span class="text-warning fw-bold">{{ veckoStoppStats.total }}</span>
+                <span class="text-muted ms-1">stopp totalt</span>
+              </span>
+              <span class="small text-muted">|</span>
+              <span class="small">
+                Snitt längd:
+                <span class="text-info fw-bold">{{ veckoStoppStats.snittMin }}</span>
+                <span class="text-muted ms-1">min</span>
+              </span>
+              <span class="small text-muted">|</span>
+              <span class="small">
+                Värst dag:
+                <span class="text-danger fw-bold">{{ veckoStoppStats.langstMin }}</span>
+                <span class="text-muted ms-1">min</span>
+              </span>
+            </div>
+            <button class="btn btn-sm btn-outline-info"
+                    (click)="exportStopCSV()"
+                    [disabled]="!stoppageByDay || stoppageByDay.length === 0"
+                    title="Exportera stoppdata till CSV">
+              <i class="fas fa-download me-1"></i>Exportera CSV
+            </button>
           </div>
         </div>
       </div>
@@ -669,6 +706,17 @@
         </div>
         <div class="card-body">
           <div *ngIf="getTimelineBlocks().length > 0; else noTimeline">
+            <!-- Procent-bar: körtid vs rasttid -->
+            <div class="d-flex mb-2 align-items-center gap-2" *ngIf="rastStatus">
+              <div class="flex-grow-1" style="height:12px; border-radius:6px; overflow:hidden; background:#2d3748; display:flex;">
+                <div [style.width]="getTimelinePercentages().runPct + '%'"
+                     style="background:#48bb78; transition: width 0.4s;"></div>
+                <div [style.width]="getTimelinePercentages().rastPct + '%'"
+                     style="background:#ecc94b; transition: width 0.4s;"></div>
+              </div>
+              <span class="text-success small fw-bold" style="white-space:nowrap;">{{ getTimelinePercentages().runPct }}% kör</span>
+              <span class="text-warning small fw-bold" style="white-space:nowrap;">{{ getTimelinePercentages().rastPct }}% rast</span>
+            </div>
             <div class="stop-timeline">
               <div *ngFor="let block of getTimelineBlocks()"
                    class="stop-block"

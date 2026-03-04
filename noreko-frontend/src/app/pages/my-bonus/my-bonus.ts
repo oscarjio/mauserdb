@@ -21,6 +21,14 @@ export interface FeedbackItem {
   stamning: number;
   kommentar: string | null;
 }
+// ================================================================
+// INTERFACE: WorkDay (närvaro-kalender)
+// ================================================================
+export interface WorkDay {
+  date: string;
+  worked: boolean;
+  ibc: number;
+}
 
 @Component({
   selector: 'app-my-bonus',
@@ -100,6 +108,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
   feedbackError = '';
   feedbackHistory: FeedbackItem[] = [];
   feedbackHistoryLoading = false;
+
+  // Närvaro-kalender
+  workCalendar: WorkDay[] = [];
+  calendarLoading = false;
   readonly moodEmojis: Record<number, string> = { 1: '😟', 2: '😐', 3: '😊', 4: '🌟' };
   readonly moodLabels: Record<number, string> = { 1: 'Dålig', 2: 'Ok', 3: 'Bra', 4: 'Utmärkt' };
 
@@ -208,6 +220,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
           this.history = res.data.history || [];
           this.buildHistoryChart(this.history);
           this.buildIbcTrendChart(this.history);
+          this.buildWorkCalendar();
         }
       },
       error: () => {}
@@ -1050,6 +1063,60 @@ export class MyBonusPage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  // ================================================================
+  // NÄRVARO-KALENDER
+  // ================================================================
+  buildWorkCalendar(): void {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const workedDates = new Set<string>(
+      (this.history || []).map((s: any) => s.datum || '').filter(Boolean)
+    );
+    this.workCalendar = Array.from({ length: daysInMonth }, (_, i) => {
+      const d = new Date(year, month, i + 1);
+      const dateStr = d.toISOString().slice(0, 10);
+      const shift = (this.history || []).find((s: any) => s.datum === dateStr);
+      return { date: dateStr, worked: workedDates.has(dateStr), ibc: shift?.ibc_ok || 0 };
+    });
+  }
+
+  get calendarLeadingDays(): number[] {
+    if (this.workCalendar.length === 0) return [];
+    const firstDay = new Date(this.workCalendar[0].date).getDay();
+    // Måndag=1, Söndag=0 → konvertera till Måndag-start
+    const offset = firstDay === 0 ? 6 : firstDay - 1;
+    return Array(offset).fill(0);
+  }
+
+  isToday(dateStr: string): boolean {
+    return dateStr === new Date().toISOString().slice(0, 10);
+  }
+
+  getWorkedDaysThisMonth(): number {
+    return (this.workCalendar || []).filter(d => d.worked).length;
+  }
+
+  getCalendarMonthLabel(): string {
+    if (this.workCalendar.length === 0) return '';
+    const d = new Date(this.workCalendar[0].date);
+    return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'long' });
+  }
+
+  get currentStreak(): number {
+    if (!this.workCalendar || this.workCalendar.length === 0) return 0;
+    let streak = 0;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    // Ta bara dagar upp till och med idag
+    const past = [...this.workCalendar].filter(d => d.date <= todayStr).reverse();
+    for (const day of past) {
+      if (day.worked) streak++;
+      else if (streak > 0) break;
+    }
+    return streak;
   }
 
   // ================================================================

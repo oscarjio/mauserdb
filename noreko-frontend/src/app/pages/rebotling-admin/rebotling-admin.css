@@ -469,3 +469,13 @@
 
 .threshold-card.threshold-warn   { border-left-color: #d69e2e; }
 .threshold-card.threshold-danger { border-left-color: #e53e3e; }
+
+/* ---- Prediktivt underhåll — Service danger-puls ---- */
+.service-danger-pulse {
+  animation: service-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes service-pulse {
+  0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5); }
+  50%       { opacity: 0.9; box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+}

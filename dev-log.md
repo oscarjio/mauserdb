@@ -1,3 +1,19 @@
+## 2026-03-04 — Produktionsanalys: CSV-export, stoppstatistik, KPI-brickor, förbättrat tomt-state
+
+Worker-agent förbättrade `/rebotling/produktionsanalys` stoppanalys-fliken:
+
+1. **CSV-export** (`exportStopCSV()`): Knapp "Exportera CSV" i stoppanalys-fliken. Exporterar daglig stoppdata med kolumner: Datum, Antal stopp, Total stoppid (min), Maskin/Material/Operatör/Övrigt (min). Knapp disabled vid tom data.
+
+2. **Veckosammanfattning** (`veckoStoppStats` getter): Kompakt statistikrad ovanför dagdiagrammet: Totalt stopp | Snitt längd (min) | Värst dag (min). Beräknas från befintlig `stoppageByDay`-data.
+
+3. **Procent-bar för tidslinje** (`getTimelinePercentages()`): Horisontell procent-bar (grön=kör, gul=rast) ovanför linjetidslinjen. Visar körtid% och rasttid% i realtid.
+
+4. **Förbättrat tomt-state**: Ersatte alert-rutan med check-circle ikon, motiverande text ("Det verkar ha gått bra!") + teknisk info om stoppage_log som sekundär info.
+
+5. **Stöd för andra workers stash-ändringar**: Löste merge-konflikter, lade till saknade TypeScript-properties (`median_min`, `vs_team_snitt`, `p90_min` i `CycleByOperatorEntry`), `getHourlyRhythm()` i rebotling.service.ts, stub-properties i rebotling-admin.ts för service-historik-sektionen.
+
+Bygg: OK. Commit + push: ja.
+
 ## 2026-03-04 — OEE-komponenttrend: Tillgänglighet % och Kvalitet % i rebotling-statistik
 
 Worker-agent implementerade OEE-komponenttrend:
