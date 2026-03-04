@@ -32,7 +32,7 @@ class SaglinjeController {
 
         if ($method === 'POST') {
             if ($action === 'settings') {
-                session_start();
+                if (session_status() === PHP_SESSION_NONE) session_start();
                 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
@@ -43,7 +43,7 @@ class SaglinjeController {
             }
 
             if ($action === 'weekday-goals') {
-                session_start();
+                if (session_status() === PHP_SESSION_NONE) session_start();
                 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                     http_response_code(403);
                     echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
@@ -292,6 +292,9 @@ class SaglinjeController {
         try {
             $start = $_GET['start'] ?? date('Y-m-d');
             $end   = $_GET['end']   ?? date('Y-m-d');
+
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
+            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
 
             $stmt = $this->pdo->prepare('
                 SELECT datum, ibc_count

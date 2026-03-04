@@ -197,8 +197,18 @@ export class Menu implements OnInit, OnDestroy {
 
     this.savingProfile = true;
     this.http.post<any>('/noreko-backend/api.php?action=profile', payload, { withCredentials: true })
+      .pipe(
+        timeout(10000),
+        catchError((error) => {
+          this.profileError = error?.error?.message || 'Ett fel inträffade.';
+          this.savingProfile = false;
+          return of(null);
+        }),
+        takeUntil(this.destroy$)
+      )
       .subscribe({
         next: (response) => {
+          if (response === null) return;
           if (response?.success) {
             this.profileMessage = response.message || 'Konto uppdaterat.';
             this.profileForm.currentPassword = '';
