@@ -394,6 +394,10 @@
                         <button *ngIf="loggedIn" class="btn btn-outline-danger" (click)="exportPDF(report)" title="Ladda ner PDF">
                           <i class="fas fa-file-pdf"></i>
                         </button>
+                        <button class="btn btn-outline-success" (click)="toggleShiftSummary(report)"
+                          [title]="shiftSummaryReportId === report.id ? 'Dölj skiftsammanfattning' : 'Visa skiftsammanfattning (utskrift)'">
+                          <i class="fas fa-print"></i>
+                        </button>
                         <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort">
                           <i class="fas fa-trash"></i>
                         </button>
@@ -811,6 +815,226 @@
                       </div>
                     </td>
                   </tr>
+
+                  <!-- ======== SKIFTSAMMANFATTNING (PRINT-VY) ======== -->
+                  <tr *ngIf="shiftSummaryReportId === report.id" class="expand-row">
+                    <td [attr.colspan]="isAdmin ? 13 : 12" class="p-0">
+                      <div class="shift-summary-panel p-3">
+
+                        <!-- Header med stäng/skriv ut -->
+                        <div class="d-flex justify-content-between align-items-center mb-3 no-print">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-clipboard-check text-success me-2"></i>
+                            <span class="text-success fw-semibold">
+                              Skiftsammanfattning — {{ (report.datum || '') | date:'yyyy-MM-dd' }}
+                              <span class="text-muted small ms-2">({{ shiftSummaryData?.shift_name || 'Laddar...' }})</span>
+                            </span>
+                          </div>
+                          <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success" (click)="printShiftSummary()" [disabled]="shiftSummaryLoading || !shiftSummaryData">
+                              <i class="fas fa-print me-1"></i>Skriv ut / PDF
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" (click)="toggleShiftSummary(report)" title="Stäng">
+                              <i class="fas fa-times"></i>
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- Laddningsindikator -->
+                        <div *ngIf="shiftSummaryLoading" class="text-center text-muted py-4 no-print">
+                          <i class="fas fa-spinner fa-spin me-2"></i>Hämtar skiftsammanfattning...
+                        </div>
+
+                        <!-- Felmeddelande -->
+                        <div *ngIf="shiftSummaryError && !shiftSummaryLoading" class="alert alert-secondary py-2 no-print">
+                          <i class="fas fa-info-circle me-2"></i>{{ shiftSummaryError }}
+                        </div>
+
+                        <!-- === PRINT-OPTIMERAD SAMMANFATTNING === -->
+                        <div *ngIf="shiftSummaryData && !shiftSummaryLoading" class="print-summary" id="printShiftSummary">
+
+                          <!-- Print header (visas bara vid utskrift) -->
+                          <div class="print-only print-header">
+                            <div class="d-flex justify-content-between align-items-start">
+                              <div>
+                                <h2 class="mb-1">SKIFTSAMMANFATTNING</h2>
+                                <p class="mb-0">Rebotling — IBC-tvätteri</p>
+                              </div>
+                              <div class="text-end">
+                                <h3 class="mb-1">NOREKO</h3>
+                                <p class="mb-0">{{ shiftSummaryData.date }}</p>
+                                <p class="mb-0">{{ shiftSummaryData.shift_name }}</p>
+                              </div>
+                            </div>
+                            <hr class="mt-2 mb-3" />
+                          </div>
+
+                          <!-- KPI-kort -->
+                          <div class="row g-2 mb-3">
+                            <div class="col-6 col-md-2">
+                              <div class="kpi-card print-card">
+                                <div class="kpi-label">Total IBC</div>
+                                <div class="kpi-value text-info">{{ shiftSummaryData.total_ibc }}</div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                              <div class="kpi-card print-card">
+                                <div class="kpi-label">IBC / timme</div>
+                                <div class="kpi-value text-warning">
+                                  {{ shiftSummaryData.ibc_per_h != null ? (shiftSummaryData.ibc_per_h + ' st/h') : '–' }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                              <div class="kpi-card print-card">
+                                <div class="kpi-label">Kvalitet</div>
+                                <div class="kpi-value"
+                                  [class.text-success]="(shiftSummaryData.kvalitet ?? 0) >= 90"
+                                  [class.text-warning]="(shiftSummaryData.kvalitet ?? 101) >= 70 && (shiftSummaryData.kvalitet ?? 101) < 90"
+                                  [class.text-danger]="(shiftSummaryData.kvalitet ?? 101) < 70 && shiftSummaryData.kvalitet != null">
+                                  {{ shiftSummaryData.kvalitet != null ? (shiftSummaryData.kvalitet + '%') : '–' }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                              <div class="kpi-card print-card">
+                                <div class="kpi-label">OEE</div>
+                                <div class="kpi-value"
+                                  [class.text-success]="(shiftSummaryData.oee ?? 0) >= 75"
+                                  [class.text-warning]="(shiftSummaryData.oee ?? 101) >= 50 && (shiftSummaryData.oee ?? 101) < 75"
+                                  [class.text-danger]="(shiftSummaryData.oee ?? 101) < 50 && shiftSummaryData.oee != null">
+                                  {{ shiftSummaryData.oee != null ? (shiftSummaryData.oee + '%') : '–' }}
+                                </div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                              <div class="kpi-card print-card">
+                                <div class="kpi-label">Drifttid</div>
+                                <div class="kpi-value text-success">{{ formatDrifttid(shiftSummaryData.drifttid) }}</div>
+                              </div>
+                            </div>
+                            <div class="col-6 col-md-2">
+                              <div class="kpi-card print-card">
+                                <div class="kpi-label">Delta vs föreg.</div>
+                                <div class="kpi-value"
+                                  [class.text-success]="(shiftSummaryData.delta_vs_prev ?? 0) > 0"
+                                  [class.text-danger]="(shiftSummaryData.delta_vs_prev ?? 0) < 0"
+                                  [class.text-muted]="shiftSummaryData.delta_vs_prev == null">
+                                  <ng-container *ngIf="shiftSummaryData.delta_vs_prev != null">
+                                    {{ shiftSummaryData.delta_vs_prev > 0 ? '+' : '' }}{{ shiftSummaryData.delta_vs_prev }}
+                                  </ng-container>
+                                  <span *ngIf="shiftSummaryData.delta_vs_prev == null">–</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Produktionsdetaljer -->
+                          <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                              <div class="card print-card">
+                                <div class="card-header py-2">
+                                  <i class="fas fa-boxes me-2"></i>Produktion
+                                </div>
+                                <div class="card-body py-2">
+                                  <table class="table table-sm mb-0">
+                                    <tbody>
+                                      <tr>
+                                        <td class="text-muted">IBC OK</td>
+                                        <td class="text-end fw-bold text-success">{{ shiftSummaryData.ibc_ok }}</td>
+                                      </tr>
+                                      <tr>
+                                        <td class="text-muted">Bur ej OK</td>
+                                        <td class="text-end fw-bold text-warning">{{ shiftSummaryData.bur_ej_ok }}</td>
+                                      </tr>
+                                      <tr>
+                                        <td class="text-muted">IBC ej OK</td>
+                                        <td class="text-end fw-bold text-danger">{{ shiftSummaryData.ibc_ej_ok }}</td>
+                                      </tr>
+                                      <tr>
+                                        <td class="text-muted">Totalt</td>
+                                        <td class="text-end fw-bold text-info">{{ shiftSummaryData.total_ibc }}</td>
+                                      </tr>
+                                      <tr>
+                                        <td class="text-muted">Rasttid</td>
+                                        <td class="text-end">{{ shiftSummaryData.rasttime ? (shiftSummaryData.rasttime + ' min') : '–' }}</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-md-6">
+                              <div class="card print-card">
+                                <div class="card-header py-2">
+                                  <i class="fas fa-users me-2"></i>Operatörer
+                                </div>
+                                <div class="card-body py-2">
+                                  <div *ngIf="shiftSummaryData.operators?.length > 0">
+                                    <span *ngFor="let op of shiftSummaryData.operators" class="badge bg-secondary me-2 mb-1 px-3 py-2">
+                                      {{ op }}
+                                    </span>
+                                  </div>
+                                  <span *ngIf="!shiftSummaryData.operators?.length" class="text-muted">Inga operatörer registrerade</span>
+
+                                  <div class="mt-2" *ngIf="shiftSummaryData.products?.length > 0">
+                                    <small class="text-muted d-block mb-1">Produkter:</small>
+                                    <span *ngFor="let p of shiftSummaryData.products" class="badge bg-info me-2 mb-1 px-3 py-2">
+                                      {{ p }}
+                                    </span>
+                                  </div>
+
+                                  <div class="mt-2" *ngIf="shiftSummaryData.kommentar">
+                                    <small class="text-muted d-block mb-1">Skiftkommentar:</small>
+                                    <p class="mb-0" style="white-space:pre-wrap; color:#e2e8f0;">{{ shiftSummaryData.kommentar }}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Timvis produktion (om data finns) -->
+                          <div *ngIf="shiftSummaryData.hourly?.length > 0" class="card print-card mb-3">
+                            <div class="card-header py-2">
+                              <i class="fas fa-chart-bar me-2"></i>Timvis produktion (PLC)
+                            </div>
+                            <div class="card-body py-2">
+                              <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                  <thead>
+                                    <tr>
+                                      <th *ngFor="let h of shiftSummaryData.hourly" class="text-center">
+                                        {{ h.timme }}:00
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr>
+                                      <td *ngFor="let h of shiftSummaryData.hourly" class="text-center fw-bold text-info">
+                                        {{ h.antal }}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Print footer (visas bara vid utskrift) -->
+                          <div class="print-only print-footer">
+                            <hr />
+                            <div class="d-flex justify-content-between">
+                              <small>Genererad: {{ shiftSummaryData.date }} | Noreko Rebotling</small>
+                              <small>Antal rapporter: {{ shiftSummaryData.antal_rapporter }}</small>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+
                 </ng-container>
 
                 <tr *ngIf="filteredReports.length === 0">

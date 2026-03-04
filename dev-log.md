@@ -1,3 +1,31 @@
+## 2026-03-04 kväll #6 — Worker: Skiftsammanfattning — detaljvy med PDF-export per skift
+
+**Backend (RebotlingController.php):**
+- Ny endpoint `shift-summary`: Tar `date` + `shift` (1/2/3) och returnerar komplett skiftsammanfattning:
+  - Aggregerade KPI:er: total IBC, IBC/h, kvalitet%, OEE%, drifttid, rasttid
+  - Delta vs föregående skift
+  - Operatörslista och produkter
+  - Timvis produktionsdata från PLC (rebotling_ibc)
+  - Skiftkommentar (om sparad)
+- Skiftfiltrering baserad på timestamp i datum-fältet (06-14 = skift 1, 14-22 = skift 2, 22-06 = skift 3)
+
+**Frontend (rebotling-skiftrapport):**
+- Ny knapp (skrivarikon) i varje skiftrapportrad som öppnar skiftsammanfattningspanelen
+- Expanderbar sammanfattningspanel med:
+  - 6 KPI-kort (Total IBC, IBC/h, Kvalitet, OEE, Drifttid, Delta vs föreg.)
+  - Produktionsdetaljer-kort med IBC OK/Bur ej OK/IBC ej OK/Totalt/Rasttid
+  - Operatörskort med badges, produktlista och skiftkommentar
+  - Timvis produktionstabell från PLC-data
+- "Skriv ut / PDF"-knapp som anropar window.print()
+- Print-only header (NOREKO + datum + skiftnamn) och footer
+
+**Print-optimerad CSS (@media print):**
+- Döljer all UI utom skiftsammanfattningspanelen vid utskrift
+- Vit bakgrund, svart text, kompakt layout
+- Kort med `break-inside: avoid` för snygg sidbrytning
+- Lämpliga färgkontraster för utskrift (grön/röd/blå/gul)
+- A4-sidformat med 15mm marginaler
+
 ## 2026-03-04 kväll #5 — Worker: VD Månadsrapport förbättring
 
 **Backend (RebotlingController.php — getMonthCompare):**

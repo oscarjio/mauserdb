@@ -508,3 +508,155 @@
   letter-spacing: 0.05em;
   margin-top: 2px;
 }
+
+/* ---- Skiftsammanfattning (print-vy) ---- */
+.shift-summary-panel {
+  background: #1a202c;
+  border-top: 2px solid #38a169;
+}
+
+.print-only {
+  display: none !important;
+}
+
+.print-summary .print-card {
+  break-inside: avoid;
+}
+
+/* ---- Print-optimerad CSS ---- */
+@media print {
+  /* Dölj allt utom sammanfattningen */
+  .no-print,
+  .toast-container,
+  .summary-bar,
+  .filter-bar,
+  .btn-group,
+  .table-responsive > table > thead,
+  .table-responsive > table > tbody > ng-container:not(.print-active),
+  .card:not(.print-card),
+  nav,
+  .navbar,
+  .sidebar,
+  footer,
+  .expand-row:not(:has(.shift-summary-panel)),
+  .trend-panel {
+    display: none !important;
+  }
+
+  /* Visa print-only element */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset bakgrunder och färger */
+  body,
+  .container-fluid,
+  .shift-summary-panel,
+  .print-summary {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .card,
+  .print-card {
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+  }
+
+  .card-header {
+    background-color: #f0f0f0 !important;
+    color: black !important;
+    border-bottom: 1px solid #ccc !important;
+  }
+
+  .card-body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .kpi-card {
+    background: #f8f8f8 !important;
+    border: 1px solid #ddd !important;
+    color: black !important;
+  }
+
+  .kpi-label {
+    color: #555 !important;
+  }
+
+  .kpi-value {
+    color: black !important;
+  }
+
+  .kpi-value.text-info { color: #0066cc !important; }
+  .kpi-value.text-success { color: #006600 !important; }
+  .kpi-value.text-warning { color: #996600 !important; }
+  .kpi-value.text-danger { color: #cc0000 !important; }
+  .kpi-value.text-muted { color: #666 !important; }
+
+  .table {
+    background: white !important;
+    color: black !important;
+  }
+
+  .table th,
+  .table td {
+    background: white !important;
+    color: black !important;
+    border-color: #ccc !important;
+  }
+
+  .badge {
+    border: 1px solid #999 !important;
+    color: black !important;
+    background: #eee !important;
+  }
+
+  .text-muted {
+    color: #666 !important;
+  }
+
+  .text-success { color: #006600 !important; }
+  .text-danger { color: #cc0000 !important; }
+  .text-warning { color: #996600 !important; }
+  .text-info { color: #0066cc !important; }
+
+  .print-header {
+    margin-bottom: 1rem;
+  }
+
+  .print-header h2 {
+    font-size: 1.5rem;
+    color: black !important;
+  }
+
+  .print-header h3 {
+    font-size: 1.2rem;
+    color: #333 !important;
+  }
+
+  .print-header p {
+    font-size: 0.9rem;
+    color: #555 !important;
+  }
+
+  .print-footer {
+    margin-top: 2rem;
+  }
+
+  .print-footer small {
+    color: #666 !important;
+    font-size: 0.8rem;
+  }
+
+  /* Sidan */
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+}

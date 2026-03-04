@@ -88,6 +88,12 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   selectedSkift: number | null = null;
   selectedSkiftIndex: number = -1;
 
+  // ---- Skiftsammanfattning (print-view) ----
+  shiftSummaryReportId: number | null = null;
+  shiftSummaryData: any = null;
+  shiftSummaryLoading = false;
+  shiftSummaryError = '';
+
   private destroy$ = new Subject<void>();
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
@@ -1704,6 +1710,54 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     if (this.selectedTrendReportId == null) return false;
     const idx = this.filteredReports.findIndex(r => r.id === this.selectedTrendReportId);
     return idx < this.filteredReports.length - 1;
+  }
+
+  // ========== Skiftsammanfattning (print-vy) ==========
+
+  toggleShiftSummary(report: any) {
+    if (this.shiftSummaryReportId === report.id) {
+      // Stäng
+      this.shiftSummaryReportId = null;
+      this.shiftSummaryData = null;
+      return;
+    }
+
+    this.shiftSummaryReportId = report.id;
+    this.shiftSummaryData = null;
+    this.shiftSummaryError = '';
+    this.shiftSummaryLoading = true;
+
+    const datum = (report.datum || '').substring(0, 10);
+    const shiftNr = this.getShiftNr(report);
+
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=shift-summary&date=${datum}&shift=${shiftNr}`,
+      { withCredentials: true }
+    )
+    .pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    )
+    .subscribe(res => {
+      this.shiftSummaryLoading = false;
+      if (!res || !res.success) {
+        this.shiftSummaryError = res?.error || 'Kunde inte hämta skiftsammanfattning';
+        return;
+      }
+      this.shiftSummaryData = res.data;
+    });
+  }
+
+  printShiftSummary() {
+    window.print();
+  }
+
+  formatDrifttid(min: number | null): string {
+    if (min == null || min === 0) return '–';
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return h > 0 ? `${h}h ${m}min` : `${m}min`;
   }
 
   // ========== Toast ==========

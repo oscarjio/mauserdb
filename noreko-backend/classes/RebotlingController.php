@@ -145,6 +145,8 @@ class RebotlingController {
                 $this->getSkiftrapportList();
             } elseif ($action === 'skiftrapport-operators') {
                 $this->getSkiftrapportOperators();
+            } elseif ($action === 'shift-summary') {
+                $this->getShiftSummary();
             } else {
                 $this->getLiveStats();
             }
@@ -7339,6 +7341,204 @@ class RebotlingController {
             error_log('getSkiftrapportOperators: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista']);
+        }
+    }
+
+    // =========================================================
+    // Skiftsammanfattning — detaljvy per specifikt skift
+    // GET ?action=rebotling&run=shift-summary&date=YYYY-MM-DD&shift=1|2|3
+    // =========================================================
+    private function getShiftSummary() {
+        $date  = $_GET['date']  ?? '';
+        $shift = (int)($_GET['shift'] ?? 0);
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $shift < 1 || $shift > 3) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum eller skiftnummer (1-3)']);
+            return;
+        }
+
+        try {
+            // Hämta alla skiftrapporter för detta datum
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
+                    s.drifttid, s.rasttime, s.lopnummer, s.skiftraknare,
+                    s.op1, s.op2, s.op3,
+                    s.created_at,
+                    u.username AS user_name,
+                    p.name AS product_name,
+                    o1.name AS op1_name,
+                    o2.name AS op2_name,
+                    o3.name AS op3_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN rebotling_products p ON s.product_id = p.id
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                WHERE s.datum = :date
+                ORDER BY s.id
+            ");
+            $stmt->execute(['date' => $date]);
+            $allRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Filtrera rader som tillhör det angivna skiftet baserat på timestamp
+            // Skift 1 = förmiddag (06-14), skift 2 = eftermiddag (14-22), skift 3 = natt (22-06)
+            $rows = [];
+            foreach ($allRows as $row) {
+                $timeStr = substr($row['datum'] ?? '', 11, 5);
+                $rowShift = 1;
+                if ($timeStr) {
+                    $parts = explode(':', $timeStr);
+                    $minutes = ((int)$parts[0]) * 60 + ((int)($parts[1] ?? 0));
+                    if ($minutes >= 360 && $minutes < 840) $rowShift = 1;      // 06-14
+                    elseif ($minutes >= 840 && $minutes < 1320) $rowShift = 2;  // 14-22
+                    else $rowShift = 3;                                          // 22-06
+                }
+                if ($rowShift === $shift) {
+                    $rows[] = $row;
+                }
+            }
+
+            // Om vi inte matchade med timestamp, ta alla för datumet (fallback)
+            if (count($rows) === 0 && count($allRows) > 0) {
+                $rows = $allRows;
+            }
+
+            // Aggregera KPI:er
+            $totalIbcOk  = 0;
+            $totalBurEj  = 0;
+            $totalIbcEj  = 0;
+            $totalTotalt = 0;
+            $totalDrift  = 0;
+            $totalRast   = 0;
+            $operatorNames = [];
+            $products    = [];
+
+            foreach ($rows as $r) {
+                $totalIbcOk  += (int)($r['ibc_ok']    ?? 0);
+                $totalBurEj  += (int)($r['bur_ej_ok']  ?? 0);
+                $totalIbcEj  += (int)($r['ibc_ej_ok']  ?? 0);
+                $totalTotalt += (int)($r['totalt']      ?? 0);
+                $totalDrift  += (int)($r['drifttid']    ?? 0);
+                $totalRast   += (int)($r['rasttime']    ?? 0);
+
+                foreach (['op1_name', 'op2_name', 'op3_name'] as $opField) {
+                    if (!empty($r[$opField])) {
+                        $operatorNames[$r[$opField]] = true;
+                    }
+                }
+                if (!empty($r['product_name'])) {
+                    $products[$r['product_name']] = true;
+                }
+            }
+
+            $kvalitet = $totalTotalt > 0
+                ? round(($totalIbcOk / $totalTotalt) * 100, 1)
+                : null;
+
+            $planned = $totalDrift + $totalRast;
+            $avail   = $planned > 0 ? min($totalDrift / $planned, 1) : null;
+            $qualityRatio = $totalTotalt > 0 ? ($totalIbcOk / $totalTotalt) : null;
+            $oee = ($avail !== null && $qualityRatio !== null)
+                ? round($avail * $qualityRatio * 100, 1)
+                : null;
+
+            $ibcPerH = $totalDrift > 0
+                ? round(($totalIbcOk / ($totalDrift / 60)), 1)
+                : null;
+
+            // Delta vs föregående skift — hämta föregående skifts totalt
+            $prevShift = $shift - 1;
+            $prevDate  = $date;
+            if ($prevShift < 1) {
+                $prevShift = 3;
+                $prevDate  = date('Y-m-d', strtotime($date . ' -1 day'));
+            }
+
+            $prevStmt = $this->pdo->prepare("
+                SELECT SUM(s.totalt) AS prev_totalt
+                FROM rebotling_skiftrapport s
+                WHERE s.datum = :date
+            ");
+            $prevStmt->execute(['date' => $prevDate]);
+            $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
+
+            $prevTotalt = (int)($prevRow['prev_totalt'] ?? 0);
+            $delta = $prevTotalt > 0 ? $totalTotalt - $prevTotalt : null;
+
+            // Timvis produktion från PLC-data (om tillgänglig)
+            $hourlyData = [];
+            $skiftraknare = null;
+            foreach ($rows as $r) {
+                if (!empty($r['skiftraknare'])) {
+                    $skiftraknare = (int)$r['skiftraknare'];
+                    break;
+                }
+            }
+
+            if ($skiftraknare) {
+                $hourlyStmt = $this->pdo->prepare("
+                    SELECT
+                        HOUR(datum) AS timme,
+                        COUNT(*)    AS antal,
+                        MAX(COALESCE(ibc_ok, 0)) - MIN(COALESCE(ibc_ok, 0)) AS ibc_diff
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                      AND skiftraknare = :skift
+                    GROUP BY HOUR(datum)
+                    ORDER BY HOUR(datum)
+                ");
+                $hourlyStmt->execute(['date' => $date, 'skift' => $skiftraknare]);
+                $hourlyData = $hourlyStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            // Skiftkommentar
+            $kommentar = '';
+            try {
+                $komStmt = $this->pdo->prepare("
+                    SELECT kommentar FROM rebotling_skift_kommentarer
+                    WHERE datum = :datum AND skift_nr = :skift_nr
+                    LIMIT 1
+                ");
+                $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
+                $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
+                if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
+            } catch (Exception $e) {
+                // Tabellen kanske inte finns — ignorera
+            }
+
+            $shiftNames = [1 => 'Förmiddag (06–14)', 2 => 'Eftermiddag (14–22)', 3 => 'Natt (22–06)'];
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'date'       => $date,
+                    'shift'      => $shift,
+                    'shift_name' => $shiftNames[$shift] ?? "Skift $shift",
+                    'total_ibc'  => $totalTotalt,
+                    'ibc_ok'     => $totalIbcOk,
+                    'bur_ej_ok'  => $totalBurEj,
+                    'ibc_ej_ok'  => $totalIbcEj,
+                    'kvalitet'   => $kvalitet,
+                    'oee'        => $oee,
+                    'ibc_per_h'  => $ibcPerH,
+                    'drifttid'   => $totalDrift,
+                    'rasttime'   => $totalRast,
+                    'delta_vs_prev' => $delta,
+                    'operators'  => array_keys($operatorNames),
+                    'products'   => array_keys($products),
+                    'reports'    => $rows,
+                    'hourly'     => $hourlyData,
+                    'kommentar'  => $kommentar,
+                    'antal_rapporter' => count($rows),
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getShiftSummary: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftsammanfattning']);
         }
     }
 }
