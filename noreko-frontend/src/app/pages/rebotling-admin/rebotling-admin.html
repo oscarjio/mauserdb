@@ -370,6 +370,103 @@
         </div>
       </div>
 
+      <!-- ======== ANPASSADE DAGSMÅL (DATUM-UNDANTAG) ======== -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-calendar-alt me-2 text-warning"></i>
+            Anpassade dagsmål (datum-undantag)
+          </h5>
+          <span *ngIf="goalExceptionsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Undantag används istället för det ordinarie veckodagsmålet för det specifika datumet.
+            Använd detta för planerat underhåll, helgdagar eller reducerad bemanning.
+          </p>
+
+          <!-- Formulär för nytt undantag -->
+          <div class="row g-2 align-items-end mb-4">
+            <div class="col-12 mb-2">
+              <h6 class="fw-semibold text-light">Sätt justerat mål för specifikt datum:</h6>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold small">
+                <i class="fas fa-calendar-day me-1 text-info"></i>Datum
+              </label>
+              <input type="date" class="form-control" [(ngModel)]="newExceptionDatum" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold small">
+                <i class="fas fa-box me-1 text-success"></i>Justerat mål (IBC)
+              </label>
+              <input type="number" class="form-control" [(ngModel)]="newExceptionMal" min="1" max="9999" placeholder="t.ex. 40" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold small">
+                <i class="fas fa-comment-alt me-1 text-secondary"></i>Orsak (valfri)
+              </label>
+              <input type="text" class="form-control" [(ngModel)]="newExceptionOrsak"
+                maxlength="255" placeholder="t.ex. Planerat underhåll, reducerad bemanning..." />
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-2">
+              <button class="btn btn-warning" (click)="saveGoalException()" [disabled]="savingException">
+                <span *ngIf="savingException" class="spinner-border spinner-border-sm me-2"></span>
+                <i *ngIf="!savingException" class="fas fa-save me-2"></i>
+                {{ savingException ? 'Sparar...' : 'Spara undantag' }}
+              </button>
+            </div>
+            <div class="col-12" *ngIf="exceptionSaveMsg">
+              <span [class.text-success]="exceptionSaveMsg === 'Undantag sparat!'"
+                    [class.text-danger]="exceptionSaveMsg !== 'Undantag sparat!'"
+                    class="small">
+                <i class="fas me-1"
+                   [class.fa-check-circle]="exceptionSaveMsg === 'Undantag sparat!'"
+                   [class.fa-exclamation-circle]="exceptionSaveMsg !== 'Undantag sparat!'"></i>
+                {{ exceptionSaveMsg }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Lista med aktiva undantag -->
+          <h6 class="fw-semibold text-light mb-2">Aktiva undantag:</h6>
+          <div *ngIf="goalExceptionsLoading && goalExceptions.length === 0" class="text-muted text-center py-3">
+            <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+          </div>
+          <div *ngIf="!goalExceptionsLoading && goalExceptions.length === 0" class="text-muted text-center py-3">
+            <i class="fas fa-calendar-times me-2"></i>Inga aktiva undantag — ordinarie veckodagsmål används för alla datum.
+          </div>
+          <div class="table-responsive" *ngIf="goalExceptions.length > 0">
+            <table class="table table-sm table-dark" style="border-color:#4a5568;">
+              <thead>
+                <tr style="border-color:#4a5568; color:#a0aec0; font-size:0.85rem;">
+                  <th>Datum</th>
+                  <th>Justerat mål</th>
+                  <th>Orsak</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let ex of goalExceptions" style="border-color:#4a5568;">
+                  <td class="fw-semibold" style="color:#e2e8f0;">{{ ex.datum }}</td>
+                  <td>
+                    <span class="badge bg-warning text-dark">{{ ex.justerat_mal }} IBC</span>
+                  </td>
+                  <td style="color:#a0aec0; font-size:0.875rem;">{{ ex.orsak || '—' }}</td>
+                  <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger" (click)="deleteGoalException(ex.datum)"
+                      title="Ta bort undantag för {{ ex.datum }}">
+                      <i class="fas fa-trash-alt me-1"></i>Ta bort
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- ======== ALERT-TRÖSKLAR (KOLLAPSBAR) ======== -->
       <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">

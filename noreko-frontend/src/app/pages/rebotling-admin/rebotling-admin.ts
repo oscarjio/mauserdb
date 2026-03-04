@@ -10,6 +10,12 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
+interface GoalException {
+  datum: string;
+  justerat_mal: number;
+  orsak: string;
+}
+
 @Component({
   standalone: true,
   selector: 'app-rebotling-admin',
@@ -127,6 +133,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   goalHistoryLoading = false;
   private goalHistoryChart: Chart | null = null;
 
+  // ---- Anpassade dagsmål (datum-undantag) ----
+  goalExceptions: GoalException[] = [];
+  goalExceptionsLoading = false;
+  newExceptionDatum: string = new Date().toISOString().slice(0, 10);
+  newExceptionMal: number = 0;
+  newExceptionOrsak: string = '';
+  savingException = false;
+  exceptionSaveMsg = '';
+
   constructor(private auth: AuthService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
@@ -157,6 +172,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadNotificationSettings();
     this.loadLrSettings();
     this.loadGoalHistory();
+    this.loadGoalExceptions();
     this.loadKassationTyper();
     this.loadKassationSenaste();
 
@@ -1003,6 +1019,73 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           setTimeout(() => { if (!this.destroy$.closed) this.kassationSaved = false; }, 3000);
         } else {
           this.kassationError = res?.error || 'Kunde inte registrera kassation';
+        }
+      });
+  }
+
+  // ========== Anpassade dagsmål (datum-undantag) ==========
+  loadGoalExceptions() {
+    this.goalExceptionsLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=goal-exceptions', { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        this.goalExceptionsLoading = false;
+        if (res?.success) {
+          this.goalExceptions = res.exceptions || [];
+        }
+      });
+  }
+
+  saveGoalException() {
+    if (!this.newExceptionDatum || this.newExceptionMal <= 0) {
+      this.exceptionSaveMsg = 'Fyll i datum och mål (> 0)';
+      return;
+    }
+    this.savingException = true;
+    this.exceptionSaveMsg = '';
+    const body = {
+      datum: this.newExceptionDatum,
+      justerat_mal: this.newExceptionMal,
+      orsak: this.newExceptionOrsak
+    };
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-goal-exception', body, { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        this.savingException = false;
+        if (res?.success) {
+          this.exceptionSaveMsg = 'Undantag sparat!';
+          this.newExceptionMal = 0;
+          this.newExceptionOrsak = '';
+          this.newExceptionDatum = new Date().toISOString().slice(0, 10);
+          this.loadGoalExceptions();
+          this.showSuccess('Undantag sparat!');
+          setTimeout(() => { if (!this.destroy$.closed) this.exceptionSaveMsg = ''; }, 3000);
+        } else {
+          this.exceptionSaveMsg = res?.error || 'Kunde inte spara undantag';
+        }
+      });
+  }
+
+  deleteGoalException(datum: string) {
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=delete-goal-exception',
+      { datum }, { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe((res: any) => {
+        if (res?.success) {
+          this.loadGoalExceptions();
+          this.showSuccess('Undantag borttaget');
         }
       });
   }

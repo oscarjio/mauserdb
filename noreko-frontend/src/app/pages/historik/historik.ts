@@ -9,6 +9,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
+import * as XLSX from 'xlsx';
 import { environment } from '../../../environments/environment';
 
 Chart.register(...registerables);
@@ -44,7 +45,7 @@ interface VeckoData {
             </h1>
             <p class="page-subtitle mb-0">Rebotling — produktionsutveckling över tid</p>
           </div>
-          <div class="d-flex align-items-center gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
             <label class="text-muted small me-1 mb-0">Visa månader:</label>
             <select class="form-select form-select-sm period-select"
                     [(ngModel)]="valdaManader"
@@ -55,6 +56,18 @@ interface VeckoData {
               <option [value]="36">36 månader</option>
               <option [value]="48">48 månader</option>
             </select>
+            <button class="btn btn-sm btn-outline-success"
+                    (click)="exportHistorikCSV()"
+                    [disabled]="!monthlyData || monthlyData.length === 0"
+                    title="Exportera månadsdata som CSV">
+              <i class="fas fa-file-csv me-1"></i>CSV
+            </button>
+            <button class="btn btn-sm btn-outline-info"
+                    (click)="exportHistorikExcel()"
+                    [disabled]="!monthlyData || monthlyData.length === 0"
+                    title="Exportera månadsdata som Excel">
+              <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
           </div>
         </div>
       </div>
@@ -152,8 +165,9 @@ interface VeckoData {
 
         <!-- Månadsdetaljstabell -->
         <div class="card table-card mb-4">
-          <div class="card-header">
-            <i class="fas fa-table me-2 text-info"></i>Månadsdetaljer
+          <div class="card-header d-flex align-items-center justify-content-between">
+            <span><i class="fas fa-table me-2 text-info"></i>Månadsdetaljer</span>
+            <span class="text-muted small">{{ monthlyData.length }} månader</span>
           </div>
           <div class="card-body p-0">
             <div *ngIf="monthlyData.length === 0" class="text-center py-4 text-muted">
@@ -169,13 +183,22 @@ interface VeckoData {
                     <th class="text-end">Bästa dag</th>
                     <th class="text-end">OEE%</th>
                     <th class="text-end">Dagar</th>
+                    <th class="text-center">Trend</th>
                     <th class="text-center">vs. föregående</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let m of monthlyDataReversed; let i = index">
                     <td class="fw-semibold">{{ getPeriodLabel(m.period) }}</td>
-                    <td class="text-end">{{ m.total_ibc | number }}</td>
+                    <td class="text-end">
+                      {{ m.total_ibc | number }}
+                      <div class="progress" style="height: 4px; margin-top: 4px; min-width: 60px;">
+                        <div class="progress-bar"
+                             [style.width]="getGoalPct(m) + '%'"
+                             [class]="getGoalPct(m) >= 95 ? 'bg-success' : getGoalPct(m) >= 80 ? 'bg-warning' : 'bg-danger'">
+                        </div>
+                      </div>
+                    </td>
                     <td class="text-end">{{ m.snitt_per_dag | number:'1.1-1' }}</td>
                     <td class="text-end">{{ m.basta_dag_ibc | number }}</td>
                     <td class="text-end">
@@ -185,6 +208,11 @@ interface VeckoData {
                       <span *ngIf="m.snitt_oee === null" class="text-muted">—</span>
                     </td>
                     <td class="text-end text-muted">{{ m.antal_dagar }}</td>
+                    <td class="text-center">
+                      <span [class]="trendClass(m.total_ibc, getPrevIbc(i))" style="font-size:1.1rem; font-weight:700;">
+                        {{ trendArrow(m.total_ibc, getPrevIbc(i)) }}
+                      </span>
+                    </td>
                     <td class="text-center">
                       <span *ngIf="getJamforelse(i) as j">
                         <span *ngIf="j.diff > 0" class="text-success small">
@@ -326,9 +354,22 @@ interface VeckoData {
       background: rgba(99,179,237,0.07) !important;
     }
 
+    /* Progressbar */
+    .progress {
+      background: #1a202c;
+      border-radius: 2px;
+    }
+
     .oee-good { color: #48bb78; font-weight: 600; }
     .oee-ok   { color: #ecc94b; font-weight: 600; }
     .oee-bad  { color: #fc8181; font-weight: 600; }
+
+    /* Export-knappar */
+    .btn-outline-success:disabled,
+    .btn-outline-info:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
   `]
 })
 export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
@@ -402,7 +443,6 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   loadData(): void {
-    // Hämta månadsdata och årsdata parallellt
     let monthlyDone = false;
     let yearlyDone = false;
     let monthlyError = false;
@@ -415,7 +455,6 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
           this.error = 'Kunde inte hämta historikdata. Kontrollera anslutningen.';
         } else {
           this.error = '';
-          // Bygg grafer asynkront efter rendering
           setTimeout(() => this.buildCharts(), 100);
         }
       }
@@ -461,6 +500,100 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       checkDone();
     });
   }
+
+  // ─── Trend-helpers ──────────────────────────────────────────────────────────
+
+  trendArrow(current: number, previous: number | null): string {
+    if (previous === null || previous === 0) return '→';
+    const diff = ((current - previous) / previous) * 100;
+    if (diff > 3) return '↑';
+    if (diff < -3) return '↓';
+    return '→';
+  }
+
+  trendClass(current: number, previous: number | null): string {
+    if (previous === null || previous === 0) return 'text-muted';
+    return current >= previous ? 'text-success' : 'text-danger';
+  }
+
+  /**
+   * Returnerar IBC-värdet för månaden efter i (nästa rad i omvänd ordning = föregående månad).
+   * reversedIndex i = aktuell; i+1 = föregående.
+   */
+  getPrevIbc(reversedIndex: number): number | null {
+    const data = this.monthlyDataReversed;
+    if (reversedIndex >= data.length - 1) return null;
+    return data[reversedIndex + 1].total_ibc;
+  }
+
+  /**
+   * Beräknar uppfyllnadsgrad mot snittet (används för progressbar).
+   * Använder snittPerManad som referens eftersom ingen explicit goal finns i interfacet.
+   */
+  getGoalPct(m: ManadsData): number {
+    if (!this.snittPerManad || this.snittPerManad === 0) return 0;
+    const pct = (m.total_ibc / this.snittPerManad) * 100;
+    return Math.min(pct, 100);
+  }
+
+  // ─── CSV-export ─────────────────────────────────────────────────────────────
+
+  exportHistorikCSV(): void {
+    if (!this.monthlyData || this.monthlyData.length === 0) return;
+    const headers = ['Månad', 'Total IBC', 'Snitt IBC/dag', 'Bästa dag IBC', 'OEE %', 'Antal dagar'];
+    const rows = [...this.monthlyData].reverse().map(m => [
+      this.getPeriodLabel(m.period),
+      m.total_ibc,
+      m.snitt_per_dag != null ? m.snitt_per_dag.toFixed(1) : '',
+      m.basta_dag_ibc,
+      m.snitt_oee != null ? m.snitt_oee.toFixed(1) + '%' : '',
+      m.antal_dagar
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `historik-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── Excel-export (SheetJS) ──────────────────────────────────────────────────
+
+  exportHistorikExcel(): void {
+    if (!this.monthlyData || this.monthlyData.length === 0) return;
+
+    const wsData = [
+      ['Månad', 'Total IBC', 'Snitt IBC/dag', 'Bästa dag IBC', 'OEE %', 'Antal dagar'],
+      ...[...this.monthlyData].reverse().map(m => [
+        this.getPeriodLabel(m.period),
+        m.total_ibc,
+        m.snitt_per_dag != null ? parseFloat(m.snitt_per_dag.toFixed(1)) : '',
+        m.basta_dag_ibc,
+        m.snitt_oee != null ? parseFloat(m.snitt_oee.toFixed(1)) : '',
+        m.antal_dagar
+      ])
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Kolumnbredder
+    ws['!cols'] = [
+      { wch: 14 },  // Månad
+      { wch: 12 },  // Total IBC
+      { wch: 14 },  // Snitt IBC/dag
+      { wch: 14 },  // Bästa dag IBC
+      { wch: 8  },  // OEE %
+      { wch: 10 },  // Antal dagar
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Historik');
+    XLSX.writeFile(wb, `historik-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  // ─── Charts ─────────────────────────────────────────────────────────────────
 
   private buildCharts(): void {
     if (this.chartsBuilt) return;
@@ -552,12 +685,10 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
 
     this.yearlyChart?.destroy();
 
-    // Bygg etiketter: vecka 1–52
     const veckoEtiketter = Array.from({ length: 52 }, (_, i) => `V${i + 1}`);
 
     const datasets = this.arsNyclar.map(ar => {
       const arData = this.yearlyData[ar] ?? [];
-      // Skapa en array med null som platshållare per vecka
       const weekMap: { [v: number]: number } = {};
       arData.forEach(d => { weekMap[d.vecka] = d.ibc_vecka; });
 
@@ -623,6 +754,8 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     });
   }
 
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+
   getPeriodLabel(period: string): string {
     if (!period) return '—';
     const parts = period.split('-');
@@ -641,7 +774,6 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   getJamforelse(reversedIndex: number): { diff: number } | null {
-    // reversedIndex 0 = senaste månaden, 1 = månaden innan osv.
     const data = this.monthlyDataReversed;
     if (reversedIndex >= data.length - 1) return null;
     const aktuell = data[reversedIndex].total_ibc;
