@@ -16,6 +16,9 @@ MAX_LOG_LINES=2000
 # Se till att node/npm finns i PATH (för npx ng build i worker-agenter)
 export PATH="/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
+# Tillåt att köras utanför en aktiv Claude-session (t.ex. manuell testning)
+unset CLAUDECODE
+
 # Förhindra parallella körningar
 if [ -f "$LOCKFILE" ]; then
     PID=$(cat "$LOCKFILE")
