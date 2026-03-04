@@ -57,6 +57,7 @@ export const routes: Routes = [
       { path: 'admin/create-user', canActivate: [adminGuard], loadComponent: () => import('./pages/create-user/create-user').then(m => m.CreateUserPage) },
       { path: 'admin/vpn', canActivate: [adminGuard], loadComponent: () => import('./pages/vpn-admin/vpn-admin').then(m => m.VpnAdminPage) },
       { path: 'admin/audit', canActivate: [adminGuard], loadComponent: () => import('./pages/audit-log/audit-log').then(m => m.AuditLogPage) },
+      { path: 'admin/news', canActivate: [adminGuard], loadComponent: () => import('./pages/news-admin/news-admin').then(m => m.NewsAdminPage) },
       { path: 'admin/operators', canActivate: [adminGuard], loadComponent: () => import('./pages/operators/operators').then(m => m.OperatorsPage) },
       { path: 'admin/skiftplan', canActivate: [adminGuard], loadComponent: () => import('./pages/shift-plan/shift-plan').then(m => m.ShiftPlanPage) },
       { path: 'admin/certifiering', canActivate: [adminGuard], loadComponent: () => import('./pages/certifications/certifications').then(m => m.CertificationsPage) },

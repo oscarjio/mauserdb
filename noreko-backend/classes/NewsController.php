@@ -13,9 +13,184 @@ class NewsController {
 
         if ($method === 'GET' && $run === 'events') {
             $this->getEvents();
+        } elseif ($method === 'GET' && $run === 'admin-list') {
+            $this->adminList();
+        } elseif ($method === 'POST' && $run === 'create') {
+            $this->create();
+        } elseif ($method === 'POST' && $run === 'update') {
+            $this->update();
+        } elseif ($method === 'POST' && $run === 'delete') {
+            $this->delete();
         } else {
             http_response_code(404);
             echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte']);
+        }
+    }
+
+    private function requireAdmin(): bool {
+        if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Ej behörig']);
+            return false;
+        }
+        return true;
+    }
+
+    private function adminList() {
+        if (!$this->requireAdmin()) return;
+
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, title, body, category, pinned, published, created_at, updated_at
+                FROM news
+                ORDER BY created_at DESC
+            ");
+            $rows = $stmt->fetchAll();
+            $news = array_map(function($row) {
+                return [
+                    'id'         => (int)$row['id'],
+                    'title'      => $row['title'],
+                    'body'       => $row['body'],
+                    'category'   => $row['category'],
+                    'pinned'     => (bool)$row['pinned'],
+                    'published'  => (bool)$row['published'],
+                    'created_at' => $row['created_at'],
+                    'updated_at' => $row['updated_at'],
+                ];
+            }, $rows);
+            echo json_encode(['success' => true, 'news' => $news]);
+        } catch (Exception $e) {
+            error_log("NewsController adminList: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    private function create() {
+        if (!$this->requireAdmin()) return;
+
+        $body = json_decode(file_get_contents('php://input'), true);
+        if (!$body) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt JSON']);
+            return;
+        }
+
+        $title     = trim($body['title'] ?? '');
+        $content   = trim($body['content'] ?? '');
+        $category  = trim($body['category'] ?? 'info');
+        $pinned    = !empty($body['pinned']) ? 1 : 0;
+        $published = !empty($body['published']) ? 1 : 0;
+
+        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig'];
+        if (!in_array($category, $allowedCategories, true)) {
+            $category = 'info';
+        }
+
+        if ($title === '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Rubrik krävs']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO news (title, body, category, pinned, published, created_at, updated_at)
+                VALUES (:title, :body, :category, :pinned, :published, NOW(), NOW())
+            ");
+            $stmt->execute([
+                ':title'     => $title,
+                ':body'      => $content,
+                ':category'  => $category,
+                ':pinned'    => $pinned,
+                ':published' => $published,
+            ]);
+            $id = (int)$this->pdo->lastInsertId();
+            echo json_encode(['success' => true, 'id' => $id]);
+        } catch (Exception $e) {
+            error_log("NewsController create: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    private function update() {
+        if (!$this->requireAdmin()) return;
+
+        $body = json_decode(file_get_contents('php://input'), true);
+        if (!$body) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt JSON']);
+            return;
+        }
+
+        $id        = intval($body['id'] ?? 0);
+        $title     = trim($body['title'] ?? '');
+        $content   = trim($body['content'] ?? '');
+        $category  = trim($body['category'] ?? 'info');
+        $pinned    = !empty($body['pinned']) ? 1 : 0;
+        $published = !empty($body['published']) ? 1 : 0;
+
+        $allowedCategories = ['produktion', 'bonus', 'system', 'info', 'viktig'];
+        if (!in_array($category, $allowedCategories, true)) {
+            $category = 'info';
+        }
+
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+            return;
+        }
+
+        if ($title === '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Rubrik krävs']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE news
+                SET title = :title, body = :body, category = :category,
+                    pinned = :pinned, published = :published, updated_at = NOW()
+                WHERE id = :id
+            ");
+            $stmt->execute([
+                ':title'     => $title,
+                ':body'      => $content,
+                ':category'  => $category,
+                ':pinned'    => $pinned,
+                ':published' => $published,
+                ':id'        => $id,
+            ]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log("NewsController update: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    private function delete() {
+        if (!$this->requireAdmin()) return;
+
+        $body = json_decode(file_get_contents('php://input'), true);
+        $id   = intval($body['id'] ?? 0);
+
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM news WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log("NewsController delete: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
 
@@ -39,6 +214,7 @@ class NewsController {
                        NULL AS value
                 FROM news
                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                  AND published = 1
                 ORDER BY pinned DESC, created_at DESC
                 LIMIT 10
             ";
