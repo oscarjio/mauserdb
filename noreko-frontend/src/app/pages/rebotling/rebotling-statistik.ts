@@ -636,23 +636,24 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const { start, end } = this.getDateRange();
 
-    this.rebotlingService.getStatistics(start, end).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (response) => {
-        if (response.success) {
-          // Spara senaste data så vi kan göra zoom/markering i grafen utan att hämta om
-          this.lastStatisticsData = response.data;
-          this.updateStatistics(response.data);
-          this.updateChart(response.data);
-          this.updateTable(response.data);
-        }
-        this.loading = false;
-      },
-      error: (err) => {
+    this.rebotlingService.getStatistics(start, end).pipe(
+      timeout(15000),
+      catchError((err) => {
         console.error('Error loading statistics:', err);
         this.error = 'Kunde inte ladda statistik från backend';
         this.loading = false;
         this.loadMockData();
-      }
+        return of({ success: false, data: null } as any);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe(response => {
+      if (!response || !response.success) return;
+      // Spara senaste data så vi kan göra zoom/markering i grafen utan att hämta om
+      this.lastStatisticsData = response.data;
+      this.updateStatistics(response.data);
+      this.updateChart(response.data);
+      this.updateTable(response.data);
+      this.loading = false;
     });
   }
 
