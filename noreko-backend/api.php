@@ -124,6 +124,7 @@ $classNameMap = [
     'shift-handover' => 'ShiftHandoverController',
     'andon' => 'AndonController',
     'news' => 'NewsController',
+    'historik' => 'HistorikController',
 ];
 
 $actionKey = strtolower($action);
