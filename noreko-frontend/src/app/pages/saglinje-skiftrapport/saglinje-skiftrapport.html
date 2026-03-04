@@ -22,6 +22,72 @@
 
   <div *ngIf="errorMessage" class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
 
+  <!-- Sammanfattningskort -->
+  <div class="row g-3 mb-4" *ngIf="filteredReports.length > 0">
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-clipboard-list"></i></div>
+        <div class="summary-value">{{ filteredReports.length }}</div>
+        <div class="summary-label">Skift totalt</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-info"><i class="fas fa-boxes"></i></div>
+        <div class="summary-value text-info">{{ getTotalIbc() }}</div>
+        <div class="summary-label">Total IBC</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-success"><i class="fas fa-check-circle"></i></div>
+        <div class="summary-value text-success">{{ getTotalOk() }}</div>
+        <div class="summary-label">Totalt OK</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-danger"><i class="fas fa-times-circle"></i></div>
+        <div class="summary-value text-danger">{{ getTotalEjOk() }}</div>
+        <div class="summary-label">Totalt ej OK</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon"
+          [class.text-success]="getAvgQuality() >= 90"
+          [class.text-warning]="getAvgQuality() >= 70 && getAvgQuality() < 90"
+          [class.text-danger]="getAvgQuality() < 70">
+          <i class="fas fa-star"></i>
+        </div>
+        <div class="summary-value"
+          [class.text-success]="getAvgQuality() >= 90"
+          [class.text-warning]="getAvgQuality() >= 70 && getAvgQuality() < 90"
+          [class.text-danger]="getAvgQuality() < 70">
+          {{ getAvgQuality() | number:'1.1-1' }}%
+        </div>
+        <div class="summary-label">Snitt kvalitet</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-2">
+      <div class="summary-card">
+        <div class="summary-icon text-warning"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="summary-value text-warning">{{ getAvgIbcPerSkift() | number:'1.0-0' }}</div>
+        <div class="summary-label">Snitt IBC / skift</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tom-tillstånd -->
+  <div class="empty-state" *ngIf="!loading && filteredReports.length === 0 && reports.length === 0">
+    <i class="fas fa-clipboard fa-3x text-muted mb-3"></i>
+    <h5>Inga skiftrapporter hittades</h5>
+    <p class="text-muted">Såglinje är ej i drift ännu. Rapporter visas när produktion startar.</p>
+    <button *ngIf="loggedIn" class="btn btn-warning text-dark mt-2" (click)="showAddForm = true">
+      <i class="fas fa-plus me-2"></i>Lägg till manuell rapport
+    </button>
+  </div>
+
   <div class="card mb-4" *ngIf="showAddForm">
     <div class="card-header bg-warning text-dark"><h5 class="mb-0"><i class="fas fa-plus me-2"></i>Ny skiftrapport</h5></div>
     <div class="card-body">

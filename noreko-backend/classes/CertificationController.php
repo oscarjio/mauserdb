@@ -20,6 +20,11 @@ class CertificationController {
             return;
         }
 
+        if ($method === 'GET' && $run === 'matrix') {
+            $this->getMatrix();
+            return;
+        }
+
         // POST-endpoints kräver admin
         if ($method === 'POST') {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -99,6 +104,117 @@ class CertificationController {
             error_log('CertificationController getAll: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringar']);
+        }
+    }
+
+    private function getMatrix() {
+        try {
+            $lines = ['rebotling', 'tvattlinje', 'saglinje', 'klassificeringslinje'];
+            $lineLabels = [
+                'rebotling'           => 'Rebotling',
+                'tvattlinje'          => 'Tvättlinje',
+                'saglinje'            => 'Såglinje',
+                'klassificeringslinje'=> 'Klassificeringslinje',
+            ];
+
+            // Hämta aktiva operatörer
+            $opStmt = $this->pdo->query("
+                SELECT id, name, number
+                FROM operators
+                WHERE active = 1
+                ORDER BY name ASC
+            ");
+            $operatorRows = $opStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($operatorRows)) {
+                echo json_encode([
+                    'success'   => true,
+                    'operators' => [],
+                    'lines'     => [],
+                    'matrix'    => (object)[]
+                ]);
+                return;
+            }
+
+            // Hämta alla aktiva certifieringar
+            $certStmt = $this->pdo->query("
+                SELECT
+                    c.op_number,
+                    c.line,
+                    c.certified_date,
+                    c.expires_date,
+                    c.active
+                FROM operator_certifications c
+                WHERE c.active = 1
+                ORDER BY c.certified_date DESC
+            ");
+            $certRows = $certStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Indexera certifieringar per op_number+line (ta den senaste, d.v.s. första pga DESC)
+            $certIndex = [];
+            foreach ($certRows as $cert) {
+                $key = $cert['op_number'] . '_' . $cert['line'];
+                if (!isset($certIndex[$key])) {
+                    $daysUntil = null;
+                    if ($cert['expires_date']) {
+                        $daysUntil = (int)round((strtotime($cert['expires_date']) - time()) / 86400);
+                    }
+
+                    // Bestäm status
+                    if ($daysUntil !== null && $daysUntil < 0) {
+                        $status = 'expired';
+                    } elseif ($daysUntil !== null && $daysUntil <= 30) {
+                        $status = 'expiring';
+                    } else {
+                        $status = 'valid';
+                    }
+
+                    $certIndex[$key] = [
+                        'status'           => $status,
+                        'certified_date'   => $cert['certified_date'],
+                        'expires_date'     => $cert['expires_date'],
+                        'days_left'        => $daysUntil,
+                    ];
+                }
+            }
+
+            // Bygg matris
+            $matrix = [];
+            foreach ($operatorRows as $op) {
+                $opNum = (int)$op['number'];
+                $matrix[$opNum] = [];
+                foreach ($lines as $line) {
+                    $key = $opNum . '_' . $line;
+                    $matrix[$opNum][$line] = isset($certIndex[$key]) ? $certIndex[$key] : null;
+                }
+            }
+
+            // Bygg linjer-array
+            $linesOut = [];
+            foreach ($lines as $line) {
+                $linesOut[] = ['key' => $line, 'label' => $lineLabels[$line]];
+            }
+
+            // Bygg operatörer-array
+            $operatorsOut = [];
+            foreach ($operatorRows as $op) {
+                $operatorsOut[] = [
+                    'id'     => (int)$op['id'],
+                    'number' => (int)$op['number'],
+                    'name'   => $op['name'],
+                ];
+            }
+
+            echo json_encode([
+                'success'   => true,
+                'operators' => $operatorsOut,
+                'lines'     => $linesOut,
+                'matrix'    => $matrix,
+            ]);
+        } catch (Exception $e) {
+            error_log('CertificationController getMatrix: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompetensmatris']);
         }
     }
 

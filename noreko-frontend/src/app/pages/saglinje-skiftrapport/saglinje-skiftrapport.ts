@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -9,7 +9,7 @@ import { AuthService } from '../../services/auth.service';
 @Component({
   standalone: true,
   selector: 'app-saglinje-skiftrapport',
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, FormsModule, DatePipe, DecimalPipe],
   templateUrl: './saglinje-skiftrapport.html',
   styleUrl: './saglinje-skiftrapport.css'
 })
@@ -72,6 +72,20 @@ export class SaglinjeSkiftrapportPage implements OnInit, OnDestroy {
 
   clearFilter() { this.filterFrom = ''; this.filterTo = ''; }
   getQualityPct(r: any): number | null { return r.totalt ? Math.round((r.antal_ok / r.totalt) * 100) : null; }
+
+  getTotalIbc(): number { return this.filteredReports.reduce((s, r) => s + ((r.antal_ok || 0) + (r.antal_ej_ok || 0)), 0); }
+  getTotalOk(): number { return this.filteredReports.reduce((s, r) => s + (r.antal_ok || 0), 0); }
+  getTotalEjOk(): number { return this.filteredReports.reduce((s, r) => s + (r.antal_ej_ok || 0), 0); }
+  getAvgQuality(): number {
+    const tot = this.getTotalIbc();
+    if (tot === 0) return 0;
+    return Math.round((this.getTotalOk() / tot) * 1000) / 10;
+  }
+  getAvgIbcPerSkift(): number {
+    const n = this.filteredReports.length;
+    if (n === 0) return 0;
+    return this.getTotalIbc() / n;
+  }
   toggleSelect(id: number) { this.selectedIds.has(id) ? this.selectedIds.delete(id) : this.selectedIds.add(id); }
   toggleSelectAll() { const v = this.filteredReports; if (this.selectedIds.size === v.length && v.length > 0) this.selectedIds.clear(); else v.forEach(r => this.selectedIds.add(r.id)); }
   isSelected(id: number) { return this.selectedIds.has(id); }

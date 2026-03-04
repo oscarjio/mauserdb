@@ -24,6 +24,10 @@ class SaglinjeController {
                 $this->getRunningStatus();
             } elseif ($action === 'statistics') {
                 $this->getStatistics();
+            } elseif ($action === 'report') {
+                $this->getReport();
+            } elseif ($action === 'oee-trend') {
+                $this->getOeeTrend();
             } else {
                 $this->getLiveStats();
             }
@@ -317,6 +321,222 @@ class SaglinjeController {
         } catch (\Exception $e) {
             error_log('SaglinjeController getStatistics: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik']);
+        }
+    }
+
+    // =========================================================
+    // Skiftrapport daglig KPI — hämtar data från line_skiftrapporter
+    // =========================================================
+
+    private function getReport() {
+        $datum = $_GET['datum'] ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            return;
+        }
+
+        try {
+            $rows = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT ls.*, u.name as user_name
+                    FROM line_skiftrapporter ls
+                    LEFT JOIN users u ON ls.user_id = u.id
+                    WHERE ls.line = 'saglinje' AND DATE(ls.datum) = :datum
+                    ORDER BY ls.datum ASC
+                ");
+                $stmt->execute(['datum' => $datum]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) { /* tabell finns kanske inte */ }
+
+            $prevDatum = date('Y-m-d', strtotime($datum . ' -1 day'));
+            $prevRows  = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT ls.*
+                    FROM line_skiftrapporter ls
+                    WHERE ls.line = 'saglinje' AND DATE(ls.datum) = :datum
+                    ORDER BY ls.datum ASC
+                ");
+                $stmt->execute(['datum' => $prevDatum]);
+                $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) {}
+
+            $totalOk   = 0;
+            $totalEjOk = 0;
+            foreach ($rows as $r) {
+                $totalOk   += (int)($r['antal_ok']    ?? 0);
+                $totalEjOk += (int)($r['antal_ej_ok'] ?? 0);
+            }
+            $totalIbc    = $totalOk + $totalEjOk;
+            $kvalitetPct = $totalIbc > 0 ? round(($totalOk / $totalIbc) * 100, 1) : 0;
+
+            $prevOk   = 0;
+            $prevEjOk = 0;
+            foreach ($prevRows as $r) {
+                $prevOk   += (int)($r['antal_ok']    ?? 0);
+                $prevEjOk += (int)($r['antal_ej_ok'] ?? 0);
+            }
+            $prevIbc  = $prevOk + $prevEjOk;
+            $deltaIbc = $totalIbc - $prevIbc;
+
+            $runtimeMinutes = 0;
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT MIN(datum) as first_ts, MAX(datum) as last_ts, COUNT(*) as cnt
+                    FROM saglinje_ibc
+                    WHERE DATE(datum) = :datum
+                ");
+                $stmt->execute(['datum' => $datum]);
+                $ibcRange = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if ($ibcRange && $ibcRange['cnt'] > 0 && $ibcRange['first_ts']) {
+                    $first = new \DateTime($ibcRange['first_ts']);
+                    $last  = new \DateTime($ibcRange['last_ts']);
+                    $diff  = $first->diff($last);
+                    $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
+                    if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
+                }
+            } catch (\Exception $e) {}
+
+            $ibcPerHour = ($runtimeMinutes > 0 && $totalIbc > 0)
+                ? round(($totalIbc / $runtimeMinutes) * 60, 1)
+                : 0;
+
+            $isEmpty = (count($rows) === 0 && $totalIbc === 0);
+
+            echo json_encode([
+                'success'  => true,
+                'empty'    => $isEmpty,
+                'message'  => $isEmpty ? 'Linjen ej i drift' : null,
+                'datum'    => $datum,
+                'data' => [
+                    'total_ibc'       => $totalIbc,
+                    'total_ok'        => $totalOk,
+                    'total_ej_ok'     => $totalEjOk,
+                    'kvalitet_pct'    => $kvalitetPct,
+                    'runtime_minutes' => $runtimeMinutes,
+                    'ibc_per_hour'    => $ibcPerHour,
+                    'delta_ibc'       => $deltaIbc,
+                    'prev_ibc'        => $prevIbc,
+                    'skift_count'     => count($rows),
+                    'skift_data'      => $rows,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            error_log('SaglinjeController getReport: ' . $e->getMessage());
+            echo json_encode([
+                'success' => true,
+                'empty'   => true,
+                'message' => 'Linjen ej i drift',
+                'datum'   => $datum,
+                'data'    => [
+                    'total_ibc' => 0, 'total_ok' => 0, 'total_ej_ok' => 0,
+                    'kvalitet_pct' => 0, 'runtime_minutes' => 0,
+                    'ibc_per_hour' => 0, 'delta_ibc' => 0, 'prev_ibc' => 0,
+                    'skift_count' => 0, 'skift_data' => [],
+                ],
+            ]);
+        }
+    }
+
+    // =========================================================
+    // OEE-trend — daglig statistik baserad på skiftrapporter
+    // =========================================================
+
+    private function getOeeTrend() {
+        $dagar = max(7, min(365, intval($_GET['dagar'] ?? 30)));
+
+        try {
+            $rows = [];
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        DATE(datum)                   AS dag,
+                        SUM(antal_ok)                 AS total_ok,
+                        SUM(antal_ej_ok)              AS total_ej_ok,
+                        SUM(antal_ok + antal_ej_ok)   AS total_ibc,
+                        COUNT(*)                      AS skift_count
+                    FROM line_skiftrapporter
+                    WHERE line = 'saglinje'
+                      AND datum >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+                    GROUP BY DATE(datum)
+                    ORDER BY dag ASC
+                ");
+                $stmt->execute(['dagar' => $dagar]);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\Exception $e) { /* tabell finns kanske inte */ }
+
+            if (empty($rows)) {
+                echo json_encode([
+                    'success' => true,
+                    'empty'   => true,
+                    'message' => 'Linjen ej i drift',
+                    'data'    => [],
+                    'summary' => [
+                        'total_ibc'     => 0,
+                        'snitt_per_dag' => 0,
+                        'snitt_oee_pct' => 0,
+                        'basta_dag'     => null,
+                        'basta_ibc'     => 0,
+                    ],
+                ]);
+                return;
+            }
+
+            $dagData     = [];
+            $totalIbcSum = 0;
+            $bestaDag    = null;
+            $bestaIbc    = 0;
+            $oeeSum      = 0;
+
+            foreach ($rows as $r) {
+                $tot = (int)$r['total_ibc'];
+                $ok  = (int)$r['total_ok'];
+                $oee = ($tot > 0) ? round(($ok / $tot) * 100, 1) : 0;
+                $totalIbcSum += $tot;
+                $oeeSum      += $oee;
+                if ($tot > $bestaIbc) {
+                    $bestaIbc = $tot;
+                    $bestaDag = $r['dag'];
+                }
+                $dagData[] = [
+                    'dag'         => $r['dag'],
+                    'total_ibc'   => $tot,
+                    'total_ok'    => $ok,
+                    'total_ej_ok' => (int)$r['total_ej_ok'],
+                    'oee_pct'     => $oee,
+                    'skift_count' => (int)$r['skift_count'],
+                ];
+            }
+
+            $antalDagar  = count($dagData);
+            $snittPerDag = $antalDagar > 0 ? round($totalIbcSum / $antalDagar, 1) : 0;
+            $snittOee    = $antalDagar > 0 ? round($oeeSum / $antalDagar, 1)      : 0;
+
+            echo json_encode([
+                'success' => true,
+                'empty'   => false,
+                'data'    => $dagData,
+                'summary' => [
+                    'total_ibc'     => $totalIbcSum,
+                    'snitt_per_dag' => $snittPerDag,
+                    'snitt_oee_pct' => $snittOee,
+                    'basta_dag'     => $bestaDag,
+                    'basta_ibc'     => $bestaIbc,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            error_log('SaglinjeController getOeeTrend: ' . $e->getMessage());
+            echo json_encode([
+                'success' => true,
+                'empty'   => true,
+                'message' => 'Linjen ej i drift',
+                'data'    => [],
+                'summary' => [
+                    'total_ibc' => 0, 'snitt_per_dag' => 0,
+                    'snitt_oee_pct' => 0, 'basta_dag' => null, 'basta_ibc' => 0,
+                ],
+            ]);
         }
     }
 }

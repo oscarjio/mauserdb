@@ -24,39 +24,138 @@
   <div *ngIf="loading" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin me-2"></i>Laddar statistik...</div>
 
   <ng-container *ngIf="!loading && !errorMessage">
-    <!-- KPI cards -->
+    <!-- 6 KPI-kort -->
     <div class="row g-3 mb-4">
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Total IBC (period)</div>
+          <div class="kpi-value text-info">{{ totalProduced | number }}</div>
+          <div class="kpi-sub">enheter</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Genomsnittlig kvalitet</div>
           <div class="kpi-value" [class]="getQualityClass(avgQuality)">{{ avgQuality }}%</div>
           <div class="kpi-sub">{{ reportsCount }} skift</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
-        <div class="kpi-card">
-          <div class="kpi-label">Totalt producerat</div>
-          <div class="kpi-value text-info">{{ totalProduced | number }}</div>
-          <div class="kpi-sub">enheter</div>
-        </div>
-      </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Antal OK</div>
           <div class="kpi-value text-success">{{ totalOk | number }}</div>
           <div class="kpi-sub text-muted">godkända</div>
         </div>
       </div>
-      <div class="col-6 col-md-3">
+      <div class="col-6 col-md-4 col-lg-2">
         <div class="kpi-card">
           <div class="kpi-label">Kassation</div>
           <div class="kpi-value text-danger">{{ totalEjOk | number }}</div>
-          <div class="kpi-sub text-muted" *ngIf="totalProduced > 0">{{ (100 - avgQuality) }}% kassation</div>
+          <div class="kpi-sub text-muted" *ngIf="totalProduced > 0">{{ (100 - avgQuality) }}%</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Snitt IBC / dag</div>
+          <div class="kpi-value text-warning">
+            {{ oeeTrendSummary.snitt_per_dag | number:'1.0-0' }}
+          </div>
+          <div class="kpi-sub">{{ oeeTrendDagar }}d</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-4 col-lg-2">
+        <div class="kpi-card">
+          <div class="kpi-label">Bästa dag (IBC)</div>
+          <div class="kpi-value text-warning">
+            {{ oeeTrendSummary.basta_ibc > 0 ? oeeTrendSummary.basta_ibc : '–' }}
+          </div>
+          <div class="kpi-sub" *ngIf="oeeTrendSummary.basta_dag">{{ oeeTrendSummary.basta_dag }}</div>
         </div>
       </div>
     </div>
 
-    <!-- Charts -->
+    <!-- OEE-trendpanel -->
+    <div class="card mb-4">
+      <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>OEE-trend — Kvalitet &amp; IBC per dag</h5>
+          <small>Baserat på skiftrapporter. Orange linje = WCM-mål 85%.</small>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <select class="form-select form-select-sm"
+            style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;"
+            [(ngModel)]="oeeTrendDagar"
+            (change)="onOeeTrendDagarChange()">
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="60">60 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+          <button class="btn btn-sm btn-outline-dark" (click)="loadOeeTrend()" [disabled]="oeeTrendLoading">
+            <i class="fas fa-sync-alt" [class.fa-spin]="oeeTrendLoading"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+
+        <!-- Laddning -->
+        <div *ngIf="oeeTrendLoading" class="text-center py-4">
+          <i class="fas fa-spinner fa-spin me-2 text-muted"></i>Hämtar trenddata...
+        </div>
+
+        <!-- Ej i drift -->
+        <div *ngIf="oeeTrendLoaded && oeeTrendEmpty && !oeeTrendLoading"
+          class="text-center py-4"
+          style="background:#1e3a5f; border:1px solid #2a5298; border-radius:8px;">
+          <i class="fas fa-pause-circle fa-2x mb-2 text-info"></i>
+          <h6 class="mb-1 text-info">Linjen är för närvarande inte i drift</h6>
+          <p class="mb-0 text-muted small">{{ oeeTrendMessage || 'Ingen historisk data tillgänglig ännu.' }}</p>
+          <p class="text-muted small mt-1">Diagrammet fylls automatiskt när produktion startar.</p>
+        </div>
+
+        <!-- KPI-sammanfattning OEE-trend -->
+        <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
+          class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Totalt IBC ({{ oeeTrendDagar }}d)</div>
+              <div class="kpi-value text-info">{{ oeeTrendSummary.total_ibc | number }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Snitt IBC/dag</div>
+              <div class="kpi-value text-warning">{{ oeeTrendSummary.snitt_per_dag | number:'1.0-1' }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Snitt Kvalitet %</div>
+              <div class="kpi-value"
+                [class.text-success]="oeeTrendSummary.snitt_oee_pct >= 90"
+                [class.text-warning]="oeeTrendSummary.snitt_oee_pct >= 70 && oeeTrendSummary.snitt_oee_pct < 90"
+                [class.text-danger]="oeeTrendSummary.snitt_oee_pct < 70">
+                {{ oeeTrendSummary.snitt_oee_pct | number:'1.1-1' }}%
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Bästa dag — {{ oeeTrendSummary.basta_dag || '–' }}</div>
+              <div class="kpi-value text-warning">{{ oeeTrendSummary.basta_ibc }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Graf -->
+        <div *ngIf="oeeTrendLoaded && !oeeTrendEmpty && !oeeTrendLoading"
+          style="height:260px;">
+          <canvas #oeeTrendChart></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Existing charts -->
     <div class="row g-3">
       <div class="col-12 col-xl-8">
         <div class="card">

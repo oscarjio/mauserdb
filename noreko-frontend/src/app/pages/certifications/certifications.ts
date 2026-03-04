@@ -30,6 +30,31 @@ interface OperatorOption {
   active: number;
 }
 
+// Matris-typer
+interface MatrixOperator {
+  id: number;
+  number: number;
+  name: string;
+}
+
+interface MatrixLine {
+  key: string;
+  label: string;
+}
+
+interface MatrixCell {
+  status: 'valid' | 'expiring' | 'expired';
+  certified_date: string;
+  expires_date: string | null;
+  days_left: number | null;
+}
+
+interface MatrixData {
+  operators: MatrixOperator[];
+  lines: MatrixLine[];
+  matrix: { [opNumber: number]: { [lineKey: string]: MatrixCell | null } };
+}
+
 @Component({
   standalone: true,
   selector: 'app-certifications',
@@ -42,6 +67,14 @@ export class CertificationsPage implements OnInit, OnDestroy {
   operatorOptions: OperatorOption[] = [];
   loading = false;
   error = '';
+
+  // Aktiv flik: 'lista' | 'matris'
+  activeTab: 'lista' | 'matris' = 'lista';
+
+  // Matris
+  matrixData: MatrixData | null = null;
+  matrixLoading = false;
+  matrixError = '';
 
   // Filter
   activeLineFilter = 'alla';
@@ -59,6 +92,9 @@ export class CertificationsPage implements OnInit, OnDestroy {
     saglinje: 'Såglinje',
     klassificeringslinje: 'Klassificeringslinje'
   };
+
+  // Sortering
+  sortBy: 'name' | 'expiry' = 'name';
 
   // Lägg till-formulär
   showAddForm = false;
@@ -93,7 +129,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
     this.http.get<any>('/noreko-backend/api.php?action=certifications&run=all', { withCredentials: true })
       .pipe(
         timeout(8000),
-        catchError(err => {
+        catchError(() => {
           this.error = 'Kunde inte hämta certifieringar. Försök igen.';
           this.loading = false;
           return of(null);
@@ -124,12 +160,64 @@ export class CertificationsPage implements OnInit, OnDestroy {
       });
   }
 
+  loadMatrix() {
+    this.matrixLoading = true;
+    this.matrixError = '';
+    this.http.get<any>('/noreko-backend/api.php?action=certifications&run=matrix', { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => {
+          this.matrixError = 'Kunde inte hämta kompetensmatris.';
+          this.matrixLoading = false;
+          return of(null);
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(res => {
+        this.matrixLoading = false;
+        if (res?.success) {
+          this.matrixData = res as MatrixData;
+        } else if (res) {
+          this.matrixError = res.error || 'Okänt fel';
+        }
+      });
+  }
+
+  setTab(tab: 'lista' | 'matris') {
+    this.activeTab = tab;
+    if (tab === 'matris' && !this.matrixData && !this.matrixLoading) {
+      this.loadMatrix();
+    }
+  }
+
   // ====== KPI-beräkningar ======
+
+  get totalCertifications(): number {
+    let count = 0;
+    for (const op of this.operators) {
+      for (const c of op.certifications) {
+        if (c.active === 1) count++;
+      }
+    }
+    return count;
+  }
 
   get totalCertifiedOperators(): number {
     return this.operators.filter(o =>
       o.certifications.some(c => c.active === 1)
     ).length;
+  }
+
+  get validCount(): number {
+    let count = 0;
+    for (const op of this.operators) {
+      for (const c of op.certifications) {
+        if (c.active === 1 && (c.days_until_expiry === null || c.days_until_expiry > 30)) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 
   get expiringSoon(): number {
@@ -160,10 +248,30 @@ export class CertificationsPage implements OnInit, OnDestroy {
     return this.expiringSoon > 0 || this.expired > 0;
   }
 
-  // ====== Filtrering ======
+  // ====== "Snart utgångna" lista (< 30 dagar) ======
+
+  get expiringSoonList(): { opName: string; cert: Certification }[] {
+    const list: { opName: string; cert: Certification }[] = [];
+    for (const op of this.operators) {
+      for (const c of op.certifications) {
+        if (c.active === 1 && c.days_until_expiry !== null && c.days_until_expiry <= 30) {
+          list.push({ opName: op.name, cert: c });
+        }
+      }
+    }
+    // Sortera: utgångna först, sedan snart utgångna stigande
+    list.sort((a, b) => {
+      const da = a.cert.days_until_expiry ?? 999;
+      const db = b.cert.days_until_expiry ?? 999;
+      return da - db;
+    });
+    return list;
+  }
+
+  // ====== Filtrering och sortering ======
 
   get filteredOperators(): OperatorCerts[] {
-    return this.operators
+    let result = this.operators
       .map(op => {
         let certs = op.certifications.filter(c => c.active === 1);
         if (this.activeLineFilter !== 'alla') {
@@ -172,10 +280,27 @@ export class CertificationsPage implements OnInit, OnDestroy {
         return { ...op, certifications: certs };
       })
       .filter(op => op.certifications.length > 0);
+
+    if (this.sortBy === 'expiry') {
+      result = result.map(op => {
+        const sorted = [...op.certifications].sort((a, b) => {
+          const da = a.days_until_expiry ?? 9999;
+          const db = b.days_until_expiry ?? 9999;
+          return da - db;
+        });
+        return { ...op, certifications: sorted };
+      });
+    }
+
+    return result;
   }
 
   setLineFilter(key: string) {
     this.activeLineFilter = key;
+  }
+
+  setSortBy(val: 'name' | 'expiry') {
+    this.sortBy = val;
   }
 
   // ====== Badge-klassificering ======
@@ -194,6 +319,37 @@ export class CertificationsPage implements OnInit, OnDestroy {
     if (cert.days_until_expiry === 0) return line + ' (sista dag)';
     if (cert.days_until_expiry <= 30) return line + ' (' + cert.days_until_expiry + ' d kvar)';
     return line;
+  }
+
+  // ====== Matris-hjälpfunktioner ======
+
+  getMatrixCellClass(cell: MatrixCell | null): string {
+    if (!cell) return 'matrix-cell-none';
+    if (cell.status === 'expired') return 'matrix-cell-expired';
+    if (cell.status === 'expiring') return 'matrix-cell-expiring';
+    return 'matrix-cell-valid';
+  }
+
+  getMatrixCellIcon(cell: MatrixCell | null): string {
+    if (!cell) return 'fa-times-circle';
+    if (cell.status === 'expired') return 'fa-times-circle';
+    if (cell.status === 'expiring') return 'fa-exclamation-circle';
+    return 'fa-check-circle';
+  }
+
+  getMatrixCellTitle(cell: MatrixCell | null, opName: string, lineLabel: string): string {
+    if (!cell) return opName + ': ej certifierad för ' + lineLabel;
+    const base = opName + ': ' + lineLabel;
+    if (cell.status === 'expired') return base + ' — certifiering utgången ' + this.formatDate(cell.expires_date);
+    if (cell.status === 'expiring') return base + ' — utgår om ' + cell.days_left + ' dagar (' + this.formatDate(cell.expires_date) + ')';
+    return base + ' — giltig, certifierad ' + this.formatDate(cell.certified_date);
+  }
+
+  getMatrixCell(opNumber: number, lineKey: string): MatrixCell | null {
+    if (!this.matrixData?.matrix) return null;
+    const opRow = this.matrixData.matrix[opNumber];
+    if (!opRow) return null;
+    return opRow[lineKey] ?? null;
   }
 
   // ====== Avatar ======
@@ -235,6 +391,12 @@ export class CertificationsPage implements OnInit, OnDestroy {
     ).subscribe(res => {
       if (res?.success) {
         this.loadCertifications();
+        // Ladda om matrisen om den är aktiv
+        if (this.activeTab === 'matris') {
+          this.loadMatrix();
+        } else {
+          this.matrixData = null; // Tvinga omladdning nästa gång
+        }
       } else {
         alert(res?.error || 'Kunde inte återkalla certifiering');
       }
@@ -295,10 +457,48 @@ export class CertificationsPage implements OnInit, OnDestroy {
           notes: ''
         };
         this.loadCertifications();
+        this.matrixData = null; // Tvinga omladdning av matris
       } else {
         this.addError = res?.error || 'Kunde inte lägga till certifiering';
       }
     });
+  }
+
+  // ====== CSV-export ======
+
+  exportCSV(): void {
+    const rows: string[][] = [
+      ['Operatör', 'Certifiering', 'Certifierad datum', 'Utgångsdatum', 'Dagar kvar', 'Status']
+    ];
+
+    for (const op of this.operators) {
+      for (const cert of op.certifications) {
+        if (cert.active !== 1) continue;
+        const line = this.lineLabels[cert.line] ?? cert.line;
+        const certDate = this.formatDate(cert.certified_date);
+        const expiryDate = this.formatDate(cert.expires_date);
+        const daysLeft = cert.days_until_expiry !== null ? String(cert.days_until_expiry) : '—';
+        let status = 'Giltig';
+        if (cert.days_until_expiry !== null && cert.days_until_expiry < 0) {
+          status = 'Utgången';
+        } else if (cert.days_until_expiry !== null && cert.days_until_expiry <= 30) {
+          status = 'Löper ut snart';
+        }
+        rows.push([op.name, line, certDate, expiryDate, daysLeft, status]);
+      }
+    }
+
+    const csv = rows.map(r =>
+      r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')
+    ).join('\n');
+
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'certifieringar.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   formatDate(dateStr: string | null): string {
