@@ -501,6 +501,7 @@ class OperatorController {
                 $certifications = $stmtCert->fetchAll(PDO::FETCH_ASSOC);
             } catch (Exception $certEx) {
                 // Tabell kanske inte finns ännu — returnera tom array
+                error_log('OperatorController getProfile certifications: ' . $certEx->getMessage());
                 $certifications = [];
             }
 

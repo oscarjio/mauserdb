@@ -172,9 +172,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.error = '';
 
     // Ladda summary
-    this.bonusService.getDailySummary().pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusService.getDailySummary().pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.summary = res.data;
         }
       },
@@ -182,9 +186,12 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     });
 
     // Ladda ranking (controls loading flag) + previous period for trend arrows
-    this.loadDataSub = this.bonusService.getRanking(this.selectedPeriod).subscribe({
+    this.loadDataSub = this.bonusService.getRanking(this.selectedPeriod).pipe(
+      timeout(8000),
+      catchError(() => of(null))
+    ).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.overallRanking = res.data.rankings.overall || [];
           this.positionRankings = {
             'Tvättplats': res.data.rankings.position_1 || [],
@@ -195,8 +202,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         }
         this.loading = false;
       },
-      error: (err) => {
-        this.error = 'Kunde inte ladda ranking: ' + err.message;
+      error: () => {
+        this.error = 'Kunde inte ladda ranking';
         this.loading = false;
       }
     });
@@ -210,9 +217,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.bonusService.getRanking(
       undefined, 10,
       prevPeriod.start, prevPeriod.end
-    ).pipe(takeUntil(this.destroy$)).subscribe({
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (res) => {
-        this.prevRanking = res.data?.rankings.overall || [];
+        this.prevRanking = res?.data?.rankings?.overall || [];
         this.prevLoading = false;
       },
       error: () => { this.prevLoading = false; }
