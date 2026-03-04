@@ -877,6 +877,98 @@
       </div>
     </div>
 
+    <!-- Skiftfeedback-kort -->
+    <div class="chart-card mt-4 no-print">
+      <div class="chart-card-header">
+        <span><i class="fas fa-comment-smile me-2 text-muted"></i>Hur var ditt skift?</span>
+      </div>
+      <div class="chart-body">
+
+        <!-- Stämningsknappar -->
+        <div class="mb-3">
+          <p class="text-muted mb-2" style="font-size:0.85rem;">Välj din känsla för skiftet:</p>
+          <div class="d-flex gap-2 flex-wrap">
+            <button
+              *ngFor="let num of [1, 2, 3, 4]"
+              type="button"
+              class="btn feedback-mood-btn"
+              [class.feedback-mood-selected]="feedbackMood === num"
+              (click)="feedbackMood = num"
+              [title]="moodLabels[num]"
+              [disabled]="feedbackLoading || feedbackSaved">
+              <span class="mood-emoji">{{ moodEmojis[num] }}</span>
+              <span class="mood-label">{{ moodLabels[num] }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Kommentarsfält -->
+        <div class="mb-3">
+          <label class="form-label text-muted" style="font-size:0.85rem;">
+            Kommentar <span class="text-muted">(valfri, max 280 tecken)</span>
+          </label>
+          <textarea
+            class="form-control feedback-textarea"
+            rows="2"
+            maxlength="280"
+            placeholder="Berätta kort om skiftet..."
+            [(ngModel)]="feedbackKommentar"
+            [disabled]="feedbackLoading || feedbackSaved">
+          </textarea>
+          <div class="text-end text-muted mt-1" style="font-size:0.75rem;">
+            {{ feedbackKommentar.length }}/280
+          </div>
+        </div>
+
+        <!-- Skicka-knapp -->
+        <button
+          class="btn btn-primary btn-sm"
+          (click)="submitFeedback()"
+          [disabled]="feedbackLoading || feedbackSaved">
+          <span *ngIf="feedbackLoading" class="spinner-border spinner-border-sm me-2" role="status"></span>
+          <i *ngIf="!feedbackLoading && !feedbackSaved" class="fas fa-paper-plane me-2"></i>
+          <i *ngIf="feedbackSaved" class="fas fa-check me-2"></i>
+          {{ feedbackSaved ? 'Skickat!' : 'Skicka feedback' }}
+        </button>
+
+        <!-- Felmeddelande -->
+        <div *ngIf="feedbackError" class="alert alert-danger mt-3 py-2 px-3 feedback-alert" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ feedbackError }}
+        </div>
+
+        <!-- Framgångsmeddelande -->
+        <div *ngIf="feedbackSaved" class="alert alert-success mt-3 py-2 px-3 feedback-alert" role="alert">
+          <i class="fas fa-check-circle me-2"></i>Tack för din feedback! Den hjälper oss att förbättra arbetsmiljön.
+        </div>
+
+        <!-- Feedbackhistorik (senaste 3) -->
+        <div *ngIf="feedbackHistory.length > 0" class="mt-4">
+          <h6 class="text-muted mb-2" style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">
+            <i class="fas fa-history me-1"></i>Dina senaste feedbacks
+          </h6>
+          <div class="feedback-history-list">
+            <div *ngFor="let item of feedbackHistory.slice(0, 3)" class="feedback-history-item">
+              <span class="feedback-hist-emoji">{{ moodEmojis[item.stamning] }}</span>
+              <div class="feedback-hist-body">
+                <div class="feedback-hist-meta">
+                  <span class="text-muted" style="font-size:0.75rem;">{{ item.datum }}</span>
+                  <span class="badge feedback-hist-badge ms-2">{{ moodLabels[item.stamning] }}</span>
+                </div>
+                <div *ngIf="item.kommentar" class="feedback-hist-comment">{{ item.kommentar }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Laddningsindikator för historik -->
+        <div *ngIf="feedbackHistoryLoading && feedbackHistory.length === 0" class="text-center text-muted py-2" style="font-size:0.85rem;">
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>Laddar historik...
+        </div>
+
+      </div>
+    </div>
+
+
   </div>
 
 </div>

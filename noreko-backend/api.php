@@ -128,6 +128,7 @@ $classNameMap = [
     'operator-compare' => 'OperatorCompareController',
     'maintenance' => 'MaintenanceController',
     'weekly-report' => 'WeeklyReportController',
+    'feedback'     => 'FeedbackController',
 ];
 
 $actionKey = strtolower($action);

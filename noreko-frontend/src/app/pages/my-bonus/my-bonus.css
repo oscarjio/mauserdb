@@ -685,3 +685,123 @@
   /* Visa daglig uppdelning table-card */
   .print-breakdown { display: block !important; }
 }
+
+/* ================================================================
+   FEEDBACK-SEKTION
+   ================================================================ */
+.feedback-mood-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid #4a5568;
+  background: #2d3748;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  padding: 0;
+}
+
+.feedback-mood-btn:hover:not(:disabled) {
+  border-color: #63b3ed;
+  background: #3a4a5e;
+  transform: scale(1.08);
+}
+
+.feedback-mood-btn.feedback-mood-selected {
+  border-color: #4299e1;
+  background: #2b4c7a;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.35);
+}
+
+.feedback-mood-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mood-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.mood-label {
+  font-size: 0.6rem;
+  margin-top: 2px;
+  color: #a0aec0;
+  text-align: center;
+}
+
+.feedback-textarea {
+  background: #2d3748 !important;
+  border: 1px solid #4a5568 !important;
+  color: #e2e8f0 !important;
+  resize: none;
+}
+
+.feedback-textarea:focus {
+  border-color: #4299e1 !important;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2) !important;
+  outline: none;
+}
+
+.feedback-textarea::placeholder {
+  color: #718096 !important;
+}
+
+.feedback-alert {
+  font-size: 0.85rem;
+  border-radius: 8px;
+}
+
+.feedback-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feedback-history-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+}
+
+.feedback-hist-emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.feedback-hist-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.feedback-hist-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.feedback-hist-badge {
+  background: #2d3748;
+  color: #a0aec0;
+  font-size: 0.7rem;
+  border: 1px solid #4a5568;
+  font-weight: 400;
+}
+
+.feedback-hist-comment {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+  word-break: break-word;
+}

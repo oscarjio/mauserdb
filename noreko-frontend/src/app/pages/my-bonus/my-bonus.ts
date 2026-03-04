@@ -11,6 +11,17 @@ import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
+
+// ================================================================
+// INTERFACE: Feedback
+// ================================================================
+export interface FeedbackItem {
+  id: number;
+  datum: string;
+  stamning: number;
+  kommentar: string | null;
+}
+
 @Component({
   selector: 'app-my-bonus',
   standalone: true,
@@ -81,6 +92,17 @@ export class MyBonusPage implements OnInit, OnDestroy {
   } | null = null;
   rankingPositionLoading = false;
 
+  // Operatörsfeedback
+  feedbackMood: number = 3;
+  feedbackKommentar: string = '';
+  feedbackLoading = false;
+  feedbackSaved = false;
+  feedbackError = '';
+  feedbackHistory: FeedbackItem[] = [];
+  feedbackHistoryLoading = false;
+  readonly moodEmojis: Record<number, string> = { 1: '😟', 2: '😐', 3: '😊', 4: '🌟' };
+  readonly moodLabels: Record<number, string> = { 1: 'Dålig', 2: 'Ok', 3: 'Bra', 4: 'Utmärkt' };
+
   constructor(private auth: AuthService, private bonusService: BonusService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
   }
@@ -107,6 +129,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     });
     this.loadBonusAmounts();
     this.loadRankingPosition();
+    this.loadFeedbackHistory();
   }
 
   ngOnDestroy(): void {
@@ -1028,4 +1051,61 @@ export class MyBonusPage implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ================================================================
+  // FEEDBACK — ladda historik
+  // ================================================================
+  loadFeedbackHistory(): void {
+    this.feedbackHistoryLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=feedback&run=my-history', { withCredentials: true }).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        const raw = res?.success ? (res.items || []) : [];
+        this.feedbackHistory = raw.map((i: any) => ({ ...i, stamning: i.stämning ?? i.stamning }));
+        this.feedbackHistoryLoading = false;
+      },
+      error: () => { this.feedbackHistoryLoading = false; }
+    });
+  }
+
+  // ================================================================
+  // FEEDBACK — skicka feedback
+  // ================================================================
+  submitFeedback(): void {
+    if (this.feedbackLoading) return;
+    this.feedbackLoading = true;
+    this.feedbackError = '';
+    this.feedbackSaved = false;
+
+    const body = { stamning: this.feedbackMood, kommentar: this.feedbackKommentar.trim() };
+
+    this.http.post<any>('/noreko-backend/api.php?action=feedback&run=submit', body, { withCredentials: true }).pipe(
+      timeout(8000),
+      catchError((err) => {
+        const msg = err?.error?.error || 'Fel vid sparning av feedback';
+        return of({ success: false, error: msg });
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        this.feedbackLoading = false;
+        if (res?.success) {
+          this.feedbackSaved = true;
+          this.feedbackKommentar = '';
+          this.loadFeedbackHistory();
+          setTimeout(() => { this.feedbackSaved = false; }, 3000);
+        } else {
+          this.feedbackError = res?.error || 'Kunde inte spara feedback.';
+        }
+      },
+      error: () => {
+        this.feedbackLoading = false;
+        this.feedbackError = 'Nätverksfel — försök igen.';
+      }
+    });
+  }
+
 }
