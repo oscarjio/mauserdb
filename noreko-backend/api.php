@@ -117,11 +117,13 @@ $classNameMap = [
     'audit' => 'AuditController',
     'status' => 'StatusController',
     'operators' => 'OperatorController',
+    'operator-dashboard' => 'OperatorDashboardController',
     'lineskiftrapport' => 'LineSkiftrapportController',
     'shift-plan' => 'ShiftPlanController',
     'certifications' => 'CertificationController',
     'shift-handover' => 'ShiftHandoverController',
     'andon' => 'AndonController',
+    'news' => 'NewsController',
 ];
 
 $actionKey = strtolower($action);
