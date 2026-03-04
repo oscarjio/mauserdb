@@ -16,6 +16,7 @@ import {
   MonthlyLeaderEntry,
   MonthlyLeadersResponse,
 } from '../../services/rebotling.service';
+import { AuthService } from '../../services/auth.service';
 
 Chart.register(...registerables);
 
@@ -38,22 +39,18 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   topWeeks: BenchmarkingTopWeek[] = [];
   monthlyTotals: BenchmarkingMonthly[] = [];
 
-  // Innevarande veckolabel för att markera i topp-10
   currentWeekLabel = '';
   bestWeekLabel = '';
 
-  // Progress mot rekordveckan (0–100)
   progressPct = 0;
   ibcDiffToRecord = 0;
   isNewRecord = false;
 
-  // Personbästa & månadsdata
   personalBests: { operators: PersonalBestOperator[]; team_record_ibc_h: number } | null = null;
   personalBestsLoading = false;
   monthlyLeaders: MonthlyLeaderEntry[] = [];
   monthlyLeadersLoading = false;
 
-  // Chart
   @ViewChild('monthlyChart') monthlyChartRef!: ElementRef<HTMLCanvasElement>;
   private monthlyChartInstance: Chart | null = null;
 
@@ -62,7 +59,10 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   private chartTimer: ReturnType<typeof setTimeout> | null = null;
   private isFetching = false;
 
-  constructor(private rebotlingService: RebotlingService) {}
+  constructor(
+    private rebotlingService: RebotlingService,
+    private auth: AuthService,
+  ) {}
 
   ngOnInit(): void {
     this.load();
@@ -84,6 +84,74 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     }
     this.monthlyChartInstance?.destroy();
     this.monthlyChartInstance = null;
+  }
+
+  get currentUserName(): string | null {
+    return this.auth.user$.getValue()?.name || null;
+  }
+
+  get isLoggedIn(): boolean {
+    return this.auth.loggedIn$.getValue();
+  }
+
+  get kpiTotalVeckor(): number {
+    return this.topWeeks.length;
+  }
+
+  get kpiRekordIBC(): number {
+    if (!this.topWeeks.length) return 0;
+    return this.topWeeks[0]?.ibc_total ?? 0;
+  }
+
+  get kpiSnittIBC(): number {
+    if (!this.topWeeks.length) return 0;
+    const sum = this.topWeeks.reduce((acc, w) => acc + w.ibc_total, 0);
+    return Math.round(sum / this.topWeeks.length);
+  }
+
+  get kpiBastaOEE(): number {
+    if (!this.topWeeks.length) return 0;
+    const max = Math.max(...this.topWeeks.map(w => w.avg_oee ?? 0));
+    return Math.round(max * 10) / 10;
+  }
+
+  get currentUserPersonalBest(): PersonalBestOperator | null {
+    if (!this.currentUserName || !this.personalBests) return null;
+    const name = this.currentUserName.toLowerCase();
+    return (
+      this.personalBests.operators.find(
+        (op) => op.namn.toLowerCase() === name
+      ) ?? null
+    );
+  }
+
+  medalEmoji(index: number): string {
+    if (index === 0) return '🥇';
+    if (index === 1) return '🥈';
+    if (index === 2) return '🥉';
+    return '';
+  }
+
+  exportBenchmarkCSV(): void {
+    if (!this.topWeeks || this.topWeeks.length === 0) return;
+    const headers = ['Plats', 'Vecka', 'IBC Totalt', 'IBC/dag', 'Kvalitet%', 'OEE%', 'Aktiva dagar'];
+    const rows = this.topWeeks.map((w: BenchmarkingTopWeek, i: number) => [
+      i + 1,
+      w.week_label ?? '',
+      w.ibc_total ?? '',
+      w.ibc_total && w.days_active ? (w.ibc_total / w.days_active).toFixed(1) : '',
+      w.avg_quality != null ? w.avg_quality.toFixed(1) : '',
+      w.avg_oee != null ? w.avg_oee.toFixed(1) : '',
+      w.days_active ?? '',
+    ]);
+    const csv = [headers, ...rows].map((r) => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `benchmarking-topp10-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   private load(): void {
@@ -114,7 +182,6 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
         this.currentWeekLabel = this.currentWeek?.week_label ?? '';
         this.bestWeekLabel = this.bestWeekEver?.week_label ?? '';
 
-        // Diff mot rekord
         if (this.currentWeek && this.bestWeekEver) {
           const cur = this.currentWeek.ibc_total;
           const best = this.bestWeekEver.ibc_total;
@@ -124,7 +191,6 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
         }
 
         this.loading = false;
-        // Bygger chart efter att data är satt
         this.chartTimer = setTimeout(() => this.buildMonthlyChart(), 50);
       });
   }
@@ -161,10 +227,8 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     const labels = months.map((m) => this.formatMonth(m.month));
     const values = months.map((m) => m.ibc_total);
 
-    // Snitt
     const avg = values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0;
 
-    // Nuvarande månad och bästa månad
     const now = new Date();
     const curMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const maxVal = Math.max(...values);
@@ -173,7 +237,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
     const bgColors = values.map((v, i) => {
       if (i === curIdx) return 'rgba(66, 153, 225, 0.85)';
-      if (i === maxIdx) return 'rgba(214, 158, 46, 0.85)';
+      if (i === maxIdx) return 'rgba(246, 224, 94, 0.9)';
       return 'rgba(99, 179, 237, 0.45)';
     });
 
@@ -264,7 +328,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     if (i === 0) return '1';
     if (i === 1) return '2';
     if (i === 2) return '3';
-    return `${i + 1}`;
+    return String(i + 1);
   }
 
   recordDiffPct(ibc: number): number {

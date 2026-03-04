@@ -52,7 +52,8 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
 
   operators: Operator[] = [];
   selectedOpId: number | null = null;
-  selectedWeeks: 8 | 16 | 26 = 8;
+  selectedWeeks: 8 | 16 | 26 | 52 = 8;
+  weekOptions: (8 | 16 | 26 | 52)[] = [8, 16, 26, 52];
 
   loading = false;
   loadingOps = false;
@@ -109,7 +110,6 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
         this.loadingOps = false;
         if (res?.success) {
           this.operators = res.operators || [];
-          // Välj första operatören automatiskt
           if (this.operators.length > 0 && !this.selectedOpId) {
             this.selectedOpId = this.operators[0].id;
             this.loadTrend();
@@ -118,7 +118,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
       });
   }
 
-  setWeeks(w: 8 | 16 | 26): void {
+  setWeeks(w: 8 | 16 | 26 | 52): void {
     this.selectedWeeks = w;
     if (this.selectedOpId) {
       this.loadTrend();
@@ -136,6 +136,8 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
     this.loading = true;
     this.errorMsg = '';
 
+    const timeoutMs = this.selectedWeeks >= 52 ? 20000 : 10000;
+
     this.http
       .get<TrendResponse>(
         `${this.apiBase}?action=rebotling&run=operator-weekly-trend` +
@@ -143,17 +145,17 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
         { withCredentials: true }
       )
       .pipe(
-        timeout(10000),
+        timeout(timeoutMs),
         catchError(() => of(null)),
         takeUntil(this.destroy$)
       )
       .subscribe(res => {
         this.loading = false;
         if (res?.success) {
-          this.trendData    = res.trend || [];
-          this.opName       = res.op_name || '';
-          this.trendArrow   = res.trend_arrow ?? null;
-          this.trendPct     = res.trend_pct ?? null;
+          this.trendData  = res.trend || [];
+          this.opName     = res.op_name || '';
+          this.trendArrow = res.trend_arrow ?? null;
+          this.trendPct   = res.trend_pct ?? null;
           if (this.chartTimer) clearTimeout(this.chartTimer);
           this.chartTimer = setTimeout(() => this.buildChart(), 100);
         } else {
@@ -163,6 +165,31 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
       });
   }
 
+  // ---- Linjär regression & prognos ----
+
+  linearRegression(data: number[]): { slope: number; intercept: number } {
+    const n = data.length;
+    if (n < 2) return { slope: 0, intercept: data[0] ?? 0 };
+    const xs = Array.from({ length: n }, (_, i) => i);
+    const sumX  = xs.reduce((a, b) => a + b, 0);
+    const sumY  = data.reduce((a, b) => a + b, 0);
+    const sumXY = xs.reduce((acc, x, i) => acc + x * data[i], 0);
+    const sumXX = xs.reduce((acc, x) => acc + x * x, 0);
+    const denom = n * sumXX - sumX * sumX;
+    if (denom === 0) return { slope: 0, intercept: sumY / n };
+    const slope     = (n * sumXY - sumX * sumY) / denom;
+    const intercept = (sumY - slope * sumX) / n;
+    return { slope, intercept };
+  }
+
+  private buildForecastLabels(baseLabels: string[], extraWeeks: number = 3): string[] {
+    const extra: string[] = [];
+    for (let i = 1; i <= extraWeeks; i++) {
+      extra.push(`+${i}v`);
+    }
+    return [...baseLabels, ...extra];
+  }
+
   private buildChart(): void {
     this.chart?.destroy();
     this.chart = null;
@@ -170,42 +197,85 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
     const canvas = document.getElementById('trendMainChart') as HTMLCanvasElement;
     if (!canvas || this.trendData.length === 0) return;
 
-    const labels      = this.trendData.map(r => r.vecka_label);
-    const ibcH        = this.trendData.map(r => r.ibc_per_h);
-    const teamIbcH    = this.trendData.map(r => r.team_ibc_per_h);
+    const EXTRA_WEEKS = 3;
+    const baseLabels = this.trendData.map(r => r.vecka_label);
+    const labels     = this.buildForecastLabels(baseLabels, EXTRA_WEEKS);
+
+    const ibcH     = this.trendData.map(r => r.ibc_per_h);
+    const teamIbcH = this.trendData.map(r => r.team_ibc_per_h);
+
+    // Filtrera bort null för regression
+    const validIbc: number[] = ibcH.filter((v): v is number => v !== null);
+    let forecastPadded: (number | null)[] | null = null;
+
+    if (validIbc.length >= 2) {
+      const reg = this.linearRegression(validIbc);
+      const n   = validIbc.length;
+      // Hitta index för sista giltiga ibc_per_h
+      const lastValidIdx = [...ibcH].reverse().findIndex(v => v !== null);
+      const lastIdx = lastValidIdx >= 0 ? ibcH.length - 1 - lastValidIdx : ibcH.length - 1;
+
+      forecastPadded = new Array(this.trendData.length + EXTRA_WEEKS).fill(null) as (number | null)[];
+      // Överlappspunkt vid sista faktiska värde
+      forecastPadded[lastIdx] = ibcH[lastIdx];
+      // Prognosvärden
+      for (let i = 0; i < EXTRA_WEEKS; i++) {
+        forecastPadded[this.trendData.length + i] = Math.max(0, reg.intercept + reg.slope * (n + i));
+      }
+    }
+
+    // Utöka faktiska dataserier med null för prognosveckorna
+    const ibcHExtended:     (number | null)[] = [...ibcH,     ...new Array(EXTRA_WEEKS).fill(null)];
+    const teamIbcHExtended: (number | null)[] = [...teamIbcH, ...new Array(EXTRA_WEEKS).fill(null)];
+
+    const datasets: any[] = [
+      {
+        label: this.opName,
+        data: ibcHExtended,
+        borderColor: '#4299e1',
+        backgroundColor: 'rgba(66,153,225,0.12)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 5,
+        pointBackgroundColor: '#4299e1',
+        borderWidth: 2.5,
+        spanGaps: true
+      },
+      {
+        label: 'Lagsnitt',
+        data: teamIbcHExtended,
+        borderColor: '#ecc94b',
+        backgroundColor: 'rgba(236,201,75,0.06)',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointBackgroundColor: '#ecc94b',
+        borderWidth: 2,
+        borderDash: [6, 4],
+        spanGaps: true
+      }
+    ];
+
+    if (forecastPadded) {
+      datasets.push({
+        label: 'Prognos',
+        data: forecastPadded,
+        borderColor: '#718096',
+        backgroundColor: 'transparent',
+        fill: false,
+        tension: 0.2,
+        pointRadius: 4,
+        pointBackgroundColor: '#718096',
+        borderWidth: 2,
+        borderDash: [4, 4],
+        spanGaps: true,
+        pointStyle: 'circle'
+      });
+    }
 
     this.chart = new Chart(canvas, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: this.opName,
-            data: ibcH,
-            borderColor: '#4299e1',
-            backgroundColor: 'rgba(66,153,225,0.12)',
-            fill: true,
-            tension: 0.35,
-            pointRadius: 5,
-            pointBackgroundColor: '#4299e1',
-            borderWidth: 2.5,
-            spanGaps: true
-          },
-          {
-            label: 'Lagsnitt',
-            data: teamIbcH,
-            borderColor: '#ecc94b',
-            backgroundColor: 'rgba(236,201,75,0.06)',
-            fill: false,
-            tension: 0.3,
-            pointRadius: 3,
-            pointBackgroundColor: '#ecc94b',
-            borderWidth: 2,
-            borderDash: [6, 4],
-            spanGaps: true
-          }
-        ]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -228,7 +298,8 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
               label: (ctx) => {
                 const v = ctx.parsed.y;
                 if (v === null || v === undefined) return '';
-                return ` ${ctx.dataset.label}: ${v.toFixed(1)} IBC/h`;
+                const suffix = ctx.dataset.label === 'Prognos' ? ' (prognos)' : '';
+                return ` ${ctx.dataset.label}: ${v.toFixed(1)} IBC/h${suffix}`;
               }
             }
           }
@@ -252,6 +323,88 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  // ---- CSV-export ----
+
+  exportTrendCSV(): void {
+    if (!this.trendData || this.trendData.length === 0) return;
+    const operatorName = this.opName || this.getSelectedOpName() || 'Operatör';
+    const headers = ['Vecka', `${operatorName} IBC/h`, 'Lagsnitt IBC/h', 'Diff', 'Kvalitet %', 'Skift'];
+    const rows = this.trendData.map((row: TrendRow) => [
+      row.vecka_label || '',
+      row.ibc_per_h !== null ? row.ibc_per_h.toFixed(2) : '',
+      row.team_ibc_per_h !== null ? row.team_ibc_per_h.toFixed(2) : '',
+      row.ibc_per_h !== null && row.team_ibc_per_h !== null
+        ? (row.ibc_per_h - row.team_ibc_per_h).toFixed(2)
+        : '',
+      row.kvalitet_pct !== null ? row.kvalitet_pct.toFixed(1) : '',
+      row.antal_skift.toString()
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `trend-${operatorName.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---- KPI-hjälpmetoder ----
+
+  getRecentAvg(): number | null {
+    const recent = this.trendData
+      .slice(-4)
+      .map(r => r.ibc_per_h)
+      .filter((v): v is number => v !== null);
+    if (recent.length === 0) return null;
+    return recent.reduce((a, b) => a + b, 0) / recent.length;
+  }
+
+  getVsTeamPct(): number | null {
+    const recentOp = this.getRecentAvg();
+    const recentTeam = this.trendData
+      .slice(-4)
+      .map(r => r.team_ibc_per_h)
+      .filter((v): v is number => v !== null);
+    if (recentOp === null || recentTeam.length === 0) return null;
+    const teamAvg = recentTeam.reduce((a, b) => a + b, 0) / recentTeam.length;
+    if (teamAvg === 0) return null;
+    return ((recentOp - teamAvg) / teamAvg) * 100;
+  }
+
+  getVsTeamClass(): string {
+    const pct = this.getVsTeamPct();
+    if (pct === null) return 'kpi-card-neutral';
+    if (pct > 0) return 'kpi-card-good';
+    if (pct < 0) return 'kpi-card-bad';
+    return 'kpi-card-neutral';
+  }
+
+  getVsTeamLabel(): string {
+    const pct = this.getVsTeamPct();
+    if (pct === null) return '–';
+    const sign = pct >= 0 ? '+' : '';
+    return `${sign}${pct.toFixed(1)}%`;
+  }
+
+  getTrendKpiLabel(): string {
+    switch (this.trendArrow) {
+      case 'up':   return 'Uppåt ↑';
+      case 'down': return 'Nedåt ↓';
+      case 'flat': return 'Stabil →';
+      default:     return '–';
+    }
+  }
+
+  getTrendKpiClass(): string {
+    switch (this.trendArrow) {
+      case 'up':   return 'kpi-card-good';
+      case 'down': return 'kpi-card-bad';
+      case 'flat': return 'kpi-card-neutral';
+      default:     return 'kpi-card-neutral';
+    }
   }
 
   // ---- Hjälpmetoder ----

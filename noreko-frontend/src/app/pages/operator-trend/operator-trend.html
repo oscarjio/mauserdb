@@ -9,6 +9,15 @@
       </h1>
       <p class="ot-subtitle">IBC/h-trend per vecka — jämför mot lagsnitt</p>
     </div>
+    <div class="ot-header-actions">
+      <button class="ot-export-btn"
+              (click)="exportTrendCSV()"
+              [disabled]="!trendData || trendData.length === 0 || !selectedOpId"
+              title="Exportera trenddata som CSV">
+        <i class="fas fa-file-csv me-1"></i>
+        Exportera CSV
+      </button>
+    </div>
   </div>
 
   <!-- Kontrollpanel -->
@@ -39,9 +48,12 @@
       <div class="control-group">
         <label class="control-label">Period</label>
         <div class="period-btns">
-          <button class="period-btn" [class.active]="selectedWeeks === 8"  (click)="setWeeks(8)">8 veckor</button>
-          <button class="period-btn" [class.active]="selectedWeeks === 16" (click)="setWeeks(16)">16 veckor</button>
-          <button class="period-btn" [class.active]="selectedWeeks === 26" (click)="setWeeks(26)">26 veckor</button>
+          <button *ngFor="let w of weekOptions"
+                  class="period-btn"
+                  [class.active]="selectedWeeks === w"
+                  (click)="setWeeks(w)">
+            {{ w }} veckor
+          </button>
         </div>
       </div>
 
@@ -52,6 +64,7 @@
           <span class="trend-badge-text">{{ getTrendLabel() }}</span>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -60,27 +73,63 @@
     <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMsg }}
   </div>
 
-  <!-- Laddar -->
+  <!-- Laddningsindikator -->
   <div *ngIf="loading" class="ot-loading-wrap">
     <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-    <p>Hämtar trenddata…</p>
+    <p>Hämtar trenddata<span *ngIf="selectedWeeks >= 52"> — 52 veckor kan ta en stund…</span></p>
   </div>
 
   <!-- Ingen operatör vald -->
   <div *ngIf="!selectedOpId && !loading" class="ot-empty-state">
-    <i class="fas fa-user-chart fa-3x mb-3"></i>
+    <i class="fas fa-user fa-3x mb-3"></i>
     <p>Välj en operatör ovan för att visa trendgrafen.</p>
   </div>
 
   <!-- Innehåll när data finns -->
   <ng-container *ngIf="!loading && trendData.length > 0">
 
+    <!-- KPI-brickor -->
+    <div class="ot-kpi-row">
+
+      <!-- Trend -->
+      <div class="ot-kpi-card" [class]="getTrendKpiClass()">
+        <div class="kpi-label">
+          <i class="fas fa-chart-line me-1"></i>Trend
+        </div>
+        <div class="kpi-value">{{ getTrendKpiLabel() }}</div>
+        <div class="kpi-sub" *ngIf="trendPct !== null">
+          {{ Math.abs(trendPct) }}% de senaste 4 veckorna
+        </div>
+      </div>
+
+      <!-- Snitt senaste 4 veckorna -->
+      <div class="ot-kpi-card kpi-card-neutral">
+        <div class="kpi-label">
+          <i class="fas fa-calculator me-1"></i>Snitt senaste 4v
+        </div>
+        <div class="kpi-value">
+          {{ getRecentAvg() !== null ? (getRecentAvg()! | number:'1.1-1') + ' IBC/h' : '–' }}
+        </div>
+        <div class="kpi-sub">Genomsnitt senaste 4 veckor</div>
+      </div>
+
+      <!-- Vs. lagsnitt -->
+      <div class="ot-kpi-card" [class]="getVsTeamClass()">
+        <div class="kpi-label">
+          <i class="fas fa-users me-1"></i>Vs. lagsnitt
+        </div>
+        <div class="kpi-value">{{ getVsTeamLabel() }}</div>
+        <div class="kpi-sub">Senaste 4 veckorna mot lagsnittet</div>
+      </div>
+
+    </div>
+
     <!-- Trendgraf -->
     <div class="ot-card ot-chart-card">
       <div class="ot-card-header">
         <i class="fas fa-chart-line me-2 text-info"></i>
         IBC/h per vecka — {{ opName }}
-        <span class="header-sub">vs. lagsnitt (streckad)</span>
+        <span class="header-sub">vs. lagsnitt (streckad) · prognos (grå streckad)</span>
       </div>
       <div class="ot-card-body">
         <div class="chart-wrap">
@@ -94,6 +143,7 @@
       <div class="ot-card-header">
         <i class="fas fa-table me-2 text-warning"></i>
         Detaljdata per vecka
+        <span class="header-sub ms-auto">{{ trendData.length }} veckor visas</span>
       </div>
       <div class="ot-card-body">
         <div class="table-responsive">
@@ -119,7 +169,12 @@
                 </td>
 
                 <td class="text-end">
-                  <span class="qual-val" [class]="row.kvalitet_pct !== null && row.kvalitet_pct >= 95 ? 'kpi-good' : row.kvalitet_pct !== null && row.kvalitet_pct >= 85 ? 'kpi-warn' : 'kpi-bad'">
+                  <span class="qual-val"
+                        [class]="row.kvalitet_pct !== null && row.kvalitet_pct >= 95
+                                  ? 'kpi-good'
+                                  : row.kvalitet_pct !== null && row.kvalitet_pct >= 85
+                                    ? 'kpi-warn'
+                                    : 'kpi-bad'">
                     {{ row.kvalitet_pct !== null ? (row.kvalitet_pct | number:'1.0-1') + '%' : '–' }}
                   </span>
                 </td>

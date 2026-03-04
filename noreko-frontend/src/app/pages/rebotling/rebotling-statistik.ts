@@ -329,6 +329,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   oeeComponentsData: OeeComponentDay[] = [];
   private oeeComponentsChart: Chart | null = null;
 
+  // OEE-komponenter dataset-toggle
+  showTillganglighet: boolean = true;
+  showKvalitet: boolean = true;
+
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
 
@@ -3832,5 +3836,109 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
     });
   }
+
+  // ======== CSV-EXPORT: PARETO STOPPORSAKER ========
+  exportParetoCSV(): void {
+    if (!this.paretoItems || this.paretoItems.length === 0) return;
+    const headers = ['Stopporsak', 'Kategori', 'Antal stopp', 'Total tid (min)', 'Total tid (h)', 'Snitt (min)', 'Andel %', 'Kumulativ %'];
+    const rows = this.paretoItems.map(item => [
+      item.orsak,
+      item.kategori || '',
+      item.antal_stopp,
+      item.total_minuter,
+      (item.total_minuter / 60).toFixed(1),
+      item.snitt_minuter.toFixed(1),
+      item.pct_av_total.toFixed(1) + '%',
+      item.kumulativ_pct.toFixed(1) + '%'
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pareto-stopporsaker-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ======== CSV-EXPORT: OEE-KOMPONENTER ========
+  exportOeeComponentsCSV(): void {
+    if (!this.oeeComponentsData || this.oeeComponentsData.length === 0) return;
+    const headers = ['Datum', 'Tillganglighet %', 'Kvalitet %'];
+    const rows = this.oeeComponentsData.map(d => [
+      d.datum,
+      d.tillganglighet != null ? d.tillganglighet.toFixed(1) : '',
+      d.kvalitet != null ? d.kvalitet.toFixed(1) : ''
+    ]);
+    const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `oee-komponenter-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ======== CSV-EXPORT: KASSATIONSANALYS ========
+  exportKassationCSV(): void {
+    if (!this.kassationPareto || this.kassationPareto.length === 0) return;
+    const headers = ['Orsak', 'Antal kassationer', 'Andel %', 'Kumulativ %'];
+    const rows = this.kassationPareto.map(item => [
+      item.namn,
+      item.antal,
+      item.pct.toFixed(1) + '%',
+      item.kumulativ_pct.toFixed(1) + '%'
+    ]);
+    rows.push(['TOTALT', this.kassationTotalAntal, this.kassationPct.toFixed(1) + '%', '100.0%']);
+    const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kassationsanalys-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ======== CSV-EXPORT: HEATMAP-DATA ========
+  exportHeatmapCSV(): void {
+    if (!this.heatmapRows || this.heatmapRows.length === 0) return;
+    const headers = ['Datum', 'Timme', 'IBC denna timme', 'Kvalitet %'];
+    const rows: (string | number)[][] = [];
+    this.heatmapRows.forEach(row => {
+      this.heatmapHours.forEach((hour, hi) => {
+        const count = row.counts[hi] || 0;
+        const quality = row.qualityPct[hi] || 0;
+        if (count > 0 || quality > 0) {
+          rows.push([
+            row.date,
+            hour + ':00',
+            count,
+            quality > 0 ? quality.toFixed(1) + '%' : ''
+          ]);
+        }
+      });
+    });
+    if (rows.length === 0) return;
+    const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `heatmap-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ======== TOGGLE DATASATSER I OEE-KOMPONENTER-GRAFEN ========
+  toggleOeeDataset(type: 'tillganglighet' | 'kvalitet'): void {
+    if (!this.oeeComponentsChart) return;
+    const datasetIndex = type === 'tillganglighet' ? 0 : 1;
+    const meta = this.oeeComponentsChart.getDatasetMeta(datasetIndex);
+    meta.hidden = type === 'tillganglighet' ? !this.showTillganglighet : !this.showKvalitet;
+    this.oeeComponentsChart.update();
+  }
+
 
 }

@@ -138,6 +138,12 @@
               <small class="text-muted">
                 Visar: <strong class="text-light">{{ getHeatmapKpiLabel() }}</strong>
               </small>
+              <button class="btn btn-sm btn-outline-secondary ms-auto"
+                      title="Exportera heatmap-data som CSV"
+                      [disabled]="!heatmapRows || heatmapRows.length === 0"
+                      (click)="exportHeatmapCSV()">
+                <i class="fas fa-download me-1"></i>Exportera CSV
+              </button>
             </div>
 
             <!-- Heatmap-rutnät med tooltip -->
@@ -1489,16 +1495,24 @@
               <h6 class="mb-0 text-light">
                 <i class="fas fa-chart-bar me-2 text-warning"></i>Stopporsaksanalys — Pareto
               </h6>
-              <div class="btn-group btn-group-sm">
-                <button class="btn"
-                  [class]="paretoDays===7?'btn-warning':'btn-outline-warning'"
-                  (click)="paretoDays=7; loadStoppagePareto()">7d</button>
-                <button class="btn"
-                  [class]="paretoDays===30?'btn-warning':'btn-outline-warning'"
-                  (click)="paretoDays=30; loadStoppagePareto()">30d</button>
-                <button class="btn"
-                  [class]="paretoDays===90?'btn-warning':'btn-outline-warning'"
-                  (click)="paretoDays=90; loadStoppagePareto()">90d</button>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="btn-group btn-group-sm">
+                  <button class="btn"
+                    [class]="paretoDays===7?'btn-warning':'btn-outline-warning'"
+                    (click)="paretoDays=7; loadStoppagePareto()">7d</button>
+                  <button class="btn"
+                    [class]="paretoDays===30?'btn-warning':'btn-outline-warning'"
+                    (click)="paretoDays=30; loadStoppagePareto()">30d</button>
+                  <button class="btn"
+                    [class]="paretoDays===90?'btn-warning':'btn-outline-warning'"
+                    (click)="paretoDays=90; loadStoppagePareto()">90d</button>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary"
+                        title="Exportera stopporsaksdata som CSV"
+                        [disabled]="!paretoItems || paretoItems.length === 0"
+                        (click)="exportParetoCSV()">
+                  <i class="fas fa-download me-1"></i>Exportera CSV
+                </button>
               </div>
             </div>
           </div>
@@ -1778,16 +1792,24 @@
           <span style="color:#e2e8f0; font-weight:600; font-size:1rem;">Kassationsorsaksanalys — Pareto</span>
           <span *ngIf="kassationLoading" class="spinner-border spinner-border-sm text-secondary" style="margin-left:8px;" role="status"></span>
         </div>
-        <div class="btn-group btn-group-sm" role="group">
-          <button type="button" class="btn btn-sm"
-            [class]="kassationDays===7?'btn-danger':'btn-outline-danger'"
-            (click)="kassationDays=7; onKassationDaysChange()">7d</button>
-          <button type="button" class="btn btn-sm"
-            [class]="kassationDays===30?'btn-danger':'btn-outline-danger'"
-            (click)="kassationDays=30; onKassationDaysChange()">30d</button>
-          <button type="button" class="btn btn-sm"
-            [class]="kassationDays===90?'btn-danger':'btn-outline-danger'"
-            (click)="kassationDays=90; onKassationDaysChange()">90d</button>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-sm"
+              [class]="kassationDays===7?'btn-danger':'btn-outline-danger'"
+              (click)="kassationDays=7; onKassationDaysChange()">7d</button>
+            <button type="button" class="btn btn-sm"
+              [class]="kassationDays===30?'btn-danger':'btn-outline-danger'"
+              (click)="kassationDays=30; onKassationDaysChange()">30d</button>
+            <button type="button" class="btn btn-sm"
+              [class]="kassationDays===90?'btn-danger':'btn-outline-danger'"
+              (click)="kassationDays=90; onKassationDaysChange()">90d</button>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary"
+                  title="Exportera kassationsdata som CSV"
+                  [disabled]="!kassationPareto || kassationPareto.length === 0"
+                  (click)="exportKassationCSV()">
+            <i class="fas fa-download me-1"></i>Exportera CSV
+          </button>
         </div>
       </div>
 
@@ -1906,6 +1928,24 @@
               <button class="btn btn-sm"
                 [class]="oeeComponentsDays===90 ? 'btn-success' : 'btn-outline-success'"
                 (click)="oeeComponentsDays=90; loadOeeComponents()">90d</button>
+              <!-- Dataset-toggle -->
+              <div class="d-flex align-items-center gap-2 ms-2" style="border-left:1px solid #4a5568; padding-left:10px;">
+                <label class="d-flex align-items-center gap-1 mb-0" style="color:#68d391; font-size:0.82rem; cursor:pointer; user-select:none;">
+                  <input type="checkbox" [(ngModel)]="showTillganglighet" (change)="toggleOeeDataset('tillganglighet')">
+                  Tillganglighet
+                </label>
+                <label class="d-flex align-items-center gap-1 mb-0" style="color:#63b3ed; font-size:0.82rem; cursor:pointer; user-select:none;">
+                  <input type="checkbox" [(ngModel)]="showKvalitet" (change)="toggleOeeDataset('kvalitet')">
+                  Kvalitet
+                </label>
+              </div>
+              <!-- Export-knapp -->
+              <button class="btn btn-sm btn-outline-secondary"
+                      title="Exportera OEE-komponentdata som CSV"
+                      [disabled]="!oeeComponentsData || oeeComponentsData.length === 0"
+                      (click)="exportOeeComponentsCSV()">
+                <i class="fas fa-download me-1"></i>Exportera CSV
+              </button>
             </div>
           </div>
 
