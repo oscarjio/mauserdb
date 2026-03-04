@@ -111,6 +111,13 @@ class BonusAdminController {
             case 'list-operators':
                 $this->listOperators();
                 break;
+            case 'update-payout-status':
+                if ($method !== 'POST') {
+                    $this->sendError('POST required');
+                    return;
+                }
+                $this->updatePayoutStatus();
+                break;
             default:
                 $this->sendError('Invalid action: ' . $run);
         }
@@ -849,12 +856,14 @@ class BonusAdminController {
     }
 
     /**
-     * GET ?action=bonusadmin&run=list-payouts[&op_id=X][&year=YYYY]
+     * GET ?action=bonusadmin&run=list-payouts[&op_id=X][&year=YYYY][&status=pending|approved|paid]
      */
     private function listPayouts(): void {
         try {
             $year   = isset($_GET['year'])  ? intval($_GET['year'])  : intval(date('Y'));
             $op_id  = isset($_GET['op_id']) ? intval($_GET['op_id']) : 0;
+            $status = $_GET['status'] ?? '';
+            $allowedStatuses = ['pending', 'approved', 'paid'];
 
             $where  = "WHERE YEAR(bp.period_start) = :year";
             $params = ['year' => $year];
@@ -862,20 +871,30 @@ class BonusAdminController {
                 $where .= " AND bp.op_id = :op_id";
                 $params['op_id'] = $op_id;
             }
+            if ($status !== '' && in_array($status, $allowedStatuses, true)) {
+                $where .= " AND bp.status = :status";
+                $params['status'] = $status;
+            }
 
             $sql = "
                 SELECT
                     bp.id,
                     bp.op_id,
-                    o.name     AS namn,
-                    o.number   AS op_number,
+                    o.name          AS namn,
+                    o.number        AS op_number,
                     bp.period_start,
                     bp.period_end,
+                    COALESCE(bp.period_label, '') AS period_label,
+                    COALESCE(bp.bonus_level, 'none') AS bonus_level,
+                    COALESCE(bp.status, 'pending') AS status,
                     bp.amount_sek,
                     bp.ibc_count,
                     bp.avg_ibc_per_h,
                     bp.avg_quality_pct,
                     bp.notes,
+                    bp.approved_by,
+                    bp.approved_at,
+                    bp.paid_at,
                     bp.created_at
                 FROM bonus_payouts bp
                 LEFT JOIN operators o ON o.id = bp.op_id
@@ -887,22 +906,29 @@ class BonusAdminController {
             $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Beräkna initialer
+            // Beräkna initialer och typkonvertering
             foreach ($rows as &$r) {
                 $words = preg_split('/\s+/', trim($r['namn'] ?? ''));
                 $initials = '';
                 foreach ($words as $w) {
                     if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
                 }
-                $r['initialer']      = $initials;
-                $r['op_id']          = (int)$r['op_id'];
-                $r['ibc_count']      = (int)$r['ibc_count'];
-                $r['amount_sek']     = (float)$r['amount_sek'];
-                $r['avg_ibc_per_h']  = (float)$r['avg_ibc_per_h'];
-                $r['avg_quality_pct']= (float)$r['avg_quality_pct'];
+                $r['initialer']       = $initials;
+                $r['op_id']           = (int)$r['op_id'];
+                $r['ibc_count']       = (int)($r['ibc_count'] ?? 0);
+                $r['amount_sek']      = (float)$r['amount_sek'];
+                $r['avg_ibc_per_h']   = (float)($r['avg_ibc_per_h'] ?? 0);
+                $r['avg_quality_pct'] = (float)($r['avg_quality_pct'] ?? 0);
             }
 
-            $this->sendSuccess(['payouts' => $rows, 'year' => $year]);
+            // Summera totalt belopp för filtret
+            $total_sek = array_sum(array_column($rows, 'amount_sek'));
+
+            $this->sendSuccess([
+                'payouts'   => $rows,
+                'year'      => $year,
+                'total_sek' => round($total_sek, 2),
+            ]);
         } catch (PDOException $e) {
             error_log('BonusAdmin listPayouts: ' . $e->getMessage());
             $this->sendError('Databasfel');
@@ -910,8 +936,70 @@ class BonusAdminController {
     }
 
     /**
+     * POST ?action=bonusadmin&run=update-payout-status
+     * Body: { id, status: 'pending'|'approved'|'paid' }
+     */
+    private function updatePayoutStatus(): void {
+        $body   = json_decode(file_get_contents('php://input'), true) ?? [];
+        $id     = isset($body['id'])     ? intval($body['id'])     : 0;
+        $status = $body['status'] ?? '';
+
+        $allowedStatuses = ['pending', 'approved', 'paid'];
+        if ($id <= 0) {
+            $this->sendError('Ogiltigt ID');
+            return;
+        }
+        if (!in_array($status, $allowedStatuses, true)) {
+            $this->sendError('Ogiltig status (tillåtna: pending, approved, paid)');
+            return;
+        }
+
+        try {
+            $adminId = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
+            $now     = date('Y-m-d H:i:s');
+
+            if ($status === 'approved') {
+                $stmt = $this->pdo->prepare("
+                    UPDATE bonus_payouts
+                    SET status = 'approved', approved_by = :admin_id, approved_at = :now
+                    WHERE id = :id
+                ");
+                $stmt->execute(['admin_id' => $adminId, 'now' => $now, 'id' => $id]);
+            } elseif ($status === 'paid') {
+                $stmt = $this->pdo->prepare("
+                    UPDATE bonus_payouts
+                    SET status = 'paid', paid_at = :now
+                    WHERE id = :id
+                ");
+                $stmt->execute(['now' => $now, 'id' => $id]);
+            } else {
+                $stmt = $this->pdo->prepare("
+                    UPDATE bonus_payouts
+                    SET status = 'pending', approved_by = NULL, approved_at = NULL, paid_at = NULL
+                    WHERE id = :id
+                ");
+                $stmt->execute(['id' => $id]);
+            }
+
+            if ($stmt->rowCount() === 0) {
+                $this->sendError('Posten hittades inte', 404);
+                return;
+            }
+
+            try {
+                $this->logAudit('update_status', 'bonus_payout', $id, null, ['status' => $status]);
+            } catch (Exception $ae) {}
+
+            $this->sendSuccess(['id' => $id, 'status' => $status, 'message' => 'Status uppdaterad']);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin updatePayoutStatus: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
      * POST ?action=bonusadmin&run=record-payout
-     * Body: { op_id, period_start, period_end, amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct, notes }
+     * Body: { op_id, period_start, period_end, amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct, notes, period_label, bonus_level }
      */
     private function recordPayout(): void {
         $body = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -924,6 +1012,10 @@ class BonusAdminController {
         $avg_ibc_per_h  = isset($body['avg_ibc_per_h'])  ? floatval($body['avg_ibc_per_h'])  : 0;
         $avg_quality_pct= isset($body['avg_quality_pct'])? floatval($body['avg_quality_pct']): 0;
         $notes          = trim($body['notes'] ?? '');
+        $period_label   = substr(strip_tags(trim($body['period_label'] ?? '')), 0, 50);
+        $bonus_level_raw = $body['bonus_level'] ?? 'none';
+        $allowed_levels  = ['none', 'bronze', 'silver', 'gold', 'platinum'];
+        $bonus_level     = in_array($bonus_level_raw, $allowed_levels, true) ? $bonus_level_raw : 'none';
 
         // Validering
         if ($op_id <= 0) {
@@ -947,14 +1039,16 @@ class BonusAdminController {
         try {
             $stmt = $this->pdo->prepare("
                 INSERT INTO bonus_payouts
-                    (op_id, period_start, period_end, amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct, notes, created_by)
+                    (op_id, period_start, period_end, period_label, bonus_level, status, amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct, notes, created_by)
                 VALUES
-                    (:op_id, :period_start, :period_end, :amount_sek, :ibc_count, :avg_ibc_per_h, :avg_quality_pct, :notes, :created_by)
+                    (:op_id, :period_start, :period_end, :period_label, :bonus_level, 'pending', :amount_sek, :ibc_count, :avg_ibc_per_h, :avg_quality_pct, :notes, :created_by)
             ");
             $stmt->execute([
                 'op_id'          => $op_id,
                 'period_start'   => $period_start,
                 'period_end'     => $period_end,
+                'period_label'   => $period_label ?: null,
+                'bonus_level'    => $bonus_level,
                 'amount_sek'     => $amount_sek,
                 'ibc_count'      => $ibc_count,
                 'avg_ibc_per_h'  => $avg_ibc_per_h,
