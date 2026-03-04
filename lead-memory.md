@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-04*
+*Senast uppdaterad: 2026-03-04 (session kväll #2)*
 
 ---
 
@@ -304,16 +304,8 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-04 kväll)
-- **Bonus-dashboard IBC/h veckotrendgraf** (a73cdefab): KLAR — d319b6b
-- **Operator-compare radar-diagram** (adcaa935): KLAR — 13a24c8
-- **Admin operatörslista förbättring** (afd3a1bb): KLAR — f8ececf
-- **Bug Hunt #8** (a0e7697): PÅGÅR
-- **Dagdetalj drill-down** (ac06df25): PÅGÅR
-- **Email-notis skiftöverlämning** (ad06aef): PÅGÅR
-- **Min-bonus historik-export CSV/PDF** (a1c45eeb): PÅGÅR
-- **Rebotling statistik date range picker** (aa3b192): PÅGÅR
-- **Notifikationscentral navbar** (a4d2d65): PÅGÅR
+## AKTIVA AGENTER (session 2026-03-04 kväll #2)
+*(Inga aktiva — startar nya nedan)*
 
 ---
 
@@ -459,62 +451,85 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ## NÄSTA BATCH (2026-03-04 eftermiddag / kväll)
 
-### 🔴 Pågående
-- [ ] **Certifikatsvarnings-badge** (a7370a70): PÅGÅR — badge på Certifiering-länk i Admin-menyn
-- [ ] **Bonus-dashboard IBC/h-trendgraf** (a73cdefab): PÅGÅR — daglig trend per operatör
-- [ ] **Produktionskalender Excel-export** (afbc22a8): PÅGÅR
+### ✅ Levererat (2026-03-04 eftermiddag/kväll)
+- [x] **Bonus-dashboard IBC/h-trendgraf**: KLAR `8c1fad6` — veckans hjälte, diff-indikatorer, CSV-export
+- [x] **Operator-compare radar-diagram**: KLAR `10922ce` — periodval, CSV-export, diff-badges
+- [x] **Admin Operatörslista förbättring**: KLAR `5f0c9c1` — audit-log+stoppage-log KPI, action-ikoner
+- [x] **Rebotling-statistik custom date range**: Levererat
+- [x] **Min-bonus historik-export**: Levererat (CSV/PDF)
 
-### 🟡 Planerat
-- [ ] **Operator-compare: radar-diagram** — Multi-dimensionell jämförelse (IBC/h, Kvalitet%, OEE, aktiva dagar, snitt cykeltid) som radar chart. Touches operator-compare.ts + OperatorCompareController.
-- [ ] **Produktionsanalys: Dagdetalj-vy** — Klick på dag i produktionskalendern → popup/drill-down med timvisning för den dagen (per-timme IBC/h, stopporsaker, operatörer). Ny endpoint `action=rebotling&run=day-detail&date=YYYY-MM-DD`.
-- [ ] **Skiftöverlämning: Email-notis** — När en brådskande not skapas → POST till en PHP-endpoint som triggar PHP mail() till konfigurerad admin-adress. Konfigureras i rebotling_settings.
-- [ ] **Nyhetsflöde: Senaste händelser** — Startsidans "Senaste händelser" sektion (redan delvis implementerad) förbättras med: produktionsrekord denna vecka, certifieringsuppdateringar, bonus-trösklar som passerats. Auto-uppdatering var 5 min.
-- [ ] **Admin: Operatörslista förbättring** — `/admin/operators` — lägg till: sorterbar kolumn för senaste aktivitet, export som CSV/Excel, bulk-inaktivera, länk till operatörsprofil (/admin/operator/:id).
-- [ ] **Rebotling-statistik: Custom date range** — Lägg till en "Anpassad period"-option i datum-väljarna som öppnar en datepicker-range istället för fasta perioder (7/14/30/90 dagar).
-- [ ] **Bug hunt #8** — Kör när 3+ nya features har tillkommit sedan bug hunt #7. Granska: operator-detail.ts, executive-dashboard.ts, bonus-dashboard.ts, production-calendar.ts, maintenance-log.ts, news-admin.ts.
-- [ ] **Min-bonus: Historik-export** — Knapp för att ladda ned sin personliga bonus-historik som PDF eller CSV.
+### 🟡 Fortfarande öppna
+- [ ] **Skiftöverlämning: Email-notis** — PHP mail() vid brådskande not → admin-adress
+- [ ] **Nyhetsflöde: Senaste händelser förbättring** — utöka med produktionsrekord, certifieringsuppdateringar, bonus-trösklar
 
 ---
 
 ## NÄSTA BATCH (2026-03-04 natt — kodbasanalys-fynd)
 
 ### 🔴 Hög prioritet (från automatisk kodbasanalys)
-- [ ] **Bug Hunt #10 — RebotlingController aggregering**: `MAX(ibc_ok)` returnerar NULL (ej 0) för skift utan cykeldata. Lägg till `COALESCE(MAX(ibc_ok), 0)` i perShiftSubquery. Fixa skiftraknare=0/negativt fall.
-- [ ] **Bug Hunt #10 — BonusController parametrar**: `period` saknar whitelist-validering (`week|month|all`). `getOperatorHistory()` saknar LIMIT. Lägg till validering + `LIMIT 500`.
+- [x] **Bug Hunt #10 — RebotlingController aggregering**: KLAR `dcf9a4e` — COALESCE(MAX(...), 0) tillagt
+- [x] **Bug Hunt #10 — BonusController parametrar**: KLAR `7c1d898` — period whitelist-validering tillagd
 - [ ] **Bug Hunt #10 — BonusAdmin threshold-validering**: Kontrollera att `brons < silver < guld < platina` vid sparande. Avvisa negativa värden och extrema belopp (> 100000 SEK).
-- [ ] **Bug Hunt #10 — bonus-dashboard.ts**: `getDailySummary()`, `getRanking()`, `loadPrevPeriodRanking()` saknar `timeout(8000)` + `catchError()` (från Bug Hunt #8, ej fixat).
-- [ ] **Skiftrapport empty-state**: Visa "Ingen skiftrapport registrerad för vald period" när data är tom. Export-knappar disableras när data saknas.
+- [x] **Bug Hunt #10 — bonus-dashboard.ts**: KLAR — timeout(8000)+catchError() finns nu på alla tre anrop
+- [x] **Skiftrapport empty-state**: KLAR — "Ingen skiftrapport registrerad för vald period" + disabled export-knappar
 
 ### 🟡 Medium prioritet
-- [ ] **Operatörsprestanda-trend**: Graf per operatör — förbättring/försämring vecka för vecka
+- [x] **Operatörsprestanda-trend**: KLAR `1ce8257` — IBC/h-trendgraf 8/16/26 veckor + lagsnitt
 - [ ] **Historik/Audit Log pagination**: Backend LIMIT+OFFSET + frontend "Ladda fler"-knapp — annars kan 10 000+ rader orsaka timeout
-- [ ] **My Bonus — tom-state för ranking**: Visa "Du är inte med i rankingen denna period" istället för att dölja sektionen
-- [ ] **Chart error-boundary**: try-catch runt chart?.destroy() i alla 20+ Chart.js-komponenter
-- [ ] **Cykeltid per operatör**: Breakdown av cykeltids-histogrammet per operatör — vilken operatör har bäst median cykeltid?
+- [x] **My Bonus — tom-state för ranking**: KLAR `334af16`
+- [ ] **Chart error-boundary**: try-catch runt chart?.destroy() — 59% av 59 Chart.js-instanser SAKNAR try-catch (rebotling-statistik 11, my-bonus 12, stoppage-log 10)
+- [x] **Cykeltid per operatör**: KLAR `d23d330` — horisontellt bar-diagram + rangtabell
 
 ### 🟢 Lägre prioritet
 - [ ] **Prediktiv underhållsindikator v2**: Korrelationsanalys maskin-stopp vs. underhållshändelser
-- [ ] **Nyhetsflöde förbättring**: Auto-generera nyhet vid ny rekordag (PHP-hook i RebotlingController när ibc_total > rekord)
-- [ ] **Exportknappar disable-state**: Disabla CSV/Excel/PDF-knappar visuellt när data är tom (sätt `[disabled]="!hasData"`)
+- [x] **Nyhetsflöde förbättring**: KLAR `17d7cfa` — rekordnyhet-trigger i NewsController
+- [x] **Exportknappar disable-state**: KLAR `dcf9a4e`
 
 ---
 
 ## NÄSTA BATCH (MES-research 2026-03-04 natt)
 
 ### 🔴 Hög prioritet (online research + affärsvärde)
-- [ ] **Kassationsorsaksanalys** — Registrera varför IBC kasseras (skada/kontaminering/läckage), Pareto-chart. Ny tabell `kassationsorsak`, formulär i rebotling-admin, Pareto likt stoppage-logg
-- [ ] **Winning-the-Shift scoreboard** — Nytt displayläge i Andon: stor siffra "IBC kvar" + färgkodad bar, visar behövd takt vs faktisk. Inga nya endpoints — bara andon.ts/html
-- [ ] **Flexibla dagsmål per datum** — Admin kan sätta justerat mål för specifikt datum (reducerad bemanning, planerat underhåll). Ny tabell `produktionsmal_undantag(datum, justerat_mal, orsak)` + admin-UI + integration i KPI-beräkningar
-- [ ] **Prediktivt underhåll körningsbaserat** — Serviceintervall baserat på IBC-volym. `last_service_ibc` + `service_interval_ibc` på utrustning, räkna ned i rebotling_ibc kumulativt. Admin-UI + varning när < 10% kvar
+- [x] **Kassationsorsaksanalys**: KLAR `f1d0408` — Pareto-chart + registrering
+- [x] **Winning-the-Shift scoreboard**: KLAR `9e9812a` — Andon med IBC kvar + S-kurva
+- [x] **Flexibla dagsmål per datum**: KLAR `fc66bcb` — produktionsmal_undantag + admin-UI
+- [ ] **Prediktivt underhåll körningsbaserat** — Serviceintervall baserat på IBC-volym. Admin-UI + varning när < 10% kvar
 
 ### 🟡 Medium prioritet
-- [ ] **MTTR/MTBF per utrustning** — SQL-aggregering på befintlig maintenance_log: medelfelsfri tid + medeltid att reparera. Ny flik i maintenance-log.ts
-- [ ] **OEE A/P/Q-komponentuppdelning v2** — Bryt ned OEE i Tillgänglighet/Prestanda/Kvalitet. Om ej gjort: ny sektion i rebotling-statistik med 3 separata procenttal + trend per komponent
-- [ ] **Certifikat-utgångvarning i exec-dashboard** — Om operator-certifikat upphör < 30 dagar: visa varningsbanner i executive-dashboard. Enkelt SQL-query mot certifications-tabell
-- [ ] **Kumulativ dagskurva (S-kurva)** — Linjediagram: ackumulerade IBC per timme 06-22 vs. plan-pace. Inga nya backend-endpoints — beräknas från befintlig hourly-rhythm data
-- [ ] **Bemanningsvarning i shift-plan** — Admin konfigurerar min_operators. ShiftPlanController varnar om schemalagda < minimum. Varning-banner i shift-plan.ts
+- [x] **MTTR/MTBF per utrustning**: KLAR `6075bfa` — maintenance-log flik
+- [x] **OEE A/P/Q-komponentuppdelning v2**: KLAR `c6ba987` — daglig trendgraf i statistik
+- [x] **Certifikat-utgångvarning i exec-dashboard**: KLAR `6075bfa`
+- [x] **Kumulativ dagskurva (S-kurva)**: KLAR `9e9812a` — i Andon-tavlan
+- [x] **Bemanningsvarning i shift-plan**: KLAR `f1d0408`
 
 ### 🟢 Lägre prioritet
-- [ ] **Operatörsfeedback-loop** — Operatör kan lämna kort kommentar i My-bonus efter skiftet, sparas i shift_handover med audience='operator'
-- [ ] **QR-kod till stopplogg** — Generera QR-kod per maskin som pekar till förifyllt stopplogg-formulär
+- [x] **Operatörsfeedback-loop**: KLAR `2981f70` — stämnings-emoji + kommentar i My-bonus
+- [x] **QR-kod till stopplogg**: KLAR `b6b0c3f` — QR per maskin
 - [ ] **Push-notiser webbläsare** — Web Push API vid stopp > 10 min eller urgent handover-not
+
+---
+
+## AKTIV BATCH (2026-03-04 kväll #2 — DENNA SESSION)
+
+### 🔴 Hög prioritet — Startas denna session
+- [ ] **Bug Hunt #12 — Chart error-boundary + threshold-validering**: 59% av Chart.js-instanser saknar try-catch runt destroy(). BonusAdmin saknar brons<silver<guld<platina-validering. Comprehensive scan av alla nya features.
+- [ ] **Historik/Audit Log pagination**: Backend LIMIT+OFFSET + frontend "Ladda fler"-knapp — 10 000+ rader kan orsaka timeout. Berör audit-log.ts/html + AuditController.php + historik.ts.
+- [ ] **Skiftrapport per operatör**: Filtrerbara skiftrapporter per specifik operatör — dropdown-filter i skiftrapport-sidan. Ny endpoint eller query-parameter i befintligt report-endpoint.
+
+### 🟡 Medium — planeras efter dessa
+- [ ] **Prediktivt underhåll körningsbaserat** — IBC-volymbaserat serviceintervall
+- [ ] **Skiftöverlämning: Email-notis** — PHP mail() vid brådskande not
+- [ ] **BonusAdmin threshold-validering** — brons < silver < guld < platina
+- [ ] **Prediktiv underhållsindikator v2** — Korrelationsanalys maskin-stopp vs. underhåll
+
+### 🔵 IDÉBANK
+- Maskinlärning-prediktion: förutsäg produktion
+- Flödesanalys: visualisera IBC-flödet genom anläggningen
+- Kundportal: extern vy
+- Push-notiser webbläsare
+- Energieffektivitet-vy
+
+---
+
+## BESLUTSDAGBOK (forts.)
+**2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
