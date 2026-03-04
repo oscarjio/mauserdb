@@ -1,3 +1,10 @@
+## 2026-03-04 — Worker: Andon — Winning-the-Shift scoreboard + kumulativ dagskurva S-kurva (9e9812a)
+- Nytt "Skift-progress"-scoreboard ovanför KPI-korten: stor färgkodad "IBC kvar att producera"-siffra, behövd takt i IBC/h, animerad progress-bar mot dagsmål, mini-statistikrad med faktisk takt/målsatt takt/prognos vid skiftslut/hittills idag.
+- Statuslogik: winning (grön) / on-track (orange) / behind (röd) / done (grön glow) baserat på behövd vs faktisk IBC/h.
+- Kumulativ S-kurva med Chart.js: planerat pace (blå streckad linje) vs faktisk kumulativ produktion (grön solid linje) per timme 06:00–22:00.
+- Nytt backend-endpoint AndonController::getHourlyToday() — api.php?action=andon&run=hourly-today — returnerar kumulativ IBC per timme för dagens datum.
+- Byggd utan fel (enbart pre-existerande warnings), pushad till main.
+
 ## 2026-03-04 — Worker: MTTR/MTBF KPI-analys i maintenance-log + certifikat-utgångvarning i exec-dashboard (6075bfa)
 - MaintenanceController.php: ny endpoint run=mttr-mtbf beräknar MTTR (snitt stilleståndstid/incident i timmar) och MTBF (snitt dagar mellan fel) per utrustning med datumfilter 30/90/180/365 dagar.
 - maintenance-log.ts: ny "KPI-analys"-flik (3:e fliken) med tabell per utrustning — Utrustning | Antal fel | MTBF (dagar) | MTTR (timmar) | Total stillestånd. Färgkodning: grön/gul/röd baserat på tröskelvärden. Datumfilter-knappar. Förklaring av KPI-begrepp i tabellens footer.
