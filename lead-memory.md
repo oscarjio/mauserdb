@@ -536,14 +536,14 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ### 🔴 Hög prioritet (UX-kritiskt)
 - [x] **Empty-states batch 1**: KLAR `164e0d0` — 6 sidor: operator-attendance, weekly-report, rebotling-prognos, benchmarking, live-ranking, certifications
-- [ ] **Empty-states batch 2**: Lägg till "Inga data"-meddelanden på 6 sidor: my-bonus (weeklyData+feedback), operator-detail, saglinje-admin, tvattlinje-admin, andon, operator-trend
+- [x] **Empty-states batch 2**: KLAR — 6 sidor: my-bonus (weekly+feedback), operator-detail, saglinje-admin, tvattlinje-admin, andon, operator-trend + 4 TS-fix i stoppage-log
 - [x] **Mobilanpassning batch 1**: KLAR `c472c8e` — operator-attendance (768/480px), bonus-dashboard (toggle+tabell+kort), operators (2-kol tablet, 1-kol mobil)
-- [ ] **Mobilanpassning batch 2**: audit-log (filter-bar flex-wrap), stoppage-log (tabell läsbarhet), statistik-sidor (chart-containers storlek)
+- [x] **Mobilanpassning batch 2**: KLAR `a6637ad` — audit-log (flex-wrap+fonts), stoppage-log (tabell+nowrap bort), statistik (chart 250px)
 
 ### 🟡 Medium prioritet
-- [ ] **Loading-states batch**: Lägg till spinners på 8 sidor: operator-attendance, production-calendar, rebotling-prognos, benchmarking, certifications, maintenance-log, shift-handover polling, vpn-admin
-- [ ] **Design-konsistens fix**: Standardisera CSS i stoppage-log (#1a202c/#2d3748/#e2e8f0 istället för gradient), bonus-dashboard (bort med Bootstrap-utilityklasser), audit-log (konsistent font-size)
-- [ ] **Chart.js tooltip-förbättring**: Förbättra tooltips+legends i audit-log activityChart, bonus-dashboard shiftCompare, production-calendar dagdetalj, historik year-chart, stoppage-log pareto/hourly
+- [x] **Loading-states batch**: KLAR — 3 sidor uppgraderade (prognos, certifieringar, attendance), 2 redan hade spinners
+- [x] **Design-konsistens fix**: KLAR `a6637ad` — stoppage-log+audit-log flat colors, bonus-dashboard Bootstrap-overrides
+- [x] **Chart.js tooltip-förbättring**: KLAR — 6 grafer: audit-log (sv dagnamn), production-calendar (datum+mål), stoppage-log (4 charts: h:mm, andel%, peak-varning)
 
 ### 🟢 Lägre prioritet
 - [ ] **Halvfärdiga features-granskning**: Granska och slutför eller ta bort: rebotling-prognos, operator-detail, vpn-admin
