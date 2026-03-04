@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-04 (session #4)*
+*Senast uppdaterad: 2026-03-04 (session #5)*
 
 ---
 
@@ -304,8 +304,10 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-04 kväll #2)
-*(Inga aktiva — startar nya nedan)*
+## AKTIVA AGENTER (session 2026-03-04 session #5)
+1. **Worker: Prediktivt underhåll körningsbaserat** — serviceintervall, admin-UI, varning
+2. **Worker: IBC-kvalitets deep-dive** — avvisningsorsaker, Pareto-diagram
+3. **Worker: Bug Hunt #13** — granska session #4 features
 
 ---
 
@@ -560,6 +562,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ## BESLUTSDAGBOK (forts.)
 **2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
 **2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). 5 workers körda: Bug Hunt #12 (18 filer), Skiftrapport per operatör (redan klart), VD Månadsrapport (diff+operator-of-month), Skiftöverlämning email (redan klart), Skiftsammanfattning PDF-export (be0eea4). Alla hög+medium items levererade. Startar nästa batch: Prediktiv underhåll v2, Push-notiser, nya idébank-items.
+**2026-03-04 session #5**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -576,12 +579,22 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Min bonus: Jämförelse med kollegor**: KLAR `0795512` — percentil-badge "Topp X%", trendpil vs förra veckan, motiverande meddelanden (#1="Du leder!", #2-3="Nära toppen!")
 - [x] **Automatisk skiftrapport-export**: KLAR `d0b8279` — `auto-shift-report` POST-endpoint, HTML-email med KPI-kort, admin-config sektion, manuell trigger i skiftrapport-vy
 
-### 🔴 Hög prioritet — Workers batch 2 (startade)
-- [ ] **Skiftplaneringsvy förbättring**: Veckoöversikt, bemanningsgrad, kopiera schema, veckonavigering
-- [ ] **Benchmarking förbättring**: Personbästa per operatör, Hall of Fame topp 5, team-rekord vs individ
+### ✅ Levererat session #4 batch 2
+- [x] **Skiftplaneringsvy förbättring**: KLAR `f0a57ba` — veckoöversikt, bemanningsgrad (grön/gul/röd), kopiera schema (POST copy-week), veckonavigering
+- [x] **Benchmarking förbättring**: KLAR `7996e1f` — personbästa per operatör (dag/vecka/månad), Hall of Fame topp 5 (guld/silver/brons), team-rekord jämförelse
+
+---
+
+## AKTIV BATCH (2026-03-04 session #5)
+
+### 🔴 Hög prioritet — Workers startas NU
+- [ ] **Prediktivt underhåll körningsbaserat**: Serviceintervall baserat på IBC-volym, admin-UI med konfigurerbara intervall, varning i exec-dashboard/admin när < 10% kvar till service
+- [ ] **IBC-kvalitets deep-dive**: Bryt ner ej-godkända IBC per avvisningsorsak. Pareto-diagram + registreringsformulär om data saknas. Ny flik i rebotling-statistik.
+- [ ] **Bug Hunt #13**: Granska alla nya features från session #4 (benchmarking, skiftplan, auto-rapport, kollegjämförelse). Fokus: auth-checks, subscriptions, edge cases.
 
 ### 🟡 Medium — nästa batch
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
 - [ ] **Live-ranking admin-konfig**: Konfigurera vilka KPI:er som visas på TV-skärmen
-- [ ] **Operatörsnärvaro-tracker**: Spåra vilka operatörer som faktiskt arbetat, kalendervy
-- [ ] **IBC-kvalitets deep-dive**: Bryt ner ej-godkända per avvisningsorsak
+- [ ] **Energieffektivitet-vy**: IBC per kWh, energikostnad per IBC (om data finns)
+- [ ] **Skiftbyte-PDF automatgenerering**: Vid skiftslut generera PDF automatiskt
+- [ ] **Bonus-dashboard What-if förbättring**: Mer interaktiv simulator med slider-kontroller

@@ -1,3 +1,14 @@
+## 2026-03-04 session #5 — Lead: 3 workers startade
+
+**Analys**: Session #4 batch 2 komplett (Skiftplaneringsvy `f0a57ba` + Benchmarking `7996e1f`). Backlogen tunnades — fyllde på med nya items.
+
+**Startade 3 workers:**
+1. **Prediktivt underhåll körningsbaserat** — serviceintervall baserat på IBC-volym, admin-UI, exec-dashboard varning
+2. **IBC-kvalitets deep-dive** — kvalitetstrend-graf, kassationsanalys, KPI-kort i rebotling-statistik
+3. **Bug Hunt #13** — granskning av session #4 features (benchmarking, skiftplan, auto-rapport, kollegjämförelse)
+
+---
+
 **Worker: Benchmarking förbättring** — Tre nya flikar (Översikt/Personbästa/Hall of Fame). Personbästa-flik: per operatör bästa dag/vecka/månad IBC + teamrekord-jämförelse sida vid sida. Hall of Fame: topp 5 bästa enskilda produktionsdagar med guld/silver/brons-ikoner, operatörsnamn, kvalitet. Backend: utökad `personal-bests` endpoint med dag/vecka/månad per operatör + teamrekord dag/vecka/månad; ny `hall-of-fame` endpoint (topp 5 dagar). Bygge OK.
 
 **Worker: Skiftplaneringsvy förbättring** — Veckoöversikt-panel överst i veckoplan-fliken: visar antal operatörer per skift per dag med bemanningsgrad (grön/gul/röd). Kopiera förra veckans schema-knapp (POST `copy-week` endpoint, admin-only). ISO-veckonummer + pilnavigering (redan befintligt, behålls). Backend: ny `copyWeek()`-metod i ShiftPlanController.php med prepared statements. Bygge OK.
