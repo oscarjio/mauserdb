@@ -88,6 +88,29 @@ class BonusAdminController {
                 }
                 $this->setAmounts();
                 break;
+            case 'list-payouts':
+                $this->listPayouts();
+                break;
+            case 'record-payout':
+                if ($method !== 'POST') {
+                    $this->sendError('POST required');
+                    return;
+                }
+                $this->recordPayout();
+                break;
+            case 'delete-payout':
+                if ($method !== 'POST') {
+                    $this->sendError('POST required');
+                    return;
+                }
+                $this->deletePayout();
+                break;
+            case 'payout-summary':
+                $this->getPayoutSummary();
+                break;
+            case 'list-operators':
+                $this->listOperators();
+                break;
             default:
                 $this->sendError('Invalid action: ' . $run);
         }
@@ -784,6 +807,255 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdmin setAmounts error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+
+    // ============ UTBETALNINGAR ============
+
+    /**
+     * GET ?action=bonusadmin&run=list-operators
+     * Lista aktiva operatörer (id, name, initialer)
+     */
+    private function listOperators(): void {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, name, number
+                FROM operators
+                WHERE active = 1
+                ORDER BY name ASC
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $operators = [];
+            foreach ($rows as $r) {
+                $words = preg_split('/\s+/', trim($r['name']));
+                $initials = '';
+                foreach ($words as $w) {
+                    if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+                }
+                $operators[] = [
+                    'id'       => (int)$r['id'],
+                    'name'     => $r['name'],
+                    'number'   => (int)$r['number'],
+                    'initialer'=> $initials,
+                ];
+            }
+            $this->sendSuccess(['operators' => $operators]);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin listOperators: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET ?action=bonusadmin&run=list-payouts[&op_id=X][&year=YYYY]
+     */
+    private function listPayouts(): void {
+        try {
+            $year   = isset($_GET['year'])  ? intval($_GET['year'])  : intval(date('Y'));
+            $op_id  = isset($_GET['op_id']) ? intval($_GET['op_id']) : 0;
+
+            $where  = "WHERE YEAR(bp.period_start) = :year";
+            $params = ['year' => $year];
+            if ($op_id > 0) {
+                $where .= " AND bp.op_id = :op_id";
+                $params['op_id'] = $op_id;
+            }
+
+            $sql = "
+                SELECT
+                    bp.id,
+                    bp.op_id,
+                    o.name     AS namn,
+                    o.number   AS op_number,
+                    bp.period_start,
+                    bp.period_end,
+                    bp.amount_sek,
+                    bp.ibc_count,
+                    bp.avg_ibc_per_h,
+                    bp.avg_quality_pct,
+                    bp.notes,
+                    bp.created_at
+                FROM bonus_payouts bp
+                LEFT JOIN operators o ON o.id = bp.op_id
+                $where
+                ORDER BY bp.period_start DESC, bp.created_at DESC
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna initialer
+            foreach ($rows as &$r) {
+                $words = preg_split('/\s+/', trim($r['namn'] ?? ''));
+                $initials = '';
+                foreach ($words as $w) {
+                    if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+                }
+                $r['initialer']      = $initials;
+                $r['op_id']          = (int)$r['op_id'];
+                $r['ibc_count']      = (int)$r['ibc_count'];
+                $r['amount_sek']     = (float)$r['amount_sek'];
+                $r['avg_ibc_per_h']  = (float)$r['avg_ibc_per_h'];
+                $r['avg_quality_pct']= (float)$r['avg_quality_pct'];
+            }
+
+            $this->sendSuccess(['payouts' => $rows, 'year' => $year]);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin listPayouts: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * POST ?action=bonusadmin&run=record-payout
+     * Body: { op_id, period_start, period_end, amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct, notes }
+     */
+    private function recordPayout(): void {
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+
+        $op_id          = isset($body['op_id'])          ? intval($body['op_id'])          : 0;
+        $period_start   = $body['period_start']   ?? '';
+        $period_end     = $body['period_end']     ?? '';
+        $amount_sek     = isset($body['amount_sek'])     ? floatval($body['amount_sek'])     : 0;
+        $ibc_count      = isset($body['ibc_count'])      ? intval($body['ibc_count'])        : 0;
+        $avg_ibc_per_h  = isset($body['avg_ibc_per_h'])  ? floatval($body['avg_ibc_per_h'])  : 0;
+        $avg_quality_pct= isset($body['avg_quality_pct'])? floatval($body['avg_quality_pct']): 0;
+        $notes          = trim($body['notes'] ?? '');
+
+        // Validering
+        if ($op_id <= 0) {
+            $this->sendError('Ogiltigt operatör-ID');
+            return;
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $period_start) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $period_end)) {
+            $this->sendError('Ogiltigt datumformat (YYYY-MM-DD krävs)');
+            return;
+        }
+        if ($period_start > $period_end) {
+            $this->sendError('period_start får inte vara efter period_end');
+            return;
+        }
+        if ($amount_sek <= 0) {
+            $this->sendError('Belopp måste vara större än 0');
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO bonus_payouts
+                    (op_id, period_start, period_end, amount_sek, ibc_count, avg_ibc_per_h, avg_quality_pct, notes, created_by)
+                VALUES
+                    (:op_id, :period_start, :period_end, :amount_sek, :ibc_count, :avg_ibc_per_h, :avg_quality_pct, :notes, :created_by)
+            ");
+            $stmt->execute([
+                'op_id'          => $op_id,
+                'period_start'   => $period_start,
+                'period_end'     => $period_end,
+                'amount_sek'     => $amount_sek,
+                'ibc_count'      => $ibc_count,
+                'avg_ibc_per_h'  => $avg_ibc_per_h,
+                'avg_quality_pct'=> $avg_quality_pct,
+                'notes'          => $notes ?: null,
+                'created_by'     => $_SESSION['user_id'] ?? null,
+            ]);
+            $newId = $this->pdo->lastInsertId();
+
+            // Försök logga audit
+            try {
+                $this->logAudit('create', 'bonus_payout', (int)$newId, null, [
+                    'op_id' => $op_id, 'amount_sek' => $amount_sek, 'period' => "$period_start–$period_end"
+                ]);
+            } catch (Exception $ae) {
+                // audit-logg är ej kritisk
+            }
+
+            $this->sendSuccess(['id' => (int)$newId, 'message' => 'Utbetalning registrerad']);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin recordPayout: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * POST ?action=bonusadmin&run=delete-payout
+     * Body: { id }
+     */
+    private function deletePayout(): void {
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
+        $id   = isset($body['id']) ? intval($body['id']) : 0;
+
+        if ($id <= 0) {
+            $this->sendError('Ogiltigt ID');
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM bonus_payouts WHERE id = ?");
+            $stmt->execute([$id]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->sendError('Posten hittades inte', 404);
+                return;
+            }
+
+            // Försök logga audit
+            try {
+                $this->logAudit('delete', 'bonus_payout', $id, ['id' => $id], null);
+            } catch (Exception $ae) {}
+
+            $this->sendSuccess(['message' => 'Utbetalning borttagen']);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin deletePayout: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET ?action=bonusadmin&run=payout-summary[&year=YYYY]
+     * Statistik per operatör för given år
+     */
+    private function getPayoutSummary(): void {
+        try {
+            $year = isset($_GET['year']) ? intval($_GET['year']) : intval(date('Y'));
+
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    bp.op_id,
+                    o.name                          AS namn,
+                    o.number                        AS op_number,
+                    SUM(bp.amount_sek)              AS total_utbetalat,
+                    COUNT(*)                        AS antal_utbetalningar,
+                    AVG(bp.amount_sek)              AS snitt_per_utbetalning,
+                    MAX(bp.period_end)              AS senaste_utbetalning
+                FROM bonus_payouts bp
+                LEFT JOIN operators o ON o.id = bp.op_id
+                WHERE YEAR(bp.period_start) = :year
+                GROUP BY bp.op_id, o.name, o.number
+                ORDER BY total_utbetalat DESC
+            ");
+            $stmt->execute(['year' => $year]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as &$r) {
+                $words = preg_split('/\s+/', trim($r['namn'] ?? ''));
+                $initials = '';
+                foreach ($words as $w) {
+                    if ($w !== '') $initials .= strtoupper(mb_substr($w, 0, 1));
+                }
+                $r['initialer']            = $initials;
+                $r['op_id']                = (int)$r['op_id'];
+                $r['total_utbetalat']      = (float)$r['total_utbetalat'];
+                $r['antal_utbetalningar']  = (int)$r['antal_utbetalningar'];
+                $r['snitt_per_utbetalning']= (float)$r['snitt_per_utbetalning'];
+            }
+
+            $this->sendSuccess(['summary' => $rows, 'year' => $year]);
+        } catch (PDOException $e) {
+            error_log('BonusAdmin getPayoutSummary: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }

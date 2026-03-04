@@ -50,6 +50,16 @@
         <i class="fas fa-flask me-1"></i>What-if Simulator
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'amounts'" (click)="setTab('amounts')">
+        <i class="fas fa-coins me-1"></i>Bonusnivåer
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'payouts'" (click)="setTab('payouts')">
+        <i class="fas fa-money-bill-wave me-1"></i>Utbetalningar
+      </a>
+    </li>
   </ul>
 
   <!-- Loading -->
@@ -760,6 +770,225 @@
       </div>
     </div>
   </div>
+
+
+  <!-- ===== TAB: Utbetalningar ===== -->
+  <div *ngIf="activeTab === 'payouts'">
+
+    <!-- Feedback messages -->
+    <div class="alert alert-success py-2 px-3 mb-3" *ngIf="payoutMessage">
+      <i class="fas fa-check-circle me-2"></i>{{ payoutMessage }}
+      <button type="button" class="btn-close btn-close-white float-end" style="font-size:.75rem;" (click)="payoutMessage=''"></button>
+    </div>
+    <div class="alert alert-danger py-2 px-3 mb-3" *ngIf="payoutError">
+      <i class="fas fa-exclamation-triangle me-2"></i>{{ payoutError }}
+      <button type="button" class="btn-close btn-close-white float-end" style="font-size:.75rem;" (click)="payoutError=''"></button>
+    </div>
+
+    <!-- Årsöversikt per operatör -->
+    <div class="card mb-4" style="background:#2d3748; border:none;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="mb-0"><i class="fas fa-chart-pie me-2 text-warning"></i>Årsöversikt {{ payoutSummaryYear }}</h5>
+          <div class="d-flex gap-2 align-items-center">
+            <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:100px;"
+                    [(ngModel)]="payoutSummaryYear" (change)="loadPayoutSummary()">
+              <option *ngFor="let y of getPayoutsYears()" [value]="y">{{ y }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div *ngIf="payoutSummary.length === 0" class="text-muted text-center py-3">
+          <i class="fas fa-info-circle me-1"></i>Inga utbetalningar registrerade för {{ payoutSummaryYear }}
+        </div>
+
+        <div class="table-responsive" *ngIf="payoutSummary.length > 0">
+          <table class="table table-dark table-hover table-sm mb-0">
+            <thead>
+              <tr style="color:#a0aec0; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
+                <th style="width:40px;">#</th>
+                <th>Operatör</th>
+                <th class="text-end">Totalt utbetalt</th>
+                <th class="text-end">Antal</th>
+                <th class="text-end">Snitt / utbetalningstillfälle</th>
+                <th>Senaste period</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of payoutSummary; let i = index">
+                <td class="text-muted">{{ i + 1 }}</td>
+                <td>
+                  <span class="badge me-2"
+                        style="background:#4a5568; color:#e2e8f0; font-size:.75rem; min-width:2rem;">{{ s.initialer }}</span>
+                  {{ s.namn }}
+                </td>
+                <td class="text-end fw-bold text-success">{{ formatSek(s.total_utbetalat) }}</td>
+                <td class="text-end text-muted">{{ s.antal_utbetalningar }}</td>
+                <td class="text-end text-muted">{{ formatSek(s.snitt_per_utbetalning) }}</td>
+                <td class="text-muted small">{{ s.senaste_utbetalning }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historik + filter -->
+    <div class="card" style="background:#2d3748; border:none;">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <h5 class="mb-0"><i class="fas fa-history me-2 text-info"></i>Utbetalningshistorik</h5>
+          <button class="btn btn-success btn-sm" (click)="showPayoutForm = !showPayoutForm">
+            <i class="fas" [ngClass]="showPayoutForm ? 'fa-times' : 'fa-plus'"></i>
+            {{ showPayoutForm ? 'Avbryt' : 'Registrera utbetalning' }}
+          </button>
+        </div>
+
+        <!-- Inline formulär -->
+        <div *ngIf="showPayoutForm" class="card mb-4" style="background:#1a202c; border:1px solid #4a5568;">
+          <div class="card-body">
+            <h6 class="mb-3" style="color:#e2e8f0;"><i class="fas fa-plus-circle me-2 text-success"></i>Ny utbetalning</h6>
+            <div class="row g-3">
+              <div class="col-12 col-md-6">
+                <label class="form-label small" style="color:#a0aec0;">Operatör *</label>
+                <select class="form-select" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                        [(ngModel)]="payoutForm.op_id">
+                  <option [ngValue]="null">— Välj operatör —</option>
+                  <option *ngFor="let op of availableOperators" [ngValue]="op.id">{{ op.name }}</option>
+                </select>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small" style="color:#a0aec0;">Period start *</label>
+                <input type="date" class="form-control" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                       [(ngModel)]="payoutForm.period_start">
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small" style="color:#a0aec0;">Period slut *</label>
+                <input type="date" class="form-control" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                       [(ngModel)]="payoutForm.period_end">
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small" style="color:#a0aec0;">Belopp (kr) *</label>
+                <div class="input-group">
+                  <input type="number" class="form-control" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                         [(ngModel)]="payoutForm.amount_sek" min="1" step="100" placeholder="0">
+                  <span class="input-group-text" style="background:#2d3748;color:#a0aec0;border-color:#4a5568;">kr</span>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small" style="color:#a0aec0;">IBC-antal</label>
+                <input type="number" class="form-control" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                       [(ngModel)]="payoutForm.ibc_count" min="0" step="1" placeholder="0">
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small" style="color:#a0aec0;">Snitt IBC/h</label>
+                <input type="number" class="form-control" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                       [(ngModel)]="payoutForm.avg_ibc_per_h" min="0" step="0.1" placeholder="0.0">
+              </div>
+              <div class="col-12 col-md-3">
+                <label class="form-label small" style="color:#a0aec0;">Snitt kvalitet %</label>
+                <input type="number" class="form-control" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                       [(ngModel)]="payoutForm.avg_quality_pct" min="0" max="100" step="0.1" placeholder="0.0">
+              </div>
+              <div class="col-12">
+                <label class="form-label small" style="color:#a0aec0;">Notering</label>
+                <textarea class="form-control" rows="2" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
+                          [(ngModel)]="payoutForm.notes" placeholder="Valfri notering..."></textarea>
+              </div>
+            </div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-success" (click)="recordPayout()" [disabled]="payoutSaving">
+                <i class="fas fa-save me-2"></i>{{ payoutSaving ? 'Sparar...' : 'Spara utbetalning' }}
+              </button>
+              <button class="btn btn-outline-secondary" (click)="showPayoutForm = false; resetPayoutForm()">
+                <i class="fas fa-times me-1"></i>Avbryt
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter -->
+        <div class="row g-2 mb-3">
+          <div class="col-auto">
+            <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:110px;"
+                    [(ngModel)]="payoutYearFilter" (change)="loadPayouts()">
+              <option *ngFor="let y of getPayoutsYears()" [value]="y">{{ y }}</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;min-width:160px;"
+                    [(ngModel)]="payoutOpFilter" (change)="loadPayouts()">
+              <option value="">— Alla operatörer —</option>
+              <option *ngFor="let op of availableOperators" [value]="op.id">{{ op.name }}</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-outline-secondary btn-sm" (click)="loadPayouts()">
+              <i class="fas fa-sync-alt me-1"></i>Uppdatera
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="payoutsLoading" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="text-muted ms-2">Laddar utbetalningar...</span>
+        </div>
+
+        <!-- Tabell -->
+        <div *ngIf="!payoutsLoading">
+          <div *ngIf="payouts.length === 0" class="text-muted text-center py-3">
+            <i class="fas fa-inbox me-1"></i>Inga utbetalningar hittades för valt filter
+          </div>
+
+          <div class="table-responsive" *ngIf="payouts.length > 0">
+            <table class="table table-dark table-hover table-sm mb-0">
+              <thead>
+                <tr style="color:#a0aec0; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
+                  <th>Operatör</th>
+                  <th>Period</th>
+                  <th class="text-end">Belopp</th>
+                  <th class="text-end">IBC</th>
+                  <th class="text-end">IBC/h</th>
+                  <th class="text-end">Kvalitet</th>
+                  <th>Notering</th>
+                  <th>Registrerat</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let p of payouts">
+                  <td>
+                    <span class="badge me-1"
+                          style="background:#4a5568;color:#e2e8f0;font-size:.7rem;min-width:1.8rem;">{{ p.initialer }}</span>
+                    {{ p.namn }}
+                  </td>
+                  <td class="text-muted small">{{ p.period_start }}<br>{{ p.period_end }}</td>
+                  <td class="text-end fw-bold text-success">{{ formatSek(p.amount_sek) }}</td>
+                  <td class="text-end text-muted">{{ p.ibc_count }}</td>
+                  <td class="text-end text-muted">{{ p.avg_ibc_per_h | number:'1.1-1' }}</td>
+                  <td class="text-end text-muted">{{ p.avg_quality_pct | number:'1.1-1' }}%</td>
+                  <td class="text-muted small" style="max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                    {{ p.notes || '—' }}
+                  </td>
+                  <td class="text-muted small">{{ p.created_at | slice:0:10 }}</td>
+                  <td>
+                    <button class="btn btn-outline-danger btn-sm py-0 px-1" (click)="deletePayout(p.id)"
+                            title="Ta bort">
+                      <i class="fas fa-trash-alt" style="font-size:.75rem;"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
 
 </div>
 

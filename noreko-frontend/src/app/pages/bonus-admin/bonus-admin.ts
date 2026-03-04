@@ -74,6 +74,30 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   amountsLastUpdated: string | null = null;
   amountsLastUpdatedBy: string | null = null;
 
+
+  // ========== Utbetalningar ==========
+  payouts: any[] = [];
+  payoutSummary: any[] = [];
+  payoutsLoading = false;
+  showPayoutForm = false;
+  payoutForm = {
+    op_id: null as number | null,
+    period_start: '',
+    period_end: '',
+    amount_sek: null as number | null,
+    ibc_count: 0,
+    avg_ibc_per_h: 0,
+    avg_quality_pct: 0,
+    notes: ''
+  };
+  payoutSaving = false;
+  payoutMessage = '';
+  payoutError = '';
+  payoutYearFilter = new Date().getFullYear();
+  payoutOpFilter = '';
+  availableOperators: any[] = [];
+  payoutSummaryYear = new Date().getFullYear();
+
   // Toast timer IDs
   private successTimerId: any = null;
   private errorTimerId: any = null;
@@ -442,6 +466,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Helpers ==========
   setTab(tab: string) {
     this.activeTab = tab;
+    if (tab === 'payouts') {
+      this.onPayoutsTabActivated();
+    }
   }
 
   getProductName(id: number): string {
@@ -459,6 +486,172 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (trend > 0) return 'fa-arrow-up text-success';
     if (trend < 0) return 'fa-arrow-down text-danger';
     return 'fa-minus text-muted';
+  }
+
+
+  // ========== Utbetalningar ==========
+  loadOperators() {
+    this.http.get<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=list-operators',
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.data?.operators) {
+          this.availableOperators = res.data.operators;
+        }
+      }
+    });
+  }
+
+  loadPayouts() {
+    this.payoutsLoading = true;
+    const params = new URLSearchParams();
+    params.set('year', String(this.payoutYearFilter));
+    const opId = parseInt(this.payoutOpFilter, 10);
+    if (opId > 0) params.set('op_id', String(opId));
+
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonusadmin&run=list-payouts&${params.toString()}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.payouts = res.data?.payouts ?? [];
+        }
+        this.payoutsLoading = false;
+      },
+      error: () => { this.payoutsLoading = false; }
+    });
+  }
+
+  loadPayoutSummary() {
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonusadmin&run=payout-summary&year=${this.payoutSummaryYear}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.payoutSummary = res.data?.summary ?? [];
+        }
+      }
+    });
+  }
+
+  recordPayout() {
+    this.payoutMessage = '';
+    this.payoutError = '';
+
+    if (!this.payoutForm.op_id || this.payoutForm.op_id <= 0) {
+      this.payoutError = 'Välj en operatör';
+      return;
+    }
+    if (!this.payoutForm.period_start || !this.payoutForm.period_end) {
+      this.payoutError = 'Ange period start och slut';
+      return;
+    }
+    if (this.payoutForm.period_start > this.payoutForm.period_end) {
+      this.payoutError = 'Periodens startdatum måste vara före eller lika med slutdatumet';
+      return;
+    }
+    if (!this.payoutForm.amount_sek || this.payoutForm.amount_sek <= 0) {
+      this.payoutError = 'Ange ett belopp större än 0 kr';
+      return;
+    }
+
+    this.payoutSaving = true;
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=record-payout',
+      this.payoutForm,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.payoutMessage = 'Utbetalning registrerad!';
+          this.showPayoutForm = false;
+          this.resetPayoutForm();
+          this.loadPayouts();
+          this.loadPayoutSummary();
+        } else {
+          this.payoutError = res?.error || 'Fel vid sparning';
+        }
+        this.payoutSaving = false;
+      },
+      error: () => {
+        this.payoutError = 'Nätverksfel vid sparning';
+        this.payoutSaving = false;
+      }
+    });
+  }
+
+  deletePayout(id: number) {
+    if (!confirm('Ta bort denna utbetalning?')) return;
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=delete-payout',
+      { id },
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.payoutMessage = 'Utbetalning borttagen';
+          this.loadPayouts();
+          this.loadPayoutSummary();
+        } else {
+          this.payoutError = res?.error || 'Fel vid borttagning';
+        }
+      },
+      error: () => {
+        this.payoutError = 'Nätverksfel vid borttagning';
+      }
+    });
+  }
+
+  resetPayoutForm() {
+    this.payoutForm = {
+      op_id: null,
+      period_start: '',
+      period_end: '',
+      amount_sek: null,
+      ibc_count: 0,
+      avg_ibc_per_h: 0,
+      avg_quality_pct: 0,
+      notes: ''
+    };
+  }
+
+  onPayoutsTabActivated() {
+    if (this.availableOperators.length === 0) this.loadOperators();
+    this.loadPayouts();
+    this.loadPayoutSummary();
+  }
+
+  formatSek(amount: number): string {
+    if (amount == null) return '0 kr';
+    return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(amount);
+  }
+
+  getPayoutsYears(): number[] {
+    const cur = new Date().getFullYear();
+    return [cur, cur - 1, cur - 2];
   }
 
   private showSuccess(msg: string) {
