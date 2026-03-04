@@ -55,6 +55,11 @@
       <p class="text-muted">Automatgenererad av Noreko produktionssystem</p>
     </div>
 
+    <!-- ===== REKORDMÅNAD-BANNER ===== -->
+    <div *ngIf="report && report.summary.goal_pct >= 110" class="record-month-banner">
+      🏆 Rekordmånad! {{ report.summary.goal_pct | number:'1.0-0' }}% av målet uppnått
+    </div>
+
     <!-- ===== SEKTION 1: KPI-sammanfattning ===== -->
     <section class="report-section">
       <h2 class="section-title">
@@ -444,15 +449,40 @@
       </div>
     </section>
 
+
+    <!-- ===== SEKTION 7b: Stopporsaker denna månad ===== -->
+    <section class="report-section" *ngIf="stopSummary.length > 0">
+      <h2 class="section-title">
+        <i class="fas fa-triangle-exclamation me-2 text-warning"></i>Stopporsaker denna månad
+      </h2>
+      <div class="stopp-list">
+        <div *ngIf="stopSummaryLoading" class="text-center text-muted py-3">
+          <span class="spinner-border spinner-border-sm me-2"></span>Laddar stopporsaker…
+        </div>
+        <div *ngFor="let item of stopSummary" class="stopp-row">
+          <div class="stopp-label" [title]="item.orsak">{{ item.orsak }}</div>
+          <div class="stopp-bar-wrap">
+            <div class="stopp-bar-fill"
+                 [style.width.%]="item.pct"
+                 [style.background]="stopBarColor(item.pct)">
+            </div>
+          </div>
+          <div class="stopp-pct">{{ item.pct | number:'1.0-1' }}%</div>
+          <div class="stopp-min">{{ item.total_min | number }} min</div>
+          <div class="stopp-antal text-muted small">({{ item.antal }} ggr)</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== SEKTION 8: PDF-export ===== -->
     <section class="report-section no-print-controls">
       <div class="export-row d-flex gap-3 align-items-center flex-wrap">
-        <button class="btn btn-outline-light btn-export" (click)="exportPDF()"
+        <button class="btn btn-outline-light btn-export no-print" (click)="exportPDF()"
           [disabled]="!hasData || !report"
           [class.disabled]="!hasData || !report">
           <i class="fas fa-file-pdf me-2 text-danger"></i>Exportera som PDF
         </button>
-        <button class="btn btn-outline-success btn-export" (click)="exportCSV()"
+        <button class="btn btn-outline-success btn-export no-print" (click)="exportCSV()"
           [disabled]="!hasData || !report"
           [class.disabled]="!hasData || !report">
           <i class="fas fa-file-csv me-2"></i>Exportera CSV

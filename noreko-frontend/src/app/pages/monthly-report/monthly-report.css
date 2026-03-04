@@ -598,3 +598,139 @@
   .op-of-month-name { color: #1a202c !important; }
   .op-avatar { border-color: #f6e05e !important; color: #975a16 !important; background: #fffbeb !important; }
 }
+
+/* =============================================
+   Rekordmånad-banner
+   ============================================= */
+.record-month-banner {
+  background: linear-gradient(135deg, #b7791f, #f6e05e, #b7791f);
+  color: #1a202c;
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.85; }
+}
+
+/* =============================================
+   Stopporsakssektion — progressbar-lista
+   ============================================= */
+.stopp-list {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #3d4a5c;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stopp-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 60px 80px 60px;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+@media (max-width: 700px) {
+  .stopp-row {
+    grid-template-columns: 140px 1fr 50px 70px;
+  }
+  .stopp-antal {
+    display: none;
+  }
+}
+
+.stopp-label {
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stopp-bar-wrap {
+  height: 12px;
+  background: #4a5568;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.stopp-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.stopp-pct {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  text-align: right;
+}
+
+.stopp-min {
+  font-size: 0.82rem;
+  color: #a0aec0;
+  text-align: right;
+}
+
+.stopp-antal {
+  font-size: 0.76rem;
+  color: #718096;
+  text-align: right;
+}
+
+/* =============================================
+   Print förbättring — no-print + övriga selektorer
+   ============================================= */
+@media print {
+  .month-picker,
+  .btn-export,
+  .no-print {
+    display: none !important;
+  }
+
+  body,
+  .card,
+  .container {
+    background: white !important;
+    color: black !important;
+  }
+
+  .card {
+    break-inside: avoid;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc !important;
+  }
+
+  canvas {
+    max-width: 100% !important;
+  }
+
+  /* Stopporsakssektion i utskrift */
+  .stopp-list {
+    background: #f7fafc !important;
+    border-color: #bee3f8 !important;
+  }
+
+  .stopp-label { color: #1a202c !important; }
+  .stopp-pct   { color: #1a202c !important; }
+  .stopp-min   { color: #4a5568 !important; }
+  .stopp-bar-wrap { background: #e2e8f0 !important; }
+
+  /* Rekordmånad-banner i utskrift */
+  .record-month-banner {
+    animation: none !important;
+    border: 2px solid #b7791f;
+  }
+}

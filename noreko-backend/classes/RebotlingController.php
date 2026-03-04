@@ -16,7 +16,7 @@ class RebotlingController {
             $adminOnlyActions = [
                 'admin-settings', 'weekday-goals', 'shift-times', 'system-status',
                 'alert-thresholds', 'today-snapshot', 'notification-settings',
-                'all-lines-status',
+                'all-lines-status', 'goal-exceptions',
             ];
             if (in_array($action, $adminOnlyActions, true)) {
                 if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
@@ -133,6 +133,8 @@ class RebotlingController {
                 $this->getStaffingWarning();
             } elseif ($action === 'monthly-stop-summary') {
                 $this->getMonthlyStopSummary();
+            } elseif ($action === 'goal-exceptions') {
+                $this->getGoalExceptions();
             } else {
                 $this->getLiveStats();
             }
@@ -190,6 +192,10 @@ class RebotlingController {
                 $this->createRecordNewsManual();
             } elseif ($action === 'save-maintenance-log') {
                 $this->saveMaintenanceLog();
+            } elseif ($action === 'save-goal-exception') {
+                $this->saveGoalException();
+            } elseif ($action === 'delete-goal-exception') {
+                $this->deleteGoalException();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -361,6 +367,16 @@ class RebotlingController {
             } catch (Exception $e) {
                 error_log('getLiveStats: kunde inte läsa rebotling_settings: ' . $e->getMessage());
             }
+
+            // Kolla om undantag finns för idag
+            try {
+                $stmtEx = $this->pdo->prepare('SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE()');
+                $stmtEx->execute();
+                $exceptionRow = $stmtEx->fetch(PDO::FETCH_ASSOC);
+                if ($exceptionRow) {
+                    $rebotlingTarget = (int)$exceptionRow['justerat_mal'];
+                }
+            } catch (Exception $e) { /* tabell saknas ännu — ignorera */ }
 
             // Hämta senaste utetemperatur
             $utetemperatur = null;
@@ -1929,6 +1945,16 @@ class RebotlingController {
                         $dailyTarget = (int)$wgRow['daily_goal'];
                     }
                 } catch (Exception $e) { /* tabell saknas */ }
+
+                // Kolla om undantag finns för idag
+                try {
+                    $stmtEx = $this->pdo->prepare('SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE()');
+                    $stmtEx->execute();
+                    $exceptionRow = $stmtEx->fetch(PDO::FETCH_ASSOC);
+                    if ($exceptionRow) {
+                        $dailyTarget = (int)$exceptionRow['justerat_mal'];
+                    }
+                } catch (Exception $e) { /* tabell saknas ännu — ignorera */ }
             } catch (Exception $e) { /* ignorera */ }
 
             // Linjen kör?
@@ -2078,6 +2104,16 @@ class RebotlingController {
                 $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
             } catch (Exception $e) { /* ignorera */ }
+
+            // Kolla om undantag finns för idag (getExecDashboard)
+            try {
+                $stmtEx = $this->pdo->prepare('SELECT justerat_mal FROM produktionsmal_undantag WHERE datum = CURDATE()');
+                $stmtEx->execute();
+                $exceptionRow = $stmtEx->fetch(PDO::FETCH_ASSOC);
+                if ($exceptionRow) {
+                    $dailyTarget = (int)$exceptionRow['justerat_mal'];
+                }
+            } catch (Exception $e) { /* tabell saknas ännu — ignorera */ }
 
             // ---- IBC idag ----
             $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
@@ -6707,6 +6743,111 @@ class RebotlingController {
             error_log('getMonthlyStopSummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker']);
+        }
+    }
+
+
+    // =========================================================
+    // Flexibla dagsmål per datum (undantag)
+    // =========================================================
+
+    /**
+     * GET ?action=rebotling&run=goal-exceptions[&month=YYYY-MM]
+     * Admin-only. Returnerar alla undantag, optionellt filtrerat per månad.
+     */
+    private function getGoalExceptions() {
+        $month = isset($_GET['month']) && preg_match('/^\d{4}-\d{2}$/', $_GET['month'])
+            ? $_GET['month']
+            : null;
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT datum, justerat_mal, orsak
+                 FROM produktionsmal_undantag
+                 WHERE (:month IS NULL OR DATE_FORMAT(datum, '%Y-%m') = :month)
+                 ORDER BY datum ASC"
+            );
+            $stmt->execute([':month' => $month]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $exceptions = array_map(function ($r) {
+                return [
+                    'datum'        => $r['datum'],
+                    'justerat_mal' => (int)$r['justerat_mal'],
+                    'orsak'        => $r['orsak'],
+                ];
+            }, $rows);
+            echo json_encode(['success' => true, 'exceptions' => $exceptions]);
+        } catch (Exception $e) {
+            error_log('getGoalExceptions: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta undantag']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=save-goal-exception
+     * Body: {"datum":"YYYY-MM-DD","justerat_mal":40,"orsak":"..."}
+     */
+    private function saveGoalException() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!$data) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig JSON']);
+            return;
+        }
+        $datum = $data['datum'] ?? '';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat (YYYY-MM-DD krävs)']);
+            return;
+        }
+        $mal = intval($data['justerat_mal'] ?? 0);
+        if ($mal <= 0 || $mal >= 10000) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Justerat mål måste vara mellan 1 och 9999']);
+            return;
+        }
+        $orsak = isset($data['orsak']) ? mb_substr(trim((string)$data['orsak']), 0, 255) : null;
+        try {
+            $userId = $_SESSION['user_id'] ?? null;
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO produktionsmal_undantag (datum, justerat_mal, orsak, skapad_av)
+                 VALUES (:datum, :mal, :orsak, :uid)
+                 ON DUPLICATE KEY UPDATE
+                   justerat_mal  = VALUES(justerat_mal),
+                   orsak         = VALUES(orsak),
+                   uppdaterad_at = NOW()'
+            );
+            $stmt->execute([
+                ':datum' => $datum,
+                ':mal'   => $mal,
+                ':orsak' => $orsak,
+                ':uid'   => $userId,
+            ]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('saveGoalException: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara undantag']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=delete-goal-exception
+     * Body: {"datum":"YYYY-MM-DD"}
+     */
+    private function deleteGoalException() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $datum = $data['datum'] ?? '';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            return;
+        }
+        try {
+            $stmt = $this->pdo->prepare('DELETE FROM produktionsmal_undantag WHERE datum = :datum');
+            $stmt->execute([':datum' => $datum]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('deleteGoalException: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort undantag']);
         }
     }
 

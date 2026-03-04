@@ -126,6 +126,14 @@ interface MonthCompare {
   worst_day: CompareDay | null;
 }
 
+
+interface StopItem {
+  orsak: string;
+  antal: number;
+  total_min: number;
+  pct: number;
+}
+
 @Component({
   standalone: true,
   selector: 'app-monthly-report',
@@ -156,6 +164,18 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   compareData: MonthCompare | null = null;
 
   Math = Math;
+  stopSummary: StopItem[] = [];
+  stopSummaryLoading = false;
+
+  get isRecordMonth(): boolean {
+    return !!(this.report && this.report.summary.goal_pct >= 110);
+  }
+
+  stopBarColor(pct: number): string {
+    if (pct >= 40) return '#f56565'; // röd
+    if (pct >= 20) return '#ed8936'; // orange
+    return '#48bb78';                // grön
+  }
 
   constructor(private http: HttpClient) {}
 
@@ -184,6 +204,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
     this.errorMsg = '';
     this.report = null;
     this.compareData = null;
+    this.stopSummary = [];
     this.chart?.destroy();
     this.chart = null;
     this.oeeLineChart?.destroy();
@@ -191,6 +212,8 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
 
     const reportUrl  = `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${this.selectedMonth}`;
     const compareUrl = `/noreko-backend/api.php?action=rebotling&run=month-compare&month=${this.selectedMonth}`;
+
+    const reportUrl2 = `/noreko-backend/api.php?action=rebotling&run=monthly-stop-summary&month=${this.selectedMonth}`;
 
     const report$ = this.http.get<any>(reportUrl, { withCredentials: true }).pipe(
       timeout(20000),
@@ -202,10 +225,17 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
       catchError(() => of(null))
     );
 
-    forkJoin({ report: report$, compare: compare$ }).pipe(
+    const stops$ = this.http.get<any>(reportUrl2, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of(null))
+    );
+
+    this.stopSummaryLoading = true;
+    forkJoin({ report: report$, compare: compare$, stops: stops$ }).pipe(
       takeUntil(this.destroy$)
-    ).subscribe(({ report, compare }) => {
+    ).subscribe(({ report, compare, stops }) => {
       this.isLoading = false;
+      this.stopSummaryLoading = false;
       if (report?.success && report.summary) {
         this.report = report as MonthlyReport;
         this.hasData = true;
@@ -215,6 +245,9 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
       }
       if (compare?.success) {
         this.compareData = compare as MonthCompare;
+      }
+      if (stops?.success && stops.items) {
+        this.stopSummary = stops.items as StopItem[];
       }
     });
   }
