@@ -66,7 +66,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     clearTimeout(this.barChartTimer);
     this.dataSub?.unsubscribe();
     this.linesSub?.unsubscribe();
-    if (this.barChart) this.barChart.destroy();
+    try { if (this.barChart) this.barChart.destroy(); } catch (e) {}
+    this.barChart = null;
   }
 
   loadData(): void {
@@ -257,12 +258,16 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   // ---- Bar chart ----
 
   private buildBarChart(): void {
-    if (this.barChart) {
-      this.barChart.destroy();
-      this.barChart = null;
-    }
+    try {
+      if (this.barChart) {
+        this.barChart.destroy();
+        this.barChart = null;
+      }
+    } catch (e) { this.barChart = null; }
     const canvas = document.getElementById('days7Chart') as HTMLCanvasElement;
     if (!canvas || !this.dashData?.days7?.length) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const days = this.dashData.days7;
     const labels = days.map(d => this.formatDate(d.date));

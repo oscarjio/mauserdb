@@ -394,38 +394,40 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
-    if (this.productionChart) {
-      const canvas = this.productionChart.canvas;
-      if (canvas) {
-        canvas.onmousedown = null;
-        canvas.onmouseup = null;
-        canvas.onmousemove = null;
-        canvas.ondblclick = null;
+    try {
+      if (this.productionChart) {
+        const canvas = this.productionChart.canvas;
+        if (canvas) {
+          canvas.onmousedown = null;
+          canvas.onmouseup = null;
+          canvas.onmousemove = null;
+          canvas.ondblclick = null;
+        }
+        this.productionChart.destroy();
+        this.productionChart = null;
       }
-      this.productionChart.destroy();
-      this.productionChart = null;
-    }
-    this.weekComparisonChart?.destroy();
+    } catch (e) { this.productionChart = null; }
+    try { this.weekComparisonChart?.destroy(); } catch (e) {}
     this.weekComparisonChart = null;
-    this.oeeTrendChart?.destroy();
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
     this.oeeTrendChart = null;
-    this.cycleTrendChart?.destroy();
+    try { this.cycleTrendChart?.destroy(); } catch (e) {}
     this.cycleTrendChart = null;
-    this.histogramChart?.destroy();
+    try { this.histogramChart?.destroy(); } catch (e) {}
     this.histogramChart = null;
-    this.spcChart?.destroy();
+    try { this.spcChart?.destroy(); } catch (e) {}
     this.spcChart = null;
-    this.cycleByOpChart?.destroy();
+    try { this.cycleByOpChart?.destroy(); } catch (e) {}
     this.cycleByOpChart = null;
-    this.qualityTrendChart?.destroy();
+    try { this.qualityTrendChart?.destroy(); } catch (e) {}
     this.qualityTrendChart = null;
-    this.oeeWaterfallChart?.destroy();
+    try { this.oeeWaterfallChart?.destroy(); } catch (e) {}
     this.oeeWaterfallChart = null;
-    this.weekdayChart?.destroy();
+    try { this.weekdayChart?.destroy(); } catch (e) {}
     this.weekdayChart = null;
-    this.hourlyRhythmChart?.destroy();
+    try { this.hourlyRhythmChart?.destroy(); } catch (e) {}
     this.hourlyRhythmChart = null;
-    this.paretoChart?.destroy();
+    try { this.paretoChart?.destroy(); } catch (e) {}
     this.paretoChart = null;
     this.destroy$.next();
     this.destroy$.complete();
@@ -981,10 +983,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   updateChart(data: any) {
-    if (this.productionChart) {
-      this.productionChart.destroy();
-      this.productionChart = null;
-    }
+    try {
+      if (this.productionChart) {
+        this.productionChart.destroy();
+        this.productionChart = null;
+      }
+    } catch (e) { this.productionChart = null; }
 
     clearTimeout(this.chartUpdateTimer);
     this.chartUpdateTimer = setTimeout(() => {
@@ -1756,7 +1760,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   enterHeatmapMode() {
     this.viewMode = 'heatmap';
     this.resetChartSelection();
-    this.productionChart?.destroy();
+    try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
     this.loadHeatmap();
   }
@@ -2059,9 +2063,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderWeekComparisonChart() {
-    this.weekComparisonChart?.destroy();
+    try { this.weekComparisonChart?.destroy(); } catch (e) {}
+    this.weekComparisonChart = null;
     const canvas = document.getElementById('weekComparisonChart') as HTMLCanvasElement;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const weekdays = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
     const labels = this.weekComparisonThisWeek.map(d => {
@@ -2250,7 +2257,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderOEETrendChart() {
-    this.oeeTrendChart?.destroy();
+    try { this.oeeTrendChart?.destroy(); } catch (e) {}
+    this.oeeTrendChart = null;
     const canvas = document.getElementById('oeeTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.oeeTrendDays.length) return;
 
@@ -2402,7 +2410,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private renderHistogramChart() {
-    this.histogramChart?.destroy();
+    try { this.histogramChart?.destroy(); } catch (e) {}
+    this.histogramChart = null;
     const canvas = document.getElementById('cycleHistogramChart') as HTMLCanvasElement;
     if (!canvas || !this.histogramBuckets.length) return;
 

@@ -109,10 +109,14 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.loadDataSub?.unsubscribe();
     this.searchSub?.unsubscribe();
     this.teamStatsSub?.unsubscribe();
-    if (this.trendChart) this.trendChart.destroy();
-    if (this.kpiRadarChart) this.kpiRadarChart.destroy();
-    if (this.shiftCompareChart) this.shiftCompareChart.destroy();
-    if (this.weekTrendChart) this.weekTrendChart.destroy();
+    try { if (this.trendChart) this.trendChart.destroy(); } catch (e) {}
+    this.trendChart = null;
+    try { if (this.kpiRadarChart) this.kpiRadarChart.destroy(); } catch (e) {}
+    this.kpiRadarChart = null;
+    try { if (this.shiftCompareChart) this.shiftCompareChart.destroy(); } catch (e) {}
+    this.shiftCompareChart = null;
+    try { if (this.weekTrendChart) this.weekTrendChart.destroy(); } catch (e) {}
+    this.weekTrendChart = null;
   }
 
   private loadWeeklyGoal() {
@@ -361,10 +365,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   renderRadarChart() {
-    if (this.kpiRadarChart) this.kpiRadarChart.destroy();
+    try { if (this.kpiRadarChart) this.kpiRadarChart.destroy(); } catch (e) {}
+    this.kpiRadarChart = null;
 
     const canvas = document.getElementById('kpiRadarChart') as HTMLCanvasElement;
     if (!canvas || !this.operatorData) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const kpis = this.operatorData.kpis;
     this.kpiRadarChart = new Chart(canvas, {
@@ -396,10 +403,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   renderTrendChart() {
-    if (this.trendChart) this.trendChart.destroy();
+    try { if (this.trendChart) this.trendChart.destroy(); } catch (e) {}
+    this.trendChart = null;
 
     const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
     if (!canvas || !this.operatorKPIData?.chart_data) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const chartData = this.operatorKPIData.chart_data;
     this.trendChart = new Chart(canvas, {
@@ -453,10 +463,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   private buildWeekTrendChart(): void {
-    if (this.weekTrendChart) this.weekTrendChart.destroy();
+    try { if (this.weekTrendChart) this.weekTrendChart.destroy(); } catch (e) {}
+    this.weekTrendChart = null;
 
     const canvas = document.getElementById('weekTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.weekTrendData) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const { dates, operators, team_avg } = this.weekTrendData;
     if (!dates || dates.length === 0) return;
@@ -565,8 +578,10 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.operatorData = null;
     this.operatorKPIData = null;
     this.searchOperatorId = '';
-    if (this.trendChart) { this.trendChart.destroy(); this.trendChart = null; }
-    if (this.kpiRadarChart) { this.kpiRadarChart.destroy(); this.kpiRadarChart = null; }
+    try { if (this.trendChart) { this.trendChart.destroy(); } } catch (e) {}
+    this.trendChart = null;
+    try { if (this.kpiRadarChart) { this.kpiRadarChart.destroy(); } } catch (e) {}
+    this.kpiRadarChart = null;
   }
 
   getBonusClass(bonus: number): string {
@@ -615,10 +630,13 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   private buildShiftCompareChart(): void {
-    if (this.shiftCompareChart) this.shiftCompareChart.destroy();
+    try { if (this.shiftCompareChart) this.shiftCompareChart.destroy(); } catch (e) {}
+    this.shiftCompareChart = null;
 
     const canvas = document.getElementById('shiftCompareChart') as HTMLCanvasElement;
     if (!canvas || this.shifts.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const recent = this.shifts.slice(-12);
     const labels = recent.map(s => '#' + s.shift_number + ' (' + (s.shift_start?.substring(5, 10) || '') + ')');

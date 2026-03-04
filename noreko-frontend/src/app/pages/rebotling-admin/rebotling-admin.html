@@ -921,6 +921,41 @@
     </div>
   </div>
 
+  <!-- ===== Rekordnyhet — manuell trigger ===== -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-trophy me-2 text-warning"></i>Rekordnyhet
+          </h5>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">
+            Skapa en rekordnyhet manuellt för dagens produktion. Nyheten publiceras direkt med högsta prioritet.
+            <br><small>OBS: En automatisk rekordnyhet skapas också automatiskt efter kl 18:00 om dagens produktion slår det historiska rekordet.</small>
+          </p>
+          <button class="btn btn-warning"
+                  (click)="createRecordNews()"
+                  [disabled]="recordNewsCreating">
+            <i class="fas"
+               [class.fa-trophy]="!recordNewsCreating"
+               [class.fa-spinner]="recordNewsCreating"
+               [class.fa-spin]="recordNewsCreating"
+               class="me-2"></i>
+            {{ recordNewsCreating ? 'Skapar nyhet...' : 'Skapa rekordnyhet för idag' }}
+          </button>
+          <div *ngIf="recordNewsResult" class="mt-3">
+            <div [class]="'alert ' + (recordNewsResult.success ? 'alert-success' : 'alert-danger')">
+              <i class="fas me-2" [class.fa-check-circle]="recordNewsResult.success" [class.fa-exclamation-circle]="!recordNewsResult.success"></i>
+              {{ recordNewsResult.message }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Åtkomst nekad -->

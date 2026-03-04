@@ -860,7 +860,40 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       });
   }
 
-    private showSuccess(message: string) {
+  // ========== Rekordnyhet (manuell trigger) ==========
+  recordNewsCreating = false;
+  recordNewsResult: { success: boolean; message: string; ibc_idag?: number; rekord_ibc?: number } | null = null;
+
+  createRecordNews(): void {
+    this.recordNewsCreating = true;
+    this.recordNewsResult = null;
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=create-record-news', {},
+      { withCredentials: true })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(10000),
+        catchError(() => of({ success: false, error: 'Nätverksfel' }))
+      )
+      .subscribe((res: any) => {
+        this.recordNewsCreating = false;
+        if (res?.success) {
+          this.recordNewsResult = {
+            success: true,
+            message: 'Rekordnyhet skapad! Idag: ' + res.ibc_idag + ' IBC (rekord: ' + res.rekord_ibc + ' IBC)',
+            ibc_idag: res.ibc_idag,
+            rekord_ibc: res.rekord_ibc
+          };
+          this.showSuccess('Rekordnyhet skapad!');
+        } else {
+          this.recordNewsResult = {
+            success: false,
+            message: res?.error || 'Kunde inte skapa rekordnyhet'
+          };
+        }
+      });
+  }
+
+  private showSuccess(message: string) {
     this.successMessage     = message;
     this.showSuccessMessage = true;
     clearTimeout(this.successTimerId);

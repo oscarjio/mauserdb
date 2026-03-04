@@ -130,7 +130,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     [this.rankingChart, this.radarChart, this.dailyTrendChart,
      this.weekdayChart, this.hourlyBarChart, this.bubbleChart,
      this.bestShiftsChart, this.stopRastChart, this.stoppageDailyChart,
-     this.paretoChart].forEach(c => c?.destroy());
+     this.paretoChart].forEach(c => { try { c?.destroy(); } catch (e) {} });
     this.rankingChart = null;
     this.radarChart = null;
     this.dailyTrendChart = null;
@@ -238,9 +238,12 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   renderRankingChart() {
-    if (this.rankingChart) this.rankingChart.destroy();
+    try { if (this.rankingChart) this.rankingChart.destroy(); } catch (e) {}
+    this.rankingChart = null;
     const canvas = document.getElementById('rankingChart') as HTMLCanvasElement;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const data = this.getFilteredRanking().slice(0, 15);
     const labels = data.map((d: any) => d.operator_name || ('Op ' + d.operator_id));
@@ -272,9 +275,12 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderRadarChart() {
-    if (this.radarChart) this.radarChart.destroy();
+    try { if (this.radarChart) this.radarChart.destroy(); } catch (e) {}
+    this.radarChart = null;
     const canvas = document.getElementById('radarCompareChart') as HTMLCanvasElement;
     if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const radarColors = ['rgba(66,153,225,0.6)', 'rgba(72,187,120,0.6)', 'rgba(236,201,75,0.6)'];
     const radarBorders = ['rgb(66,153,225)', 'rgb(72,187,120)', 'rgb(236,201,75)'];
@@ -382,7 +388,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderDailyTrendChart() {
-    if (this.dailyTrendChart) this.dailyTrendChart.destroy();
+    try { if (this.dailyTrendChart) this.dailyTrendChart.destroy(); } catch (e) {}
+    this.dailyTrendChart = null;
     const canvas = document.getElementById('dailyTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.dailyData.length) return;
 
@@ -428,7 +435,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderWeekdayChart() {
-    if (this.weekdayChart) this.weekdayChart.destroy();
+    try { if (this.weekdayChart) this.weekdayChart.destroy(); } catch (e) {}
+    this.weekdayChart = null;
     const canvas = document.getElementById('weekdayChart') as HTMLCanvasElement;
     if (!canvas || !this.weekdayData.length) return;
 
@@ -526,7 +534,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderHourlyBarChart() {
-    if (this.hourlyBarChart) this.hourlyBarChart.destroy();
+    try { if (this.hourlyBarChart) this.hourlyBarChart.destroy(); } catch (e) {}
+    this.hourlyBarChart = null;
     const canvas = document.getElementById('hourlyBarChart') as HTMLCanvasElement;
     if (!canvas) return;
 
@@ -583,7 +592,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderBubbleChart() {
-    if (this.bubbleChart) this.bubbleChart.destroy();
+    try { if (this.bubbleChart) this.bubbleChart.destroy(); } catch (e) {}
+    this.bubbleChart = null;
     const canvas = document.getElementById('bubbleChart') as HTMLCanvasElement;
     if (!canvas || !this.allShifts.length) return;
 
@@ -736,7 +746,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderStoppageDailyChart() {
-    if (this.stoppageDailyChart) this.stoppageDailyChart.destroy();
+    try { if (this.stoppageDailyChart) this.stoppageDailyChart.destroy(); } catch (e) {}
+    this.stoppageDailyChart = null;
     const canvas = document.getElementById('stoppageDailyChart') as HTMLCanvasElement;
     if (!canvas || !this.stoppageByDay.length) return;
 
@@ -849,7 +860,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
 
   private renderStopRastChart() {
     // Behålls för bakåtkompatibilitet men används ej längre i UI
-    if (this.stopRastChart) this.stopRastChart.destroy();
+    try { if (this.stopRastChart) this.stopRastChart.destroy(); } catch (e) {}
+    this.stopRastChart = null;
   }
 
   // ======== HELPERS ========
@@ -893,7 +905,8 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   private renderBestShiftsChart() {
-    if (this.bestShiftsChart) this.bestShiftsChart.destroy();
+    try { if (this.bestShiftsChart) this.bestShiftsChart.destroy(); } catch (e) {}
+    this.bestShiftsChart = null;
     const canvas = document.getElementById('bestShiftsChart') as HTMLCanvasElement;
     if (!canvas || !this.bestShifts.length) return;
 
@@ -1036,7 +1049,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   buildParetoChart() {
-    if (this.paretoChart) this.paretoChart.destroy();
+    try { if (this.paretoChart) this.paretoChart.destroy(); } catch (e) {}
     this.paretoChart = null;
     const canvas = document.getElementById('paretoChart') as HTMLCanvasElement;
     if (!canvas || !this.paretoData.length) return;
