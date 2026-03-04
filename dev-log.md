@@ -1,3 +1,14 @@
+## 2026-03-04 session #4 — Lead: Ny batch — 3 workers
+
+**Analys**: Exec dashboard multi-linje, bonus utbetalningshistorik, halvfärdiga features — alla redan implementerade (verifierat).
+
+**Omplanering**: Starta 3 workers på genuint öppna items:
+1. **Stub-katalog cleanup** — Ta bort gamla/oanvända stub-filer i pages/rebotling/ och pages/tvattlinje/
+2. **Min bonus: Jämförelse med kollegor** — Anonymiserad ranking "Du är #X av Y" i my-bonus
+3. **Automatisk skiftrapport-export** — POST-endpoint vid skiftslut → PDF → email
+
+---
+
 ## 2026-03-04 kväll #13 — Worker: Loading-states + Chart.js tooltip-förbättring
 
 ### DEL 1: Loading-state spinners (konsistent spinner-border mönster)

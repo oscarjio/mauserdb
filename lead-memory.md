@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-04 (session kväll #3)*
+*Senast uppdaterad: 2026-03-04 (session #4)*
 
 ---
 
@@ -560,3 +560,22 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ## BESLUTSDAGBOK (forts.)
 **2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
 **2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). 5 workers körda: Bug Hunt #12 (18 filer), Skiftrapport per operatör (redan klart), VD Månadsrapport (diff+operator-of-month), Skiftöverlämning email (redan klart), Skiftsammanfattning PDF-export (be0eea4). Alla hög+medium items levererade. Startar nästa batch: Prediktiv underhåll v2, Push-notiser, nya idébank-items.
+**2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
+
+---
+
+## AKTIV BATCH (2026-03-04 session #4)
+
+### ✅ Redan implementerat (verifierat session #4)
+- [x] **Executive dashboard: multi-linje status**: Redan implementerat — `all-lines-status` endpoint + `loadAllLinesStatus()` i exec-dashboard, 60s polling, grön/orange/röd per linje.
+- [x] **Bonus-admin: Utbetalningshistorik**: Redan implementerat — `list-payouts`, `record-payout`, `delete-payout`, `payout-summary`, `update-payout-status` endpoints. Frontend har payoutHistory-flik med filter, CSV-export.
+- [x] **Halvfärdiga features**: Granskat — rebotling-prognos (184 rader, komplett), operator-detail (622 rader, komplett), vpn-admin (183 rader, komplett). Alla är färdiga.
+
+### 🔴 Hög prioritet — Workers startas NU
+- [ ] **Stub-katalog cleanup**: Ta bort gamla/oanvända stub-kataloger: `pages/rebotling/` (9 filer, stub) och `pages/tvattlinje/` (9 filer, stub). Routing pekar på de korrekta `-live/`-katalogerna.
+- [ ] **Min bonus: Jämförelse med kollegor**: Anonymiserad ranking "Du är #X av Y denna vecka" i my-bonus. Endpoint i BonusController.
+- [ ] **Automatisk skiftrapport-export**: POST-endpoint vid skiftslut → generera PDF → email till konfigurerade mottagare.
+
+### 🟡 Medium — nästa batch
+- [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
+- [ ] **Skiftplaneringsvy förbättring**: Veckoöversikt med operatörs-assign
