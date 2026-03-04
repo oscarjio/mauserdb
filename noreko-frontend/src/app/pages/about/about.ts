@@ -10,20 +10,23 @@ import { RouterModule } from '@angular/router';
   styleUrl: './about.css'
 })
 export class AboutPage {
-  version = '2.0';
+  version = '3.0';
+  buildDate = '2026-03-04';
   features = [
     { icon: 'fa-industry', title: 'Realtidsövervakning', desc: 'Live-data från alla produktionslinjer med automatisk uppdatering var 2:a sekund.' },
-    { icon: 'fa-chart-line', title: 'Statistik & Analys', desc: 'Detaljerad statistik med interaktiva grafer, drill-down och CSV-export.' },
-    { icon: 'fa-trophy', title: 'Bonussystem', desc: 'Automatisk bonusberäkning baserad på produktivitet, kvalitet och cykeltid.' },
+    { icon: 'fa-chart-line', title: 'Statistik & Analys', desc: 'Detaljerad statistik med interaktiva grafer, heatmap, SPC-kontrollkort, Pareto och drill-down.' },
+    { icon: 'fa-trophy', title: 'Bonussystem', desc: 'Automatisk bonusberäkning baserad på IBC/h, kvalitet och cykeltid. Rankinglistor och teambonus.' },
     { icon: 'fa-gauge-high', title: 'OEE-beräkning', desc: 'Overall Equipment Effectiveness beräknas i realtid med tillgänglighet, prestanda och kvalitet.' },
-    { icon: 'fa-file-alt', title: 'Skiftrapporter', desc: 'Automatiska skiftrapporter med godkännandeflöde och historik.' },
-    { icon: 'fa-exclamation-triangle', title: 'Stopporsaker', desc: 'Loggning och Pareto-analys av produktionsstopp per linje.' },
+    { icon: 'fa-file-alt', title: 'Skiftrapporter & Rapporter', desc: 'Skiftrapporter, månads- och veckorapporter med PDF/Excel-export.' },
+    { icon: 'fa-exclamation-triangle', title: 'Stopporsaker & Underhåll', desc: 'Loggning, mönsteranalys och Pareto-analys av produktionsstopp. Underhållslogg med maskinkorrelation.' },
+    { icon: 'fa-users', title: 'Operatörshantering', desc: 'Certifieringsmatris, närvaro-tracker, djupprofil per operatör, korrelationsanalys för operatörspar.' },
+    { icon: 'fa-tv', title: 'Andon & Live Ranking', desc: 'Fabriksskärm med realtidsstatus. Live ranking-TV med guld/silver/brons och dagsmål-progress.' },
   ];
 
   lines = [
-    { name: 'Rebotling', status: 'Fullt implementerad', color: '#22c55e' },
-    { name: 'Tvättlinje', status: 'Fullt implementerad', color: '#22c55e' },
-    { name: 'Såglinje', status: 'Fullt implementerad', color: '#22c55e' },
-    { name: 'Klassificeringslinje', status: 'Fullt implementerad', color: '#22c55e' },
+    { name: 'Rebotling', status: 'I drift — full funktionalitet', color: '#22c55e' },
+    { name: 'Tvättlinje', status: 'Konfigurerad — ej i drift', color: '#f59e0b' },
+    { name: 'Såglinje', status: 'Konfigurerad — ej i drift', color: '#f59e0b' },
+    { name: 'Klassificeringslinje', status: 'Konfigurerad — ej i drift', color: '#f59e0b' },
   ];
 }
