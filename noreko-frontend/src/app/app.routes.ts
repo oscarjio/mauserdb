@@ -50,6 +50,7 @@ export const routes: Routes = [
       { path: 'rebotling/bonus-admin', canActivate: [adminGuard], loadComponent: () => import('./pages/bonus-admin/bonus-admin').then(m => m.BonusAdminPage) },
       { path: 'rebotling/analys', canActivate: [adminGuard], loadComponent: () => import('./pages/production-analysis/production-analysis').then(m => m.ProductionAnalysisPage) },
       { path: 'rebotling/kalender', canActivate: [adminGuard], loadComponent: () => import('./pages/production-calendar/production-calendar').then(m => m.ProductionCalendarPage) },
+      { path: 'rebotling/prognos', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling-prognos/rebotling-prognos').then(m => m.RebotlingPrognosPage) },
       { path: 'tvattlinje/admin', canActivate: [adminGuard], loadComponent: () => import('./pages/tvattlinje-admin/tvattlinje-admin').then(m => m.TvattlinjeAdminPage) },
       { path: 'saglinje/admin', canActivate: [adminGuard], loadComponent: () => import('./pages/saglinje-admin/saglinje-admin').then(m => m.SaglinjeAdminPage) },
       { path: 'klassificeringslinje/admin', canActivate: [adminGuard], loadComponent: () => import('./pages/klassificeringslinje-admin/klassificeringslinje-admin').then(m => m.KlassificeringslinjeAdminPage) },

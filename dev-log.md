@@ -1,3 +1,103 @@
+## 2026-03-04 — Leveransprognos: IBC-planeringsverktyg
+
+Worker-agent slutförde rebotling-prognos (påbörjad av tidigare agent som körde slut på quota):
+
+**Backend (RebotlingController.php):**
+- `GET production-rate`: Beräknar snitt-IBC/dag för 7d/30d/90d via rebotling_ibc-aggregering + dagsmål från rebotling_settings
+
+**Frontend:**
+- `rebotling-prognos.html` + `rebotling-prognos.css` skapade (saknades)
+- Route `/rebotling/prognos` (adminGuard) tillagd i app.routes.ts
+- Nav-länk "Leveransprognos" tillagd i Rebotling-dropdown (admin-only)
+
+**Status:** Klar, byggd (inga errors), commitad och pushad.
+
+---
+
+## 2026-03-04 — Prediktivt underhåll: IBC-baserat serviceintervall
+
+Worker-agent implementerade körningsbaserat prediktivt underhåll i rebotling-admin:
+
+**Backend (RebotlingController.php):**
+- `GET service-status` (publik): Hämtar service_interval_ibc, beräknar total IBC via MAX per skiftraknare-aggregering, returnerar ibc_sedan_service, ibc_kvar_till_service, pct_kvar, status (ok/warning/danger)
+- `POST reset-service` (admin): Registrerar service utförd — sparar aktuell total IBC som last_service_ibc_total, sätter last_service_at=NOW(), sparar anteckning
+- `POST save-service-interval` (admin): Konfigurerar serviceintervall (validering 100–50 000 IBC)
+- Alla endpoints använder prepared statements, PDO FETCH_KEY_PAIR för key-value-tabell
+
+**SQL-migrering (noreko-backend/migrations/2026-03-04_service_interval.sql):**
+- INSERT IGNORE för service_interval_ibc (5000), last_service_ibc_total (0), last_service_at (NULL), last_service_note (NULL)
+
+**Frontend (rebotling-admin.ts / .html / .css):**
+- `ServiceStatus` interface med alla fält
+- `loadServiceStatus()`, `resetService()`, `saveServiceInterval()` med takeUntil/timeout/catchError
+- Adminkort med: statusbadge (grön/orange/röd pulserar vid danger), 3 KPI-rutor, progress-bar, senaste service-info, konfig-intervall-input, service-registreringsformulär med anteckning
+- CSS: `service-danger-pulse` keyframe-animation
+
+**Status:** Klar, testad (build OK), commitad och pushad.
+
+## 2026-03-04 — Skiftplan: snabbassignering, veckostatus, kopiera vecka, CSV-export
+
+Worker-agent förbättrade skiftplaneringssidan (`/admin/skiftplan`) med 5 nya features:
+
+**1. Snabbval-knappar (Quick-assign)**
+- Ny blixt-knapp (⚡) i varje cell öppnar en horisontell operatörsbadge-bar
+- `sp-quickbar`-komponent visar alla tillgängliga operatörer som färgade initialcirklar
+- Klick tilldelar direkt via befintligt `POST run=assign` — ingen modal behövs
+- `quickSelectDatum`, `quickSelectSkift`, `quickAssignOperator()`, `toggleQuickSelect()`
+- Stänger automatiskt dropdownpanelen och vice versa
+
+**2. Veckostatus-summary**
+- Rad ovanför kalendern: Mån/Tis/Ons.../Sön med totalt antal operatörer per dag
+- Grön (✓) om >= `minOperators`, röd (⚠) om under
+- `buildWeekSummary()` anropas vid `loadWeek()` och vid varje assign/remove
+- `DaySummary` interface: `{ datum, dayName, totalAssigned, ok }`
+
+**3. Kopiera förra veckan**
+- Knapp "Kopiera förra veckan" i navigeringsraden
+- Hämtar förra veckans data via `GET run=week` för föregående måndag
+- Itererar 7 dagar × 3 skift, skippar redan tilldelade operatörer
+- Kör parallella `forkJoin()` assign-anrop, laddar om schemat efteråt
+
+**4. Exportera CSV**
+- Knapp "Exportera CSV" genererar fil `skiftplan_vXX_YYYY.csv`
+- Format: Skift | Tid | Mån YYYY-MM-DD | Tis YYYY-MM-DD | ...
+- BOM-prefix för korrekt svenska tecken i Excel
+
+**5. Förbättrad loading-overlay**
+- Spinner-kort med border och bakgrund istället för ren spinner
+- Används för både veckoplan- och veckoöversikt-laddning
+
+**Tekniska detaljer:**
+- `getQuickSelectDayName()` + `getQuickSelectSkiftLabel()` — hjälparmetoder för template (Angular tillåter ej arrow-funktioner)
+- Ny `forkJoin` import för parallell assign vid kopiering
+- CSS: `.sp-week-summary`, `.sp-quickbar`, `.sp-quick-badge`, `.cell-quick-btn`, `.sp-loading-overlay`
+- Angular build: OK (inga shift-plan-fel, pre-existing warnings i andra filer)
+
+## 2026-03-04 — Rebotling-statistik: CSV-export + OEE dataset-toggle
+
+Worker-agent lade till CSV-export-knappar och interaktiv dataset-toggle i rebotling-statistik:
+
+**Export-knappar (inga nya backend-anrop — befintlig data):**
+- `exportParetoCSV()`: Exporterar stopporsaksdata med kolumner: Orsak, Kategori, Antal stopp, Total tid (min), Total tid (h), Snitt (min), Andel %, Kumulativ %
+- `exportOeeComponentsCSV()`: Exporterar OEE-komponentdata (datum, Tillgänglighet %, Kvalitet %)
+- `exportKassationCSV()`: Exporterar kassationsdata (Orsak, Antal, Andel %, Kumulativ %) + totalsummering
+- `exportHeatmapCSV()`: Exporterar heatmap-data (Datum, Timme, IBC per timme, Kvalitet %) — filtrerar bort tomma celler
+
+**Dataset-toggle i OEE-komponenter-grafen:**
+- Två kryssrutor (Tillgänglighet / Kvalitet) som döljer/visar respektive dataserie i Chart.js
+- `showTillganglighet` + `showKvalitet` properties (boolean, default: true)
+- `toggleOeeDataset(type)` metod använder `chart.getDatasetMeta(index).hidden` + `chart.update()`
+
+**HTML-ändringar:**
+- Pareto: Export CSV-knapp bredvid 7d/30d/90d-knapparna
+- Kassation: Export CSV-knapp bredvid 7d/30d/90d-knapparna
+- OEE-komponenter: Dataset-toggle checkboxar + Export CSV-knapp i period-raden
+- Heatmap: Export CSV-knapp vid KPI-toggle
+
+**Alla export-knappar:** `[disabled]` när resp. data-array är tom. BOM-märkta CSV-filer (\uFEFF) för korrekt teckenkodning i Excel.
+
+Bygg lyckades, commit + push klart.
+
 ## 2026-03-04 — Audit-log + Stoppage-log: KPI-sammanfattning, export disable-state
 
 Worker-agent förbättrade `audit-log` och `stoppage-log` med bättre UI och KPI-sammanfattning:

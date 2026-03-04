@@ -1,0 +1,10 @@
+.completion-card {
+  background: linear-gradient(135deg, #2d3748 0%, #1a365d 100%);
+  border: 1px solid #63b3ed;
+}
+.completion-date {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #63b3ed;
+  letter-spacing: 0.02em;
+}

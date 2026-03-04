@@ -139,6 +139,8 @@ class RebotlingController {
                 $this->getOeeComponents();
             } elseif ($action === 'service-status') {
                 $this->getServiceStatus();
+            } elseif ($action === 'production-rate') {
+                $this->getProductionRate();
             } else {
                 $this->getLiveStats();
             }
@@ -7061,4 +7063,46 @@ class RebotlingController {
         }
     }
 
+
+    private function getProductionRate(): void {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COALESCE(AVG(CASE WHEN datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_7d,
+                    COALESCE(AVG(CASE WHEN datum >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN ibc_total END), 0) as avg_ibc_per_day_30d,
+                    COALESCE(AVG(ibc_total), 0) as avg_ibc_per_day_90d
+                FROM (
+                    SELECT datum, SUM(ibc_ok) as ibc_total
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                    GROUP BY datum
+                    HAVING ibc_total > 0
+                ) t
+            ");
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $dagMal = 100;
+            try {
+                $s = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
+                if ($s) $dagMal = (int)$s["rebotling_target"];
+            } catch (\Exception $e2) {
+                error_log("getProductionRate: could not fetch rebotling_settings: " . $e2->getMessage());
+            }
+
+            echo json_encode([
+                "success" => true,
+                "data" => [
+                    "avg_ibc_per_day_7d"  => round((float)($row["avg_ibc_per_day_7d"] ?? 0), 1),
+                    "avg_ibc_per_day_30d" => round((float)($row["avg_ibc_per_day_30d"] ?? 0), 1),
+                    "avg_ibc_per_day_90d" => round((float)($row["avg_ibc_per_day_90d"] ?? 0), 1),
+                    "dag_mal"             => $dagMal
+                ]
+            ]);
+        } catch (\Exception $e) {
+            error_log("getProductionRate: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(["success" => false, "error" => "Serverfel"]);
+        }
+    }
 }

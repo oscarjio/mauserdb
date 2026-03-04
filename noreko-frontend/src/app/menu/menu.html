@@ -40,6 +40,7 @@
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus-admin"><i class="fas fa-sliders-h me-2"></i>Bonus Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/analys"><i class="fas fa-chart-line me-2"></i>Produktionsanalys</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/kalender"><i class="fas fa-calendar-alt me-2"></i>Produktionskalender</a></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/prognos" routerLinkActive="active">📦 Leveransprognos</a></li>
         </ul>
       </li>
       <li class="nav-item dropdown">
