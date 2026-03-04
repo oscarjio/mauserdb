@@ -526,12 +526,34 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **Push-notiser webbläsare** — Web Push API vid stopp > 10 min
 - [x] **Skiftsammanfattning PDF-export**: KLAR `be0eea4` — shift-summary endpoint, expanderbar detaljvy per skift, 6 KPI-kort, timvis PLC-data, print-optimerad PDF med A4-format
 
+### 🔵 Batch 3
+- [ ] **Prediktiv underhåll v2** — korrelationsanalys stopp vs underhåll, dubbelaxel-graf (worker kör)
+- [x] **Nyhetsflöde förbättring** — KLAR: 4 nya auto-triggers (produktionsrekord, OEE≥85%, bonus-milstolpe, 5+ dagars streak), admin redan på plats
+
+---
+
+## NY BATCH (från behovsanalys kväll #3 — 53 fynd)
+
+### 🔴 Hög prioritet (UX-kritiskt)
+- [ ] **Empty-states batch 1**: Lägg till "Inga data"-meddelanden på 6 sidor: operator-attendance, weekly-report, rebotling-prognos, benchmarking, live-ranking, certifications
+- [ ] **Empty-states batch 2**: Lägg till "Inga data"-meddelanden på 6 sidor: my-bonus (weeklyData+feedback), operator-detail, saglinje-admin, tvattlinje-admin, andon, operator-trend
+- [ ] **Mobilanpassning batch 1**: operator-attendance kalender (grid responsive), bonus-dashboard (ranking-tabell, period-toggle), operators (op-cards-grid responsive)
+- [ ] **Mobilanpassning batch 2**: audit-log (filter-bar flex-wrap), stoppage-log (tabell läsbarhet), statistik-sidor (chart-containers storlek)
+
+### 🟡 Medium prioritet
+- [ ] **Loading-states batch**: Lägg till spinners på 8 sidor: operator-attendance, production-calendar, rebotling-prognos, benchmarking, certifications, maintenance-log, shift-handover polling, vpn-admin
+- [ ] **Design-konsistens fix**: Standardisera CSS i stoppage-log (#1a202c/#2d3748/#e2e8f0 istället för gradient), bonus-dashboard (bort med Bootstrap-utilityklasser), audit-log (konsistent font-size)
+- [ ] **Chart.js tooltip-förbättring**: Förbättra tooltips+legends i audit-log activityChart, bonus-dashboard shiftCompare, production-calendar dagdetalj, historik year-chart, stoppage-log pareto/hourly
+
+### 🟢 Lägre prioritet
+- [ ] **Halvfärdiga features-granskning**: Granska och slutför eller ta bort: rebotling-prognos, operator-detail, vpn-admin
+
 ### 🔵 IDÉBANK
 - Maskinlärning-prediktion: förutsäg produktion
 - Flödesanalys: visualisera IBC-flödet genom anläggningen
 - Kundportal: extern vy
 - Energieffektivitet-vy
-- Nyhetsflöde förbättring: rekord-triggers, certifieringsuppdateringar
+- Push-notiser webbläsare
 
 ---
 
