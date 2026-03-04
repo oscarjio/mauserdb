@@ -362,3 +362,112 @@
   .status-yellow { border-color: #ffc107 !important; }
   .status-red { border-color: #dc3545 !important; }
 }
+
+/* ============================================================
+   LINJESTATUS-BANNER
+   ============================================================ */
+
+.lines-status-banner {
+  background: #232b3a;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+}
+
+.lines-status-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.line-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  background: #2d3748;
+  border: 1px solid #3a4a5c;
+  text-decoration: none;
+  color: #e2e8f0;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  min-width: 160px;
+  flex: 1 1 160px;
+  cursor: pointer;
+}
+
+.line-status-card:hover {
+  background: #3a4a5c;
+  border-color: #4a90d9;
+  transform: translateY(-2px);
+  color: #fff;
+  text-decoration: none;
+}
+
+.line-status-running {
+  border-left: 3px solid #48bb78;
+}
+
+.line-status-slow {
+  border-left: 3px solid #f6c90e;
+}
+
+.line-status-stopped {
+  border-left: 3px solid #4a5568;
+}
+
+.line-status-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.line-dot {
+  font-size: 0.55rem;
+  flex-shrink: 0;
+}
+
+.line-namn {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.line-detail-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.line-detail-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #e2e8f0;
+}
+
+.line-detail-label {
+  font-size: 0.72rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.line-data-age {
+  margin-top: 0.2rem;
+}
+
+.line-status-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 576px) {
+  .line-status-card {
+    min-width: calc(50% - 0.375rem);
+    flex: 1 1 calc(50% - 0.375rem);
+  }
+}

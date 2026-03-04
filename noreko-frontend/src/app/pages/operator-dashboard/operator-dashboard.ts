@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
@@ -81,7 +82,7 @@ interface SummaryData {
 @Component({
   standalone: true,
   selector: 'app-operator-dashboard',
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   template: `
     <div class="operator-dashboard-page" style="background:#1a202c;min-height:100vh;padding:24px 16px;">
 
@@ -205,7 +206,7 @@ interface SummaryData {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of operatorer" style="border-bottom:1px solid #3d4a5c;">
+                <tr *ngFor="let op of operatorer" style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
                   <td style="padding:14px 16px;vertical-align:middle;">
                     <div class="d-flex align-items-center gap-3">
                       <div [style.background]="getAvatarColor(op.namn)"
@@ -213,7 +214,10 @@ interface SummaryData {
                         {{ op.initialer }}
                       </div>
                       <div>
-                        <div style="font-weight:600;color:#e2e8f0;">{{ op.namn }}</div>
+                        <div style="font-weight:600;color:#e2e8f0;">
+                          {{ op.namn }}
+                          <i class="fas fa-external-link-alt" style="font-size:10px;color:#63b3ed;margin-left:4px;"></i>
+                        </div>
                         <div style="font-size:11px;color:#718096;">Op. #{{ op.op_id }}</div>
                       </div>
                     </div>
@@ -333,7 +337,7 @@ interface SummaryData {
               </thead>
               <tbody>
                 <tr *ngFor="let op of weeklyData; let i = index"
-                    style="border-bottom:1px solid #3d4a5c;">
+                    style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
                   <!-- Rang -->
                   <td style="padding:14px 16px;vertical-align:middle;text-align:center;">
                     <span [style.color]="i === 0 ? '#f6e05e' : i === 1 ? '#a0aec0' : i === 2 ? '#ed8936' : '#718096'"
@@ -349,7 +353,10 @@ interface SummaryData {
                         {{ op.initialer }}
                       </div>
                       <div>
-                        <div style="font-weight:600;color:#e2e8f0;">{{ op.namn }}</div>
+                        <div style="font-weight:600;color:#e2e8f0;">
+                          {{ op.namn }}
+                          <i class="fas fa-external-link-alt" style="font-size:10px;color:#63b3ed;margin-left:4px;"></i>
+                        </div>
                         <div style="font-size:11px;color:#718096;">Op. #{{ op.op_id }}</div>
                       </div>
                     </div>

@@ -86,6 +86,8 @@ class RebotlingController {
                 $this->getCycleByOperator();
             } elseif ($action === 'shift-trend') {
                 $this->getShiftTrend();
+            } elseif ($action === 'all-lines-status') {
+                $this->getAllLinesStatus();
             } else {
                 $this->getLiveStats();
             }
@@ -4966,4 +4968,154 @@ class RebotlingController {
             ]);
         }
     }
+    // ============================================================
+    // GET ?action=rebotling&run=all-lines-status
+    //
+    // Returnerar live-status för alla 4 produktionslinjer.
+    // Rebotling: hämtar senaste data från rebotling_ibc.
+    // Övriga linjer: kontrollerar om settings-tabellen finns.
+    // Kräver admin-session.
+    // ============================================================
+    private function getAllLinesStatus() {
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+            return;
+        }
+
+        $lines = [];
+
+        // --- Rebotling ---
+        try {
+            $tz  = new DateTimeZone('Europe/Stockholm');
+            $now = new DateTime('now', $tz);
+
+            // Senaste raden i rebotling_ibc
+            $stmt = $this->pdo->query(
+                "SELECT datum FROM rebotling_ibc ORDER BY datum DESC LIMIT 1"
+            );
+            $latestRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $senaste_data_min = null;
+            $kor = false;
+            if ($latestRow && !empty($latestRow['datum'])) {
+                $latestDt = new DateTime($latestRow['datum'], $tz);
+                $diffSec  = $now->getTimestamp() - $latestDt->getTimestamp();
+                $senaste_data_min = round($diffSec / 60, 1);
+                $kor = ($diffSec < 600); // kör om senaste data < 10 min
+            }
+
+            // IBC idag
+            $ibcIdag = (int)$this->pdo->query(
+                "SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()"
+            )->fetchColumn();
+
+            // OEE idag (om tabellen stödjer det) — hämta via befintlig logik
+            $oeePct   = null;
+            $malPct   = null;
+            $dagsMal  = 1000;
+            try {
+                $sr = $this->pdo->query(
+                    "SELECT rebotling_target FROM rebotling_settings WHERE id = 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                if ($sr) $dagsMal = (int)$sr['rebotling_target'];
+            } catch (Exception $e) { /* ignorera */ }
+
+            if ($dagsMal > 0) {
+                $malPct = round($ibcIdag / $dagsMal * 100, 1);
+            }
+
+            // OEE idag: hämta senaste skiftets aggregat
+            try {
+                $oeeRow = $this->pdo->query(
+                    "SELECT
+                        SUM(max_ibc_ok)      AS ibc_ok,
+                        SUM(max_runtime_plc) AS runtime,
+                        SUM(max_rasttime)    AS rasttime
+                     FROM (
+                        SELECT
+                            skiftraknare,
+                            MAX(ibc_ok)      AS max_ibc_ok,
+                            MAX(runtime_plc) AS max_runtime_plc,
+                            MAX(rasttime)    AS max_rasttime
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = CURDATE()
+                        GROUP BY skiftraknare
+                     ) agg"
+                )->fetch(PDO::FETCH_ASSOC);
+
+                if ($oeeRow && $oeeRow['runtime'] > 0) {
+                    $ibcOk      = (float)$oeeRow['ibc_ok'];
+                    $runtimeSek = (float)$oeeRow['runtime'];
+                    $rastSek    = (float)$oeeRow['rasttime'];
+                    $prodTid    = $runtimeSek - $rastSek;
+                    if ($prodTid > 0) {
+                        // Genomsnittlig cykeltid ~60 sek (fallback)
+                        $snittCykel = 60;
+                        try {
+                            $cRow = $this->pdo->query(
+                                "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
+                            )->fetchColumn();
+                            if ($cRow > 0) $snittCykel = (float)$cRow;
+                        } catch (Exception $e) { /* ignorera */ }
+                        $maxMojlig = $prodTid / $snittCykel;
+                        if ($maxMojlig > 0) {
+                            $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
+                        }
+                    }
+                }
+            } catch (Exception $e) { error_log('getAllLinesStatus OEE: ' . $e->getMessage()); }
+
+            $lines[] = [
+                'id'              => 'rebotling',
+                'namn'            => 'Rebotling',
+                'kor'             => $kor,
+                'senaste_data_min'=> $senaste_data_min,
+                'ibc_idag'        => $ibcIdag,
+                'oee_pct'         => $oeePct,
+                'mal_pct'         => $malPct,
+                'ej_i_drift'      => false
+            ];
+        } catch (Exception $e) {
+            error_log('getAllLinesStatus rebotling: ' . $e->getMessage());
+            $lines[] = [
+                'id'         => 'rebotling',
+                'namn'       => 'Rebotling',
+                'kor'        => false,
+                'ej_i_drift' => false
+            ];
+        }
+
+        // --- Tvättlinje ---
+        $lines[] = $this->getOtherLineStatus('tvattlinje', 'Tvättlinje', 'tvattlinje_settings');
+
+        // --- Såglinje ---
+        $lines[] = $this->getOtherLineStatus('saglinje', 'Såglinje', 'saglinje_settings');
+
+        // --- Klassificeringslinje ---
+        $lines[] = $this->getOtherLineStatus('klassificeringslinje', 'Klassificeringslinje', 'klassificeringslinje_settings');
+
+        echo json_encode(['success' => true, 'lines' => $lines]);
+    }
+
+    private function getOtherLineStatus(string $id, string $namn, string $settingsTable): array {
+        try {
+            $tables = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = " . $this->pdo->quote($settingsTable)
+            )->fetchColumn();
+
+            if ((int)$tables === 0) {
+                return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
+            }
+            // Tabell finns — försök hämta aktiv-status
+            return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
+        } catch (Exception $e) {
+            error_log("getAllLinesStatus $id: " . $e->getMessage());
+            return ['id' => $id, 'namn' => $namn, 'kor' => false, 'ej_i_drift' => true];
+        }
+    }
+
 }

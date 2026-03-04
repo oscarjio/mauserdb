@@ -29,6 +29,12 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   alerts: { type: 'danger' | 'warning' | 'info'; message: string; detail: string }[] = [];
 
+  // Multi-line status
+  allLinesStatus: any[] = [];
+  private isFetchingLines = false;
+  private linesStatusInterval: any = null;
+  private linesSub: Subscription | null = null;
+
   private pollInterval: any;
   private dataSub: Subscription | null = null;
   private barChart: Chart | null = null;
@@ -47,15 +53,19 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadData();
+    this.loadAllLinesStatus();
     this.pollInterval = setInterval(() => this.loadData(), 30000);
+    this.linesStatusInterval = setInterval(() => this.loadAllLinesStatus(), 60000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.pollInterval) clearInterval(this.pollInterval);
+    if (this.linesStatusInterval) clearInterval(this.linesStatusInterval);
     clearTimeout(this.barChartTimer);
     this.dataSub?.unsubscribe();
+    this.linesSub?.unsubscribe();
     if (this.barChart) this.barChart.destroy();
   }
 
@@ -85,6 +95,39 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
           this.isFetching = false;
         }
       });
+  }
+
+  loadAllLinesStatus(): void {
+    if (this.isFetchingLines) return;
+    this.isFetchingLines = true;
+
+    this.linesSub?.unsubscribe();
+    this.linesSub = this.rebotlingService.getAllLinesStatus()
+      .pipe(timeout(8000), catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          if (res?.success && res.lines) {
+            this.allLinesStatus = res.lines;
+          }
+          this.isFetchingLines = false;
+        },
+        error: () => {
+          this.isFetchingLines = false;
+        }
+      });
+  }
+
+  // ---- Linjestatus helpers ----
+
+  getLineIconClass(line: any): string {
+    if (line.ej_i_drift) return 'fas fa-circle text-secondary';
+    if (!line.kor) return 'fas fa-circle text-secondary';
+    if (line.senaste_data_min != null && line.senaste_data_min > 5) return 'fas fa-circle text-warning';
+    return 'fas fa-circle text-success';
+  }
+
+  getLineRoute(line: any): string {
+    return '/' + line.id + '/live';
   }
 
   // ---- Alert-beräkning ----

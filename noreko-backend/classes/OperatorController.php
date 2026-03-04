@@ -167,6 +167,10 @@ class OperatorController {
             $this->getPairs();
             return;
         }
+        if ($run === 'profile') {
+            $this->getProfile();
+            return;
+        }
 
         // GET - Hämta alla operatörer
         try {
@@ -234,6 +238,382 @@ class OperatorController {
             error_log('OperatorController getStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatistik']);
+        }
+    }
+
+    /**
+     * GET ?action=operator&run=profile&id=123
+     * Returnerar en fullständig profil för operatören med det givna id:t.
+     */
+    private function getProfile() {
+        $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörs-ID']);
+            return;
+        }
+
+        try {
+            // -------------------------------------------------------
+            // 1. Grundinfo om operatören
+            // -------------------------------------------------------
+            $stmt = $this->pdo->prepare(
+                "SELECT id, name, number, active, created_at FROM operators WHERE id = ?"
+            );
+            $stmt->execute([$id]);
+            $op = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$op) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte']);
+                return;
+            }
+
+            // Bygg initialer från namn
+            $nameParts = explode(' ', trim($op['name']));
+            $initialer = '';
+            foreach ($nameParts as $part) {
+                if ($part !== '') $initialer .= strtoupper(substr($part, 0, 1));
+            }
+            $initialer = substr($initialer, 0, 2);
+
+            $operator = [
+                'id'           => (int)$op['id'],
+                'namn'         => $op['name'],
+                'initialer'    => $initialer,
+                'aktiv'        => (bool)$op['active'],
+                'nummer'       => (int)$op['number'],
+                'skapad_datum' => $op['created_at'],
+            ];
+
+            // -------------------------------------------------------
+            // 2. Stats senaste 30 dagarna (rebotling_ibc — kumulativa fält)
+            //    Aggregering: MAX() per skiftraknare → SUM() per period
+            // -------------------------------------------------------
+            $stmt30 = $this->pdo->prepare("
+                SELECT
+                    COUNT(DISTINCT skiftraknare)                                  AS skift_count,
+                    SUM(shift_ibc_ok)                                             AS total_ibc,
+                    ROUND(SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_sek) / 3600.0, 0), 1) AS avg_ibc_per_h,
+                    ROUND(
+                        SUM(shift_ibc_ok) * 100.0 /
+                        NULLIF(SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok), 0),
+                    1) AS avg_quality_pct
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok)      AS shift_ibc_ok,
+                           MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+            $stmt30->execute([$id, $id, $id]);
+            $row30 = $stmt30->fetch(PDO::FETCH_ASSOC);
+
+            $stats_30d = [
+                'total_ibc'       => (int)($row30['total_ibc']       ?? 0),
+                'avg_ibc_per_h'   => $row30['avg_ibc_per_h']   !== null ? (float)$row30['avg_ibc_per_h']   : null,
+                'avg_quality_pct' => $row30['avg_quality_pct'] !== null ? (float)$row30['avg_quality_pct'] : null,
+                'avg_oee'         => null, // Beräknas inte separat just nu
+                'skift_count'     => (int)($row30['skift_count']     ?? 0),
+            ];
+
+            // -------------------------------------------------------
+            // 3. All-time stats
+            // -------------------------------------------------------
+            $stmtAll = $this->pdo->prepare("
+                SELECT
+                    SUM(shift_ibc_ok)  AS total_ibc_all_time,
+                    MAX(shift_ibc_ok)  AS bast_ibc_skift,
+                    MAX(first_datum)   AS bast_datum,
+                    ROUND(MAX(CASE WHEN shift_runtime_sek > 0
+                        THEN shift_ibc_ok / (shift_runtime_sek / 3600.0)
+                        ELSE NULL END), 1) AS bast_ibc_per_h_ever
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok)      AS shift_ibc_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek,
+                           MIN(datum)       AS first_datum
+                    FROM rebotling_ibc
+                    WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+            $stmtAll->execute([$id, $id, $id]);
+            $rowAll = $stmtAll->fetch(PDO::FETCH_ASSOC);
+
+            // Hämta datum för bästa skiftet (max ibc_ok)
+            $stmtBestDate = $this->pdo->prepare("
+                SELECT MIN(datum) AS bast_datum
+                FROM rebotling_ibc
+                WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                  AND skiftraknare = (
+                      SELECT skiftraknare
+                      FROM rebotling_ibc
+                      WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                        AND skiftraknare IS NOT NULL
+                      GROUP BY skiftraknare
+                      ORDER BY MAX(ibc_ok) DESC
+                      LIMIT 1
+                  )
+                LIMIT 1
+            ");
+            $stmtBestDate->execute([$id, $id, $id, $id, $id, $id]);
+            $bestDatumRow = $stmtBestDate->fetch(PDO::FETCH_ASSOC);
+
+            $stats_all = [
+                'total_ibc_all_time'  => (int)($rowAll['total_ibc_all_time']  ?? 0),
+                'bast_ibc_per_h_ever' => $rowAll['bast_ibc_per_h_ever'] !== null ? (float)$rowAll['bast_ibc_per_h_ever'] : null,
+                'bast_ibc_skift'      => (int)($rowAll['bast_ibc_skift']      ?? 0),
+                'bast_datum'          => $bestDatumRow['bast_datum'] ?? null,
+            ];
+
+            // -------------------------------------------------------
+            // 4. Trenddata per vecka — senaste 8 veckorna (UNION ALL op1/op2/op3)
+            // -------------------------------------------------------
+            $stmtTrend = $this->pdo->prepare("
+                SELECT
+                    YEARWEEK(first_datum, 1)                                      AS yw,
+                    SUM(shift_ibc_ok)                                             AS ibc,
+                    ROUND(SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_sek) / 3600.0, 0), 1) AS ibc_per_h,
+                    ROUND(
+                        SUM(shift_ibc_ok) * 100.0 /
+                        NULLIF(SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok), 0),
+                    1) AS quality_pct,
+                    MIN(first_datum) AS vecka_start
+                FROM (
+                    SELECT skiftraknare, MIN(datum) AS first_datum,
+                           MAX(ibc_ok)      AS shift_ibc_ok,
+                           MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE op1 = ? AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 56 DAY)
+                    GROUP BY skiftraknare
+                    UNION ALL
+                    SELECT skiftraknare, MIN(datum) AS first_datum,
+                           MAX(ibc_ok)      AS shift_ibc_ok,
+                           MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE op2 = ? AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 56 DAY)
+                    GROUP BY skiftraknare
+                    UNION ALL
+                    SELECT skiftraknare, MIN(datum) AS first_datum,
+                           MAX(ibc_ok)      AS shift_ibc_ok,
+                           MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE op3 = ? AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL 56 DAY)
+                    GROUP BY skiftraknare
+                ) AS t
+                GROUP BY YEARWEEK(first_datum, 1)
+                ORDER BY yw DESC
+                LIMIT 8
+            ");
+            $stmtTrend->execute([$id, $id, $id]);
+            $trendRows = $stmtTrend->fetchAll(PDO::FETCH_ASSOC);
+
+            $trend_weekly = array_reverse(array_map(function ($r) {
+                $yw = (int)$r['yw'];
+                $year = intdiv($yw, 100);
+                $week = $yw % 100;
+                return [
+                    'vecka'       => sprintf('%d-V%02d', $year, $week),
+                    'yw'          => $yw,
+                    'ibc'         => (int)$r['ibc'],
+                    'ibc_per_h'   => $r['ibc_per_h']   !== null ? (float)$r['ibc_per_h']   : null,
+                    'quality_pct' => $r['quality_pct'] !== null ? (float)$r['quality_pct'] : null,
+                    'vecka_start' => $r['vecka_start'],
+                ];
+            }, $trendRows));
+
+            // -------------------------------------------------------
+            // 5. Senaste 5 skift (detaljerat)
+            // -------------------------------------------------------
+            $stmtShifts = $this->pdo->prepare("
+                SELECT
+                    skiftraknare,
+                    MIN(datum)       AS datum,
+                    MAX(ibc_ok)      AS ibc,
+                    MAX(ibc_ej_ok)   AS ibc_ej_ok,
+                    MAX(runtime_plc) AS runtime_sek
+                FROM rebotling_ibc
+                WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare
+                ORDER BY skiftraknare DESC
+                LIMIT 5
+            ");
+            $stmtShifts->execute([$id, $id, $id]);
+            $shiftRows = $stmtShifts->fetchAll(PDO::FETCH_ASSOC);
+
+            $recent_shifts = array_map(function ($r) {
+                $ibc      = (int)$r['ibc'];
+                $ej_ok    = (int)$r['ibc_ej_ok'];
+                $runtime  = (int)$r['runtime_sek'];
+                $ibc_per_h = ($runtime > 0) ? round($ibc / ($runtime / 3600.0), 1) : null;
+                $totalt    = $ibc + $ej_ok;
+                $qual_pct  = ($totalt > 0) ? round($ibc * 100.0 / $totalt, 1) : null;
+                return [
+                    'datum'        => substr($r['datum'], 0, 10),
+                    'skiftnr'      => (int)$r['skiftraknare'],
+                    'ibc'          => $ibc,
+                    'ibc_per_h'    => $ibc_per_h,
+                    'quality_pct'  => $qual_pct,
+                    'runtime_min'  => $runtime > 0 ? round($runtime / 60) : null,
+                ];
+            }, $shiftRows);
+
+            // -------------------------------------------------------
+            // 6. Certifieringar (om tabellen finns)
+            // -------------------------------------------------------
+            $certifications = [];
+            try {
+                $stmtCert = $this->pdo->prepare("
+                    SELECT line, certified_date, expires_date, notes, active
+                    FROM operator_certifications
+                    WHERE op_number = ? AND active = 1
+                    ORDER BY line ASC, certified_date DESC
+                ");
+                $stmtCert->execute([$op['number']]);
+                $certifications = $stmtCert->fetchAll(PDO::FETCH_ASSOC);
+            } catch (Exception $certEx) {
+                // Tabell kanske inte finns ännu — returnera tom array
+                $certifications = [];
+            }
+
+            // -------------------------------------------------------
+            // 7. Achievements
+            // -------------------------------------------------------
+
+            // 100 IBC på ett skift
+            $has100 = false;
+            if ($stats_all['bast_ibc_skift'] >= 100) {
+                $has100 = true;
+            }
+
+            // 95%+ kvalitet senaste aktiva veckan (minst 2 skift)
+            $has95QualWeek = false;
+            if (!empty($trend_weekly)) {
+                $lastWeek = end($trend_weekly);
+                if ($lastWeek['quality_pct'] !== null && $lastWeek['quality_pct'] >= 95.0) {
+                    $has95QualWeek = true;
+                }
+            }
+
+            // Streak: antal dagar i rad med aktivitet (senaste 90 dagar)
+            $stmtStreak = $this->pdo->prepare("
+                SELECT DISTINCT DATE(datum) AS active_date
+                FROM rebotling_ibc
+                WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                ORDER BY active_date DESC
+            ");
+            $stmtStreak->execute([$id, $id, $id]);
+            $streakDates = $stmtStreak->fetchAll(PDO::FETCH_COLUMN);
+
+            $streakDays = 0;
+            if (!empty($streakDates)) {
+                $prev = new DateTime('today');
+                foreach ($streakDates as $ds) {
+                    $dt = new DateTime($ds);
+                    $diff = (int)$prev->diff($dt)->days;
+                    if ($diff <= 1) {
+                        $streakDays++;
+                        $prev = $dt;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            $achievements = [
+                'has_100_ibc_day'      => $has100,
+                'has_95_quality_week'  => $has95QualWeek,
+                'streak_days'          => $streakDays,
+            ];
+
+            // -------------------------------------------------------
+            // 8. Rank denna vecka
+            // -------------------------------------------------------
+            $stmtRank = $this->pdo->prepare("
+                SELECT ranked.op_id, ranked.rn AS rank_pos,
+                       (SELECT COUNT(DISTINCT op_id) FROM (
+                            SELECT op1 AS op_id FROM rebotling_ibc
+                            WHERE op1 IS NOT NULL AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                            UNION
+                            SELECT op2 FROM rebotling_ibc
+                            WHERE op2 IS NOT NULL AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                            UNION
+                            SELECT op3 FROM rebotling_ibc
+                            WHERE op3 IS NOT NULL AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                       ) AS all_ops WHERE op_id IS NOT NULL) AS total_ops
+                FROM (
+                    SELECT sub.op_id,
+                           RANK() OVER (ORDER BY SUM(sub.shift_ibc_ok) / NULLIF(SUM(sub.shift_runtime_sek) / 3600.0, 0) DESC) AS rn
+                    FROM (
+                        SELECT op1 AS op_id, skiftraknare,
+                               MAX(ibc_ok)      AS shift_ibc_ok,
+                               MAX(runtime_plc) AS shift_runtime_sek
+                        FROM rebotling_ibc
+                        WHERE op1 IS NOT NULL AND skiftraknare IS NOT NULL
+                          AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                        GROUP BY op1, skiftraknare
+                        UNION ALL
+                        SELECT op2, skiftraknare,
+                               MAX(ibc_ok), MAX(runtime_plc)
+                        FROM rebotling_ibc
+                        WHERE op2 IS NOT NULL AND skiftraknare IS NOT NULL
+                          AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                        GROUP BY op2, skiftraknare
+                        UNION ALL
+                        SELECT op3, skiftraknare,
+                               MAX(ibc_ok), MAX(runtime_plc)
+                        FROM rebotling_ibc
+                        WHERE op3 IS NOT NULL AND skiftraknare IS NOT NULL
+                          AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                        GROUP BY op3, skiftraknare
+                    ) sub
+                    GROUP BY sub.op_id
+                ) ranked
+                WHERE ranked.op_id = ?
+                LIMIT 1
+            ");
+            $stmtRank->execute([$id]);
+            $rankRow = $stmtRank->fetch(PDO::FETCH_ASSOC);
+
+            $rank_this_week = [
+                'rank'       => $rankRow ? (int)$rankRow['rank_pos']  : null,
+                'total_ops'  => $rankRow ? (int)$rankRow['total_ops'] : null,
+            ];
+
+            // -------------------------------------------------------
+            // Svara
+            // -------------------------------------------------------
+            echo json_encode([
+                'success'       => true,
+                'operator'      => $operator,
+                'stats_30d'     => $stats_30d,
+                'stats_all'     => $stats_all,
+                'trend_weekly'  => $trend_weekly,
+                'recent_shifts' => $recent_shifts,
+                'certifications' => $certifications,
+                'achievements'  => $achievements,
+                'rank_this_week' => $rank_this_week,
+            ]);
+
+        } catch (Exception $e) {
+            error_log('OperatorController getProfile: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsprofil']);
         }
     }
 

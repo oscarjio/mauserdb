@@ -24,6 +24,57 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       LINJESTATUS-BANNER — Alla 4 linjer
+  ============================================================ -->
+  <div class="lines-status-banner mb-4 d-print-none" *ngIf="allLinesStatus.length > 0">
+    <div class="lines-status-grid">
+      <a
+        *ngFor="let line of allLinesStatus"
+        [routerLink]="getLineRoute(line)"
+        class="line-status-card"
+        [class.line-status-running]="line.kor && !(line.senaste_data_min > 5)"
+        [class.line-status-slow]="line.kor && line.senaste_data_min > 5"
+        [class.line-status-stopped]="!line.kor"
+      >
+        <div class="line-status-top">
+          <i [ngClass]="getLineIconClass(line)" class="line-dot"></i>
+          <span class="line-namn">{{ line.namn }}</span>
+        </div>
+
+        <!-- Rebotling-detaljer -->
+        <ng-container *ngIf="line.id === 'rebotling' && !line.ej_i_drift">
+          <div class="line-detail-row" *ngIf="line.ibc_idag != null">
+            <span class="line-detail-value">{{ line.ibc_idag }}</span>
+            <span class="line-detail-label">IBC idag</span>
+          </div>
+          <div class="line-detail-row" *ngIf="line.oee_pct != null">
+            <span class="line-detail-value" [class.text-success]="line.oee_pct >= 80" [class.text-warning]="line.oee_pct >= 60 && line.oee_pct < 80" [class.text-danger]="line.oee_pct < 60">
+              {{ line.oee_pct }}%
+            </span>
+            <span class="line-detail-label">OEE</span>
+          </div>
+          <div class="line-detail-row" *ngIf="line.mal_pct != null">
+            <span class="line-detail-value" [class.text-success]="line.mal_pct >= 80" [class.text-warning]="line.mal_pct >= 60 && line.mal_pct < 80" [class.text-danger]="line.mal_pct < 60">
+              {{ line.mal_pct }}%
+            </span>
+            <span class="line-detail-label">av mål</span>
+          </div>
+          <div class="line-data-age" *ngIf="line.senaste_data_min != null">
+            <small class="text-muted">Data: {{ line.senaste_data_min | number:'1.0-0' }} min sedan</small>
+          </div>
+        </ng-container>
+
+        <!-- Övriga linjer -->
+        <ng-container *ngIf="line.id !== 'rebotling'">
+          <div class="line-status-sub text-secondary">
+            <small>Ej i drift</small>
+          </div>
+        </ng-container>
+      </a>
+    </div>
+  </div>
+
   <!-- ---- Loading ---- -->
   <div *ngIf="loading" class="text-center py-5">
     <i class="fas fa-spinner fa-spin fa-2x text-info"></i>

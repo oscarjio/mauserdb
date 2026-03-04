@@ -296,6 +296,13 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getAllLinesStatus(): Observable<any> {
+    return this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=all-lines-status`,
+      { withCredentials: true }
+    );
+  }
 }
 
 export interface StoppageDayEntry {
