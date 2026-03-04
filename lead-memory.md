@@ -244,8 +244,12 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ## AKTIVA AGENTER (session 2026-03-04)
 - **Tvättlinje-statistik-agent** (a59ff05a): KLAR — cdd9411
-- **Kvalitetstrend+OEE-Waterfall-agent** (startas): rebotling-statistik.ts, RebotlingController nya endpoints — STARTAS
-- **Operatörsjämförelse-agent** (startas): ny sida /admin/operator-compare, operatörsjämförelse ts — STARTAS
+- **Kvalitetstrend+OEE-Waterfall-agent** (a35e472a): KLAR — a682f9d (features redan impl, verifierade)
+- **Operatörsjämförelse-agent** (a746769c): KLAR — b63feb9+fe14455 (route+nav)
+- **Bug hunt #5** (a863f91d): KLAR — 0092eaf (5 buggar: menu.ts POST-läcka, session_start SaglinjeCtrl x2, datumvalidering Saglinje+Tvättlinje, session_start TvattlinjeCtrl x3)
+- **Andon-tavla förbättring** (a53c6ded): KLAR — 8fac87f (skifttimer+nedräkning, stopporsaker 24h, prognosbanner 4 nivåer)
+- **Såglinje+Klassificeringslinje statistik** (a3d6a8b6): KPI-kort, OEE-trend — PÅGÅR
+- **Skiftöverlämning förbättring** (startas): shift-handover.ts förbättring — STARTAS
 
 ---
 
