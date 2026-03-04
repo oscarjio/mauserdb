@@ -334,12 +334,28 @@
     </div>
 
     <!-- ===== ANONYM KOLLEGJÄMFÖRELSE (veckobaserad) ===== -->
-    <div class="ranking-card mb-4" *ngIf="rankingPosition || rankingPositionLoading">
+
+    <!-- Loading skeleton -->
+    <div class="card mb-4 p-4" style="background:#2d3748;" *ngIf="rankingPositionLoading">
+      <div class="placeholder-glow">
+        <div class="placeholder col-6 mb-2"></div>
+        <div class="placeholder col-4"></div>
+      </div>
+    </div>
+
+    <!-- Tom-state: inte med i rankingen -->
+    <div class="card mb-4 p-4 text-center" style="background:#2d3748;" *ngIf="!rankingPosition && !rankingPositionLoading">
+      <i class="fas fa-medal text-muted mb-2" style="font-size:2rem"></i>
+      <p class="text-muted mb-0">Du är inte med i rankingen denna vecka.</p>
+      <p class="text-muted small">Registrerade skift visas nästa arbetsdag.</p>
+    </div>
+
+    <div class="ranking-card mb-4" *ngIf="rankingPosition && !rankingPositionLoading">
       <div class="ranking-header">
         <i class="fas fa-users me-2 text-info"></i>Din placering denna vecka
       </div>
 
-      <!-- Laddar -->
+      <!-- Laddar (behålls för bakåtkompatibilitet, men bör aldrig synas nu) -->
       <div class="ranking-body text-center py-3" *ngIf="rankingPositionLoading">
         <div class="spinner-border spinner-border-sm text-info" role="status"></div>
         <span class="text-muted ms-2 small">Hämtar placering...</span>
