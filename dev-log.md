@@ -9,9 +9,13 @@
 **Analys**: Exec dashboard multi-linje, bonus utbetalningshistorik, halvfärdiga features — alla redan implementerade (verifierat).
 
 **Omplanering**: Starta 3 workers på genuint öppna items:
-1. **Stub-katalog cleanup** — Ta bort gamla/oanvända stub-filer i pages/rebotling/ och pages/tvattlinje/
-2. **Min bonus: Jämförelse med kollegor** — Anonymiserad ranking "Du är #X av Y" i my-bonus
-3. **Automatisk skiftrapport-export** — POST-endpoint vid skiftslut → PDF → email
+1. **Stub-katalog cleanup** — Ta bort gamla/oanvända stub-filer ✅ `a1c17f4`
+2. **Min bonus: Jämförelse med kollegor** — Anonymiserad ranking ✅ `0795512`
+3. **Automatisk skiftrapport-export** — POST-endpoint ✅ `d0b8279`
+
+**Batch 2**: 2 nya workers startade:
+4. **Skiftplaneringsvy förbättring** — veckoöversikt, bemanningsgrad, kopiera schema
+5. **Benchmarking förbättring** — personbästa, hall of fame, team-rekord
 
 ---
 

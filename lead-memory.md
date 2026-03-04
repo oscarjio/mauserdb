@@ -571,11 +571,17 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Bonus-admin: Utbetalningshistorik**: Redan implementerat — `list-payouts`, `record-payout`, `delete-payout`, `payout-summary`, `update-payout-status` endpoints. Frontend har payoutHistory-flik med filter, CSV-export.
 - [x] **Halvfärdiga features**: Granskat — rebotling-prognos (184 rader, komplett), operator-detail (622 rader, komplett), vpn-admin (183 rader, komplett). Alla är färdiga.
 
-### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Stub-katalog cleanup**: Ta bort gamla/oanvända stub-kataloger: `pages/rebotling/` (9 filer, stub) och `pages/tvattlinje/` (9 filer, stub). Routing pekar på de korrekta `-live/`-katalogerna.
-- [ ] **Min bonus: Jämförelse med kollegor**: Anonymiserad ranking "Du är #X av Y denna vecka" i my-bonus. Endpoint i BonusController.
-- [ ] **Automatisk skiftrapport-export**: POST-endpoint vid skiftslut → generera PDF → email till konfigurerade mottagare.
+### ✅ Levererat session #4
+- [x] **Stub-katalog cleanup**: KLAR `a1c17f4` — 9 stub-filer borttagna (pages/rebotling stubs + pages/tvattlinje), rebotling-statistik behölls (aktiv routing)
+- [x] **Min bonus: Jämförelse med kollegor**: KLAR `0795512` — percentil-badge "Topp X%", trendpil vs förra veckan, motiverande meddelanden (#1="Du leder!", #2-3="Nära toppen!")
+- [x] **Automatisk skiftrapport-export**: KLAR `d0b8279` — `auto-shift-report` POST-endpoint, HTML-email med KPI-kort, admin-config sektion, manuell trigger i skiftrapport-vy
+
+### 🔴 Hög prioritet — Workers batch 2 (startade)
+- [ ] **Skiftplaneringsvy förbättring**: Veckoöversikt, bemanningsgrad, kopiera schema, veckonavigering
+- [ ] **Benchmarking förbättring**: Personbästa per operatör, Hall of Fame topp 5, team-rekord vs individ
 
 ### 🟡 Medium — nästa batch
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
-- [ ] **Skiftplaneringsvy förbättring**: Veckoöversikt med operatörs-assign
+- [ ] **Live-ranking admin-konfig**: Konfigurera vilka KPI:er som visas på TV-skärmen
+- [ ] **Operatörsnärvaro-tracker**: Spåra vilka operatörer som faktiskt arbetat, kalendervy
+- [ ] **IBC-kvalitets deep-dive**: Bryt ner ej-godkända per avvisningsorsak
