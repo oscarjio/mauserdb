@@ -174,16 +174,30 @@
       </div>
     </div>
 
-    <!-- Senaste händelser -->
+    <!-- Senaste händelser / Nyhetsflöde -->
     <div class="events-section mt-4 dashboard-grid mx-auto">
       <div class="card" style="background:#2d3748; border-color:#4a5568; border-radius:1rem; overflow:hidden;">
+
+        <!-- Header -->
         <div class="card-header d-flex align-items-center justify-content-between py-3 px-4" style="background:#1a202c; border-bottom-color:#4a5568;">
           <h6 class="mb-0" style="color:#e2e8f0; font-size:1rem;">
             <i class="fas fa-bell me-2 text-warning"></i>Senaste händelser
           </h6>
           <span class="badge bg-secondary small" *ngIf="!loadingEvents && events.length > 0">
-            {{ events.length }} händelse{{ events.length !== 1 ? 'r' : '' }}
+            {{ filteredEvents.length }} händelse{{ filteredEvents.length !== 1 ? 'r' : '' }}
           </span>
+        </div>
+
+        <!-- Kategorifilter -->
+        <div class="category-filter-bar px-4 py-2" *ngIf="!loadingEvents && events.length > 0">
+          <button
+            *ngFor="let cat of categories"
+            class="btn btn-sm category-filter-btn me-1 mb-1"
+            [class.active]="activeCategory === cat.key"
+            (click)="setCategory(cat.key)">
+            {{ cat.label }}
+            <span class="filter-count" *ngIf="getCategoryCountFor(cat.key) > 0">{{ getCategoryCountFor(cat.key) }}</span>
+          </button>
         </div>
 
         <!-- Laddar -->
@@ -195,29 +209,87 @@
         </div>
 
         <!-- Händelselista -->
-        <ul class="list-group list-group-flush" *ngIf="!loadingEvents && events.length > 0">
-          <li *ngFor="let e of events"
+        <ul class="list-group list-group-flush" *ngIf="!loadingEvents && filteredEvents.length > 0">
+          <li *ngFor="let e of filteredEvents"
               class="list-group-item event-item"
               [ngClass]="'event-typ-' + e.typ"
+              [class.event-pinned]="e.pinned"
               style="background:transparent; border-color:#4a5568;">
+
+            <!-- Pinned-markering -->
+            <div class="pinned-bar" *ngIf="e.pinned">
+              <i class="fas fa-thumbtack me-1"></i>Fäst inlägg
+            </div>
+
             <div class="d-flex align-items-start justify-content-between gap-2">
+              <!-- Ikon -->
               <div class="event-icon-wrap me-2">
                 <i class="fas" [ngClass]="{
-                  'fa-trophy text-warning':    e.ikon === 'trophy',
-                  'fa-rocket text-info':        e.ikon === 'rocket',
-                  'fa-certificate text-success':e.ikon === 'certificate',
+                  'fa-trophy text-warning':              e.ikon === 'trophy',
+                  'fa-rocket text-info':                 e.ikon === 'rocket',
+                  'fa-certificate text-success':         e.ikon === 'certificate',
                   'fa-exclamation-triangle text-danger': e.ikon === 'exclamation-triangle',
-                  'fa-chart-bar text-primary':  e.ikon === 'chart-bar'
+                  'fa-chart-bar text-primary':           e.ikon === 'chart-bar',
+                  'fa-cog text-info':                    e.ikon === 'cog',
+                  'fa-info-circle text-secondary':       e.ikon === 'info-circle',
+                  'fa-bell text-warning':                e.ikon === 'bell'
                 }"></i>
               </div>
-              <span class="event-text flex-grow-1" style="color:#e2e8f0; font-size:0.9rem;">{{ e.text }}</span>
-              <small class="event-datum text-muted text-nowrap" style="font-size:0.78rem; min-width:65px; text-align:right;">{{ e.datum }}</small>
+
+              <!-- Text + kategori-badge + läs-mer -->
+              <div class="flex-grow-1">
+                <!-- Kategori-badge -->
+                <span [ngClass]="getCategoryClass(e.category)" class="me-2">
+                  <i class="fas fa-star me-1" *ngIf="e.category === 'viktig'" style="font-size:0.65rem;"></i>
+                  {{ getCategoryLabel(e.category) }}
+                </span>
+
+                <!-- Brödtext med expandering -->
+                <span class="event-text" style="color:#e2e8f0; font-size:0.9rem;">
+                  <ng-container *ngIf="!isExpanded(e)">{{ truncate(e.text, 200) }}</ng-container>
+                  <ng-container *ngIf="isExpanded(e)">{{ e.text }}</ng-container>
+                </span>
+
+                <!-- Läs mer / Visa mindre -->
+                <button
+                  *ngIf="needsTruncation(e.text, 200)"
+                  class="btn btn-link btn-sm p-0 ms-1 read-more-btn"
+                  (click)="toggleExpand(e)">
+                  {{ isExpanded(e) ? 'Visa mindre' : 'Läs mer' }}
+                </button>
+
+                <!-- Reaktionsknappar (bara för nyheter med id) -->
+                <div class="reaction-buttons mt-1" *ngIf="e.id !== null">
+                  <button
+                    class="btn btn-xs reaction-btn me-1"
+                    [class.reaction-liked]="isLiked(e.id)"
+                    (click)="toggleLike(e.id)"
+                    title="Gilla">
+                    <i class="fas fa-thumbs-up me-1"></i>Gilla
+                  </button>
+                  <button
+                    class="btn btn-xs reaction-btn"
+                    [class.reaction-acked]="isAcked(e.id)"
+                    (click)="toggleAck(e.id)"
+                    title="Noterat">
+                    <i class="fas fa-check me-1"></i>Noterat
+                  </button>
+                </div>
+              </div>
+
+              <!-- Tid -->
+              <div class="event-time-col text-end" style="min-width:80px;">
+                <small class="event-datum text-muted text-nowrap d-block" style="font-size:0.78rem;">
+                  {{ timeAgo(e.datetime ?? e.datum) }}
+                </small>
+                <small class="text-muted d-block" style="font-size:0.7rem; opacity:0.6;">{{ e.datum }}</small>
+              </div>
             </div>
           </li>
         </ul>
 
         <!-- Inga händelser -->
-        <p *ngIf="!loadingEvents && events.length === 0"
+        <p *ngIf="!loadingEvents && filteredEvents.length === 0"
            class="text-muted text-center py-4 mb-0 small">
           Inga händelser att visa för tillfället.
         </p>

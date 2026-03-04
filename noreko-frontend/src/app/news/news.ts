@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { of, Subject } from 'rxjs';
@@ -10,16 +10,22 @@ import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService } from '../services/auth.service';
 
 export interface NewsEvent {
+  id: number | null;
   typ: string;
   datum: string;
+  datetime?: string;
   text: string;
   ikon: string;
+  category: string;
+  pinned: boolean;
 }
+
+export type NewsCategory = 'alla' | 'produktion' | 'bonus' | 'system' | 'info' | 'viktig';
 
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, RouterModule, DatePipe],
+  imports: [CommonModule, RouterModule],
   templateUrl: './news.html',
   styleUrl: './news.css'
 })
@@ -58,7 +64,24 @@ export class News implements OnInit, OnDestroy {
 
   // Senaste händelser
   events: NewsEvent[] = [];
+  filteredEvents: NewsEvent[] = [];
   loadingEvents = true;
+  activeCategory: NewsCategory = 'alla';
+
+  readonly categories: { key: NewsCategory; label: string }[] = [
+    { key: 'alla',        label: 'Alla' },
+    { key: 'produktion',  label: 'Produktion' },
+    { key: 'bonus',       label: 'Bonus' },
+    { key: 'system',      label: 'System' },
+    { key: 'info',        label: 'Info' },
+    { key: 'viktig',      label: 'Viktig' },
+  ];
+
+  // Reaktioner (sparas i localStorage)
+  reactions: Record<number, { liked: boolean; acked: boolean }> = {};
+
+  // Expanderade nyheter (läs-mer)
+  expandedIds = new Set<number | string>();
 
   private apiBase = '/api/api.php';
 
@@ -76,6 +99,8 @@ export class News implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    this.loadReactions();
+
     this.intervalId = setInterval(() => {
       this.fetchAllData();
     }, 5000);
@@ -113,7 +138,6 @@ export class News implements OnInit, OnDestroy {
       if (res && res.success && res.data) {
         this.rebotlingToday = res.data.ibcToday || 0;
         this.rebotlingTarget = res.data.rebotlingTarget || 0;
-        // Visa daglig måluppfyllnad (idag vs dagsmål), inte timeffektivitet
         this.rebotlingPercentage = this.rebotlingTarget > 0
           ? Math.round((this.rebotlingToday / this.rebotlingTarget) * 100) : 0;
       }
@@ -184,17 +208,140 @@ export class News implements OnInit, OnDestroy {
 
   loadEvents() {
     this.http.get<{ success: boolean; events: NewsEvent[] }>(
-      `${this.apiBase}?action=news&run=events&antal=10`
+      `${this.apiBase}?action=news&run=events&antal=15`
     ).pipe(
-      timeout(5000),
+      timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
     ).subscribe(res => {
       this.loadingEvents = false;
       if (res?.success && Array.isArray(res.events)) {
         this.events = res.events;
+        this.applyFilter();
       }
     });
+  }
+
+  // --- Kategorifiltrering ---
+
+  setCategory(cat: NewsCategory): void {
+    this.activeCategory = cat;
+    this.applyFilter();
+  }
+
+  private applyFilter(): void {
+    if (this.activeCategory === 'alla') {
+      this.filteredEvents = this.events;
+    } else {
+      this.filteredEvents = this.events.filter(e => e.category === this.activeCategory);
+    }
+  }
+
+  getCategoryCountFor(cat: NewsCategory): number {
+    if (cat === 'alla') return this.events.length;
+    return this.events.filter(e => e.category === cat).length;
+  }
+
+  // --- Reaktioner (localStorage) ---
+
+  loadReactions(): void {
+    try {
+      const stored = localStorage.getItem('news_reactions');
+      if (stored) this.reactions = JSON.parse(stored);
+    } catch {
+      this.reactions = {};
+    }
+  }
+
+  private saveReactions(): void {
+    localStorage.setItem('news_reactions', JSON.stringify(this.reactions));
+  }
+
+  toggleLike(id: number | null): void {
+    if (id === null) return;
+    if (!this.reactions[id]) this.reactions[id] = { liked: false, acked: false };
+    this.reactions[id].liked = !this.reactions[id].liked;
+    this.saveReactions();
+  }
+
+  toggleAck(id: number | null): void {
+    if (id === null) return;
+    if (!this.reactions[id]) this.reactions[id] = { liked: false, acked: false };
+    this.reactions[id].acked = !this.reactions[id].acked;
+    this.saveReactions();
+  }
+
+  isLiked(id: number | null): boolean {
+    if (id === null) return false;
+    return this.reactions[id]?.liked ?? false;
+  }
+
+  isAcked(id: number | null): boolean {
+    if (id === null) return false;
+    return this.reactions[id]?.acked ?? false;
+  }
+
+  // --- Läs-mer / expandera ---
+
+  eventKey(e: NewsEvent): number | string {
+    return e.id !== null ? e.id : (e.typ + '_' + e.datum);
+  }
+
+  isExpanded(e: NewsEvent): boolean {
+    return this.expandedIds.has(this.eventKey(e));
+  }
+
+  toggleExpand(e: NewsEvent): void {
+    const key = this.eventKey(e);
+    if (this.expandedIds.has(key)) {
+      this.expandedIds.delete(key);
+    } else {
+      this.expandedIds.add(key);
+    }
+  }
+
+  truncate(text: string, len = 200): string {
+    return text.length > len ? text.slice(0, len) + '...' : text;
+  }
+
+  needsTruncation(text: string, len = 200): boolean {
+    return text.length > len;
+  }
+
+  // --- Relativ tid ---
+
+  timeAgo(dateStr: string): string {
+    if (!dateStr) return '';
+    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+    if (diff < 60) return 'Just nu';
+    if (diff < 3600) return `${Math.floor(diff / 60)} min sedan`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} h sedan`;
+    const d = Math.floor(diff / 86400);
+    return d === 1 ? 'Igår' : `${d} dagar sedan`;
+  }
+
+  // --- Hjälpmetoder för kategori-badge ---
+
+  getCategoryLabel(cat: string): string {
+    const labels: Record<string, string> = {
+      produktion: 'Produktion',
+      bonus:      'Bonus',
+      system:     'System',
+      info:       'Info',
+      viktig:     'Viktig',
+    };
+    return labels[cat] ?? cat;
+  }
+
+  getCategoryClass(cat: string): string {
+    const classes: Record<string, string> = {
+      produktion: 'badge-cat-produktion',
+      bonus:      'badge-cat-bonus',
+      system:     'badge-cat-system',
+      info:       'badge-cat-info',
+      viktig:     'badge-cat-viktig',
+    };
+    return 'badge-category ' + (classes[cat] ?? 'badge-cat-info');
   }
 
   getPercentageClass(pct: number): string {

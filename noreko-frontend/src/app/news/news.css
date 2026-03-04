@@ -142,11 +142,11 @@
   .dashboard-card {
     min-height: 320px;
   }
-  
+
   .line-name {
     font-size: 1.3rem;
   }
-  
+
   .stat-value {
     font-size: 1.7rem;
   }
@@ -156,11 +156,11 @@
   .dashboard-title {
     font-size: 2rem;
   }
-  
+
   .dashboard-card {
     min-height: 300px;
   }
-  
+
   .speedometer-container svg {
     max-width: 150px;
   }
@@ -170,25 +170,25 @@
   .dashboard-page {
     padding: 1rem 0.5rem;
   }
-  
+
   .dashboard-title {
     font-size: 1.8rem;
     margin-bottom: 1.5rem;
   }
-  
+
   .dashboard-card {
     padding: 1rem;
     min-height: 280px;
   }
-  
+
   .line-name {
     font-size: 1.2rem;
   }
-  
+
   .stat-value {
     font-size: 1.5rem;
   }
-  
+
   .speedometer-container svg {
     max-width: 120px;
   }
@@ -262,24 +262,53 @@
 }
 
 
+/* =========================================
+   Nyhetsflöde / Händelser
+   ========================================= */
 
-
-
-
-
-
-
-
-
-
-
-
-
-/* Senaste händelser */
 .events-section {
   max-width: 1400px;
 }
 
+/* --- Kategorifilter-knappar --- */
+.category-filter-bar {
+  background: rgba(0,0,0,0.15);
+  border-bottom: 1px solid #4a5568;
+}
+
+.category-filter-btn {
+  background: transparent;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.75rem;
+  transition: all 0.15s;
+}
+
+.category-filter-btn:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.category-filter-btn.active {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+  font-weight: 600;
+}
+
+.filter-count {
+  display: inline-block;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+  font-size: 0.7rem;
+  padding: 0 5px;
+  margin-left: 3px;
+  vertical-align: middle;
+}
+
+/* --- Händelserad --- */
 .event-item {
   transition: background 0.15s;
   padding: 0.85rem 1.25rem;
@@ -287,6 +316,20 @@
 
 .event-item:hover {
   background: rgba(255,255,255,0.04) !important;
+}
+
+/* Pinnerade nyheter: gul kant */
+.event-pinned {
+  border-left: 3px solid #f6c90e !important;
+  background: rgba(246, 201, 14, 0.04) !important;
+}
+
+.pinned-bar {
+  font-size: 0.72rem;
+  color: #f6c90e;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .event-icon-wrap {
@@ -300,13 +343,113 @@
   line-height: 1.4;
 }
 
-.event-datum {
-  padding-top: 1px;
+.event-time-col {
+  flex-shrink: 0;
 }
 
-/* Färgkodade vänsterborder per händelsetyp */
-.event-typ-rekordag    { border-left: 3px solid #f6e05e !important; }
-.event-typ-hog_oee     { border-left: 3px solid #63b3ed !important; }
-.event-typ-certifiering{ border-left: 3px solid #68d391 !important; }
-.event-typ-urgent_note { border-left: 3px solid #fc8181 !important; }
-.event-typ-produktion  { border-left: 3px solid #667eea !important; }
+/* --- Kategori-badges --- */
+.badge-category {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.2em 0.55em;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+.badge-cat-produktion {
+  background: rgba(56, 178, 97, 0.2);
+  color: #68d391;
+  border: 1px solid rgba(56, 178, 97, 0.4);
+}
+
+.badge-cat-bonus {
+  background: rgba(246, 201, 14, 0.15);
+  color: #f6c90e;
+  border: 1px solid rgba(246, 201, 14, 0.35);
+}
+
+.badge-cat-system {
+  background: rgba(99, 179, 237, 0.15);
+  color: #63b3ed;
+  border: 1px solid rgba(99, 179, 237, 0.35);
+}
+
+.badge-cat-info {
+  background: rgba(160, 174, 192, 0.12);
+  color: #a0aec0;
+  border: 1px solid rgba(160, 174, 192, 0.3);
+}
+
+.badge-cat-viktig {
+  background: rgba(245, 101, 101, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(245, 101, 101, 0.4);
+}
+
+/* --- Läs-mer-knapp --- */
+.read-more-btn {
+  font-size: 0.78rem;
+  color: #63b3ed;
+  text-decoration: none;
+  vertical-align: baseline;
+  line-height: 1;
+}
+
+.read-more-btn:hover {
+  color: #90cdf4;
+  text-decoration: underline;
+}
+
+/* --- Reaktionsknappar --- */
+.reaction-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-xs {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  line-height: 1.4;
+}
+
+.reaction-btn {
+  background: transparent;
+  border: 1px solid #4a5568;
+  color: #718096;
+  transition: all 0.15s;
+}
+
+.reaction-btn:hover {
+  border-color: #718096;
+  color: #a0aec0;
+}
+
+.reaction-liked {
+  background: rgba(99, 179, 237, 0.15) !important;
+  border-color: #63b3ed !important;
+  color: #63b3ed !important;
+}
+
+.reaction-acked {
+  background: rgba(56, 178, 97, 0.15) !important;
+  border-color: #68d391 !important;
+  color: #68d391 !important;
+}
+
+/* --- Händelsetyp vänsterborder (befintliga + utökade) --- */
+.event-typ-rekordag      { border-left: 3px solid #f6e05e !important; }
+.event-typ-hog_oee       { border-left: 3px solid #63b3ed !important; }
+.event-typ-certifiering  { border-left: 3px solid #68d391 !important; }
+.event-typ-urgent_note   { border-left: 3px solid #fc8181 !important; }
+.event-typ-produktion    { border-left: 3px solid #667eea !important; }
+.event-typ-news_produktion { border-left: 3px solid #68d391 !important; }
+.event-typ-news_bonus    { border-left: 3px solid #f6c90e !important; }
+.event-typ-news_system   { border-left: 3px solid #63b3ed !important; }
+.event-typ-news_info     { border-left: 3px solid #a0aec0 !important; }
+.event-typ-news_viktig   { border-left: 3px solid #fc8181 !important; }
