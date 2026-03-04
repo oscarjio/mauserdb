@@ -11,7 +11,7 @@
           </h2>
           <small class="text-muted">Registrera och analysera produktionsstopp</small>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
           <select class="form-select form-select-sm filter-select" [(ngModel)]="selectedLine" (change)="onFilterChange()">
             <option value="rebotling">Rebotling</option>
             <option value="tvattlinje">Tvättlinje</option>
@@ -108,6 +108,9 @@
     </div>
     <div class="alert alert-danger mb-3" *ngIf="errorMessage">
       <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+      <button type="button" class="btn-close-inline ms-2" (click)="errorMessage=''">
+        <i class="fas fa-times"></i>
+      </button>
     </div>
 
     <!-- Tabs -->
@@ -177,6 +180,175 @@
     <!-- LOG TAB -->
     <div *ngIf="activeTab === 'log'">
 
+      <!-- Advanced filter bar -->
+      <div class="filter-bar mb-3">
+        <div class="filter-bar-inner">
+          <!-- Quick period buttons -->
+          <div class="filter-group">
+            <span class="filter-label"><i class="fas fa-calendar-alt me-1"></i>Snabbval:</span>
+            <div class="btn-group btn-group-sm">
+              <button class="btn" [class.btn-primary]="selectedPeriod === 'today' && !filterFromDate"
+                      [class.btn-outline-secondary]="!(selectedPeriod === 'today' && !filterFromDate)"
+                      (click)="setQuickPeriod('today')">Idag</button>
+              <button class="btn" [class.btn-primary]="selectedPeriod === 'week' && !filterFromDate"
+                      [class.btn-outline-secondary]="!(selectedPeriod === 'week' && !filterFromDate)"
+                      (click)="setQuickPeriod('week')">Denna vecka</button>
+              <button class="btn" [class.btn-primary]="selectedPeriod === 'month' && !filterFromDate"
+                      [class.btn-outline-secondary]="!(selectedPeriod === 'month' && !filterFromDate)"
+                      (click)="setQuickPeriod('month')">Senaste 30 dagar</button>
+            </div>
+          </div>
+
+          <!-- Date range -->
+          <div class="filter-group">
+            <span class="filter-label"><i class="fas fa-calendar me-1"></i>Datumintervall:</span>
+            <div class="date-range-inputs">
+              <input type="date" class="form-control form-control-sm date-input"
+                     [(ngModel)]="filterFromDate" placeholder="Fr.o.m">
+              <span class="date-sep">—</span>
+              <input type="date" class="form-control form-control-sm date-input"
+                     [(ngModel)]="filterToDate" placeholder="T.o.m">
+              <button class="btn btn-sm btn-outline-secondary" *ngIf="filterFromDate || filterToDate"
+                      (click)="clearDateFilter()" title="Rensa datumfilter">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Category filter -->
+          <div class="filter-group">
+            <span class="filter-label"><i class="fas fa-tag me-1"></i>Kategori:</span>
+            <select class="form-select form-select-sm filter-select-sm" [(ngModel)]="filterCategory">
+              <option value="">Alla kategorier</option>
+              <option value="unplanned">Oplanerat</option>
+              <option value="planned">Planerat</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact stats summary bar (filtrated data) -->
+      <div class="stats-summary-bar mb-3" *ngIf="filteredStoppages.length > 0">
+        <div class="stats-summary-item">
+          <span class="stats-summary-icon"><i class="fas fa-list-ol"></i></span>
+          <span class="stats-summary-val">{{ filteredStoppages.length }}</span>
+          <span class="stats-summary-lbl">händelser</span>
+        </div>
+        <div class="stats-summary-sep"></div>
+        <div class="stats-summary-item">
+          <span class="stats-summary-icon text-danger"><i class="fas fa-clock"></i></span>
+          <span class="stats-summary-val">{{ formatDuration(getTotalDowntimeFiltered()) }}</span>
+          <span class="stats-summary-lbl">total stopptid</span>
+        </div>
+        <div class="stats-summary-sep"></div>
+        <div class="stats-summary-item">
+          <span class="stats-summary-icon text-warning"><i class="fas fa-ruler-horizontal"></i></span>
+          <span class="stats-summary-val">{{ getAvgDuration() > 0 ? getAvgDuration() + ' min' : '—' }}</span>
+          <span class="stats-summary-lbl">snitt/händelse</span>
+        </div>
+        <div class="stats-summary-sep" *ngIf="getMostCommonReason()"></div>
+        <div class="stats-summary-item" *ngIf="getMostCommonReason() as mcr">
+          <span class="stats-summary-icon text-info"><i class="fas fa-fire"></i></span>
+          <span class="stats-summary-val">{{ mcr.name }}</span>
+          <span class="stats-summary-lbl">vanligast ({{ mcr.count }}×)</span>
+        </div>
+      </div>
+
+
+      <!-- Mönster & Analys — Collapsible Section -->
+      <div class="pattern-section mb-4">
+        <div class="pattern-header" (click)="togglePatternSection()" role="button" [attr.aria-expanded]="patternOpen">
+          <span class="pattern-header-icon">
+            <i class="fas fa-search-plus"></i>
+          </span>
+          <span class="pattern-header-title">Mönster &amp; Analys</span>
+          <span class="pattern-header-badge" *ngIf="patternData?.repeat_stoppages?.length > 0">
+            {{ patternData.repeat_stoppages.length }} varning{{ patternData.repeat_stoppages.length > 1 ? 'ar' : '' }}
+          </span>
+          <span class="ms-auto pattern-chevron" [class.open]="patternOpen">
+            <i class="fas fa-chevron-down"></i>
+          </span>
+        </div>
+
+        <div class="pattern-body" [class.open]="patternOpen">
+          <!-- Loading -->
+          <div class="text-center py-4" *ngIf="patternLoading">
+            <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+            <span class="ms-2 text-muted">Analyserar mönster...</span>
+          </div>
+
+          <div *ngIf="!patternLoading && patternData">
+
+            <!-- 1. Återkommande stopp -->
+            <div class="pattern-block">
+              <div class="pattern-block-title">
+                <span class="text-danger"><i class="fas fa-redo me-2"></i>Återkommande stopp</span>
+                <span class="text-muted" style="font-size:0.8rem; font-weight:400;"> — senaste 7 dagar</span>
+              </div>
+
+              <!-- No repeats = good -->
+              <div class="pattern-no-issues" *ngIf="patternData.repeat_stoppages.length === 0">
+                <i class="fas fa-check-circle text-success me-2"></i>
+                Inga återkommande stopp-mönster hittades!
+              </div>
+
+              <!-- Repeat cards -->
+              <div class="repeat-cards" *ngIf="patternData.repeat_stoppages.length > 0">
+                <div class="repeat-card" *ngFor="let r of patternData.repeat_stoppages">
+                  <div class="repeat-card-main">
+                    <span class="repeat-card-name">{{ r.orsak || 'Okänd orsak' }}</span>
+                    <span class="repeat-card-count">{{ r.antal_7d }} gånger</span>
+                    <span class="repeat-card-time" *ngIf="r.snitt_tid">snitt {{ r.snitt_tid | number:'1.0-0' }} min</span>
+                  </div>
+                  <div class="repeat-card-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>Ej åtgärdat mönster
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Fördelning per timme -->
+            <div class="pattern-block">
+              <div class="pattern-block-title">
+                <span class="text-info"><i class="fas fa-clock me-2"></i>Fördelning per timme</span>
+                <span class="text-muted" style="font-size:0.8rem; font-weight:400;"> — senaste {{ patternData.period_days }} dagarna</span>
+              </div>
+              <div class="chart-container" style="height:160px; position:relative;">
+                <canvas id="hourlyChart"></canvas>
+              </div>
+              <div class="hourly-legend">
+                <span class="hourly-legend-dot peak"></span> Peak-stoptimmar (röd)
+                <span class="hourly-legend-dot normal ms-3"></span> Övriga timmar
+              </div>
+            </div>
+
+            <!-- 3. Kostsammaste orsaker -->
+            <div class="pattern-block" *ngIf="patternData.costly_reasons?.length > 0">
+              <div class="pattern-block-title">
+                <span class="text-warning"><i class="fas fa-coins me-2"></i>Kostsammaste orsaker (topp 5)</span>
+                <span class="text-muted" style="font-size:0.8rem; font-weight:400;"> — senaste {{ patternData.period_days }} dagarna</span>
+              </div>
+              <div class="costly-list">
+                <div class="costly-row" *ngFor="let c of patternData.costly_reasons; let i = index">
+                  <div class="costly-rank">{{ i + 1 }}</div>
+                  <div class="costly-info">
+                    <div class="costly-name">{{ c.orsak }}</div>
+                    <div class="costly-bar-wrap">
+                      <div class="costly-bar-fill" [style.width.%]="getCostlyBarWidth(c.total_min, getMaxCostlyMin())"></div>
+                    </div>
+                  </div>
+                  <div class="costly-stats">
+                    <span class="costly-total">{{ c.total_min }} min</span>
+                    <span class="costly-count text-muted">{{ c.antal }} stopp</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
       <!-- Loading -->
       <div class="text-center py-5" *ngIf="loading">
         <div class="spinner-border text-primary" role="status">
@@ -188,7 +360,10 @@
       <!-- Stoppage Table -->
       <div class="dark-card" *ngIf="!loading && stoppages.length > 0">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <h5 class="mb-0"><i class="fas fa-table me-2"></i>Stopporsaker ({{ filteredStoppages.length }}<span *ngIf="searchQuery"> av {{ stoppages.length }}</span>)</h5>
+          <h5 class="mb-0">
+            <i class="fas fa-table me-2"></i>
+            Stopporsaker ({{ filteredStoppages.length }}<span *ngIf="searchQuery || filterCategory || filterFromDate || filterToDate"> av {{ stoppages.length }}</span>)
+          </h5>
           <div class="search-box">
             <i class="fas fa-search search-icon"></i>
             <input type="text" class="form-control form-control-sm" placeholder="Sök orsak, kommentar, användare..."
@@ -207,43 +382,94 @@
                   <th class="sortable text-end" (click)="toggleSort('duration_minutes')">Varaktighet <i [class]="getSortIcon('duration_minutes')"></i></th>
                   <th>Kommentar</th>
                   <th class="sortable" (click)="toggleSort('user_name')">Användare <i [class]="getSortIcon('user_name')"></i></th>
-                  <th *ngIf="loggedIn"></th>
+                  <th *ngIf="loggedIn" class="text-center">Åtgärd</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of filteredStoppages">
-                  <td>
-                    <span class="reason-badge" [style.borderLeftColor]="s.color">
-                      {{ s.reason_name }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="category-tag" [class.planned]="s.category === 'planned'" [class.unplanned]="s.category === 'unplanned'">
-                      {{ s.category === 'planned' ? 'Planerat' : 'Oplanerat' }}
-                    </span>
-                  </td>
-                  <td class="text-nowrap">{{ s.start_time | date:'yyyy-MM-dd HH:mm' }}</td>
-                  <td class="text-nowrap">
-                    <span *ngIf="s.end_time">{{ s.end_time | date:'yyyy-MM-dd HH:mm' }}</span>
-                    <span *ngIf="!s.end_time" class="text-warning"><i class="fas fa-spinner fa-spin me-1"></i>Pågår</span>
-                  </td>
-                  <td class="text-end text-nowrap">
-                    <strong>{{ formatDuration(s.duration_minutes) }}</strong>
-                  </td>
-                  <td class="comment-cell">{{ s.comment }}</td>
-                  <td>{{ s.user_name }}</td>
-                  <td *ngIf="loggedIn">
-                    <button class="btn btn-sm btn-outline-danger" *ngIf="canEdit(s)" (click)="deleteStoppage(s.id)" title="Ta bort"
-                            aria-label="Ta bort stoppost">
-                      <i class="fas fa-trash-alt"></i>
-                    </button>
-                  </td>
-                </tr>
+                <ng-container *ngFor="let s of filteredStoppages">
+                  <!-- Normal view row -->
+                  <tr *ngIf="editingId !== s.id">
+                    <td>
+                      <span class="reason-badge" [style.borderLeftColor]="s.color">
+                        {{ s.reason_name }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="category-tag" [class.planned]="s.category === 'planned'" [class.unplanned]="s.category === 'unplanned'">
+                        {{ s.category === 'planned' ? 'Planerat' : 'Oplanerat' }}
+                      </span>
+                    </td>
+                    <td class="text-nowrap">{{ s.start_time | date:'yyyy-MM-dd HH:mm' }}</td>
+                    <td class="text-nowrap">
+                      <span *ngIf="s.end_time">{{ s.end_time | date:'yyyy-MM-dd HH:mm' }}</span>
+                      <span *ngIf="!s.end_time" class="text-warning"><i class="fas fa-spinner fa-spin me-1"></i>Pågår</span>
+                    </td>
+                    <td class="text-end text-nowrap">
+                      <div class="duration-cell">
+                        <strong>{{ formatDuration(s.duration_minutes) }}</strong>
+                        <span class="duration-badge" [ngClass]="getDurationBadge(s.duration_minutes).cls">
+                          {{ getDurationBadge(s.duration_minutes).label }}
+                        </span>
+                      </div>
+                    </td>
+                    <td class="comment-cell">{{ s.comment }}</td>
+                    <td>{{ s.user_name }}</td>
+                    <td *ngIf="loggedIn" class="action-cell">
+                      <div class="action-buttons">
+                        <button class="btn btn-sm btn-outline-primary" *ngIf="canEdit(s)" (click)="startEdit(s)" title="Redigera"
+                                aria-label="Redigera stoppost">
+                          <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" *ngIf="canEdit(s)" (click)="deleteStoppage(s.id)" title="Ta bort"
+                                aria-label="Ta bort stoppost">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Inline edit row -->
+                  <tr *ngIf="editingId === s.id" class="edit-row">
+                    <td colspan="2">
+                      <span class="reason-badge" [style.borderLeftColor]="s.color">{{ s.reason_name }}</span>
+                      <span class="ms-2 text-muted" style="font-size:0.78rem;">{{ s.start_time | date:'yyyy-MM-dd HH:mm' }}</span>
+                    </td>
+                    <td colspan="2" class="text-muted" style="font-size:0.85rem;">
+                      <em>Redigerar rad #{{ s.id }}</em>
+                    </td>
+                    <td class="text-end">
+                      <div class="inline-edit-field">
+                        <label class="inline-edit-label">Varaktighet (min)</label>
+                        <input type="number" class="form-control form-control-sm inline-input"
+                               [(ngModel)]="editDuration" min="0" placeholder="min">
+                      </div>
+                    </td>
+                    <td>
+                      <div class="inline-edit-field">
+                        <label class="inline-edit-label">Kommentar</label>
+                        <input type="text" class="form-control form-control-sm inline-input"
+                               [(ngModel)]="editComment" placeholder="Kommentar...">
+                      </div>
+                    </td>
+                    <td>{{ s.user_name }}</td>
+                    <td *ngIf="loggedIn" class="action-cell">
+                      <div class="action-buttons">
+                        <button class="btn btn-sm btn-success" (click)="saveEdit(s)"
+                                [disabled]="savingId === s.id" title="Spara">
+                          <i class="fas" [ngClass]="savingId === s.id ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()" title="Avbryt">
+                          <i class="fas fa-times"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
               </tbody>
               <tfoot>
                 <tr class="summary-row">
                   <td colspan="4"><strong>Totalt ({{ filteredStoppages.length }} poster)</strong></td>
-                  <td class="text-end"><strong>{{ formatDuration(getTotalDowntime()) }}</strong></td>
+                  <td class="text-end"><strong>{{ formatDuration(getTotalDowntimeFiltered()) }}</strong></td>
                   <td colspan="2"></td>
                   <td *ngIf="loggedIn"></td>
                 </tr>
@@ -258,6 +484,15 @@
         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
         <h5>Inga registrerade stopp</h5>
         <p class="text-muted">Inga stopporsaker hittades för vald period och linje.</p>
+      </div>
+
+      <!-- Active filters showing but no results -->
+      <div class="dark-card text-center py-4 mt-2" *ngIf="!loading && stoppages.length > 0 && filteredStoppages.length === 0">
+        <i class="fas fa-filter fa-2x text-muted mb-2"></i>
+        <p class="text-muted mb-1">Inga poster matchar nuvarande filter.</p>
+        <button class="btn btn-sm btn-outline-light" (click)="filterFromDate=''; filterToDate=''; filterCategory=''; searchQuery=''">
+          <i class="fas fa-times me-1"></i>Rensa filter
+        </button>
       </div>
     </div>
 

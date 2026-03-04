@@ -92,4 +92,8 @@ export class StoppageService {
   getPareto(line: string = 'rebotling', dagar: number = 30): Observable<{ success: boolean } & ParetoData> {
     return this.http.get<any>(`${this.base}&run=pareto&line=${line}&dagar=${dagar}`, { withCredentials: true });
   }
+
+  getPatternAnalysis(line: string = 'rebotling', days: number = 30): Observable<any> {
+    return this.http.get<any>(`${this.base}&run=pattern-analysis&line=${line}&days=${days}`, { withCredentials: true });
+  }
 }

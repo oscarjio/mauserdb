@@ -49,6 +49,8 @@ class StoppageController {
                 $this->getWeeklySummary();
             } elseif ($run === 'pareto') {
                 $this->getPareto();
+            } elseif ($run === 'pattern-analysis') {
+                $this->getPatternAnalysis();
             } else {
                 $this->getStoppages();
             }
@@ -435,6 +437,109 @@ class StoppageController {
             error_log('getPareto: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte hämta Pareto-data']);
+        }
+    }
+
+
+    private function getPatternAnalysis() {
+        try {
+            $line = $_GET['line'] ?? 'rebotling';
+            if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
+            $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+
+            // 1. Återkommande stopp — orsaker som inträffat 3+ gånger på 7 dagar
+            $stmtRepeat = $this->pdo->prepare("
+                SELECT s.reason_id, r.name AS orsak, r.category,
+                    COUNT(*) AS antal_7d,
+                    ROUND(AVG(s.duration_minutes), 1) AS snitt_tid,
+                    MIN(s.created_at) AS forsta,
+                    MAX(s.created_at) AS senaste
+                FROM stoppage_log s
+                LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
+                WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                  AND s.line = ?
+                GROUP BY s.reason_id, r.name, r.category
+                HAVING COUNT(*) >= 3
+                ORDER BY antal_7d DESC
+            ");
+            $stmtRepeat->execute([$line]);
+            $repeatStoppages = $stmtRepeat->fetchAll(PDO::FETCH_ASSOC);
+
+            // Cast number fields
+            foreach ($repeatStoppages as &$r) {
+                $r['antal_7d'] = (int)$r['antal_7d'];
+                $r['snitt_tid'] = $r['snitt_tid'] !== null ? (float)$r['snitt_tid'] : null;
+                $r['reason_id'] = (int)$r['reason_id'];
+            }
+            unset($r);
+
+            // 2. Fördelning av stopp per timme (0-23)
+            $stmtHourly = $this->pdo->prepare("
+                SELECT HOUR(created_at) AS timme,
+                    COUNT(*) AS antal,
+                    ROUND(AVG(duration_minutes), 1) AS snitt_min
+                FROM stoppage_log
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  AND line = ?
+                GROUP BY HOUR(created_at)
+                ORDER BY timme
+            ");
+            $stmtHourly->execute([$days, $line]);
+            $hourlyRaw = $stmtHourly->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fill all 24 hours
+            $hourlyDistribution = [];
+            $hourlyMap = [];
+            foreach ($hourlyRaw as $row) {
+                $hourlyMap[(int)$row['timme']] = $row;
+            }
+            for ($h = 0; $h < 24; $h++) {
+                if (isset($hourlyMap[$h])) {
+                    $hourlyDistribution[] = [
+                        'timme' => $h,
+                        'antal' => (int)$hourlyMap[$h]['antal'],
+                        'snitt_min' => $hourlyMap[$h]['snitt_min'] !== null ? (float)$hourlyMap[$h]['snitt_min'] : null,
+                    ];
+                } else {
+                    $hourlyDistribution[] = ['timme' => $h, 'antal' => 0, 'snitt_min' => null];
+                }
+            }
+
+            // 3. Kostsammaste orsaker — topp 5 per total stopptid
+            $stmtCostly = $this->pdo->prepare("
+                SELECT COALESCE(r.name, 'Okänd') AS orsak, r.category,
+                    COUNT(*) AS antal,
+                    COALESCE(SUM(s.duration_minutes), 0) AS total_min
+                FROM stoppage_log s
+                LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
+                WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  AND s.line = ?
+                GROUP BY r.id, COALESCE(r.name, 'Okänd')
+                ORDER BY total_min DESC
+                LIMIT 5
+            ");
+            $stmtCostly->execute([$days, $line]);
+            $costlyReasons = $stmtCostly->fetchAll(PDO::FETCH_ASSOC);
+
+            $totalMin = array_sum(array_column($costlyReasons, 'total_min'));
+            foreach ($costlyReasons as &$c) {
+                $c['antal'] = (int)$c['antal'];
+                $c['total_min'] = (int)$c['total_min'];
+                $c['pct'] = $totalMin > 0 ? round($c['total_min'] / $totalMin * 100, 1) : 0;
+            }
+            unset($c);
+
+            echo json_encode([
+                'success' => true,
+                'repeat_stoppages' => $repeatStoppages,
+                'hourly_distribution' => $hourlyDistribution,
+                'costly_reasons' => $costlyReasons,
+                'period_days' => $days,
+            ]);
+        } catch (PDOException $e) {
+            error_log('getPatternAnalysis: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta mönsteranalys']);
         }
     }
 

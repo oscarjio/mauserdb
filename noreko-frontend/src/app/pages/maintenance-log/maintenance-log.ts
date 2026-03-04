@@ -339,20 +339,20 @@ interface EquipmentSummary {
                   </span>
                 </td>
                 <td class="text-end">
-                  <span *ngIf="+row.antal_handelser > 0" class="text-warning fw-bold">{{ row.antal_handelser }}</span>
-                  <span *ngIf="+row.antal_handelser === 0" class="text-muted">0</span>
+                  <span *ngIf="row.antal_handelser > 0" class="text-warning fw-bold">{{ row.antal_handelser }}</span>
+                  <span *ngIf="row.antal_handelser === 0" class="text-muted">0</span>
                 </td>
                 <td class="text-end">
-                  <span *ngIf="+row.total_driftstopp_min > 0" class="text-danger">{{ formatDuration(+row.total_driftstopp_min) }}</span>
-                  <span *ngIf="+row.total_driftstopp_min === 0" class="text-muted">—</span>
+                  <span *ngIf="row.total_driftstopp_min > 0" class="text-danger">{{ formatDuration(row.total_driftstopp_min) }}</span>
+                  <span *ngIf="row.total_driftstopp_min === 0" class="text-muted">—</span>
                 </td>
                 <td class="text-end text-muted">
-                  <span *ngIf="+row.snitt_driftstopp_min > 0">{{ formatDuration(Math.round(+row.snitt_driftstopp_min)) }}</span>
-                  <span *ngIf="+row.snitt_driftstopp_min === 0">—</span>
+                  <span *ngIf="row.snitt_driftstopp_min > 0">{{ formatDuration(Math.round(row.snitt_driftstopp_min)) }}</span>
+                  <span *ngIf="row.snitt_driftstopp_min === 0">—</span>
                 </td>
                 <td class="text-end">
-                  <span *ngIf="+row.total_kostnad > 0" class="cost-item">{{ formatCost(+row.total_kostnad) }}</span>
-                  <span *ngIf="+row.total_kostnad === 0" class="text-muted">—</span>
+                  <span *ngIf="row.total_kostnad > 0" class="cost-item">{{ formatCost(row.total_kostnad) }}</span>
+                  <span *ngIf="row.total_kostnad === 0" class="text-muted">—</span>
                 </td>
                 <td class="text-muted small">
                   {{ row.senaste_handelse ? formatDateTime(row.senaste_handelse) : '—' }}

@@ -636,3 +636,476 @@
   color: #6b7280;
   border: 1px solid rgba(107, 114, 128, 0.25);
 }
+
+/* ── Filter bar ──────────────────────────────────────────────────────────── */
+
+.filter-bar {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+
+.filter-bar-inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  color: #a0aec0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.filter-select-sm {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+  min-width: 140px;
+  font-size: 0.85rem;
+}
+
+.filter-select-sm option {
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.date-input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e0e0e0;
+  min-width: 130px;
+  font-size: 0.85rem;
+}
+
+.date-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #00d4ff;
+  color: #fff;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+}
+
+.date-sep {
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+/* ── Stats summary bar ───────────────────────────────────────────────────── */
+
+.stats-summary-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  background: rgba(0, 212, 255, 0.05);
+  border: 1px solid rgba(0, 212, 255, 0.15);
+  border-radius: 10px;
+  padding: 0.6rem 1rem;
+}
+
+.stats-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.stats-summary-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0;
+}
+
+.stats-summary-icon {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+.stats-summary-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.stats-summary-lbl {
+  font-size: 0.78rem;
+  color: #718096;
+}
+
+/* ── Duration badge ──────────────────────────────────────────────────────── */
+
+.duration-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.duration-badge {
+  display: inline-block;
+  padding: 0.12rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+
+.duration-badge.badge-short {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.duration-badge.badge-medium {
+  background: rgba(234, 179, 8, 0.18);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.duration-badge.badge-long {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.duration-badge.badge-running {
+  background: rgba(249, 115, 22, 0.18);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+/* ── Inline editing ──────────────────────────────────────────────────────── */
+
+.edit-row td {
+  background: rgba(0, 212, 255, 0.04);
+  border-top: 2px solid rgba(0, 212, 255, 0.25);
+  border-bottom: 2px solid rgba(0, 212, 255, 0.25);
+}
+
+.inline-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inline-edit-label {
+  font-size: 0.7rem;
+  color: #718096;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.inline-input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+  color: #fff !important;
+  min-width: 90px;
+  font-size: 0.85rem;
+}
+
+.inline-input:focus {
+  border-color: #00d4ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2) !important;
+}
+
+/* ── Action cell ─────────────────────────────────────────────────────────── */
+
+.action-cell {
+  white-space: nowrap;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: center;
+}
+
+/* Error message close button */
+.btn-close-inline {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.btn-close-inline:hover {
+  opacity: 1;
+}
+
+/* ── Responsive additions ─────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .filter-bar-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats-summary-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .stats-summary-sep {
+    width: 100%;
+    height: 1px;
+  }
+
+  .date-range-inputs {
+    flex-wrap: wrap;
+  }
+
+  .duration-cell {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+  }
+}
+
+/* ── Pattern Analysis Section ─────────────────────────────────────────────── */
+
+.pattern-section {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.pattern-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: rgba(30, 41, 59, 0.8);
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.pattern-header:hover {
+  background: rgba(51, 65, 85, 0.9);
+}
+
+.pattern-header-icon {
+  color: #f59e0b;
+  font-size: 0.95rem;
+}
+
+.pattern-header-title {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.pattern-header-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 12px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.pattern-chevron {
+  color: #64748b;
+  transition: transform 0.25s ease;
+}
+
+.pattern-chevron.open {
+  transform: rotate(180deg);
+}
+
+.pattern-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+
+.pattern-body.open {
+  max-height: 2000px;
+}
+
+.pattern-block {
+  padding: 1rem 1rem 0.5rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.pattern-block:last-child {
+  border-bottom: none;
+  padding-bottom: 1rem;
+}
+
+.pattern-block-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 0.65rem;
+}
+
+.pattern-no-issues {
+  color: #4ade80;
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+/* Repeat cards */
+.repeat-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.repeat-card {
+  background: rgba(127, 29, 29, 0.25);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+
+.repeat-card-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.25rem;
+}
+
+.repeat-card-name {
+  color: #fca5a5;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.repeat-card-count {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-radius: 10px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.repeat-card-time {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.repeat-card-warning {
+  color: #f59e0b;
+  font-size: 0.75rem;
+}
+
+/* Hourly chart legend */
+.hourly-legend {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.hourly-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.hourly-legend-dot.peak {
+  background: #ef4444;
+}
+
+.hourly-legend-dot.normal {
+  background: rgba(100, 116, 139, 0.5);
+}
+
+/* Costly reasons */
+.costly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.costly-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.costly-rank {
+  width: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.costly-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.costly-name {
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.costly-bar-wrap {
+  height: 5px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.costly-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.costly-stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+}
+
+.costly-total {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.costly-count {
+  font-size: 0.7rem;
+}

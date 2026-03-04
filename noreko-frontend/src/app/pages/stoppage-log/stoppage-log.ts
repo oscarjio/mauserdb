@@ -33,6 +33,12 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   paretoLoading = false;
   paretoError = '';
 
+  // Pattern analysis state
+  patternData: any = null;
+  patternLoading = false;
+  patternOpen = false;
+  private hourlyChart: Chart | null = null;
+
   selectedLine: string = 'rebotling';
   selectedPeriod: string = 'week';
   loading = false;
@@ -43,6 +49,17 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   searchQuery: string = '';
   sortColumn: string = 'start_time';
   sortDirection: 'asc' | 'desc' = 'desc';
+
+  // Date range filter
+  filterFromDate: string = '';
+  filterToDate: string = '';
+  filterCategory: string = '';
+
+  // Inline editing
+  editingId: number | null = null;
+  editDuration: string = '';
+  editComment: string = '';
+  savingId: number | null = null;
 
   get filteredStoppages(): StoppageEntry[] {
     let result = this.stoppages;
@@ -56,6 +73,21 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         (s.user_name || '').toLowerCase().includes(q) ||
         (s.category === 'planned' ? 'planerat' : 'oplanerat').includes(q)
       );
+    }
+
+    // Category filter
+    if (this.filterCategory) {
+      result = result.filter(s => s.category === this.filterCategory);
+    }
+
+    // Date range filter (client-side on loaded data)
+    if (this.filterFromDate) {
+      const from = new Date(this.filterFromDate + 'T00:00:00');
+      result = result.filter(s => new Date(s.start_time) >= from);
+    }
+    if (this.filterToDate) {
+      const to = new Date(this.filterToDate + 'T23:59:59');
+      result = result.filter(s => new Date(s.start_time) <= to);
     }
 
     // Sort
@@ -139,6 +171,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     if (this.paretoChart)       this.paretoChart.destroy();
     if (this.dailyChart)        this.dailyChart.destroy();
     if (this.weekly14Chart)     this.weekly14Chart.destroy();
+    if (this.hourlyChart)        this.hourlyChart.destroy();
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -233,7 +266,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   getAvgDuration(): number {
-    const finished = this.stoppages.filter(s => s.duration_minutes !== null && s.duration_minutes !== undefined);
+    const finished = this.filteredStoppages.filter(s => s.duration_minutes !== null && s.duration_minutes !== undefined);
     if (finished.length === 0) return 0;
     return Math.round(finished.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) / finished.length);
   }
@@ -244,6 +277,28 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     const prev = Number(this.weeklySummary.prev_week[field]);
     if (prev === 0) return null;
     return Math.round(((cur - prev) / prev) * 100);
+  }
+
+  getTotalDowntimeFiltered(): number {
+    return this.filteredStoppages.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+  }
+
+  getMostCommonReason(): { name: string; count: number } | null {
+    if (this.filteredStoppages.length === 0) return null;
+    const countMap: Record<string, number> = {};
+    for (const s of this.filteredStoppages) {
+      const key = s.reason_name || 'Okänd';
+      countMap[key] = (countMap[key] || 0) + 1;
+    }
+    const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+    return { name: sorted[0][0], count: sorted[0][1] };
+  }
+
+  getDurationBadge(minutes: number | null): { label: string; cls: string } {
+    if (minutes === null || minutes === undefined) return { label: 'Pågår', cls: 'badge-running' };
+    if (minutes < 5) return { label: 'Kort', cls: 'badge-short' };
+    if (minutes <= 15) return { label: 'Medel', cls: 'badge-medium' };
+    return { label: 'Långt', cls: 'badge-long' };
   }
 
   switchTab(tab: 'log' | 'stats' | 'pareto') {
@@ -259,6 +314,18 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.loadWeeklySummary();
     if (this.activeTab === 'stats') this.loadStats();
     if (this.activeTab === 'pareto') this.loadPareto();
+  }
+
+  setQuickPeriod(period: string) {
+    this.selectedPeriod = period;
+    this.filterFromDate = '';
+    this.filterToDate = '';
+    this.onFilterChange();
+  }
+
+  clearDateFilter() {
+    this.filterFromDate = '';
+    this.filterToDate = '';
   }
 
   addStoppage() {
@@ -308,6 +375,61 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     return this.isAdmin || (this.user && entry.user_id === this.user.id);
   }
 
+  // Inline editing
+  startEdit(entry: StoppageEntry) {
+    this.editingId = entry.id;
+    this.editDuration = entry.duration_minutes !== null && entry.duration_minutes !== undefined
+      ? String(entry.duration_minutes)
+      : '';
+    this.editComment = entry.comment || '';
+  }
+
+  cancelEdit() {
+    this.editingId = null;
+    this.editDuration = '';
+    this.editComment = '';
+  }
+
+  saveEdit(entry: StoppageEntry) {
+    if (this.savingId) return;
+    this.savingId = entry.id;
+    const duration = this.editDuration.trim() === '' ? null : parseInt(this.editDuration, 10);
+    const comment = this.editComment;
+
+    this.stoppageService.update(entry.id, { duration_minutes: duration, comment })
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of({ success: false, message: 'Timeout' }))
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.savingId = null;
+          if (res.success) {
+            // Update locally
+            const idx = this.stoppages.findIndex(s => s.id === entry.id);
+            if (idx >= 0) {
+              this.stoppages[idx] = {
+                ...this.stoppages[idx],
+                duration_minutes: duration,
+                comment: comment
+              };
+            }
+            this.editingId = null;
+            this.editDuration = '';
+            this.editComment = '';
+            this.showSuccess('Stoppost uppdaterad');
+          } else {
+            this.errorMessage = res.message || 'Kunde inte spara';
+          }
+        },
+        error: () => {
+          this.savingId = null;
+          this.errorMessage = 'Fel vid sparning';
+        }
+      });
+  }
+
   formatDuration(minutes: number | null): string {
     if (minutes === null || minutes === undefined) return 'Pågår';
     if (minutes < 60) return minutes + ' min';
@@ -325,13 +447,14 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   exportCSV() {
-    if (this.stoppages.length === 0) return;
+    const data = this.filteredStoppages;
+    if (data.length === 0) return;
     const header = ['ID', 'Linje', 'Orsak', 'Kategori', 'Start', 'Slut', 'Varaktighet (min)', 'Kommentar', 'Användare'];
-    const rows = this.stoppages.map(s => [
+    const rows = data.map(s => [
       s.id, s.line, s.reason_name, s.category === 'planned' ? 'Planerat' : 'Oplanerat',
       s.start_time, s.end_time || 'Pågår', s.duration_minutes ?? '', s.comment, s.user_name
     ]);
-    const csv = [header, ...rows].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -342,9 +465,10 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   exportExcel() {
-    if (this.stoppages.length === 0) return;
+    const data = this.filteredStoppages;
+    if (data.length === 0) return;
     import('xlsx').then(XLSX => {
-      const data = this.stoppages.map(s => ({
+      const rows = data.map(s => ({
         'ID': s.id,
         'Linje': s.line,
         'Orsak': s.reason_name,
@@ -355,10 +479,132 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         'Kommentar': s.comment || '',
         'Användare': s.user_name || ''
       }));
-      const ws = XLSX.utils.json_to_sheet(data);
+      const ws = XLSX.utils.json_to_sheet(rows);
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 6 }, { wch: 16 }, { wch: 24 }, { wch: 12 },
+        { wch: 18 }, { wch: 18 }, { wch: 18 }, { wch: 30 }, { wch: 16 }
+      ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Stopporsaker');
-      XLSX.writeFile(wb, `stopporsaker-${this.selectedLine}-${this.selectedPeriod}.xlsx`);
+      const dateStr = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `stopporsaker-${this.selectedLine}-${dateStr}.xlsx`);
+    });
+  }
+
+  togglePatternSection() {
+    this.patternOpen = !this.patternOpen;
+    if (this.patternOpen && !this.patternData && !this.patternLoading) {
+      this.loadPatternAnalysis();
+    } else if (this.patternOpen && this.patternData) {
+      // Rebuild chart when opening
+      setTimeout(() => {
+        if (!this.destroy$.closed) this.buildHourlyChart();
+      }, 50);
+    }
+  }
+
+  loadPatternAnalysis() {
+    this.patternLoading = true;
+    this.stoppageService.getPatternAnalysis(this.selectedLine, 30)
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of(null))
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.patternLoading = false;
+          if (res && res.success) {
+            this.patternData = res;
+            setTimeout(() => {
+              if (!this.destroy$.closed) this.buildHourlyChart();
+            }, 50);
+          }
+        },
+        error: () => {
+          this.patternLoading = false;
+        }
+      });
+  }
+
+  getTopHours(n: number = 3): number[] {
+    if (!this.patternData?.hourly_distribution) return [];
+    const sorted = [...this.patternData.hourly_distribution]
+      .sort((a: any, b: any) => b.antal - a.antal)
+      .slice(0, n)
+      .map((h: any) => h.timme);
+    return sorted;
+  }
+
+  getCostlyBarWidth(totalMin: number, maxMin: number): number {
+    if (maxMin === 0) return 0;
+    return Math.round((totalMin / maxMin) * 100);
+  }
+
+  getMaxCostlyMin(): number {
+    if (!this.patternData?.costly_reasons?.length) return 0;
+    return Math.max(...this.patternData.costly_reasons.map((r: any) => r.total_min));
+  }
+
+  private buildHourlyChart() {
+    if (this.hourlyChart) this.hourlyChart.destroy();
+    const canvas = document.getElementById('hourlyChart') as HTMLCanvasElement;
+    if (!canvas || !this.patternData?.hourly_distribution) return;
+
+    const distribution = this.patternData.hourly_distribution;
+    const topHours = this.getTopHours(3);
+    const labels = distribution.map((h: any) => h.timme.toString().padStart(2, '0') + ':00');
+    const data = distribution.map((h: any) => h.antal);
+    const colors = distribution.map((h: any) =>
+      topHours.includes(h.timme) ? 'rgba(239,68,68,0.75)' : 'rgba(100,116,139,0.5)'
+    );
+    const borderColors = distribution.map((h: any) =>
+      topHours.includes(h.timme) ? '#ef4444' : 'rgba(100,116,139,0.8)'
+    );
+
+    this.hourlyChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Antal stopp',
+          data,
+          backgroundColor: colors,
+          borderColor: borderColors,
+          borderWidth: 1,
+          borderRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => {
+                const h = distribution[ctx.dataIndex];
+                const parts = [` ${ctx.parsed.y} stopp`];
+                if (h.snitt_min) parts.push(`Snitt: ${h.snitt_min} min`);
+                if (topHours.includes(h.timme)) parts.push('Peak-stoptid');
+                return parts;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94a3b8', maxRotation: 45, font: { size: 10 } },
+            grid: { color: 'rgba(45,55,72,0.8)' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#94a3b8', stepSize: 1 },
+            grid: { color: 'rgba(45,55,72,0.8)' }
+          }
+        }
+      }
     });
   }
 
