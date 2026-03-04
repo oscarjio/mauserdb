@@ -20,6 +20,9 @@ interface MaintenanceEntry {
   status: string;
   created_by: number | null;
   created_at: string;
+  equipment: string | null;
+  downtime_minutes: number;
+  resolved: number;
 }
 
 interface MaintenanceStats {
@@ -28,6 +31,29 @@ interface MaintenanceStats {
   total_cost: number;
   akut_count: number;
   pagaende_count: number;
+}
+
+interface EquipmentItem {
+  id: number;
+  namn: string;
+  kategori: string;
+  linje: string;
+}
+
+interface EquipmentStat {
+  namn: string;
+  kategori: string;
+  antal_handelser: number;
+  total_driftstopp_min: number;
+  snitt_driftstopp_min: number;
+  total_kostnad: number;
+  senaste_handelse: string | null;
+}
+
+interface EquipmentSummary {
+  total_downtime_min: number;
+  total_cost: number;
+  worst_equipment: string | null;
 }
 
 @Component({
@@ -95,117 +121,255 @@ interface MaintenanceStats {
     </div>
   </div>
 
-  <!-- Filter -->
-  <div class="filter-bar mb-3">
-    <div class="row g-2 align-items-end">
-      <div class="col-12 col-sm-6 col-md-3">
-        <label class="filter-label">Linje</label>
-        <select class="form-select form-select-sm filter-select" [(ngModel)]="filterLine" (ngModelChange)="loadEntries()">
-          <option value="">Alla linjer</option>
-          <option value="rebotling">Rebotling</option>
-          <option value="tvattlinje">Tvättlinje</option>
-          <option value="saglinje">Såglinje</option>
-          <option value="klassificeringslinje">Klassificeringslinje</option>
-          <option value="allmant">Allmänt</option>
-        </select>
-      </div>
-      <div class="col-12 col-sm-6 col-md-3">
-        <label class="filter-label">Status</label>
-        <select class="form-select form-select-sm filter-select" [(ngModel)]="filterStatus" (ngModelChange)="loadEntries()">
-          <option value="">Alla statusar</option>
-          <option value="planerat">Planerat</option>
-          <option value="pagaende">Pågående</option>
-          <option value="klart">Klart</option>
-          <option value="avbokat">Avbokat</option>
-        </select>
-      </div>
-      <div class="col-12 col-sm-6 col-md-3">
-        <label class="filter-label">Fr.o.m. datum</label>
-        <input type="date" class="form-control form-control-sm filter-select"
-               [(ngModel)]="filterFromDate" (ngModelChange)="loadEntries()" />
-      </div>
-      <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
-        <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="clearFilters()">
-          <i class="fas fa-times me-1"></i>Rensa
-        </button>
-        <button class="btn btn-sm btn-outline-info flex-fill" (click)="loadEntries(); loadStats()">
-          <i class="fas fa-sync me-1"></i>Uppdatera
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Laddningsindikator -->
-  <div *ngIf="isLoading" class="text-center py-3 text-muted">
-    <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar...
-  </div>
-
-  <!-- Inga poster -->
-  <div *ngIf="!isLoading && entries.length === 0" class="empty-state">
-    <i class="fas fa-tools fa-3x mb-3 text-muted"></i>
-    <p class="mb-0">Inga underhållsposter hittades för valda filter.</p>
-    <button class="btn btn-outline-success btn-sm mt-3" (click)="openAddForm()">
-      <i class="fas fa-plus me-1"></i>Lägg till första posten
+  <!-- Flik-navigation -->
+  <div class="tab-nav mb-3">
+    <button class="tab-btn" [class.tab-active]="activeTab === 'logg'" (click)="switchTab('logg')">
+      <i class="fas fa-list me-2"></i>Underhållslogg
+    </button>
+    <button class="tab-btn" [class.tab-active]="activeTab === 'statistik'" (click)="switchTab('statistik')">
+      <i class="fas fa-chart-bar me-2"></i>Utrustningsstatistik
+      <span class="tab-badge" *ngIf="equipmentStats.length > 0">90d</span>
     </button>
   </div>
 
-  <!-- Postlista -->
-  <div class="entries-list" *ngIf="!isLoading && entries.length > 0">
-    <div class="entry-card" *ngFor="let entry of entries" [class.entry-pagaende]="entry.status === 'pagaende'" [class.entry-akut]="entry.maintenance_type === 'akut'">
-      <div class="entry-header">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <span class="badge line-badge" [class]="getLineBadgeClass(entry.line)">
-            {{ getLineLabel(entry.line) }}
-          </span>
-          <span class="badge type-badge" [class]="getTypeBadgeClass(entry.maintenance_type)">
-            {{ getTypeLabel(entry.maintenance_type) }}
-          </span>
-          <span class="badge status-badge" [class]="getStatusBadgeClass(entry.status)">
-            {{ getStatusLabel(entry.status) }}
-          </span>
-          <span class="entry-title">{{ entry.title }}</span>
+  <!-- === LOGG-FLIK === -->
+  <div *ngIf="activeTab === 'logg'">
+    <!-- Filter -->
+    <div class="filter-bar mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="filter-label">Linje</label>
+          <select class="form-select form-select-sm filter-select" [(ngModel)]="filterLine" (ngModelChange)="loadEntries()">
+            <option value="">Alla linjer</option>
+            <option value="rebotling">Rebotling</option>
+            <option value="tvattlinje">Tvättlinje</option>
+            <option value="saglinje">Såglinje</option>
+            <option value="klassificeringslinje">Klassificeringslinje</option>
+            <option value="allmant">Allmänt</option>
+          </select>
         </div>
-        <div class="entry-actions">
-          <button class="btn btn-sm btn-action btn-edit" (click)="openEditForm(entry)" title="Redigera">
-            <i class="fas fa-edit"></i>
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="filter-label">Status</label>
+          <select class="form-select form-select-sm filter-select" [(ngModel)]="filterStatus" (ngModelChange)="loadEntries()">
+            <option value="">Alla statusar</option>
+            <option value="planerat">Planerat</option>
+            <option value="pagaende">Pågående</option>
+            <option value="klart">Klart</option>
+            <option value="avbokat">Avbokat</option>
+          </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+          <label class="filter-label">Fr.o.m. datum</label>
+          <input type="date" class="form-control form-control-sm filter-select"
+                 [(ngModel)]="filterFromDate" (ngModelChange)="loadEntries()" />
+        </div>
+        <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="clearFilters()">
+            <i class="fas fa-times me-1"></i>Rensa
           </button>
-          <button class="btn btn-sm btn-action btn-delete" (click)="deleteEntry(entry.id, entry.title)" title="Ta bort">
-            <i class="fas fa-trash"></i>
+          <button class="btn btn-sm btn-outline-info flex-fill" (click)="loadEntries(); loadStats()">
+            <i class="fas fa-sync me-1"></i>Uppdatera
           </button>
         </div>
       </div>
+    </div>
 
-      <div class="entry-meta">
-        <span class="meta-item">
-          <i class="fas fa-calendar-alt me-1 text-muted"></i>
-          {{ formatDateTime(entry.start_time) }}
-        </span>
-        <span class="meta-sep">—</span>
-        <span class="meta-item">
-          <i class="fas fa-hourglass-half me-1 text-muted"></i>
-          {{ formatDuration(entry.duration_minutes) }}
-        </span>
-        <span class="meta-sep" *ngIf="entry.performed_by">—</span>
-        <span class="meta-item" *ngIf="entry.performed_by">
-          <i class="fas fa-user me-1 text-muted"></i>
-          {{ entry.performed_by }}
-        </span>
-        <span class="meta-sep" *ngIf="entry.cost_sek !== null && entry.cost_sek !== undefined">—</span>
-        <span class="meta-item cost-item" *ngIf="entry.cost_sek !== null && entry.cost_sek !== undefined">
-          <i class="fas fa-tag me-1 text-warning"></i>
-          {{ formatCost(entry.cost_sek) }}
-        </span>
-      </div>
+    <!-- Laddningsindikator -->
+    <div *ngIf="isLoading" class="text-center py-3 text-muted">
+      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar...
+    </div>
 
-      <div class="entry-description" *ngIf="entry.description">
-        {{ entry.description }}
+    <!-- Inga poster -->
+    <div *ngIf="!isLoading && entries.length === 0" class="empty-state">
+      <i class="fas fa-tools fa-3x mb-3 text-muted"></i>
+      <p class="mb-0">Inga underhållsposter hittades för valda filter.</p>
+      <button class="btn btn-outline-success btn-sm mt-3" (click)="openAddForm()">
+        <i class="fas fa-plus me-1"></i>Lägg till första posten
+      </button>
+    </div>
+
+    <!-- Postlista -->
+    <div class="entries-list" *ngIf="!isLoading && entries.length > 0">
+      <div class="entry-card" *ngFor="let entry of entries"
+           [class.entry-pagaende]="entry.status === 'pagaende'"
+           [class.entry-akut]="entry.maintenance_type === 'akut'">
+        <div class="entry-header">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge line-badge" [class]="getLineBadgeClass(entry.line)">
+              {{ getLineLabel(entry.line) }}
+            </span>
+            <span class="badge type-badge" [class]="getTypeBadgeClass(entry.maintenance_type)">
+              {{ getTypeLabel(entry.maintenance_type) }}
+            </span>
+            <span class="badge status-badge" [class]="getStatusBadgeClass(entry.status)">
+              {{ getStatusLabel(entry.status) }}
+            </span>
+            <span class="badge equipment-badge" *ngIf="entry.equipment">
+              <i class="fas fa-cog me-1"></i>{{ entry.equipment }}
+            </span>
+            <span class="badge resolved-badge" *ngIf="entry.resolved">
+              <i class="fas fa-check me-1"></i>Åtgärdad
+            </span>
+            <span class="entry-title">{{ entry.title }}</span>
+          </div>
+          <div class="entry-actions">
+            <button class="btn btn-sm btn-action btn-edit" (click)="openEditForm(entry)" title="Redigera">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-sm btn-action btn-delete" (click)="deleteEntry(entry.id, entry.title)" title="Ta bort">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="entry-meta">
+          <span class="meta-item">
+            <i class="fas fa-calendar-alt me-1 text-muted"></i>
+            {{ formatDateTime(entry.start_time) }}
+          </span>
+          <span class="meta-sep">—</span>
+          <span class="meta-item">
+            <i class="fas fa-hourglass-half me-1 text-muted"></i>
+            {{ formatDuration(entry.duration_minutes) }}
+          </span>
+          <span class="meta-sep" *ngIf="entry.downtime_minutes > 0">—</span>
+          <span class="meta-item meta-downtime" *ngIf="entry.downtime_minutes > 0">
+            <i class="fas fa-pause-circle me-1"></i>
+            Driftstopp: {{ formatDuration(entry.downtime_minutes) }}
+          </span>
+          <span class="meta-sep" *ngIf="entry.performed_by">—</span>
+          <span class="meta-item" *ngIf="entry.performed_by">
+            <i class="fas fa-user me-1 text-muted"></i>
+            {{ entry.performed_by }}
+          </span>
+          <span class="meta-sep" *ngIf="entry.cost_sek !== null && entry.cost_sek !== undefined">—</span>
+          <span class="meta-item cost-item" *ngIf="entry.cost_sek !== null && entry.cost_sek !== undefined">
+            <i class="fas fa-tag me-1 text-warning"></i>
+            {{ formatCost(entry.cost_sek) }}
+          </span>
+        </div>
+
+        <div class="entry-description" *ngIf="entry.description">
+          {{ entry.description }}
+        </div>
       </div>
+    </div>
+
+    <!-- Räknare -->
+    <div class="text-muted small mt-2" *ngIf="entries.length > 0">
+      Visar {{ entries.length }} av {{ totalCount }} poster
     </div>
   </div>
 
-  <!-- Räknare -->
-  <div class="text-muted small mt-2" *ngIf="entries.length > 0">
-    Visar {{ entries.length }} av {{ totalCount }} poster
+  <!-- === STATISTIK-FLIK === -->
+  <div *ngIf="activeTab === 'statistik'">
+
+    <!-- Laddning -->
+    <div *ngIf="statsLoading" class="text-center py-4 text-muted">
+      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar statistik...
+    </div>
+
+    <div *ngIf="!statsLoading">
+      <!-- KPI-summering (90 dagar) -->
+      <div class="row g-3 mb-4" *ngIf="equipmentSummary">
+        <div class="col-12 col-md-4">
+          <div class="kpi-card">
+            <div class="kpi-icon text-danger"><i class="fas fa-pause-circle"></i></div>
+            <div class="kpi-value">{{ formatDuration(equipmentSummary.total_downtime_min) }}</div>
+            <div class="kpi-label">Total driftstopp (90 dagar)</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="kpi-card">
+            <div class="kpi-icon text-warning"><i class="fas fa-coins"></i></div>
+            <div class="kpi-value">{{ formatCost(equipmentSummary.total_cost) }}</div>
+            <div class="kpi-label">Total kostnad (90 dagar)</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" [class.kpi-alert]="!!equipmentSummary.worst_equipment">
+            <div class="kpi-icon text-orange"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="kpi-value kpi-value-sm">{{ equipmentSummary.worst_equipment ?? '—' }}</div>
+            <div class="kpi-label">Mest problembenägen utrustning</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ingen data -->
+      <div *ngIf="equipmentStats.length === 0" class="empty-state">
+        <i class="fas fa-chart-bar fa-3x mb-3 text-muted"></i>
+        <p class="mb-0">Inga underhållshändelser registrerade de senaste 90 dagarna.</p>
+      </div>
+
+      <!-- Statistiktabell -->
+      <div class="stats-table-wrap" *ngIf="equipmentStats.length > 0">
+        <div class="table-responsive">
+          <table class="table table-dark table-stats">
+            <thead>
+              <tr>
+                <th (click)="sortStats('namn')" class="sortable">
+                  Utrustning <i class="fas" [class]="getSortIcon('namn')"></i>
+                </th>
+                <th (click)="sortStats('kategori')" class="sortable">
+                  Kategori <i class="fas" [class]="getSortIcon('kategori')"></i>
+                </th>
+                <th (click)="sortStats('antal_handelser')" class="sortable text-end">
+                  Händelser <i class="fas" [class]="getSortIcon('antal_handelser')"></i>
+                </th>
+                <th (click)="sortStats('total_driftstopp_min')" class="sortable text-end">
+                  Total driftstopp <i class="fas" [class]="getSortIcon('total_driftstopp_min')"></i>
+                </th>
+                <th (click)="sortStats('snitt_driftstopp_min')" class="sortable text-end">
+                  Snitt/händelse <i class="fas" [class]="getSortIcon('snitt_driftstopp_min')"></i>
+                </th>
+                <th (click)="sortStats('total_kostnad')" class="sortable text-end">
+                  Total kostnad <i class="fas" [class]="getSortIcon('total_kostnad')"></i>
+                </th>
+                <th (click)="sortStats('senaste_handelse')" class="sortable">
+                  Senaste händelse <i class="fas" [class]="getSortIcon('senaste_handelse')"></i>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of sortedEquipmentStats">
+                <td class="fw-semibold">{{ row.namn }}</td>
+                <td>
+                  <span class="badge kategori-badge" [class]="getKategoriBadgeClass(row.kategori)">
+                    {{ getKategoriLabel(row.kategori) }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="+row.antal_handelser > 0" class="text-warning fw-bold">{{ row.antal_handelser }}</span>
+                  <span *ngIf="+row.antal_handelser === 0" class="text-muted">0</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="+row.total_driftstopp_min > 0" class="text-danger">{{ formatDuration(+row.total_driftstopp_min) }}</span>
+                  <span *ngIf="+row.total_driftstopp_min === 0" class="text-muted">—</span>
+                </td>
+                <td class="text-end text-muted">
+                  <span *ngIf="+row.snitt_driftstopp_min > 0">{{ formatDuration(Math.round(+row.snitt_driftstopp_min)) }}</span>
+                  <span *ngIf="+row.snitt_driftstopp_min === 0">—</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="+row.total_kostnad > 0" class="cost-item">{{ formatCost(+row.total_kostnad) }}</span>
+                  <span *ngIf="+row.total_kostnad === 0" class="text-muted">—</span>
+                </td>
+                <td class="text-muted small">
+                  {{ row.senaste_handelse ? formatDateTime(row.senaste_handelse) : '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Uppdatera-knapp -->
+      <div class="text-end mt-2">
+        <button class="btn btn-sm btn-outline-info" (click)="loadEquipmentStats()">
+          <i class="fas fa-sync me-1"></i>Uppdatera statistik
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- FORMULÄRMODAL (overlay) -->
@@ -250,6 +414,15 @@ interface MaintenanceStats {
               </select>
             </div>
 
+            <!-- Utrustning -->
+            <div class="col-12">
+              <label class="form-label form-label-dark">Utrustning</label>
+              <select class="form-select form-select-dark" [(ngModel)]="form.equipment" name="equipment">
+                <option value="">Välj utrustning</option>
+                <option *ngFor="let eq of equipmentList" [value]="eq.namn">{{ eq.namn }} ({{ getKategoriLabel(eq.kategori) }})</option>
+              </select>
+            </div>
+
             <!-- Titel -->
             <div class="col-12">
               <label class="form-label form-label-dark">Titel *</label>
@@ -283,6 +456,15 @@ interface MaintenanceStats {
               <div class="form-text text-muted">Lämna tomt om underhållet pågår</div>
             </div>
 
+            <!-- Driftstopp -->
+            <div class="col-12 col-md-6">
+              <label class="form-label form-label-dark">Driftstopp (min)</label>
+              <input type="number" class="form-control form-control-dark"
+                     [(ngModel)]="form.downtime_minutes" name="downtime_minutes"
+                     placeholder="0 om inget driftstopp" min="0" />
+              <div class="form-text text-muted">Hur länge produktionen stod stilla</div>
+            </div>
+
             <!-- Utförd av -->
             <div class="col-12 col-md-6">
               <label class="form-label form-label-dark">Utförd av</label>
@@ -300,7 +482,7 @@ interface MaintenanceStats {
             </div>
 
             <!-- Status -->
-            <div class="col-12">
+            <div class="col-12 col-md-6">
               <label class="form-label form-label-dark">Status *</label>
               <select class="form-select form-select-dark" [(ngModel)]="form.status" name="status" required>
                 <option value="planerat">Planerat</option>
@@ -308,6 +490,17 @@ interface MaintenanceStats {
                 <option value="klart">Klart</option>
                 <option value="avbokat">Avbokat</option>
               </select>
+            </div>
+
+            <!-- Åtgärdad -->
+            <div class="col-12 d-flex align-items-center gap-2">
+              <div class="form-check form-check-dark">
+                <input class="form-check-input" type="checkbox" id="resolvedCheck"
+                       [(ngModel)]="form.resolved" name="resolved" />
+                <label class="form-check-label form-label-dark" for="resolvedCheck">
+                  Åtgärdad — problemet är löst
+                </label>
+              </div>
             </div>
           </div>
 
@@ -384,6 +577,9 @@ interface MaintenanceStats {
       color: #e2e8f0;
       line-height: 1.2;
     }
+    .kpi-value-sm {
+      font-size: 1.1rem;
+    }
     .kpi-label {
       font-size: 0.75rem;
       color: #a0aec0;
@@ -404,6 +600,43 @@ interface MaintenanceStats {
     }
 
     .text-orange { color: #ed8936 !important; }
+
+    /* Flik-nav */
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid #3d4f6b;
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      color: #a0aec0;
+      padding: 0.6rem 1.2rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover {
+      color: #e2e8f0;
+    }
+    .tab-btn.tab-active {
+      color: #63b3ed;
+      border-bottom-color: #63b3ed;
+    }
+    .tab-badge {
+      background: #3d4f6b;
+      color: #a0aec0;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 10px;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+    }
 
     /* Filter */
     .filter-bar {
@@ -521,6 +754,9 @@ interface MaintenanceStats {
     .cost-item {
       color: #ecc94b;
     }
+    .meta-downtime {
+      color: #fc8181;
+    }
 
     .entry-description {
       font-size: 0.85rem;
@@ -555,11 +791,80 @@ interface MaintenanceStats {
     .badge-status-klart { background: #276749; color: #c6f6d5; }
     .badge-status-avbokat { background: #4a5568; color: #a0aec0; }
 
+    /* Badges — utrustning & åtgärdad */
+    .equipment-badge {
+      background: #2c4a6e;
+      color: #90cdf4;
+      font-size: 0.7rem;
+    }
+    .resolved-badge {
+      background: #22543d;
+      color: #9ae6b4;
+      font-size: 0.7rem;
+    }
+
+    /* Badges — kategori */
+    .kategori-badge { font-size: 0.7rem; }
+    .badge-kategori-maskin { background: #2b4c8c; color: #90cdf4; }
+    .badge-kategori-transport { background: #276749; color: #c6f6d5; }
+    .badge-kategori-verktyg { background: #744210; color: #fbd38d; }
+    .badge-kategori-infrastruktur { background: #553c9a; color: #e9d8fd; }
+    .badge-kategori-ovrigt { background: #4a5568; color: #e2e8f0; }
+
     /* Tom lista */
     .empty-state {
       text-align: center;
       padding: 3rem 1rem;
       color: #718096;
+    }
+
+    /* Statistiktabell */
+    .stats-table-wrap {
+      background: #2d3748;
+      border-radius: 10px;
+      border: 1px solid #3d4f6b;
+      overflow: hidden;
+    }
+    .table-stats {
+      margin-bottom: 0;
+      background: transparent;
+      color: #e2e8f0;
+      font-size: 0.875rem;
+    }
+    .table-stats thead tr {
+      background: #1a202c;
+      border-bottom: 1px solid #4a5568;
+    }
+    .table-stats thead th {
+      color: #a0aec0;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.75rem 1rem;
+      border: none;
+      white-space: nowrap;
+    }
+    .table-stats tbody tr {
+      border-bottom: 1px solid #3d4f6b;
+      transition: background 0.15s;
+    }
+    .table-stats tbody tr:last-child {
+      border-bottom: none;
+    }
+    .table-stats tbody tr:hover {
+      background: rgba(99,179,237,0.05);
+    }
+    .table-stats tbody td {
+      padding: 0.7rem 1rem;
+      border: none;
+      vertical-align: middle;
+    }
+    .sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .sortable:hover {
+      color: #e2e8f0;
     }
 
     /* Modal */
@@ -644,17 +949,33 @@ interface MaintenanceStats {
     }
     .form-text { font-size: 0.75rem; }
 
+    /* Dark checkbox */
+    .form-check-dark .form-check-input {
+      background-color: #1a202c;
+      border-color: #4a5568;
+    }
+    .form-check-dark .form-check-input:checked {
+      background-color: #38a169;
+      border-color: #38a169;
+    }
+    .form-check-dark .form-check-label {
+      margin-bottom: 0;
+    }
+
     @media (max-width: 576px) {
       .maintenance-page { padding: 1rem; }
       .kpi-value { font-size: 1.3rem; }
       .entry-header { flex-direction: column; }
       .entry-actions { align-self: flex-end; }
+      .tab-btn { padding: 0.5rem 0.8rem; font-size: 0.82rem; }
     }
   `]
 })
 export class MaintenanceLogPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiBase = environment.apiUrl;
+
+  Math = Math;
 
   entries: MaintenanceEntry[] = [];
   stats: MaintenanceStats | null = null;
@@ -675,6 +996,19 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   filterStatus = '';
   filterFromDate = '';
 
+  // Flik
+  activeTab: 'logg' | 'statistik' = 'logg';
+
+  // Utrustning
+  equipmentList: EquipmentItem[] = [];
+  equipmentStats: EquipmentStat[] = [];
+  equipmentSummary: EquipmentSummary | null = null;
+  statsLoading = false;
+
+  // Sortering av statistiktabell
+  sortField: keyof EquipmentStat = 'total_driftstopp_min';
+  sortDir: 'asc' | 'desc' = 'desc';
+
   // Formulär
   form = {
     line: 'rebotling',
@@ -685,25 +1019,35 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
     duration_minutes: null as number | null,
     performed_by: '',
     cost_sek: null as number | null,
-    status: 'klart'
+    status: 'klart',
+    equipment: '',
+    downtime_minutes: 0 as number,
+    resolved: false
   };
 
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
-    // Sätt default starttid till aktuell timme
     const now = new Date();
     now.setMinutes(0, 0, 0);
     this.form.start_time = now.toISOString().slice(0, 16);
 
     this.loadEntries();
     this.loadStats();
+    this.loadEquipmentList();
   }
 
   ngOnDestroy(): void {
     clearTimeout(this.successTimer);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  switchTab(tab: 'logg' | 'statistik'): void {
+    this.activeTab = tab;
+    if (tab === 'statistik' && this.equipmentStats.length === 0) {
+      this.loadEquipmentStats();
+    }
   }
 
   loadEntries(): void {
@@ -747,6 +1091,58 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
       });
   }
 
+  loadEquipmentList(): void {
+    this.http.get<any>(`${this.apiBase}?action=maintenance&run=equipment-list`, { withCredentials: true })
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(data => {
+        if (data?.equipment) {
+          this.equipmentList = data.equipment;
+        }
+      });
+  }
+
+  loadEquipmentStats(): void {
+    this.statsLoading = true;
+    this.http.get<any>(`${this.apiBase}?action=maintenance&run=equipment-stats`, { withCredentials: true })
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(data => {
+        this.statsLoading = false;
+        if (data?.stats) {
+          this.equipmentStats = data.stats;
+          this.equipmentSummary = data.summary ?? null;
+        }
+      });
+  }
+
+  get sortedEquipmentStats(): EquipmentStat[] {
+    const field = this.sortField;
+    const dir = this.sortDir === 'asc' ? 1 : -1;
+    return [...this.equipmentStats].sort((a, b) => {
+      const av = a[field];
+      const bv = b[field];
+      if (av === null || av === undefined) return 1;
+      if (bv === null || bv === undefined) return -1;
+      if (typeof av === 'string' && typeof bv === 'string') {
+        return av.localeCompare(bv, 'sv') * dir;
+      }
+      return (+av - +bv) * dir;
+    });
+  }
+
+  sortStats(field: keyof EquipmentStat): void {
+    if (this.sortField === field) {
+      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.sortField = field;
+      this.sortDir = 'desc';
+    }
+  }
+
+  getSortIcon(field: string): string {
+    if (this.sortField !== field) return 'fa-sort';
+    return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+  }
+
   openAddForm(): void {
     this.editingId = null;
     const now = new Date();
@@ -760,7 +1156,10 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
       duration_minutes: null,
       performed_by: '',
       cost_sek: null,
-      status: 'klart'
+      status: 'klart',
+      equipment: '',
+      downtime_minutes: 0,
+      resolved: false
     };
     this.formError = '';
     this.showForm = true;
@@ -777,7 +1176,10 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
       duration_minutes: entry.duration_minutes,
       performed_by: entry.performed_by ?? '',
       cost_sek: entry.cost_sek,
-      status: entry.status
+      status: entry.status,
+      equipment: entry.equipment ?? '',
+      downtime_minutes: entry.downtime_minutes ?? 0,
+      resolved: !!entry.resolved
     };
     this.formError = '';
     this.showForm = true;
@@ -806,7 +1208,10 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
       duration_minutes: this.form.duration_minutes !== null && this.form.duration_minutes !== undefined && this.form.duration_minutes !== ('' as any)
         ? +this.form.duration_minutes : null,
       cost_sek: this.form.cost_sek !== null && this.form.cost_sek !== undefined && this.form.cost_sek !== ('' as any)
-        ? +this.form.cost_sek : null
+        ? +this.form.cost_sek : null,
+      downtime_minutes: this.form.downtime_minutes ? +this.form.downtime_minutes : 0,
+      equipment: this.form.equipment || null,
+      resolved: this.form.resolved ? 1 : 0
     };
 
     const url = this.editingId
@@ -822,6 +1227,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
           this.closeForm();
           this.loadEntries();
           this.loadStats();
+          if (this.activeTab === 'statistik') this.loadEquipmentStats();
         } else {
           this.formError = data?.error || 'Kunde inte spara';
         }
@@ -864,7 +1270,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   }
 
   formatCost(cost: number | null | undefined): string {
-    if (cost === null || cost === undefined) return '';
+    if (cost === null || cost === undefined || +cost === 0) return '';
     return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(+cost);
   }
 
@@ -939,6 +1345,28 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
       avbokat: 'Avbokat'
     };
     return map[status] ?? status;
+  }
+
+  getKategoriBadgeClass(kategori: string): string {
+    const map: Record<string, string> = {
+      maskin: 'badge-kategori-maskin',
+      transport: 'badge-kategori-transport',
+      verktyg: 'badge-kategori-verktyg',
+      infrastruktur: 'badge-kategori-infrastruktur',
+      'övrigt': 'badge-kategori-ovrigt'
+    };
+    return map[kategori] ?? 'badge-kategori-ovrigt';
+  }
+
+  getKategoriLabel(kategori: string): string {
+    const map: Record<string, string> = {
+      maskin: 'Maskin',
+      transport: 'Transport',
+      verktyg: 'Verktyg',
+      infrastruktur: 'Infrastruktur',
+      'övrigt': 'Övrigt'
+    };
+    return map[kategori] ?? kategori;
   }
 
   private showSuccess(msg: string): void {

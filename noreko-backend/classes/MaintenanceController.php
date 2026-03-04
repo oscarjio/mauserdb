@@ -4,11 +4,13 @@
  * Hanterar underhållslogg — planerat/akut underhåll, reparationer, driftstopp.
  *
  * Endpoints (alla kräver admin-session):
- * GET  ?action=maintenance&run=list   → Lista poster (filter: line, status, from_date)
- * POST ?action=maintenance&run=add    → Lägg till post
- * POST ?action=maintenance&run=update&id=X → Uppdatera post
- * POST ?action=maintenance&run=delete&id=X → Soft-delete (status=avbokat)
- * GET  ?action=maintenance&run=stats  → KPI-statistik senaste 30 dagar
+ * GET  ?action=maintenance&run=list            → Lista poster (filter: line, status, from_date)
+ * POST ?action=maintenance&run=add             → Lägg till post
+ * POST ?action=maintenance&run=update&id=X     → Uppdatera post
+ * POST ?action=maintenance&run=delete&id=X     → Soft-delete (status=avbokat)
+ * GET  ?action=maintenance&run=stats           → KPI-statistik senaste 30 dagar
+ * GET  ?action=maintenance&run=equipment-list  → Hämta aktiva utrustningar
+ * GET  ?action=maintenance&run=equipment-stats → Statistik per utrustning (90 dagar)
  */
 class MaintenanceController {
     private $pdo;
@@ -37,12 +39,14 @@ class MaintenanceController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
         match ($run) {
-            'list'   => $this->listEntries(),
-            'add'    => $method === 'POST' ? $this->addEntry() : $this->sendError('POST krävs', 405),
-            'update' => $method === 'POST' ? $this->updateEntry() : $this->sendError('POST krävs', 405),
-            'delete' => $method === 'POST' ? $this->deleteEntry() : $this->sendError('POST krävs', 405),
-            'stats'  => $this->getStats(),
-            default  => $this->sendError('Okänd metod', 400)
+            'list'             => $this->listEntries(),
+            'add'              => $method === 'POST' ? $this->addEntry() : $this->sendError('POST krävs', 405),
+            'update'           => $method === 'POST' ? $this->updateEntry() : $this->sendError('POST krävs', 405),
+            'delete'           => $method === 'POST' ? $this->deleteEntry() : $this->sendError('POST krävs', 405),
+            'stats'            => $this->getStats(),
+            'equipment-list'   => $this->getEquipmentList(),
+            'equipment-stats'  => $this->getEquipmentStats(),
+            default            => $this->sendError('Okänd metod', 400)
         };
     }
 
@@ -83,7 +87,8 @@ class MaintenanceController {
             $where = implode(' AND ', $conditions);
 
             $sql = "SELECT id, line, maintenance_type, title, description, start_time,
-                           duration_minutes, performed_by, cost_sek, status, created_by, created_at
+                           duration_minutes, performed_by, cost_sek, status, created_by, created_at,
+                           equipment, downtime_minutes, resolved
                     FROM maintenance_log
                     WHERE {$where}
                     ORDER BY start_time DESC
@@ -126,6 +131,15 @@ class MaintenanceController {
             $status          = $data['status'] ?? 'klart';
             $createdBy       = intval($_SESSION['user_id']);
 
+            // Nya fält
+            $equipment       = isset($data['equipment']) && $data['equipment'] !== '' ? strip_tags(trim($data['equipment'])) : null;
+            if ($equipment !== null && mb_strlen($equipment) > 100) {
+                $equipment = mb_substr($equipment, 0, 100);
+            }
+            $downtimeMinutes = isset($data['downtime_minutes']) && $data['downtime_minutes'] !== '' && $data['downtime_minutes'] !== null
+                               ? intval($data['downtime_minutes']) : 0;
+            $resolved        = isset($data['resolved']) ? ($data['resolved'] ? 1 : 0) : 0;
+
             // Validering
             if (empty($title)) {
                 $this->sendError('Titel krävs', 400);
@@ -158,10 +172,10 @@ class MaintenanceController {
             $stmt = $this->pdo->prepare("
                 INSERT INTO maintenance_log
                     (line, maintenance_type, title, description, start_time, duration_minutes,
-                     performed_by, cost_sek, status, created_by)
+                     performed_by, cost_sek, status, created_by, equipment, downtime_minutes, resolved)
                 VALUES
                     (:line, :maintenance_type, :title, :description, :start_time, :duration_minutes,
-                     :performed_by, :cost_sek, :status, :created_by)
+                     :performed_by, :cost_sek, :status, :created_by, :equipment, :downtime_minutes, :resolved)
             ");
             $stmt->execute([
                 ':line'             => $line,
@@ -174,6 +188,9 @@ class MaintenanceController {
                 ':cost_sek'         => $costSek,
                 ':status'           => $status,
                 ':created_by'       => $createdBy,
+                ':equipment'        => $equipment,
+                ':downtime_minutes' => $downtimeMinutes,
+                ':resolved'         => $resolved,
             ]);
 
             $newId = (int)$this->pdo->lastInsertId();
@@ -265,6 +282,22 @@ class MaintenanceController {
                 $fields[] = 'status = :status';
                 $params[':status'] = $data['status'];
             }
+            // Nya fält
+            if (array_key_exists('equipment', $data)) {
+                $eq = $data['equipment'] !== '' ? strip_tags(trim($data['equipment'])) : null;
+                if ($eq !== null && mb_strlen($eq) > 100) $eq = mb_substr($eq, 0, 100);
+                $fields[] = 'equipment = :equipment';
+                $params[':equipment'] = $eq;
+            }
+            if (array_key_exists('downtime_minutes', $data)) {
+                $dt = $data['downtime_minutes'];
+                $fields[] = 'downtime_minutes = :downtime_minutes';
+                $params[':downtime_minutes'] = ($dt !== null && $dt !== '') ? intval($dt) : 0;
+            }
+            if (array_key_exists('resolved', $data)) {
+                $fields[] = 'resolved = :resolved';
+                $params[':resolved'] = $data['resolved'] ? 1 : 0;
+            }
 
             if (empty($fields)) {
                 $this->sendError('Inga fält att uppdatera', 400);
@@ -328,6 +361,79 @@ class MaintenanceController {
         } catch (PDOException $e) {
             error_log('MaintenanceController::getStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta statistik', 500);
+        }
+    }
+
+    private function getEquipmentList(): void {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, namn, kategori, linje
+                FROM maintenance_equipment
+                WHERE aktiv = 1
+                ORDER BY kategori, namn
+            ");
+            $equipment = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode([
+                'success'   => true,
+                'equipment' => $equipment
+            ]);
+        } catch (PDOException $e) {
+            error_log('MaintenanceController::getEquipmentList: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta utrustningslista', 500);
+        }
+    }
+
+    private function getEquipmentStats(): void {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT
+                    e.namn,
+                    e.kategori,
+                    COUNT(m.id) AS antal_handelser,
+                    COALESCE(SUM(m.downtime_minutes), 0) AS total_driftstopp_min,
+                    COALESCE(AVG(CASE WHEN m.downtime_minutes > 0 THEN m.downtime_minutes END), 0) AS snitt_driftstopp_min,
+                    COALESCE(SUM(m.cost_sek), 0) AS total_kostnad,
+                    MAX(m.created_at) AS senaste_handelse
+                FROM maintenance_equipment e
+                LEFT JOIN maintenance_log m
+                    ON m.equipment = e.namn
+                    AND (m.deleted_at IS NULL OR 1=1)
+                    AND m.status != 'avbokat'
+                    AND m.created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)
+                WHERE e.aktiv = 1
+                GROUP BY e.id, e.namn, e.kategori
+                ORDER BY total_driftstopp_min DESC
+            ");
+            $stats = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Totalsummor
+            $totalDowntime = 0;
+            $totalCost = 0;
+            $worstEquipment = null;
+            $worstMinutes = 0;
+
+            foreach ($stats as $row) {
+                $totalDowntime += (int)$row['total_driftstopp_min'];
+                $totalCost += (float)$row['total_kostnad'];
+                if ((int)$row['total_driftstopp_min'] > $worstMinutes) {
+                    $worstMinutes = (int)$row['total_driftstopp_min'];
+                    $worstEquipment = $row['namn'];
+                }
+            }
+
+            echo json_encode([
+                'success'           => true,
+                'stats'             => $stats,
+                'summary' => [
+                    'total_downtime_min' => $totalDowntime,
+                    'total_cost'         => $totalCost,
+                    'worst_equipment'    => $worstEquipment
+                ]
+            ]);
+        } catch (PDOException $e) {
+            error_log('MaintenanceController::getEquipmentStats: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta utrustningsstatistik', 500);
         }
     }
 
