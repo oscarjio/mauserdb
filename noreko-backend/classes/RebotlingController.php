@@ -117,6 +117,8 @@ class RebotlingController {
                 $this->getAttendance();
             } elseif ($action === 'goal-history') {
                 $this->getGoalHistory();
+            } elseif ($action === 'hourly-rhythm') {
+                $this->getHourlyRhythm();
             } else {
                 $this->getLiveStats();
             }
@@ -5839,6 +5841,68 @@ class RebotlingController {
             error_log('saveLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    private function getHourlyRhythm(): void {
+        $days = intval($_GET['days'] ?? 30);
+        if ($days < 1 || $days > 365) $days = 30;
+
+        // MySQL 8.0+ approach med LAG() — ger korrekt delta per timme inom samma skift
+        // Fallback till enklare GROUP BY om LAG() inte stöds
+        $sql = "
+            SELECT
+                HOUR(datum) AS timme,
+                COUNT(DISTINCT DATE(datum)) AS antal_dagar,
+                SUM(ibc_delta) AS total_ibc,
+                AVG(kvalitet_pct) AS avg_kvalitet
+            FROM (
+                SELECT
+                    datum,
+                    skiftraknare,
+                    HOUR(datum) AS timme_h,
+                    ibc_ok - LAG(ibc_ok, 1, 0) OVER (PARTITION BY DATE(datum), skiftraknare ORDER BY datum) AS ibc_delta,
+                    CASE WHEN (ibc_ok + ibc_ej_ok) > 0 THEN ibc_ok * 100.0 / (ibc_ok + ibc_ej_ok) ELSE NULL END AS kvalitet_pct
+                FROM rebotling_ibc
+                WHERE datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                  AND skiftraknare IS NOT NULL
+            ) sub
+            WHERE ibc_delta BETWEEN 0 AND 20
+            GROUP BY timme
+            ORDER BY timme
+        ";
+
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$days]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Fyll alla timmar 6–22 (produktionsdag)
+            $result = [];
+            for ($h = 6; $h <= 22; $h++) {
+                $found = null;
+                foreach ($rows as $r) {
+                    if (intval($r['timme']) === $h) {
+                        $found = $r;
+                        break;
+                    }
+                }
+                $avgIbcH = ($found && floatval($found['antal_dagar']) > 0)
+                    ? round(floatval($found['total_ibc']) / floatval($found['antal_dagar']), 2)
+                    : 0;
+                $result[] = [
+                    'timme'       => $h,
+                    'label'       => sprintf('%02d:00', $h),
+                    'avg_ibc_h'   => $avgIbcH,
+                    'avg_kvalitet' => $found ? round(floatval($found['avg_kvalitet'] ?? 0), 1) : 0,
+                    'antal_dagar' => $found ? intval($found['antal_dagar']) : 0,
+                ];
+            }
+
+            echo json_encode(['success' => true, 'data' => $result]);
+        } catch (\Exception $e) {
+            error_log('getHourlyRhythm: ' . $e->getMessage());
+            $this->sendError('Fel vid hämtning av produktionsrytm');
         }
     }
 

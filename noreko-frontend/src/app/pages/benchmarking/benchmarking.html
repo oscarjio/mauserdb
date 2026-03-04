@@ -248,5 +248,119 @@
       </div>
     </section>
 
+    <!-- ============================================================
+         Sektion 5: Personbästa vs Teamrekord
+    ============================================================ -->
+    <section class="section mb-4" *ngIf="personalBests || personalBestsLoading">
+      <h2 class="section-title">
+        <i class="fas fa-medal me-2 text-warning"></i>
+        Personbästa vs. Teamrekord
+      </h2>
+
+      <div *ngIf="personalBestsLoading && !personalBests" class="text-center py-3">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        <span class="text-muted ms-2">Laddar personbästa…</span>
+      </div>
+
+      <div *ngIf="personalBests" class="card bg-card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span class="fw-semibold">Per operatör — bästa skift någonsin</span>
+          <span class="badge badge-gold">
+            <i class="fas fa-trophy me-1"></i>Teamrekord: {{ personalBests.team_record_ibc_h }} IBC/h
+          </span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Operatör</th>
+                  <th class="text-end">Bästa IBC/h</th>
+                  <th class="text-end">Bästa Kvalitet</th>
+                  <th>Av rekord</th>
+                  <th class="text-end">Antal skift</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of personalBests.operators">
+                  <td>
+                    <span class="badge bg-secondary me-2">{{ op.initialer }}</span>
+                    {{ op.namn }}
+                  </td>
+                  <td class="text-end fw-bold"
+                    [class.text-success]="op.pct_of_record >= 90"
+                    [class.text-warning]="op.pct_of_record >= 70 && op.pct_of_record < 90"
+                    [class.text-danger]="op.pct_of_record < 70">
+                    {{ op.best_ibc_h | number:'1.1-1' }}
+                  </td>
+                  <td class="text-end">{{ op.best_kvalitet | number:'1.1-1' }}%</td>
+                  <td style="min-width:140px">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="progress flex-grow-1" style="height:8px">
+                        <div class="progress-bar"
+                          [class.bg-success]="op.pct_of_record >= 90"
+                          [class.bg-warning]="op.pct_of_record >= 70 && op.pct_of_record < 90"
+                          [class.bg-danger]="op.pct_of_record < 70"
+                          [style.width]="op.pct_of_record + '%'">
+                        </div>
+                      </div>
+                      <small class="text-muted" style="min-width:36px">{{ op.pct_of_record }}%</small>
+                    </div>
+                  </td>
+                  <td class="text-end text-muted small">{{ op.total_skift }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Sektion 6: Månatliga resultat
+    ============================================================ -->
+    <section class="section mb-4" *ngIf="monthlyLeaders.length || monthlyLeadersLoading">
+      <h2 class="section-title">
+        <i class="fas fa-calendar-alt me-2 text-info"></i>
+        Månatliga resultat — senaste 12 månader
+      </h2>
+
+      <div *ngIf="monthlyLeadersLoading && !monthlyLeaders.length" class="text-center py-3">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        <span class="text-muted ms-2">Laddar månadsdata…</span>
+      </div>
+
+      <div *ngIf="monthlyLeaders.length" class="card bg-card">
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Månad</th>
+                  <th class="text-end">Total IBC</th>
+                  <th class="text-end">Snitt OEE</th>
+                  <th class="text-end">Topp IBC/h</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let m of monthlyLeaders">
+                  <td class="fw-semibold">{{ m.manad }}</td>
+                  <td class="text-end">{{ m.total_ibc | number:'1.0-0' }}</td>
+                  <td class="text-end"
+                    [class.text-success]="m.avg_oee >= 85"
+                    [class.text-warning]="m.avg_oee >= 70 && m.avg_oee < 85"
+                    [class.text-danger]="m.avg_oee > 0 && m.avg_oee < 70"
+                    [class.text-muted]="m.avg_oee === 0">
+                    {{ m.avg_oee > 0 ? (m.avg_oee | number:'1.1-1') + '%' : '—' }}
+                  </td>
+                  <td class="text-end text-info">{{ m.top_ibc_h | number:'1.1-1' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 </div>

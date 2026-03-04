@@ -11,6 +11,10 @@ import {
   BenchmarkingTopWeek,
   BenchmarkingMonthly,
   BenchmarkingBestDay,
+  PersonalBestOperator,
+  PersonalBestsResponse,
+  MonthlyLeaderEntry,
+  MonthlyLeadersResponse,
 } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
@@ -43,6 +47,12 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
   ibcDiffToRecord = 0;
   isNewRecord = false;
 
+  // Personbästa & månadsdata
+  personalBests: { operators: PersonalBestOperator[]; team_record_ibc_h: number } | null = null;
+  personalBestsLoading = false;
+  monthlyLeaders: MonthlyLeaderEntry[] = [];
+  monthlyLeadersLoading = false;
+
   // Chart
   @ViewChild('monthlyChart') monthlyChartRef!: ElementRef<HTMLCanvasElement>;
   private monthlyChartInstance: Chart | null = null;
@@ -56,6 +66,8 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.load();
+    this.loadPersonalBests();
+    this.loadMonthlyLeaders();
     this.pollInterval = setInterval(() => this.load(), 60_000);
   }
 
@@ -114,6 +126,26 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
         this.loading = false;
         // Bygger chart efter att data är satt
         this.chartTimer = setTimeout(() => this.buildMonthlyChart(), 50);
+      });
+  }
+
+  loadPersonalBests(): void {
+    this.personalBestsLoading = true;
+    this.rebotlingService.getPersonalBests()
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe((res: PersonalBestsResponse | null) => {
+        this.personalBestsLoading = false;
+        if (res?.success && res.data) this.personalBests = res.data;
+      });
+  }
+
+  loadMonthlyLeaders(): void {
+    this.monthlyLeadersLoading = true;
+    this.rebotlingService.getMonthlyLeaders()
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe((res: MonthlyLeadersResponse | null) => {
+        this.monthlyLeadersLoading = false;
+        if (res?.success && res.data) this.monthlyLeaders = res.data;
       });
   }
 

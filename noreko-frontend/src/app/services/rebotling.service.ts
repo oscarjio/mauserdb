@@ -312,6 +312,52 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+  getPersonalBests(): Observable<PersonalBestsResponse> {
+    return this.http.get<PersonalBestsResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=personal-bests',
+      { withCredentials: true }
+    );
+  }
+
+  getMonthlyLeaders(months: number = 12): Observable<MonthlyLeadersResponse> {
+    return this.http.get<MonthlyLeadersResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=monthly-leaders&months=${months}`,
+      { withCredentials: true }
+    );
+  }
+
+}
+
+export interface PersonalBestOperator {
+  op_number: number;
+  namn: string;
+  initialer: string;
+  best_ibc_h: number;
+  best_kvalitet: number;
+  pct_of_record: number;
+  total_skift: number;
+}
+
+export interface PersonalBestsResponse {
+  success: boolean;
+  data?: {
+    operators: PersonalBestOperator[];
+    team_record_ibc_h: number;
+  };
+  error?: string;
+}
+
+export interface MonthlyLeaderEntry {
+  manad: string;
+  total_ibc: number;
+  avg_oee: number;
+  top_ibc_h: number;
+}
+
+export interface MonthlyLeadersResponse {
+  success: boolean;
+  data?: MonthlyLeaderEntry[];
+  error?: string;
 }
 
 export interface StoppageDayEntry {
