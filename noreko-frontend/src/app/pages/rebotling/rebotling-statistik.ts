@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation, QualityTrendDay, QualityTrendResponse, OeeWaterfallResponse } from '../../services/rebotling.service';
+import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation, QualityTrendDay, QualityTrendResponse, OeeWaterfallResponse, WeekdayStatsEntry } from '../../services/rebotling.service';
 
 Chart.register(...registerables);
 
@@ -229,6 +229,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   oeeWaterfallData: OeeWaterfallResponse | null = null;
   private oeeWaterfallChart: Chart | null = null;
 
+  // Veckodag-analys
+  weekdayData: WeekdayStatsEntry[] = [];
+  weekdayLoading: boolean = false;
+  weekdayDagar: number = 90;
+  private weekdayChart: Chart | null = null;
+
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
 
@@ -253,6 +259,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.loadSPC();
     this.loadQualityTrend();
     this.loadOeeWaterfall();
+    this.loadWeekdayStats();
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -338,6 +345,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.qualityTrendChart = null;
     this.oeeWaterfallChart?.destroy();
     this.oeeWaterfallChart = null;
+    this.weekdayChart?.destroy();
+    this.weekdayChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -2793,4 +2802,106 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
     });
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Veckodag-analys
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  getWeekdayMaxIbc(): number {
+    if (!this.weekdayData.length) return 0;
+    return Math.max(...this.weekdayData.map(d => d.snitt_ibc));
+  }
+
+  getWeekdayMinIbc(): number {
+    if (!this.weekdayData.length) return 0;
+    return Math.min(...this.weekdayData.map(d => d.snitt_ibc));
+  }
+
+  loadWeekdayStats(): void {
+    this.weekdayLoading = true;
+    this.rebotlingService.getWeekdayStats(this.weekdayDagar).pipe(
+      timeout(8000),
+      catchError(() => of({ success: false, veckodagar: [] })),
+      takeUntil(this.destroy$)
+    ).subscribe(r => {
+      this.weekdayData = r.veckodagar || [];
+      this.weekdayLoading = false;
+      setTimeout(() => this.buildWeekdayChart(), 50);
+    });
+  }
+
+  private buildWeekdayChart(): void {
+    this.weekdayChart?.destroy();
+    const canvas = document.getElementById('weekdayChart') as HTMLCanvasElement;
+    if (!canvas || !this.weekdayData.length) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Sortera efter veckodag_nr (mån=2 ... lör=7, sön=1 visas sist)
+    const sorted = [...this.weekdayData].sort((a, b) => {
+      // Flytta söndag (1) till slutet
+      const na = a.veckodag_nr === 1 ? 8 : a.veckodag_nr;
+      const nb = b.veckodag_nr === 1 ? 8 : b.veckodag_nr;
+      return na - nb;
+    });
+
+    const labels = sorted.map(d => d.namn);
+    const ibcData = sorted.map(d => d.snitt_ibc);
+
+    // Färg per stapel — bästa grön, sämsta röd, resten blå
+    const maxIbc = Math.max(...ibcData);
+    const minIbc = Math.min(...ibcData);
+    const colors = ibcData.map(v =>
+      v === maxIbc ? 'rgba(72, 187, 120, 0.85)' :
+      v === minIbc ? 'rgba(245, 101, 101, 0.85)' :
+      'rgba(66, 153, 225, 0.65)'
+    );
+
+    this.weekdayChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Snitt IBC/dag',
+            data: ibcData,
+            backgroundColor: colors,
+            borderColor: colors.map(c => c.replace('0.85', '1').replace('0.65', '1')),
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#e2e8f0' } },
+          tooltip: {
+            callbacks: {
+              afterBody: (items: any[]) => {
+                const d = sorted[items[0].dataIndex];
+                const lines: string[] = [];
+                if (d.snitt_oee !== null) lines.push(`OEE: ${d.snitt_oee}%`);
+                lines.push(`Max: ${d.max_ibc} IBC`, `Min: ${d.min_ibc} IBC`, `Antal dagar: ${d.antal_dagar}`);
+                return lines;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid: { color: '#4a5568' }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#a0aec0' },
+            grid: { color: '#4a5568' },
+            title: { display: true, text: 'IBC/dag', color: '#a0aec0' }
+          }
+        }
+      }
+    });
+  }
+
 }

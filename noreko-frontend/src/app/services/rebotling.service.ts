@@ -80,6 +80,24 @@ export interface StatisticsResponse {
   };
 }
 
+
+export interface WeekdayStatsEntry {
+  veckodag_nr: number;
+  namn: string;
+  antal_dagar: number;
+  snitt_ibc: number;
+  snitt_oee: number | null;
+  max_ibc: number;
+  min_ibc: number;
+}
+
+export interface WeekdayStatsResponse {
+  success: boolean;
+  veckodagar?: WeekdayStatsEntry[];
+  dagar?: number;
+  error?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class RebotlingService {
   constructor(private http: HttpClient) {}
@@ -217,6 +235,13 @@ export class RebotlingService {
   getOeeWaterfall(days: number = 30): Observable<OeeWaterfallResponse> {
     return this.http.get<OeeWaterfallResponse>(
       `/noreko-backend/api.php?action=rebotling&run=oee-waterfall&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getWeekdayStats(dagar: number = 90): Observable<WeekdayStatsResponse> {
+    return this.http.get<WeekdayStatsResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=weekday-stats&dagar=${dagar}`,
       { withCredentials: true }
     );
   }

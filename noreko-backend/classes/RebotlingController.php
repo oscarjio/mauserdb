@@ -68,6 +68,8 @@ class RebotlingController {
                 $this->getOeeWaterfall();
             } elseif ($action === 'skift-kommentar') {
                 $this->getSkiftKommentar();
+            } elseif ($action === 'weekday-stats') {
+                $this->getWeekdayStats();
             } else {
                 $this->getLiveStats();
             }
@@ -3769,6 +3771,88 @@ class RebotlingController {
             error_log('setSkiftKommentar: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid sparande.']);
+        }
+    }
+    /**
+     * GET ?action=rebotling&run=weekday-stats&dagar=90
+     * Returnerar genomsnittlig IBC-produktion och OEE per veckodag.
+     * Används av Veckodag-analys i rebotling-statistik.
+     */
+    private function getWeekdayStats() {
+        $dagar = min(365, max(7, intval($_GET['dagar'] ?? 90)));
+
+        // Svenska veckodagsnamn (MySQL returnerar engelska)
+        $dagNamn = [1 => 'Söndag', 2 => 'Måndag', 3 => 'Tisdag', 4 => 'Onsdag', 5 => 'Torsdag', 6 => 'Fredag', 7 => 'Lördag'];
+        $idealRatePerMin = 15.0 / 60.0;
+
+        try {
+            // Aggregera per skift först, summera sedan per dag, gruppera slutligen per veckodag
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DAYOFWEEK(dag)        AS veckodag_nr,
+                    COUNT(DISTINCT dag)   AS antal_dagar,
+                    ROUND(AVG(dag_ibc), 1)  AS snitt_ibc,
+                    MAX(dag_ibc)            AS max_ibc,
+                    MIN(dag_ibc)            AS min_ibc,
+                    ROUND(AVG(dag_oee), 1)  AS snitt_oee
+                FROM (
+                    SELECT
+                        dag,
+                        SUM(shift_ibc_ok)    AS dag_ibc,
+                        SUM(shift_runtime)   AS dag_runtime,
+                        SUM(shift_rast)      AS dag_rast,
+                        SUM(shift_ibc_ej_ok) AS dag_ibc_ej_ok
+                    FROM (
+                        SELECT
+                            DATE(datum)                           AS dag,
+                            skiftraknare,
+                            MAX(COALESCE(ibc_ok,    0))           AS shift_ibc_ok,
+                            MAX(COALESCE(ibc_ej_ok,  0))          AS shift_ibc_ej_ok,
+                            MAX(COALESCE(runtime_plc,0))          AS shift_runtime,
+                            MAX(COALESCE(rasttime,   0))          AS shift_rast
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                          AND skiftraknare IS NOT NULL
+                          AND ibc_ok IS NOT NULL
+                          AND ibc_ok > 0
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_shift
+                    GROUP BY dag
+                ) AS per_dag
+                CROSS JOIN (SELECT 0) AS dummy
+                GROUP BY DAYOFWEEK(dag)
+                ORDER BY veckodag_nr
+            ");
+            $stmt->execute([$dagar]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $veckodagar = [];
+            foreach ($rows as $r) {
+                $nr = (int)$r['veckodag_nr'];
+                $namn = $dagNamn[$nr] ?? 'Okänd';
+
+                // Beräkna OEE om det saknas (snitt_oee kan vara NULL om runtime är 0)
+                $snittOee = $r['snitt_oee'] !== null ? (float)$r['snitt_oee'] : null;
+
+                $veckodagar[] = [
+                    'veckodag_nr' => $nr,
+                    'namn'        => $namn,
+                    'antal_dagar' => (int)$r['antal_dagar'],
+                    'snitt_ibc'   => (float)$r['snitt_ibc'],
+                    'snitt_oee'   => $snittOee,
+                    'max_ibc'     => (int)$r['max_ibc'],
+                    'min_ibc'     => (int)$r['min_ibc']
+                ];
+            }
+
+            echo json_encode([
+                'success'     => true,
+                'veckodagar'  => $veckodagar,
+                'dagar'       => $dagar
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getWeekdayStats: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodag-statistik']);
         }
     }
 
