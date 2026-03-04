@@ -1,11 +1,15 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
+import { Chart, registerables } from 'chart.js';
 import { SkiftrapportService } from '../../services/skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
+
+Chart.register(...registerables);
 
 type SortField = 'datum' | 'product_name' | 'user_name' | 'ibc_ok' | 'bur_ej_ok' | 'ibc_ej_ok' | 'totalt' | 'kvalitet' | 'ibc_per_h';
 type SortDir   = 'asc' | 'desc';
@@ -66,6 +70,19 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   spararKommentar: { [reportId: number]: boolean } = {};
   editKommentar: { [reportId: number]: string } = {};
 
+  // ---- Produktionstrendgraf ----
+  @ViewChild('trendCanvas') trendCanvasRef!: ElementRef<HTMLCanvasElement>;
+  selectedTrendReportId: number | null = null;
+  trendData: any = null;
+  trendLoading = false;
+  trendError = '';
+  private trendChart: Chart | null = null;
+
+  // ---- Skift-navigation ----
+  // skifts = filteredReports (computed getter), selectedSkift = skiftraknare
+  selectedSkift: number | null = null;
+  selectedSkiftIndex: number = -1;
+
   private destroy$ = new Subject<void>();
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
@@ -105,6 +122,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     clearInterval(this.updateInterval);
     clearTimeout(this.successTimerId);
     this.fetchSub?.unsubscribe();
+    this.trendChart?.destroy();
+    this.trendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -1013,6 +1032,261 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const h = Math.floor(min / 60);
     const m = min % 60;
     return h > 0 ? `${h}h ${m}min` : `${m}min`;
+  }
+
+  // ========== Produktionstrendgraf ==========
+
+  /**
+   * Öppna/stäng trendpanelen för ett skift.
+   * Laddar data och bygger grafen om expanderad.
+   */
+  toggleTrend(report: any) {
+    if (this.selectedTrendReportId === report.id) {
+      // Stäng
+      this.selectedTrendReportId = null;
+      this.trendData = null;
+      this.trendChart?.destroy();
+      this.trendChart = null;
+      return;
+    }
+
+    this.selectedTrendReportId = report.id;
+    this.trendData = null;
+    this.trendError = '';
+    this.trendChart?.destroy();
+    this.trendChart = null;
+
+    if (!report.skiftraknare) {
+      this.trendError = 'Ingen skifträknare kopplad till rapporten — trenddata kan inte hämtas.';
+      return;
+    }
+
+    const datum = (report.datum || '').substring(0, 10);
+    this.trendLoading = true;
+
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=shift-trend&datum=${datum}&skift=${report.skiftraknare}`,
+      { withCredentials: true }
+    )
+    .pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    )
+    .subscribe(res => {
+      this.trendLoading = false;
+      if (!res || !res.success) {
+        this.trendError = res?.error || 'Kunde inte hämta trenddata';
+        return;
+      }
+      this.trendData = res;
+      // Bygg grafen efter att Angular renderat canvas-elementet
+      setTimeout(() => this.buildTrendChart(), 100);
+    });
+  }
+
+  private buildTrendChart() {
+    const canvasEl = document.getElementById('trendCanvas-' + this.selectedTrendReportId) as HTMLCanvasElement | null;
+    if (!canvasEl || !this.trendData) return;
+
+    this.trendChart?.destroy();
+    this.trendChart = null;
+
+    const trend: any[]      = this.trendData.trend      || [];
+    const avgProfile: any[] = this.trendData.avg_profile || [];
+
+    // Bygg en unifierad timme-lista
+    const allHours = Array.from(
+      new Set([
+        ...trend.map((t: any) => t.timme),
+        ...avgProfile.map((a: any) => a.timme),
+      ])
+    ).sort((a, b) => a - b);
+
+    const labels = allHours.map((h: number) => `${String(h).padStart(2, '0')}:00`);
+
+    const trendMap: { [h: number]: number } = {};
+    trend.forEach((t: any) => { trendMap[t.timme] = t.takt_ibc_per_h; });
+
+    const avgMap: { [h: number]: number } = {};
+    avgProfile.forEach((a: any) => { avgMap[a.timme] = a.snitt_ibc_timma; });
+
+    const trendValues = allHours.map((h: number) => trendMap[h] ?? null);
+    const avgValues   = allHours.map((h: number) => avgMap[h]   ?? null);
+
+    this.trendChart = new Chart(canvasEl, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Faktisk takt (IBC/h)',
+            data: trendValues,
+            borderColor: '#63b3ed',
+            backgroundColor: 'rgba(99, 179, 237, 0.12)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointBackgroundColor: '#63b3ed',
+            tension: 0.3,
+            fill: true,
+            spanGaps: true,
+          },
+          {
+            label: 'Genomsnittsprofil (IBC/h)',
+            data: avgValues,
+            borderColor: '#a0aec0',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [6, 4],
+            pointRadius: 3,
+            pointBackgroundColor: '#a0aec0',
+            tension: 0.3,
+            fill: false,
+            spanGaps: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            labels: { color: '#e2e8f0', font: { size: 12 } },
+          },
+          tooltip: {
+            backgroundColor: '#1a202c',
+            titleColor: '#e2e8f0',
+            bodyColor: '#e2e8f0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              afterBody: (items: any[]) => {
+                const actual = items.find((i: any) => i.datasetIndex === 0)?.parsed?.y ?? null;
+                const avg    = items.find((i: any) => i.datasetIndex === 1)?.parsed?.y ?? null;
+                if (actual != null && avg != null && avg > 0) {
+                  const diff = Math.round(((actual - avg) / avg) * 100);
+                  return [`Diff vs snitt: ${diff > 0 ? '+' : ''}${diff}%`];
+                }
+                return [];
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'Timme', color: '#718096' },
+          },
+          y: {
+            ticks: { color: '#a0aec0' },
+            grid:  { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'IBC / timme', color: '#718096' },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+  }
+
+  // ========== Operatörsrankning per skift ==========
+
+  /**
+   * Bygg en rankad lista av operatörer i ett skift baserat på IBC/h.
+   * Beräknas från befintliga data — op1/op2/op3 mappas mot IBC/h för hela skiftet.
+   * Då vi bara har ett IBC/h per skiftrapport delar vi det lika mellan aktiva operatörer.
+   */
+  getOperatorRanking(report: any): Array<{ name: string; ibc_per_h: number | null; personal_avg: number | null; rank: number }> {
+    const ibcH = this.getIbcPerHour(report);
+    const ops: string[] = [];
+    if (this.getOpLabel(report, 'op1') !== '–') ops.push(this.getOpLabel(report, 'op1'));
+    if (this.getOpLabel(report, 'op2') !== '–') ops.push(this.getOpLabel(report, 'op2'));
+    if (this.getOpLabel(report, 'op3') !== '–') ops.push(this.getOpLabel(report, 'op3'));
+    if (ops.length === 0) return [];
+
+    // Beräkna genomsnittlig IBC/h per operatör från alla skift de arbetat
+    const result = ops.map(name => {
+      // Hitta alla rapporter denna operatör deltog i
+      const opReports = this.reports.filter(r =>
+        this.getOpLabel(r, 'op1') === name ||
+        this.getOpLabel(r, 'op2') === name ||
+        this.getOpLabel(r, 'op3') === name
+      );
+      const validReports = opReports.filter(r => this.getIbcPerHour(r) != null);
+      const personalAvg  = validReports.length > 0
+        ? Math.round(validReports.reduce((s: number, r: any) => s + (this.getIbcPerHour(r) ?? 0), 0) / validReports.length * 10) / 10
+        : null;
+      return { name, ibc_per_h: ibcH, personal_avg: personalAvg, rank: 0 };
+    });
+
+    // Ranka efter personligt genomsnitt (högst = rank 1)
+    const sorted = [...result].sort((a, b) => (b.personal_avg ?? 0) - (a.personal_avg ?? 0));
+    sorted.forEach((op, i) => { op.rank = i + 1; });
+
+    return sorted;
+  }
+
+  getRankIcon(rank: number): string {
+    if (rank === 1) return '1';
+    if (rank === 2) return '2';
+    if (rank === 3) return '3';
+    return String(rank);
+  }
+
+  getRankBadgeClass(rank: number): string {
+    if (rank === 1) return 'rank-gold';
+    if (rank === 2) return 'rank-silver';
+    if (rank === 3) return 'rank-bronze';
+    return 'rank-default';
+  }
+
+  getOperatorShiftCount(name: string): number {
+    return this.reports.filter(r =>
+      this.getOpLabel(r, 'op1') === name ||
+      this.getOpLabel(r, 'op2') === name ||
+      this.getOpLabel(r, 'op3') === name
+    ).length;
+  }
+
+  // ========== Skift-navigation ==========
+
+  selectSkift(reportId: number) {
+    // Öppna trendpanelen för ett skift via ID
+    const report = this.filteredReports.find(r => r.id === reportId);
+    if (!report) return;
+    this.selectedSkift = reportId;
+    this.selectedSkiftIndex = this.filteredReports.findIndex(r => r.id === reportId);
+  }
+
+  prevSkift() {
+    const reports = this.filteredReports;
+    if (this.selectedTrendReportId == null) return;
+    const currentIndex = reports.findIndex(r => r.id === this.selectedTrendReportId);
+    if (currentIndex > 0) {
+      this.toggleTrend(reports[currentIndex - 1]);
+    }
+  }
+
+  nextSkift() {
+    const reports = this.filteredReports;
+    if (this.selectedTrendReportId == null) return;
+    const currentIndex = reports.findIndex(r => r.id === this.selectedTrendReportId);
+    if (currentIndex < reports.length - 1) {
+      this.toggleTrend(reports[currentIndex + 1]);
+    }
+  }
+
+  get canGoPrev(): boolean {
+    if (this.selectedTrendReportId == null) return false;
+    const idx = this.filteredReports.findIndex(r => r.id === this.selectedTrendReportId);
+    return idx > 0;
+  }
+
+  get canGoNext(): boolean {
+    if (this.selectedTrendReportId == null) return false;
+    const idx = this.filteredReports.findIndex(r => r.id === this.selectedTrendReportId);
+    return idx < this.filteredReports.length - 1;
   }
 
   // ========== Toast ==========

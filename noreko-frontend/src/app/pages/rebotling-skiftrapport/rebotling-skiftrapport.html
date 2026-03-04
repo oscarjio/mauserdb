@@ -312,6 +312,12 @@
                     </td>
                     <td>
                       <div class="btn-group btn-group-sm" role="group">
+                        <!-- Trendknapp -->
+                        <button *ngIf="loggedIn && report.skiftraknare" class="btn btn-outline-primary"
+                          (click)="toggleTrend(report)"
+                          [title]="selectedTrendReportId === report.id ? 'Dölj trendgraf' : 'Visa trendgraf'">
+                          <i class="fas fa-chart-line"></i>
+                        </button>
                         <button *ngIf="loggedIn" class="btn btn-outline-info" (click)="toggleExpand(report.id)"
                           [title]="expanded[report.id] ? 'Dölj detaljer' : 'Visa detaljer'">
                           <i class="fas" [class.fa-chevron-up]="expanded[report.id]" [class.fa-chevron-down]="!expanded[report.id]"></i>
@@ -322,6 +328,120 @@
                         <button *ngIf="canEdit(report)" class="btn btn-outline-danger" (click)="deleteReport(report.id)" title="Ta bort">
                           <i class="fas fa-trash"></i>
                         </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- ======== PRODUKTIONSTRENDGRAF ======== -->
+                  <tr *ngIf="selectedTrendReportId === report.id" class="expand-row">
+                    <td [attr.colspan]="isAdmin ? 13 : 12" class="p-0">
+                      <div class="trend-panel p-3">
+                        <!-- Header med navigation -->
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                          <div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            <span class="text-primary fw-semibold">
+                              Produktionstrendgraf — {{ report.datum | date:'yyyy-MM-dd' }}
+                              <span class="text-muted small ms-2">(Skift {{ report.skiftraknare }})</span>
+                            </span>
+                          </div>
+                          <!-- Skift-navigering -->
+                          <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-sm btn-outline-secondary"
+                              (click)="prevSkift()"
+                              [disabled]="!canGoPrev"
+                              title="Föregående skift">
+                              <i class="fas fa-chevron-left me-1"></i>Föreg. skift
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary"
+                              (click)="nextSkift()"
+                              [disabled]="!canGoNext"
+                              title="Nästa skift">
+                              Nästa skift<i class="fas fa-chevron-right ms-1"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" (click)="toggleTrend(report)" title="Stäng">
+                              <i class="fas fa-times"></i>
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- Laddningsindikator -->
+                        <div *ngIf="trendLoading" class="text-center text-muted py-4">
+                          <i class="fas fa-spinner fa-spin me-2"></i>Hämtar trenddata...
+                        </div>
+
+                        <!-- Felmeddelande -->
+                        <div *ngIf="trendError && !trendLoading" class="alert alert-secondary py-2">
+                          <i class="fas fa-info-circle me-2"></i>{{ trendError }}
+                        </div>
+
+                        <!-- KPI-kort ovanför grafen -->
+                        <div *ngIf="trendData && !trendLoading" class="row g-2 mb-3">
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Snitt IBC/h (detta skift)</div>
+                              <div class="kpi-value text-info">
+                                {{ trendData.kpi?.snitt_ibc_per_h ?? '–' }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Snitt IBC/h (genomsnitt)</div>
+                              <div class="kpi-value text-muted">
+                                {{ trendData.kpi?.snitt_ibc_per_h_avg > 0 ? trendData.kpi?.snitt_ibc_per_h_avg : '–' }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Differens vs genomsnitt</div>
+                              <div class="kpi-value"
+                                [class.text-success]="(trendData.kpi?.diff_pct ?? 0) > 0"
+                                [class.text-danger]="(trendData.kpi?.diff_pct ?? 0) < 0"
+                                [class.text-muted]="trendData.kpi?.diff_pct == null">
+                                <ng-container *ngIf="trendData.kpi?.diff_pct != null">
+                                  {{ trendData.kpi.diff_pct > 0 ? '+' : '' }}{{ trendData.kpi.diff_pct }}%
+                                </ng-container>
+                                <span *ngIf="trendData.kpi?.diff_pct == null">–</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="col-6 col-md-3">
+                            <div class="kpi-card">
+                              <div class="kpi-label">Total IBC (PLC)</div>
+                              <div class="kpi-value text-warning">
+                                {{ (trendData.kpi?.total_ibc ?? 0) > 0 ? trendData.kpi.total_ibc : '–' }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Graf -->
+                        <div *ngIf="trendData && !trendLoading && trendData.trend?.length > 0"
+                          class="trend-chart-wrapper">
+                          <canvas [id]="'trendCanvas-' + report.id"></canvas>
+                        </div>
+
+                        <!-- Ingen PLC-data -->
+                        <div *ngIf="trendData && !trendLoading && trendData.trend?.length === 0"
+                          class="text-center text-muted py-3">
+                          <i class="fas fa-database me-2"></i>
+                          Inga timdata tillgängliga från PLC för detta skift.
+                        </div>
+
+                        <!-- Legend -->
+                        <div *ngIf="trendData && !trendLoading && trendData.trend?.length > 0"
+                          class="d-flex gap-4 mt-2 justify-content-center flex-wrap">
+                          <div class="d-flex align-items-center gap-2 small">
+                            <div style="width:24px;height:3px;background:#63b3ed;border-radius:2px;"></div>
+                            <span class="text-muted">Faktisk takt (IBC/h)</span>
+                          </div>
+                          <div class="d-flex align-items-center gap-2 small">
+                            <div style="width:24px;height:3px;background:#a0aec0;border-radius:2px;border-top:2px dashed #a0aec0;"></div>
+                            <span class="text-muted">Genomsnittsprofil (senaste 4 v, samma veckodag)</span>
+                          </div>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -463,6 +583,56 @@
                               <div class="small text-muted mb-1">Löpnummer (D4009)</div>
                               <span class="fw-bold fs-6">{{ report.lopnummer || '–' }}</span>
                             </div>
+                          </div>
+                        </div>
+
+                        <!-- ======== FÖRBÄTTRAD OPERATÖRSTABELL ======== -->
+                        <div class="mb-3" *ngIf="getOperatorRanking(report).length > 0">
+                          <div class="d-flex align-items-center mb-2">
+                            <i class="fas fa-users text-warning me-2"></i>
+                            <span class="text-warning fw-semibold">Operatörer detta skift</span>
+                          </div>
+                          <div class="operator-rank-table">
+                            <table class="table table-sm mb-0">
+                              <thead>
+                                <tr>
+                                  <th class="text-center" style="width:50px;">Rank</th>
+                                  <th>Operatör</th>
+                                  <th class="text-center">IBC/h (skift)</th>
+                                  <th class="text-center">Personligt snitt</th>
+                                  <th class="text-center">Antal skift</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <ng-container *ngFor="let op of getOperatorRanking(report)">
+                                  <tr>
+                                    <td class="text-center">
+                                      <span class="rank-badge" [ngClass]="getRankBadgeClass(op.rank)">
+                                        <ng-container *ngIf="op.rank === 1">&#127947;</ng-container>
+                                        <ng-container *ngIf="op.rank === 2">&#129352;</ng-container>
+                                        <ng-container *ngIf="op.rank === 3">&#129353;</ng-container>
+                                        <ng-container *ngIf="op.rank > 3">{{ op.rank }}</ng-container>
+                                      </span>
+                                    </td>
+                                    <td>
+                                      <span class="badge bg-secondary">{{ op.name }}</span>
+                                    </td>
+                                    <td class="text-center text-warning fw-semibold">
+                                      {{ op.ibc_per_h != null ? (op.ibc_per_h + ' st/h') : '–' }}
+                                    </td>
+                                    <td class="text-center">
+                                      <span *ngIf="op.personal_avg != null" class="text-info">
+                                        {{ op.personal_avg }} st/h
+                                      </span>
+                                      <span *ngIf="op.personal_avg == null" class="text-muted">–</span>
+                                    </td>
+                                    <td class="text-center text-muted small">
+                                      {{ getOperatorShiftCount(op.name) }}
+                                    </td>
+                                  </tr>
+                                </ng-container>
+                              </tbody>
+                            </table>
                           </div>
                         </div>
 

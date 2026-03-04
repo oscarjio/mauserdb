@@ -402,3 +402,82 @@
   font-weight: 600;
   color: #e2e8f0;
 }
+
+/* ---- Produktionstrendgraf ---- */
+.trend-panel {
+  background: #1a202c;
+  border-top: 2px solid #4299e1;
+}
+
+.trend-chart-wrapper {
+  position: relative;
+  height: 280px;
+  width: 100%;
+}
+
+.trend-chart-wrapper canvas {
+  max-height: 280px;
+}
+
+/* ---- Operatörsrankning ---- */
+.operator-rank-table {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.operator-rank-table table thead th {
+  background: #2d3748;
+  color: #a0aec0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+  border-color: #4a5568;
+}
+
+.operator-rank-table table tbody td {
+  background: #1a202c;
+  color: #e2e8f0;
+  padding: 7px 10px;
+  border-color: #2d3748;
+  vertical-align: middle;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rank-gold {
+  background: rgba(237, 190, 50, 0.15);
+  color: #edb932;
+  border: 1px solid rgba(237, 190, 50, 0.4);
+}
+
+.rank-silver {
+  background: rgba(160, 174, 192, 0.15);
+  color: #a0aec0;
+  border: 1px solid rgba(160, 174, 192, 0.4);
+}
+
+.rank-bronze {
+  background: rgba(205, 127, 50, 0.15);
+  color: #cd7f32;
+  border: 1px solid rgba(205, 127, 50, 0.4);
+}
+
+.rank-default {
+  background: rgba(74, 85, 104, 0.3);
+  color: #718096;
+  border: 1px solid #4a5568;
+  font-size: 0.75rem;
+}

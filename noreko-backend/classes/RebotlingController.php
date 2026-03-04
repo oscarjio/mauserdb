@@ -78,6 +78,8 @@ class RebotlingController {
                 $this->getAlertThresholds();
             } elseif ($action === 'today-snapshot') {
                 $this->getTodaySnapshot();
+            } elseif ($action === 'shift-trend') {
+                $this->getShiftTrend();
             } else {
                 $this->getLiveStats();
             }
@@ -4375,6 +4377,116 @@ class RebotlingController {
             error_log('RebotlingController deleteEvent: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'Kunde inte ta bort händelsen']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=shift-trend&datum=YYYY-MM-DD&skift=N
+     * Returnerar timupplöst produktionsprofil för ett skift samt genomsnittsprofil
+     * för samma veckodag de senaste 4 veckorna.
+     */
+    private function getShiftTrend() {
+        $datum = $_GET['datum'] ?? '';
+        $skift = intval($_GET['skift'] ?? 0);
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum) || $skift <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltiga parametrar']);
+            return;
+        }
+
+        try {
+            // Hämta rådata per timme för detta skift — kumulativa max/min-värden
+            $stmt = $this->pdo->prepare('
+                SELECT
+                    HOUR(datum) AS timme,
+                    MAX(ibc_ok)  AS ibc_max,
+                    MIN(ibc_ok)  AS ibc_min,
+                    MAX(runtime_plc) AS runtime_cumulative
+                FROM rebotling_ibc
+                WHERE DATE(datum) = ?
+                  AND skiftraknare = ?
+                GROUP BY HOUR(datum)
+                ORDER BY timme
+            ');
+            $stmt->execute([$datum, $skift]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Beräkna delta per timme (kumulativa fält)
+            $trend = [];
+            $prevIbc = null;
+            $accIbc  = 0;
+            foreach ($rows as $r) {
+                $delta = ($prevIbc === null) ? 0 : max(0, (int)$r['ibc_max'] - (int)$prevIbc);
+                $accIbc += $delta;
+                $trend[] = [
+                    'timme'          => (int)$r['timme'],
+                    'ibc_ok'         => $delta,
+                    'ackumulerat_ibc'=> $accIbc,
+                    'takt_ibc_per_h' => $delta, // delta IS takt over 1h
+                    'runtime'        => (int)$r['runtime_cumulative'],
+                ];
+                $prevIbc = (int)$r['ibc_max'];
+            }
+
+            // Genomsnittsprofil: samma veckodag de senaste 28 dagarna, samma skift-nummer
+            $stmt2 = $this->pdo->prepare('
+                SELECT HOUR(datum) AS timme, AVG(delta_ok) AS snitt_ibc_timma
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        HOUR(datum) AS h,
+                        skiftraknare,
+                        MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
+                    FROM rebotling_ibc
+                    WHERE DAYOFWEEK(datum) = DAYOFWEEK(?)
+                      AND skiftraknare = ?
+                      AND datum >= DATE_SUB(?, INTERVAL 28 DAY)
+                      AND DATE(datum) != ?
+                    GROUP BY DATE(datum), HOUR(datum), skiftraknare
+                ) x
+                GROUP BY timme
+                ORDER BY timme
+            ');
+            $stmt2->execute([$datum, $skift, $datum, $datum]);
+            $avgRows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+
+            $avgProfile = [];
+            foreach ($avgRows as $ar) {
+                $avgProfile[] = [
+                    'timme'           => (int)$ar['timme'],
+                    'snitt_ibc_timma' => round((float)$ar['snitt_ibc_timma'], 1),
+                ];
+            }
+
+            // Beräkna totala KPI-värden
+            $totalIbc   = $accIbc;
+            $hours      = count($trend) > 0 ? count($trend) : 1;
+            $snitttakt  = $hours > 0 ? round($totalIbc / $hours, 1) : 0;
+
+            $avgTotal     = array_sum(array_column($avgProfile, 'snitt_ibc_timma'));
+            $avgHours     = count($avgProfile) > 0 ? count($avgProfile) : 1;
+            $snitttaktAvg = $avgHours > 0 ? round($avgTotal / $avgHours, 1) : 0;
+
+            $diffPct = ($snitttaktAvg > 0)
+                ? round((($snitttakt - $snitttaktAvg) / $snitttaktAvg) * 100, 1)
+                : null;
+
+            echo json_encode([
+                'success'      => true,
+                'trend'        => $trend,
+                'avg_profile'  => $avgProfile,
+                'kpi' => [
+                    'snitt_ibc_per_h'     => $snitttakt,
+                    'snitt_ibc_per_h_avg' => $snitttaktAvg,
+                    'diff_pct'            => $diffPct,
+                    'total_ibc'           => $totalIbc,
+                ],
+            ]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getShiftTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
 
