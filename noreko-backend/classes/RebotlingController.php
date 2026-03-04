@@ -139,6 +139,8 @@ class RebotlingController {
                 $this->getOeeComponents();
             } elseif ($action === 'service-status') {
                 $this->getServiceStatus();
+            } elseif ($action === 'maintenance-correlation') {
+                $this->getMaintenanceCorrelation();
             } elseif ($action === 'production-rate') {
                 $this->getProductionRate();
             } elseif ($action === 'skiftrapport-list') {
@@ -7539,6 +7541,144 @@ class RebotlingController {
             error_log('getShiftSummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftsammanfattning']);
+        }
+    }
+
+    /**
+     * Korrelationsanalys: underhållshändelser vs maskinstopp per vecka (senaste 12 veckorna).
+     * Hämtar data från maintenance_log och stoppage_log, grupperat per ISO-vecka.
+     */
+    private function getMaintenanceCorrelation() {
+        try {
+            $weeks = intval($_GET['weeks'] ?? 12);
+            if ($weeks < 4 || $weeks > 52) $weeks = 12;
+
+            // Underhållshändelser per vecka (från maintenance_log)
+            $stmtMaint = $this->pdo->prepare("
+                SELECT
+                    YEAR(start_time) AS yr,
+                    WEEK(start_time, 1) AS wk,
+                    CONCAT(YEAR(start_time), '-V', LPAD(WEEK(start_time, 1), 2, '0')) AS vecka,
+                    COUNT(*) AS antal_underhall,
+                    COALESCE(SUM(duration_minutes), 0) AS total_underhallstid
+                FROM maintenance_log
+                WHERE start_time >= DATE_SUB(CURDATE(), INTERVAL :weeks WEEK)
+                  AND status != 'avbokat'
+                GROUP BY YEAR(start_time), WEEK(start_time, 1)
+                ORDER BY yr ASC, wk ASC
+            ");
+            $stmtMaint->execute([':weeks' => $weeks]);
+            $maintRows = $stmtMaint->fetchAll(PDO::FETCH_ASSOC);
+
+            // Maskinstopp per vecka (från stoppage_log)
+            $stmtStop = $this->pdo->prepare("
+                SELECT
+                    YEAR(start_time) AS yr,
+                    WEEK(start_time, 1) AS wk,
+                    CONCAT(YEAR(start_time), '-V', LPAD(WEEK(start_time, 1), 2, '0')) AS vecka,
+                    COUNT(*) AS antal_stopp,
+                    COALESCE(SUM(duration_minutes), 0) AS total_stopptid
+                FROM stoppage_log
+                WHERE start_time >= DATE_SUB(CURDATE(), INTERVAL :weeks WEEK)
+                  AND line = 'rebotling'
+                GROUP BY YEAR(start_time), WEEK(start_time, 1)
+                ORDER BY yr ASC, wk ASC
+            ");
+            $stmtStop->execute([':weeks' => $weeks]);
+            $stopRows = $stmtStop->fetchAll(PDO::FETCH_ASSOC);
+
+            // Bygg index per veckonyckel
+            $maintIndex = [];
+            foreach ($maintRows as $r) {
+                $maintIndex[$r['vecka']] = $r;
+            }
+            $stopIndex = [];
+            foreach ($stopRows as $r) {
+                $stopIndex[$r['vecka']] = $r;
+            }
+
+            // Samla alla unika veckor
+            $allKeys = array_unique(array_merge(array_keys($maintIndex), array_keys($stopIndex)));
+            sort($allKeys);
+
+            $series = [];
+            foreach ($allKeys as $vecka) {
+                $m = $maintIndex[$vecka] ?? null;
+                $s = $stopIndex[$vecka] ?? null;
+                $series[] = [
+                    'vecka'               => $vecka,
+                    'antal_underhall'      => $m ? (int)$m['antal_underhall'] : 0,
+                    'total_underhallstid'  => $m ? (int)$m['total_underhallstid'] : 0,
+                    'antal_stopp'          => $s ? (int)$s['antal_stopp'] : 0,
+                    'total_stopptid'       => $s ? (int)$s['total_stopptid'] : 0,
+                ];
+            }
+
+            // Beräkna KPI:er — jämför första halvan vs andra halvan
+            $halfLen = max(1, intval(count($series) / 2));
+            $firstHalf = array_slice($series, 0, $halfLen);
+            $secondHalf = array_slice($series, $halfLen);
+
+            $avgStoppForst = count($firstHalf) > 0
+                ? round(array_sum(array_column($firstHalf, 'antal_stopp')) / count($firstHalf), 1)
+                : 0;
+            $avgStoppSenare = count($secondHalf) > 0
+                ? round(array_sum(array_column($secondHalf, 'antal_stopp')) / count($secondHalf), 1)
+                : 0;
+
+            $avgUnderhallForst = count($firstHalf) > 0
+                ? round(array_sum(array_column($firstHalf, 'antal_underhall')) / count($firstHalf), 1)
+                : 0;
+            $avgUnderhallSenare = count($secondHalf) > 0
+                ? round(array_sum(array_column($secondHalf, 'antal_underhall')) / count($secondHalf), 1)
+                : 0;
+
+            // Förändring i stopp (negativ = förbättring)
+            $stoppForandring = $avgStoppForst > 0
+                ? round((($avgStoppSenare - $avgStoppForst) / $avgStoppForst) * 100, 1)
+                : 0;
+
+            // Beräkna enkel Pearson-korrelation mellan underhåll och stopp (vecka+1)
+            $korrelation = null;
+            if (count($series) >= 4) {
+                $n = count($series) - 1;
+                $xArr = []; // underhåll vecka i
+                $yArr = []; // stopp vecka i+1
+                for ($i = 0; $i < $n; $i++) {
+                    $xArr[] = $series[$i]['antal_underhall'];
+                    $yArr[] = $series[$i + 1]['antal_stopp'];
+                }
+                $xMean = array_sum($xArr) / $n;
+                $yMean = array_sum($yArr) / $n;
+                $num = 0; $denX = 0; $denY = 0;
+                for ($i = 0; $i < $n; $i++) {
+                    $dx = $xArr[$i] - $xMean;
+                    $dy = $yArr[$i] - $yMean;
+                    $num += $dx * $dy;
+                    $denX += $dx * $dx;
+                    $denY += $dy * $dy;
+                }
+                $den = sqrt($denX * $denY);
+                $korrelation = $den > 0 ? round($num / $den, 2) : 0;
+            }
+
+            echo json_encode([
+                'success'              => true,
+                'series'               => $series,
+                'kpi' => [
+                    'avg_stopp_forsta_halvan'  => $avgStoppForst,
+                    'avg_stopp_andra_halvan'   => $avgStoppSenare,
+                    'avg_underh_forsta_halvan' => $avgUnderhallForst,
+                    'avg_underh_andra_halvan'  => $avgUnderhallSenare,
+                    'stopp_forandring_pct'     => $stoppForandring,
+                    'korrelation'              => $korrelation,
+                ],
+                'weeks_param' => $weeks,
+            ]);
+        } catch (Exception $e) {
+            error_log('getMaintenanceCorrelation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta korrelationsdata']);
         }
     }
 }

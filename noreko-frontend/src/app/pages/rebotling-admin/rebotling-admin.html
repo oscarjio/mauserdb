@@ -1192,6 +1192,116 @@
     </div>
   </div>
 
+  <!-- ======== KORRELATIONSANALYS UNDERHÅLL VS STOPP ======== -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2 text-info"></i>
+            Underhåll vs. Stopp — Korrelationsanalys
+          </h5>
+          <small class="text-muted">Visar samband mellan underhållshändelser och maskinstopp per vecka (senaste 12 veckorna)</small>
+        </div>
+        <div class="card-body">
+
+          <!-- Laddar -->
+          <div *ngIf="correlationLoading" class="text-center py-4">
+            <div class="spinner-border text-info" role="status"></div>
+            <div class="text-muted mt-2 small">Laddar korrelationsdata...</div>
+          </div>
+
+          <!-- Fel -->
+          <div *ngIf="correlationError && !correlationLoading" class="alert alert-warning small">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ correlationError }}
+          </div>
+
+          <!-- Data -->
+          <div *ngIf="correlationData && !correlationLoading">
+
+            <!-- KPI-kort -->
+            <div class="row g-3 mb-4">
+              <div class="col-md-3 col-6">
+                <div class="snapshot-kpi">
+                  <div class="snapshot-kpi-label">Snitt stopp/vecka (tidigt)</div>
+                  <div class="snapshot-kpi-value text-danger">{{ correlationData.kpi.avg_stopp_forsta_halvan }}</div>
+                  <div class="snapshot-kpi-sub text-muted">Första halvan</div>
+                </div>
+              </div>
+              <div class="col-md-3 col-6">
+                <div class="snapshot-kpi">
+                  <div class="snapshot-kpi-label">Snitt stopp/vecka (sent)</div>
+                  <div class="snapshot-kpi-value" [style.color]="correlationData.kpi.stopp_forandring_pct <= 0 ? '#38a169' : '#e53e3e'">
+                    {{ correlationData.kpi.avg_stopp_andra_halvan }}
+                  </div>
+                  <div class="snapshot-kpi-sub text-muted">Andra halvan</div>
+                </div>
+              </div>
+              <div class="col-md-3 col-6">
+                <div class="snapshot-kpi">
+                  <div class="snapshot-kpi-label">Stoppförändring</div>
+                  <div class="snapshot-kpi-value" [style.color]="correlationData.kpi.stopp_forandring_pct <= 0 ? '#38a169' : '#e53e3e'">
+                    {{ correlationData.kpi.stopp_forandring_pct > 0 ? '+' : '' }}{{ correlationData.kpi.stopp_forandring_pct }}%
+                  </div>
+                  <div class="snapshot-kpi-sub text-muted">
+                    {{ correlationData.kpi.stopp_forandring_pct <= 0 ? 'Förbättring' : 'Försämring' }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3 col-6">
+                <div class="snapshot-kpi">
+                  <div class="snapshot-kpi-label">Korrelation</div>
+                  <div class="snapshot-kpi-value" [style.color]="correlationColor">
+                    {{ correlationData.kpi.korrelation !== null ? correlationData.kpi.korrelation : '—' }}
+                  </div>
+                  <div class="snapshot-kpi-sub" [style.color]="correlationColor" style="font-size:0.68rem;">
+                    {{ correlationLabel }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Graf -->
+            <div style="position:relative; height:320px; margin-bottom:1rem;">
+              <canvas id="correlationChart"></canvas>
+            </div>
+
+            <!-- Tabell (fallback) -->
+            <details class="mt-3">
+              <summary class="text-muted small" style="cursor:pointer;">
+                <i class="fas fa-table me-1"></i>Visa veckodata (tabell)
+              </summary>
+              <div class="table-responsive mt-2">
+                <table class="table table-sm table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Vecka</th>
+                      <th class="text-end">Underhåll (antal)</th>
+                      <th class="text-end">Underhållstid (min)</th>
+                      <th class="text-end">Stopp (antal)</th>
+                      <th class="text-end">Stopptid (min)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of correlationData.series">
+                      <td>{{ row.vecka }}</td>
+                      <td class="text-end">{{ row.antal_underhall }}</td>
+                      <td class="text-end">{{ row.total_underhallstid }}</td>
+                      <td class="text-end">{{ row.antal_stopp }}</td>
+                      <td class="text-end">{{ row.total_stopptid }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </details>
+
+          </div><!-- /correlationData -->
+
+        </div><!-- /card-body -->
+      </div><!-- /card -->
+    </div>
+  </div>
+
   <!-- ======== LIVE RANKING TV-KONFIGURATION ======== -->
   <div class="row mt-4">
     <div class="col-12">

@@ -149,6 +149,13 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   savingServiceInterval = false;
   serviceIntervalError = '';
 
+  // ---- Korrelationsanalys underhåll vs stopp ----
+  correlationData: any = null;
+  correlationLoading = false;
+  correlationError = '';
+  private correlationChart: Chart | null = null;
+  @ViewChild('correlationChartCanvas') correlationChartRef!: ElementRef;
+
   // ---- Dagsmål-historik ----
   goalHistory: any[] = [];
   goalHistoryLoading = false;
@@ -180,6 +187,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.maintenanceChart = null;
     try { this.goalHistoryChart?.destroy(); } catch (e) {}
     this.goalHistoryChart = null;
+    try { this.correlationChart?.destroy(); } catch (e) {}
+    this.correlationChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -197,6 +206,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadGoalHistory();
     this.loadGoalExceptions();
     this.loadServiceStatus();
+    this.loadMaintenanceCorrelation();
     this.loadKassationTyper();
     this.loadKassationSenaste();
 
@@ -1163,6 +1173,126 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           this.serviceIntervalError = res?.error || 'Kunde inte spara intervall.';
         }
       });
+  }
+
+  // ========== Korrelationsanalys underhåll vs stopp ==========
+  loadMaintenanceCorrelation() {
+    this.correlationLoading = true;
+    this.correlationError = '';
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=maintenance-correlation&weeks=12', { withCredentials: true })
+      .pipe(timeout(10000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.correlationLoading = false;
+        if (res?.success) {
+          this.correlationData = res;
+          setTimeout(() => this.renderCorrelationChart(), 100);
+        } else {
+          this.correlationError = res?.error || 'Kunde inte ladda korrelationsdata';
+        }
+      });
+  }
+
+  renderCorrelationChart() {
+    const canvas = document.getElementById('correlationChart') as HTMLCanvasElement | null;
+    if (!canvas || !this.correlationData?.series?.length) return;
+
+    try { this.correlationChart?.destroy(); } catch (e) {}
+
+    const series = this.correlationData.series as any[];
+    const labels = series.map((s: any) => s.vecka);
+    const stoppData = series.map((s: any) => s.antal_stopp);
+    const underhallData = series.map((s: any) => s.antal_underhall);
+
+    this.correlationChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Maskinstopp',
+            data: stoppData,
+            backgroundColor: 'rgba(229, 62, 62, 0.7)',
+            borderColor: '#e53e3e',
+            borderWidth: 1,
+            yAxisID: 'y',
+            order: 2,
+          },
+          {
+            label: 'Underhåll',
+            data: underhallData,
+            type: 'line',
+            borderColor: '#4299e1',
+            backgroundColor: 'rgba(66, 153, 225, 0.15)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointBackgroundColor: '#4299e1',
+            tension: 0.3,
+            fill: true,
+            yAxisID: 'y1',
+            order: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            labels: { color: '#e2e8f0' }
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+          },
+          y: {
+            type: 'linear',
+            position: 'left',
+            title: { display: true, text: 'Antal maskinstopp', color: '#e53e3e' },
+            ticks: { color: '#e53e3e' },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            beginAtZero: true,
+          },
+          y1: {
+            type: 'linear',
+            position: 'right',
+            title: { display: true, text: 'Underhållshändelser', color: '#4299e1' },
+            ticks: { color: '#4299e1' },
+            grid: { drawOnChartArea: false },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+  }
+
+  get correlationLabel(): string {
+    if (!this.correlationData?.kpi) return '';
+    const k = this.correlationData.kpi.korrelation;
+    if (k === null) return 'Otillräcklig data';
+    if (k < -0.5) return 'Stark negativ korrelation — underhåll minskar stopp';
+    if (k < -0.2) return 'Svag negativ korrelation — underhåll verkar hjälpa';
+    if (k > 0.5) return 'Stark positiv korrelation — mer underhåll sammanfaller med mer stopp (reaktivt underhåll?)';
+    if (k > 0.2) return 'Svag positiv korrelation';
+    return 'Ingen tydlig korrelation';
+  }
+
+  get correlationColor(): string {
+    if (!this.correlationData?.kpi) return '#a0aec0';
+    const k = this.correlationData.kpi.korrelation;
+    if (k === null) return '#a0aec0';
+    if (k < -0.3) return '#38a169';  // green — underhåll hjälper
+    if (k > 0.3) return '#e53e3e';   // red — reactive pattern
+    return '#d69e2e';                 // yellow — neutral
   }
 
   private showSuccess(message: string) {
