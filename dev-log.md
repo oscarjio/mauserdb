@@ -1,3 +1,16 @@
+## 2026-03-04 kväll #12 — Worker: Empty-states batch 2 — 6 sidor med "Inga data"-meddelanden
+
+Lade till konsistenta empty-state meddelanden (inbox-ikon + svensk text, dark theme-stil) på ytterligare 6 sidor:
+
+1. **my-bonus** — "Ingen veckodata tillgänglig." när weeklyData tom, "Ingen feedbackhistorik ännu." när feedbackHistory tom
+2. **operator-detail** — "Ingen operatörsdata hittades." när profil saknas (ej laddning/felmeddelande)
+3. **saglinje-admin** — "Inga inställningar tillgängliga." med batch 1-mönster (ersatte enkel textrad)
+4. **tvattlinje-admin** — "Inga inställningar tillgängliga." med batch 1-mönster (ersatte enkel textrad)
+5. **andon** — "Ingen aktiv data just nu." när status=null och ej laddning/fel
+6. **operator-trend** — "Ingen trenddata tillgänglig." med batch 1-mönster (ersatte ot-empty-state)
+
+Fixade även pre-existing TS-kompileringsfel i **stoppage-log.ts** (null-check `ctx.parsed.y ?? 0`).
+
 ## 2026-03-04 kväll #11 — Worker: Mobilanpassning batch 2 + Design-konsistens fix
 
 ### DEL 1: Mobilanpassning (3 sidor)
