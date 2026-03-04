@@ -1,0 +1,389 @@
+<div class="admin-page" *ngIf="loggedIn && isAdmin">
+
+  <!-- Success Toast -->
+  <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+    <div class="toast show" *ngIf="showSuccessMessage" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header bg-success text-white">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong class="me-auto">Sparat</strong>
+        <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage = false"></button>
+      </div>
+      <div class="toast-body">{{ successMessage }}</div>
+    </div>
+  </div>
+
+  <!-- Sidhuvud -->
+  <div class="admin-header">
+    <div class="container-fluid">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="mb-1">
+            <i class="fas fa-cogs me-2 text-info"></i>
+            Såglinje Admin
+          </h2>
+          <p class="mb-0 text-muted small">
+            Inloggad som <strong>{{ user?.username }}</strong>
+          </p>
+        </div>
+        <a href="/saglinje/live" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-arrow-left me-2"></i>Tillbaka till Live
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container-fluid py-4">
+
+    <!-- ======== EJ I DRIFT-BANNER ======== -->
+    <div class="alert d-flex align-items-start mb-4 not-running-banner" role="alert">
+      <i class="fas fa-tools me-3 fs-5 mt-1" style="color: #63b3ed;"></i>
+      <div>
+        <strong style="color: #90cdf4;">Såglinjen är ej i drift</strong>
+        <div class="mt-1" style="font-size: 0.875rem; color: #a0aec0;">
+          Konfigurera inställningarna i förväg så att systemet är redo när linjen driftsätts.
+          Alla inställningar sparas och aktiveras automatiskt vid uppstart.
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== SYSTEMSTATUS ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-satellite-dish me-2" style="color: #63b3ed;"></i>
+          Systemstatus
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span *ngIf="systemStatusLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+          <button class="btn btn-sm btn-outline-secondary" (click)="loadSystemStatus()" [disabled]="systemStatusLoading">
+            <i class="fas fa-sync-alt me-1"></i>Uppdatera
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div *ngIf="systemStatusError" class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ systemStatusError }}
+        </div>
+
+        <div class="row g-3" *ngIf="systemStatus">
+          <!-- Linjestatus -->
+          <div class="col-6 col-md-3">
+            <div class="status-card status-neutral">
+              <div class="status-icon">
+                <i class="fas fa-pause-circle" style="color: #718096;"></i>
+              </div>
+              <div class="status-label">Linjestatus</div>
+              <div class="status-value">
+                <span class="badge" style="background: #4a5568; color: #e2e8f0;">Ej i drift</span>
+              </div>
+              <div class="status-sub text-muted small mt-1">{{ systemStatus.note }}</div>
+            </div>
+          </div>
+
+          <!-- PLC — senast sedd -->
+          <div class="col-6 col-md-3">
+            <div class="status-card status-neutral">
+              <div class="status-icon">
+                <i class="fas fa-microchip" style="color: #718096;"></i>
+              </div>
+              <div class="status-label">PLC senast sedd</div>
+              <div class="status-value text-muted">
+                {{ systemStatus.plc_last_seen ? (systemStatus.plc_last_seen | date:'HH:mm') : '—' }}
+              </div>
+              <div class="status-sub text-muted small">{{ getPlcAge() }}</div>
+            </div>
+          </div>
+
+          <!-- Databas -->
+          <div class="col-6 col-md-3">
+            <div class="status-card"
+                 [class.status-ok]="systemStatus.db_status === 'ok'"
+                 [class.status-err]="systemStatus.db_status !== 'ok'">
+              <div class="status-icon">
+                <i class="fas fa-database"
+                   [class.text-success]="systemStatus.db_status === 'ok'"
+                   [class.text-danger]="systemStatus.db_status !== 'ok'"></i>
+              </div>
+              <div class="status-label">Databas</div>
+              <div class="status-value"
+                   [class.text-success]="systemStatus.db_status === 'ok'"
+                   [class.text-danger]="systemStatus.db_status !== 'ok'">
+                {{ getDbStatusLabel() }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Lösnummer -->
+          <div class="col-6 col-md-3">
+            <div class="status-card status-neutral">
+              <div class="status-icon">
+                <i class="fas fa-hashtag" style="color: #718096;"></i>
+              </div>
+              <div class="status-label">Senaste lösnr</div>
+              <div class="status-value text-muted">{{ systemStatus.losnummer ?? '—' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!systemStatus && !systemStatusLoading" class="text-muted text-center py-3">
+          <i class="fas fa-spinner fa-spin me-2"></i>Laddar systemstatus...
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== DRIFTSINSTÄLLNINGAR ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-sliders-h me-2 text-info"></i>
+          Driftsinställningar
+        </h5>
+        <span *ngIf="settingsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Grundinställningar för såglinjen — används av live-vy och statistik när linjen är i drift.
+        </p>
+
+        <div *ngIf="settingsError" class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ settingsError }}
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-bullseye me-1 text-info"></i>Dagsmål (enheter/dag)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="settings.dagmal"
+              name="dagmal"
+              min="1"
+              step="1"
+              placeholder="50">
+            <div class="form-text">Mål antal enheter per dag.</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-tachometer-alt me-1 text-warning"></i>Takt-mål (enheter/h)
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="settings.takt_mal"
+              name="takt_mal"
+              min="1"
+              step="1"
+              placeholder="10">
+            <div class="form-text">Förväntad takt i enheter per timme.</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-play me-1 text-success"></i>Skiftstart
+            </label>
+            <input
+              type="time"
+              class="form-control"
+              [(ngModel)]="settings.skift_start"
+              name="skift_start">
+            <div class="form-text">När skiftet börjar (HH:MM).</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label fw-semibold">
+              <i class="fas fa-stop me-1 text-danger"></i>Skiftslut
+            </label>
+            <input
+              type="time"
+              class="form-control"
+              [(ngModel)]="settings.skift_slut"
+              name="skift_slut">
+            <div class="form-text">När skiftet slutar (HH:MM).</div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button
+            class="btn btn-primary"
+            (click)="saveSettings()"
+            [disabled]="settingsSaving || settingsLoading">
+            <span *ngIf="settingsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!settingsSaving" class="fas fa-save me-2"></i>
+            {{ settingsSaving ? 'Sparar...' : 'Spara driftsinställningar' }}
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            (click)="loadSettings()"
+            [disabled]="settingsLoading || settingsSaving">
+            <i class="fas fa-undo me-2"></i>Återställ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== VECKODAGSMÅL ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-calendar-week me-2 text-warning"></i>
+          Veckodagsmål
+        </h5>
+        <span *ngIf="weekdayGoalsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small mb-3">
+          Anpassa dagsmålet per veckodag. Lördag har lägre mål och söndag är stängd som standard.
+          Sätt 0 för att markera en dag som icke-produktionsdag.
+        </p>
+
+        <div *ngIf="weekdayGoalsError" class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayGoalsError }}
+        </div>
+
+        <div class="table-responsive" *ngIf="weekdayGoals.length > 0">
+          <table class="table table-sm align-middle mb-3" style="max-width: 480px;">
+            <thead>
+              <tr>
+                <th style="width: 160px;">Veckodag</th>
+                <th>Mål (enheter/dag)</th>
+                <th style="width: 80px;" class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let goal of weekdayGoals">
+                <td class="fw-semibold">
+                  <span class="badge me-2"
+                    [style.background]="goal.weekday >= 5 ? '#4a5568' : '#2b4c7e'"
+                    style="font-size: 0.7rem; width: 20px; text-align: center;">
+                    {{ goal.weekday + 1 }}
+                  </span>
+                  {{ goal.label }}
+                </td>
+                <td>
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="goal.mal"
+                    [name]="'weekday_' + goal.weekday"
+                    min="0"
+                    max="500"
+                    step="1"
+                    style="max-width: 120px;">
+                </td>
+                <td class="text-center">
+                  <span class="badge"
+                    [style.background]="goal.mal === 0 ? '#4a5568' : goal.mal < 30 ? '#744210' : '#1a4a2e'"
+                    style="font-size: 0.7rem;">
+                    {{ goal.mal === 0 ? 'Stängt' : goal.mal + ' st' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="!weekdayGoalsLoading && weekdayGoals.length === 0" class="text-muted small mb-3">
+          Inga veckodagsmål laddade.
+        </div>
+
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-primary"
+            (click)="saveWeekdayGoals()"
+            [disabled]="weekdayGoalsSaving || weekdayGoalsLoading">
+            <span *ngIf="weekdayGoalsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!weekdayGoalsSaving" class="fas fa-save me-2"></i>
+            {{ weekdayGoalsSaving ? 'Sparar...' : 'Spara veckodagsmål' }}
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            (click)="loadWeekdayGoals()"
+            [disabled]="weekdayGoalsLoading || weekdayGoalsSaving">
+            <i class="fas fa-undo me-2"></i>Återställ
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== INFO-SEKTION ======== -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-info-circle me-2 text-secondary"></i>
+          Om Såglinjen
+        </h5>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">
+          Såglinjen är förberedd för driftsättning. Produktionsdata samlas in automatiskt
+          via PLC-integration när linjen aktiveras. Inställningarna ovan aktiveras automatiskt vid uppstart.
+        </p>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-title">
+                <i class="fas fa-chart-line me-2 text-info"></i>
+                Relevanta KPI:er
+              </div>
+              <ul class="info-list text-muted small mb-0">
+                <li>Antal sågade enheter per dag / skift</li>
+                <li>Genomsnittlig cykeltid</li>
+                <li>Utnyttjandegrad (körtid vs. planerad tid)</li>
+                <li>Maskinstatus (kör / stoppad)</li>
+              </ul>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="info-card">
+              <div class="info-title">
+                <i class="fas fa-link me-2 text-success"></i>
+                Snabblänkar
+              </div>
+              <div class="d-flex flex-column gap-2">
+                <a href="/saglinje/statistik" class="btn btn-outline-info btn-sm">
+                  <i class="fas fa-chart-bar me-2"></i>Gå till Statistik
+                </a>
+                <a href="/saglinje/skiftrapport" class="btn btn-outline-secondary btn-sm">
+                  <i class="fas fa-clipboard-list me-2"></i>Gå till Skiftrapport
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Atkomst nekad -->
+<div class="container-fluid mt-4" *ngIf="!loggedIn || !isAdmin">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card border-danger">
+        <div class="card-header bg-danger text-white text-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-lock me-2"></i>
+            Atkomst nekad
+          </h5>
+        </div>
+        <div class="card-body text-center">
+          <div class="mb-3">
+            <i class="fas fa-exclamation-triangle text-danger" style="font-size: 3rem;"></i>
+          </div>
+          <p class="card-text">
+            Du har inte behorighet att komma at denna sida.
+            Endast administratorer kan komma at saglinje admin-panelen.
+          </p>
+          <a href="/" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>
+            Ga tillbaka till startsidan
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

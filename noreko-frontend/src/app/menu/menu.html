@@ -61,6 +61,8 @@
           <li><a class="dropdown-item" routerLink="/saglinje/live">Live</a></li>
           <li><a class="dropdown-item" routerLink="/saglinje/skiftrapport">Skiftrapport</a></li>
           <li><a class="dropdown-item" routerLink="/saglinje/statistik">Statistik</a></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
+          <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/saglinje/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
         </ul>
       </li>
       <li class="nav-item dropdown">
