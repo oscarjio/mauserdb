@@ -127,20 +127,20 @@ PROMPT
 
 echo "[$(date '+%Y-%m-%d %H:%M')] Startar lead-agent Claude-session..." >> "$RUNLOG"
 
-# Kör Claude och fånga utdata + exit-kod
-CLAUDE_OUTPUT=$($CLAUDE --dangerously-skip-permissions --print "$PROMPT" 2>&1)
-CLAUDE_EXIT=$?
+# Kör Claude med streaming till log + tmpfil för rate-limit-detektering
+TMPOUT=$(mktemp)
+$CLAUDE --dangerously-skip-permissions --print "$PROMPT" 2>&1 | tee -a "$RUNLOG" > "$TMPOUT"
+CLAUDE_EXIT=${PIPESTATUS[0]}
 
-echo "$CLAUDE_OUTPUT" >> "$RUNLOG"
 echo "[$(date '+%Y-%m-%d %H:%M')] Claude avslutade med exit-kod: $CLAUDE_EXIT" >> "$RUNLOG"
 
 # Detektera rate limit
-if echo "$CLAUDE_OUTPUT" | grep -qiE "usage limit|rate limit|out of extra usage|resets [0-9]"; then
-    RESET_MSG=$(echo "$CLAUDE_OUTPUT" | grep -oiE "resets [^\n]+" | head -1 || echo "okänd tid")
+if grep -qiE "usage limit|rate limit|out of extra usage|resets [0-9]" "$TMPOUT"; then
+    RESET_MSG=$(grep -oiE "resets [^\n]+" "$TMPOUT" | head -1 || echo "okänd tid")
     echo "[$(date '+%Y-%m-%d %H:%M')] RATE LIMIT detekterad. $RESET_MSG. Nästa cron-körning försöker igen." >> "$RUNLOG"
-    # Spara tidsstämpel för rate limit (för diagnostik)
     echo "$(date '+%Y-%m-%d %H:%M') - $RESET_MSG" > "$RATELIMIT_FILE"
 else
     rm -f "$RATELIMIT_FILE"
     echo "[$(date '+%Y-%m-%d %H:%M')] Lead-agent session klar." >> "$RUNLOG"
 fi
+rm -f "$TMPOUT"
