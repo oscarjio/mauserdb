@@ -148,7 +148,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
           this.lrSettings = res.data;
           // Uppdatera poll-interval om det skiljer sig från standardvärdet 30s
           const newInterval = (this.lrSettings.lr_poll_interval || 30) * 1000;
-          if (newInterval \!== 30000 && this.pollTimer) {
+          if (newInterval !== 30000 && this.pollTimer) {
             clearInterval(this.pollTimer);
             this.pollTimer = setInterval(() => this.loadData(), newInterval);
           }
@@ -156,19 +156,19 @@ export class LiveRankingPage implements OnInit, OnDestroy {
       });
   }
 
-    loadData(): void {
+  loadData(): void {
     if (this.isFetching) return;
     this.isFetching = true;
 
     this.http.get<LiveRankingResponse>(this.apiUrl, { withCredentials: true })
       .pipe(
         timeout(8000),
-        catchError(() => of(null)),
+        catchError(() => of(null as unknown as LiveRankingResponse)),
         takeUntil(this.destroy$)
       )
       .subscribe({
         next: (res) => {
-          if (res?.success) {
+          if (res && res.success) {
             this.ranking        = res.ranking       ?? [];
             this.date           = res.date          ?? '';
             this.period         = res.period        ?? '';
@@ -180,7 +180,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
             this.error          = null;
             this.updateCurrentMottos();
             this.updatePrognos();
-          } else if (res) {
+          } else if (res && !res.success) {
             this.error = res.error ?? 'Kunde inte hämta data';
           }
           this.loading    = false;
