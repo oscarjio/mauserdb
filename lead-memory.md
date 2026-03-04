@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-04 (session #5)*
+*Senast uppdaterad: 2026-03-04 (session #6)*
 
 ---
 
@@ -304,8 +304,8 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-04 session #5)
-*(Alla 6 workers klara — session #5 avslutad)*
+## AKTIVA AGENTER (session 2026-03-04 session #6)
+*(Workers startas nu)*
 
 ---
 
@@ -561,6 +561,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
 **2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). 5 workers körda: Bug Hunt #12 (18 filer), Skiftrapport per operatör (redan klart), VD Månadsrapport (diff+operator-of-month), Skiftöverlämning email (redan klart), Skiftsammanfattning PDF-export (be0eea4). Alla hög+medium items levererade. Startar nästa batch: Prediktiv underhåll v2, Push-notiser, nya idébank-items.
 **2026-03-04 session #5**: Session #4 batch 2 komplett (Skiftplan+Benchmarking). 6 workers körda i 2 batches: Prediktivt underhåll körningsbaserat (`a2ce35d`), IBC-kvalitets deep-dive (`e6a5bb2`), Bug Hunt #13 (`398b6e5` — 4 buggar), Live-ranking admin-konfig (`47dad04`), Skiftbyte-PDF (`e423f75`), Bonus What-if förbättring. Totalt 6 features + 4 bugfixar. Backlogen fylld på — push-notiser och energieffektivitet kvar som öppna.
+**2026-03-04 session #6**: Backlog var nere i 2 items (push-notiser, energi-vy). Kodbasanalys (15 fynd) + MES-research (7 idéer) genererade 12 nya backlog-items. Nyckel-fynd: LoginController helt utan try-catch, ~100 RebotlingController catch-block returnerar HTTP 200 vid fel, users.ts/operators.ts saknar timeout/catchError, maintenance cost-data och operatörsstämning redan finns i backend men visas inte i exec dashboard. Startar 3 workers: Bug Hunt #14 (felhantering), Exec Dashboard (underhållskostnad+stämning), Users Admin UX.
 **2026-03-04 session #5 (orig)**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
@@ -599,3 +600,24 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ### 🟢 Nästa batch
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
 - [ ] **Energieffektivitet-vy**: IBC per kWh, energikostnad per IBC (om data finns)
+
+---
+
+## AKTIV BATCH (2026-03-04 session #6)
+
+### 🔴 Hög prioritet — Workers startas NU
+- [ ] **Bug Hunt #14 — Systematisk felhantering**: LoginController saknar try-catch helt, OperatorCompareController 3 catch-block utan http_response_code(500), users.ts/operators.ts saknar timeout/catchError, stoppage-log/skiftrapport sökning saknar debounce
+- [ ] **Executive Dashboard: Underhållskostnad + Stämningsöversikt**: Maintenance cost KPI-kort (data redan beräknad i MaintenanceController run=stats), operatör-stämningstrend (FeedbackController run=summary) — bägge endpoints redan finns, bara visualisering saknas
+- [ ] **Users Admin UX-förbättring**: Sök/sortera/filtrera i användartabellen (nu: ingen sök, ingen sortering), URL-typo fix (overlamnin → overlamning)
+
+### 🟡 Medium prioritet — Nästa batch
+- [ ] **RebotlingController catch-block audit**: ~100 catch-block returnerar HTTP 200 vid fel — systematisk genomgång behövs
+- [ ] **Admin-sidor polling-optimering**: rebotling-admin, saglinje-admin, tvattlinje-admin, klassificeringslinje-admin kör onödig 30-60s polling — byt till manuell refresh eller visibilitychange-guard
+- [ ] **Andon timer-optimering**: 7 setInterval (3× per sekund) — merge countdownInterval in i clockInterval, visibilitychange-guard
+- [ ] **Operatör × Maskin kompatibilitetsmatris**: OEE per operatör+maskin-kombination, optimala parningar, heatmap-visualisering
+
+### 🟢 Lägre prioritet / Idébank
+- [ ] **rebotling-statistik.ts refactoring**: 4248 rader — bryt ut varje flik till standalone child-component med @defer
+- [ ] **rebotling-statistik authGuard**: Sidan är publik utan guard — utvärdera om authGuard bör läggas till
+- [ ] **Dynamiska effektivitetsmål**: Auto-justera dagsmål baserat på materialtyp/utrustningsstatus
+- [ ] **Bonus rättviseaudit**: "Om maskin A inte haft 3 stopp hade operatör X fått +Y kr" — counterfactual rapport
