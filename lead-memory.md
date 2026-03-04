@@ -305,9 +305,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## AKTIVA AGENTER (session 2026-03-04 session #5)
-1. **Worker: Prediktivt underhåll körningsbaserat** — serviceintervall, admin-UI, varning
-2. **Worker: IBC-kvalitets deep-dive** — avvisningsorsaker, Pareto-diagram
-3. **Worker: Bug Hunt #13** — granska session #4 features
+*(Alla 6 workers klara — session #5 avslutad)*
 
 ---
 
@@ -562,7 +560,8 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ## BESLUTSDAGBOK (forts.)
 **2026-03-04 kväll #2**: Massiv genomgång — ~30 nya commits sedan senaste ledarsession. Nästan alla MES-research items och kodbasanalys-items levererade. Kvarstår: Chart error-boundary (59% osskyddade), BonusAdmin threshold-validering, historik-pagination, prediktivt underhåll körningsbaserat. Startar 3 workers: bug hunt, pagination, skiftrapport-filter.
 **2026-03-04 kväll #3**: Committade uncommitted chart error-boundary-ändringar (fd92772). Audit-log pagination redan levererat (44f11a5). Prediktivt underhåll körningsbaserat redan levererat (dev-log). 5 workers körda: Bug Hunt #12 (18 filer), Skiftrapport per operatör (redan klart), VD Månadsrapport (diff+operator-of-month), Skiftöverlämning email (redan klart), Skiftsammanfattning PDF-export (be0eea4). Alla hög+medium items levererade. Startar nästa batch: Prediktiv underhåll v2, Push-notiser, nya idébank-items.
-**2026-03-04 session #5**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
+**2026-03-04 session #5**: Session #4 batch 2 komplett (Skiftplan+Benchmarking). 6 workers körda i 2 batches: Prediktivt underhåll körningsbaserat (`a2ce35d`), IBC-kvalitets deep-dive (`e6a5bb2`), Bug Hunt #13 (`398b6e5` — 4 buggar), Live-ranking admin-konfig (`47dad04`), Skiftbyte-PDF (`e423f75`), Bonus What-if förbättring. Totalt 6 features + 4 bugfixar. Backlogen fylld på — push-notiser och energieffektivitet kvar som öppna.
+**2026-03-04 session #5 (orig)**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -587,14 +586,16 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ## AKTIV BATCH (2026-03-04 session #5)
 
-### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Prediktivt underhåll körningsbaserat**: Serviceintervall baserat på IBC-volym, admin-UI med konfigurerbara intervall, varning i exec-dashboard/admin när < 10% kvar till service
-- [ ] **IBC-kvalitets deep-dive**: Bryt ner ej-godkända IBC per avvisningsorsak. Pareto-diagram + registreringsformulär om data saknas. Ny flik i rebotling-statistik.
-- [ ] **Bug Hunt #13**: Granska alla nya features från session #4 (benchmarking, skiftplan, auto-rapport, kollegjämförelse). Fokus: auth-checks, subscriptions, edge cases.
+### ✅ Levererat session #5 batch 1
+- [x] **Prediktivt underhåll körningsbaserat**: KLAR `a2ce35d` — service_intervals-tabell, 3 endpoints, admin-flik med progress-bars, exec-dashboard varning
+- [x] **IBC-kvalitets deep-dive**: KLAR `e6a5bb2` — rejection-analysis endpoint, 4 KPI-kort, kvalitetstrend-graf, Pareto kassationsorsaker, CSV-export
+- [x] **Bug Hunt #13**: KLAR `398b6e5` — 4 buggar: 3× http_response_code(500), 1× SQL-aggregat i getPersonalBests()
 
-### 🟡 Medium — nästa batch
+### ✅ Levererat session #5 batch 2
+- [x] **Live-ranking admin-konfig**: KLAR `47dad04` — admin-sektion KPI-checkboxar/sortering/refresh, live-ranking läser config dynamiskt
+- [x] **Skiftbyte-PDF automatgenerering**: KLAR `e423f75` — shift-pdf-summary A4-HTML endpoint, "Generera PDF"-knapp, andon skiftbyte-notis
+- [x] **Bonus What-if förbättring**: KLAR — 3 sub-flikar, 3 presets, scenario-jämförelse, historisk simulering, diff-tabell
+
+### 🟢 Nästa batch
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
-- [ ] **Live-ranking admin-konfig**: Konfigurera vilka KPI:er som visas på TV-skärmen
 - [ ] **Energieffektivitet-vy**: IBC per kWh, energikostnad per IBC (om data finns)
-- [ ] **Skiftbyte-PDF automatgenerering**: Vid skiftslut generera PDF automatiskt
-- [ ] **Bonus-dashboard What-if förbättring**: Mer interaktiv simulator med slider-kontroller
