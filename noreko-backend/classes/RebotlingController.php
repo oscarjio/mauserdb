@@ -119,6 +119,10 @@ class RebotlingController {
                 $this->getGoalHistory();
             } elseif ($action === 'hourly-rhythm') {
                 $this->getHourlyRhythm();
+            } elseif ($action === 'operator-weekly-trend') {
+                $this->getOperatorWeeklyTrend();
+            } elseif ($action === 'operator-list-trend') {
+                $this->getOperatorListForTrend();
             } else {
                 $this->getLiveStats();
             }
@@ -5903,6 +5907,187 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getHourlyRhythm: ' . $e->getMessage());
             $this->sendError('Fel vid hämtning av produktionsrytm');
+        }
+    }
+
+    // =========================================================
+    // Operatörslista för trendvy
+    // GET ?action=rebotling&run=operator-list-trend
+    // Returnerar alla aktiva operatörer med namn + nummer
+    // =========================================================
+    private function getOperatorListForTrend(): void {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, name, number
+                FROM operators
+                WHERE active = 1
+                ORDER BY name ASC
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $operators = array_map(function($r) {
+                return [
+                    'id'     => (int)$r['id'],
+                    'name'   => $r['name'],
+                    'number' => (int)$r['number'],
+                ];
+            }, $rows);
+            echo json_encode(['success' => true, 'operators' => $operators]);
+        } catch (\Exception $e) {
+            error_log('getOperatorListForTrend: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista']);
+        }
+    }
+
+    // =========================================================
+    // Operatörsprestanda-trend per vecka
+    // GET ?action=rebotling&run=operator-weekly-trend&op_id=<id>&weeks=8|16|26
+    // Returnerar IBC/h per vecka för operatören + lagsnittet
+    // =========================================================
+    private function getOperatorWeeklyTrend(): void {
+        $opId  = intval($_GET['op_id']  ?? 0);
+        $weeks = intval($_GET['weeks']  ?? 8);
+
+        // Tillåtna veckovärden
+        if (!in_array($weeks, [8, 16, 26], true)) $weeks = 8;
+        if ($opId <= 0) {
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt op_id']);
+            return;
+        }
+
+        try {
+            // Hämta operator-nummer från id
+            $opStmt = $this->pdo->prepare("SELECT number, name FROM operators WHERE id = ? LIMIT 1");
+            $opStmt->execute([$opId]);
+            $op = $opStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$op) {
+                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte']);
+                return;
+            }
+            $opNumber = (int)$op['number'];
+            $opName   = $op['name'];
+
+            // Datumgräns: N veckor bakåt (måndag i startveckan)
+            $startDate = date('Y-m-d', strtotime("-{$weeks} weeks"));
+
+            // --- Operatörens veckovisa IBC/h ---
+            // rebotling_skiftrapport: ibc_ok (godk), totalt, drifttid (minuter), datum, op1/op2/op3
+            $sql = "
+                SELECT
+                    YEAR(s.datum)                                           AS yr,
+                    WEEK(s.datum, 3)                                        AS wk,
+                    CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0'))           AS vecka_label,
+                    SUM(s.ibc_ok)                                           AS total_ibc,
+                    SUM(COALESCE(s.drifttid, 0))                            AS total_drifttid_min,
+                    ROUND(
+                        SUM(s.ibc_ok) / NULLIF(SUM(COALESCE(s.drifttid,0)) / 60.0, 0),
+                        2
+                    )                                                       AS ibc_per_h,
+                    ROUND(
+                        SUM(s.ibc_ok) / NULLIF(SUM(s.totalt), 0) * 100,
+                        1
+                    )                                                       AS kvalitet_pct,
+                    COUNT(DISTINCT s.id)                                    AS antal_skift
+                FROM rebotling_skiftrapport s
+                WHERE s.datum >= ?
+                  AND (s.op1 = ? OR s.op2 = ? OR s.op3 = ?)
+                  AND s.ibc_ok > 0
+                GROUP BY yr, wk
+                ORDER BY yr ASC, wk ASC
+            ";
+
+            $opStmt2 = $this->pdo->prepare($sql);
+            $opStmt2->execute([$startDate, $opNumber, $opNumber, $opNumber]);
+            $opRows = $opStmt2->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- Lagsnitt per vecka (alla operatörer UNION, exkl. denna) ---
+            $teamSql = "
+                SELECT
+                    YEAR(s.datum)                                           AS yr,
+                    WEEK(s.datum, 3)                                        AS wk,
+                    CONCAT('V.', LPAD(WEEK(s.datum, 3), 2, '0'))           AS vecka_label,
+                    ROUND(
+                        SUM(t.ibc_ok) / NULLIF(SUM(COALESCE(t.drifttid_min, 0)) / 60.0, 0),
+                        2
+                    )                                                       AS team_ibc_per_h,
+                    COUNT(DISTINCT s.id)                                    AS team_skift
+                FROM rebotling_skiftrapport s
+                JOIN (
+                    SELECT rs.id AS skift_id,
+                           rs.ibc_ok,
+                           COALESCE(rs.drifttid, 0) AS drifttid_min
+                    FROM rebotling_skiftrapport rs
+                    WHERE rs.datum >= ?
+                      AND rs.ibc_ok > 0
+                ) t ON t.skift_id = s.id
+                WHERE s.datum >= ?
+                  AND s.ibc_ok > 0
+                GROUP BY yr, wk
+                ORDER BY yr ASC, wk ASC
+            ";
+            $teamStmt = $this->pdo->prepare($teamSql);
+            $teamStmt->execute([$startDate, $startDate]);
+            $teamRows = $teamStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Indexera lagsnitt per vecka-nyckel
+            $teamMap = [];
+            foreach ($teamRows as $tr) {
+                $key = $tr['yr'] . '-' . $tr['wk'];
+                $teamMap[$key] = (float)$tr['team_ibc_per_h'];
+            }
+
+            // Bygg svar
+            $trend = [];
+            foreach ($opRows as $r) {
+                $key       = $r['yr'] . '-' . $r['wk'];
+                $ibcH      = $r['ibc_per_h'] !== null ? (float)$r['ibc_per_h'] : null;
+                $teamIbcH  = $teamMap[$key] ?? null;
+                $trend[] = [
+                    'year'         => (int)$r['yr'],
+                    'week_num'     => (int)$r['wk'],
+                    'vecka_label'  => $r['vecka_label'],
+                    'ibc_per_h'    => $ibcH,
+                    'kvalitet_pct' => $r['kvalitet_pct'] !== null ? (float)$r['kvalitet_pct'] : null,
+                    'antal_skift'  => (int)$r['antal_skift'],
+                    'team_ibc_per_h' => $teamIbcH,
+                    'vs_lag'       => ($ibcH !== null && $teamIbcH !== null)
+                                        ? round($ibcH - $teamIbcH, 2)
+                                        : null,
+                ];
+            }
+
+            // Beräkna trendpil: jämför snitt senaste 4 veckorna mot de 4 dessförinnan
+            $trendArrow   = null; // 'up' | 'down' | 'flat'
+            $trendPct     = null;
+            $n = count($trend);
+            if ($n >= 4) {
+                $last4  = array_slice($trend, -4);
+                $prev4  = $n >= 8 ? array_slice($trend, -8, 4) : array_slice($trend, 0, max(1, $n - 4));
+                $avgLast = array_sum(array_column(array_filter($last4,  fn($t) => $t['ibc_per_h'] !== null), 'ibc_per_h'))
+                         / max(1, count(array_filter($last4, fn($t) => $t['ibc_per_h'] !== null)));
+                $avgPrev = array_sum(array_column(array_filter($prev4, fn($t) => $t['ibc_per_h'] !== null), 'ibc_per_h'))
+                         / max(1, count(array_filter($prev4, fn($t) => $t['ibc_per_h'] !== null)));
+                if ($avgPrev > 0) {
+                    $trendPct = round(($avgLast - $avgPrev) / $avgPrev * 100, 1);
+                    if ($trendPct > 1)       $trendArrow = 'up';
+                    elseif ($trendPct < -1)  $trendArrow = 'down';
+                    else                     $trendArrow = 'flat';
+                }
+            }
+
+            echo json_encode([
+                'success'       => true,
+                'op_id'         => $opId,
+                'op_name'       => $opName,
+                'op_number'     => $opNumber,
+                'weeks'         => $weeks,
+                'trend'         => $trend,
+                'trend_arrow'   => $trendArrow,
+                'trend_pct'     => $trendPct,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('getOperatorWeeklyTrend: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
         }
     }
 }

@@ -144,6 +144,12 @@ interface VeckoData {
           </div>
         </div>
 
+        <!-- Info om dataomfång -->
+        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-4 px-3 py-2" style="background:#2d3748;border-color:#4a5568;color:#a0aec0;font-size:0.85rem;">
+          <i class="fas fa-info-circle text-info"></i>
+          <span>Visar aggregerad månadsdata för de senaste <strong class="text-light">{{ valdaManader }} månaderna</strong>. Välj ett annat intervall i menyn ovan för att se mer eller mindre historik.</span>
+        </div>
+
         <!-- Månadsdetaljstabell -->
         <div class="card table-card mb-4">
           <div class="card-header">

@@ -142,6 +142,12 @@ class BonusController {
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
 
+        // Whitelist-validering av $period
+        $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
+        if (!in_array($period, $allowed_periods, true)) {
+            $period = 'week';
+        }
+
         if (!$op_id || $op_id <= 0) {
             $this->sendError('Operatör-ID saknas (id)');
             return;
@@ -281,6 +287,12 @@ class BonusController {
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
 
+        // Whitelist-validering av $period
+        $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
+        if (!in_array($period, $allowed_periods, true)) {
+            $period = 'week';
+        }
+
         $dateFilter = $this->getDateFilter($period, $start_date, $end_date);
 
         try {
@@ -416,6 +428,12 @@ class BonusController {
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
 
+        // Whitelist-validering av $period
+        $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
+        if (!in_array($period, $allowed_periods, true)) {
+            $period = 'week';
+        }
+
         $dateFilter = $this->getDateFilter($period, $start_date, $end_date);
 
         try {
@@ -532,6 +550,12 @@ class BonusController {
     private function getKPIDetails() {
         $op_id  = isset($_GET['id']) ? intval($_GET['id']) : null;
         $period = $_GET['period'] ?? 'week';
+
+        // Whitelist-validering av $period
+        $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
+        if (!in_array($period, $allowed_periods, true)) {
+            $period = 'week';
+        }
 
         if (!$op_id || $op_id <= 0) {
             $this->sendError('Operatör-ID saknas');
