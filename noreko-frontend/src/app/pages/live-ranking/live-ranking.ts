@@ -88,6 +88,21 @@ export class LiveRankingPage implements OnInit, OnDestroy {
 
   private readonly apiUrl = '/noreko-backend/api.php?action=rebotling&run=live-ranking';
 
+  // Live Ranking-inställningar (från rebotling_settings)
+  lrSettings: {
+    lr_show_quality:  boolean;
+    lr_show_progress: boolean;
+    lr_show_motto:    boolean;
+    lr_poll_interval: number;
+    lr_title:         string;
+  } = {
+    lr_show_quality:  true,
+    lr_show_progress: true,
+    lr_show_motto:    true,
+    lr_poll_interval: 30,
+    lr_title:         'Live Ranking'
+  };
+
   private destroy$       = new Subject<void>();
   private pollTimer:       any = null;
   private countdownTimer:  any = null;
@@ -96,6 +111,7 @@ export class LiveRankingPage implements OnInit, OnDestroy {
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
+    this.loadLrSettings();
     this.loadData();
     this.pollTimer = setInterval(() => this.loadData(), 30000);
 
@@ -120,7 +136,27 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     clearInterval(this.motivationTimer);
   }
 
-  loadData(): void {
+  loadLrSettings(): void {
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=live-ranking-settings', { withCredentials: true })
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((res: any) => {
+        if (res?.success && res.data) {
+          this.lrSettings = res.data;
+          // Uppdatera poll-interval om det skiljer sig från standardvärdet 30s
+          const newInterval = (this.lrSettings.lr_poll_interval || 30) * 1000;
+          if (newInterval \!== 30000 && this.pollTimer) {
+            clearInterval(this.pollTimer);
+            this.pollTimer = setInterval(() => this.loadData(), newInterval);
+          }
+        }
+      });
+  }
+
+    loadData(): void {
     if (this.isFetching) return;
     this.isFetching = true;
 
