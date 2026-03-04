@@ -19,6 +19,13 @@ export PATH="/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 # Tillåt att köras utanför en aktiv Claude-session (t.ex. manuell testning)
 unset CLAUDECODE
 
+# Hoppa över om en interaktiv Claude-session är aktiv (delar API-kvot)
+# Interaktiva sessioner sätter CLAUDECODE — kolla om någon sådan process körs
+if pgrep -f "claude" | xargs -I{} cat /proc/{}/environ 2>/dev/null | tr '\0' '\n' | grep -q "^CLAUDECODE="; then
+    echo "[$(date '+%Y-%m-%d %H:%M')] Interaktiv Claude-session aktiv — hoppar över för att spara API-kvot." >> "$RUNLOG"
+    exit 0
+fi
+
 # Förhindra parallella körningar
 if [ -f "$LOCKFILE" ]; then
     PID=$(cat "$LOCKFILE")
