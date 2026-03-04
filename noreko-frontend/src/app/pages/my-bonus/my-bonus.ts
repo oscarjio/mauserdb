@@ -32,6 +32,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   showFormula = false;
 
   Math = Math;
+  today = new Date();
   private kpiChart: Chart | null = null;
   private historyChart: Chart | null = null;
   private ibcTrendChart: Chart | null = null;
@@ -657,6 +658,32 @@ export class MyBonusPage implements OnInit, OnDestroy {
         }).download(`bonusrapport-${this.savedOperatorId}-${this.selectedPeriod}.pdf`);
       });
     });
+  }
+
+  exportShiftHistoryCSV(): void {
+    if (!this.history?.length) return;
+    const headers = ["Datum", "IBC OK", "IBC Ej OK", "Effektivitet (%)", "IBC/h", "Kvalitet (%)", "Bonus (p)"];
+    const rows = this.history.map((h: any) => [
+      h.datum ?? "",
+      String(h.ibc_ok ?? 0),
+      String(h.ibc_ej_ok ?? 0),
+      (h.kpis?.effektivitet ?? 0).toFixed(1),
+      (h.kpis?.produktivitet ?? 0).toFixed(1),
+      (h.kpis?.kvalitet ?? 0).toFixed(1),
+      (h.kpis?.bonus ?? 0).toFixed(1)
+    ]);
+    const csv = [headers, ...rows].map(r => r.map((c: string) => `"${c}"`).join(";")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `skifthistorik-${this.savedOperatorId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  exportShiftHistoryPDF(): void {
+    window.print();
   }
 
   getPositionName(pos: string): string {

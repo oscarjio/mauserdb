@@ -616,3 +616,72 @@
 .fill-gray{background:linear-gradient(90deg,#4a5568,#718096)}
 .ranking-diff{color:#a0aec0}
 .ranking-motivation{padding:.4rem .6rem;border-radius:6px;background:rgba(255,255,255,.04);display:inline-block}
+
+/* ===== Export-historik-card ===== */
+.export-history-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.export-history-header {
+  display: flex;
+  align-items: center;
+  padding: .9rem 1.25rem;
+  background: rgba(255,255,255,.03);
+  border-bottom: 1px solid #4a5568;
+  font-weight: 600;
+  font-size: .95rem;
+  color: #e2e8f0;
+}
+.export-history-body {
+  padding: 1rem 1.25rem;
+}
+.export-desc {
+  font-size: .875rem;
+  color: #a0aec0;
+  margin-bottom: .75rem;
+}
+
+/* ===== Print / PDF-export ===== */
+.print-only { display: none; }
+.print-header { margin-bottom: 1rem; }
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  body { background: white !important; color: black !important; }
+  .my-bonus-container { background: white !important; color: black !important; padding: .5rem !important; }
+
+  /* Dölj allt utom det nödvändiga */
+  nav,
+  .vpn-status-indicator,
+  .export-history-card,
+  .page-header,
+  .setup-card,
+  .bonus-hero,
+  .bonus-kr-card,
+  .pb-card,
+  .streak-card,
+  .ranking-card,
+  .kpi-row,
+  .row.mb-4,
+  .chart-card,
+  .weekly-dev-card,
+  .projection-card,
+  .period-group,
+  .chart-section { display: none !important; }
+
+  /* Visa daglig uppdelning och weekly data i svartvitt */
+  .stats-table { color: black !important; border-collapse: collapse; width: 100%; }
+  .stats-table th, .stats-table td { border: 1px solid #ccc !important; padding: .3rem .5rem !important; color: black !important; background: white !important; }
+  .stats-table thead th { background: #f0f0f0 !important; font-weight: bold; }
+
+  /* Print-header */
+  .print-header h2 { font-size: 1.4rem; font-weight: bold; margin-bottom: .25rem; color: black; }
+  .print-header p { font-size: .9rem; color: #555; }
+
+  /* Visa daglig uppdelning table-card */
+  .print-breakdown { display: block !important; }
+}
