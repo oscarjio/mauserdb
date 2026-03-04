@@ -1,3 +1,24 @@
+## 2026-03-04 — Flexibla dagsmål per datum (datum-undantag)
+
+Worker-agent implementerade "Flexibla dagsmål per datum":
+
+1. **SQL-migration**: `noreko-backend/migrations/2026-03-04_produktionsmal_undantag.sql` — ny tabell `produktionsmal_undantag` (datum PK, justerat_mal, orsak, skapad_av, timestamps).
+
+2. **Backend `RebotlingController.php`**:
+   - Ny GET endpoint `goal-exceptions` (admin-only): hämtar alla undantag, optionellt filtrerat per `?month=YYYY-MM`.
+   - Ny POST endpoint `save-goal-exception`: validerar datum (regex), mål (1-9999), orsak (max 255 tecken). INSERT ... ON DUPLICATE KEY UPDATE.
+   - Ny POST endpoint `delete-goal-exception`: tar bort undantag för specifikt datum.
+   - Integrerat undantags-check i `getLiveStats()`, `getTodaySnapshot()` och `getExecDashboard()` — om undantag finns för CURDATE() används justerat_mal istället för veckodagsmål.
+
+3. **Frontend `rebotling-admin.ts`**:
+   - `GoalException` interface, `goalExceptions[]`, form-properties, `loadGoalExceptions()`, `saveGoalException()`, `deleteGoalException()`.
+   - `loadGoalExceptions()` anropas i `ngOnInit()`.
+
+4. **Frontend `rebotling-admin.html`**:
+   - Nytt kort "Anpassade dagsmål (datum-undantag)" efter Veckodagsmål — formulär för datum/mål/orsak + tabell med aktiva undantag + Ta bort-knapp.
+
+Commit: se git log | Pushad till GitHub main.
+
 ## 2026-03-04 — Worker: Operatörsfeedback-loop (2981f70)
 - SQL-migration: `operator_feedback` tabell (operator_id, skiftraknare, datum, stämning TINYINT 1-4, kommentar VARCHAR(280))
 ## 2026-03-04 — Månadsrapport: tre nya sektioner
@@ -1148,3 +1169,4 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 [2026-03-04] Worker: Rebotling statistik — cykeltid per operatör: horisontellt Chart.js bar-diagram (indexAxis y), färgkodning mot median (grön/röd/blå), rang-tabell med snitt/bäst/sämst/antal skift/total IBC, period-selector 7/14/30/90d. Backend: cycle-by-operator endpoint i RebotlingController, UNION op1/op2/op3 från rebotling_skiftrapport, JOIN operators, outlier-filter 30-600 sek — 12ddddb
 [2026-03-04] Worker: Notifikationscentral (klockikon) verifierad — redan implementerad i 022b8df. Bell-ikon i navbar för inloggade (loggedIn), badge med urgentNoteCount+certExpiryCount, dropdown med länk till overlamnin+certifiering, .notif-dropdown CSS, inga extra polling-anrop (återanvänder befintliga timers)
 [2026-03-04] BugHunt #11: andon.ts — null-safety minuter_sedan_senaste_ibc (number|null + null-guard i statusEtikett), switch default-return i ibcKvarFarg/behovdTaktFarg; my-bonus.ts — chart-refs nullas i ngOnDestroy; news-admin.ts — withCredentials:true på alla HTTP-anrop (sessions kräver det för admin-list/create/update/delete); operator-trend.ts — oanvänd AfterViewInit-import borttagen; BonusController/BonusAdminController/MaintenanceController PHP — session_start read_and_close för att undvika session-låsning
+[2026-03-04] Worker: Historik-sida — CSV/Excel-export (SheetJS), trendpil per månad (↑↓→ >3%), progressbar mot snitt per rad, ny Trend-kolumn i månadsdetaljatabell, disable-state på knappar — e6a36f5
