@@ -427,3 +427,60 @@ input[type="date"].filter-input::-webkit-calendar-picker-indicator {
   .pagination-bar { gap: 0.25rem; }
   .page-info { width: 100%; text-align: center; }
 }
+
+/* KPI Summary Cards */
+.kpi-card {
+  background: linear-gradient(135deg, rgba(30, 30, 30, 0.95) 0%, rgba(20, 20, 20, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.kpi-icon {
+  width: 50px;
+  height: 50px;
+  margin: 0 auto 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(0, 102, 255, 0.2));
+  color: #00d4ff;
+  font-size: 1.25rem;
+}
+
+.kpi-icon-blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(29, 78, 216, 0.2));
+  color: #3b82f6;
+}
+
+.kpi-icon-green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(21, 128, 61, 0.2));
+  color: #22c55e;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value-sm {
+  font-size: 1.1rem;
+  word-break: break-word;
+}
+
+.kpi-label {
+  color: #a0a0a0;
+  font-size: 0.85rem;
+}

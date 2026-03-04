@@ -459,6 +459,27 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       });
   }
 
+  get stopSummaryStats(): { total: number; totalMin: number; avgMin: number } {
+    const stops = this.filteredStoppages || this.stoppages || [];
+    const totalMin = stops.reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
+    return { total: stops.length, totalMin, avgMin: stops.length > 0 ? Math.round(totalMin / stops.length) : 0 };
+  }
+
+  formatMinutes(min: number): string {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    if (h === 0) return `${m} min`;
+    return `${h}h ${m}min`;
+  }
+
+  calcDuration(stopp: any): number {
+    if (stopp.duration_minutes !== null && stopp.duration_minutes !== undefined) return stopp.duration_minutes;
+    if (stopp.start_time && stopp.end_time) {
+      return Math.round((new Date(stopp.end_time).getTime() - new Date(stopp.start_time).getTime()) / 60000);
+    }
+    return 0;
+  }
+
   formatDuration(minutes: number | null): string {
     if (minutes === null || minutes === undefined) return 'Pågår';
     if (minutes < 60) return minutes + ' min';

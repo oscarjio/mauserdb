@@ -317,6 +317,13 @@ export class AuditLogPage implements OnInit, OnDestroy {
     return Object.keys(obj);
   }
 
+  get auditStats(): { total: number; today: number; lastUser: string } {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayLogs = (this.logs || []).filter((l: any) => (l.created_at || '').startsWith(today));
+    const lastUser = this.logs?.[0]?.user || '—';
+    return { total: this.logs?.length || 0, today: todayLogs.length, lastUser };
+  }
+
   get pageNumbers(): number[] {
     const total = this.totalPages;
     if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);

@@ -17,7 +17,7 @@
             <small class="text-muted">Spåra alla admin-ändringar i systemet</small>
           </div>
           <div class="header-actions">
-            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" [disabled]="exportingAll" title="Exportera filtrerad vy som CSV">
+            <button class="btn btn-sm btn-outline-secondary" (click)="exportCSV()" [disabled]="exportingAll || logs.length === 0" title="Exportera filtrerad vy som CSV">
               <span *ngIf="!exportingAll"><i class="fas fa-download me-1"></i>Exportera CSV</span>
               <span *ngIf="exportingAll"><i class="fas fa-spinner fa-spin me-1"></i>Exporterar...</span>
             </button>
@@ -129,6 +129,31 @@
 
       <!-- LOG TAB -->
       <div *ngIf="activeTab === 'log'">
+
+        <!-- KPI Sammanfattning -->
+        <div class="row mb-4">
+          <div class="col-md-4 mb-3">
+            <div class="kpi-card">
+              <div class="kpi-icon"><i class="fas fa-database"></i></div>
+              <div class="kpi-value">{{ auditStats.total }}</div>
+              <div class="kpi-label">Totalt poster (filtrerade)</div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-blue"><i class="fas fa-calendar-day"></i></div>
+              <div class="kpi-value">{{ auditStats.today }}</div>
+              <div class="kpi-label">Aktiviteter idag</div>
+            </div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-green"><i class="fas fa-user-clock"></i></div>
+              <div class="kpi-value kpi-value-sm">{{ auditStats.lastUser }}</div>
+              <div class="kpi-label">Senaste användare</div>
+            </div>
+          </div>
+        </div>
 
         <!-- Loading -->
         <div class="text-center py-5" *ngIf="loading">

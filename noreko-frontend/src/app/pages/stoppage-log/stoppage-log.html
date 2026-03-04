@@ -128,10 +128,10 @@
         <button class="btn btn-sm btn-primary" (click)="showForm = !showForm" *ngIf="activeTab === 'log'">
           <i class="fas fa-plus me-1"></i>Nytt stopp
         </button>
-        <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="stoppages.length > 0">
+        <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="stoppages.length > 0" [disabled]="filteredStoppages.length === 0">
           <i class="fas fa-download me-1"></i>CSV
         </button>
-        <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="stoppages.length > 0" title="Exportera till Excel">
+        <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="stoppages.length > 0" [disabled]="filteredStoppages.length === 0" title="Exportera till Excel">
           <i class="fas fa-file-excel me-1"></i>Excel
         </button>
       </div>
@@ -179,6 +179,31 @@
 
     <!-- LOG TAB -->
     <div *ngIf="activeTab === 'log'">
+
+      <!-- KPI Sammanfattning (filtrerad vy) -->
+      <div class="row mb-3">
+        <div class="col-md-4 mb-2">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-list-ol"></i></div>
+            <div class="kpi-value">{{ stopSummaryStats.total }}</div>
+            <div class="kpi-label">Antal stopp (filtrerat)</div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-2">
+          <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-red"><i class="fas fa-hourglass-half"></i></div>
+            <div class="kpi-value">{{ formatMinutes(stopSummaryStats.totalMin) }}</div>
+            <div class="kpi-label">Total stopptid</div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-2">
+          <div class="kpi-card">
+            <div class="kpi-icon kpi-icon-orange"><i class="fas fa-ruler-horizontal"></i></div>
+            <div class="kpi-value">{{ stopSummaryStats.avgMin > 0 ? stopSummaryStats.avgMin + ' min' : '—' }}</div>
+            <div class="kpi-label">Snitt stopplängd</div>
+          </div>
+        </div>
+      </div>
 
       <!-- Advanced filter bar -->
       <div class="filter-bar mb-3">
