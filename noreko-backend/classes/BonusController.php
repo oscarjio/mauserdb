@@ -61,6 +61,8 @@ class BonusController {
             case 'history':        $this->getOperatorHistory();   break;
             case 'summary':        $this->getDailySummary();      break;
             case 'weekly_history': $this->getWeeklyHistory();     break;
+            case 'hall-of-fame':   $this->getHallOfFame();        break;
+            case 'loneprognos':    $this->getLoneprognos();       break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -850,6 +852,275 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getWeeklyHistory error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=hall-of-fame
+     *
+     * Topplistor per KPI de senaste 90 dagarna.
+     * Kategorier: ibc_per_h (IBC/h snitt per dag), kvalitet_pct, mest_aktiv (antal skift).
+     * Returnerar topp 3 per kategori.
+     */
+    private function getHallOfFame(): void {
+        try {
+            $opRows = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // --- IBC/h per dag per operatör senaste 90 dagar ---
+            // Aggregera per (datum, skiftraknare, op) → summera per datum per op → snitt-IBC/h per dag
+            $ibcPerHRows = $this->pdo->query("
+                SELECT
+                    op_id,
+                    AVG(ibc_per_h) AS avg_ibc_per_h
+                FROM (
+                    SELECT
+                        op_id,
+                        datum_day,
+                        SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_h), 0) AS ibc_per_h
+                    FROM (
+                        SELECT op1 AS op_id, DATE(datum) AS datum_day,
+                               MAX(ibc_ok) AS shift_ibc_ok,
+                               MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                          AND op1 IS NOT NULL AND op1 > 0
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op1
+                        UNION ALL
+                        SELECT op2, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/3600.0
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                          AND op2 IS NOT NULL AND op2 > 0
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op2
+                        UNION ALL
+                        SELECT op3, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/3600.0
+                        FROM rebotling_ibc
+                        WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                          AND op3 IS NOT NULL AND op3 > 0
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY DATE(datum), skiftraknare, op3
+                    ) AS per_shift
+                    GROUP BY op_id, datum_day
+                ) AS per_day
+                GROUP BY op_id
+                HAVING avg_ibc_per_h > 0
+                ORDER BY avg_ibc_per_h DESC
+                LIMIT 3
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- Kvalitet % per operatör ---
+            $kvalitetRows = $this->pdo->query("
+                SELECT
+                    op_id,
+                    SUM(shift_ibc_ok) / NULLIF(SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok), 0) * 100 AS kvalitet_pct
+                FROM (
+                    SELECT op1 AS op_id,
+                           MAX(ibc_ok) AS shift_ibc_ok,
+                           MAX(ibc_ej_ok) AS shift_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                      AND op1 IS NOT NULL AND op1 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare, op1
+                    UNION ALL
+                    SELECT op2, MAX(ibc_ok), MAX(ibc_ej_ok)
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                      AND op2 IS NOT NULL AND op2 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare, op2
+                    UNION ALL
+                    SELECT op3, MAX(ibc_ok), MAX(ibc_ej_ok)
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                      AND op3 IS NOT NULL AND op3 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare, op3
+                ) AS per_shift
+                GROUP BY op_id
+                HAVING kvalitet_pct > 0
+                ORDER BY kvalitet_pct DESC
+                LIMIT 3
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            // --- Mest aktiv (antal unika skift) per operatör ---
+            $aktivRows = $this->pdo->query("
+                SELECT op_id, COUNT(*) AS antal_skift
+                FROM (
+                    SELECT op1 AS op_id, skiftraknare
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                      AND op1 IS NOT NULL AND op1 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2, skiftraknare
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                      AND op2 IS NOT NULL AND op2 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3, skiftraknare
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                      AND op3 IS NOT NULL AND op3 > 0
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY op3, skiftraknare
+                ) AS per_shift
+                GROUP BY op_id
+                ORDER BY antal_skift DESC
+                LIMIT 3
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            $badges = ['gold', 'silver', 'bronze'];
+
+            $formatRow = function (array $rows, string $valueKey, string $displayKey) use ($opRows, $badges): array {
+                $result = [];
+                foreach (array_values($rows) as $i => $row) {
+                    $opId = (int)$row['op_id'];
+                    $result[] = [
+                        'rank'   => $i + 1,
+                        'badge'  => $badges[$i] ?? 'bronze',
+                        'name'   => $opRows[$opId] ?? ('Op ' . $opId),
+                        'value'  => round((float)$row[$valueKey], 1),
+                        'label'  => $displayKey,
+                    ];
+                }
+                return $result;
+            };
+
+            $this->sendSuccess([
+                'period_days' => 90,
+                'ibc_per_h'   => $formatRow($ibcPerHRows,  'avg_ibc_per_h',  'IBC/h'),
+                'kvalitet_pct'=> $formatRow($kvalitetRows, 'kvalitet_pct',   '%'),
+                'mest_aktiv'  => $formatRow($aktivRows,    'antal_skift',    'skift'),
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getHallOfFame error: ' . $e->getMessage());
+            $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=loneprognos
+     *
+     * Beräknar förväntad bonusutbetalning innevarande lönperiod (1:a–sista i månaden).
+     * Returnerar per operatör: antal skift, totalt IBC OK, och uppskattad bonus-tier
+     * baserat på bonus_poang-genomsnitt.
+     *
+     * Bonus-tiers (poäng → SEK) om inga bonus_level_amounts finns i DB:
+     *   ≥95 → 2500 kr (Outstanding)
+     *   ≥90 → 2000 kr (Excellent)
+     *   ≥80 → 1500 kr (God)
+     *   ≥70 → 1000 kr (Bas)
+     *   <70 → 0 kr
+     */
+    private function getLoneprognos(): void {
+        try {
+            $opRows = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            $monthStart = date('Y-m-01');
+            $today      = date('Y-m-d');
+            $daysInMonth = (int)date('t');
+            $dayOfMonth  = (int)date('j');
+            $monthPct    = $daysInMonth > 0 ? round($dayOfMonth / $daysInMonth * 100) : 0;
+            $daysLeft    = $daysInMonth - $dayOfMonth;
+
+            $dateFilter = "DATE(datum) BETWEEN '$monthStart' AND '$today'";
+
+            // Per-skift per operatör denna månad (alla positioner)
+            $stmt = $this->pdo->query("
+                SELECT
+                    op_id,
+                    COUNT(*)           AS antal_skift,
+                    SUM(shift_ibc_ok)  AS ibc_ok_manad,
+                    AVG(last_bonus)    AS avg_bonus
+                FROM (
+                    SELECT op1 AS op_id, skiftraknare,
+                           MAX(ibc_ok) AS shift_ibc_ok,
+                           SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
+                    FROM rebotling_ibc
+                    WHERE $dateFilter AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
+                    GROUP BY op1, skiftraknare
+                    UNION ALL
+                    SELECT op2, skiftraknare, MAX(ibc_ok),
+                           SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
+                    FROM rebotling_ibc
+                    WHERE $dateFilter AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
+                    GROUP BY op2, skiftraknare
+                    UNION ALL
+                    SELECT op3, skiftraknare, MAX(ibc_ok),
+                           SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0
+                    FROM rebotling_ibc
+                    WHERE $dateFilter AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
+                    GROUP BY op3, skiftraknare
+                ) AS per_shift
+                GROUP BY op_id
+                ORDER BY avg_bonus DESC
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Standard bonus-tiers (SEK) baserade på bonus_poang
+            $tiers = [
+                ['label' => 'Outstanding', 'tier_key' => 'outstanding', 'min' => 95, 'sek' => 2500],
+                ['label' => 'Excellent',   'tier_key' => 'excellent',   'min' => 90, 'sek' => 2000],
+                ['label' => 'God',         'tier_key' => 'god',         'min' => 80, 'sek' => 1500],
+                ['label' => 'Bas',         'tier_key' => 'bas',         'min' => 70, 'sek' => 1000],
+                ['label' => 'Under mål',   'tier_key' => 'under',       'min' => 0,  'sek' => 0],
+            ];
+
+            $matchTier = function (float $avgBonus) use ($tiers): array {
+                foreach ($tiers as $t) {
+                    if ($avgBonus >= $t['min']) return $t;
+                }
+                return end($tiers);
+            };
+
+            $result = [];
+            foreach ($rows as $row) {
+                $opId    = (int)$row['op_id'];
+                $avgBonus = (float)($row['avg_bonus'] ?? 0);
+                $tier    = $matchTier($avgBonus);
+                $skift   = (int)$row['antal_skift'];
+
+                $result[] = [
+                    'operator_id'        => $opId,
+                    'operator_name'      => $opRows[$opId] ?? ('Op ' . $opId),
+                    'antal_skift'        => $skift,
+                    'ibc_ok_manad'       => (int)$row['ibc_ok_manad'],
+                    'avg_bonus_poang'    => round($avgBonus, 1),
+                    'tier_label'         => $tier['label'],
+                    'tier_key'           => $tier['tier_key'],
+                    'bonus_per_skift_sek'=> $tier['sek'],
+                    'beraknad_bonus_sek' => $tier['sek'] * $skift,
+                ];
+            }
+
+            // Svenska månadsnamn
+            $monthNames = [
+                1=>'januari', 2=>'februari', 3=>'mars', 4=>'april',
+                5=>'maj', 6=>'juni', 7=>'juli', 8=>'augusti',
+                9=>'september', 10=>'oktober', 11=>'november', 12=>'december'
+            ];
+            $manadsnamn = $monthNames[(int)date('n')] ?? date('F');
+
+            $this->sendSuccess([
+                'manadsnamn'  => $manadsnamn,
+                'month_start' => $monthStart,
+                'today'       => $today,
+                'days_in_month' => $daysInMonth,
+                'day_of_month'  => $dayOfMonth,
+                'days_left'     => $daysLeft,
+                'month_pct'     => $monthPct,
+                'operatorer'    => $result,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getLoneprognos error: ' . $e->getMessage());
             $this->sendError('Databasfel');
         }
     }

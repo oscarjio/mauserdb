@@ -70,6 +70,8 @@ class RebotlingController {
                 $this->getSkiftKommentar();
             } elseif ($action === 'weekday-stats') {
                 $this->getWeekdayStats();
+            } elseif ($action === 'events') {
+                $this->getEvents();
             } else {
                 $this->getLiveStats();
             }
@@ -86,6 +88,14 @@ class RebotlingController {
                     return;
                 }
                 $this->setSkiftKommentar();
+                return;
+            }
+            if ($action === 'add-event') {
+                $this->addEvent();
+                return;
+            }
+            if ($action === 'delete-event') {
+                $this->deleteEvent();
                 return;
             }
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -3919,6 +3929,88 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController getWeekdayStats: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodag-statistik']);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Produktionshändelse-annotationer
+    // GET ?action=rebotling&run=events&start=YYYY-MM-DD&end=YYYY-MM-DD
+    // ----------------------------------------------------------------
+
+    private function getEvents(): void {
+        $start = $_GET['start'] ?? date('Y-m-d', strtotime('-90 days'));
+        $end   = $_GET['end']   ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d', strtotime('-90 days'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+        try {
+            $stmt = $this->pdo->prepare(
+                "SELECT id, event_date, title, description, event_type
+                 FROM production_events
+                 WHERE event_date BETWEEN ? AND ?
+                 ORDER BY event_date"
+            );
+            $stmt->execute([$start, $end]);
+            echo json_encode(['success' => true, 'events' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        } catch (Exception $e) {
+            error_log('RebotlingController getEvents: ' . $e->getMessage());
+            echo json_encode(['success' => true, 'events' => []]);
+        }
+    }
+
+    // POST ?action=rebotling&run=add-event (kräver admin-session)
+    private function addEvent(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Åtkomst nekad']);
+            return;
+        }
+        $date  = $_POST['event_date']   ?? '';
+        $title = trim($_POST['title']   ?? '');
+        $desc  = trim($_POST['description'] ?? '');
+        $type  = $_POST['event_type']   ?? 'ovrigt';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !$title) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Ogiltiga uppgifter']);
+            return;
+        }
+        $allowed = ['underhall', 'ny_operator', 'mal_andring', 'rekord', 'ovrigt'];
+        if (!in_array($type, $allowed)) $type = 'ovrigt';
+        try {
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO production_events (event_date, title, description, event_type, created_by)
+                 VALUES (?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([$date, $title, $desc, $type, $_SESSION['user_id']]);
+            echo json_encode(['success' => true, 'id' => $this->pdo->lastInsertId()]);
+        } catch (Exception $e) {
+            error_log('RebotlingController addEvent: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Kunde inte spara händelsen']);
+        }
+    }
+
+    // POST ?action=rebotling&run=delete-event (kräver admin)
+    private function deleteEvent(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['error' => 'Åtkomst nekad']);
+            return;
+        }
+        $id = intval($_POST['id'] ?? 0);
+        if (!$id) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Saknar id']);
+            return;
+        }
+        try {
+            $this->pdo->prepare("DELETE FROM production_events WHERE id = ?")->execute([$id]);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('RebotlingController deleteEvent: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['error' => 'Kunde inte ta bort händelsen']);
         }
     }
 

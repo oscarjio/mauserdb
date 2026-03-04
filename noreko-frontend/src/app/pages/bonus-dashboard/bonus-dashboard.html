@@ -266,14 +266,22 @@
 
   <!-- Ranking -->
   <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h5 class="mb-0"><i class="fas fa-medal me-2"></i>Top 10 Ranking</h5>
-      <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="getActiveRanking().length > 0" title="Exportera ranking till CSV">
-        <i class="fas fa-download me-1"></i>CSV
-      </button>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <!-- Period-jämförelseknapp -->
+        <div class="period-toggle-group">
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'today'" (click)="selectedPeriod='today'; onPeriodChange()">Idag</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'week'" (click)="selectedPeriod='week'; onPeriodChange()">Denna vecka</button>
+          <button class="period-toggle-btn" [class.active]="selectedPeriod === 'month'" (click)="selectedPeriod='month'; onPeriodChange()">Denna månad</button>
+        </div>
+        <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="getActiveRanking().length > 0" title="Exportera ranking till CSV">
+          <i class="fas fa-download me-1"></i>CSV
+        </button>
+      </div>
     </div>
     <div class="card-body">
-      <!-- Period tabs -->
+      <!-- Position tabs -->
       <ul class="nav nav-pills mb-3">
         <li class="nav-item">
           <a class="nav-link" [class.active]="activeRankingTab === 'overall'" (click)="setRankingTab('overall')">Alla</a>
@@ -358,6 +366,183 @@
         <p class="text-muted text-center" *ngIf="getActiveRanking().length === 0 && !loading">
           Ingen rankingdata tillgänglig för vald period.
         </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hall of Fame -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="fas fa-crown me-2 text-warning"></i>Månadens Bästa — Hall of Fame
+        <small class="text-muted ms-2 fw-normal" style="font-size:0.75rem;">(Senaste 90 dagar)</small>
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- Loading -->
+      <div *ngIf="hallOfFameLoading" class="text-center py-3">
+        <i class="fas fa-spinner fa-spin text-warning"></i>
+        <span class="text-muted ms-2">Laddar hall of fame...</span>
+      </div>
+
+      <!-- Hall of Fame kategorier -->
+      <div *ngIf="!hallOfFameLoading && hallOfFame" class="row g-3">
+        <!-- IBC/h -->
+        <div class="col-md-4">
+          <div class="hof-category">
+            <div class="hof-category-title">
+              <i class="fas fa-bolt me-2 text-info"></i>Snabbast (IBC/h)
+            </div>
+            <div class="hof-entries" *ngIf="hallOfFame.ibc_per_h.length > 0; else hofEmpty">
+              <div *ngFor="let e of hallOfFame.ibc_per_h" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
+                <div class="hof-medal">
+                  <span *ngIf="e.badge === 'gold'">🥇</span>
+                  <span *ngIf="e.badge === 'silver'">🥈</span>
+                  <span *ngIf="e.badge === 'bronze'">🥉</span>
+                </div>
+                <div class="hof-avatar">{{ getOperatorInitials(e.name) }}</div>
+                <div class="hof-info">
+                  <div class="hof-name">{{ e.name }}</div>
+                  <div class="hof-value">{{ e.value }} {{ e.label }}</div>
+                </div>
+              </div>
+            </div>
+            <ng-template #hofEmpty>
+              <p class="text-muted text-center py-2" style="font-size:0.8rem;">Ingen data</p>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- Kvalitet% -->
+        <div class="col-md-4">
+          <div class="hof-category">
+            <div class="hof-category-title">
+              <i class="fas fa-check-double me-2 text-success"></i>Precisast (Kvalitet%)
+            </div>
+            <div class="hof-entries" *ngIf="hallOfFame.kvalitet_pct.length > 0">
+              <div *ngFor="let e of hallOfFame.kvalitet_pct" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
+                <div class="hof-medal">
+                  <span *ngIf="e.badge === 'gold'">🥇</span>
+                  <span *ngIf="e.badge === 'silver'">🥈</span>
+                  <span *ngIf="e.badge === 'bronze'">🥉</span>
+                </div>
+                <div class="hof-avatar hof-avatar-green">{{ getOperatorInitials(e.name) }}</div>
+                <div class="hof-info">
+                  <div class="hof-name">{{ e.name }}</div>
+                  <div class="hof-value">{{ e.value }}{{ e.label }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mest aktiv -->
+        <div class="col-md-4">
+          <div class="hof-category">
+            <div class="hof-category-title">
+              <i class="fas fa-calendar-check me-2 text-purple"></i>Mest aktiv (skift)
+            </div>
+            <div class="hof-entries" *ngIf="hallOfFame.mest_aktiv.length > 0">
+              <div *ngFor="let e of hallOfFame.mest_aktiv" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
+                <div class="hof-medal">
+                  <span *ngIf="e.badge === 'gold'">🥇</span>
+                  <span *ngIf="e.badge === 'silver'">🥈</span>
+                  <span *ngIf="e.badge === 'bronze'">🥉</span>
+                </div>
+                <div class="hof-avatar hof-avatar-purple">{{ getOperatorInitials(e.name) }}</div>
+                <div class="hof-info">
+                  <div class="hof-name">{{ e.name }}</div>
+                  <div class="hof-value">{{ e.value }} {{ e.label }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ingen data -->
+      <div *ngIf="!hallOfFameLoading && !hallOfFame" class="text-center py-3">
+        <i class="fas fa-trophy fa-2x text-muted mb-2"></i>
+        <p class="text-muted">Ingen hall of fame-data tillgänglig.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Löneprojekton -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="fas fa-coins me-2 text-success"></i>Löneprojekton
+        <span class="text-muted fw-normal ms-2" style="font-size:0.8rem;" *ngIf="loneprognos">
+          — {{ loneprognos.manadsnamn }} {{ loneprognos.today?.substring(0, 4) }}
+        </span>
+      </h5>
+    </div>
+    <div class="card-body">
+      <!-- Loading -->
+      <div *ngIf="loneprognosLoading" class="text-center py-3">
+        <i class="fas fa-spinner fa-spin text-success"></i>
+        <span class="text-muted ms-2">Beräknar löneprojekton...</span>
+      </div>
+
+      <!-- Månadsframsteg -->
+      <div *ngIf="!loneprognosLoading && loneprognos">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <small class="text-muted">
+            Månaden är <strong class="text-info">{{ loneprognos.month_pct }}%</strong> klar
+            &nbsp;·&nbsp; {{ loneprognos.days_left }} dagar kvar
+          </small>
+          <small class="text-muted">Dag {{ loneprognos.day_of_month }} av {{ loneprognos.days_in_month }}</small>
+        </div>
+        <div class="progress mb-3" style="height:8px;">
+          <div class="progress-bar bg-info" [style.width.%]="loneprognos.month_pct" style="transition: width 0.6s ease; border-radius:4px;"></div>
+        </div>
+
+        <!-- Tabell -->
+        <div class="table-responsive" *ngIf="loneprognos.operatorer?.length > 0">
+          <table class="table table-dark table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Operatör</th>
+                <th>Skift</th>
+                <th>IBC OK</th>
+                <th>Snitt bonus</th>
+                <th>Tier</th>
+                <th>Prognos (kr)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let op of loneprognos.operatorer">
+                <td>
+                  <span class="hof-avatar-inline">{{ getOperatorInitials(op.operator_name) }}</span>
+                  {{ op.operator_name }}
+                </td>
+                <td>{{ op.antal_skift }}</td>
+                <td>{{ op.ibc_ok_manad }}</td>
+                <td [ngClass]="getBonusClass(op.avg_bonus_poang)">{{ op.avg_bonus_poang }}</td>
+                <td>
+                  <span class="tier-badge" [ngClass]="getTierClass(op.tier_key)">
+                    <i [class]="getTierIcon(op.tier_key)" class="me-1"></i>{{ op.tier_label }}
+                  </span>
+                </td>
+                <td class="text-success fw-bold">
+                  ~{{ op.beraknad_bonus_sek | number:'1.0-0' }} kr
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted text-center py-2" *ngIf="!loneprognos.operatorer?.length" style="font-size:0.85rem;">
+          Inga operatörer har jobbat denna månad än.
+        </p>
+        <small class="text-muted d-block mt-1">
+          * Prognos baseras på snitt-bonuspoäng hittills denna månad och faktiskt antal jobbade skift.
+          Tier-gränser: Outstanding (≥95p) 2 500 kr/skift · Excellent (≥90p) 2 000 kr · God (≥80p) 1 500 kr · Bas (≥70p) 1 000 kr.
+        </small>
+      </div>
+
+      <!-- Ingen data -->
+      <div *ngIf="!loneprognosLoading && !loneprognos" class="text-center py-3">
+        <p class="text-muted">Kunde inte ladda löneprojekton.</p>
       </div>
     </div>
   </div>

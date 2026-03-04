@@ -257,6 +257,114 @@
 .gmb-warning { background: #ed8936; }
 .gmb-success { background: #48bb78; }
 
+/* ============================================================
+   PERIOD TOGGLE (ranking header)
+   ============================================================ */
+.period-toggle-group {
+  display: flex;
+  gap: 4px;
+}
+.period-toggle-btn {
+  background: #161c29;
+  border: 1px solid #2d3748;
+  color: #a0aec0;
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.4;
+}
+.period-toggle-btn:hover { background: #2d3748; color: #e2e8f0; }
+.period-toggle-btn.active {
+  background: #4299e1;
+  border-color: #4299e1;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ============================================================
+   HALL OF FAME
+   ============================================================ */
+.hof-category {
+  background: #161c29;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 1rem;
+  height: 100%;
+}
+.hof-category-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #a0aec0;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #2d3748;
+}
+.hof-entries { display: flex; flex-direction: column; gap: 0.55rem; }
+.hof-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition: transform 0.15s;
+}
+.hof-entry:hover { transform: translateX(3px); }
+.hof-gold   { background: linear-gradient(135deg, rgba(214,170,6,0.18) 0%, rgba(214,170,6,0.06) 100%); border-color: rgba(214,170,6,0.3); }
+.hof-silver { background: linear-gradient(135deg, rgba(160,174,192,0.15) 0%, rgba(160,174,192,0.05) 100%); border-color: rgba(160,174,192,0.25); }
+.hof-bronze { background: linear-gradient(135deg, rgba(180,83,9,0.15) 0%, rgba(180,83,9,0.05) 100%); border-color: rgba(180,83,9,0.25); }
+
+.hof-medal { font-size: 1.3rem; line-height: 1; flex-shrink: 0; width: 28px; text-align: center; }
+.hof-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4299e1, #2b6cb0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.hof-avatar-green  { background: linear-gradient(135deg, #48bb78, #276749); }
+.hof-avatar-purple { background: linear-gradient(135deg, #9f7aea, #553c9a); }
+.hof-info { flex: 1; min-width: 0; }
+.hof-name  { font-size: 0.85rem; font-weight: 600; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hof-value { font-size: 0.75rem; color: #718096; }
+
+.text-purple { color: #9f7aea; }
+
+/* ============================================================
+   LÖNEPROJEKTON
+   ============================================================ */
+.hof-avatar-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4299e1, #2b6cb0);
+  font-size: 0.62rem; font-weight: 700; color: #fff;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+/* Tier badges */
+.tier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  font-size: 0.73rem;
+  font-weight: 600;
+}
+.tier-outstanding { background: rgba(214,170,6,0.22); color: #f6e05e; border: 1px solid rgba(214,170,6,0.4); }
+.tier-excellent   { background: rgba(160,174,192,0.18); color: #cbd5e0; border: 1px solid rgba(160,174,192,0.3); }
+.tier-god         { background: rgba(72,187,120,0.18); color: #68d391; border: 1px solid rgba(72,187,120,0.3); }
+.tier-bas         { background: rgba(66,153,225,0.15); color: #63b3ed; border: 1px solid rgba(66,153,225,0.25); }
+.tier-under       { background: rgba(229,62,62,0.12); color: #fc8181; border: 1px solid rgba(229,62,62,0.2); }
+
 /* Responsive */
 @media (max-width: 768px) {
   .bonus-dashboard-container { padding: 0.75rem; }
@@ -264,4 +372,6 @@
   .mini-stat-value { font-size: 1.1rem; }
   .table           { font-size: 0.78rem; }
   .goal-col, .trend-cell { display: none; }
+  .period-toggle-group { flex-wrap: wrap; }
+  .hof-category { margin-bottom: 0.5rem; }
 }

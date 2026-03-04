@@ -245,6 +245,36 @@ export class RebotlingService {
       { withCredentials: true }
     );
   }
+
+  getProductionEvents(start: string, end: string): Observable<ProductionEventsResponse> {
+    return this.http.get<ProductionEventsResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=events&start=${start}&end=${end}`,
+      { withCredentials: true }
+    );
+  }
+
+  addProductionEvent(event: { event_date: string; title: string; event_type: string; description: string }): Observable<any> {
+    const body = new URLSearchParams();
+    body.set('event_date', event.event_date);
+    body.set('title', event.title);
+    body.set('event_type', event.event_type);
+    body.set('description', event.description);
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=add-event',
+      body.toString(),
+      { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+  }
+
+  deleteProductionEvent(id: number): Observable<any> {
+    const body = new URLSearchParams();
+    body.set('id', String(id));
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=delete-event',
+      body.toString(),
+      { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+  }
 }
 
 export interface CycleTrendResponse {
@@ -499,6 +529,20 @@ export interface OeeWaterfallResponse {
   rast_h?: number;
   ibc_ok?: number;
   ibc_ej_ok?: number;
+  error?: string;
+}
+
+export interface ProductionEvent {
+  id: number;
+  event_date: string;
+  title: string;
+  description: string;
+  event_type: 'underhall' | 'ny_operator' | 'mal_andring' | 'rekord' | 'ovrigt';
+}
+
+export interface ProductionEventsResponse {
+  success: boolean;
+  events?: ProductionEvent[];
   error?: string;
 }
 

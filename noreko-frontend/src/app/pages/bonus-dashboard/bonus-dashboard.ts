@@ -1,10 +1,10 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
+import { BonusService, RankingEntry, ShiftStats, HallOfFameEntry, LoneprognosOperator } from '../../services/bonus.service';
 import { BonusAdminService } from '../../services/bonus-admin.service';
 import { Chart, registerables } from 'chart.js';
 
@@ -49,6 +49,14 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   // Weekly goal (from admin config)
   weeklyGoal = 80;
 
+  // Hall of Fame
+  hallOfFame: { ibc_per_h: HallOfFameEntry[]; kvalitet_pct: HallOfFameEntry[]; mest_aktiv: HallOfFameEntry[] } | null = null;
+  hallOfFameLoading = false;
+
+  // Löneprojekton
+  loneprognos: any = null;
+  loneprognosLoading = false;
+
   // Operator search
   searchOperatorId = '';
   operatorData: any = null;
@@ -82,6 +90,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   ngOnInit() {
     this.loadData();
     this.loadWeeklyGoal();
+    this.loadHallOfFame();
+    this.loadLoneprognos();
     this.pollingInterval = setInterval(() => this.loadData(), 30000);
   }
 
@@ -106,6 +116,44 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
         }
       },
       error: () => {}
+    });
+  }
+
+  private loadHallOfFame() {
+    this.hallOfFameLoading = true;
+    this.bonusService.getHallOfFame().pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res && res.success && res.data) {
+          this.hallOfFame = {
+            ibc_per_h:    res.data.ibc_per_h    || [],
+            kvalitet_pct: res.data.kvalitet_pct  || [],
+            mest_aktiv:   res.data.mest_aktiv    || [],
+          };
+        }
+        this.hallOfFameLoading = false;
+      },
+      error: () => { this.hallOfFameLoading = false; }
+    });
+  }
+
+  private loadLoneprognos() {
+    this.loneprognosLoading = true;
+    this.bonusService.getLoneprognos().pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res && res.success && res.data) {
+          this.loneprognos = res.data;
+        }
+        this.loneprognosLoading = false;
+      },
+      error: () => { this.loneprognosLoading = false; }
     });
   }
 
@@ -395,6 +443,33 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (bonus >= 80) return 'text-success';
     if (bonus >= 70) return 'text-warning';
     return 'text-danger';
+  }
+
+  getTierClass(tierKey: string): string {
+    switch (tierKey) {
+      case 'outstanding': return 'tier-outstanding';
+      case 'excellent':   return 'tier-excellent';
+      case 'god':         return 'tier-god';
+      case 'bas':         return 'tier-bas';
+      default:            return 'tier-under';
+    }
+  }
+
+  getTierIcon(tierKey: string): string {
+    switch (tierKey) {
+      case 'outstanding': return 'fas fa-crown';
+      case 'excellent':   return 'fas fa-medal';
+      case 'god':         return 'fas fa-thumbs-up';
+      case 'bas':         return 'fas fa-star-half-alt';
+      default:            return 'fas fa-minus-circle';
+    }
+  }
+
+  getOperatorInitials(name: string): string {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
   }
 
   getRankBadge(rank: number): string {

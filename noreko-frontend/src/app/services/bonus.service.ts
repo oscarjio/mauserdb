@@ -200,6 +200,52 @@ export interface WeeklyHistoryResponse {
   error?: string;
 }
 
+export interface HallOfFameEntry {
+  rank: number;
+  badge: 'gold' | 'silver' | 'bronze';
+  name: string;
+  value: number;
+  label: string;
+}
+
+export interface HallOfFameResponse {
+  success: boolean;
+  data?: {
+    period_days: number;
+    ibc_per_h: HallOfFameEntry[];
+    kvalitet_pct: HallOfFameEntry[];
+    mest_aktiv: HallOfFameEntry[];
+  };
+  error?: string;
+}
+
+export interface LoneprognosOperator {
+  operator_id: number;
+  operator_name: string;
+  antal_skift: number;
+  ibc_ok_manad: number;
+  avg_bonus_poang: number;
+  tier_label: string;
+  tier_key: string;
+  bonus_per_skift_sek: number;
+  beraknad_bonus_sek: number;
+}
+
+export interface LoneprognosResponse {
+  success: boolean;
+  data?: {
+    manadsnamn: string;
+    month_start: string;
+    today: string;
+    days_in_month: number;
+    day_of_month: number;
+    days_left: number;
+    month_pct: number;
+    operatorer: LoneprognosOperator[];
+  };
+  error?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BonusService {
   private readonly baseUrl = '/noreko-backend/api.php?action=bonus';
@@ -270,6 +316,22 @@ export class BonusService {
   getWeeklyHistory(operatorId: string): Observable<WeeklyHistoryResponse> {
     const params = new HttpParams().set('run', 'weekly_history').set('id', operatorId);
     return this.http.get<WeeklyHistoryResponse>(this.baseUrl, {
+      params,
+      withCredentials: true
+    });
+  }
+
+  getHallOfFame(): Observable<HallOfFameResponse> {
+    const params = new HttpParams().set('run', 'hall-of-fame');
+    return this.http.get<HallOfFameResponse>(this.baseUrl, {
+      params,
+      withCredentials: true
+    });
+  }
+
+  getLoneprognos(): Observable<LoneprognosResponse> {
+    const params = new HttpParams().set('run', 'loneprognos');
+    return this.http.get<LoneprognosResponse>(this.baseUrl, {
       params,
       withCredentials: true
     });
