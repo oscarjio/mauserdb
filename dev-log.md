@@ -1,3 +1,12 @@
+## 2026-03-04 — Worker: Cykeltid per operatör breakdown + export-knappar disable-state (d23d330)
+- Backend: getCycleByOperator beräknar nu median_min och p90_min via PHP percentil-algoritm. Sorterar fallande på antal_skift.
+- Service-interface: CycleByOperatorEntry utökat med median_min, p90_min, vs_team_snitt (optional).
+- Statistiksida (/rebotling/statistik): tabellkolumnerna byttes till Median (min), P90 (min), Antal skift, vs. Teamsnitt. Färgkodning grön/röd baserat på teamsnitt. Stapelgrafen visar median_min.
+- Export-knappar: tvattlinje- och saglinje-skiftrapport ändrat från *ngIf till [disabled] för CSV/Excel.
+- weekly-report: PDF-knapp fick [disabled]="!data". Var det enda som saknades.
+- monthly-report: PDF- och CSV-knappar fick [disabled]="!hasData || !report" (de låg redan inuti *ngIf-container).
+- Byggd utan fel, pushad till main.
+
 ## 2026-03-04 — Worker: Operatörsprestanda-trend per vecka (1ce8257)
 - Ny sida /admin/operator-trend (OperatorTrendPage, standalone Angular 20+)
 - Backend: RebotlingController.php + endpoints operator-list-trend (aktiva operatörer) + operator-weekly-trend (IBC/h per ISO-vecka, trendpil, lagsnitt)
