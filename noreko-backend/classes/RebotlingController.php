@@ -82,6 +82,8 @@ class RebotlingController {
                 $this->getAlertThresholds();
             } elseif ($action === 'today-snapshot') {
                 $this->getTodaySnapshot();
+            } elseif ($action === 'cycle-by-operator') {
+                $this->getCycleByOperator();
             } elseif ($action === 'shift-trend') {
                 $this->getShiftTrend();
             } else {
@@ -2816,6 +2818,112 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getSPC: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta SPC-data']);
+        }
+    }
+
+
+    // =========================================================
+    // Cykeltid per operatör
+    // GET ?action=rebotling&run=cycle-by-operator&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD
+    // =========================================================
+    private function getCycleByOperator() {
+        $today = date('Y-m-d');
+        $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-29 days'));
+        $endDate   = $_GET['end_date']   ?? $today;
+
+        // Validera datumformat
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
+            $startDate = date('Y-m-d', strtotime('-29 days'));
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
+            $endDate = $today;
+        }
+
+        try {
+            // Aggregera cykeltid per operatör via rebotling_skiftrapport
+            // Cykeltid (sek/IBC) = (drifttid minuter * 60) / ibc_ok
+            // Använder UNION för op1/op2/op3 och JOIN mot operators-tabellen
+            $sql = "
+                SELECT
+                    o.number                                AS op_id,
+                    o.name                                  AS namn,
+                    COUNT(*)                                AS antal_skift,
+                    ROUND(AVG(snitt_cykel_sek), 1)          AS snitt_cykel_sek,
+                    ROUND(MIN(snitt_cykel_sek), 1)          AS bast_cykel_sek,
+                    ROUND(MAX(snitt_cykel_sek), 1)          AS samst_cykel_sek,
+                    ROUND(SUM(ibc_ok_shift), 0)             AS total_ibc
+                FROM (
+                    SELECT s.op1 AS op_num,
+                           s.ibc_ok AS ibc_ok_shift,
+                           (COALESCE(s.drifttid, 0) * 60.0 / s.ibc_ok) AS snitt_cykel_sek
+                    FROM rebotling_skiftrapport s
+                    WHERE s.datum BETWEEN ? AND ?
+                      AND s.op1 IS NOT NULL
+                      AND s.ibc_ok > 0
+                      AND s.drifttid > 0
+                    UNION ALL
+                    SELECT s.op2 AS op_num,
+                           s.ibc_ok AS ibc_ok_shift,
+                           (COALESCE(s.drifttid, 0) * 60.0 / s.ibc_ok) AS snitt_cykel_sek
+                    FROM rebotling_skiftrapport s
+                    WHERE s.datum BETWEEN ? AND ?
+                      AND s.op2 IS NOT NULL
+                      AND s.ibc_ok > 0
+                      AND s.drifttid > 0
+                    UNION ALL
+                    SELECT s.op3 AS op_num,
+                           s.ibc_ok AS ibc_ok_shift,
+                           (COALESCE(s.drifttid, 0) * 60.0 / s.ibc_ok) AS snitt_cykel_sek
+                    FROM rebotling_skiftrapport s
+                    WHERE s.datum BETWEEN ? AND ?
+                      AND s.op3 IS NOT NULL
+                      AND s.ibc_ok > 0
+                      AND s.drifttid > 0
+                ) t
+                JOIN operators o ON o.number = t.op_num
+                WHERE t.snitt_cykel_sek BETWEEN 30 AND 600
+                GROUP BY o.number, o.name
+                HAVING antal_skift >= 1
+                ORDER BY snitt_cykel_sek ASC
+            ";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                $startDate, $endDate,
+                $startDate, $endDate,
+                $startDate, $endDate,
+            ]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Generera initialer från namn
+            $operators = array_map(function($r) {
+                $nameParts = array_filter(explode(' ', trim($r['namn'])));
+                $initialer = '';
+                foreach ($nameParts as $p) {
+                    if ($p !== '') $initialer .= strtoupper(substr($p, 0, 1));
+                }
+                $initialer = substr($initialer, 0, 3);
+                return [
+                    'op_id'          => (int)$r['op_id'],
+                    'namn'           => $r['namn'],
+                    'initialer'      => $initialer ?: ('OP' . $r['op_id']),
+                    'antal_skift'    => (int)$r['antal_skift'],
+                    'snitt_cykel_sek'=> (float)$r['snitt_cykel_sek'],
+                    'bast_cykel_sek' => (float)$r['bast_cykel_sek'],
+                    'samst_cykel_sek'=> (float)$r['samst_cykel_sek'],
+                    'total_ibc'      => (int)$r['total_ibc'],
+                ];
+            }, $rows);
+
+            echo json_encode([
+                'success'    => true,
+                'start_date' => $startDate,
+                'end_date'   => $endDate,
+                'data'       => $operators,
+            ]);
+        } catch (Exception $e) {
+            error_log('getCycleByOperator: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta cykeltid per operatör']);
         }
     }
 

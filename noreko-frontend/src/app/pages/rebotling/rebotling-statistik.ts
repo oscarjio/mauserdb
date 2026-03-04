@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation, QualityTrendDay, QualityTrendResponse, OeeWaterfallResponse, WeekdayStatsEntry, ProductionEvent } from '../../services/rebotling.service';
+import { RebotlingService, OEETrendDay, WeekComparisonDay, BestShift, CycleHistogramResponse, SPCResponse, ChartAnnotation, QualityTrendDay, QualityTrendResponse, OeeWaterfallResponse, WeekdayStatsEntry, ProductionEvent, CycleByOperatorEntry, CycleByOperatorResponse } from '../../services/rebotling.service';
 import { AuthService } from '../../services/auth.service';
 
 Chart.register(...registerables);
@@ -213,6 +213,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   spcN: number = 0;
   private spcChart: Chart | null = null;
 
+  // Cykeltid per operatör
+  cycleByOpDays: number = 30;
+  cycleByOpLoaded: boolean = false;
+  cycleByOpLoading: boolean = false;
+  cycleByOpData: CycleByOperatorEntry[] = [];
+  private cycleByOpChart: Chart | null = null;
+
   // Annotations i OEE- och cykeltrend-grafer
   chartAnnotations: ChartAnnotation[] = [];
 
@@ -279,6 +286,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.loadStatistics();
     this.loadCycleHistogram();
     this.loadSPC();
+    this.loadCycleByOperator();
     this.loadQualityTrend();
     this.loadOeeWaterfall();
     this.loadWeekdayStats();
@@ -364,6 +372,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.histogramChart = null;
     this.spcChart?.destroy();
     this.spcChart = null;
+    this.cycleByOpChart?.destroy();
+    this.cycleByOpChart = null;
     this.qualityTrendChart?.destroy();
     this.qualityTrendChart = null;
     this.oeeWaterfallChart?.destroy();
@@ -2459,6 +2469,123 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   onSPCDaysChange() {
     this.spcLoaded = false;
     this.loadSPC();
+  }
+
+  onCycleByOpDaysChange() {
+    this.cycleByOpLoaded = false;
+    this.loadCycleByOperator();
+  }
+
+  loadCycleByOperator() {
+    if (this.cycleByOpLoading) return;
+    this.cycleByOpLoading = true;
+
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (this.cycleByOpDays - 1));
+
+    this.rebotlingService.getCycleByOperator(fmt(startDate), fmt(endDate)).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe((res: CycleByOperatorResponse | null) => {
+      this.cycleByOpLoading = false;
+      if (res?.success && res.data) {
+        this.cycleByOpData = res.data;
+        this.cycleByOpLoaded = true;
+        setTimeout(() => this.renderCycleByOpChart(), 100);
+      } else {
+        this.cycleByOpLoaded = true;
+        this.cycleByOpData = [];
+      }
+    });
+  }
+
+  private renderCycleByOpChart() {
+    this.cycleByOpChart?.destroy();
+    const canvas = document.getElementById('cycleByOpChart') as HTMLCanvasElement;
+    if (!canvas || !this.cycleByOpData.length) return;
+
+    const sorted = [...this.cycleByOpData].sort((a, b) => a.snitt_cykel_sek - b.snitt_cykel_sek);
+    const labels = sorted.map(op => op.initialer);
+    const values = sorted.map(op => op.snitt_cykel_sek);
+    const bast   = sorted.map(op => op.bast_cykel_sek);
+    const samst  = sorted.map(op => op.samst_cykel_sek);
+
+    // Beräkna median för färgläggning
+    const median = (() => {
+      const v = [...values].sort((a, b) => a - b);
+      const mid = Math.floor(v.length / 2);
+      return v.length % 2 === 0 ? (v[mid - 1] + v[mid]) / 2 : v[mid];
+    })();
+
+    const colors = values.map(v => {
+      if (v < median * 0.95) return 'rgba(72, 187, 120, 0.8)';   // grön — under median
+      if (v > median * 1.05) return 'rgba(252, 129, 129, 0.8)';  // röd  — över median
+      return 'rgba(66, 153, 225, 0.8)';                           // blå  — nära median
+    });
+    const borderColors = colors.map(c => c.replace('0.8)', '1)'));
+
+    this.cycleByOpChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Snitt cykeltid (sek)',
+            data: values,
+            backgroundColor: colors,
+            borderColor: borderColors,
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15,17,23,0.96)',
+            titleColor: '#fff',
+            bodyColor: '#e0e0e0',
+            borderColor: '#4299e1',
+            borderWidth: 1,
+            callbacks: {
+              title: (items: any[]) => {
+                const idx = items[0].dataIndex;
+                return sorted[idx].namn;
+              },
+              label: (ctx: any) => {
+                const op = sorted[ctx.dataIndex];
+                return [
+                  ` Snitt: ${op.snitt_cykel_sek} sek`,
+                  ` Bäst:  ${op.bast_cykel_sek} sek`,
+                  ` Sämst: ${op.samst_cykel_sek} sek`,
+                  ` Skift: ${op.antal_skift} st`,
+                  ` Total IBC: ${op.total_ibc}`,
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { color: '#a0aec0', callback: (v: any) => v + ' s' },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'Cykeltid (sekunder)', color: '#a0aec0', font: { size: 12 } }
+          },
+          y: {
+            ticks: { color: '#e2e8f0', font: { size: 12 } },
+            grid: { color: 'rgba(255,255,255,0.04)' }
+          }
+        }
+      }
+    });
   }
 
   // ======== ANNOTATIONER ========

@@ -211,6 +211,13 @@ export class RebotlingService {
     );
   }
 
+  getCycleByOperator(startDate: string, endDate: string): Observable<CycleByOperatorResponse> {
+    return this.http.get<CycleByOperatorResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=cycle-by-operator&start_date=${startDate}&end_date=${endDate}`,
+      { withCredentials: true }
+    );
+  }
+
   getBenchmarking(): Observable<BenchmarkingResponse> {
     return this.http.get<BenchmarkingResponse>(
       '/noreko-backend/api.php?action=rebotling&run=benchmarking',
@@ -595,3 +602,22 @@ export interface ProductionEventsResponse {
 
 
 
+
+export interface CycleByOperatorEntry {
+  op_id: number;
+  namn: string;
+  initialer: string;
+  antal_skift: number;
+  snitt_cykel_sek: number;
+  bast_cykel_sek: number;
+  samst_cykel_sek: number;
+  total_ibc: number;
+}
+
+export interface CycleByOperatorResponse {
+  success: boolean;
+  start_date?: string;
+  end_date?: string;
+  data?: CycleByOperatorEntry[];
+  error?: string;
+}
