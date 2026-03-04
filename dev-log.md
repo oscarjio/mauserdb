@@ -1,3 +1,12 @@
+## 2026-03-04 — Worker: Operatörsprestanda-trend per vecka (1ce8257)
+- Ny sida /admin/operator-trend (OperatorTrendPage, standalone Angular 20+)
+- Backend: RebotlingController.php + endpoints operator-list-trend (aktiva operatörer) + operator-weekly-trend (IBC/h per ISO-vecka, trendpil, lagsnitt)
+- Frontend: Chart.js linjediagram blå (operatör) + gul streckad (lagsnitt), periodväljare 8/16/26 veckor, trendpil med %
+- Detailtabell: Vecka | IBC/h (färgkodad vs. lagsnitt) | Kvalitet% | Skift | Lagsnitt | vs. Lag
+- Admin-menyn: länk "Prestanda-trend" under operatörs-avsnittet
+- /admin/operators: knapp "Prestanda-trend" i header-raden
+- Byggd + pushad till main
+
 ## 2026-03-04 — Worker: BonusController parameter-validering + historik/audit pagination-analys (7c1d898)
 - BonusController.php: whitelist-validering av $period (today|week|month|year|all) i getOperatorStats(), getRanking(), getTeamStats(), getKPIDetails(). Ogiltiga värden fallback till 'week'.
 - AuditController.php: redan fullt paginerat med page/limit/offset/total/pages — ingen ändring behövdes.
