@@ -8,6 +8,10 @@
 
 **Worker: Users Admin UX** — Sökfält 350ms debounce, sorterbar tabell (4 kolumner), statusfilter-pills (Alla/Aktiva/Admin/Inaktiva), statistik-rad. Dark theme, responsive. Bygge OK.
 
+**Worker: RebotlingController catch-block audit** — 47 av 142 catch-block fixade med http_response_code(500) före echo json_encode. 35 redan korrekta, 60 utan echo (inre try/catch, return-only). PHP syntax OK.
+
+**Worker: Admin polling-optimering** — visibilitychange-guard på 4 admin-sidor (rebotling/saglinje/tvattlinje/klassificeringslinje). systemStatus 30s→120s, todaySnapshot 30s→300s. Andon: countdownInterval mergad in i clockInterval (7→6 timers), polling-timers pausas vid dold tabb. Bygge OK.
+
 ---
 
 **Worker: Skiftbyte-PDF automatgenerering** — Print-optimerad skiftsammanfattning som oppnas i nytt fonster. Backend: nytt endpoint `shift-pdf-summary` i RebotlingController.php som returnerar fullt HTML-dokument med A4-format, print-CSS, 6 KPI-kort (IBC OK, Kvalitet%, OEE, Drifttid, Rasttid, IBC/h), operatorstabell med per-rapport-rader (tid, produkt, IBC OK/ej OK, operatorer), skiftkommentar om tillganglig. Operatorer och produkter visas som badges. Knapp "Skriv ut / Spara PDF" for webblasarens print-dialog. Frontend skiftrapport: ny knapp (fa-file-export) per skiftrapport-rad som oppnar backend-HTML i nytt fonster via window.open(). Frontend andon: skiftbyte-detektion i polling — nar `status.skift` andras visas en notis "Skiftbyte genomfort — Skiftsammanfattning tillganglig" med lank till skiftrapporten, auto-dismiss efter 30s. Service: `getShiftPdfSummaryUrl()` i rebotling.service.ts. CSS: slideInRight-animation for notisen. Prepared statements, takeUntil(destroy$), timeout(8000)+catchError(). Bygge OK.

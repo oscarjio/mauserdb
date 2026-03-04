@@ -305,7 +305,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## AKTIVA AGENTER (session 2026-03-04 session #6)
-*(Batch 1 klar — 3/3 workers levererade. Startar batch 2...)*
+*(Session #6: Batch 1 klar 3/3, Batch 2 klar 2/2. Total: 5 workers, 2 features + 3 fixes/perf.)*
 
 ---
 
@@ -611,9 +611,9 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Users Admin UX-förbättring**: KLAR `1a145dc` — sök med debounce, sorterbar tabell, statusfilter, statistik-rad
 
 ### 🟡 Medium prioritet — Nästa batch
-- [ ] **RebotlingController catch-block audit**: ~100 catch-block returnerar HTTP 200 vid fel — systematisk genomgång behövs
-- [ ] **Admin-sidor polling-optimering**: rebotling-admin, saglinje-admin, tvattlinje-admin, klassificeringslinje-admin kör onödig 30-60s polling — byt till manuell refresh eller visibilitychange-guard
-- [ ] **Andon timer-optimering**: 7 setInterval (3× per sekund) — merge countdownInterval in i clockInterval, visibilitychange-guard
+- [x] **RebotlingController catch-block audit**: KLAR `d0bbda1` — 47/142 catch-block fixade med http_response_code(500), 35 redan korrekta, 60 utan echo json_encode
+- [x] **Admin-sidor polling-optimering**: KLAR `bc5baee` — visibilitychange-guard på 4 admin-sidor, systemStatus 30s→120s, todaySnapshot 30s→300s
+- [x] **Andon timer-optimering**: KLAR `bc5baee` — countdownInterval mergad in i clockInterval (7→6 timers), polling pausas vid dold tabb
 - [ ] **Operatör × Maskin kompatibilitetsmatris**: OEE per operatör+maskin-kombination, optimala parningar, heatmap-visualisering
 
 ### 🟢 Lägre prioritet / Idébank
