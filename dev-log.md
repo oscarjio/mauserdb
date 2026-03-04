@@ -1,3 +1,34 @@
+## 2026-03-04 kväll #13 — Worker: Loading-states + Chart.js tooltip-förbättring
+
+### DEL 1: Loading-state spinners (konsistent spinner-border mönster)
+
+3 sidor uppgraderade till konsistent `spinner-border text-info` mönster:
+
+1. **rebotling-prognos** — ersatt enkel text "Laddar produktionstakt..." med spinner-border + text
+2. **certifications** — ersatt `fa-spinner fa-spin` med spinner-border + text
+3. **operator-attendance** — uppgraderat båda panelernas (kalender + statistik) spinners till spinner-border
+
+Notering: production-calendar och benchmarking hade redan korrekt spinner-mönster.
+
+### DEL 2: Chart.js tooltip-förbättringar (3 sidor, 6 grafer)
+
+1. **audit-log** `buildActivityChart()`:
+   - Custom tooltip med dag+datum (t.ex. "Mån 2026-03-04")
+   - Formaterat antal ("3 aktiviteter" istf bara siffra)
+   - Dark theme tooltip-styling (#2d3748 bg)
+
+2. **production-calendar** `buildDayDetailChart()`:
+   - Datumtitel i tooltip (t.ex. "Tisdag 4 Mars 2026")
+   - Dagsmål visas i tooltip ("Dagsmål: 120 IBC")
+
+3. **stoppage-log** (4 grafer förbättrade):
+   - `buildParetoChart()`: h:mm tidsformat, andel%, antal stopp
+   - `buildDailyChart()`: h:mm stopptid-format per dataset
+   - `buildWeekly14Chart()`: h:mm stopptid i afterLabel
+   - `buildHourlyChart()`: tidsintervall i titel (Kl 08:00–08:59), snitt varaktighet i h:mm, peak-markering
+
+Alla tooltips har konsistent dark theme-styling (bg #2d3748, text #e2e8f0/#a0aec0, border #4a5568).
+
 ## 2026-03-04 kväll #12 — Worker: Empty-states batch 2 — 6 sidor med "Inga data"-meddelanden
 
 Lade till konsistenta empty-state meddelanden (inbox-ikon + svensk text, dark theme-stil) på ytterligare 6 sidor:
