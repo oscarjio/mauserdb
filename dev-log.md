@@ -1,3 +1,15 @@
+## 2026-03-04 — Uncommitted worker-ändringar granskade, byggda och committade
+
+Worker-agenter körde slut på API-quota utan att commita. Granskat och committad `c31d95d`:
+
+- **benchmarking.ts**: KPI-getters (rekordIBC, snittIBC, bästa OEE), personbästa-matchning mot inloggad användare, medalj-emojis, CSV-export av topp-10 veckor
+- **operator-trend**: 52-veckorsperiod, linjär regressionsbaserad prognos (+3 veckor), 3 KPI-brickor ovanför grafen, CSV-export, dynamisk timeout (20s vid 52v)
+- **rebotling-statistik**: CSV-export för pareto-stopporsaker, OEE-komponenter, kassationsanalys och heatmap; toggle-knappar för OEE-dataset-visibilitet
+
+Bygget lyckades (exit 0, inga TypeScript-fel, bara warnings).
+
+---
+
 ## 2026-03-04 — Leveransprognos: IBC-planeringsverktyg
 
 Worker-agent slutförde rebotling-prognos (påbörjad av tidigare agent som körde slut på quota):
