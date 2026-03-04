@@ -56,6 +56,14 @@ interface EquipmentSummary {
   worst_equipment: string | null;
 }
 
+interface KpiRow {
+  equipment: string;
+  antal_fel: number;
+  total_stillestand_h: number;
+  avg_mttr_h: number;
+  avg_mtbf_dagar: number | null;
+}
+
 @Component({
   selector: 'app-maintenance-log',
   standalone: true,
@@ -129,6 +137,9 @@ interface EquipmentSummary {
     <button class="tab-btn" [class.tab-active]="activeTab === 'statistik'" (click)="switchTab('statistik')">
       <i class="fas fa-chart-bar me-2"></i>Utrustningsstatistik
       <span class="tab-badge" *ngIf="equipmentStats.length > 0">90d</span>
+    </button>
+    <button class="tab-btn" [class.tab-active]="activeTab === 'kpi'" (click)="switchTab('kpi')">
+      <i class="fas fa-tachometer-alt me-2"></i>KPI-analys
     </button>
   </div>
 
@@ -369,6 +380,88 @@ interface EquipmentSummary {
           <i class="fas fa-sync me-1"></i>Uppdatera statistik
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- === KPI-ANALYS-FLIK: MTTR / MTBF === -->
+  <div *ngIf="activeTab === 'kpi'">
+
+    <!-- Datumfilter -->
+    <div class="filter-bar mb-3 d-flex align-items-center gap-3 flex-wrap">
+      <label class="filter-label mb-0">Period:</label>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-sm" *ngFor="let d of kpiDayOptions"
+                [class.btn-info]="kpiDays === d"
+                [class.btn-outline-secondary]="kpiDays !== d"
+                (click)="setKpiDays(d)">
+          {{ d }} dagar
+        </button>
+      </div>
+      <button class="btn btn-sm btn-outline-info ms-auto" (click)="loadKpiData()">
+        <i class="fas fa-sync me-1"></i>Uppdatera
+      </button>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="kpiLoading" class="text-center py-4 text-muted">
+      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar KPI-data...
+    </div>
+
+    <div *ngIf="!kpiLoading">
+
+      <!-- Ingen data -->
+      <div *ngIf="kpiRows.length === 0" class="empty-state">
+        <i class="fas fa-tachometer-alt fa-3x mb-3 text-muted"></i>
+        <p class="mb-0">Inga underhållshändelser med registrerad utrustning de senaste {{ kpiDays }} dagarna.</p>
+      </div>
+
+      <!-- KPI-tabell -->
+      <div class="stats-table-wrap" *ngIf="kpiRows.length > 0">
+        <div class="table-responsive">
+          <table class="table table-dark table-stats">
+            <thead>
+              <tr>
+                <th>Utrustning</th>
+                <th class="text-end">Antal fel</th>
+                <th class="text-end">MTBF (dagar)</th>
+                <th class="text-end">MTTR (timmar)</th>
+                <th class="text-end">Total stillestånd</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of kpiRows">
+                <td class="fw-semibold">{{ row.equipment }}</td>
+                <td class="text-end">
+                  <span class="text-warning fw-bold">{{ row.antal_fel }}</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="row.avg_mtbf_dagar !== null" [class.text-success]="row.avg_mtbf_dagar >= 30" [class.text-warning]="row.avg_mtbf_dagar >= 7 && row.avg_mtbf_dagar < 30" [class.text-danger]="row.avg_mtbf_dagar < 7">
+                    {{ row.avg_mtbf_dagar }} d
+                  </span>
+                  <span *ngIf="row.avg_mtbf_dagar === null" class="text-muted">— (1 händelse)</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="row.avg_mttr_h > 0" [class.text-success]="row.avg_mttr_h < 1" [class.text-warning]="row.avg_mttr_h >= 1 && row.avg_mttr_h < 4" [class.text-danger]="row.avg_mttr_h >= 4">
+                    {{ row.avg_mttr_h }} h
+                  </span>
+                  <span *ngIf="row.avg_mttr_h === 0" class="text-muted">—</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="row.total_stillestand_h > 0" class="text-danger">{{ row.total_stillestand_h }} h</span>
+                  <span *ngIf="row.total_stillestand_h === 0" class="text-muted">—</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Förklaring -->
+        <div class="kpi-legend p-3 border-top" style="border-color: #3d4f6b !important; font-size: 0.78rem; color: #718096;">
+          <strong class="text-muted">MTBF</strong> = Genomsnittlig tid mellan fel (dagar) &nbsp;·&nbsp;
+          <strong class="text-muted">MTTR</strong> = Genomsnittlig reparationstid per incident (timmar) &nbsp;·&nbsp;
+          Period: senaste {{ kpiDays }} dagar
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -997,7 +1090,13 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   filterFromDate = '';
 
   // Flik
-  activeTab: 'logg' | 'statistik' = 'logg';
+  activeTab: 'logg' | 'statistik' | 'kpi' = 'logg';
+
+  // KPI-analys (MTTR/MTBF)
+  kpiRows: KpiRow[] = [];
+  kpiLoading = false;
+  kpiDays = 90;
+  kpiDayOptions = [30, 90, 180, 365];
 
   // Utrustning
   equipmentList: EquipmentItem[] = [];
@@ -1043,10 +1142,13 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  switchTab(tab: 'logg' | 'statistik'): void {
+  switchTab(tab: 'logg' | 'statistik' | 'kpi'): void {
     this.activeTab = tab;
     if (tab === 'statistik' && this.equipmentStats.length === 0) {
       this.loadEquipmentStats();
+    }
+    if (tab === 'kpi' && this.kpiRows.length === 0) {
+      this.loadKpiData();
     }
   }
 
@@ -1255,6 +1357,26 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
     this.filterStatus = '';
     this.filterFromDate = '';
     this.loadEntries();
+  }
+
+  // --- KPI-analys ---
+
+  loadKpiData(): void {
+    this.kpiLoading = true;
+    const url = `${this.apiBase}?action=maintenance&run=mttr-mtbf&days=${this.kpiDays}`;
+    this.http.get<any>(url, { withCredentials: true })
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(data => {
+        this.kpiLoading = false;
+        if (data?.kpis) {
+          this.kpiRows = data.kpis;
+        }
+      });
+  }
+
+  setKpiDays(days: number): void {
+    this.kpiDays = days;
+    this.loadKpiData();
   }
 
   // --- Formattering ---

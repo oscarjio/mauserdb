@@ -46,6 +46,7 @@ class MaintenanceController {
             'stats'            => $this->getStats(),
             'equipment-list'   => $this->getEquipmentList(),
             'equipment-stats'  => $this->getEquipmentStats(),
+            'mttr-mtbf'        => $this->getMttrMtbf(),
             default            => $this->sendError('Okänd metod', 400)
         };
     }
@@ -434,6 +435,58 @@ class MaintenanceController {
         } catch (PDOException $e) {
             error_log('MaintenanceController::getEquipmentStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta utrustningsstatistik', 500);
+        }
+    }
+
+    private function getMttrMtbf(): void {
+        try {
+            $days = intval($_GET['days'] ?? 90);
+            // Tillåt bara giltiga intervall
+            if (!in_array($days, [30, 90, 180, 365], true)) {
+                $days = 90;
+            }
+
+            // MTTR = snitt reparationstid (downtime_minutes / 60 → timmar) per utrustning
+            // MTBF = dagar mellan felinträffanden: DATEDIFF(MAX, MIN) / (COUNT-1)
+            // Använder start_time som tidsstämpel för händelsen
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    equipment,
+                    COUNT(*) AS antal_fel,
+                    ROUND(SUM(downtime_minutes) / 60.0, 1) AS total_stillestand_h,
+                    ROUND(AVG(downtime_minutes) / 60.0, 1) AS avg_mttr_h,
+                    ROUND(
+                        DATEDIFF(MAX(start_time), MIN(start_time)) / NULLIF(COUNT(*) - 1, 0),
+                        1
+                    ) AS avg_mtbf_dagar
+                FROM maintenance_log
+                WHERE start_time >= DATE_SUB(NOW(), INTERVAL :days DAY)
+                  AND status != 'avbokat'
+                  AND equipment IS NOT NULL
+                  AND equipment != ''
+                GROUP BY equipment
+                ORDER BY antal_fel DESC
+            ");
+            $stmt->execute([':days' => $days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Typkonvertering
+            foreach ($rows as &$row) {
+                $row['antal_fel']           = (int)$row['antal_fel'];
+                $row['total_stillestand_h'] = (float)$row['total_stillestand_h'];
+                $row['avg_mttr_h']          = (float)$row['avg_mttr_h'];
+                $row['avg_mtbf_dagar']      = $row['avg_mtbf_dagar'] !== null ? (float)$row['avg_mtbf_dagar'] : null;
+            }
+            unset($row);
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days,
+                'kpis'    => $rows
+            ]);
+        } catch (PDOException $e) {
+            error_log('MaintenanceController::getMttrMtbf: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta MTTR/MTBF-data', 500);
         }
     }
 

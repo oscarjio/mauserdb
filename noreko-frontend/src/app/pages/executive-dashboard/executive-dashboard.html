@@ -99,6 +99,13 @@
     </div>
   </ng-container>
 
+  <!-- ---- Certifikat-utgångvarning ---- -->
+  <div *ngIf="certExpiryCount > 0" class="alert alert-warning d-flex align-items-center mb-3 d-print-none">
+    <i class="fas fa-certificate me-2"></i>
+    <span><strong>{{ certExpiryCount }} certifikat</strong> upphör inom 30 dagar —
+    <a routerLink="/admin/certifiering" class="alert-link">Hantera certifieringar</a></span>
+  </div>
+
   <ng-container *ngIf="!loading && dashData">
 
     <!-- ============================================================

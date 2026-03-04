@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { Subject, Subscription } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -29,6 +30,9 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   alerts: { type: 'danger' | 'warning' | 'info'; message: string; detail: string }[] = [];
 
+  // Certifikat-utgångvarning
+  certExpiryCount: number = 0;
+
   // Multi-line status
   allLinesStatus: any[] = [];
   private isFetchingLines = false;
@@ -43,7 +47,8 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   constructor(
     private auth: AuthService,
-    private rebotlingService: RebotlingService
+    private rebotlingService: RebotlingService,
+    private http: HttpClient
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
@@ -54,6 +59,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadData();
     this.loadAllLinesStatus();
+    this.loadCertExpiry();
     this.pollInterval = setInterval(() => this.loadData(), 30000);
     this.linesStatusInterval = setInterval(() => this.loadAllLinesStatus(), 60000);
   }
@@ -115,6 +121,15 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         error: () => {
           this.isFetchingLines = false;
         }
+      });
+  }
+
+  loadCertExpiry(): void {
+    this.http.get<any>('/noreko-backend/api.php?action=certification&run=expiry-count',
+      { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        if (res?.success) this.certExpiryCount = res.count ?? 0;
       });
   }
 
