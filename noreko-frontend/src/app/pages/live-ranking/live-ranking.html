@@ -44,8 +44,9 @@
   </div>
 
   <!-- INGEN DATA -->
-  <div *ngIf="!loading && !error && ranking.length === 0" class="tv-empty">
-    <p>Inga skiftrapporter registrerade idag.</p>
+  <div *ngIf="!loading && !error && ranking.length === 0" class="tv-empty" style="text-align:center;padding:2rem 0;">
+    <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+    <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen ranking tillgänglig just nu.</p>
   </div>
 
   <!-- RANKINGLISTA -->

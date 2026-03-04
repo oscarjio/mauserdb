@@ -1,3 +1,16 @@
+## 2026-03-04 kväll #10 — Worker: Empty-states batch 1 — 6 sidor med "Inga data"-meddelanden
+
+Lade till empty-state meddelanden (svensk text, dark theme-stil med inbox-ikon) på 6 sidor som tidigare visade tomma tabeller/listor utan feedback:
+
+1. **operator-attendance** — "Ingen närvarodata tillgänglig för vald period." när `calendarDays.length === 0`
+2. **weekly-report** — "Ingen data för vald vecka." på daglig produktion-tabellen när `data.daily` är tom
+3. **rebotling-prognos** — "Ingen prognosdata tillgänglig." när ingen produktionstakt laddats
+4. **benchmarking** — "Ingen benchmarkdata tillgänglig för vald period." på topp-veckor-tabellen
+5. **live-ranking** — Uppdaterat befintlig tom-vy till "Ingen ranking tillgänglig just nu." med konsekvent ikon-stil
+6. **certifications** — Uppdaterat befintlig tom-vy med konsekvent ikon-stil och texten "Inga certifieringar registrerade."
+
+Mönster: `<i class="bi bi-inbox">` + `<p style="color: #a0aec0">` — konsekvent dark theme empty-state.
+
 ## 2026-03-04 kväll #9 — Worker: Mobilanpassning batch 1 — responsive CSS för 3 sidor
 
 **operator-attendance** (`operator-attendance.css`):

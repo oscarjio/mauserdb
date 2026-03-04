@@ -182,7 +182,12 @@
         Topp {{ topWeeks.length }} veckor — historiskt
       </h2>
 
-      <div class="table-responsive">
+      <div *ngIf="topWeeks.length === 0" class="text-center py-4">
+        <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+        <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen benchmarkdata tillgänglig för vald period.</p>
+      </div>
+
+      <div class="table-responsive" *ngIf="topWeeks.length > 0">
         <table class="table table-dark table-hover benchmark-table">
           <thead>
             <tr>

@@ -29,7 +29,12 @@
             <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
           </div>
 
-          <div *ngIf="!loading">
+          <div *ngIf="!loading && calendarDays.length === 0" class="text-center py-4">
+            <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+            <p style="color: #a0aec0; margin-top: 0.5rem;">Ingen närvarodata tillgänglig för vald period.</p>
+          </div>
+
+          <div *ngIf="!loading && calendarDays.length > 0">
             <!-- Veckodagsrubriker -->
             <div class="weekday-header-grid mb-1">
               <div class="weekday-header" *ngFor="let wd of weekdayHeaders">{{ wd }}</div>
