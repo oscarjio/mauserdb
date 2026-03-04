@@ -147,14 +147,39 @@ export class SaglinjeSkiftrapportPage implements OnInit, OnDestroy {
   exportExcel() {
     if (!this.filteredReports.length) return;
     import('xlsx').then(XLSX => {
-      const data = this.filteredReports.map(r => ({
-        'ID': r.id, 'Datum': r.datum, 'Antal OK': r.antal_ok,
-        'Antal ej OK': r.antal_ej_ok, 'Totalt': r.totalt,
-        'Kvalitet %': this.getQualityPct(r) ?? '',
-        'Kommentar': r.kommentar || '', 'Användare': r.user_name || '',
-        'Inlagd': r.inlagd == 1 ? 'Ja' : 'Nej'
-      }));
-      const ws = XLSX.utils.json_to_sheet(data);
+      const headers = [
+        'ID', 'Datum', 'Antal OK', 'Antal ej OK', 'Totalt',
+        'Kvalitet %', 'Kommentar', 'Användare', 'Inlagd'
+      ];
+      const rows = this.filteredReports.map(r => [
+        r.id,
+        r.datum,
+        r.antal_ok,
+        r.antal_ej_ok,
+        r.totalt,
+        this.getQualityPct(r) ?? '',
+        r.kommentar || '',
+        r.user_name || '',
+        r.inlagd == 1 ? 'Ja' : 'Nej'
+      ]);
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+      // Kolumnbredder
+      ws['!cols'] = [
+        { wch: 6  },  // ID
+        { wch: 12 },  // Datum
+        { wch: 10 },  // Antal OK
+        { wch: 12 },  // Antal ej OK
+        { wch: 8  },  // Totalt
+        { wch: 11 },  // Kvalitet %
+        { wch: 40 },  // Kommentar
+        { wch: 16 },  // Användare
+        { wch: 8  },  // Inlagd
+      ];
+
+      // Frys header-rad (rad 1)
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
       XLSX.writeFile(wb, `saglinje-skiftrapport-${new Date().toISOString().split('T')[0]}.xlsx`);

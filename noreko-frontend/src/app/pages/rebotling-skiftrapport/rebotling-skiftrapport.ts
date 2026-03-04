@@ -717,45 +717,88 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   exportExcel() {
     if (this.filteredReports.length === 0) return;
     import('xlsx').then(XLSX => {
-      const summaryData = [
-        { 'Sammanfattning': '', 'Värde': '' },
-        { 'Sammanfattning': 'Total IBC',  'Värde': this.summaryTotalIbc },
-        { 'Sammanfattning': 'Kvalitet %', 'Värde': this.summaryAvgQuality ?? '' },
-        { 'Sammanfattning': 'OEE %',      'Värde': this.summaryAvgOee ?? '' },
-        { 'Sammanfattning': 'Drifttid (min)', 'Värde': this.summaryTotalDrift },
-        { 'Sammanfattning': 'Rasttid (min)',  'Värde': this.summaryTotalRast },
-        { 'Sammanfattning': '', 'Värde': '' },
+      // ---- Sammanfattningsblad ----
+      const summaryHeaders = [['Sammanfattning', 'Värde']];
+      const summaryRows = [
+        ['Total IBC',        this.summaryTotalIbc],
+        ['Kvalitet %',       this.summaryAvgQuality ?? ''],
+        ['OEE %',            this.summaryAvgOee ?? ''],
+        ['Drifttid (min)',   this.summaryTotalDrift],
+        ['Rasttid (min)',    this.summaryTotalRast],
       ];
-      const data = this.filteredReports.map(r => ({
-        'ID':              r.id,
-        'Datum':           r.datum,
-        'Produkt':         r.product_name || '-',
-        'Användare':       r.user_name || '-',
-        'IBC OK':          r.ibc_ok,
-        'Bur ej OK':       r.bur_ej_ok,
-        'IBC ej OK':       r.ibc_ej_ok,
-        'Totalt':          r.totalt,
-        'Kvalitet %':      this.getQualityPct(r) ?? '',
-        'Effektivitet %':  this.getEfficiencyPct(r) ?? '',
-        'IBC/timme':       this.getIbcPerHour(r) ?? '',
-        'Kassation %':     this.getDefectPct(r) ?? '',
-        'Snitt cykeltid':  this.getAvgCycleTime(r) ?? '',
-        'Bonus-estimat':   this.getBonusEstimate(r) ?? '',
-        'Op1':             this.getOpLabel(r, 'op1'),
-        'Op2':             this.getOpLabel(r, 'op2'),
-        'Op3':             this.getOpLabel(r, 'op3'),
-        'Drifttid (min)':  r.drifttid ?? '',
-        'Rasttid (min)':   r.rasttime ?? '',
-        'Löpnummer':       r.lopnummer ?? '',
-        'Skifträknare':    r.skiftraknare ?? '',
-        'Inlagd':          r.inlagd == 1 ? 'Ja' : 'Nej'
-      }));
-      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-      const wsData    = XLSX.utils.json_to_sheet(data);
-      const wb        = XLSX.utils.book_new();
+      const wsSummary = XLSX.utils.aoa_to_sheet([...summaryHeaders, ...summaryRows]);
+      wsSummary['!cols'] = [{ wch: 20 }, { wch: 14 }];
+      // Frys header-rad i sammanfattning
+      wsSummary['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+      // ---- Skiftrapporter-blad ----
+      const dataHeaders = [
+        'ID', 'Datum', 'Produkt', 'Användare',
+        'IBC OK', 'Bur ej OK', 'IBC ej OK', 'Totalt',
+        'Kvalitet %', 'Effektivitet %', 'IBC/timme', 'Kassation %',
+        'Snitt cykeltid', 'Bonus-estimat',
+        'Op1', 'Op2', 'Op3',
+        'Drifttid (min)', 'Rasttid (min)', 'Löpnummer', 'Skifträknare', 'Inlagd'
+      ];
+      const dataRows = this.filteredReports.map(r => [
+        r.id,
+        r.datum,
+        r.product_name || '-',
+        r.user_name || '-',
+        r.ibc_ok,
+        r.bur_ej_ok,
+        r.ibc_ej_ok,
+        r.totalt,
+        this.getQualityPct(r) ?? '',
+        this.getEfficiencyPct(r) ?? '',
+        this.getIbcPerHour(r) ?? '',
+        this.getDefectPct(r) ?? '',
+        this.getAvgCycleTime(r) ?? '',
+        this.getBonusEstimate(r) ?? '',
+        this.getOpLabel(r, 'op1'),
+        this.getOpLabel(r, 'op2'),
+        this.getOpLabel(r, 'op3'),
+        r.drifttid ?? '',
+        r.rasttime ?? '',
+        r.lopnummer ?? '',
+        r.skiftraknare ?? '',
+        r.inlagd == 1 ? 'Ja' : 'Nej'
+      ]);
+      const wsData = XLSX.utils.aoa_to_sheet([dataHeaders, ...dataRows]);
+
+      // Kolumnbredder
+      wsData['!cols'] = [
+        { wch: 6  },  // ID
+        { wch: 12 },  // Datum
+        { wch: 18 },  // Produkt
+        { wch: 16 },  // Användare
+        { wch: 8  },  // IBC OK
+        { wch: 10 },  // Bur ej OK
+        { wch: 10 },  // IBC ej OK
+        { wch: 8  },  // Totalt
+        { wch: 11 },  // Kvalitet %
+        { wch: 14 },  // Effektivitet %
+        { wch: 11 },  // IBC/timme
+        { wch: 12 },  // Kassation %
+        { wch: 14 },  // Snitt cykeltid
+        { wch: 13 },  // Bonus-estimat
+        { wch: 14 },  // Op1
+        { wch: 14 },  // Op2
+        { wch: 14 },  // Op3
+        { wch: 14 },  // Drifttid
+        { wch: 13 },  // Rasttid
+        { wch: 12 },  // Löpnummer
+        { wch: 13 },  // Skifträknare
+        { wch: 8  },  // Inlagd
+      ];
+
+      // Frys header-rad (rad 1)
+      wsData['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+      const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Sammanfattning');
       XLSX.utils.book_append_sheet(wb, wsData,    'Skiftrapporter');
-      XLSX.writeFile(wb, `skiftrapporter-${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `skiftrapporter-rebotling-${new Date().toISOString().split('T')[0]}.xlsx`);
     });
   }
 

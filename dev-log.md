@@ -2,6 +2,16 @@
 
 ---
 
+## 2026-03-04 — Excel-export förbättring (worker-agent)
+- Förbättrade `exportExcel()` i rebotling-skiftrapport, tvattlinje-skiftrapport och saglinje-skiftrapport
+- Använder nu `aoa_to_sheet` med explicit header-array + data-rader (istället för `json_to_sheet`)
+- Kolumnbredder (`!cols`) satta för alla ark — anpassade per kolumntyp (ID smal, kommentar bred 40ch)
+- Fryst header-rad (`!freeze` ySplit:1) i alla ark — scrolla ned utan att tappa kolumnnamnen
+- Rebotling: sammanfattningsbladet fick också kolumnbredder och fryst header
+- Filnamn uppdaterat med prefix `rebotling-` för tydlighet
+- Bygg OK, inga nya fel
+
+
 
 ## 2026-03-04 — Feature: Operatörsdashboard — commit 4fb35a1
 Worker-agent byggde /admin/operator-dashboard: adminvy för skiftledare med 4 KPI-kort (aktiva idag, snitt IBC/h, bäst idag, totalt IBC) och operatörstabell med initialer-avatar (hash-färg), IBC/h, kvalitet%, minuter sedan aktivitet och status-badge (Bra/OK/Låg/Inaktiv). Backend: OperatorDashboardController.php med UNION ALL op1/op2/op3 från rebotling_skiftrapport. 60s polling. Bygg OK, pushad till GitHub.
@@ -866,3 +876,11 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 - Uppdaterade NewsController.php: fallback-produktion visas alltid (ej bara om inga andra händelser), deduplicering av typ+datum, query för OEE-dagar begränsat till 14 dagar
 - Skapade environments/environment.ts (saknades — orsakade byggfel för operator-dashboard)
 - Bygget OK — inga errors, bara warnings
+
+## 2026-03-04 — Feature: Tvattlinje forberedelse — backend + admin
+- TvattlinjeController.php: Lade till `getSettings()`/`setSettings()` (key-value tabell `tvattlinje_settings`), `getSystemStatus()` (returnerar null-varden tills linjen ar i drift), `getWeekdayGoals()`/`setWeekdayGoals()` (individuella mal per veckodag i `tvattlinje_weekday_goals`)
+- handle() utokad med routing for `settings`, `weekday-goals`, `system-status`
+- Migration: `noreko-backend/migrations/2026-03-04_tvattlinje_settings.sql` skapad (tvattlinje_settings + tvattlinje_weekday_goals tabeller med defaultvarden)
+- tvattlinje-admin.ts: Ny `WeekdayGoal`-interface, `loadWeekdayGoals()`/`saveWeekdayGoals()`, `loadNewSettings()`/`saveNewSettings()`, `loadSystemStatus()` nu mot `system-status` endpoint, `getPlcAge()`, `getDbStatusLabel()`
+- tvattlinje-admin.html: Ny systemstatus-sektion med null-saker falt (PLC ej sedd = "---"), ny driftsinstellningar-sektion (dagmal/takt_mal/skift_start/skift_slut), ny veckodagsmaltabell (man-son med input + status-badge), "ej i drift"-banner
+- Byggt OK, committat och pushat
