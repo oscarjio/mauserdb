@@ -43,6 +43,8 @@ export class AuditLogPage implements OnInit, OnDestroy {
   currentPage = 1;
   totalPages = 1;
   totalCount = 0;
+  hasMore = false;
+  loadingMore = false;
   readonly pageSize = 50;
 
   activeTab: 'log' | 'stats' = 'log';
@@ -113,10 +115,29 @@ export class AuditLogPage implements OnInit, OnDestroy {
           this.logs = res.data;
           this.totalCount = res.total;
           this.totalPages = res.pages;
+          this.hasMore = res.hasMore ?? false;
         }
         this.loading = false;
       },
       error: () => this.loading = false
+    });
+  }
+
+  loadMore() {
+    if (!this.hasMore || this.loadingMore) return;
+    this.loadingMore = true;
+    this.currentPage++;
+    this.auditService.getLogs(this.buildParams()).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.logs = [...this.logs, ...res.data];
+          this.totalCount = res.total;
+          this.totalPages = res.pages;
+          this.hasMore = res.hasMore ?? false;
+        }
+        this.loadingMore = false;
+      },
+      error: () => this.loadingMore = false
     });
   }
 

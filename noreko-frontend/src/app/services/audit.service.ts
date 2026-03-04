@@ -38,7 +38,7 @@ export class AuditService {
     search?: string;
     from_date?: string;
     to_date?: string;
-  } = {}): Observable<{ success: boolean; data: AuditEntry[]; total: number; page: number; pages: number }> {
+  } = {}): Observable<{ success: boolean; data: AuditEntry[]; total: number; page: number; pages: number; hasMore: boolean }> {
     let url = this.base;
     if (params.page)          url += `&page=${params.page}`;
     if (params.limit)         url += `&limit=${params.limit}`;

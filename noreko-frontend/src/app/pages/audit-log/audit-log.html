@@ -161,6 +161,11 @@
           <p class="mt-3 text-muted">Hämtar loggar...</p>
         </div>
 
+        <!-- Visar X av Y poster -->
+        <div class="pagination-info mb-3" *ngIf="!loading && logs.length > 0">
+          <span>Visar {{ logs.length }} av {{ totalCount }} poster</span>
+        </div>
+
         <!-- Log entries -->
         <div class="dark-card" *ngIf="!loading && logs.length > 0">
           <div class="card-body p-0">
@@ -220,22 +225,12 @@
           </div>
         </div>
 
-        <!-- Pagination -->
-        <div class="pagination-bar mt-3" *ngIf="totalPages > 1">
-          <button class="btn btn-sm btn-dark" [disabled]="currentPage <= 1" (click)="goToPage(currentPage - 1)">
-            <i class="fas fa-chevron-left"></i>
+        <!-- Ladda fler -->
+        <div class="load-more-bar mt-3" *ngIf="hasMore">
+          <button class="btn btn-outline-secondary load-more-btn" (click)="loadMore()" [disabled]="loadingMore">
+            <span *ngIf="!loadingMore"><i class="fas fa-arrow-down me-2"></i>Ladda fler</span>
+            <span *ngIf="loadingMore"><i class="fas fa-spinner fa-spin me-2"></i>Laddar...</span>
           </button>
-          <ng-container *ngFor="let p of pageNumbers">
-            <span class="page-ellipsis" *ngIf="p > 1 && pageNumbers[pageNumbers.indexOf(p)-1] !== p - 1">…</span>
-            <button class="btn btn-sm"
-                    [class.btn-dark]="p !== currentPage"
-                    [class.btn-info]="p === currentPage"
-                    (click)="goToPage(p)">{{ p }}</button>
-          </ng-container>
-          <button class="btn btn-sm btn-dark" [disabled]="currentPage >= totalPages" (click)="goToPage(currentPage + 1)">
-            <i class="fas fa-chevron-right"></i>
-          </button>
-          <span class="page-info">Sida {{ currentPage }} av {{ totalPages }} ({{ totalCount }} poster)</span>
         </div>
 
         <!-- No data -->

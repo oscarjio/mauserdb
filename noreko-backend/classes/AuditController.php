@@ -46,7 +46,7 @@ class AuditController {
             }
 
             $page = max(1, intval($_GET['page'] ?? 1));
-            $limit = min(100, max(10, intval($_GET['limit'] ?? 50)));
+            $limit = min(200, max(10, intval($_GET['limit'] ?? 50)));
             $offset = ($page - 1) * $limit;
 
             $actionFilter = $_GET['filter_action'] ?? '';
@@ -116,12 +116,16 @@ class AuditController {
             ");
             $stmt->execute($params);
 
+            $hasMore = ($offset + $limit) < $total;
+
             echo json_encode([
                 'success' => true,
                 'data'    => $stmt->fetchAll(PDO::FETCH_ASSOC),
                 'total'   => $total,
                 'page'    => $page,
-                'pages'   => (int)ceil($total / $limit)
+                'limit'   => $limit,
+                'pages'   => (int)ceil($total / $limit),
+                'hasMore' => $hasMore
             ]);
         } catch (PDOException $e) {
             error_log('AuditController getLogs: ' . $e->getMessage());
