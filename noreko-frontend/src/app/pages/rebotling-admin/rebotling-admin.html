@@ -251,6 +251,13 @@
               <input type="number" class="form-control" [(ngModel)]="settings.systemSettings.alertThreshold" min="0" max="100" />
               <div class="form-text">Varning om effektivitet sjunker under detta värde</div>
             </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">
+                <i class="fas fa-users me-1 text-info"></i>Min. operatörer per skift
+              </label>
+              <input type="number" class="form-control" [(ngModel)]="settings.minOperators" min="1" max="10" />
+              <div class="form-text">Bemanningsvarning om färre operatörer är schemalagda</div>
+            </div>
             <div class="col-md-4 d-flex flex-column justify-content-center">
               <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" id="maintenanceMode"
@@ -1000,6 +1007,100 @@
               <i class="fas me-2" [class.fa-check-circle]="recordNewsResult.success" [class.fa-exclamation-circle]="!recordNewsResult.success"></i>
               {{ recordNewsResult.message }}
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======== KASSATIONSREGISTRERING ======== -->
+  <div class="row mt-2">
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center" style="background-color:#1a202c;">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2 text-danger"></i>
+            Kassationsregistrering
+          </h5>
+          <span *ngIf="kassationLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">
+            Registrera kasserade IBC/burar med orsak. Data används för Pareto-analys i statistikvyn.
+          </p>
+
+          <!-- Formulär -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Datum</label>
+              <input type="date" class="form-control" [(ngModel)]="kassationForm.datum" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold">Kassationsorsak</label>
+              <select class="form-select" [(ngModel)]="kassationForm.orsak_id">
+                <option [value]="0" disabled>Välj orsak...</option>
+                <option *ngFor="let t of kassationTyper" [value]="t.id">{{ t.namn }}</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label fw-semibold">Antal</label>
+              <input type="number" class="form-control" [(ngModel)]="kassationForm.antal" min="1" max="9999" />
+            </div>
+            <div class="col-md-4">
+              <label class="form-label fw-semibold">Kommentar (valfri)</label>
+              <input type="text" class="form-control" [(ngModel)]="kassationForm.kommentar"
+                     placeholder="Valfri notering..." maxlength="500" />
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 align-items-center mb-4">
+            <button class="btn btn-danger"
+                    (click)="registerKassation()"
+                    [disabled]="kassationLoading || !kassationForm.orsak_id || kassationForm.antal < 1">
+              <i class="fas fa-plus me-2"></i>Registrera kassation
+            </button>
+            <span *ngIf="kassationSaved" class="text-success small">
+              <i class="fas fa-check-circle me-1"></i>Sparad!
+            </span>
+            <span *ngIf="kassationError" class="text-danger small">
+              <i class="fas fa-exclamation-circle me-1"></i>{{ kassationError }}
+            </span>
+          </div>
+
+          <!-- Senaste registreringar -->
+          <h6 style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:10px;">
+            Senaste 10 registreringar
+          </h6>
+          <div class="table-responsive" *ngIf="kassationSenaste.length > 0">
+            <table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.85rem;">
+              <thead>
+                <tr style="border-color:#4a5568; color:#a0aec0;">
+                  <th>Datum</th>
+                  <th>Orsak</th>
+                  <th>Antal</th>
+                  <th>Kommentar</th>
+                  <th>Registrerad av</th>
+                  <th>Tid</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let k of kassationSenaste" style="border-color:#4a5568;">
+                  <td style="white-space:nowrap;">{{ k.datum }}</td>
+                  <td>
+                    <span class="badge bg-danger" style="font-size:0.75rem;">{{ k.orsak_namn }}</span>
+                  </td>
+                  <td class="text-warning fw-bold">{{ k.antal }}</td>
+                  <td style="color:#a0aec0; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" [title]="k.kommentar">
+                    {{ k.kommentar || '–' }}
+                  </td>
+                  <td style="color:#a0aec0;">{{ k.registrerad_av_namn || '–' }}</td>
+                  <td style="color:#718096; white-space:nowrap; font-size:0.8rem;">{{ k.created_at }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="kassationSenaste.length === 0 && !kassationLoading" class="text-center py-3">
+            <p style="color:#718096; font-size:0.9rem; margin:0;">Inga kassationer registrerade ännu.</p>
           </div>
         </div>
       </div>

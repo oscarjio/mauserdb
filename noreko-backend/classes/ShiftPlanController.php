@@ -32,6 +32,11 @@ class ShiftPlanController {
             return;
         }
 
+        if ($method === 'GET' && $run === 'staffing-warning') {
+            $this->getStaffingWarning();
+            return;
+        }
+
         if ($method === 'POST' && $run === 'assign') {
             $this->requireAdmin();
             $this->assign();
@@ -336,6 +341,74 @@ class ShiftPlanController {
             return strtoupper(mb_substr($parts[0], 0, 1) . mb_substr(end($parts), 0, 1));
         }
         return strtoupper(mb_substr($name, 0, 2));
+    }
+
+    // -----------------------------------------------------------------------
+    // GET ?action=shift-plan&run=staffing-warning
+    // Returnerar dagar de närmaste 7 dagarna med underbemanning.
+    // -----------------------------------------------------------------------
+
+    private function getStaffingWarning() {
+        try {
+            // Hämta min_operators från rebotling_settings (default 2)
+            $minOps = 2;
+            try {
+                $sr = $this->pdo->query("SELECT min_operators FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
+                if ($sr && isset($sr['min_operators'])) {
+                    $minOps = max(1, (int)$sr['min_operators']);
+                }
+            } catch (Exception $ignored) {
+                // Kolumnen finns inte ännu
+            }
+
+            $today   = date('Y-m-d');
+            $in7days = date('Y-m-d', strtotime('+6 days'));
+
+            $stmt = $this->pdo->prepare("
+                SELECT datum, skift_nr, COUNT(DISTINCT op_number) AS antal_ops
+                FROM shift_plan
+                WHERE datum BETWEEN :today AND :in7days
+                GROUP BY datum, skift_nr
+            ");
+            $stmt->execute([':today' => $today, ':in7days' => $in7days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $planIndex = [];
+            foreach ($rows as $row) {
+                $planIndex[$row['datum']][(int)$row['skift_nr']] = (int)$row['antal_ops'];
+            }
+
+            $warnings = [];
+            $dagNamn  = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+            for ($i = 0; $i < 7; $i++) {
+                $datum = date('Y-m-d', strtotime("+{$i} days"));
+                $underbemanning = [];
+                for ($skift = 1; $skift <= 3; $skift++) {
+                    $antal = $planIndex[$datum][$skift] ?? 0;
+                    if ($antal < $minOps) {
+                        $underbemanning[] = ['skift_nr' => $skift, 'antal_ops' => $antal];
+                    }
+                }
+                if (!empty($underbemanning)) {
+                    $dow = (int)date('N', strtotime($datum)) - 1;
+                    $warnings[] = [
+                        'datum'          => $datum,
+                        'dag_namn'       => $dagNamn[$dow],
+                        'underbemanning' => $underbemanning,
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'success'       => true,
+                'min_operators' => $minOps,
+                'warnings'      => $warnings,
+            ]);
+        } catch (PDOException $e) {
+            error_log('ShiftPlanController getStaffingWarning: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning']);
+        }
     }
 
     // -----------------------------------------------------------------------

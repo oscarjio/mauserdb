@@ -87,6 +87,11 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   assigningOpNumber: number | null = null;
   assignLoading = false;
 
+  // Bemanningsvarning
+  staffingWarnings: { datum: string; dag_namn: string; underbemanning: { skift_nr: number; antal_ops: number }[] }[] = [];
+  minOperators: number = 2;
+  staffingWarningLoading = false;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -101,6 +106,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     this.loadOperators();
     this.loadWeek();
     this.loadOperatorsList();
+    this.loadStaffingWarning();
   }
 
   ngOnDestroy() {
@@ -575,6 +581,32 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
         },
         error: () => {
           this.toast.error('Kunde inte ta bort operatör');
+        }
+      });
+  }
+
+  // -----------------------------------------------------------------------
+  // Bemanningsvarning
+  // -----------------------------------------------------------------------
+
+  loadStaffingWarning() {
+    this.staffingWarningLoading = true;
+    this.http.get<any>(`${API}&run=staffing-warning`, { withCredentials: true })
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (res) => {
+          this.staffingWarningLoading = false;
+          if (res?.success) {
+            this.staffingWarnings = res.warnings || [];
+            this.minOperators     = res.min_operators ?? 2;
+          }
+        },
+        error: () => {
+          this.staffingWarningLoading = false;
         }
       });
   }

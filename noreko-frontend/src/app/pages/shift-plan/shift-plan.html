@@ -11,6 +11,22 @@
     </div>
   </div>
 
+  <!-- Bemanningsvarning -->
+  <div *ngIf="staffingWarnings.length > 0" class="alert alert-warning d-flex align-items-start mb-3" role="alert">
+    <i class="fas fa-user-times me-2 mt-1 fs-5"></i>
+    <div>
+      <strong>Bemanningsvarning:</strong>
+      {{ staffingWarnings.length }} dag(ar) de närmaste 7 dagarna har för få operatörer schemalagda
+      (min {{ minOperators }} krävs).
+      <div class="mt-1" style="font-size:0.85rem;">
+        <span *ngFor="let w of staffingWarnings; let last = last" class="me-2">
+          <strong>{{ w.dag_namn }} {{ w.datum }}</strong>
+          ({{ w.underbemanning.length }} skift underbemanned)<span *ngIf="!last">,</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
   <!-- Flikar -->
   <div class="sp-tabs mb-4">
     <button

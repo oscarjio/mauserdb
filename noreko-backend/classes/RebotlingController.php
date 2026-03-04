@@ -123,6 +123,16 @@ class RebotlingController {
                 $this->getOperatorWeeklyTrend();
             } elseif ($action === 'operator-list-trend') {
                 $this->getOperatorListForTrend();
+            } elseif ($action === 'kassation-pareto') {
+                $this->getKassationPareto();
+            } elseif ($action === 'kassation-typer') {
+                $this->getKassationTyper();
+            } elseif ($action === 'kassation-senaste') {
+                $this->getKassationSenaste();
+            } elseif ($action === 'staffing-warning') {
+                $this->getStaffingWarning();
+            } elseif ($action === 'monthly-stop-summary') {
+                $this->getMonthlyStopSummary();
             } else {
                 $this->getLiveStats();
             }
@@ -147,6 +157,16 @@ class RebotlingController {
             }
             if ($action === 'delete-event') {
                 $this->deleteEvent();
+                return;
+            }
+            // kassation-register kräver inloggning (ej admin)
+            if ($action === 'kassation-register') {
+                if (!isset($_SESSION['user_id'])) {
+                    http_response_code(401);
+                    echo json_encode(['success' => false, 'error' => 'Inloggning krävs.']);
+                    return;
+                }
+                $this->registerKassation();
                 return;
             }
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -550,6 +570,7 @@ class RebotlingController {
                 'rebotlingTarget' => (int)($row['rebotling_target'] ?? 1000),
                 'hourlyTarget'    => (int)($row['hourly_target']    ?? 50),
                 'shiftHours'      => (float)($row['shift_hours']    ?? 8.0),
+                'minOperators'    => (int)($row['min_operators']    ?? 2),
                 'systemSettings'  => [
                     'autoStart'        => (bool)($row['auto_start']       ?? false),
                     'maintenanceMode'  => (bool)($row['maintenance_mode'] ?? false),
@@ -577,6 +598,7 @@ class RebotlingController {
             $autoStart       = isset($sys['autoStart'])       ? ($sys['autoStart']       ? 1 : 0) : null;
             $maintenanceMode = isset($sys['maintenanceMode']) ? ($sys['maintenanceMode'] ? 1 : 0) : null;
             $alertThreshold  = isset($sys['alertThreshold'])  ? max(0, min(100, intval($sys['alertThreshold']))) : null;
+            $minOperators    = isset($data['minOperators'])   ? max(1, min(10, intval($data['minOperators']))) : null;
 
             $fields = [];
             $params = [];
@@ -586,6 +608,13 @@ class RebotlingController {
             if ($autoStart       !== null) { $fields[] = 'auto_start = ?';       $params[] = $autoStart; }
             if ($maintenanceMode !== null) { $fields[] = 'maintenance_mode = ?'; $params[] = $maintenanceMode; }
             if ($alertThreshold  !== null) { $fields[] = 'alert_threshold = ?';  $params[] = $alertThreshold; }
+            // min_operators sparas om kolumnen finns
+            if ($minOperators !== null) {
+                try {
+                    $fields[] = 'min_operators = ?';
+                    $params[] = $minOperators;
+                } catch (\Exception $ignored) {}
+            }
 
             if (!empty($fields)) {
                 $params[] = 1; // id
@@ -6320,4 +6349,365 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
+
+    // =========================================================================
+    // Kassationsorsaksanalys
+    // =========================================================================
+
+    /**
+     * GET ?action=rebotling&run=kassation-typer
+     * Returnerar alla aktiva kassationsorsakstyper.
+     */
+    private function getKassationTyper() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, namn, beskrivning, sortorder
+                FROM kassationsorsak_typer
+                WHERE aktiv = 1
+                ORDER BY sortorder ASC, namn ASC
+            ");
+            $typer = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($typer as &$t) {
+                $t['id'] = (int)$t['id'];
+                $t['sortorder'] = (int)$t['sortorder'];
+            }
+            unset($t);
+            echo json_encode(['success' => true, 'data' => $typer]);
+        } catch (\Exception $e) {
+            error_log('getKassationTyper: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationstyper']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=kassation-pareto&days=30
+     * Returnerar Pareto-data för kassationsorsaker under angiven period.
+     * Inkluderar även KPI: totalkassation och % av produktion.
+     */
+    private function getKassationPareto() {
+        $days = isset($_GET['days']) ? max(1, (int)$_GET['days']) : 30;
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+        $toDate   = date('Y-m-d');
+
+        try {
+            // Pareto per orsak
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    t.id,
+                    t.namn,
+                    t.sortorder,
+                    COALESCE(SUM(r.antal), 0) AS total_antal
+                FROM kassationsorsak_typer t
+                LEFT JOIN kassationsregistrering r
+                    ON r.orsak_id = t.id
+                    AND r.datum BETWEEN :from_date AND :to_date
+                WHERE t.aktiv = 1
+                GROUP BY t.id, t.namn, t.sortorder
+                ORDER BY total_antal DESC, t.sortorder ASC
+            ");
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $totalKassation = array_sum(array_column($rows, 'total_antal'));
+
+            // Beräkna kumulativ %
+            $cumulative = 0;
+            $pareto = [];
+            foreach ($rows as $row) {
+                $antal = (int)$row['total_antal'];
+                $pct = $totalKassation > 0 ? round($antal / $totalKassation * 100, 1) : 0;
+                $cumulative += $pct;
+                $pareto[] = [
+                    'id'             => (int)$row['id'],
+                    'namn'           => $row['namn'],
+                    'antal'          => $antal,
+                    'pct'            => $pct,
+                    'kumulativ_pct'  => round($cumulative, 1),
+                ];
+            }
+
+            // KPI: total produktion (IBC) under perioden för att beräkna kassation%
+            $stmtProd = $this->pdo->prepare("
+                SELECT COALESCE(SUM(MAX(r.ibc_ok) + MAX(r.ibc_ej_ok) + MAX(r.bur_ej_ok)), 0) AS total_prod
+                FROM rebotling_ibc r
+                WHERE DATE(r.datum) BETWEEN :from_date AND :to_date
+                  AND r.skiftraknare IS NOT NULL
+                GROUP BY r.skiftraknare
+            ");
+            $stmtProd->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $prodRows = $stmtProd->fetchAll(PDO::FETCH_ASSOC);
+            $totalProduktion = array_sum(array_column($prodRows, 'total_prod'));
+
+            $kassationPct = $totalProduktion > 0
+                ? round($totalKassation / $totalProduktion * 100, 2)
+                : 0;
+
+            echo json_encode([
+                'success'          => true,
+                'days'             => $days,
+                'from_date'        => $fromDate,
+                'to_date'          => $toDate,
+                'pareto'           => $pareto,
+                'total_kassation'  => (int)$totalKassation,
+                'total_produktion' => (int)$totalProduktion,
+                'kassation_pct'    => $kassationPct,
+            ]);
+        } catch (\Exception $e) {
+            error_log('getKassationPareto: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta Pareto-data']);
+        }
+    }
+
+    /**
+     * GET ?action=rebotling&run=kassation-senaste&limit=10
+     * Returnerar de senaste kassationsregistreringarna.
+     */
+    private function getKassationSenaste() {
+        $limit = isset($_GET['limit']) ? max(1, min(100, (int)$_GET['limit'])) : 10;
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    r.id,
+                    r.datum,
+                    r.skiftraknare,
+                    r.antal,
+                    r.kommentar,
+                    r.created_at,
+                    t.namn AS orsak_namn,
+                    u.username AS registrerad_av_namn
+                FROM kassationsregistrering r
+                JOIN kassationsorsak_typer t ON t.id = r.orsak_id
+                LEFT JOIN users u ON u.id = r.registrerad_av
+                ORDER BY r.created_at DESC
+                LIMIT :lim
+            ");
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($rows as &$row) {
+                $row['id']          = (int)$row['id'];
+                $row['antal']       = (int)$row['antal'];
+                $row['skiftraknare'] = $row['skiftraknare'] !== null ? (int)$row['skiftraknare'] : null;
+            }
+            unset($row);
+            echo json_encode(['success' => true, 'data' => $rows]);
+        } catch (\Exception $e) {
+            error_log('getKassationSenaste: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationsregistreringar']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=kassation-register
+     * Body: { orsak_id, antal, datum, skiftraknare?, kommentar? }
+     * Kräver inloggning (ej nödvändigtvis admin).
+     */
+    private function registerKassation() {
+        $data       = json_decode(file_get_contents('php://input'), true) ?? [];
+        $orsakId    = isset($data['orsak_id'])    ? (int)$data['orsak_id']    : 0;
+        $antal      = isset($data['antal'])       ? (int)$data['antal']       : 1;
+        $datum      = $data['datum']      ?? date('Y-m-d');
+        $skiftnr    = isset($data['skiftraknare']) ? (int)$data['skiftraknare'] : null;
+        $kommentar  = isset($data['kommentar'])   ? trim($data['kommentar'])   : null;
+        $userId     = $_SESSION['user_id'] ?? null;
+
+        // Validering
+        if ($orsakId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig orsak_id']);
+            return;
+        }
+        if ($antal < 1 || $antal > 9999) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Antal måste vara mellan 1 och 9999']);
+            return;
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
+            return;
+        }
+        if ($kommentar && mb_strlen($kommentar) > 500) {
+            $kommentar = mb_substr($kommentar, 0, 500);
+        }
+
+        try {
+            // Verifiera att orsak_id finns
+            $checkStmt = $this->pdo->prepare("SELECT id FROM kassationsorsak_typer WHERE id = ? AND aktiv = 1");
+            $checkStmt->execute([$orsakId]);
+            if (!$checkStmt->fetch()) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Kassationsorsak hittades inte']);
+                return;
+            }
+
+            $stmt = $this->pdo->prepare("
+                INSERT INTO kassationsregistrering
+                    (datum, skiftraknare, orsak_id, antal, kommentar, registrerad_av)
+                VALUES
+                    (:datum, :skiftraknare, :orsak_id, :antal, :kommentar, :registrerad_av)
+            ");
+            $stmt->execute([
+                ':datum'           => $datum,
+                ':skiftraknare'    => $skiftnr,
+                ':orsak_id'        => $orsakId,
+                ':antal'           => $antal,
+                ':kommentar'       => $kommentar ?: null,
+                ':registrerad_av'  => $userId,
+            ]);
+            echo json_encode(['success' => true, 'id' => (int)$this->pdo->lastInsertId()]);
+        } catch (\Exception $e) {
+            error_log('registerKassation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara kassationsregistrering']);
+        }
+    }
+
+    // =========================================================================
+    // Bemanningsvarning
+    // =========================================================================
+
+    /**
+     * GET ?action=rebotling&run=staffing-warning
+     * Returnerar dagar de närmaste 7 dagarna där antal schemalagda operatörer < min_operators.
+     */
+    private function getStaffingWarning() {
+        try {
+            // Hämta min_operators från rebotling_settings (default 2)
+            $minOps = 2;
+            try {
+                $sr = $this->pdo->query("SELECT min_operators FROM rebotling_settings WHERE id = 1")->fetch(\PDO::FETCH_ASSOC);
+                if ($sr && isset($sr['min_operators'])) {
+                    $minOps = max(1, (int)$sr['min_operators']);
+                }
+            } catch (\Exception $ignored) {
+                // Kolumnen finns inte än — använd default
+            }
+
+            $today    = date('Y-m-d');
+            $in7days  = date('Y-m-d', strtotime('+6 days'));
+
+            // Hämta antal unika operatörer per dag och skift de närmaste 7 dagarna
+            $stmt = $this->pdo->prepare("
+                SELECT datum, skift_nr, COUNT(DISTINCT op_number) AS antal_ops
+                FROM shift_plan
+                WHERE datum BETWEEN :today AND :in7days
+                GROUP BY datum, skift_nr
+            ");
+            $stmt->execute([':today' => $today, ':in7days' => $in7days]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Bygg index: [datum][skift_nr] => antal_ops
+            $planIndex = [];
+            foreach ($rows as $row) {
+                $planIndex[$row['datum']][(int)$row['skift_nr']] = (int)$row['antal_ops'];
+            }
+
+            // Hitta dagar med minst ett skift som har för få operatörer
+            $warnings = [];
+            $dagNamn  = ['Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör', 'Sön'];
+            for ($i = 0; $i < 7; $i++) {
+                $datum = date('Y-m-d', strtotime("+{$i} days"));
+                $underbemanning = [];
+                for ($skift = 1; $skift <= 3; $skift++) {
+                    $antal = $planIndex[$datum][$skift] ?? 0;
+                    if ($antal < $minOps) {
+                        $underbemanning[] = [
+                            'skift_nr'    => $skift,
+                            'antal_ops'   => $antal,
+                        ];
+                    }
+                }
+                if (!empty($underbemanning)) {
+                    $dow = (int)date('N', strtotime($datum)) - 1; // 0=mån
+                    $warnings[] = [
+                        'datum'          => $datum,
+                        'dag_namn'       => $dagNamn[$dow],
+                        'underbemanning' => $underbemanning,
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'success'       => true,
+                'min_operators' => $minOps,
+                'warnings'      => $warnings,
+            ]);
+        } catch (\Exception $e) {
+            error_log('getStaffingWarning: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning']);
+        }
+    }
+
+    // =========================================================================
+    // Månadsrapport: Topp-5 stopporsaker
+    // =========================================================================
+
+    /**
+     * GET ?action=rebotling&run=monthly-stop-summary&month=YYYY-MM
+     * Returnerar topp-5 stopporsaker för angiven månad.
+     */
+    private function getMonthlyStopSummary() {
+        try {
+            $month = $_GET['month'] ?? '';
+            if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig månadsparameter (YYYY-MM krävs)']);
+                return;
+            }
+
+            // Kontrollera om tabellen finns
+            try {
+                $checkStmt = $this->pdo->query("SHOW TABLES LIKE 'rebotling_stopporsak'");
+                if ($checkStmt->rowCount() === 0) {
+                    echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
+                    return;
+                }
+            } catch (\Exception $e) {
+                echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
+                return;
+            }
+
+            $stmt = $this->pdo->prepare("
+                SELECT orsak,
+                       COUNT(*) AS antal,
+                       SUM(minuter) AS total_min
+                FROM rebotling_stopporsak
+                WHERE DATE_FORMAT(start_tid, '%Y-%m') = :month
+                GROUP BY orsak
+                ORDER BY total_min DESC
+                LIMIT 5
+            ");
+            $stmt->execute([':month' => $month]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Beräkna totalminuter för procentuell andel
+            $totalMin = 0;
+            foreach ($rows as $row) {
+                $totalMin += (float)$row['total_min'];
+            }
+
+            $items = [];
+            foreach ($rows as $row) {
+                $pct = $totalMin > 0 ? round(((float)$row['total_min'] / $totalMin) * 100, 1) : 0;
+                $items[] = [
+                    'orsak'     => $row['orsak'],
+                    'antal'     => (int)$row['antal'],
+                    'total_min' => (int)$row['total_min'],
+                    'pct'       => $pct,
+                ];
+            }
+
+            echo json_encode(['success' => true, 'items' => $items]);
+        } catch (\Exception $e) {
+            error_log('getMonthlyStopSummary: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker']);
+        }
+    }
+
 }

@@ -37,6 +37,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     rebotlingTarget: 1000,
     hourlyTarget: 50,
     shiftHours: 8.0,
+    minOperators: 2,
     systemSettings: { autoStart: false, maintenanceMode: false, alertThreshold: 80 }
   };
   settingsLoading = false;
@@ -156,6 +157,8 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loadNotificationSettings();
     this.loadLrSettings();
     this.loadGoalHistory();
+    this.loadKassationTyper();
+    this.loadKassationSenaste();
 
     // Uppdatera systemstatus + snapshot var 30:e sekund
     this.systemStatusInterval = setInterval(() => {
@@ -191,6 +194,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
             this.settings.rebotlingTarget = res.data.rebotlingTarget;
             this.settings.hourlyTarget    = res.data.hourlyTarget;
             this.settings.shiftHours      = res.data.shiftHours;
+            this.settings.minOperators    = res.data.minOperators ?? 2;
             if (res.data.systemSettings) {
               this.settings.systemSettings = { ...res.data.systemSettings };
             }
@@ -936,6 +940,69 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
             success: false,
             message: res?.error || 'Kunde inte skapa rekordnyhet'
           };
+        }
+      });
+  }
+
+  // ========== Kassationsregistrering ==========
+  kassationTyper: any[] = [];
+  kassationSenaste: any[] = [];
+  kassationLoading = false;
+  kassationError   = '';
+  kassationSaved   = false;
+  kassationForm = {
+    orsak_id:    0,
+    antal:       1,
+    datum:       new Date().toISOString().slice(0, 10),
+    kommentar:   ''
+  };
+
+  loadKassationTyper() {
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=kassation-typer', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe((res: any) => {
+        if (res?.success) {
+          this.kassationTyper = res.data || [];
+          if (this.kassationTyper.length > 0 && !this.kassationForm.orsak_id) {
+            this.kassationForm.orsak_id = this.kassationTyper[0].id;
+          }
+        }
+      });
+  }
+
+  loadKassationSenaste() {
+    this.kassationLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=kassation-senaste&limit=10', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe((res: any) => {
+        this.kassationLoading = false;
+        if (res?.success) this.kassationSenaste = res.data || [];
+      });
+  }
+
+  registerKassation() {
+    if (!this.kassationForm.orsak_id || this.kassationForm.antal < 1) {
+      this.kassationError = 'Fyll i orsak och antal';
+      return;
+    }
+    this.kassationLoading = true;
+    this.kassationError   = '';
+    this.kassationSaved   = false;
+    this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=kassation-register',
+      this.kassationForm, { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe((res: any) => {
+        this.kassationLoading = false;
+        if (res?.success) {
+          this.kassationSaved    = true;
+          this.kassationForm.antal     = 1;
+          this.kassationForm.kommentar = '';
+          this.kassationForm.datum     = new Date().toISOString().slice(0, 10);
+          this.showSuccess('Kassation registrerad!');
+          this.loadKassationSenaste();
+          setTimeout(() => { if (!this.destroy$.closed) this.kassationSaved = false; }, 3000);
+        } else {
+          this.kassationError = res?.error || 'Kunde inte registrera kassation';
         }
       });
   }
