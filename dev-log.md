@@ -1,3 +1,17 @@
+## 2026-03-04 — OEE-komponenttrend: Tillgänglighet % och Kvalitet % i rebotling-statistik
+
+Worker-agent implementerade OEE-komponenttrend:
+
+1. **Backend** (`RebotlingController.php`): Ny endpoint `rebotling&run=oee-components&days=N`. Aggregerar `rebotling_ibc` med MAX per skift + SUM per dag. Beräknar Tillgänglighet = runtime/(runtime+rast)*100 och Kvalitet = ibc_ok/(ibc_ok+bur_ej_ok)*100, returnerar null för dagar utan data.
+
+2. **Frontend TS** (`rebotling-statistik.ts`): Interface `OeeComponentDay`, properties `oeeComponentsDays/Loading/Data`, `oeeComponentsChart`. Metoder `loadOeeComponents()` och `buildOeeComponentsChart()`. Anropas i ngOnInit, Chart förstörs i ngOnDestroy.
+
+3. **Frontend HTML** (`rebotling-statistik.html`): Ny sektion längst ned med period-knappar (7/14/30/90d), Chart.js linjegraf (höjd 280px) med grön Tillgänglighet-linje, blå Kvalitet-linje och gul WCM 85%-referenslinje (streckad). Loading-spinner, tom-state, förklaringstext.
+
+Byggt utan fel. Commit + push: `c6ba987`.
+
+---
+
 
 ## 2026-03-04 — Certifieringssidan: Statusfilter, dagar-kvar-kolumn, visuell highlight, CSV-export
 
