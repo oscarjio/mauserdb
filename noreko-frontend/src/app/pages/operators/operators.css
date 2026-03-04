@@ -443,7 +443,17 @@
    Responsivt
    ============================================================ */
 
+@media (max-width: 1024px) {
+  .op-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
+  .op-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   .op-kpis {
     gap: 0.5rem;
   }

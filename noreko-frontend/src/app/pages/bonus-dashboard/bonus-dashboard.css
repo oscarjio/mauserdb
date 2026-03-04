@@ -372,8 +372,10 @@
   .mini-stat-value { font-size: 1.1rem; }
   .table           { font-size: 0.78rem; }
   .goal-col, .trend-cell { display: none; }
-  .period-toggle-group { flex-wrap: wrap; }
+  .period-toggle-group { flex-wrap: wrap; gap: 4px; }
   .hof-category { margin-bottom: 0.5rem; }
+  .goal-progress-card { padding: 0.75rem; }
+  .ranking-table { font-size: 0.85rem; }
 }
 
 /* ============================================================

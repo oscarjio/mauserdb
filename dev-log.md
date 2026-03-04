@@ -1,3 +1,18 @@
+## 2026-03-04 kväll #9 — Worker: Mobilanpassning batch 1 — responsive CSS för 3 sidor
+
+**operator-attendance** (`operator-attendance.css`):
+- Lade till `@media (max-width: 768px)`: mindre gap (2px), reducerad min-height (32px) och font-size (0.75rem) på dagceller
+- Lade till `@media (max-width: 480px)`: ytterligare reduktion (28px min-height, 0.65rem font-size, 2px padding)
+
+**bonus-dashboard** (`bonus-dashboard.css`):
+- Utökade befintlig 768px media query med: `goal-progress-card { padding: 0.75rem }`, `ranking-table { font-size: 0.85rem }`, `period-toggle-group { gap: 4px }`
+
+**operators** (`operators.css`):
+- Ny `@media (max-width: 1024px)`: `op-cards-grid` till `repeat(2, 1fr)` för surfplatta
+- Utökade befintlig 768px media query med: `op-cards-grid { grid-template-columns: 1fr !important }` för mobil
+
+Alla ändringar följer dark theme-standarden. Touch targets >= 44px. Fonts aldrig under 0.65rem.
+
 ## 2026-03-04 kväll #8 — Worker: Prediktiv underhåll v2 — korrelationsanalys stopp vs underhåll
 
 **Backend (RebotlingController.php):**
