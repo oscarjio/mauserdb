@@ -73,6 +73,90 @@
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 5: SKIFT-PROGRESS — Winning the Shift scoreboard
+         ═══════════════════════════════════════════════════════ -->
+    <div class="skift-progress-sektion" [class]="'ws-' + winningStatus">
+
+      <!-- Övre rad: stor siffra + behövd takt -->
+      <div class="ws-huvud-rad">
+
+        <!-- IBC kvar / Mål nått -->
+        <div class="ws-ibc-kvar-block">
+          <div class="ws-ibc-kvar-label">IBC kvar att producera</div>
+          <div class="ws-ibc-kvar-siffra" [style.color]="ibcKvarFarg" *ngIf="winningStatus !== 'done'">
+            {{ ibcKvar }}
+          </div>
+          <div class="ws-mal-natt" *ngIf="winningStatus === 'done'">
+            MÅLET NÅTT! 🎯
+          </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="ws-separator"></div>
+
+        <!-- Behövd takt + mini-statistik -->
+        <div class="ws-takt-block">
+          <div class="ws-behövd-takt" *ngIf="winningStatus !== 'done' && behovdTakt !== null">
+            <span class="ws-takt-label">Behöver producera</span>
+            <span class="ws-takt-siffra" [style.color]="behovdTaktFarg">{{ behovdTakt }}</span>
+            <span class="ws-takt-enhet">IBC/h</span>
+            <span class="ws-takt-sub">de närmaste {{ skifttimerKvarH | number:'1.1-1' }} timmarna</span>
+          </div>
+          <div class="ws-behövd-takt" *ngIf="winningStatus === 'done' || behovdTakt === null">
+            <span class="ws-takt-label">Skiftets produktion</span>
+            <span class="ws-takt-siffra" [style.color]="'#48bb78'">{{ status.ibc_idag }}</span>
+            <span class="ws-takt-enhet">IBC</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Progress-bar mot dagsmål -->
+      <div class="ws-progress-outer">
+        <div class="ws-progress-inner"
+             [style.width.%]="progressPctMot100"
+             [style.background-color]="ibcKvarFarg">
+        </div>
+        <div class="ws-progress-label-left">0</div>
+        <div class="ws-progress-label-right">{{ status.mal_idag }} IBC</div>
+        <div class="ws-progress-pct" [style.color]="ibcKvarFarg">{{ progressPctMot100 }}%</div>
+      </div>
+
+      <!-- Mini-statistik-rad -->
+      <div class="ws-mini-rad">
+        <div class="ws-mini-item">
+          <span class="ws-mini-label">Faktisk takt</span>
+          <span class="ws-mini-val">{{ status.ibc_per_h | number:'1.1-1' }} IBC/h</span>
+        </div>
+        <div class="ws-mini-item">
+          <span class="ws-mini-label">Målsatt takt</span>
+          <span class="ws-mini-val">{{ targetRate | number:'1.1-1' }} IBC/h</span>
+        </div>
+        <div class="ws-mini-item">
+          <span class="ws-mini-label">Prognos skiftslut</span>
+          <span class="ws-mini-val" [style.color]="prognosVidSkiftslut >= status.mal_idag ? '#48bb78' : '#f44336'">
+            {{ prognosVidSkiftslut }} IBC
+          </span>
+        </div>
+        <div class="ws-mini-item">
+          <span class="ws-mini-label">Hittills idag</span>
+          <span class="ws-mini-val">{{ status.ibc_idag }} / {{ status.mal_idag }}</span>
+        </div>
+      </div>
+
+    </div><!-- /skift-progress-sektion -->
+
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 5: Kumulativ dagskurva (S-kurva)
+         ═══════════════════════════════════════════════════════ -->
+    <div class="s-kurva-sektion">
+      <div class="s-kurva-rubrik">KUMULATIV PRODUKTION IDAG</div>
+      <div class="s-kurva-canvas-wrap">
+        <canvas #cumulativeChartRef></canvas>
+      </div>
+    </div>
+
     <!-- KPI-kort-rad -->
     <div class="kpi-rad">
 

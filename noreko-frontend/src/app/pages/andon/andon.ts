@@ -1,9 +1,12 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { Chart, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 
 interface AndonStatus {
   datum: string;
@@ -37,6 +40,20 @@ interface HandoverNote {
   created_at: string;
 }
 
+interface HourlyTodayEntry {
+  timme: number;
+  label: string;
+  plan_kumulativ: number;
+  faktisk_kumulativ: number | null;
+}
+
+interface HourlyTodayResponse {
+  success: boolean;
+  datum: string;
+  mal_idag: number;
+  data: HourlyTodayEntry[];
+}
+
 @Component({
   standalone: true,
   selector: 'app-andon',
@@ -44,7 +61,7 @@ interface HandoverNote {
   styleUrls: ['./andon.css'],
   imports: [CommonModule]
 })
-export class AndonPage implements OnInit, OnDestroy {
+export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   Math = Math;
 
   private readonly apiUrl = '/noreko-backend/api.php';
@@ -81,6 +98,13 @@ export class AndonPage implements OnInit, OnDestroy {
   isFetchingNotes = false;
   private notesInterval: any = null;
 
+  // Feature 5: Winning the Shift + S-kurva
+  @ViewChild('cumulativeChartRef') cumulativeChartRef!: ElementRef<HTMLCanvasElement>;
+  private cumulativeChart: Chart | null = null;
+  hourlyTodayData: HourlyTodayEntry[] = [];
+  isFetchingHourly = false;
+  private hourlyInterval: any = null;
+
   private destroy$ = new Subject<void>();
   private pollInterval: any = null;
   private stoppagePollInterval: any = null;
@@ -107,6 +131,80 @@ export class AndonPage implements OnInit, OnDestroy {
     return this.status ? this.status.ibc_per_h : 0;
   }
 
+  // ─────────────────────────────────────────────
+  // Feature 5: Winning the Shift — beräknade getters
+  // ─────────────────────────────────────────────
+
+  /** Antal IBC kvar att producera för att nå dagsmålet */
+  get ibcKvar(): number {
+    if (!this.status) return 0;
+    return Math.max(0, this.status.mal_idag - this.status.ibc_idag);
+  }
+
+  /** Kvarvarande tid i skiftet i timmar (beräknat från skifttimerKvar "HH:MM:SS") */
+  get skifttimerKvarH(): number {
+    if (!this.skifttimerKvar || this.skiftStatus !== 'kör') return 0;
+    const delar = this.skifttimerKvar.split(':');
+    if (delar.length !== 3) return 0;
+    const h = parseInt(delar[0], 10);
+    const m = parseInt(delar[1], 10);
+    const s = parseInt(delar[2], 10);
+    return h + m / 60 + s / 3600;
+  }
+
+  /** Behövd takt (IBC/h) för att nå målet de resterande timmarna av skiftet */
+  get behovdTakt(): number | null {
+    if (this.ibcKvar <= 0) return 0;
+    const kvarH = this.skifttimerKvarH;
+    if (kvarH <= 0) return null; // skiftet är slut
+    return Math.ceil(this.ibcKvar / kvarH);
+  }
+
+  /** Prognos: hur många IBC vid skiftslut om nuvarande takt håller */
+  get prognosVidSkiftslut(): number {
+    if (!this.status) return 0;
+    const kvarH = this.skifttimerKvarH;
+    return Math.round(this.status.ibc_idag + this.ibcPerHour * kvarH);
+  }
+
+  /** Winning-status baserat på jämförelse behövd vs faktisk takt */
+  get winningStatus(): 'winning' | 'on-track' | 'behind' | 'done' {
+    if (this.ibcKvar <= 0) return 'done';
+    const bt = this.behovdTakt;
+    if (bt === null) return 'behind'; // skiftet slut, mål ej nått
+    const faktisk = this.ibcPerHour;
+    if (faktisk <= 0) return 'behind';
+    if (bt <= faktisk * 1.05) return 'winning';  // behöver ≤105% av nuvarande takt
+    if (bt <= faktisk * 1.25) return 'on-track'; // behöver ≤125% av nuvarande takt
+    return 'behind';
+  }
+
+  /** Färg för "IBC kvar"-siffran */
+  get ibcKvarFarg(): string {
+    switch (this.winningStatus) {
+      case 'done':     return '#48bb78';
+      case 'winning':  return '#48bb78';
+      case 'on-track': return '#ed8936';
+      case 'behind':   return '#f44336';
+    }
+  }
+
+  /** Färg för behövd takt */
+  get behovdTaktFarg(): string {
+    switch (this.winningStatus) {
+      case 'done':     return '#48bb78';
+      case 'winning':  return '#48bb78';
+      case 'on-track': return '#ed8936';
+      case 'behind':   return '#f44336';
+    }
+  }
+
+  /** Progress-procent mot dagsmål (0–100) */
+  get progressPctMot100(): number {
+    if (!this.status || this.status.mal_idag <= 0) return 0;
+    return Math.min(100, Math.round((this.status.ibc_idag / this.status.mal_idag) * 100));
+  }
+
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
@@ -115,6 +213,7 @@ export class AndonPage implements OnInit, OnDestroy {
     this.hamtaStatus();
     this.hamtaStoppages();
     this.hamtaHandoverNotes();
+    this.hamtaHourlyToday();
 
     // Klocka + skifttimer uppdateras varje sekund
     this.clockInterval = setInterval(() => {
@@ -147,6 +246,16 @@ export class AndonPage implements OnInit, OnDestroy {
     this.notesInterval = setInterval(() => {
       this.hamtaHandoverNotes();
     }, 30000);
+
+    // Hourly today var 60s
+    this.hourlyInterval = setInterval(() => {
+      this.hamtaHourlyToday();
+    }, 60000);
+  }
+
+  ngAfterViewInit(): void {
+    // Rita chart när vy är klar — data kanske inte finns ännu, men skapar tomma chart
+    this.ritaCumulativeChart();
   }
 
   ngOnDestroy(): void {
@@ -158,6 +267,11 @@ export class AndonPage implements OnInit, OnDestroy {
     if (this.countdownInterval) clearInterval(this.countdownInterval);
     if (this.skiftTimerInterval) clearInterval(this.skiftTimerInterval);
     if (this.notesInterval) clearInterval(this.notesInterval);
+    if (this.hourlyInterval) clearInterval(this.hourlyInterval);
+    if (this.cumulativeChart) {
+      this.cumulativeChart.destroy();
+      this.cumulativeChart = null;
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -483,5 +597,149 @@ export class AndonPage implements OnInit, OnDestroy {
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours} h sedan`;
     return `${Math.floor(hours / 24)} dagar sedan`;
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 5: Kumulativ dagskurva (S-kurva)
+  // ─────────────────────────────────────────────
+
+  hamtaHourlyToday(): void {
+    if (this.isFetchingHourly) return;
+    this.isFetchingHourly = true;
+
+    this.http.get<HourlyTodayResponse>(`${this.apiUrl}?action=andon&run=hourly-today`)
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(data => {
+        this.isFetchingHourly = false;
+        if (data && data.success) {
+          this.hourlyTodayData = data.data;
+          this.uppdateraCumulativeChart();
+        }
+      });
+  }
+
+  private ritaCumulativeChart(): void {
+    if (!this.cumulativeChartRef?.nativeElement) return;
+
+    if (this.cumulativeChart) {
+      this.cumulativeChart.destroy();
+      this.cumulativeChart = null;
+    }
+
+    const ctx = this.cumulativeChartRef.nativeElement.getContext('2d');
+    if (!ctx) return;
+
+    const labels = this.hourlyTodayData.map(d => d.label);
+    const planData = this.hourlyTodayData.map(d => d.plan_kumulativ);
+    const faktiskData = this.hourlyTodayData.map(d => d.faktisk_kumulativ);
+
+    this.cumulativeChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels.length > 0 ? labels : ['06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
+        datasets: [
+          {
+            label: 'Planerat',
+            data: planData,
+            borderColor: '#4299e1',
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.1,
+            fill: false,
+          },
+          {
+            label: 'Faktisk',
+            data: faktiskData,
+            borderColor: '#48bb78',
+            borderWidth: 2.5,
+            pointRadius: 3,
+            pointBackgroundColor: '#48bb78',
+            tension: 0.2,
+            fill: false,
+            spanGaps: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 400 },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: {
+              color: '#a0aec0',
+              font: { size: 11 },
+              boxWidth: 18,
+              padding: 10,
+            }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: '#1a202c',
+            borderColor: '#2d3748',
+            borderWidth: 1,
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            callbacks: {
+              label: (ctx) => {
+                const val = ctx.raw as number | null;
+                if (val === null || val === undefined) return '';
+                return `${ctx.dataset.label}: ${val} IBC`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: {
+              color: '#718096',
+              font: { size: 10 },
+              maxRotation: 0,
+              autoSkip: true,
+              maxTicksLimit: 9,
+            },
+            grid: {
+              color: '#2d374844',
+            }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: '#718096',
+              font: { size: 11 },
+              stepSize: undefined,
+            },
+            grid: {
+              color: '#2d374844',
+            }
+          }
+        }
+      }
+    });
+  }
+
+  private uppdateraCumulativeChart(): void {
+    if (!this.cumulativeChart) {
+      this.ritaCumulativeChart();
+      return;
+    }
+
+    const labels = this.hourlyTodayData.map(d => d.label);
+    const planData = this.hourlyTodayData.map(d => d.plan_kumulativ);
+    const faktiskData = this.hourlyTodayData.map(d => d.faktisk_kumulativ);
+
+    this.cumulativeChart.data.labels = labels;
+    this.cumulativeChart.data.datasets[0].data = planData;
+    this.cumulativeChart.data.datasets[1].data = faktiskData;
+    this.cumulativeChart.update('none');
   }
 }

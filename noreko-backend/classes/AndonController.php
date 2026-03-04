@@ -26,6 +26,8 @@ class AndonController {
             $this->recentStoppages();
         } elseif ($run === 'andon-notes') {
             $this->andonNotes();
+        } elseif ($run === 'hourly-today') {
+            $this->getHourlyToday();
         } else {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Okänd metod']);
@@ -253,6 +255,97 @@ class AndonController {
             error_log('AndonController::andonNotes fel: ' . $e->getMessage());
             // Tabell kanske inte finns — returnera tomt gracefully
             echo json_encode(['success' => true, 'notes' => [], 'unread_count' => 0]);
+        }
+    }
+
+    /**
+     * Returnerar kumulativ IBC-produktion per timme för dagens datum (06–22).
+     * Används för S-kurvan i Andon-tavlan.
+     * GET api.php?action=andon&run=hourly-today
+     */
+    private function getHourlyToday(): void {
+        try {
+            $nu    = new DateTimeImmutable('now');
+            $datum = $nu->format('Y-m-d');
+
+            // Hämta MAX(ibc_ok) per skiftraknare och timme — kumulativa värden
+            // Vi grupperar per timme och tar max ibc_ok för den timmen
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    HOUR(datum) AS timme,
+                    MAX(ibc_ok) AS ibc_max_timme
+                FROM rebotling_ibc
+                WHERE DATE(datum) = :datum
+                  AND HOUR(datum) BETWEEN 6 AND 22
+                GROUP BY HOUR(datum)
+                ORDER BY timme
+            ");
+            $stmt->execute([':datum' => $datum]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Hämta dagsmål
+            $malIdag = 100;
+            try {
+                $stmtMal = $this->pdo->prepare(
+                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                );
+                $stmtMal->execute();
+                $malRad = $stmtMal->fetch(PDO::FETCH_ASSOC);
+                if ($malRad && is_numeric($malRad['value']) && (int)$malRad['value'] > 0) {
+                    $malIdag = (int)$malRad['value'];
+                }
+            } catch (\Exception $e) {
+                error_log('AndonController hourly-today dagmal: ' . $e->getMessage());
+            }
+
+            // Bygg upp kumulativ data per timme 6–22
+            // ibc_ok är kumulativt i tabellen — MAX per timme ger oss värdet vid slutet av timmen
+            $ibcPerTimme = [];
+            foreach ($rows as $r) {
+                $ibcPerTimme[(int)$r['timme']] = (int)$r['ibc_max_timme'];
+            }
+
+            $nuTimme = (int)$nu->format('H');
+            $result  = [];
+            $skiftDuration = 16; // 06:00–22:00 = 16 timmar
+
+            for ($h = 6; $h <= 22; $h++) {
+                // Planerat kumulativt värde vid slutet av timme h
+                $planKumulativ = round($malIdag * (($h - 6 + 1) / $skiftDuration));
+
+                // Faktisk kumulativ IBC: om timme har passerat, ta max känt värde
+                $faktiskKumulativ = null;
+                if ($h <= $nuTimme && isset($ibcPerTimme[$h])) {
+                    $faktiskKumulativ = $ibcPerTimme[$h];
+                } elseif ($h < $nuTimme) {
+                    // Timme har passerat men saknar data — ta senaste kända värde
+                    for ($bh = $h; $bh >= 6; $bh--) {
+                        if (isset($ibcPerTimme[$bh])) {
+                            $faktiskKumulativ = $ibcPerTimme[$bh];
+                            break;
+                        }
+                    }
+                }
+
+                $result[] = [
+                    'timme'            => $h,
+                    'label'            => sprintf('%02d:00', $h),
+                    'plan_kumulativ'   => $planKumulativ,
+                    'faktisk_kumulativ'=> $faktiskKumulativ,
+                ];
+            }
+
+            echo json_encode([
+                'success'  => true,
+                'datum'    => $datum,
+                'mal_idag' => $malIdag,
+                'data'     => $result,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('AndonController::getHourlyToday fel: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 }

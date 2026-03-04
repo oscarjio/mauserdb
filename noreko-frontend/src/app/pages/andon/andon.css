@@ -821,3 +821,242 @@ body {
   font-size: 0.7rem;
   opacity: 0.75;
 }
+
+/* ═══════════════════════════════════════════════════
+   Feature 5: Winning the Shift — Skift-progress scoreboard
+   ═══════════════════════════════════════════════════ */
+
+.skift-progress-sektion {
+  background: #1a202c;
+  border: 2px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.2rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  flex-shrink: 0;
+  transition: border-color 0.4s ease;
+}
+
+/* Statusbaserade kantfärger */
+.skift-progress-sektion.ws-done     { border-color: #48bb78; background: #1a202c; }
+.skift-progress-sektion.ws-winning  { border-color: #38a16966; }
+.skift-progress-sektion.ws-on-track { border-color: #ed893666; }
+.skift-progress-sektion.ws-behind   { border-color: #f4433666; }
+
+/* Huvud-rad: IBC kvar + separator + behövd takt */
+.ws-huvud-rad {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ws-ibc-kvar-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 160px;
+}
+
+.ws-ibc-kvar-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #718096;
+  text-transform: uppercase;
+}
+
+.ws-ibc-kvar-siffra {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  transition: color 0.4s ease;
+}
+
+.ws-mal-natt {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: #48bb78;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+  animation: ws-glow 2s ease-in-out infinite;
+}
+
+@keyframes ws-glow {
+  0%, 100% { text-shadow: 0 0 8px #48bb7888; }
+  50%       { text-shadow: 0 0 20px #48bb78cc; }
+}
+
+.ws-separator {
+  width: 2px;
+  height: 60px;
+  background: #2d3748;
+  border-radius: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.ws-takt-block {
+  display: flex;
+  flex: 1;
+  min-width: 200px;
+}
+
+.ws-behövd-takt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ws-takt-label {
+  font-size: 0.9rem;
+  color: #a0aec0;
+  font-weight: 600;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.ws-takt-siffra {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.4s ease;
+}
+
+.ws-takt-enhet {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #a0aec0;
+  align-self: flex-end;
+  padding-bottom: 0.3rem;
+}
+
+.ws-takt-sub {
+  font-size: 0.9rem;
+  color: #718096;
+  width: 100%;
+  flex-basis: 100%;
+  margin-top: 0.1rem;
+}
+
+/* Progress-bar */
+.ws-progress-outer {
+  position: relative;
+  width: 100%;
+  height: 22px;
+  background: #2d3748;
+  border-radius: 11px;
+  overflow: visible;
+}
+
+.ws-progress-inner {
+  height: 100%;
+  border-radius: 11px;
+  transition: width 0.8s ease, background-color 0.4s ease;
+  min-width: 6px;
+  max-width: 100%;
+}
+
+.ws-progress-label-left {
+  position: absolute;
+  left: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0d1117;
+  pointer-events: none;
+}
+
+.ws-progress-label-right {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #718096;
+  pointer-events: none;
+}
+
+.ws-progress-pct {
+  position: absolute;
+  right: 0;
+  top: -1.5rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  transition: color 0.4s ease;
+}
+
+/* Mini-statistik-rad */
+.ws-mini-rad {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  border-top: 1px solid #2d3748;
+  padding-top: 0.7rem;
+  margin-top: 0.4rem;
+}
+
+.ws-mini-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ws-mini-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #718096;
+  text-transform: uppercase;
+}
+
+.ws-mini-val {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════
+   Feature 5: S-kurva — Kumulativ dagskurva
+   ═══════════════════════════════════════════════════ */
+
+.s-kurva-sektion {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1rem 1.5rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.s-kurva-rubrik {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #718096;
+  text-transform: uppercase;
+}
+
+.s-kurva-canvas-wrap {
+  position: relative;
+  width: 100%;
+  height: 130px;
+}
+
+.s-kurva-canvas-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 130px !important;
+}
+
