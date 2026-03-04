@@ -20,6 +20,10 @@ class SkiftrapportController {
                 $this->getLopnummerForSkift();
                 return;
             }
+            if ($run === 'operator-list') {
+                $this->getOperatorList();
+                return;
+            }
             $this->getSkiftrapporter();
         } elseif ($method === 'POST') {
             if (empty($_SESSION['user_id'])) {
@@ -476,6 +480,41 @@ class SkiftrapportController {
             error_log('getLopnummerForSkift: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte hämta löpnummer']);
+        }
+    }
+
+
+    /**
+     * GET ?action=skiftrapport&run=operator-list
+     * Returnerar alla operatörer som förekommer i rebotling_skiftrapport.
+     * Kräver ej admin — används för operatörsfilter i skiftrapport-vyn.
+     */
+    private function getOperatorList() {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT DISTINCT o.id, o.name, o.number
+                FROM operators o
+                WHERE o.id IN (
+                    SELECT DISTINCT o1.id FROM rebotling_skiftrapport s
+                    JOIN operators o1 ON o1.number = s.op1 WHERE s.op1 IS NOT NULL
+                    UNION
+                    SELECT DISTINCT o2.id FROM rebotling_skiftrapport s
+                    JOIN operators o2 ON o2.number = s.op2 WHERE s.op2 IS NOT NULL
+                    UNION
+                    SELECT DISTINCT o3.id FROM rebotling_skiftrapport s
+                    JOIN operators o3 ON o3.number = s.op3 WHERE s.op3 IS NOT NULL
+                )
+                ORDER BY o.name
+            ");
+            $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode([
+                'success' => true,
+                'data'    => $operators
+            ]);
+        } catch (PDOException $e) {
+            error_log('getOperatorList: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta operatörer']);
         }
     }
 

@@ -167,13 +167,43 @@
           <input type="text" class="form-control form-control-sm" [(ngModel)]="searchText"
             placeholder="Produkt, användare..." style="width:200px;" />
         </div>
+        <div>
+          <label class="form-label small mb-1">Filtrera på operatör</label>
+          <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
+            <option [ngValue]="null">— Alla operatörer —</option>
+            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+          </select>
+        </div>
         <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()"
-          *ngIf="filterFrom || filterTo || filterSkift || searchText">
+          *ngIf="filterFrom || filterTo || filterSkift || searchText || selectedOperatorId !== null">
           <i class="fas fa-times me-1"></i>Rensa
         </button>
         <span class="text-muted small align-self-end pb-1" *ngIf="reports.length > 0">
           {{ filteredReports.length }} av {{ reports.length }} skift
         </span>
+      </div>
+
+      <!-- ======== OPERATÖRSSUMMERING (visas när operatörsfilter är aktivt) ======== -->
+      <div class="card mb-3 border-info" style="background: rgba(66,153,225,0.08);" *ngIf="selectedOperatorId !== null && filteredStats">
+        <div class="card-body py-2 px-3 d-flex align-items-center flex-wrap gap-3">
+          <small class="text-info fw-semibold">
+            <i class="fas fa-user-circle me-1"></i>{{ getSelectedOperatorName() }}
+          </small>
+          <span class="text-muted small">
+            <strong class="text-light">{{ filteredStats.total_skift }}</strong> skift
+          </span>
+          <span class="text-muted small">
+            Snitt IBC/h: <strong class="text-warning">{{ filteredStats.avg_ibc_h | number:'1.1-1' }}</strong>
+          </span>
+          <span class="text-muted small">
+            Snitt kvalitet: <strong
+              [class.text-success]="filteredStats.avg_kvalitet >= 90"
+              [class.text-warning]="filteredStats.avg_kvalitet >= 70 && filteredStats.avg_kvalitet < 90"
+              [class.text-danger]="filteredStats.avg_kvalitet < 70">
+              {{ filteredStats.avg_kvalitet | number:'1.1-1' }}%
+            </strong>
+          </span>
+        </div>
       </div>
 
       <!-- ======== SKIFTRAPPORTTABELL ======== -->

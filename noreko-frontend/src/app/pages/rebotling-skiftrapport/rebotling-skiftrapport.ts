@@ -45,6 +45,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // Search
   searchText = '';
 
+  // Operatörsfilter
+  operators: any[] = [];
+  selectedOperatorId: number | null = null;
+  operatorsLoading = false;
+
   // Sort
   sortField: SortField = 'datum';
   sortDir: SortDir     = 'desc';
@@ -111,6 +116,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.fetchReports();
     this.fetchProducts();
     this.loadSettings();
+    this.loadOperators();
 
     // Uppdatera tabellen var 10:e sekund
     this.updateInterval = setInterval(() => {
@@ -173,6 +179,17 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         ].join(' ').toLowerCase();
         if (!searchable.includes(q)) return false;
       }
+      // Operatörsfilter — matcha op1/op2/op3 nummer mot vald operatörs nummer
+      if (this.selectedOperatorId !== null) {
+        const op = this.operators.find(o => o.id === this.selectedOperatorId);
+        if (op) {
+          const num = Number(op.number);
+          const op1 = Number(r.op1);
+          const op2 = Number(r.op2);
+          const op3 = Number(r.op3);
+          if (op1 !== num && op2 !== num && op3 !== num) return false;
+        }
+      }
       return true;
     });
 
@@ -215,10 +232,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   clearFilter() {
-    this.filterFrom  = '';
-    this.filterTo    = '';
-    this.filterSkift = '';
-    this.searchText  = '';
+    this.filterFrom         = '';
+    this.filterTo           = '';
+    this.filterSkift        = '';
+    this.searchText         = '';
+    this.selectedOperatorId = null;
   }
 
   // ========== Summary KPIs (filtered set) ==========
@@ -328,6 +346,36 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   }
 
   // ========== Fetch ==========
+  loadOperators() {
+    this.operatorsLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=skiftrapport&run=operator-list', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe(res => {
+        this.operatorsLoading = false;
+        if (res?.success) this.operators = res.data ?? [];
+      });
+  }
+
+  onOperatorFilterChange() {
+    // Filtrering sker i filteredReports getter — ingen explicit fetch behövs
+  }
+
+  get filteredStats(): { total_skift: number; avg_ibc_h: number; avg_kvalitet: number } | null {
+    if (this.selectedOperatorId === null || !this.filteredReports?.length) return null;
+    const reports = this.filteredReports;
+    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    return {
+      total_skift:  reports.length,
+      avg_ibc_h:    Math.round(avg(reports.map((r: any) => this.getIbcPerHour(r) ?? 0)) * 10) / 10,
+      avg_kvalitet: Math.round(avg(reports.map((r: any) => this.getQualityPct(r) ?? 0)) * 10) / 10
+    };
+  }
+
+  getSelectedOperatorName(): string {
+    const op = this.operators.find(o => o.id === this.selectedOperatorId);
+    return op ? op.name : '';
+  }
+
   fetchProducts() {
     this.skiftrapportService.getProducts().subscribe({
       next: (res) => {
