@@ -617,6 +617,14 @@
 .ranking-diff{color:#a0aec0}
 .ranking-motivation{padding:.4rem .6rem;border-radius:6px;background:rgba(255,255,255,.04);display:inline-block}
 
+/* Percentil + Trend badges */
+.ranking-badges-row{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ranking-percentile-badge{font-size:.78rem;font-weight:700;padding:.25rem .65rem;border-radius:999px;background:rgba(66,153,225,.15);color:#63b3ed;border:1px solid rgba(66,153,225,.35);letter-spacing:.02em}
+.ranking-trend-badge{font-size:.75rem;font-weight:600;padding:.22rem .6rem;border-radius:999px;display:inline-flex;align-items:center}
+.trend-badge-up{background:rgba(72,187,120,.15);color:#68d391;border:1px solid rgba(72,187,120,.35)}
+.trend-badge-down{background:rgba(229,62,62,.12);color:#fc8181;border:1px solid rgba(229,62,62,.3)}
+.trend-badge-same{background:rgba(160,174,192,.1);color:#a0aec0;border:1px solid rgba(160,174,192,.25)}
+
 /* ===== Export-historik-card ===== */
 .export-history-card {
   background: #2d3748;

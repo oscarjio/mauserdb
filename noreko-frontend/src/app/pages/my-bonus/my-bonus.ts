@@ -6,7 +6,7 @@ import { takeUntil, distinctUntilChanged, timeout, catchError } from 'rxjs/opera
 import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
-import { BonusService, WeeklyHistoryEntry } from '../../services/bonus.service';
+import { BonusService, WeeklyHistoryEntry, RankingPositionResponse } from '../../services/bonus.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -96,6 +96,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
     my_ibc_per_h: number | null;
     top_ibc_per_h: number | null;
     avg_ibc_per_h: number | null;
+    percentile: number | null;
+    trend: 'up' | 'down' | 'same';
     week_label: string;
   } | null = null;
   rankingPositionLoading = false;
@@ -313,10 +315,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   loadRankingPosition(): void {
     this.rankingPositionLoading = true;
-    this.http.get<any>(
-      '/noreko-backend/api.php?action=bonus&run=ranking-position',
-      { withCredentials: true }
-    ).pipe(
+    this.bonusService.getRankingPosition().pipe(
       timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
@@ -338,10 +337,9 @@ export class MyBonusPage implements OnInit, OnDestroy {
   getRankingPositionMotivation(): string {
     if (!this.rankingPosition?.my_rank) return '';
     const rank = this.rankingPosition.my_rank;
-    const avg  = this.rankingPosition.avg_ibc_per_h ?? 0;
-    if (rank === 1) return 'Du leder laget! Fortsätt!';
-    if (rank <= 3) return 'Du är i toppen! Ge allt nu!';
-    return `Kämpa på! Nästa mål är snitt: ${avg.toFixed(1)} IBC/h`;
+    if (rank === 1) return 'Du leder! Fortsätt så!';
+    if (rank <= 3) return 'Nära toppen!';
+    return 'Känn motivationen växa!';
   }
 
   getRankingPositionMotivationClass(): string {

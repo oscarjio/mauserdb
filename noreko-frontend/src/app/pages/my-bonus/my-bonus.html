@@ -384,15 +384,31 @@
       <div class="ranking-body"
            *ngIf="!rankingPositionLoading && rankingPosition && rankingPosition.my_rank !== null && (rankingPosition.total_operators ?? 0) > 0">
 
-        <!-- Rubrik: stor siffra -->
+        <!-- Rubrik: stor siffra + percentil + trend -->
         <div class="ranking-main">
           <div class="ranking-position">
             <span class="rank-hash">#</span><span class="rank-number">{{ rankingPosition.my_rank }}</span>
           </div>
           <div class="ranking-meta">
-            <div class="ranking-of-total">av {{ rankingPosition.total_operators }} operatörer</div>
+            <div class="ranking-of-total">av {{ rankingPosition.total_operators }} operatörer denna vecka</div>
             <div class="ranking-period-label text-muted small">{{ rankingPosition.week_label }}</div>
           </div>
+        </div>
+
+        <!-- Percentil + Trend-badges -->
+        <div class="ranking-badges-row mt-3">
+          <span class="ranking-percentile-badge" *ngIf="rankingPosition.percentile !== null">
+            Topp {{ rankingPosition.percentile }}%
+          </span>
+          <span class="ranking-trend-badge trend-badge-up" *ngIf="rankingPosition.trend === 'up'">
+            <i class="fas fa-arrow-up me-1"></i>Bättre än förra veckan
+          </span>
+          <span class="ranking-trend-badge trend-badge-down" *ngIf="rankingPosition.trend === 'down'">
+            <i class="fas fa-arrow-down me-1"></i>Sämre än förra veckan
+          </span>
+          <span class="ranking-trend-badge trend-badge-same" *ngIf="rankingPosition.trend === 'same'">
+            <i class="fas fa-equals me-1"></i>Samma som förra veckan
+          </span>
         </div>
 
         <!-- Progress mot topplace (IBC/h) -->

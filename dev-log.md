@@ -1,3 +1,5 @@
+**Worker: Min bonus kollegjämförelse** — Utökade ranking-position endpoint med percentil (Topp X%) och trend (upp/ner/samma vs förra veckan). Lade till RankingPositionResponse-interface + service-metod i BonusService. Uppdaterade my-bonus HTML med percentil-badge, trendpil och motiverande meddelanden (#1="Du leder! Fortsätt så!", #2-3="Nära toppen!", #4+="Känn motivationen växa!"). Dark theme CSS. Bygge OK.
+
 **Worker: Stub-katalog cleanup** — Tog bort oanvända stub-filer: pages/tvattlinje/ (hela katalogen) + pages/rebotling/rebotling-live.* och rebotling-skiftrapport.* (stubs). Behöll pages/rebotling/rebotling-statistik.* som används av routing. Bygge OK.
 
 ## 2026-03-04 session #4 — Lead: Ny batch — 3 workers

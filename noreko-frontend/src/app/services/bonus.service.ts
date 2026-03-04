@@ -246,6 +246,19 @@ export interface LoneprognosResponse {
   error?: string;
 }
 
+export interface RankingPositionResponse {
+  success: boolean;
+  my_rank: number | null;
+  total_operators: number;
+  my_ibc_per_h: number | null;
+  top_ibc_per_h: number | null;
+  avg_ibc_per_h: number | null;
+  percentile: number | null;
+  trend: 'up' | 'down' | 'same';
+  week_label: string;
+  error?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class BonusService {
   private readonly baseUrl = '/noreko-backend/api.php?action=bonus';
@@ -339,6 +352,14 @@ export class BonusService {
   getWeekTrend(): Observable<any> {
     const params = new HttpParams().set('run', 'week-trend');
     return this.http.get<any>(this.baseUrl, {
+      params,
+      withCredentials: true
+    });
+  }
+
+  getRankingPosition(): Observable<RankingPositionResponse> {
+    const params = new HttpParams().set('run', 'ranking-position');
+    return this.http.get<RankingPositionResponse>(this.baseUrl, {
       params,
       withCredentials: true
     });

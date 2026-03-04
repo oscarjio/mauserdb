@@ -2002,7 +2002,11 @@ class BonusController {
         $weekNum    = (int)date('W');
         $weekLabel  = "Vecka $weekNum";
 
+        // Förra veckans filter för trend-beräkning
+        $prevWeekFilter = "YEARWEEK(DATE(datum), 3) = YEARWEEK(DATE_SUB(NOW(), INTERVAL 7 DAY), 3)";
+
         try {
+            // --- Innevarande vecka ---
             $s1 = $this->perShiftByPosition(1, $dateFilter);
             $s2 = $this->perShiftByPosition(2, $dateFilter);
             $s3 = $this->perShiftByPosition(3, $dateFilter);
@@ -2048,6 +2052,8 @@ class BonusController {
                     'my_ibc_per_h'     => null,
                     'top_ibc_per_h'    => null,
                     'avg_ibc_per_h'    => null,
+                    'percentile'       => null,
+                    'trend'            => 'same',
                     'week_label'       => $weekLabel,
                 ]);
                 return;
@@ -2082,6 +2088,87 @@ class BonusController {
                 }
             }
 
+            // Beräkna percentil (topp X%)
+            $percentile = null;
+            if ($myRank !== null && $totalOps > 0) {
+                $percentile = round(($myRank / $totalOps) * 100);
+            }
+
+            // --- Förra veckan: beräkna trend ---
+            $trend = 'same';
+            try {
+                $ps1 = $this->perShiftByPosition(1, $prevWeekFilter);
+                $ps2 = $this->perShiftByPosition(2, $prevWeekFilter);
+                $ps3 = $this->perShiftByPosition(3, $prevWeekFilter);
+
+                $prevStmt = $this->pdo->query("
+                    SELECT
+                        operator_id,
+                        SUM(total_ibc_ok)   AS total_ibc_ok,
+                        SUM(total_runtime)  AS total_runtime
+                    FROM (
+                        SELECT operator_id,
+                               SUM(shift_ibc_ok)   AS total_ibc_ok,
+                               SUM(shift_runtime)  AS total_runtime
+                        FROM ($ps1) AS px1
+                        GROUP BY operator_id
+
+                        UNION ALL
+
+                        SELECT operator_id,
+                               SUM(shift_ibc_ok)   AS total_ibc_ok,
+                               SUM(shift_runtime)  AS total_runtime
+                        FROM ($ps2) AS px2
+                        GROUP BY operator_id
+
+                        UNION ALL
+
+                        SELECT operator_id,
+                               SUM(shift_ibc_ok)   AS total_ibc_ok,
+                               SUM(shift_runtime)  AS total_runtime
+                        FROM ($ps3) AS px3
+                        GROUP BY operator_id
+                    ) AS prev_combined
+                    GROUP BY operator_id
+                    HAVING total_runtime > 0
+                ");
+                $prevAll = $prevStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                if (!empty($prevAll)) {
+                    $prevOpStats = [];
+                    foreach ($prevAll as $row) {
+                        $hours   = (float)$row['total_runtime'] / 60.0;
+                        $ibcPerH = $hours > 0 ? round((float)$row['total_ibc_ok'] / $hours, 2) : 0.0;
+                        $prevOpStats[] = [
+                            'operator_id' => (int)$row['operator_id'],
+                            'ibc_per_h'   => $ibcPerH,
+                        ];
+                    }
+                    usort($prevOpStats, fn($a, $b) => $b['ibc_per_h'] <=> $a['ibc_per_h']);
+
+                    $prevRank = null;
+                    foreach ($prevOpStats as $idx => $op) {
+                        if ($op['operator_id'] === $sessionOpId) {
+                            $prevRank = $idx + 1;
+                            break;
+                        }
+                    }
+
+                    if ($prevRank !== null && $myRank !== null) {
+                        if ($myRank < $prevRank) {
+                            $trend = 'up';    // Lägre rank-nummer = bättre position
+                        } elseif ($myRank > $prevRank) {
+                            $trend = 'down';
+                        } else {
+                            $trend = 'same';
+                        }
+                    }
+                }
+            } catch (PDOException $e) {
+                // Trend-beräkning är ej kritisk, logga och fortsätt
+                error_log('BonusController getRankingPosition trend error: ' . $e->getMessage());
+            }
+
             echo json_encode([
                 'success'         => true,
                 'my_rank'         => $myRank,
@@ -2089,6 +2176,8 @@ class BonusController {
                 'my_ibc_per_h'    => $myIbcPerH,
                 'top_ibc_per_h'   => $topIbcPerH,
                 'avg_ibc_per_h'   => $avgIbcPerH,
+                'percentile'      => $percentile,
+                'trend'           => $trend,
                 'week_label'      => $weekLabel,
             ]);
 
