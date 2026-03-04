@@ -417,3 +417,22 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - QR-kod per tank: scanna → se hela historiken för just den tanken
 - Flödesanalys: visualisera IBC-flödet genom hela anläggningen (in → tvätt → ut)
 - Kundportal: extern vy för kunder (kräver auth + sub-domain)
+
+---
+
+## NÄSTA BATCH (2026-03-04 eftermiddag / kväll)
+
+### 🔴 Pågående
+- [ ] **Certifikatsvarnings-badge** (a7370a70): PÅGÅR — badge på Certifiering-länk i Admin-menyn
+- [ ] **Bonus-dashboard IBC/h-trendgraf** (a73cdefab): PÅGÅR — daglig trend per operatör
+- [ ] **Produktionskalender Excel-export** (afbc22a8): PÅGÅR
+
+### 🟡 Planerat
+- [ ] **Operator-compare: radar-diagram** — Multi-dimensionell jämförelse (IBC/h, Kvalitet%, OEE, aktiva dagar, snitt cykeltid) som radar chart. Touches operator-compare.ts + OperatorCompareController.
+- [ ] **Produktionsanalys: Dagdetalj-vy** — Klick på dag i produktionskalendern → popup/drill-down med timvisning för den dagen (per-timme IBC/h, stopporsaker, operatörer). Ny endpoint `action=rebotling&run=day-detail&date=YYYY-MM-DD`.
+- [ ] **Skiftöverlämning: Email-notis** — När en brådskande not skapas → POST till en PHP-endpoint som triggar PHP mail() till konfigurerad admin-adress. Konfigureras i rebotling_settings.
+- [ ] **Nyhetsflöde: Senaste händelser** — Startsidans "Senaste händelser" sektion (redan delvis implementerad) förbättras med: produktionsrekord denna vecka, certifieringsuppdateringar, bonus-trösklar som passerats. Auto-uppdatering var 5 min.
+- [ ] **Admin: Operatörslista förbättring** — `/admin/operators` — lägg till: sorterbar kolumn för senaste aktivitet, export som CSV/Excel, bulk-inaktivera, länk till operatörsprofil (/admin/operator/:id).
+- [ ] **Rebotling-statistik: Custom date range** — Lägg till en "Anpassad period"-option i datum-väljarna som öppnar en datepicker-range istället för fasta perioder (7/14/30/90 dagar).
+- [ ] **Bug hunt #8** — Kör när 3+ nya features har tillkommit sedan bug hunt #7. Granska: operator-detail.ts, executive-dashboard.ts, bonus-dashboard.ts, production-calendar.ts, maintenance-log.ts, news-admin.ts.
+- [ ] **Min-bonus: Historik-export** — Knapp för att ladda ned sin personliga bonus-historik som PDF eller CSV.
