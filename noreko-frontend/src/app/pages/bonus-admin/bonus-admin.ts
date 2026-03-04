@@ -67,6 +67,65 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   simResult: any = null;
   simError = '';
 
+  // ========== What-if: Scenario-jämförelse ==========
+  simCompareMode = false;
+  simBaselineTiers = [
+    { label: 'Brons',    min_ibc_per_hour: 4.0, bonus_sek: 500  },
+    { label: 'Silver',   min_ibc_per_hour: 5.0, bonus_sek: 1000 },
+    { label: 'Guld',     min_ibc_per_hour: 6.0, bonus_sek: 1800 },
+    { label: 'Platinum', min_ibc_per_hour: 7.0, bonus_sek: 2800 },
+  ];
+  simBaselineResult: any = null;
+  simComparisonRows: any[] = [];
+  simCostDiff = 0;
+
+  // ========== What-if: Preset-scenarios ==========
+  simPresets = [
+    {
+      name: 'Aggressiv bonus',
+      icon: 'fa-fire',
+      desc: 'Höga trösklar, höga utbetalningar',
+      tiers: [
+        { label: 'Brons',    min_ibc_per_hour: 5.0, bonus_sek: 800  },
+        { label: 'Silver',   min_ibc_per_hour: 6.0, bonus_sek: 1500 },
+        { label: 'Guld',     min_ibc_per_hour: 7.5, bonus_sek: 2500 },
+        { label: 'Platinum', min_ibc_per_hour: 9.0, bonus_sek: 4000 },
+      ]
+    },
+    {
+      name: 'Balanserad',
+      icon: 'fa-balance-scale',
+      desc: 'Standardnivåer',
+      tiers: [
+        { label: 'Brons',    min_ibc_per_hour: 4.0, bonus_sek: 500  },
+        { label: 'Silver',   min_ibc_per_hour: 5.0, bonus_sek: 1000 },
+        { label: 'Guld',     min_ibc_per_hour: 6.0, bonus_sek: 1800 },
+        { label: 'Platinum', min_ibc_per_hour: 7.0, bonus_sek: 2800 },
+      ]
+    },
+    {
+      name: 'Kostnadssnål',
+      icon: 'fa-piggy-bank',
+      desc: 'Låga utbetalningar, behåll motivation',
+      tiers: [
+        { label: 'Brons',    min_ibc_per_hour: 3.5, bonus_sek: 300  },
+        { label: 'Silver',   min_ibc_per_hour: 4.5, bonus_sek: 600  },
+        { label: 'Guld',     min_ibc_per_hour: 5.5, bonus_sek: 1000 },
+        { label: 'Platinum', min_ibc_per_hour: 6.5, bonus_sek: 1600 },
+      ]
+    }
+  ];
+  simActivePreset = '';
+
+  // ========== What-if: Historisk simulering ==========
+  simHistPeriod = 'last-month';
+  simHistLoading = false;
+  simHistResult: any = null;
+  simHistError = '';
+
+  // ========== What-if: Sub-tab ==========
+  simSubTab: 'params' | 'compare' | 'history' = 'params';
+
   // ========== Bonusnivåer i kr ==========
   amountsForm = { brons: 500, silver: 1000, guld: 2000, platina: 3500 };
   amountsLoading = false;
@@ -408,6 +467,279 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     });
   }
 
+  // ========== What-if: Apply Preset ==========
+  applyPreset(preset: any) {
+    this.simActivePreset = preset.name;
+    this.simTiers = preset.tiers.map((t: any) => ({ ...t }));
+  }
+
+  // ========== What-if: Scenario Comparison ==========
+  runComparison() {
+    this.simCompareMode = true;
+    this.simLoading = true;
+    this.simResult = null;
+    this.simBaselineResult = null;
+    this.simComparisonRows = [];
+    this.simCostDiff = 0;
+    this.simError = '';
+
+    const basePay = {
+      period_start: this.simPeriodStart,
+      period_end: this.simPeriodEnd,
+      ibc_goal_per_shift: this.simIbcGoal,
+      bonus_tiers: this.simBaselineTiers,
+    };
+    const newPay = {
+      period_start: this.simPeriodStart,
+      period_end: this.simPeriodEnd,
+      ibc_goal_per_shift: this.simIbcGoal,
+      bonus_tiers: this.simTiers,
+    };
+
+    // Run baseline simulation
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonus&run=simulate',
+      basePay,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (baseRes) => {
+        if (!baseRes?.success) {
+          this.simError = baseRes?.error || 'Kunde inte köra baslinje-simulering';
+          this.simLoading = false;
+          return;
+        }
+        this.simBaselineResult = baseRes.data;
+
+        // Run new simulation
+        this.http.post<any>(
+          '/noreko-backend/api.php?action=bonus&run=simulate',
+          newPay,
+          { withCredentials: true }
+        ).pipe(
+          timeout(8000),
+          catchError(() => of(null)),
+          takeUntil(this.destroy$)
+        ).subscribe({
+          next: (newRes) => {
+            if (!newRes?.success) {
+              this.simError = newRes?.error || 'Kunde inte köra ny simulering';
+              this.simLoading = false;
+              return;
+            }
+            this.simResult = newRes.data;
+            this.buildComparisonRows();
+            this.simLoading = false;
+          },
+          error: () => {
+            this.simError = 'Nätverksfel vid simulering';
+            this.simLoading = false;
+          }
+        });
+      },
+      error: () => {
+        this.simError = 'Nätverksfel vid baslinje-simulering';
+        this.simLoading = false;
+      }
+    });
+  }
+
+  private buildComparisonRows() {
+    const baseMap: { [key: number]: any } = {};
+    (this.simBaselineResult?.results || []).forEach((r: any) => {
+      baseMap[r.op_number] = r;
+    });
+
+    const rows: any[] = [];
+    let totalBaseCost = 0;
+    let totalNewCost = 0;
+
+    (this.simResult?.results || []).forEach((r: any) => {
+      const base = baseMap[r.op_number];
+      const baseTotalBonus = base ? base.total_bonus : 0;
+      const diff = r.total_bonus - baseTotalBonus;
+      totalBaseCost += baseTotalBonus;
+      totalNewCost += r.total_bonus;
+      rows.push({
+        op_name: r.op_name,
+        op_number: r.op_number,
+        base_tier: base?.tier || 'Ingen',
+        new_tier: r.tier,
+        base_bonus: baseTotalBonus,
+        new_bonus: r.total_bonus,
+        diff: diff,
+        avg_ibc_per_hour: r.avg_ibc_per_hour,
+        shifts: r.shifts,
+      });
+    });
+
+    // Add operators only in baseline
+    (this.simBaselineResult?.results || []).forEach((base: any) => {
+      if (!rows.find(r => r.op_number === base.op_number)) {
+        totalBaseCost += base.total_bonus;
+        rows.push({
+          op_name: base.op_name,
+          op_number: base.op_number,
+          base_tier: base.tier,
+          new_tier: 'Ingen',
+          base_bonus: base.total_bonus,
+          new_bonus: 0,
+          diff: -base.total_bonus,
+          avg_ibc_per_hour: base.avg_ibc_per_hour,
+          shifts: base.shifts,
+        });
+      }
+    });
+
+    rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+    this.simComparisonRows = rows;
+    this.simCostDiff = totalNewCost - totalBaseCost;
+  }
+
+  getDiffClass(diff: number): string {
+    if (diff > 0) return 'sim-diff-positive';
+    if (diff < 0) return 'sim-diff-negative';
+    return '';
+  }
+
+  getDiffPrefix(diff: number): string {
+    if (diff > 0) return '+';
+    return '';
+  }
+
+  // ========== What-if: Historisk simulering ==========
+  runHistoricalSimulation() {
+    this.simHistLoading = true;
+    this.simHistResult = null;
+    this.simHistError = '';
+
+    const dates = this.getHistPeriodDates();
+
+    const simPayload = {
+      period_start: dates.start,
+      period_end: dates.end,
+      ibc_goal_per_shift: this.simIbcGoal,
+      bonus_tiers: this.simTiers,
+    };
+
+    const basePayload = {
+      period_start: dates.start,
+      period_end: dates.end,
+      ibc_goal_per_shift: this.simIbcGoal,
+      bonus_tiers: this.simBaselineTiers,
+    };
+
+    this.http.post<any>(
+      '/noreko-backend/api.php?action=bonus&run=simulate',
+      basePayload,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (baseRes) => {
+        this.http.post<any>(
+          '/noreko-backend/api.php?action=bonus&run=simulate',
+          simPayload,
+          { withCredentials: true }
+        ).pipe(
+          timeout(8000),
+          catchError(() => of(null)),
+          takeUntil(this.destroy$)
+        ).subscribe({
+          next: (simRes) => {
+            if (!baseRes?.success || !simRes?.success) {
+              this.simHistError = 'Kunde inte hämta historisk data för vald period';
+              this.simHistLoading = false;
+              return;
+            }
+            this.simHistResult = {
+              baseline: baseRes.data,
+              simulated: simRes.data,
+              period: dates,
+              operators: this.buildHistOperatorComparison(baseRes.data, simRes.data),
+            };
+            this.simHistLoading = false;
+          },
+          error: () => {
+            this.simHistError = 'Nätverksfel vid historisk simulering';
+            this.simHistLoading = false;
+          }
+        });
+      },
+      error: () => {
+        this.simHistError = 'Nätverksfel vid historisk simulering';
+        this.simHistLoading = false;
+      }
+    });
+  }
+
+  private getHistPeriodDates(): { start: string; end: string; label: string } {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+
+    if (this.simHistPeriod === 'last-month') {
+      const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      return {
+        start: `${first.getFullYear()}-${pad(first.getMonth() + 1)}-01`,
+        end: `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`,
+        label: `${first.toLocaleString('sv-SE', { month: 'long' })} ${first.getFullYear()}`
+      };
+    } else if (this.simHistPeriod === '2-months-ago') {
+      const first = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      const last = new Date(now.getFullYear(), now.getMonth() - 1, 0);
+      return {
+        start: `${first.getFullYear()}-${pad(first.getMonth() + 1)}-01`,
+        end: `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`,
+        label: `${first.toLocaleString('sv-SE', { month: 'long' })} ${first.getFullYear()}`
+      };
+    } else {
+      const first = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+      const last = new Date(now.getFullYear(), now.getMonth(), 0);
+      return {
+        start: `${first.getFullYear()}-${pad(first.getMonth() + 1)}-01`,
+        end: `${last.getFullYear()}-${pad(last.getMonth() + 1)}-${pad(last.getDate())}`,
+        label: 'Senaste 3 månaderna'
+      };
+    }
+  }
+
+  private buildHistOperatorComparison(baseline: any, simulated: any): any[] {
+    const baseMap: { [key: number]: any } = {};
+    (baseline?.results || []).forEach((r: any) => baseMap[r.op_number] = r);
+
+    const simMap: { [key: number]: any } = {};
+    (simulated?.results || []).forEach((r: any) => simMap[r.op_number] = r);
+
+    const allOps = new Set([
+      ...Object.keys(baseMap).map(Number),
+      ...Object.keys(simMap).map(Number)
+    ]);
+
+    const rows: any[] = [];
+    allOps.forEach(opId => {
+      const base = baseMap[opId];
+      const sim = simMap[opId];
+      rows.push({
+        op_name: (sim || base)?.op_name || `Operatör ${opId}`,
+        op_number: opId,
+        actual_bonus: base?.total_bonus || 0,
+        simulated_bonus: sim?.total_bonus || 0,
+        diff: (sim?.total_bonus || 0) - (base?.total_bonus || 0),
+        actual_tier: base?.tier || 'Ingen',
+        simulated_tier: sim?.tier || 'Ingen',
+      });
+    });
+
+    rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+    return rows;
+  }
+
   getSimTierColor(tier: string): string {
     switch (tier?.toLowerCase()) {
       case 'brons':    return '#cd7f32';
@@ -503,6 +835,28 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (tab === 'payout-history') {
       this.loadPayoutHistory();
     }
+    if (tab === 'simulator') {
+      this.simSubTab = 'params';
+    }
+  }
+
+  setSimSubTab(tab: 'params' | 'compare' | 'history') {
+    this.simSubTab = tab;
+  }
+
+  getHistMaxBonus(): number {
+    if (!this.simHistResult?.operators?.length) return 1;
+    let max = 0;
+    for (const op of this.simHistResult.operators) {
+      if (op.actual_bonus > max) max = op.actual_bonus;
+      if (op.simulated_bonus > max) max = op.simulated_bonus;
+    }
+    return max || 1;
+  }
+
+  getBarWidth(value: number, max: number): number {
+    if (max <= 0) return 0;
+    return Math.min(100, (value / max) * 100);
   }
 
   getProductName(id: number): string {

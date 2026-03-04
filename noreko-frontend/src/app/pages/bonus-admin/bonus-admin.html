@@ -506,203 +506,576 @@
 
   <!-- ========== WHAT-IF SIMULATOR ========== -->
   <div *ngIf="activeTab === 'simulator'">
-    <div class="row g-4">
 
-      <!-- Vänster panel: Inställningar -->
-      <div class="col-lg-5">
-        <div class="card h-100">
-          <div class="card-header">
-            <h6 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Simuleringsparametrar</h6>
+    <!-- Sub-tabs for simulator -->
+    <div class="sim-subtabs mb-4">
+      <button class="sim-subtab-btn" [class.active]="simSubTab === 'params'" (click)="setSimSubTab('params')">
+        <i class="fas fa-sliders-h me-1"></i>Simulering
+      </button>
+      <button class="sim-subtab-btn" [class.active]="simSubTab === 'compare'" (click)="setSimSubTab('compare')">
+        <i class="fas fa-columns me-1"></i>Scenario-jämförelse
+      </button>
+      <button class="sim-subtab-btn" [class.active]="simSubTab === 'history'" (click)="setSimSubTab('history')">
+        <i class="fas fa-history me-1"></i>Historisk simulering
+      </button>
+    </div>
+
+    <!-- ===== SUB-TAB: Simulering (original + presets) ===== -->
+    <div *ngIf="simSubTab === 'params'">
+
+      <!-- Preset-scenarios -->
+      <div class="mb-4">
+        <h6 class="text-muted small text-uppercase mb-2"><i class="fas fa-magic me-1"></i>Snabbscenarier</h6>
+        <div class="row g-3">
+          <div class="col-md-4" *ngFor="let preset of simPresets">
+            <div class="sim-preset-card"
+                 [class.sim-preset-active]="simActivePreset === preset.name"
+                 (click)="applyPreset(preset)">
+              <div class="sim-preset-icon"><i class="fas" [ngClass]="preset.icon"></i></div>
+              <div class="sim-preset-name">{{ preset.name }}</div>
+              <div class="sim-preset-desc">{{ preset.desc }}</div>
+            </div>
           </div>
-          <div class="card-body">
+        </div>
+      </div>
 
-            <!-- Datumintervall -->
-            <div class="mb-4">
-              <h6 class="text-muted small text-uppercase mb-2">Tidsperiod</h6>
-              <div class="row g-2">
-                <div class="col-6">
-                  <label class="form-label small">Från</label>
-                  <input type="date" class="form-control form-control-sm"
-                         [(ngModel)]="simPeriodStart">
-                </div>
-                <div class="col-6">
-                  <label class="form-label small">Till</label>
-                  <input type="date" class="form-control form-control-sm"
-                         [(ngModel)]="simPeriodEnd">
+      <div class="row g-4">
+        <!-- Vänster panel: Inställningar -->
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Simuleringsparametrar</h6>
+            </div>
+            <div class="card-body">
+
+              <!-- Datumintervall -->
+              <div class="mb-4">
+                <h6 class="text-muted small text-uppercase mb-2">Tidsperiod</h6>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <label class="form-label small">Från</label>
+                    <input type="date" class="form-control form-control-sm"
+                           [(ngModel)]="simPeriodStart">
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label small">Till</label>
+                    <input type="date" class="form-control form-control-sm"
+                           [(ngModel)]="simPeriodEnd">
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- IBC-mål per skift -->
-            <div class="mb-4">
-              <h6 class="text-muted small text-uppercase mb-2">IBC-mål per skift</h6>
-              <div class="d-flex align-items-center gap-3">
-                <input type="range" class="form-range flex-grow-1"
-                       min="20" max="100" step="1"
-                       [(ngModel)]="simIbcGoal">
-                <input type="number" class="form-control form-control-sm sim-number-input"
-                       min="20" max="100" style="width: 72px;"
-                       [(ngModel)]="simIbcGoal">
+              <!-- IBC-mål per skift -->
+              <div class="mb-4">
+                <h6 class="text-muted small text-uppercase mb-2">IBC-mål per skift</h6>
+                <div class="d-flex align-items-center gap-3">
+                  <input type="range" class="form-range flex-grow-1"
+                         min="20" max="100" step="1"
+                         [(ngModel)]="simIbcGoal">
+                  <input type="number" class="form-control form-control-sm sim-number-input"
+                         min="20" max="100" style="width: 72px;"
+                         [(ngModel)]="simIbcGoal">
+                </div>
               </div>
-            </div>
 
-            <!-- Bonus-tiers -->
-            <div class="mb-4">
-              <h6 class="text-muted small text-uppercase mb-2">Bonus-tier-konfiguration</h6>
+              <!-- Bonus-tiers -->
+              <div class="mb-4">
+                <h6 class="text-muted small text-uppercase mb-2">Bonus-tier-konfiguration</h6>
+                <div class="tier-config-list">
+                  <div class="tier-config-row" *ngFor="let tier of simTiers; let i = index">
+                    <div class="tier-label-dot"
+                         [style.background-color]="getSimTierColor(tier.label)"></div>
+                    <span class="tier-name-label">{{ tier.label }}</span>
+                    <div class="tier-fields">
+                      <div>
+                        <label class="form-label small mb-1">Min IBC/h</label>
+                        <div class="d-flex align-items-center gap-1">
+                          <input type="range" class="form-range"
+                                 min="2" max="10" step="0.5"
+                                 [(ngModel)]="tier.min_ibc_per_hour">
+                          <span class="tier-val-badge">{{ tier.min_ibc_per_hour | number:'1.1-1' }}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <label class="form-label small mb-1">Bonus (SEK)</label>
+                        <input type="number" class="form-control form-control-sm"
+                               min="0" max="5000" step="50"
+                               [(ngModel)]="tier.bonus_sek">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Beräkna-knapp -->
+              <button class="btn btn-info w-100"
+                      (click)="runSimulation()"
+                      [disabled]="simLoading || !simPeriodStart || !simPeriodEnd">
+                <span *ngIf="!simLoading">
+                  <i class="fas fa-play me-2"></i>Beräkna simulering
+                </span>
+                <span *ngIf="simLoading">
+                  <i class="fas fa-spinner fa-spin me-2"></i>Beräknar...
+                </span>
+              </button>
+
+              <div class="alert alert-warning mt-3 mb-0" *ngIf="simError">
+                <i class="fas fa-exclamation-triangle me-2"></i>{{ simError }}
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Höger panel: Resultat -->
+        <div class="col-lg-7">
+          <div class="card h-100">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Simuleringsresultat</h6>
+            </div>
+            <div class="card-body">
+
+              <!-- Ingenting ännu -->
+              <div *ngIf="!simResult && !simLoading" class="text-center py-5 text-muted">
+                <i class="fas fa-flask fa-3x mb-3 d-block"></i>
+                Konfigurera parametrarna till vänster och klicka "Beräkna simulering".
+              </div>
+
+              <!-- Loading -->
+              <div *ngIf="simLoading" class="text-center py-5">
+                <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+                <p class="text-muted mt-2">Beräknar historisk bonus...</p>
+              </div>
+
+              <!-- Resultat -->
+              <div *ngIf="simResult && !simLoading && !simCompareMode">
+
+                <!-- KPI-rad -->
+                <div class="row g-3 mb-4">
+                  <div class="col-6 col-md-3">
+                    <div class="sim-kpi-card">
+                      <div class="sim-kpi-label">Total bonuskostnad</div>
+                      <div class="sim-kpi-value sim-animated-number text-warning">{{ simResult.total_cost | number }} kr</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="sim-kpi-card">
+                      <div class="sim-kpi-label">Snitt per operatör</div>
+                      <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.avg_bonus_per_operator | number }} kr</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="sim-kpi-card">
+                      <div class="sim-kpi-label">Antal operatörer</div>
+                      <div class="sim-kpi-value sim-animated-number">{{ simResult.results?.length || 0 }}</div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-md-3">
+                    <div class="sim-kpi-card">
+                      <div class="sim-kpi-label">Period</div>
+                      <div class="sim-kpi-value text-success" style="font-size: 0.95rem;">{{ simResult.period }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Resultattabell -->
+                <div class="table-responsive" *ngIf="simResult.results?.length > 0">
+                  <table class="table table-dark table-sm table-hover">
+                    <thead>
+                      <tr>
+                        <th>Operatör</th>
+                        <th class="text-end">Skift</th>
+                        <th class="text-end">Snitt IBC/h</th>
+                        <th>Tier</th>
+                        <th class="text-end">Bonus/skift</th>
+                        <th class="text-end">Total bonus</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let r of simResult.results">
+                        <td>
+                          <span class="fw-semibold">{{ r.op_name }}</span>
+                          <span class="text-muted ms-1 small">#{{ r.op_number }}</span>
+                        </td>
+                        <td class="text-end">{{ r.shifts }}</td>
+                        <td class="text-end">{{ r.avg_ibc_per_hour | number:'1.1-1' }}</td>
+                        <td>
+                          <span class="tier-badge"
+                                [style.color]="getSimTierColor(r.tier)"
+                                [style.border-color]="getSimTierColor(r.tier)">
+                            {{ r.tier }}
+                          </span>
+                        </td>
+                        <td class="text-end">{{ r.bonus_sek | number }} kr</td>
+                        <td class="text-end fw-bold">{{ r.total_bonus | number }} kr</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr class="table-active">
+                        <td colspan="4"><strong>Totalt</strong></td>
+                        <td></td>
+                        <td class="text-end fw-bold text-warning">{{ simResult.total_cost | number }} kr</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+
+                <p class="text-muted text-center" *ngIf="simResult.results?.length === 0">
+                  Ingen operatörsdata hittades för vald period.
+                </p>
+
+                <p class="text-muted small mt-3 mb-0">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Obs: Simulering baseras på historisk data. Faktisk bonus kan avvika.
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SUB-TAB: Scenario-jämförelse ===== -->
+    <div *ngIf="simSubTab === 'compare'">
+      <div class="row g-4">
+
+        <!-- Vänster: Nuvarande (Baseline) -->
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-check-circle me-2 text-muted"></i>Nuvarande parametrar (baslinje)</h6>
+            </div>
+            <div class="card-body">
               <div class="tier-config-list">
-                <div class="tier-config-row" *ngFor="let tier of simTiers; let i = index">
-                  <div class="tier-label-dot"
-                       [style.background-color]="getSimTierColor(tier.label)"></div>
+                <div class="tier-config-row" *ngFor="let tier of simBaselineTiers">
+                  <div class="tier-label-dot" [style.background-color]="getSimTierColor(tier.label)"></div>
                   <span class="tier-name-label">{{ tier.label }}</span>
                   <div class="tier-fields">
                     <div>
                       <label class="form-label small mb-1">Min IBC/h</label>
                       <div class="d-flex align-items-center gap-1">
-                        <input type="range" class="form-range"
-                               min="2" max="10" step="0.5"
+                        <input type="range" class="form-range" min="2" max="10" step="0.5"
                                [(ngModel)]="tier.min_ibc_per_hour">
                         <span class="tier-val-badge">{{ tier.min_ibc_per_hour | number:'1.1-1' }}</span>
                       </div>
                     </div>
                     <div>
                       <label class="form-label small mb-1">Bonus (SEK)</label>
-                      <input type="number" class="form-control form-control-sm"
-                             min="0" max="5000" step="50"
+                      <input type="number" class="form-control form-control-sm" min="0" max="5000" step="50"
                              [(ngModel)]="tier.bonus_sek">
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
-            <!-- Beräkna-knapp -->
-            <button class="btn btn-info w-100"
-                    (click)="runSimulation()"
-                    [disabled]="simLoading || !simPeriodStart || !simPeriodEnd">
-              <span *ngIf="!simLoading">
-                <i class="fas fa-play me-2"></i>Beräkna simulering
-              </span>
-              <span *ngIf="simLoading">
-                <i class="fas fa-spinner fa-spin me-2"></i>Beräknar...
-              </span>
-            </button>
-
-            <div class="alert alert-warning mt-3 mb-0" *ngIf="simError">
-              <i class="fas fa-exclamation-triangle me-2"></i>{{ simError }}
-            </div>
-
           </div>
         </div>
-      </div>
 
-      <!-- Höger panel: Resultat -->
-      <div class="col-lg-7">
-        <div class="card h-100">
-          <div class="card-header">
-            <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Simuleringsresultat</h6>
-          </div>
-          <div class="card-body">
-
-            <!-- Ingenting ännu -->
-            <div *ngIf="!simResult && !simLoading" class="text-center py-5 text-muted">
-              <i class="fas fa-flask fa-3x mb-3 d-block"></i>
-              Konfigurera parametrarna till vänster och klicka "Beräkna simulering".
+        <!-- Höger: Nytt förslag -->
+        <div class="col-lg-6">
+          <div class="card" style="border-color: #4299e1;">
+            <div class="card-header" style="border-bottom-color: #4299e1;">
+              <h6 class="mb-0"><i class="fas fa-edit me-2 text-info"></i>Nytt förslag</h6>
             </div>
-
-            <!-- Loading -->
-            <div *ngIf="simLoading" class="text-center py-5">
-              <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
-              <p class="text-muted mt-2">Beräknar historisk bonus...</p>
-            </div>
-
-            <!-- Resultat -->
-            <div *ngIf="simResult && !simLoading">
-
-              <!-- KPI-rad -->
-              <div class="row g-3 mb-4">
-                <div class="col-6 col-md-3">
-                  <div class="sim-kpi-card">
-                    <div class="sim-kpi-label">Total bonuskostnad</div>
-                    <div class="sim-kpi-value text-warning">{{ simResult.total_cost | number }} kr</div>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="sim-kpi-card">
-                    <div class="sim-kpi-label">Snitt per operatör</div>
-                    <div class="sim-kpi-value text-info">{{ simResult.avg_bonus_per_operator | number }} kr</div>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="sim-kpi-card">
-                    <div class="sim-kpi-label">Antal operatörer</div>
-                    <div class="sim-kpi-value">{{ simResult.results?.length || 0 }}</div>
-                  </div>
-                </div>
-                <div class="col-6 col-md-3">
-                  <div class="sim-kpi-card">
-                    <div class="sim-kpi-label">Period</div>
-                    <div class="sim-kpi-value text-success">{{ simResult.period }}</div>
+            <div class="card-body">
+              <!-- Preset-knappar -->
+              <div class="d-flex gap-2 mb-3 flex-wrap">
+                <button class="btn btn-sm"
+                        *ngFor="let preset of simPresets"
+                        [class.btn-info]="simActivePreset === preset.name"
+                        [class.btn-outline-secondary]="simActivePreset !== preset.name"
+                        (click)="applyPreset(preset)">
+                  <i class="fas me-1" [ngClass]="preset.icon"></i>{{ preset.name }}
+                </button>
+              </div>
+              <div class="tier-config-list">
+                <div class="tier-config-row" *ngFor="let tier of simTiers">
+                  <div class="tier-label-dot" [style.background-color]="getSimTierColor(tier.label)"></div>
+                  <span class="tier-name-label">{{ tier.label }}</span>
+                  <div class="tier-fields">
+                    <div>
+                      <label class="form-label small mb-1">Min IBC/h</label>
+                      <div class="d-flex align-items-center gap-1">
+                        <input type="range" class="form-range" min="2" max="10" step="0.5"
+                               [(ngModel)]="tier.min_ibc_per_hour">
+                        <span class="tier-val-badge">{{ tier.min_ibc_per_hour | number:'1.1-1' }}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="form-label small mb-1">Bonus (SEK)</label>
+                      <input type="number" class="form-control form-control-sm" min="0" max="5000" step="50"
+                             [(ngModel)]="tier.bonus_sek">
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <!-- Resultattabell -->
-              <div class="table-responsive" *ngIf="simResult.results?.length > 0">
-                <table class="table table-dark table-sm table-hover">
+        <!-- Period + Jämför-knapp -->
+        <div class="col-12">
+          <div class="card">
+            <div class="card-body">
+              <div class="d-flex align-items-end gap-3 flex-wrap">
+                <div>
+                  <label class="form-label small">Från</label>
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="simPeriodStart">
+                </div>
+                <div>
+                  <label class="form-label small">Till</label>
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="simPeriodEnd">
+                </div>
+                <button class="btn btn-info"
+                        (click)="runComparison()"
+                        [disabled]="simLoading || !simPeriodStart || !simPeriodEnd">
+                  <span *ngIf="!simLoading"><i class="fas fa-exchange-alt me-2"></i>Jämför scenarier</span>
+                  <span *ngIf="simLoading"><i class="fas fa-spinner fa-spin me-2"></i>Beräknar...</span>
+                </button>
+              </div>
+              <div class="alert alert-warning mt-3 mb-0" *ngIf="simError">
+                <i class="fas fa-exclamation-triangle me-2"></i>{{ simError }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Jämförelseresultat -->
+        <div class="col-12" *ngIf="simCompareMode && simResult && simBaselineResult && !simLoading">
+
+          <!-- Totalkostnad diff-kort -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <div class="sim-kpi-card">
+                <div class="sim-kpi-label">Nuvarande totalkostnad</div>
+                <div class="sim-kpi-value sim-animated-number text-muted">{{ simBaselineResult.total_cost | number }} kr</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="sim-kpi-card">
+                <div class="sim-kpi-label">Ny totalkostnad</div>
+                <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.total_cost | number }} kr</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="sim-cost-diff-card" [class.sim-diff-positive]="simCostDiff > 0" [class.sim-diff-negative]="simCostDiff < 0">
+                <div class="sim-kpi-label">Skillnad</div>
+                <div class="sim-cost-diff-value sim-animated-number">
+                  <i class="fas" [ngClass]="simCostDiff > 0 ? 'fa-arrow-up' : simCostDiff < 0 ? 'fa-arrow-down' : 'fa-minus'"></i>
+                  {{ getDiffPrefix(simCostDiff) }}{{ simCostDiff | number }} kr/period
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Totalkostnads-gauge -->
+          <div class="row g-3 mb-4">
+            <div class="col-12 col-md-6 mx-auto">
+              <div class="sim-gauge-card">
+                <div class="sim-gauge-title">Kostnadspåverkan</div>
+                <div class="sim-gauge-container">
+                  <div class="sim-gauge-half">
+                    <div class="sim-gauge-fill"
+                         [style.transform]="'rotate(' + (simBaselineResult.total_cost > 0 ? ((simResult.total_cost / simBaselineResult.total_cost) * 180 - 180) : 0) + 'deg)'"
+                         [class.sim-gauge-green]="simCostDiff <= 0"
+                         [class.sim-gauge-red]="simCostDiff > 0">
+                    </div>
+                  </div>
+                  <div class="sim-gauge-label">
+                    <span *ngIf="simBaselineResult.total_cost > 0">
+                      {{ ((simResult.total_cost / simBaselineResult.total_cost) * 100) | number:'1.0-0' }}%
+                    </span>
+                    <span *ngIf="!simBaselineResult.total_cost">--</span>
+                  </div>
+                  <div class="sim-gauge-sublabel">av nuvarande kostnad</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Diff per operatör -->
+          <div class="card">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-user-friends me-2"></i>Diff per operatör</h6>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-dark table-sm table-hover mb-0">
                   <thead>
                     <tr>
                       <th>Operatör</th>
                       <th class="text-end">Skift</th>
-                      <th class="text-end">Snitt IBC/h</th>
-                      <th>Tier</th>
-                      <th class="text-end">Bonus/skift</th>
-                      <th class="text-end">Total bonus</th>
+                      <th class="text-center">Nuvarande tier</th>
+                      <th class="text-center">Ny tier</th>
+                      <th class="text-end">Nuvarande bonus</th>
+                      <th class="text-end">Ny bonus</th>
+                      <th class="text-end">Diff</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let r of simResult.results">
+                    <tr *ngFor="let row of simComparisonRows">
                       <td>
-                        <span class="fw-semibold">{{ r.op_name }}</span>
-                        <span class="text-muted ms-1 small">#{{ r.op_number }}</span>
+                        <span class="fw-semibold">{{ row.op_name }}</span>
+                        <span class="text-muted ms-1 small">#{{ row.op_number }}</span>
                       </td>
-                      <td class="text-end">{{ r.shifts }}</td>
-                      <td class="text-end">{{ r.avg_ibc_per_hour | number:'1.1-1' }}</td>
-                      <td>
-                        <span class="tier-badge"
-                              [style.color]="getSimTierColor(r.tier)"
-                              [style.border-color]="getSimTierColor(r.tier)">
-                          {{ r.tier }}
-                        </span>
+                      <td class="text-end">{{ row.shifts }}</td>
+                      <td class="text-center">
+                        <span class="tier-badge" [style.color]="getSimTierColor(row.base_tier)"
+                              [style.border-color]="getSimTierColor(row.base_tier)">{{ row.base_tier }}</span>
                       </td>
-                      <td class="text-end">{{ r.bonus_sek | number }} kr</td>
-                      <td class="text-end fw-bold">{{ r.total_bonus | number }} kr</td>
+                      <td class="text-center">
+                        <span class="tier-badge" [style.color]="getSimTierColor(row.new_tier)"
+                              [style.border-color]="getSimTierColor(row.new_tier)">{{ row.new_tier }}</span>
+                      </td>
+                      <td class="text-end">{{ row.base_bonus | number }} kr</td>
+                      <td class="text-end">{{ row.new_bonus | number }} kr</td>
+                      <td class="text-end fw-bold" [ngClass]="getDiffClass(row.diff)">
+                        {{ getDiffPrefix(row.diff) }}{{ row.diff | number }} kr
+                      </td>
                     </tr>
                   </tbody>
-                  <tfoot>
-                    <tr class="table-active">
-                      <td colspan="4"><strong>Totalt</strong></td>
-                      <td></td>
-                      <td class="text-end fw-bold text-warning">{{ simResult.total_cost | number }} kr</td>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <p class="text-muted text-center" *ngIf="simResult.results?.length === 0">
-                Ingen operatörsdata hittades för vald period.
-              </p>
+      </div>
+    </div>
 
-              <p class="text-muted small mt-3 mb-0">
-                <i class="fas fa-info-circle me-1"></i>
-                Obs: Simulering baseras på historisk data. Faktisk bonus kan avvika.
-              </p>
+    <!-- ===== SUB-TAB: Historisk simulering ===== -->
+    <div *ngIf="simSubTab === 'history'">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-history me-2"></i>Historisk simulering — "Om dessa regler hade gällt..."</h6>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            Välj en historisk period och se hur bonusar hade sett ut med de nya parametrarna jämfört med nuvarande baslinje.
+          </p>
+
+          <div class="d-flex align-items-end gap-3 flex-wrap mb-4">
+            <div>
+              <label class="form-label small">Period</label>
+              <select class="form-select form-select-sm" [(ngModel)]="simHistPeriod" style="width: 220px;">
+                <option value="last-month">Förra månaden</option>
+                <option value="2-months-ago">2 månader sedan</option>
+                <option value="last-3-months">Senaste 3 månaderna</option>
+              </select>
+            </div>
+            <button class="btn btn-info"
+                    (click)="runHistoricalSimulation()"
+                    [disabled]="simHistLoading">
+              <span *ngIf="!simHistLoading"><i class="fas fa-calculator me-2"></i>Beräkna historisk simulering</span>
+              <span *ngIf="simHistLoading"><i class="fas fa-spinner fa-spin me-2"></i>Beräknar...</span>
+            </button>
+          </div>
+
+          <!-- Tier-config reminder -->
+          <div class="sim-hist-config-reminder mb-3">
+            <span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Aktuella simuleringsparametrar (ändra under "Simulering"-fliken):</span>
+            <div class="d-flex gap-3 mt-1 flex-wrap">
+              <span *ngFor="let tier of simTiers" class="sim-hist-tier-tag">
+                <span class="tier-label-dot" style="width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:4px;"
+                      [style.background-color]="getSimTierColor(tier.label)"></span>
+                {{ tier.label }}: {{ tier.min_ibc_per_hour | number:'1.1-1' }} IBC/h = {{ tier.bonus_sek }} kr
+              </span>
+            </div>
+          </div>
+
+          <div class="alert alert-warning" *ngIf="simHistError">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ simHistError }}
+          </div>
+
+          <!-- Loading -->
+          <div *ngIf="simHistLoading" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+            <p class="text-muted mt-2">Beräknar historisk bonus...</p>
+          </div>
+
+          <!-- Resultat -->
+          <div *ngIf="simHistResult && !simHistLoading">
+
+            <!-- Summary KPI cards -->
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-3">
+                <div class="sim-kpi-card">
+                  <div class="sim-kpi-label">Baslinje totalkostnad</div>
+                  <div class="sim-kpi-value sim-animated-number text-muted">{{ simHistResult.baseline.total_cost | number }} kr</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="sim-kpi-card">
+                  <div class="sim-kpi-label">Simulerad totalkostnad</div>
+                  <div class="sim-kpi-value sim-animated-number text-info">{{ simHistResult.simulated.total_cost | number }} kr</div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="sim-cost-diff-card"
+                     [class.sim-diff-positive]="(simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) > 0"
+                     [class.sim-diff-negative]="(simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) < 0">
+                  <div class="sim-kpi-label">Skillnad</div>
+                  <div class="sim-cost-diff-value sim-animated-number">
+                    {{ getDiffPrefix(simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) }}{{ (simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) | number }} kr
+                  </div>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="sim-kpi-card">
+                  <div class="sim-kpi-label">Period</div>
+                  <div class="sim-kpi-value text-success" style="font-size: 0.85rem;">{{ simHistResult.period.label }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bar chart: Faktisk vs Simulerad bonus per operatör -->
+            <div class="card mb-3">
+              <div class="card-header">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Faktisk vs simulerad bonus per operatör</h6>
+              </div>
+              <div class="card-body">
+                <div class="sim-hist-bar-chart" *ngIf="simHistResult.operators?.length > 0">
+                  <div class="sim-hist-bar-row" *ngFor="let op of simHistResult.operators">
+                    <div class="sim-hist-bar-label">
+                      {{ op.op_name }}
+                      <span class="text-muted small ms-1">#{{ op.op_number }}</span>
+                    </div>
+                    <div class="sim-hist-bars">
+                      <div class="sim-hist-bar-pair">
+                        <div class="sim-hist-bar sim-hist-bar-actual"
+                             [style.width.%]="getBarWidth(op.actual_bonus, getHistMaxBonus())">
+                          <span class="sim-hist-bar-text" *ngIf="op.actual_bonus > 0">{{ op.actual_bonus | number }} kr</span>
+                        </div>
+                        <div class="sim-hist-bar sim-hist-bar-simulated"
+                             [style.width.%]="getBarWidth(op.simulated_bonus, getHistMaxBonus())">
+                          <span class="sim-hist-bar-text" *ngIf="op.simulated_bonus > 0">{{ op.simulated_bonus | number }} kr</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sim-hist-bar-diff" [ngClass]="getDiffClass(op.diff)">
+                      {{ getDiffPrefix(op.diff) }}{{ op.diff | number }} kr
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="d-flex gap-4 mt-3 justify-content-center">
+                  <span class="small"><span class="sim-legend-dot" style="background:#718096;"></span> Baslinje (nuvarande)</span>
+                  <span class="small"><span class="sim-legend-dot" style="background:#4299e1;"></span> Simulerad (nytt förslag)</span>
+                </div>
+
+                <p class="text-muted text-center mt-2" *ngIf="simHistResult.operators?.length === 0">
+                  Ingen operatörsdata hittades för vald period.
+                </p>
+              </div>
             </div>
 
           </div>
         </div>
       </div>
-
     </div>
+
   </div>
 
 

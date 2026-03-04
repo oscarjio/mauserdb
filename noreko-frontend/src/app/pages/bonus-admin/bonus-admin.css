@@ -441,6 +441,262 @@
 .form-range:focus { outline: none; }
 
 /* ============================================================
+   WHAT-IF: SUB-TABS
+   ============================================================ */
+.sim-subtabs {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #2d3748;
+  padding-bottom: 0;
+}
+.sim-subtab-btn {
+  background: transparent;
+  border: none;
+  color: #a0aec0;
+  font-size: 0.82rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sim-subtab-btn:hover { color: #e2e8f0; }
+.sim-subtab-btn.active {
+  color: #4299e1;
+  border-bottom-color: #4299e1;
+  font-weight: 600;
+}
+
+/* ============================================================
+   WHAT-IF: PRESET CARDS
+   ============================================================ */
+.sim-preset-card {
+  background: #161c29;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sim-preset-card:hover {
+  border-color: #4a5568;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.sim-preset-active {
+  border-color: #4299e1 !important;
+  background: rgba(66,153,225,0.08);
+  box-shadow: 0 0 0 1px rgba(66,153,225,0.3);
+}
+.sim-preset-icon {
+  font-size: 1.5rem;
+  color: #4299e1;
+  margin-bottom: 0.4rem;
+}
+.sim-preset-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.2rem;
+}
+.sim-preset-desc {
+  font-size: 0.7rem;
+  color: #718096;
+}
+
+/* ============================================================
+   WHAT-IF: ANIMATED NUMBERS
+   ============================================================ */
+.sim-animated-number {
+  transition: all 0.4s ease-out;
+}
+
+/* ============================================================
+   WHAT-IF: DIFF INDICATORS
+   ============================================================ */
+.sim-diff-positive {
+  color: #48bb78 !important;
+}
+.sim-diff-negative {
+  color: #fc8181 !important;
+}
+
+/* ============================================================
+   WHAT-IF: COST DIFF CARD
+   ============================================================ */
+.sim-cost-diff-card {
+  background: #161c29;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 0.9rem 0.75rem;
+  text-align: center;
+  transition: transform 0.15s;
+}
+.sim-cost-diff-card:hover { transform: translateY(-2px); }
+.sim-cost-diff-card.sim-diff-positive {
+  border-color: rgba(72,187,120,0.4);
+  background: rgba(72,187,120,0.06);
+}
+.sim-cost-diff-card.sim-diff-negative {
+  border-color: rgba(252,129,129,0.4);
+  background: rgba(252,129,129,0.06);
+}
+.sim-cost-diff-value {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* ============================================================
+   WHAT-IF: GAUGE (half-circle)
+   ============================================================ */
+.sim-gauge-card {
+  background: #161c29;
+  border: 1px solid #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+}
+.sim-gauge-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #718096;
+  margin-bottom: 0.75rem;
+}
+.sim-gauge-container {
+  position: relative;
+  width: 160px;
+  height: 90px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+.sim-gauge-half {
+  width: 160px;
+  height: 80px;
+  border-radius: 80px 80px 0 0;
+  background: #2d3748;
+  overflow: hidden;
+  position: relative;
+}
+.sim-gauge-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 160px;
+  height: 80px;
+  border-radius: 80px 80px 0 0;
+  transform-origin: center bottom;
+  transform: rotate(-180deg);
+  transition: transform 0.8s ease-out;
+}
+.sim-gauge-green { background: linear-gradient(to right, #48bb78, #38a169); }
+.sim-gauge-red   { background: linear-gradient(to right, #fc8181, #e53e3e); }
+
+.sim-gauge-label {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+.sim-gauge-sublabel {
+  font-size: 0.65rem;
+  color: #718096;
+  margin-top: 0.15rem;
+}
+
+/* ============================================================
+   WHAT-IF: HISTORICAL BAR CHART
+   ============================================================ */
+.sim-hist-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.sim-hist-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.sim-hist-bar-label {
+  min-width: 130px;
+  max-width: 130px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sim-hist-bars {
+  flex: 1;
+  min-width: 0;
+}
+.sim-hist-bar-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sim-hist-bar {
+  height: 16px;
+  border-radius: 3px;
+  position: relative;
+  min-width: 2px;
+  transition: width 0.6s ease-out;
+}
+.sim-hist-bar-actual {
+  background: #718096;
+}
+.sim-hist-bar-simulated {
+  background: #4299e1;
+}
+.sim-hist-bar-text {
+  position: absolute;
+  right: 4px;
+  top: 0;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.sim-hist-bar-diff {
+  min-width: 80px;
+  text-align: right;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.sim-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* ============================================================
+   WHAT-IF: HIST CONFIG REMINDER
+   ============================================================ */
+.sim-hist-config-reminder {
+  background: #161c29;
+  border: 1px solid #2d3748;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+}
+.sim-hist-tier-tag {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  background: #0f1117;
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+}
+
+/* ============================================================
    RESPONSIVE
    ============================================================ */
 @media (max-width: 768px) {
@@ -450,4 +706,8 @@
   .nav-pills .nav-link { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
   .forecast-header { flex-direction: column; align-items: flex-start; }
   .tier-config-row { flex-wrap: wrap; }
+  .sim-subtabs { overflow-x: auto; }
+  .sim-subtab-btn { white-space: nowrap; font-size: 0.75rem; padding: 0.4rem 0.7rem; }
+  .sim-hist-bar-label { min-width: 80px; max-width: 80px; font-size: 0.68rem; }
+  .sim-hist-bar-diff { min-width: 60px; font-size: 0.68rem; }
 }
