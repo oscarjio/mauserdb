@@ -29,25 +29,33 @@
       <div class="kpi-value">{{ totalCertifiedOperators }}</div>
       <div class="kpi-label">Certifierade operatörer</div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#63b3ed">{{ totalCertifications }}</div>
+      <div class="kpi-label">Totalt certifieringar</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-value" style="color:#68d391">{{ validCount }}</div>
+      <div class="kpi-label">Giltiga</div>
+    </div>
     <div class="kpi-card kpi-warn" [class.kpi-warn-active]="expiringSoon > 0">
       <div class="kpi-value">{{ expiringSoon }}</div>
       <div class="kpi-label">Löper ut inom 30 dagar</div>
     </div>
     <div class="kpi-card kpi-danger" [class.kpi-danger-active]="expired > 0">
       <div class="kpi-value">{{ expired }}</div>
-      <div class="kpi-label">Utgångna certifieringar</div>
+      <div class="kpi-label">Utgångna</div>
     </div>
   </div>
 
-  <!-- Filter-rad -->
-  <div class="filter-row" *ngIf="!loading">
-    <button
-      *ngFor="let f of lineFilters"
-      class="filter-btn"
-      [class.filter-btn-active]="activeLineFilter === f.key"
-      (click)="setLineFilter(f.key)">
-      {{ f.label }}
-    </button>
+  <!-- Statistiksammanfattning -->
+  <div class="stats-bar" *ngIf="!loading && totalCertifications > 0">
+    <span><strong>Totalt:</strong> {{ totalCertifications }} certifieringar</span>
+    <span class="stats-sep">|</span>
+    <span style="color:#68d391"><strong>Giltiga:</strong> {{ validCount }}</span>
+    <span class="stats-sep">|</span>
+    <span style="color:#f6ad55"><strong>Snart utgår:</strong> {{ expiringSoon }}</span>
+    <span class="stats-sep">|</span>
+    <span style="color:#fc8181"><strong>Utgångna:</strong> {{ expired }}</span>
   </div>
 
   <!-- Laddning -->
@@ -61,51 +69,202 @@
     <button class="btn btn-sm btn-outline-light ms-3" (click)="loadCertifications()">Försök igen</button>
   </div>
 
-  <!-- Tom vy -->
-  <div class="empty-state" *ngIf="!loading && !error && filteredOperators.length === 0">
-    <i class="fas fa-certificate fa-3x mb-3 text-muted"></i>
-    <p *ngIf="activeLineFilter === 'alla'">Inga certifieringar registrerade ännu.</p>
-    <p *ngIf="activeLineFilter !== 'alla'">Inga certifieringar för vald linje.</p>
-  </div>
-
-  <!-- Operatörskort-grid -->
-  <div class="op-grid" *ngIf="!loading && !error">
-    <div class="op-card" *ngFor="let op of filteredOperators">
-      <div class="op-card-header">
-        <div class="op-avatar" [style.background]="getAvatarColor(op.name)">
-          {{ getInitials(op.name) }}
-        </div>
-        <div class="op-info">
-          <div class="op-name">{{ op.name }}</div>
-          <div class="op-number">#{{ op.op_number }}</div>
-        </div>
-      </div>
-
-      <div class="cert-list">
-        <div
-          class="cert-badge-row"
-          *ngFor="let cert of op.certifications">
-          <span class="cert-badge" [ngClass]="getBadgeClass(cert)">
-            <i class="fas fa-check-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-valid'"></i>
-            <i class="fas fa-clock me-1" *ngIf="getBadgeClass(cert) === 'badge-warning'"></i>
-            <i class="fas fa-times-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-expired'"></i>
-            <span [class.text-strikethrough]="getBadgeClass(cert) === 'badge-expired'">
-              {{ getBadgeLabel(cert) }}
-            </span>
-          </span>
-          <span class="cert-date text-muted">{{ formatDate(cert.certified_date) }}</span>
-          <button
-            class="revoke-btn"
-            title="Återkalla certifiering"
-            (click)="revoke(cert.id)">
-            <i class="fas fa-ban"></i>
-          </button>
-        </div>
+  <!-- Snart utgångna-sektion -->
+  <div class="expiry-section" *ngIf="!loading && expiringSoonList.length > 0">
+    <div class="expiry-section-title">
+      <i class="fas fa-clock me-2"></i>Kräver uppmärksamhet ({{ expiringSoonList.length }})
+    </div>
+    <div class="expiry-list">
+      <div class="expiry-item" *ngFor="let item of expiringSoonList"
+           [class.expiry-item-expired]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry < 0"
+           [class.expiry-item-warning]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry >= 0">
+        <span class="expiry-icon">
+          <i class="fas" [ngClass]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry < 0 ? 'fa-times-circle' : 'fa-exclamation-circle'"></i>
+        </span>
+        <span class="expiry-name">{{ item.opName }}</span>
+        <span class="expiry-line">{{ lineLabels[item.cert.line] ?? item.cert.line }}</span>
+        <span class="expiry-date" *ngIf="item.cert.expires_date">
+          Utgår: {{ formatDate(item.cert.expires_date) }}
+        </span>
+        <span class="expiry-days"
+              [class.text-danger]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry < 0"
+              [class.text-warning]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry >= 0">
+          <ng-container *ngIf="item.cert.days_until_expiry !== null && item.cert.days_until_expiry < 0">
+            Utgången för {{ -item.cert.days_until_expiry }} dagar sedan
+          </ng-container>
+          <ng-container *ngIf="item.cert.days_until_expiry !== null && item.cert.days_until_expiry === 0">
+            Sista dag idag!
+          </ng-container>
+          <ng-container *ngIf="item.cert.days_until_expiry !== null && item.cert.days_until_expiry > 0">
+            {{ item.cert.days_until_expiry }} dagar kvar
+          </ng-container>
+        </span>
       </div>
     </div>
   </div>
 
-  <!-- Lägg till certifiering (admin) -->
+  <!-- Fliknavigation + export-knapp -->
+  <div class="tab-nav-row" *ngIf="!loading">
+    <div class="tab-nav">
+      <button class="tab-btn" [class.tab-btn-active]="activeTab === 'lista'" (click)="setTab('lista')">
+        <i class="fas fa-list me-1"></i>Operatörslista
+      </button>
+      <button class="tab-btn" [class.tab-btn-active]="activeTab === 'matris'" (click)="setTab('matris')">
+        <i class="fas fa-table me-1"></i>Kompetensmatris
+      </button>
+    </div>
+    <button class="btn-export" (click)="exportCSV()" title="Exportera till CSV">
+      <i class="fas fa-download me-1"></i>Exportera CSV
+    </button>
+  </div>
+
+  <!-- ===== OPERATÖRSLISTA-FLIK ===== -->
+  <div *ngIf="activeTab === 'lista' && !loading">
+
+    <!-- Filter + sortering -->
+    <div class="filter-sort-row">
+      <div class="filter-row">
+        <button
+          *ngFor="let f of lineFilters"
+          class="filter-btn"
+          [class.filter-btn-active]="activeLineFilter === f.key"
+          (click)="setLineFilter(f.key)">
+          {{ f.label }}
+        </button>
+      </div>
+      <div class="sort-row">
+        <span class="sort-label">Sortera:</span>
+        <button class="filter-btn" [class.filter-btn-active]="sortBy === 'name'" (click)="setSortBy('name')">
+          Namn
+        </button>
+        <button class="filter-btn" [class.filter-btn-active]="sortBy === 'expiry'" (click)="setSortBy('expiry')">
+          Utgångsdatum
+        </button>
+      </div>
+    </div>
+
+    <!-- Tom vy -->
+    <div class="empty-state" *ngIf="!error && filteredOperators.length === 0">
+      <i class="fas fa-certificate fa-3x mb-3 text-muted"></i>
+      <p *ngIf="activeLineFilter === 'alla'">Inga certifieringar registrerade ännu.</p>
+      <p *ngIf="activeLineFilter !== 'alla'">Inga certifieringar för vald linje.</p>
+    </div>
+
+    <!-- Operatörskort-grid -->
+    <div class="op-grid" *ngIf="!error">
+      <div class="op-card" *ngFor="let op of filteredOperators">
+        <div class="op-card-header">
+          <div class="op-avatar" [style.background]="getAvatarColor(op.name)">
+            {{ getInitials(op.name) }}
+          </div>
+          <div class="op-info">
+            <div class="op-name">{{ op.name }}</div>
+            <div class="op-number">#{{ op.op_number }}</div>
+          </div>
+        </div>
+
+        <div class="cert-list">
+          <div
+            class="cert-badge-row"
+            *ngFor="let cert of op.certifications">
+            <span class="cert-badge" [ngClass]="getBadgeClass(cert)">
+              <i class="fas fa-check-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-valid'"></i>
+              <i class="fas fa-clock me-1" *ngIf="getBadgeClass(cert) === 'badge-warning'"></i>
+              <i class="fas fa-times-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-expired'"></i>
+              <span [class.text-strikethrough]="getBadgeClass(cert) === 'badge-expired'">
+                {{ getBadgeLabel(cert) }}
+              </span>
+            </span>
+            <span class="cert-date text-muted">
+              {{ formatDate(cert.certified_date) }}
+              <span *ngIf="cert.expires_date" class="cert-expiry-date"
+                    [class.expiry-soon]="cert.days_until_expiry !== null && cert.days_until_expiry >= 0 && cert.days_until_expiry <= 30"
+                    [class.expiry-gone]="cert.days_until_expiry !== null && cert.days_until_expiry < 0">
+                — utgår {{ formatDate(cert.expires_date) }}
+              </span>
+            </span>
+            <button
+              class="revoke-btn"
+              title="Återkalla certifiering"
+              (click)="revoke(cert.id)">
+              <i class="fas fa-ban"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== KOMPETENSMATRIS-FLIK ===== -->
+  <div *ngIf="activeTab === 'matris'" class="matrix-section">
+
+    <div class="loading-state" *ngIf="matrixLoading">
+      <i class="fas fa-spinner fa-spin me-2"></i>Hämtar kompetensmatris...
+    </div>
+
+    <div class="error-state" *ngIf="matrixError && !matrixLoading">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ matrixError }}
+      <button class="btn btn-sm btn-outline-light ms-3" (click)="loadMatrix()">Försök igen</button>
+    </div>
+
+    <div class="matrix-legend" *ngIf="!matrixLoading && !matrixError && matrixData">
+      <span class="legend-item">
+        <i class="fas fa-check-circle legend-valid"></i> Giltig
+      </span>
+      <span class="legend-item">
+        <i class="fas fa-exclamation-circle legend-expiring"></i> Löper ut &lt; 30 dagar
+      </span>
+      <span class="legend-item">
+        <i class="fas fa-times-circle legend-expired"></i> Utgången / ej certifierad
+      </span>
+    </div>
+
+    <div class="matrix-wrapper" *ngIf="!matrixLoading && !matrixError && matrixData">
+      <div class="matrix-empty" *ngIf="matrixData.operators.length === 0">
+        <i class="fas fa-users me-2"></i>Inga aktiva operatörer hittades.
+      </div>
+
+      <table class="matrix-table" *ngIf="matrixData.operators.length > 0">
+        <thead>
+          <tr>
+            <th class="matrix-th-name">Operatör</th>
+            <th class="matrix-th-line" *ngFor="let line of matrixData.lines">
+              {{ line.label }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of matrixData.operators">
+            <td class="matrix-td-name">
+              <div class="matrix-op-row">
+                <div class="op-avatar-sm" [style.background]="getAvatarColor(op.name)">
+                  {{ getInitials(op.name) }}
+                </div>
+                <span>{{ op.name }}</span>
+              </div>
+            </td>
+            <td class="matrix-td-cell"
+                *ngFor="let line of matrixData.lines"
+                [title]="getMatrixCellTitle(getMatrixCell(op.number, line.key), op.name, line.label)">
+              <div class="matrix-cell" [ngClass]="getMatrixCellClass(getMatrixCell(op.number, line.key))">
+                <i class="fas" [ngClass]="getMatrixCellIcon(getMatrixCell(op.number, line.key))"></i>
+                <span class="matrix-cell-days"
+                      *ngIf="getMatrixCell(op.number, line.key) as cell">
+                  <ng-container *ngIf="cell.status === 'expiring' && cell.days_left !== null">
+                    {{ cell.days_left }}d
+                  </ng-container>
+                </span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ===== LÄGG TILL CERTIFIERING (admin) ===== -->
   <div class="add-section">
     <button class="btn-toggle-add" (click)="toggleAddForm()">
       <i class="fas" [class.fa-plus-circle]="!showAddForm" [class.fa-minus-circle]="showAddForm"></i>
