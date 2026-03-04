@@ -1,5 +1,20 @@
 ## 2026-03-04 — Worker: Operatörsfeedback-loop (2981f70)
 - SQL-migration: `operator_feedback` tabell (operator_id, skiftraknare, datum, stämning TINYINT 1-4, kommentar VARCHAR(280))
+## 2026-03-04 — Månadsrapport: tre nya sektioner
+
+Worker-agent implementerade tre förbättringar på `/rapporter/manad`:
+
+1. **Backend: ny endpoint `monthly-stop-summary`** — `getMonthlyStopSummary()` i `RebotlingController.php`. Hämtar topp-5 stopporsaker från `rebotling_stopporsak` för angiven månad (YYYY-MM). Fallback om tabellen saknas. Beräknar pct av total stopptid.
+
+2. **Stopporsakssektion** — ny sektion 7b i månadsrapporten med färgkodade progressbars (grön <20%, orange 20-40%, röd >40%). Visas bara om data finns. Parallell hämtning via utökad `forkJoin({ report, compare, stops })`.
+
+3. **Rekordmånad-banner** — guldglitter-banner med shimmer-animation när `goal_pct >= 110%`. Syns ovanför KPI-korten.
+
+4. **Print-CSS förbättring** — `no-print`-klass på exportknapparna, förbättrade break-inside regler, vit bakgrund för utskrift av alla kort och stopporsaker.
+
+Commit: `36cc313` | Pushad till GitHub main.
+
+
 - FeedbackController.php: GET my-history (inloggad ops senaste 10), GET summary (admin aggregering 30d), POST submit (max 1/skift)
 - api.php: `feedback` action registrerad i classNameMap
 - my-bonus.ts: FeedbackItem interface, moodEmojis/moodLabels records, loadFeedbackHistory(), submitFeedback() med timeout+catchError+takeUntil
@@ -1132,3 +1147,4 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 [2026-03-04] Worker: Min Bonus — anonymiserad kollegajämförelse: ny "Din placering"-sektion med rank/#total/IBC-h/kvalitet%, progress bar mot toppen, period-toggle (Idag/Vecka/Månad), motivationstext per rank, backend my-ranking endpoint med auth-skydd (op_id måste matcha session operator_id)
 [2026-03-04] Worker: Rebotling statistik — cykeltid per operatör: horisontellt Chart.js bar-diagram (indexAxis y), färgkodning mot median (grön/röd/blå), rang-tabell med snitt/bäst/sämst/antal skift/total IBC, period-selector 7/14/30/90d. Backend: cycle-by-operator endpoint i RebotlingController, UNION op1/op2/op3 från rebotling_skiftrapport, JOIN operators, outlier-filter 30-600 sek — 12ddddb
 [2026-03-04] Worker: Notifikationscentral (klockikon) verifierad — redan implementerad i 022b8df. Bell-ikon i navbar för inloggade (loggedIn), badge med urgentNoteCount+certExpiryCount, dropdown med länk till overlamnin+certifiering, .notif-dropdown CSS, inga extra polling-anrop (återanvänder befintliga timers)
+[2026-03-04] BugHunt #11: andon.ts — null-safety minuter_sedan_senaste_ibc (number|null + null-guard i statusEtikett), switch default-return i ibcKvarFarg/behovdTaktFarg; my-bonus.ts — chart-refs nullas i ngOnDestroy; news-admin.ts — withCredentials:true på alla HTTP-anrop (sessions kräver det för admin-list/create/update/delete); operator-trend.ts — oanvänd AfterViewInit-import borttagen; BonusController/BonusAdminController/MaintenanceController PHP — session_start read_and_close för att undvika session-låsning

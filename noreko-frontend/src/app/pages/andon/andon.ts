@@ -19,7 +19,7 @@ interface AndonStatus {
   runtime_min: number;
   rasttime_min: number;
   senaste_ibc_tid: string;
-  minuter_sedan_senaste_ibc: number;
+  minuter_sedan_senaste_ibc: number | null;
   linje_status: string;
 }
 
@@ -186,6 +186,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       case 'winning':  return '#48bb78';
       case 'on-track': return '#ed8936';
       case 'behind':   return '#f44336';
+      default:         return '#718096';
     }
   }
 
@@ -196,6 +197,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       case 'winning':  return '#48bb78';
       case 'on-track': return '#ed8936';
       case 'behind':   return '#f44336';
+      default:         return '#718096';
     }
   }
 
@@ -327,13 +329,14 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   get statusEtikett(): string {
     if (!this.status) return '';
     const min = this.status.minuter_sedan_senaste_ibc;
+    const minText = min !== null && min !== undefined ? `${min} min sedan` : 'okänd tid';
     if (this.status.linje_status === 'stopp') {
-      return `Senaste IBC: ${min} min sedan`;
+      return `Senaste IBC: ${minText}`;
     }
     if (this.status.linje_status === 'väntar') {
-      return `Väntar — ${min} min sedan senaste IBC`;
+      return `Väntar — ${minText} sedan senaste IBC`;
     }
-    return `Linjen kör! Senaste IBC för ${min} min sedan`;
+    return `Linjen kör! Senaste IBC för ${minText}`;
   }
 
   get malBreddpct(): number {

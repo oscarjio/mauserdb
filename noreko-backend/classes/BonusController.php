@@ -28,7 +28,7 @@ class BonusController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
 
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);

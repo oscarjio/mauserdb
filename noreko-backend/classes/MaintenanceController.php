@@ -26,7 +26,7 @@ class MaintenanceController {
 
     public function handle(): void {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['read_and_close' => true]);
         }
 
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {

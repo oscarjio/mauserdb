@@ -386,7 +386,8 @@ export class NewsAdminPage implements OnInit, OnDestroy {
     this.loading = true;
     this.loadError = '';
     this.http.get<{ success: boolean; news: NewsItem[] }>(
-      `${this.apiBase}?action=news&run=admin-list`
+      `${this.apiBase}?action=news&run=admin-list`,
+      { withCredentials: true }
     ).pipe(
       timeout(8000),
       catchError(() => of(null)),
@@ -460,7 +461,8 @@ export class NewsAdminPage implements OnInit, OnDestroy {
 
     this.http.post<{ success: boolean; id?: number; error?: string }>(
       `${this.apiBase}?action=news&run=${run}`,
-      payload
+      payload,
+      { withCredentials: true }
     ).pipe(
       timeout(8000),
       catchError(() => of(null)),
@@ -484,7 +486,8 @@ export class NewsAdminPage implements OnInit, OnDestroy {
 
     this.http.post<{ success: boolean; error?: string }>(
       `${this.apiBase}?action=news&run=delete`,
-      { id: item.id }
+      { id: item.id },
+      { withCredentials: true }
     ).pipe(
       timeout(8000),
       catchError(() => of(null)),

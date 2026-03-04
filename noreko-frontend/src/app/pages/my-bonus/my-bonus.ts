@@ -135,10 +135,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.kpiChart) this.kpiChart.destroy();
-    if (this.historyChart) this.historyChart.destroy();
-    if (this.ibcTrendChart) this.ibcTrendChart.destroy();
-    if (this.weeklyChart) this.weeklyChart.destroy();
+    if (this.kpiChart) { this.kpiChart.destroy(); this.kpiChart = null; }
+    if (this.historyChart) { this.historyChart.destroy(); this.historyChart = null; }
+    if (this.ibcTrendChart) { this.ibcTrendChart.destroy(); this.ibcTrendChart = null; }
+    if (this.weeklyChart) { this.weeklyChart.destroy(); this.weeklyChart = null; }
   }
 
   saveAndLoad(): void {
