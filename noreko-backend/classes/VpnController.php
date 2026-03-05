@@ -24,15 +24,25 @@ class VpnController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
+        }
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            return;
+        }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Endast admin har behörighet.']);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
             return;
         }
 
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        
         if ($method === 'GET') {
             $this->getVpnStatus();
         } elseif ($method === 'POST') {
@@ -192,6 +202,7 @@ class VpnController {
 
         } catch (Exception $e) {
             error_log('Fel vid hämtning av VPN-status: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Fel vid hämtning av VPN-status'

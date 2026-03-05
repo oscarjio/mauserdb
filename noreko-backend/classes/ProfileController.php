@@ -4,7 +4,14 @@ require_once __DIR__ . '/AuditController.php';
 
 class ProfileController {
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
+        }
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Du måste vara inloggad för att uppdatera kontot.']);

@@ -18,12 +18,18 @@ class WeeklyReportController {
 
     public function handle(): void {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['read_and_close' => true]);
         }
 
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            return;
+        }
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
             return;
         }
 
@@ -216,7 +222,7 @@ class WeeklyReportController {
                     WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op3
                 ) raw
-                JOIN operators o ON o.id = raw.op_id
+                JOIN operators o ON o.number = raw.op_id
                 GROUP BY op_id
                 ORDER BY total_ibc DESC
                 LIMIT 1
@@ -412,7 +418,7 @@ class WeeklyReportController {
                     WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op3
                 ) raw
-                JOIN operators o ON o.id = raw.op_id
+                JOIN operators o ON o.number = raw.op_id
                 GROUP BY op_id
                 ORDER BY ibc_ok_vecka DESC
             ";

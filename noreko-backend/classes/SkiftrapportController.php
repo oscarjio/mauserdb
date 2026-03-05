@@ -11,9 +11,15 @@ class SkiftrapportController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
+        }
+
         if ($method === 'GET') {
             $run = trim($_GET['run'] ?? '');
             if ($run === 'lopnummer') {
