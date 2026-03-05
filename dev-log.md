@@ -1,3 +1,11 @@
+## 2026-03-05 Session #11 — Monthly-report VD-förbättringar
+
+**Worker — monthly-report förbättring** (`c0c683b`):
+- VD-sammanfattning (executive summary) med auto-genererad text baserad på KPI:er och jämförelsedata
+- Dagsmål-referenslinje (gul streckad) i produktionsdiagrammet
+- Förbättrad PDF/print: @page A4, Noreko-logotyp, utskriftsdatum, sidfot med "Konfidentiellt"
+- Print-styling: guld/silver/brons-rader, rekordmånad-banner anpassad för ljust läge
+
 ## 2026-03-05 Session #10 — Stora refactorings + Bug Hunt
 
 **Worker 1 — rebotling-statistik.ts refactoring** (`9eec10d`):
