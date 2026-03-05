@@ -92,6 +92,7 @@ class LoginController {
 
                 AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
 
+                http_response_code(401);
                 echo json_encode(['success' => false, 'message' => $msg]);
             }
 

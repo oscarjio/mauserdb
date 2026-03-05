@@ -139,6 +139,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   private stoppagePollInterval: any = null;
   private clockInterval: any = null;
   private skiftTimerInterval: any = null;
+  private shiftNoticeTimeout: any = null;
 
   // ---- Visibilitychange-guard ----
   private visibilityHandler = () => this.onVisibilityChange();
@@ -347,6 +348,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.stopPollingTimers();
     if (this.clockInterval) clearInterval(this.clockInterval);
     if (this.skiftTimerInterval) clearInterval(this.skiftTimerInterval);
+    if (this.shiftNoticeTimeout) clearTimeout(this.shiftNoticeTimeout);
     try { this.cumulativeChart?.destroy(); } catch (e) {}
     this.cumulativeChart = null;
   }
@@ -383,7 +385,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
             this.showShiftChangeNotice = true;
             this.shiftChangeDate = data.datum ? data.datum.substring(0, 10) : '';
             // Dolj notisen automatiskt efter 30 sekunder
-            setTimeout(() => { this.showShiftChangeNotice = false; }, 30000);
+            if (this.shiftNoticeTimeout) clearTimeout(this.shiftNoticeTimeout);
+            this.shiftNoticeTimeout = setTimeout(() => { this.showShiftChangeNotice = false; }, 30000);
           }
           this.previousShift = currentShift;
 
