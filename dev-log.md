@@ -1,15 +1,17 @@
 ## 2026-03-05 Session #12 — Månadsrapport + Bug Hunt #19
 
-**Planerade workers**:
-1. VD Månadsrapport förbättring — föregående-månads-jämförelse, operator-of-the-month, diff-indikatorer, bättre PDF
-2. Bug Hunt #19 — granska commits sedan session #8, fokus TypeScript + PHP
+**Worker 1 — monthly-report förbättring** (`c0c683b`):
+- VD-sammanfattning (executive summary) med auto-genererad text baserad på KPI:er och jämförelsedata
+- Dagsmål-referenslinje (gul streckad) i produktionsdiagrammet
+- Förbättrad PDF/print: @page A4, Noreko-logotyp, utskriftsdatum, sidfot med "Konfidentiellt"
+- Print-styling: guld/silver/brons-rader, rekordmånad-banner anpassad för ljust läge
 
-**Bug Hunt #19** (`aa9cdd7`):
+**Worker 2 — Bug Hunt #19** (`aa9cdd7`):
 - 3 buggar hittade och fixade:
-  1. BonusController.php getAchievements: catch-block anvande raw http_response_code(500) istallet for sendError() — inkonsekvent error-handling, klient fick inte korrekt JSON-format
-  2. AndonController.php getDailyChallenge: tom catch-block svaljer dagmal-query-fel tyst — loggning saknades
-  3. operator-dashboard.ts loadFeedbackSummary: saknad isFetching-guard — snabba tabb-byten kunde trigga parallella HTTP-anrop (race condition)
-- 23 filer granskade och rena: operator-trend.ts, operator-detail.ts, shift-handover.ts, operator-attendance.ts, weekly-report.ts, andon.ts, my-bonus.ts, RebotlingAnalyticsController.php, 16 rebotling statistik child-components, 5 maintenance-log child-components
+  1. BonusController.php getAchievements: catch-block använde raw http_response_code(500) istället för sendError()
+  2. AndonController.php getDailyChallenge: tom catch-block svalde dagmål-query-fel tyst — loggning saknades
+  3. operator-dashboard.ts loadFeedbackSummary: saknad isFetching-guard — race condition vid snabba tabb-byten
+- 23 filer granskade och rena
 
 ---
 
