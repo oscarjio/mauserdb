@@ -650,6 +650,159 @@
   white-space: nowrap;
 }
 
+/* ============================================================
+   Kompatibilitetsmatris — Heatmap
+   ============================================================ */
+
+.compat-matrix-wrap {
+  overflow: visible;
+}
+
+.compat-table {
+  border-collapse: separate;
+  border-spacing: 2px;
+  width: 100%;
+  min-width: 400px;
+}
+
+.compat-table th,
+.compat-table td {
+  padding: 0.45rem 0.55rem;
+  font-size: 0.78rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.compat-corner {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.3px;
+  text-align: left !important;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  min-width: 140px;
+}
+
+.compat-prod-header {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.2px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 0.25rem 0.25rem 0 0;
+}
+
+.compat-op-name {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-align: left !important;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 140px;
+  border-radius: 0.25rem 0 0 0.25rem;
+}
+
+.compat-cell {
+  border-radius: 0.25rem;
+  cursor: default;
+  transition: transform 0.1s, box-shadow 0.1s;
+  min-width: 65px;
+  vertical-align: middle;
+}
+
+.compat-cell:hover {
+  transform: scale(1.08);
+  box-shadow: 0 0 8px rgba(99,179,237,0.3);
+  z-index: 3;
+  position: relative;
+}
+
+.compat-val {
+  display: block;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.compat-sub {
+  display: block;
+  font-size: 0.62rem;
+  color: rgba(226,232,240,0.6);
+  margin-top: 1px;
+}
+
+.compat-empty {
+  color: #4a5568;
+  font-size: 0.8rem;
+}
+
+.compat-legend {
+  display: flex;
+  gap: 1.2rem;
+  margin-top: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.compat-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  color: #a0aec0;
+}
+
+.compat-legend-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.compat-swatch-high {
+  background: rgba(72, 187, 120, 0.55);
+}
+
+.compat-swatch-mid {
+  background: rgba(236, 201, 75, 0.5);
+}
+
+.compat-swatch-low {
+  background: rgba(229, 62, 62, 0.45);
+}
+
+@media (max-width: 768px) {
+  .compat-table th,
+  .compat-table td {
+    padding: 0.3rem 0.35rem;
+    font-size: 0.7rem;
+  }
+
+  .compat-val {
+    font-size: 0.75rem;
+  }
+
+  .compat-corner,
+  .compat-op-name {
+    min-width: 100px;
+  }
+
+  .compat-cell {
+    min-width: 50px;
+  }
+}
+
 /* ======== Sortable column header ======== */
 .sortable-col {
   cursor: pointer;

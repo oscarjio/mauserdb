@@ -1,3 +1,13 @@
+## 2026-03-05 Worker: Operator x Produkt Kompatibilitetsmatris
+
+**Backend**: Nytt endpoint `GET ?action=operators&run=machine-compatibility&days=90` i `OperatorController.php`. SQL aggregerar fran `rebotling_ibc` med UNION ALL op1/op2/op3, JOIN `operators` + `rebotling_products`, GROUP BY operator+produkt. Returnerar avg_ibc_per_h, avg_kvalitet, OEE, antal_skift per kombination. Prepared statements, try-catch, http_response_code(500) vid fel.
+
+**Frontend**: Ny expanderbar sektion "Operator x Produkt -- Kompatibilitetsmatris" i operators-sidan. Heatmap-tabell: rader = operatorer, kolumner = produkter. Celler fargkodade gron/gul/rod baserat pa IBC/h (relativ skala). Tooltip med IBC/h, kvalitet%, OEE, antal skift. `getMachineCompatibility()` i operators.service.ts. takeUntil(destroy$), timeout(8000), catchError(). Dark theme, responsive.
+
+**Filer**: `OperatorController.php`, `operators.service.ts`, `operators.ts`, `operators.html`, `operators.css`
+
+---
+
 ## 2026-03-05 session #7 — Lead: Behovsanalys + 3 workers startade
 
 **Analys**: Session #6 komplett (5 workers, 2 features, 48 bugfixar, perf-optimering). Backlog var tunn (5 öppna items). Behovsanalys avslöjade 30+ backend-endpoints utan frontend, 64 HTTP-anrop utan error-handling, login.ts memory leak. MES-research (gamification, hållbarhets-KPI:er). Fyllde på backlog med 10+ nya items. Startade 3 workers: Bug Hunt #15 (error-handling+login), Operatör×Maskin kompatibilitetsmatris, Oparade endpoints frontend (bemanningsöversikt, månadssammanfattning stopp, produktionstakt).

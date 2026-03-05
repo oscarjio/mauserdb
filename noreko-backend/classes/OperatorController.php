@@ -171,6 +171,10 @@ class OperatorController {
             $this->getProfile();
             return;
         }
+        if ($run === 'machine-compatibility') {
+            $this->getMachineCompatibility();
+            return;
+        }
 
         // GET - Hämta alla operatörer med senaste aktivitet
         try {
@@ -770,6 +774,114 @@ class OperatorController {
             error_log('OperatorController getOperatorTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
+        }
+    }
+
+    /**
+     * GET ?action=operators&run=machine-compatibility&days=90
+     * Returnerar kompatibilitetsmatris: operatör × produkt med IBC/h, kvalitet, OEE.
+     * Aggregerar från rebotling_ibc — UNION ALL op1/op2/op3, GROUP BY operator + produkt.
+     */
+    private function getMachineCompatibility() {
+        try {
+            $days = isset($_GET['days']) ? max(1, intval($_GET['days'])) : 90;
+
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    sub.op_id,
+                    o.name                                                      AS operator_namn,
+                    o.number                                                    AS operator_nummer,
+                    sub.produkt_id,
+                    COALESCE(p.name, CONCAT('Produkt #', sub.produkt_id))       AS produkt_namn,
+                    COUNT(DISTINCT sub.skiftraknare)                             AS antal_skift,
+                    ROUND(
+                        SUM(sub.shift_ibc_ok) /
+                        NULLIF(SUM(sub.shift_runtime_sek) / 3600.0, 0),
+                    1)                                                          AS avg_ibc_per_h,
+                    ROUND(
+                        SUM(sub.shift_ibc_ok) * 100.0 /
+                        NULLIF(SUM(sub.shift_ibc_ok) + SUM(sub.shift_ibc_ej_ok), 0),
+                    1)                                                          AS avg_kvalitet,
+                    ROUND(
+                        (SUM(sub.shift_ibc_ok) * 100.0 /
+                         NULLIF(SUM(sub.shift_ibc_ok) + SUM(sub.shift_ibc_ej_ok), 0))
+                        *
+                        (SUM(sub.shift_ibc_ok) /
+                         NULLIF(SUM(sub.shift_runtime_sek) / 3600.0, 0))
+                        / NULLIF(
+                            COALESCE(
+                                (SELECT MAX(rp2.cycle_time_minutes)
+                                 FROM rebotling_products rp2
+                                 WHERE rp2.id = sub.produkt_id),
+                                60.0 / 10.0
+                            ), 0)
+                        / 100.0,
+                    1)                                                          AS oee
+                FROM (
+                    SELECT op1 AS op_id, produkt AS produkt_id, skiftraknare,
+                           MAX(ibc_ok) AS shift_ibc_ok,
+                           MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE op1 IS NOT NULL AND produkt IS NOT NULL AND produkt > 0
+                      AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                    GROUP BY op1, produkt, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op2 AS op_id, produkt AS produkt_id, skiftraknare,
+                           MAX(ibc_ok) AS shift_ibc_ok,
+                           MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE op2 IS NOT NULL AND op2 > 0 AND produkt IS NOT NULL AND produkt > 0
+                      AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                    GROUP BY op2, produkt, skiftraknare
+
+                    UNION ALL
+
+                    SELECT op3 AS op_id, produkt AS produkt_id, skiftraknare,
+                           MAX(ibc_ok) AS shift_ibc_ok,
+                           MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
+                           MAX(runtime_plc) AS shift_runtime_sek
+                    FROM rebotling_ibc
+                    WHERE op3 IS NOT NULL AND op3 > 0 AND produkt IS NOT NULL AND produkt > 0
+                      AND skiftraknare IS NOT NULL
+                      AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                    GROUP BY op3, produkt, skiftraknare
+                ) sub
+                INNER JOIN operators o ON o.id = sub.op_id
+                LEFT JOIN rebotling_products p ON p.id = sub.produkt_id
+                GROUP BY sub.op_id, sub.produkt_id
+                HAVING antal_skift >= 1
+                ORDER BY o.name ASC, avg_ibc_per_h DESC
+            ");
+            $stmt->execute([$days, $days, $days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Formatera numeriska fält
+            $result = [];
+            foreach ($rows as $r) {
+                $result[] = [
+                    'operator_id'    => (int)$r['op_id'],
+                    'operator_namn'  => $r['operator_namn'],
+                    'operator_nummer' => (int)$r['operator_nummer'],
+                    'produkt_id'     => (int)$r['produkt_id'],
+                    'produkt_namn'   => $r['produkt_namn'],
+                    'antal_skift'    => (int)$r['antal_skift'],
+                    'avg_ibc_per_h'  => $r['avg_ibc_per_h'] !== null ? (float)$r['avg_ibc_per_h'] : null,
+                    'avg_kvalitet'   => $r['avg_kvalitet']  !== null ? (float)$r['avg_kvalitet']  : null,
+                    'oee'            => $r['oee']           !== null ? (float)$r['oee']           : null,
+                ];
+            }
+
+            echo json_encode(['success' => true, 'data' => $result, 'days' => $days]);
+        } catch (Exception $e) {
+            error_log('OperatorController getMachineCompatibility: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompatibilitetsdata']);
         }
     }
 }

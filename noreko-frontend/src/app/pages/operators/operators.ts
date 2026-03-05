@@ -42,6 +42,16 @@ export class OperatorsPage implements OnInit, OnDestroy {
   pairsLoading = false;
   showPairs = false;
 
+  // Kompatibilitetsmatris — operatör × produkt
+  compatData: any[] = [];
+  compatLoading = false;
+  showCompat = false;
+  compatOperators: { id: number; namn: string }[] = [];
+  compatProducts: { id: number; namn: string }[] = [];
+  compatMatrix: { [key: string]: any } = {};
+  compatGlobalMaxIbc = 0;
+  compatGlobalMinIbc = 999;
+
   // Sök + sortering
   searchText = '';
   filterStatus: 'all' | 'active' | 'inactive' = 'all';
@@ -73,6 +83,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
     this.fetchOperators();
     this.loadOpStats();
     this.loadPairs();
+    this.loadCompatibility();
   }
 
   ngOnDestroy() {
@@ -513,6 +524,90 @@ export class OperatorsPage implements OnInit, OnDestroy {
     a.download = 'operatorer.csv';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ======== Kompatibilitetsmatris ========
+
+  loadCompatibility() {
+    this.compatLoading = true;
+    this.operatorsService.getMachineCompatibility(90).pipe(
+      takeUntil(this.destroy$),
+      timeout(8000),
+      catchError(() => of({ success: false, data: [] }))
+    ).subscribe({
+      next: (res) => {
+        this.compatLoading = false;
+        this.compatData = res.data || [];
+        this.buildCompatMatrix();
+      },
+      error: () => {
+        this.compatLoading = false;
+        this.compatData = [];
+      }
+    });
+  }
+
+  private buildCompatMatrix() {
+    const opMap = new Map<number, string>();
+    const prodMap = new Map<number, string>();
+    this.compatMatrix = {};
+    let maxIbc = 0;
+    let minIbc = 999;
+
+    for (const row of this.compatData) {
+      opMap.set(row.operator_id, row.operator_namn);
+      prodMap.set(row.produkt_id, row.produkt_namn);
+      const key = row.operator_id + '_' + row.produkt_id;
+      this.compatMatrix[key] = row;
+      if (row.avg_ibc_per_h != null) {
+        if (row.avg_ibc_per_h > maxIbc) maxIbc = row.avg_ibc_per_h;
+        if (row.avg_ibc_per_h < minIbc) minIbc = row.avg_ibc_per_h;
+      }
+    }
+
+    this.compatGlobalMaxIbc = maxIbc;
+    this.compatGlobalMinIbc = minIbc > maxIbc ? 0 : minIbc;
+
+    this.compatOperators = Array.from(opMap.entries())
+      .map(([id, namn]) => ({ id, namn }))
+      .sort((a, b) => a.namn.localeCompare(b.namn, 'sv'));
+
+    this.compatProducts = Array.from(prodMap.entries())
+      .map(([id, namn]) => ({ id, namn }))
+      .sort((a, b) => a.namn.localeCompare(b.namn, 'sv'));
+  }
+
+  getCompatCell(opId: number, prodId: number): any | null {
+    return this.compatMatrix[opId + '_' + prodId] || null;
+  }
+
+  getCompatCellColor(opId: number, prodId: number): string {
+    const cell = this.getCompatCell(opId, prodId);
+    if (!cell || cell.avg_ibc_per_h == null) return 'transparent';
+    const range = this.compatGlobalMaxIbc - this.compatGlobalMinIbc;
+    if (range <= 0) return 'rgba(72, 187, 120, 0.4)';
+    const ratio = (cell.avg_ibc_per_h - this.compatGlobalMinIbc) / range;
+    if (ratio >= 0.66) {
+      const intensity = 0.25 + (ratio - 0.66) / 0.34 * 0.35;
+      return 'rgba(72, 187, 120, ' + intensity.toFixed(2) + ')';
+    } else if (ratio >= 0.33) {
+      const intensity = 0.25 + (ratio - 0.33) / 0.33 * 0.3;
+      return 'rgba(236, 201, 75, ' + intensity.toFixed(2) + ')';
+    } else {
+      const intensity = 0.2 + ratio / 0.33 * 0.3;
+      return 'rgba(229, 62, 62, ' + intensity.toFixed(2) + ')';
+    }
+  }
+
+  getCompatTooltip(opId: number, prodId: number): string {
+    const cell = this.getCompatCell(opId, prodId);
+    if (!cell) return 'Ingen data';
+    const parts: string[] = [];
+    parts.push('IBC/h: ' + (cell.avg_ibc_per_h != null ? cell.avg_ibc_per_h : '\u2013'));
+    parts.push('Kvalitet: ' + (cell.avg_kvalitet != null ? cell.avg_kvalitet + '%' : '\u2013'));
+    parts.push('OEE: ' + (cell.oee != null ? cell.oee : '\u2013'));
+    parts.push('Skift: ' + cell.antal_skift);
+    return parts.join(' | ');
   }
 
     // ======== KPI-hjälpfunktioner ========

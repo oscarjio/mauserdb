@@ -39,4 +39,8 @@ export class OperatorsService {
   getPairs(): Observable<any> {
     return this.http.get<any>(this.apiUrl + '&run=pairs', { withCredentials: true });
   }
+
+  getMachineCompatibility(days: number = 90): Observable<any> {
+    return this.http.get<any>(this.apiUrl + '&run=machine-compatibility&days=' + days, { withCredentials: true });
+  }
 }
