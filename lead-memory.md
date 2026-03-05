@@ -642,15 +642,21 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ## AKTIV BATCH (2026-03-05 session #8)
 
-### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Commit + bygg session #7 uncommitted**: Bygg Angular, committa Bug Hunt #15 + Oparade endpoints ändringar, pusha
-- [ ] **Oparade endpoints batch 2**: alert-thresholds admin UI (konfigurera varningströsklar), notification-settings admin UI, goal-history visualisering (hur dagsmålet ändrats över tid)
-- [ ] **Gamification — Achievement badges + Daily challenges**: Operatörsmilstolpar (100/500/1000 IBC, perfekt vecka, 5-dagars streak), badge-galleri i my-bonus, daily challenge-widget på andon-tavlan
+### ✅ Levererat session #8
+- [x] **Commit + bygg session #7 uncommitted**: KLAR `572f326` + `8389d09` — Bug Hunt #15 (8 filer) + Oparade endpoints (7 filer), TS-interface-fixar, bygge OK
+- [x] **Oparade endpoints batch 2**: KLAR `0af052d` — Alert Thresholds admin UI, Notification Settings (5 event-toggles, email-mottagare), Goal History (periodväljare 3/6/12 mån, referenslinje)
+- [x] **Gamification — Achievement badges + Daily challenges**: KLAR `60c5af2` — 10 badges i my-bonus (IBC-milstolpar/perfekt vecka/streak/hastighet/kvalitet), daglig utmaning i andon med progress-bar
+
+### 🔴 Hög prioritet — Workers startas NU (batch 2)
+- [ ] **Bug Hunt #16 — session #8 granskning**: Granska alla nya features (gamification, oparade endpoints batch 2, andon daily challenge) — kolla TS-bygge, auth-checks, takeUntil/timeout/catchError
+- [ ] **Bonus rättviseaudit**: "Om maskin A inte haft 3 stopp hade operatör X fått +Y kr" — counterfactual rapport med simulerings-endpoint + visualisering i bonus-admin
+- [ ] **VD Veckosammanfattning-email**: Automatisk veckorapport med KPI:er — total IBC, snitt OEE, bästa operatör, trending — genereras söndag kväll, admin kan trigga manuellt
 
 ### 🟡 Medium prioritet — Nästa batch
 - [ ] **RebotlingController refactoring**: 8601 rader — split till RebotlingLiveController, RebotlingAdminController, RebotlingAnalyticsController
 - [ ] **Saglinje/Klassificeringslinje service-filer**: Skapa dedikerade Angular services
 - [ ] **Lösenordshashing-migration**: SHA1(MD5) → bcrypt/argon2 (kräver planerad migration)
+- [ ] **Dynamiska effektivitetsmål**: Auto-justera dagsmål baserat på historisk prestation — visa rekommendation i admin
 
 ### 🟢 Lägre prioritet / Idébank
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
@@ -658,3 +664,4 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **Flödesanalys-vy**: Visualisera IBC-flödet genom anläggningen
 - [ ] **Hållbarhets-KPI dashboard**: Vatten/kemikalie/energiförbrukning per IBC, CO₂-estimat
 - [ ] **Skiftrapport auto-email vid skiftslut**: Automatisk email med skiftsammanfattning
+- [ ] **rebotling-statistik.ts refactoring**: 4248 rader — bryt ut flikar till standalone child-components
