@@ -922,7 +922,7 @@
 
           <p class="text-muted small mb-3">
             <i class="fas fa-info-circle me-1"></i>
-            Ange e-postadresser separerade med semikolon. Dessa mottar notiser vid brådskande skiftnoteringar (prioritet: Brådskande).
+            Konfigurera vilka notifikationer som ska skickas via e-post och till vilka mottagare.
           </p>
 
           <div *ngIf="notificationSettingsError" class="alert alert-danger py-2 mb-3">
@@ -934,24 +934,98 @@
           </div>
 
           <div *ngIf="!notificationSettingsLoading">
-            <div class="mb-3">
-              <label class="form-label">E-postadresser för notifikationer</label>
+
+            <!-- Huvudswitch: Aktivera/inaktivera e-postnotifikationer -->
+            <div class="form-check form-switch mb-4" style="font-size:1.1rem;">
+              <input class="form-check-input" type="checkbox" id="notifEnabled"
+                     [(ngModel)]="notificationSettings.config.enabled"
+                     [disabled]="notificationSettingsSaving">
+              <label class="form-check-label fw-semibold" for="notifEnabled">
+                E-postnotifikationer {{ notificationSettings.config.enabled ? 'aktiverade' : 'inaktiverade' }}
+              </label>
+            </div>
+
+            <!-- E-postadresser -->
+            <div class="mb-4" [class.opacity-50]="!notificationSettings.config.enabled">
+              <label class="form-label">Mottagare (e-postadresser)</label>
               <input type="text"
                      class="form-control bg-dark text-light border-secondary"
                      [(ngModel)]="notificationSettings.notification_emails"
                      placeholder="chef@noreko.se;vd@noreko.se"
-                     [disabled]="notificationSettingsSaving">
+                     [disabled]="notificationSettingsSaving || !notificationSettings.config.enabled">
               <div class="form-text text-muted">
-                Separera flera adresser med semikolon (;). Lämna tomt för att inaktivera e-postnotifikationer.
+                Separera flera adresser med semikolon (;).
               </div>
             </div>
 
-            <button class="btn btn-primary"
-                    (click)="saveNotificationSettings()"
-                    [disabled]="notificationSettingsSaving">
-              <i class="fas" [class.fa-save]="!notificationSettingsSaving" [class.fa-spinner]="notificationSettingsSaving" [class.fa-spin]="notificationSettingsSaving" class="me-2"></i>
-              {{ notificationSettingsSaving ? 'Sparar...' : 'Spara notifikationsinställningar' }}
-            </button>
+            <!-- Händelsetyp-toggles -->
+            <div class="mb-4" [class.opacity-50]="!notificationSettings.config.enabled">
+              <label class="form-label fw-semibold mb-3">Notifiera vid</label>
+              <div class="row g-3">
+                <div class="col-md-6 col-lg-4">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="notifOnStopp"
+                           [(ngModel)]="notificationSettings.config.on_stopp"
+                           [disabled]="notificationSettingsSaving || !notificationSettings.config.enabled">
+                    <label class="form-check-label" for="notifOnStopp">
+                      <i class="fas fa-stop-circle text-danger me-1"></i>Produktionsstopp
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="notifOnLowOEE"
+                           [(ngModel)]="notificationSettings.config.on_low_oee"
+                           [disabled]="notificationSettingsSaving || !notificationSettings.config.enabled">
+                    <label class="form-check-label" for="notifOnLowOEE">
+                      <i class="fas fa-chart-line text-warning me-1"></i>Lag OEE
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="notifOnCert"
+                           [(ngModel)]="notificationSettings.config.on_cert_expiry"
+                           [disabled]="notificationSettingsSaving || !notificationSettings.config.enabled">
+                    <label class="form-check-label" for="notifOnCert">
+                      <i class="fas fa-certificate text-info me-1"></i>Certifikat-utgång
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="notifOnMaint"
+                           [(ngModel)]="notificationSettings.config.on_maintenance"
+                           [disabled]="notificationSettingsSaving || !notificationSettings.config.enabled">
+                    <label class="form-check-label" for="notifOnMaint">
+                      <i class="fas fa-wrench text-secondary me-1"></i>Underhall planerat
+                    </label>
+                  </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="notifOnShiftReport"
+                           [(ngModel)]="notificationSettings.config.on_shift_report"
+                           [disabled]="notificationSettingsSaving || !notificationSettings.config.enabled">
+                    <label class="form-check-label" for="notifOnShiftReport">
+                      <i class="fas fa-file-alt text-success me-1"></i>Skiftrapport (brådskande)
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-2 align-items-center">
+              <button class="btn btn-primary"
+                      (click)="saveNotificationSettings()"
+                      [disabled]="notificationSettingsSaving">
+                <i class="fas" [class.fa-save]="!notificationSettingsSaving" [class.fa-spinner]="notificationSettingsSaving" [class.fa-spin]="notificationSettingsSaving" class="me-2"></i>
+                {{ notificationSettingsSaving ? 'Sparar...' : 'Spara notifikationsinställningar' }}
+              </button>
+              <span *ngIf="notificationSettingsSaved" class="text-success small">
+                <i class="fas fa-check me-1"></i>Sparat
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -1033,7 +1107,20 @@
           <h5 class="mb-0" style="color:#e2e8f0;">
             <i class="fas fa-history text-warning me-2"></i>Dagsmål-historik
           </h5>
-          <span class="ms-auto text-muted small">Senaste 180 dagarna</span>
+          <div class="ms-auto d-flex align-items-center gap-2">
+            <span class="text-muted small me-2">Period:</span>
+            <div class="btn-group btn-group-sm">
+              <button class="btn" [class.btn-warning]="goalHistoryPeriod === 90"
+                      [class.btn-outline-secondary]="goalHistoryPeriod !== 90"
+                      (click)="changeGoalHistoryPeriod(90)">3 mån</button>
+              <button class="btn" [class.btn-warning]="goalHistoryPeriod === 180"
+                      [class.btn-outline-secondary]="goalHistoryPeriod !== 180"
+                      (click)="changeGoalHistoryPeriod(180)">6 mån</button>
+              <button class="btn" [class.btn-warning]="goalHistoryPeriod === 365"
+                      [class.btn-outline-secondary]="goalHistoryPeriod !== 365"
+                      (click)="changeGoalHistoryPeriod(365)">12 mån</button>
+            </div>
+          </div>
         </div>
         <div class="card-body">
 
@@ -1047,9 +1134,17 @@
             Inga historiska mål-ändringar registrerade än. Ändringar loggas automatiskt när dagsmålet sparas.
           </div>
 
-          <!-- Steg-diagram om fler än 1 post -->
+          <!-- Nuvarande mål-badge -->
+          <div *ngIf="!goalHistoryLoading && goalHistory.length > 0" class="mb-3">
+            <span class="badge bg-info" style="font-size:0.85rem; padding:6px 12px;">
+              <i class="fas fa-flag me-1"></i>
+              Nuvarande mål: {{ goalHistory[goalHistory.length - 1]?.value }} IBC/dag
+            </span>
+          </div>
+
+          <!-- Steg-diagram -->
           <canvas id="goalHistoryChart" height="80"
-                  *ngIf="!goalHistoryLoading && goalHistory.length > 1"
+                  *ngIf="!goalHistoryLoading && goalHistory.length > 0"
                   class="mb-3"></canvas>
 
           <!-- Tabell med senaste 10 ändringar -->

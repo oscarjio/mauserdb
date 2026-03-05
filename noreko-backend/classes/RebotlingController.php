@@ -5684,7 +5684,7 @@ class RebotlingController {
     // =========================================================
 
     /**
-     * Säkerställ att notification_emails-kolumnen finns i rebotling_settings.
+     * Säkerställ att notification_emails + notification_config-kolumnerna finns i rebotling_settings.
      */
     private function ensureNotificationEmailsColumn(): void {
         try {
@@ -5702,6 +5702,21 @@ class RebotlingController {
                      ADD COLUMN notification_emails TEXT NULL DEFAULT NULL"
                 );
             }
+
+            // notification_config — JSON med enabled-toggle och händelsetyp-toggles
+            $col2 = $this->pdo->query(
+                "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE()
+                   AND TABLE_NAME   = 'rebotling_settings'
+                   AND COLUMN_NAME  = 'notification_config'"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            if (!$col2) {
+                $this->pdo->exec(
+                    "ALTER TABLE rebotling_settings
+                     ADD COLUMN notification_config TEXT NULL DEFAULT NULL"
+                );
+            }
         } catch (Exception $e) {
             error_log('ensureNotificationEmailsColumn: ' . $e->getMessage());
         }
@@ -5711,17 +5726,37 @@ class RebotlingController {
      * GET ?action=rebotling&run=notification-settings
      * Returnerar aktuella e-postadresser för notifikationer.
      */
+    private function defaultNotificationConfig(): array {
+        return [
+            'enabled'           => false,
+            'on_stopp'          => true,
+            'on_low_oee'        => true,
+            'on_cert_expiry'    => false,
+            'on_maintenance'    => false,
+            'on_shift_report'   => true,
+        ];
+    }
+
     private function getNotificationSettings(): void {
         try {
             $this->ensureNotificationEmailsColumn();
             $row = $this->pdo->query(
-                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
+                "SELECT notification_emails, notification_config FROM rebotling_settings WHERE id = 1"
             )->fetch(PDO::FETCH_ASSOC);
+
+            $config = $this->defaultNotificationConfig();
+            if (!empty($row['notification_config'])) {
+                $saved = json_decode($row['notification_config'], true);
+                if (is_array($saved)) {
+                    $config = array_merge($config, $saved);
+                }
+            }
 
             echo json_encode([
                 'success' => true,
                 'data'    => [
                     'notification_emails' => $row['notification_emails'] ?? '',
+                    'config'              => $config,
                 ],
             ]);
         } catch (Exception $e) {
@@ -5762,10 +5797,19 @@ class RebotlingController {
             }
             $normalized = implode(';', $valid);
 
+            // Spara notification_config (händelsetyp-toggles + enabled)
+            $defaults = $this->defaultNotificationConfig();
+            $configInput = isset($data['config']) && is_array($data['config']) ? $data['config'] : [];
+            $cleanedConfig = [];
+            foreach (array_keys($defaults) as $key) {
+                $cleanedConfig[$key] = isset($configInput[$key]) ? (bool)$configInput[$key] : $defaults[$key];
+            }
+            $configJson = json_encode($cleanedConfig);
+
             $stmt = $this->pdo->prepare(
-                "UPDATE rebotling_settings SET notification_emails = ? WHERE id = 1"
+                "UPDATE rebotling_settings SET notification_emails = ?, notification_config = ? WHERE id = 1"
             );
-            $stmt->execute([$normalized]);
+            $stmt->execute([$normalized, $configJson]);
 
             echo json_encode(['success' => true, 'message' => 'Notifikationsinställningar sparade']);
         } catch (Exception $e) {

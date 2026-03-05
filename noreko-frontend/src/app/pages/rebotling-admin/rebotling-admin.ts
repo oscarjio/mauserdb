@@ -122,10 +122,31 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   showAlertPanel         = false;
 
   // ---- E-postnotifikationer ----
-  notificationSettings = { notification_emails: '' };
+  notificationSettings: {
+    notification_emails: string;
+    config: {
+      enabled: boolean;
+      on_stopp: boolean;
+      on_low_oee: boolean;
+      on_cert_expiry: boolean;
+      on_maintenance: boolean;
+      on_shift_report: boolean;
+    };
+  } = {
+    notification_emails: '',
+    config: {
+      enabled: false,
+      on_stopp: true,
+      on_low_oee: true,
+      on_cert_expiry: false,
+      on_maintenance: false,
+      on_shift_report: true,
+    }
+  };
   notificationSettingsLoading = false;
   notificationSettingsSaving = false;
   notificationSettingsError = '';
+  notificationSettingsSaved = false;
   showNotificationPanel = false;
 
   // ---- Automatisk skiftrapport via email ----
@@ -182,6 +203,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   // ---- Dagsmål-historik ----
   goalHistory: any[] = [];
   goalHistoryLoading = false;
+  goalHistoryPeriod = 180;  // 90 = 3 mån, 180 = 6 mån, 365 = 12 mån
   private goalHistoryChart: Chart | null = null;
 
   // ---- Anpassade dagsmål (datum-undantag) ----
@@ -883,7 +905,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       .subscribe({
         next: (res) => {
           if (res?.success && res.data) {
-            this.notificationSettings = { ...this.notificationSettings, ...res.data };
+            this.notificationSettings.notification_emails = res.data.notification_emails || '';
+            if (res.data.config) {
+              this.notificationSettings.config = { ...this.notificationSettings.config, ...res.data.config };
+            }
           } else if (!res?.success) {
             this.notificationSettingsError = 'Kunde inte ladda notifikationsinställningar';
           }
@@ -899,6 +924,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   saveNotificationSettings() {
     this.notificationSettingsSaving = true;
     this.notificationSettingsError  = '';
+    this.notificationSettingsSaved  = false;
     this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=save-notification-settings',
       this.notificationSettings, { withCredentials: true })
       .pipe(
@@ -909,7 +935,9 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
       .subscribe({
         next: (res) => {
           if (res?.success) {
+            this.notificationSettingsSaved = true;
             this.showSuccess('Notifikationsinställningar sparade!');
+            setTimeout(() => { if (!this.destroy$.closed) this.notificationSettingsSaved = false; }, 3000);
           } else {
             this.notificationSettingsError = res?.error || 'Kunde inte spara inställningar';
           }
@@ -923,9 +951,14 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // ========== Dagsmål-historik ==========
+  changeGoalHistoryPeriod(days: number) {
+    this.goalHistoryPeriod = days;
+    this.loadGoalHistory();
+  }
+
   loadGoalHistory() {
     this.goalHistoryLoading = true;
-    this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=goal-history&days=180', { withCredentials: true })
+    this.http.get<any>(`/noreko-backend/api.php?action=rebotling&run=goal-history&days=${this.goalHistoryPeriod}`, { withCredentials: true })
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe(res => {
         this.goalHistoryLoading = false;
@@ -938,7 +971,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
 
   buildGoalHistoryChart() {
     const canvas = document.getElementById('goalHistoryChart') as HTMLCanvasElement | null;
-    if (!canvas || this.goalHistory.length < 2) return;
+    if (!canvas || this.goalHistory.length < 1) return;
 
     try { this.goalHistoryChart?.destroy(); } catch (e) {}
 
@@ -949,29 +982,48 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     });
     const values = this.goalHistory.map((h: any) => h.value);
 
+    // Nuvarande mål = senaste värdet
+    const currentGoal = values.length > 0 ? values[values.length - 1] : null;
+
+    // Markera nuvarande mål med en horisontell linje (annotation via extra dataset)
+    const datasets: any[] = [{
+      label: 'Dagsmål (IBC/dag)',
+      data: values,
+      borderColor: '#f6ad55',
+      backgroundColor: 'rgba(246,173,85,0.12)',
+      borderWidth: 2,
+      pointRadius: 5,
+      pointBackgroundColor: '#f6ad55',
+      stepped: true,
+      fill: true,
+    }];
+
+    // Lägg till en horisontell referenslinje för nuvarande mål
+    if (currentGoal !== null && values.length > 1) {
+      datasets.push({
+        label: `Nuvarande mål: ${currentGoal} IBC`,
+        data: labels.map(() => currentGoal),
+        borderColor: '#63b3ed',
+        borderWidth: 1,
+        borderDash: [6, 4],
+        pointRadius: 0,
+        fill: false,
+      });
+    }
+
     this.goalHistoryChart = new Chart(canvas, {
       type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Dagsmål (IBC/dag)',
-          data: values,
-          borderColor: '#f6ad55',
-          backgroundColor: 'rgba(246,173,85,0.12)',
-          borderWidth: 2,
-          pointRadius: 5,
-          pointBackgroundColor: '#f6ad55',
-          stepped: true,
-          fill: true,
-        }]
-      },
+      data: { labels, datasets },
       options: {
         responsive: true,
         plugins: {
           legend: { labels: { color: '#e2e8f0' } },
           tooltip: {
             callbacks: {
-              label: (ctx: any) => `Mål: ${ctx.parsed.y} IBC/dag`
+              label: (ctx: any) => {
+                if (ctx.datasetIndex === 1) return `Nuvarande mål: ${ctx.parsed.y} IBC/dag`;
+                return `Mål: ${ctx.parsed.y} IBC/dag`;
+              }
             }
           }
         },
