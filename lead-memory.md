@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-04 (session #6)*
+*Senast uppdaterad: 2026-03-05 (session #7)*
 
 ---
 
@@ -304,8 +304,8 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-04 session #6)
-*(Session #6: Batch 1 klar 3/3, Batch 2 klar 2/2. Total: 5 workers, 2 features + 3 fixes/perf.)*
+## AKTIVA AGENTER (session 2026-03-05 session #7)
+*(Session #7: Behovsanalys genomförd — 30+ oparade endpoints, 64 HTTP-anrop utan error-handling, login.ts memory leak. Startar 3 workers.)*
 
 ---
 
@@ -446,6 +446,11 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - QR-kod per tank: scanna → se hela historiken för just den tanken
 - Flödesanalys: visualisera IBC-flödet genom hela anläggningen (in → tvätt → ut)
 - Kundportal: extern vy för kunder (kräver auth + sub-domain)
+- Hållbarhetsscore per period: liter vatten, kemikalieförbrukning, uppskattad CO₂-ekvivalent per IBC
+- Prediktiv produktionsprognos: historisk data → forecast-widget, flagga om ordervolym > kapacitet
+- Omtvätt-analysator: rotorsaksregistrering vid omtvätt → Pareto-diagram (redan delvis i kassationsanalys)
+- Operator-achievement badges: visuella milstolpar (100 IBC, 500 IBC, 1000 IBC, perfekt vecka etc.)
+- Daily Challenge-widget på andon: "Nå 15 IBC/h före lunch!" med progress-bar
 
 ---
 
@@ -563,6 +568,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-04 session #5**: Session #4 batch 2 komplett (Skiftplan+Benchmarking). 6 workers körda i 2 batches: Prediktivt underhåll körningsbaserat (`a2ce35d`), IBC-kvalitets deep-dive (`e6a5bb2`), Bug Hunt #13 (`398b6e5` — 4 buggar), Live-ranking admin-konfig (`47dad04`), Skiftbyte-PDF (`e423f75`), Bonus What-if förbättring. Totalt 6 features + 4 bugfixar. Backlogen fylld på — push-notiser och energieffektivitet kvar som öppna.
 **2026-03-04 session #6**: Backlog var nere i 2 items (push-notiser, energi-vy). Kodbasanalys (15 fynd) + MES-research (7 idéer) genererade 12 nya backlog-items. Nyckel-fynd: LoginController helt utan try-catch, ~100 RebotlingController catch-block returnerar HTTP 200 vid fel, users.ts/operators.ts saknar timeout/catchError, maintenance cost-data och operatörsstämning redan finns i backend men visas inte i exec dashboard. Startar 3 workers: Bug Hunt #14 (felhantering), Exec Dashboard (underhållskostnad+stämning), Users Admin UX.
 **2026-03-04 session #5 (orig)**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
+**2026-03-05 session #7**: Behovsanalys avslöjade 30+ backend-endpoints utan frontend, 64 HTTP-anrop utan error-handling, login.ts memory leak (saknar ngOnDestroy), RebotlingController 8601 rader. Backlogen tunna (5 öppna items) — fyllde på med 10+ nya items. Startar 3 workers: Bug Hunt #15 (error-handling+login), Operatör×Maskin kompatibilitetsmatris, Oparade endpoints frontend (staffing-warning, monthly-stop-summary, production-rate). MES-research identifierade gamification-trender (daily challenges, achievement badges) + hållbarhets-KPI:er.
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -621,3 +627,24 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **rebotling-statistik authGuard**: Sidan är publik utan guard — utvärdera om authGuard bör läggas till
 - [ ] **Dynamiska effektivitetsmål**: Auto-justera dagsmål baserat på materialtyp/utrustningsstatus
 - [ ] **Bonus rättviseaudit**: "Om maskin A inte haft 3 stopp hade operatör X fått +Y kr" — counterfactual rapport
+
+---
+
+## AKTIV BATCH (2026-03-05 session #7)
+
+### 🔴 Hög prioritet — Workers startas NU
+- [ ] **Bug Hunt #15 — HTTP error-handling + login.ts**: Fixa login.ts saknat ngOnDestroy (memory leak), lägg till timeout/catchError på 64 HTTP-anrop som saknar det. Systematisk grep genom alla .ts-filer.
+- [ ] **Operatör × Maskin kompatibilitetsmatris**: OEE per operatör+maskin-kombination, optimala parningar, heatmap-visualisering. Ny sektion i rebotling-statistik eller operators-sidan.
+- [ ] **Oparade endpoints frontend**: Bygg frontend-UI för befintliga backend-endpoints som saknar frontend: staffing-warning (bemanningsvarning-dashboard), monthly-stop-summary (månatlig stoppsammanfattning), production-rate (realtids IBC/h med targets).
+
+### 🟡 Medium prioritet — Nästa batch
+- [ ] **Skiftöverlämning: Email-notis vid brådskande**: PHP mail() vid brådskande not → admin-adress
+- [ ] **Oparade endpoints batch 2**: alert-thresholds admin UI, notification-settings admin UI, goal-history visualisering
+- [ ] **RebotlingController refactoring**: 8601 rader — split till RebotlingLiveController, RebotlingAdminController, RebotlingAnalyticsController
+
+### 🟢 Lägre prioritet / Idébank
+- [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
+- [ ] **Energieffektivitet-vy**: IBC per kWh, energikostnad per IBC (om data finns)
+- [ ] **Saglinje/Klassificeringslinje service-filer**: Skapa dedikerade Angular services istället för direkta HTTP-anrop i sidorna
+- [ ] **Lösenordshashing-migration**: SHA1(MD5) → bcrypt/argon2 (kräver planerad migration)
+- [ ] **Gamification-utökning**: Daily challenges ("Nå 15 IBC/h före lunch!"), achievement badges, streak-counter på TV-skärmen
