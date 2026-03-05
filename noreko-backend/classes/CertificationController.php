@@ -8,13 +8,10 @@ class CertificationController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
         $run = trim($_GET['run'] ?? '');
         $method = $_SERVER['REQUEST_METHOD'];
 
+        // GET-endpoints som inte behöver session alls
         if ($method === 'GET' && $run === 'all') {
             $this->getAll();
             return;
@@ -23,6 +20,17 @@ class CertificationController {
         if ($method === 'GET' && $run === 'matrix') {
             $this->getMatrix();
             return;
+        }
+
+        // Endpoints som behöver session — använd read_and_close för GET (läser bara session)
+        if ($method === 'GET') {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start(['read_and_close' => true]);
+            }
+        } else {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
         }
 
         if ($method === 'GET' && $run === 'expiry-count') {
