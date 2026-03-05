@@ -1411,8 +1411,7 @@ class BonusAdminController {
 
         } catch (PDOException $e) {
             error_log('BonusAdmin getFairnessAudit error: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Databasfel vid rättviseaudit']);
+            $this->sendError('Databasfel vid rättviseaudit', 500);
         }
     }
 

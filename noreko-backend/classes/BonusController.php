@@ -49,7 +49,7 @@ class BonusController {
         }
 
         if ($method !== 'GET') {
-            $this->sendError('Endast GET- och POST-requests stöds');
+            $this->sendError('Endast GET- och POST-requests stöds', 405);
             return;
         }
 
@@ -1167,8 +1167,7 @@ class BonusController {
     private function getPersonalBest(): void {
         $opId = intval($_GET['operator_id'] ?? 0);
         if (!$opId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Saknar operator_id']);
+            $this->sendError('Saknar operator_id');
             return;
         }
 
@@ -1259,8 +1258,7 @@ class BonusController {
             $stmt3->execute([$opId, $opId, $opId]);
             $bestSkift = $stmt3->fetch(PDO::FETCH_ASSOC);
 
-            echo json_encode([
-                'success'             => true,
+            $this->sendSuccess([
                 'best_ibc_per_h'      => $bestIbcH ? round(floatval($bestIbcH['ibc_per_h']), 1) : null,
                 'best_ibc_per_h_date' => $bestIbcH ? $bestIbcH['dag'] : null,
                 'best_kvalitet'       => $bestKvalitet ? round(floatval($bestKvalitet['kvalitet_pct']), 1) : null,
@@ -1284,8 +1282,7 @@ class BonusController {
     private function getStreak(): void {
         $opId = intval($_GET['operator_id'] ?? 0);
         if (!$opId) {
-            http_response_code(400);
-            echo json_encode(['error' => 'Saknar operator_id']);
+            $this->sendError('Saknar operator_id');
             return;
         }
 
@@ -1349,8 +1346,7 @@ class BonusController {
                 $prevD = $d;
             }
 
-            echo json_encode([
-                'success'        => true,
+            $this->sendSuccess([
                 'current_streak' => $streak,
                 'longest_streak' => $longest,
             ]);
@@ -1370,8 +1366,7 @@ class BonusController {
     private function getAchievements(): void {
         $opId = intval($_GET['operator_id'] ?? 0);
         if (!$opId) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Saknar operator_id']);
+            $this->sendError('Saknar operator_id');
             return;
         }
 
@@ -1580,8 +1575,7 @@ class BonusController {
                 'progress'    => $qualEarned ? 100 : $qualProgress,
             ];
 
-            echo json_encode([
-                'success' => true,
+            $this->sendSuccess([
                 'badges'  => $badges,
                 'total_ibc_lifetime' => $totalIbc,
                 'current_streak'     => $currentStreak,
@@ -1653,6 +1647,7 @@ class BonusController {
         // Sortera tiers fallande efter min_ibc_per_hour så vi matchar bästa tier först
         usort($cleanTiers, fn($a, $b) => $b['min_ibc_per_hour'] <=> $a['min_ibc_per_hour']);
 
+        // $periodStart/$periodEnd validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
         $dateFilter = "DATE(datum) BETWEEN '" . $periodStart . "' AND '" . $periodEnd . "'";
 
         try {
@@ -1890,8 +1885,7 @@ class BonusController {
         }
 
         if (!$sessionOpId || $sessionOpId !== $requestedOpId) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Obehörig: op_id matchar inte inloggad användare']);
+            $this->sendError('Obehörig: op_id matchar inte inloggad användare', 403);
             return;
         }
 
@@ -2227,7 +2221,7 @@ class BonusController {
         $sessionOpId = isset($_SESSION['operator_id']) ? (int)$_SESSION['operator_id'] : null;
 
         if (!$sessionOpId || $sessionOpId <= 0) {
-            echo json_encode(['success' => false, 'error' => 'Inget operator_id kopplat till kontot']);
+            $this->sendError('Inget operator_id kopplat till kontot');
             return;
         }
 
@@ -2279,8 +2273,7 @@ class BonusController {
             $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($all)) {
-                echo json_encode([
-                    'success'          => true,
+                $this->sendSuccess([
                     'my_rank'          => null,
                     'total_operators'  => 0,
                     'my_ibc_per_h'     => null,
@@ -2403,8 +2396,7 @@ class BonusController {
                 error_log('BonusController getRankingPosition trend error: ' . $e->getMessage());
             }
 
-            echo json_encode([
-                'success'         => true,
+            $this->sendSuccess([
                 'my_rank'         => $myRank,
                 'total_operators' => $totalOps,
                 'my_ibc_per_h'    => $myIbcPerH,
@@ -2490,8 +2482,7 @@ class BonusController {
             $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($all)) {
-                echo json_encode([
-                    'success'         => true,
+                $this->sendSuccess([
                     'your_rank'       => null,
                     'total_operators' => 0,
                     'your_ibc_h'      => null,
@@ -2540,8 +2531,7 @@ class BonusController {
                 ];
             }
 
-            echo json_encode([
-                'success'         => true,
+            $this->sendSuccess([
                 'your_rank'       => $yourRank,
                 'total_operators' => $totalOps,
                 'your_ibc_h'      => $yourIbcH,
