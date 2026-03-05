@@ -1,3 +1,12 @@
+## 2026-03-05 Session #10 — Stora refactorings + Bug Hunt
+
+**Planerade workers**:
+1. rebotling-statistik.ts refactoring (4248 rader → child-components med @defer)
+2. maintenance-log.ts refactoring (1817 rader → child-components)
+3. Bug Hunt #18 — granska session #9 commits (36bb854 + 6d203d5)
+
+---
+
 ## 2026-03-05 Session #9 — Refactoring, UX-polish, Mobilanpassning
 
 **Planerade workers**:
