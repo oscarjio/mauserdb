@@ -2127,11 +2127,11 @@ class BonusController {
             if (!empty($opIds)) {
                 $placeholders = implode(',', array_fill(0, count($opIds), '?'));
                 $nameStmt = $this->pdo->prepare("
-                    SELECT id, namn FROM operators WHERE id IN ($placeholders)
+                    SELECT id, name FROM operators WHERE id IN ($placeholders)
                 ");
                 $nameStmt->execute(array_values($opIds));
                 foreach ($nameStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $opNames[(int)$row['id']] = $row['namn'];
+                    $opNames[(int)$row['id']] = $row['name'];
                 }
             }
 

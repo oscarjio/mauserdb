@@ -247,12 +247,14 @@ class RebotlingController {
             } elseif ($action === 'send-weekly-summary') {
                 $this->analyticsController->sendWeeklySummaryEmail();
             } else {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
             return;
         }
 
         // Om ingen matchande metod finns
+        http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
     }
 
