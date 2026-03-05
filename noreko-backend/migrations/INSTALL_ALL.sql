@@ -215,9 +215,8 @@ INSERT IGNORE INTO klassificeringslinje_weekday_goals (weekday, mal) VALUES
 -- ============================================================
 -- 2026-03-04_live_ranking_config.sql
 -- ============================================================
-INSERT INTO rebotling_settings (`key`, `value`) VALUES
-    ('live_ranking_config', '{"columns":{"ibc_per_hour":true,"quality_pct":true,"bonus_level":false,"goal_progress":true,"ibc_today":true},"sort_by":"ibc_per_hour","refresh_interval":30}')
-ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
+-- OBS: live_ranking_config sparas inte i rebotling_settings (enrads-config utan key/value-kolumner)
+-- Denna inställning hanteras av frontend-konfiguration
 
 -- ============================================================
 -- 2026-03-04_maintenance_log.sql
@@ -365,11 +364,8 @@ INSERT IGNORE INTO saglinje_weekday_goals (weekday, mal) VALUES
 -- ============================================================
 -- 2026-03-04_service_interval.sql + service_intervals.sql
 -- ============================================================
-INSERT IGNORE INTO rebotling_settings (`key`, `value`) VALUES
-  ('service_interval_ibc',   '5000'),
-  ('last_service_ibc_total', '0'),
-  ('last_service_at',        NULL),
-  ('last_service_note',      NULL);
+-- OBS: service_interval-inställningar hanteras via service_intervals-tabellen nedan
+-- (rebotling_settings är en enrads-config utan key/value-kolumner)
 
 CREATE TABLE IF NOT EXISTS service_intervals (
     id INT AUTO_INCREMENT PRIMARY KEY,
