@@ -370,7 +370,9 @@ class AndonController {
                 $stmt->execute();
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($row) $malIdag = intval($row['value']);
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                error_log('AndonController getDailyChallenge dagmal: ' . $e->getMessage());
+            }
 
             // Hämta dagens IBC
             $stmt = $this->pdo->prepare("

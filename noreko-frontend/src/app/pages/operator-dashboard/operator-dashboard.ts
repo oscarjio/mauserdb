@@ -770,6 +770,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
   // ================================================================
 
   loadFeedbackSummary(): void {
+    if (this.feedbackLoading) return;
     this.feedbackLoading = true;
     this.http.get<any>('/noreko-backend/api.php?action=feedback&run=summary', { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
