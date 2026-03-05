@@ -2,7 +2,6 @@
 -- INSTALL_ALL.sql
 -- Samlade migreringar för mauserdb — kör denna enda fil
 -- Genererad: 2026-03-05
--- OBS: Hoppar över bcrypt-migrering (lösenord använder sha1/md5)
 -- Säkert att köra flera gånger (IF NOT EXISTS / INSERT IGNORE)
 -- ============================================================
 
@@ -122,6 +121,9 @@ ALTER TABLE bonus_payouts
   ADD COLUMN IF NOT EXISTS approved_by INT NULL AFTER status,
   ADD COLUMN IF NOT EXISTS approved_at DATETIME NULL AFTER approved_by,
   ADD COLUMN IF NOT EXISTS paid_at DATETIME NULL AFTER approved_at;
+
+ALTER TABLE bonus_payouts
+  ADD INDEX IF NOT EXISTS idx_status (status);
 
 -- ============================================================
 -- 2026-03-04_certifications.sql
@@ -487,12 +489,6 @@ CREATE TABLE IF NOT EXISTS tvattlinje_settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Om tabellen existerar med gammalt schema (antal_per_dag etc), lägg till de nya kolumnerna
-ALTER TABLE tvattlinje_settings
-  ADD COLUMN IF NOT EXISTS setting VARCHAR(100) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS value VARCHAR(255) DEFAULT NULL,
-  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
-
 INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES
   ('dagmal','80'),('takt_mal','15'),('skift_start','06:00'),('skift_slut','22:00'),
   ('alert_thresholds','{"kvalitet_warn":90,"plc_max_min":15,"dagmal_warn_pct":80}');
@@ -510,6 +506,11 @@ CREATE TABLE IF NOT EXISTS tvattlinje_weekday_goals (
 
 INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES
   (0,80),(1,80),(2,80),(3,80),(4,80),(5,60),(6,0);
+
+-- ============================================================
+-- 2026-03-05_password_bcrypt.sql
+-- ============================================================
+ALTER TABLE `users` MODIFY COLUMN `password` VARCHAR(255) NOT NULL;
 
 -- ============================================================
 SET FOREIGN_KEY_CHECKS = 1;
