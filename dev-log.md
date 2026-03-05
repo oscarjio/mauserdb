@@ -1,3 +1,39 @@
+## 2026-03-05 Bug Hunt #16 — Session #8 granskning
+
+**Scope**: 4 commits (572f326, 8389d09, 0af052d, 60c5af2), 24 ändrade filer.
+
+**Granskade filer (TypeScript)**:
+- stoppage-log.ts — 6 buggar hittade och fixade (se nedan)
+- andon.ts — Ren: alla HTTP-anrop har timeout/catchError/takeUntil, alla intervall städas i ngOnDestroy, Chart.js destroy i try-catch
+- bonus-dashboard.ts — Ren: manuell subscription-tracking med unsubscribe i ngOnDestroy
+- create-user.ts — Ren
+- executive-dashboard.ts — Ren: manuell subscription-tracking (dataSub/linesSub), timers städas
+- klassificeringslinje-skiftrapport.ts — Ren
+- login.ts — Ren
+- my-bonus.ts — Ren: alla HTTP-anrop har timeout/catchError/takeUntil, Chart.js destroy i try-catch
+- rebotling-skiftrapport.ts — Ren
+- register.ts — Ren: redirectTimerId städas i ngOnDestroy
+- saglinje-skiftrapport.ts — Ren
+- tvattlinje-skiftrapport.ts — Ren
+- rebotling.service.ts — Ren: service-lager utan subscriptions
+
+**Granskade filer (PHP)**:
+- AndonController.php — Ren: prepared statements, http_response_code(500) i catch, publik endpoint (ingen auth krävs)
+- BonusController.php — Ren: session_start(['read_and_close']) + auth-check, prepared statements, input-validering
+- RebotlingController.php — Ren: prepared statements, korrekt felhantering
+
+**Fixade buggar (stoppage-log.ts)**:
+1. `loadReasons()` — saknande `timeout(8000)` och `catchError()`
+2. `loadStoppages()` — saknande `timeout(8000)` och `catchError()`
+3. `loadWeeklySummary()` — saknande `timeout(8000)` och `catchError()`
+4. `loadStats()` — saknande `timeout(8000)` och `catchError()`
+5. `addStoppage()` (create-anrop) — saknande `timeout(8000)` och `catchError()`, redundant `error:`-handler borttagen
+6. `deleteStoppage()` — saknande `timeout(8000)` och `catchError()`
+
+**Build**: `npx ng build` — OK (inga fel, enbart warnings)
+
+---
+
 ## 2026-03-05 Worker: VD Veckosammanfattning-email
 
 **Backend (RebotlingController.php)**:

@@ -236,7 +236,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadReasons() {
-    this.stoppageService.getReasons().pipe(takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.getReasons().pipe(timeout(8000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) this.reasons = res.data;
       }
@@ -244,7 +244,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadStoppages() {
-    this.stoppageService.getStoppages(this.selectedLine, this.selectedPeriod).pipe(takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.getStoppages(this.selectedLine, this.selectedPeriod).pipe(timeout(8000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) this.stoppages = res.data;
         this.loading = false;
@@ -254,7 +254,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadWeeklySummary() {
-    this.stoppageService.getWeeklySummary(this.selectedLine).pipe(takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.getWeeklySummary(this.selectedLine).pipe(timeout(8000), catchError(() => of({ success: false, data: null })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.weeklySummary = res.data;
@@ -269,7 +269,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   loadStats() {
-    this.stoppageService.getStats(this.selectedLine, this.selectedPeriod).pipe(takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.getStats(this.selectedLine, this.selectedPeriod).pipe(timeout(8000), catchError(() => of({ success: false, data: null })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.stats = res.data;
@@ -398,7 +398,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.stoppageService.create(this.newEntry).pipe(takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.create(this.newEntry).pipe(timeout(8000), catchError((err) => of({ success: false, message: err?.error?.message || 'Ett fel uppstod' })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Stoppost registrerad');
@@ -413,14 +413,13 @@ export class StoppageLogPage implements OnInit, OnDestroy {
         } else {
           this.errorMessage = res.message || 'Kunde inte registrera';
         }
-      },
-      error: (err) => this.errorMessage = err.error?.message || 'Ett fel uppstod'
+      }
     });
   }
 
   deleteStoppage(id: number) {
     if (!confirm('Är du säker på att du vill ta bort denna stoppost?')) return;
-    this.stoppageService.delete(id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.stoppageService.delete(id).pipe(timeout(8000), catchError(() => of({ success: false })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.stoppages = this.stoppages.filter(s => s.id !== id);
