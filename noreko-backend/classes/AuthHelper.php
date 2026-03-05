@@ -10,10 +10,18 @@ class AuthHelper {
     private const LOCKOUT_MINUTES = 15;
 
     /**
-     * Verify password using sha1(md5()) hash.
+     * Verify password. Primary: sha1(md5()). Fallback: bcrypt (legacy, read-only).
+     * Nya lösenord hashas alltid som sha1(md5()) — bcrypt används aldrig för nya lösenord.
      */
     public static function verifyPassword(string $password, string $storedHash, ?PDO $pdo = null, ?int $userId = null): bool {
-        return $storedHash === sha1(md5($password));
+        if ($storedHash === sha1(md5($password))) {
+            return true;
+        }
+        // Fallback för befintliga bcrypt-konton (läs-only, inga nya bcrypt-hash skapas)
+        if (strlen($storedHash) === 60 && str_starts_with($storedHash, '$2')) {
+            return password_verify($password, $storedHash);
+        }
+        return false;
     }
 
     /**
