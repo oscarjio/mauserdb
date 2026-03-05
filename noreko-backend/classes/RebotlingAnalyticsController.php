@@ -3123,7 +3123,18 @@ class RebotlingAnalyticsController {
                         SUM(shift_ibc_ok)    AS dag_ibc,
                         SUM(shift_runtime)   AS dag_runtime,
                         SUM(shift_rast)      AS dag_rast,
-                        SUM(shift_ibc_ej_ok) AS dag_ibc_ej_ok
+                        SUM(shift_ibc_ej_ok) AS dag_ibc_ej_ok,
+                        CASE
+                            WHEN SUM(shift_runtime) > 0 THEN
+                                ROUND(
+                                    LEAST(SUM(shift_runtime) / GREATEST(SUM(shift_runtime) + SUM(shift_rast), 1), 1.0)
+                                    * LEAST((SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok)) / SUM(shift_runtime) / (15.0 / 60.0), 1.0)
+                                    * CASE WHEN (SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok)) > 0
+                                           THEN SUM(shift_ibc_ok) / (SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok))
+                                           ELSE 0 END
+                                    * 100, 1)
+                            ELSE NULL
+                        END AS dag_oee
                     FROM (
                         SELECT
                             DATE(datum)                           AS dag,
@@ -3214,7 +3225,7 @@ class RebotlingAnalyticsController {
             error_log('RebotlingController getStoppageAnalysis check: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
-                'success' => true,
+                'success' => false,
                 'empty'   => true,
                 'reason'  => 'Kunde inte kontrollera tabeller.',
                 'by_day'  => [],
@@ -3340,7 +3351,7 @@ class RebotlingAnalyticsController {
             error_log('RebotlingController getStoppageAnalysis: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
-                'success'      => true,
+                'success'      => false,
                 'empty'        => true,
                 'reason'       => 'Databasfel vid hämtning av stoppdata.',
                 'by_day'       => [],
@@ -3491,7 +3502,7 @@ class RebotlingAnalyticsController {
             error_log('RebotlingController getParetoStoppage check: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
-                'success'       => true,
+                'success'       => false,
                 'empty'         => true,
                 'reason'        => 'Kunde inte kontrollera tabeller.',
                 'items'         => [],
@@ -3568,7 +3579,7 @@ class RebotlingAnalyticsController {
             error_log('RebotlingController getParetoStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
-                'success'       => true,
+                'success'       => false,
                 'empty'         => true,
                 'reason'        => 'Databasfel vid hämtning av paretodata.',
                 'items'         => [],
