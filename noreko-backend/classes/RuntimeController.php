@@ -37,6 +37,7 @@ class RuntimeController {
             return;
         }
 
+        http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
     }
 
@@ -50,6 +51,7 @@ class RuntimeController {
             $rast = isset($_GET['rast']) ? (int)$_GET['rast'] : null;
 
             if (!$line || $rast === null) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Parametrar saknas: line och rast krävs'
@@ -60,6 +62,7 @@ class RuntimeController {
             // Validera line
             $validLines = ['tvattlinje', 'rebotling'];
             if (!in_array($line, $validLines)) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line. Måste vara: tvattlinje eller rebotling'
@@ -111,6 +114,7 @@ class RuntimeController {
             }
         } catch (Exception $e) {
             error_log('registerBreakFromShelly: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast']);
         }
     }
@@ -126,6 +130,7 @@ class RuntimeController {
             $rastStatus = isset($data['rast_status']) ? (int)$data['rast_status'] : null;
 
             if (!$line || $rastStatus === null) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'line och rast_status krävs'
@@ -135,6 +140,7 @@ class RuntimeController {
 
             $validLines = ['tvattlinje', 'rebotling'];
             if (!in_array($line, $validLines)) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line'
@@ -159,6 +165,7 @@ class RuntimeController {
             ]);
         } catch (Exception $e) {
             error_log('registerBreak: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast']);
         }
     }
@@ -172,6 +179,7 @@ class RuntimeController {
             $line = $_GET['line'] ?? null;
 
             if (!$line) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Parameter line saknas'
@@ -181,6 +189,7 @@ class RuntimeController {
 
             $validLines = ['tvattlinje', 'rebotling'];
             if (!in_array($line, $validLines)) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line'
@@ -201,6 +210,7 @@ class RuntimeController {
             ]);
         } catch (Exception $e) {
             error_log('getTodayBreakTime: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rasttid']);
         }
     }
@@ -215,6 +225,7 @@ class RuntimeController {
             $period = $_GET['period'] ?? 'today';
 
             if (!$line) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Parameter line saknas'
@@ -224,6 +235,7 @@ class RuntimeController {
 
             $validLines = ['tvattlinje', 'rebotling'];
             if (!in_array($line, $validLines)) {
+                http_response_code(400);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line'
@@ -244,6 +256,7 @@ class RuntimeController {
             ]);
         } catch (Exception $e) {
             error_log('getBreakStats: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik']);
         }
     }

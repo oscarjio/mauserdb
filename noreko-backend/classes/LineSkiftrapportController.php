@@ -14,8 +14,14 @@ class LineSkiftrapportController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
+        }
         $line = strtolower(trim($_GET['line'] ?? ''));
 
         if (!in_array($line, self::$allowedLines, true)) {
@@ -121,7 +127,8 @@ class LineSkiftrapportController {
 
     private function ensureTable($table) {
         try {
-            $stmt = $this->pdo->query("SHOW TABLES LIKE '$table'");
+            $stmt = $this->pdo->prepare("SHOW TABLES LIKE ?");
+            $stmt->execute([$table]);
             if ($stmt->rowCount() === 0) {
                 $sql = "CREATE TABLE IF NOT EXISTS `$table` (
                     `id`         INT NOT NULL AUTO_INCREMENT,
@@ -149,7 +156,7 @@ class LineSkiftrapportController {
 
     private function getReports($table) {
         try {
-            $stmt = $this->pdo->query("
+            $stmt = $this->pdo->prepare("
                 SELECT r.id, r.datum, r.antal_ok, r.antal_ej_ok, r.totalt,
                        r.kommentar, r.inlagd, r.user_id, r.created_at, r.updated_at,
                        u.username AS user_name
@@ -157,6 +164,7 @@ class LineSkiftrapportController {
                 LEFT JOIN users u ON r.user_id = u.id
                 ORDER BY r.datum DESC, r.id DESC
             ");
+            $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(['success' => true, 'data' => $results]);
         } catch (PDOException $e) {

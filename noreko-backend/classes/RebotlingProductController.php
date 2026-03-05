@@ -10,13 +10,12 @@ class RebotlingProductController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $action = trim($_GET['run'] ?? '');
 
         // Write operations require admin
         if ($method !== 'GET') {
+            if (session_status() === PHP_SESSION_NONE) session_start();
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
@@ -59,6 +58,7 @@ class RebotlingProductController {
             ]);
         } catch (Exception $e) {
             error_log('Kunde inte hämta produkter: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta produkter'
@@ -70,6 +70,7 @@ class RebotlingProductController {
         $data = json_decode(file_get_contents('php://input'), true);
         
         if (!isset($data['name']) || !isset($data['cycle_time_minutes'])) {
+            http_response_code(400);
             echo json_encode([
                 'success' => false,
                 'error' => 'Namn och cykeltid krävs'
@@ -96,6 +97,7 @@ class RebotlingProductController {
             ]);
         } catch (Exception $e) {
             error_log('Kunde inte skapa produkt: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte skapa produkt'
@@ -107,6 +109,7 @@ class RebotlingProductController {
         $data = json_decode(file_get_contents('php://input'), true);
         
         if (!isset($data['id']) || !isset($data['name']) || !isset($data['cycle_time_minutes'])) {
+            http_response_code(400);
             echo json_encode([
                 'success' => false,
                 'error' => 'ID, namn och cykeltid krävs'
@@ -131,6 +134,7 @@ class RebotlingProductController {
                     ]
                 ]);
             } else {
+                http_response_code(404);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Produkt hittades inte'
@@ -138,6 +142,7 @@ class RebotlingProductController {
             }
         } catch (Exception $e) {
             error_log('Kunde inte uppdatera produkt: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte uppdatera produkt'
@@ -149,6 +154,7 @@ class RebotlingProductController {
         $data = json_decode(file_get_contents('php://input'), true);
         
         if (!isset($data['id'])) {
+            http_response_code(400);
             echo json_encode([
                 'success' => false,
                 'error' => 'Produkt ID krävs'
@@ -169,6 +175,7 @@ class RebotlingProductController {
                     'message' => 'Produkt borttagen'
                 ]);
             } else {
+                http_response_code(404);
                 echo json_encode([
                     'success' => false,
                     'error' => 'Produkt hittades inte'
@@ -176,6 +183,7 @@ class RebotlingProductController {
             }
         } catch (Exception $e) {
             error_log('Kunde inte ta bort produkt: ' . $e->getMessage());
+            http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte ta bort produkt'

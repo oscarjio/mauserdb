@@ -335,7 +335,7 @@ class ShiftHandoverController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
             return;
         }
 
@@ -343,7 +343,7 @@ class ShiftHandoverController {
         $id   = intval($data['id'] ?? $_POST['id'] ?? 0);
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['error' => 'Saknar id']);
+            echo json_encode(['success' => false, 'error' => 'Saknar id']);
             return;
         }
 
@@ -462,7 +462,7 @@ class ShiftHandoverController {
 
     private function sendUrgentNotification(string $noteText): void {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['read_and_close' => true]);
         }
         $adminEmails = $this->getAdminEmails();
         if (empty($adminEmails)) {
