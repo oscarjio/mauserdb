@@ -142,6 +142,7 @@
   .card-body .row .col-md-6 {
     margin-bottom: 1rem;
   }
+  .table-responsive { font-size: 0.85rem; }
 }
 
 /* Animation for status indicators */

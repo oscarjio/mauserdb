@@ -111,7 +111,7 @@
     </div>
 
     <div class="row g-3" *ngIf="systemStats">
-      <div class="col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card">
           <div class="card-body text-center">
             <h6>Max Bonus</h6>
@@ -119,7 +119,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card">
           <div class="card-body text-center">
             <h6>Min Bonus</h6>
@@ -127,7 +127,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card">
           <div class="card-body text-center">
             <h6>Snittbonus</h6>
@@ -162,7 +162,7 @@
   <!-- ========== VIKTNINGAR ========== -->
   <div *ngIf="activeTab === 'weights'">
     <div class="row g-4">
-      <div class="col-md-4" *ngFor="let produktId of [1, 4, 5]">
+      <div class="col-12 col-md-4" *ngFor="let produktId of [1, 4, 5]">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">{{ getProductName(produktId) }}</h6>
@@ -245,7 +245,7 @@
       </div>
       <div class="card-body">
         <div class="row g-4">
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <div class="target-card">
               <h6>FoodGrade</h6>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.foodgrade }} <small>IBC/h</small></div>
@@ -254,7 +254,7 @@
               <small class="text-muted">Högre kvalitetskrav, lägre volym</small>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <div class="target-card">
               <h6>NonUN</h6>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.nonun }} <small>IBC/h</small></div>
@@ -263,7 +263,7 @@
               <small class="text-muted">Volymproduktion</small>
             </div>
           </div>
-          <div class="col-md-4">
+          <div class="col-12 col-md-4">
             <div class="target-card">
               <h6>Tvättade IBC</h6>
               <div *ngIf="!editingTargets" class="target-value">{{ targetsForm.tvattade }} <small>IBC/h</small></div>
@@ -318,13 +318,13 @@
         </div>
         <div *ngIf="editingWeeklyGoal">
           <div class="row g-3 align-items-end">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label">Veckobonusmål (poäng)</label>
               <input type="number" class="form-control" step="1" min="1" max="200"
                      [(ngModel)]="weeklyGoalForm">
               <small class="text-muted">1–200 poäng. Tier-gränser: 70, 80, 90, 95</small>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="goal-preview-card">
                 <div class="small text-muted mb-1">Valt mål motsvarar</div>
                 <div class="fw-bold" [ngClass]="getBonusClass(weeklyGoalForm)">{{ getWeeklyGoalTierName() }}</div>
@@ -532,7 +532,7 @@
       <div class="mb-4">
         <h6 class="text-muted small text-uppercase mb-2"><i class="fas fa-magic me-1"></i>Snabbscenarier</h6>
         <div class="row g-3">
-          <div class="col-md-4" *ngFor="let preset of simPresets">
+          <div class="col-12 col-md-4" *ngFor="let preset of simPresets">
             <div class="sim-preset-card"
                  [class.sim-preset-active]="simActivePreset === preset.name"
                  (click)="applyPreset(preset)">
@@ -546,7 +546,7 @@
 
       <div class="row g-4">
         <!-- Vänster panel: Inställningar -->
-        <div class="col-lg-5">
+        <div class="col-12 col-lg-5">
           <div class="card h-100">
             <div class="card-header">
               <h6 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Simuleringsparametrar</h6>
@@ -633,7 +633,7 @@
         </div>
 
         <!-- Höger panel: Resultat -->
-        <div class="col-lg-7">
+        <div class="col-12 col-lg-7">
           <div class="card h-100">
             <div class="card-header">
               <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Simuleringsresultat</h6>
@@ -746,7 +746,7 @@
       <div class="row g-4">
 
         <!-- Vänster: Nuvarande (Baseline) -->
-        <div class="col-lg-6">
+        <div class="col-12 col-lg-6">
           <div class="card">
             <div class="card-header">
               <h6 class="mb-0"><i class="fas fa-check-circle me-2 text-muted"></i>Nuvarande parametrar (baslinje)</h6>
@@ -778,7 +778,7 @@
         </div>
 
         <!-- Höger: Nytt förslag -->
-        <div class="col-lg-6">
+        <div class="col-12 col-lg-6">
           <div class="card" style="border-color: #4299e1;">
             <div class="card-header" style="border-bottom-color: #4299e1;">
               <h6 class="mb-0"><i class="fas fa-edit me-2 text-info"></i>Nytt förslag</h6>
@@ -851,19 +851,19 @@
 
           <!-- Totalkostnad diff-kort -->
           <div class="row g-3 mb-4">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="sim-kpi-card">
                 <div class="sim-kpi-label">Nuvarande totalkostnad</div>
                 <div class="sim-kpi-value sim-animated-number text-muted">{{ simBaselineResult.total_cost | number }} kr</div>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="sim-kpi-card">
                 <div class="sim-kpi-label">Ny totalkostnad</div>
                 <div class="sim-kpi-value sim-animated-number text-info">{{ simResult.total_cost | number }} kr</div>
               </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="sim-cost-diff-card" [class.sim-diff-positive]="simCostDiff > 0" [class.sim-diff-negative]="simCostDiff < 0">
                 <div class="sim-kpi-label">Skillnad</div>
                 <div class="sim-cost-diff-value sim-animated-number">
@@ -1535,21 +1535,21 @@
 
       <!-- Sammanfattningskort -->
       <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Total förlorad bonus pga stopp</div>
             <div class="audit-summary-value text-warning">{{ formatSek(auditResult.summary.total_lost_bonus_kr) }}</div>
             <div class="audit-summary-sub">{{ auditResult.summary.total_stoppages }} stoppregistreringar</div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Mest drabbad operatör</div>
             <div class="audit-summary-value" style="color: #fc8181;">{{ auditResult.summary.most_affected || 'Ingen' }}</div>
             <div class="audit-summary-sub">Högst bonusdiff</div>
           </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Total stopptid</div>
             <div class="audit-summary-value" style="color: #ed8936;">{{ auditResult.summary.total_stop_hours }} h</div>

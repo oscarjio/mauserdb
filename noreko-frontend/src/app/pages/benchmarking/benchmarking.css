@@ -440,6 +440,10 @@
 }
 
 /* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .table-responsive { font-size: 0.85rem; }
+}
+
 @media (max-width: 576px) {
   .benchmarking-page {
     padding: 1rem;

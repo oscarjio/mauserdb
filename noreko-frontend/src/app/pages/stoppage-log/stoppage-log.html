@@ -33,28 +33,28 @@
 
     <!-- KPI Cards -->
     <div class="row mb-3">
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon"><i class="fas fa-stop-circle"></i></div>
           <div class="kpi-value">{{ stoppages.length }}</div>
           <div class="kpi-label">Antal stopp (vald period)</div>
         </div>
       </div>
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-icon-red"><i class="fas fa-clock"></i></div>
           <div class="kpi-value">{{ formatDuration(getTotalDowntime()) }}</div>
           <div class="kpi-label">Total stopptid</div>
         </div>
       </div>
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-icon-orange"><i class="fas fa-bolt"></i></div>
           <div class="kpi-value">{{ getUnplannedCount() }}</div>
           <div class="kpi-label">Oplanerade stopp</div>
         </div>
       </div>
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-icon-green"><i class="fas fa-ruler"></i></div>
           <div class="kpi-value">{{ getAvgDuration() > 0 ? getAvgDuration() + ' min' : '—' }}</div>
@@ -66,7 +66,7 @@
     <!-- Weekly summary row -->
     <div class="row mb-4" *ngIf="weeklySummary">
       <!-- Denna vecka -->
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card kpi-card-week">
           <div class="kpi-week-label">Denna vecka</div>
           <div class="kpi-value">{{ weeklySummary.this_week.count }}</div>
@@ -79,7 +79,7 @@
           </div>
         </div>
       </div>
-      <div class="col-lg-3 col-md-6 mb-3">
+      <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card kpi-card-week">
           <div class="kpi-week-label">Denna vecka</div>
           <div class="kpi-value">{{ formatDuration(weeklySummary.this_week.total_minutes) }}</div>

@@ -436,4 +436,5 @@
   .heatmap-cell        { width: 28px; height: 24px; font-size: 0.52rem; }
   .heatmap-label       { width: 44px; font-size: 0.6rem; }
   .nav-pills .nav-link { font-size: 0.75rem; padding: 0.3rem 0.6rem; }
+  .table-responsive { font-size: 0.85rem; }
 }
