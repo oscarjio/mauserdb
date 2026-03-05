@@ -1,3 +1,17 @@
+## 2026-03-05 Session #16 — Bug Hunt #22 + API-kontraktsvalidering (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #22** (6 filer granskade, 1 bugg fixad):
+- **MaintenanceController.php**: `getEquipmentStats()` — `(m.deleted_at IS NULL OR 1=1)` villkor var alltid sant, vilket innebar att soft-deleted poster inkluderades i utrustningsstatistik. Fixat till `m.deleted_at IS NULL` — FIXAD
+- **HistorikController.php**: OK — prepared statements korrekt, catch-blocks har http_response_code(500), inga auth-problem (avsiktligt publik endpoint)
+- **bonus-admin.ts**: OK — alla HTTP-anrop har takeUntil(destroy$), timeout(), catchError(). Alla setTimeout-ID:n spåras och rensas i ngOnDestroy
+- **kalender.ts**: Fil existerar ej — SKIPPED
+- **notification-center.ts**: Fil existerar ej, ingen notifikationskomponent i navbar — SKIPPED
+- **maintenance-log.ts** + **service-intervals.component.ts**: OK — destroy$ korrekt, alla HTTP med takeUntil/timeout/catchError, successTimer rensas i ngOnDestroy
+
+**Plan**: Worker 2 — End-to-end API-kontraktsvalidering (frontend service-anrop vs backend endpoints).
+
+---
+
 ## 2026-03-05 Session #15 — Bug Hunt #21 + INSTALL_ALL validering (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #21** (12 filer granskade, 2 buggar fixade):
