@@ -124,9 +124,21 @@ Commit: 0af052d — bygge OK, pushad.
 
 ---
 
-## 2026-03-05 session #8 — Lead: Session #7 komplett, 3 nya workers
+## 2026-03-05 session #8 — Lead: Session #7 komplett, 8 commits i 2 batchar
 
-**Analys**: Session #7 alla 3 workers klara. Operatör×Maskin committat (6b34381), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Startar 3 workers: (1) Commit+bygg session #7 ändringar, (2) Oparade endpoints batch 2 (alert-thresholds admin UI, notification-settings admin UI, goal-history visualisering), (3) Gamification (achievement badges, daily challenges, streak-counter).
+**Analys**: Session #7 alla 3 workers klara. Operatör×Maskin committat (6b34381), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer).
+
+**Batch 1** (3 workers):
+- Commit+bygg session #7: `572f326` (Bug Hunt #15) + `8389d09` (Oparade endpoints frontend) — TS-interface-fixar, bygge OK
+- Oparade endpoints batch 2: `0af052d` — Alert Thresholds admin UI, Notification Settings (5 event-toggles), Goal History (Chart.js linjegraf, periodväljare 3/6/12 mån)
+- Gamification: `60c5af2` — 10 achievement badges i my-bonus, daglig utmaning i andon med progress-bar
+
+**Batch 2** (3 workers):
+- Bug Hunt #16: `348ee07` — 6 buggar i stoppage-log.ts (timeout/catchError saknade), 24 filer granskade
+- Bonus rättviseaudit: `9e54e8d` — counterfactual rapport, simulerings-endpoint, ny flik i bonus-admin
+- VD Veckosammanfattning-email: `eb930e2` — HTML-email med KPI:er, preview+send i executive dashboard, ISO-veckoväljare
+
+**Batch 3** startas: RebotlingController refactoring, Lösenordshashing, Bug Hunt #17.
 
 ---
 
