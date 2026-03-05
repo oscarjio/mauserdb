@@ -1529,7 +1529,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController getEvents: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => true, 'events' => []]);
+            echo json_encode(['success' => false, 'events' => []]);
         }
     }
 
@@ -1939,7 +1939,7 @@ class RebotlingController {
 
 
     private function getAttendance() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         if (($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Åtkomst nekad']);
@@ -2668,7 +2668,7 @@ class RebotlingController {
                 }
             } catch (\Exception $e) {
                 http_response_code(500);
-                echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
+                echo json_encode(['success' => false, 'items' => [], 'fallback' => true]);
                 return;
             }
 

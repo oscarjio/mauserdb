@@ -105,6 +105,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   private fetchSub: Subscription | null = null;
   private updateInterval: any = null;
   private successTimerId: any = null;
+  private trendBuildTimer: any = null;
+  private scrollRestoreTimer: any = null;
 
   constructor(
     private skiftrapportService: SkiftrapportService,
@@ -141,6 +143,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     clearInterval(this.updateInterval);
     clearTimeout(this.successTimerId);
     clearTimeout(this.searchTimer);
+    clearTimeout(this.trendBuildTimer);
+    clearTimeout(this.scrollRestoreTimer);
     this.fetchSub?.unsubscribe();
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
@@ -441,7 +445,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
                 )
               );
               if (tableContainer) {
-                setTimeout(() => {
+                clearTimeout(this.scrollRestoreTimer);
+                this.scrollRestoreTimer = setTimeout(() => {
                   if (!this.destroy$.closed) tableContainer.scrollTop = scrollTop;
                 }, 0);
               }
@@ -1487,7 +1492,10 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       }
       this.trendData = res;
       // Bygg grafen efter att Angular renderat canvas-elementet
-      setTimeout(() => this.buildTrendChart(), 100);
+      clearTimeout(this.trendBuildTimer);
+      this.trendBuildTimer = setTimeout(() => {
+        if (!this.destroy$.closed) this.buildTrendChart();
+      }, 100);
     });
   }
 

@@ -550,7 +550,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }),
       takeUntil(this.destroy$)
     ).subscribe(response => {
-      if (!response || !response.success) return;
+      if (!response || !response.success) { this.loading = false; return; }
       // Spara senaste data så vi kan göra zoom/markering i grafen utan att hämta om
       this.lastStatisticsData = response.data;
       this.updateStatistics(response.data);
