@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #25)*
+*Senast uppdaterad: 2026-03-05 (session #26)*
 
 ---
 
@@ -148,6 +148,23 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-05 (Session #26: mockData-rensning + Bug Hunt #31)
+
+**MockData-fallbacks borttagna (`1127ad1`):**
+- `rebotling-statistik.ts`: Tog bort `loadMockData()` och `generateMockData()` — vid API-fel visas felmeddelande, inte falska siffror
+- `tvattlinje-statistik.ts`: Samma rensning
+- `ProductController.php`: Tom fil (0 bytes) borttagen — refererades inte fran api.php
+
+**Bug Hunt #31 — Float-modulo i tidsformatering (`f8d0a91`, 17 fixar i 7 filer):**
+- `executive-dashboard.ts`: 2 fixar — `formatDuration()`, `formatStopTime()` saknade Math.round pa min%60
+- `stoppage-log.ts`: 7 fixar — `formatMinutes()`, `formatDuration()`, 5 tooltip-callbacks
+- `rebotling-skiftrapport.ts`: 3 fixar — `formatMinutes()`, `formatDrifttid()`, PDF-export
+- `andon.ts`: 2 fixar — `formatSekunder()`, tidsalder-formatering
+- `operator-dashboard.ts`: 1 fix — `minuter()` helper
+- `maintenance-log.helpers.ts`: 2 fixar — `formatDuration()`
+
+**Granskade utan buggar:** production-analysis.ts, bonus-dashboard.ts, monthly-report.ts, BonusController.php, RebotlingAnalyticsController.php — alla hade korrekta guards mot division-by-zero och null.
 
 ### Åtgärdat — 2026-03-05 (Bug Hunt #29 + Frontend ogranskade-sidor-audit, session #23)
 
@@ -334,6 +351,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #26
+**Lagesanalys**: Session #25 levererade Generic SkiftrapportComponent DRY (`a6520cf` — 3 linje-skiftrapporter till 1 delad komponent) + TypeScript any-audit (`ab16ad5` — 72 any ersatta med korrekta interfaces i 5 filer). Hela kodbasen har genomgatt systematisk bug-hunting i Bug Hunt #1-#30. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- `rebotling-statistik.ts` och `tvattlinje-statistik.ts` anvander `loadMockData()` som fallback vid API-fel — visar FALSKA siffror istallet for felmeddelande. Allvarligt i produktion: VD kan tro att data ar riktig nar den ar genererad.
+- `generateMockData()` innehaller `any[]`-typer och hardkodade varden — teknisk skuld.
+- `ProductController.php` ar tom (0 bytes) — bor tas bort.
+
+**Beslut denna session**:
+1. Worker 1: Rensa mockData-fallbacks — ta bort `loadMockData()` och `generateMockData()` fran rebotling-statistik.ts och tvattlinje-statistik.ts. Vid API-fel ska error-meddelande visas, inte fake-data. Ta aven bort tomma ProductController.php. Bygg och verifiera.
+2. Worker 2: Bug Hunt #31 — fokus pa de storsta/mest komplexa filerna som kan ha subtila logikbuggar: rebotling-statistik.ts (felaktig any-casting i catchError rad 549, chart-logik), production-analysis.ts (pareto-berakningar), bonus-dashboard.ts (bonusberakningar). Granska division-by-zero, null-hantering, felaktiga typer som döljs av any.
+
+**Motivering**: MockData-fallbacks ar en produktionsrisk — VD kan fatta beslut baserat pa falska siffror. Bug Hunt #31 gar djupare an tidigare hunts genom att fokusera pa logikbuggar (inte bara minneslakor/HTTP-koder).
 
 ### 2026-03-05 Session #24
 **Lagesanalys**: Session #23 levererade Bug Hunt #29 (`df2767a` — session read_and_close, success:false vid fel, HTTP 404 vid user-not-found i AdminController, AuditController, OperatorController, RebotlingAdminController) + Frontend ogranskade-sidor-audit (`82f16c0` — takeUntil i users, setTimeout-lackor i operator-detail/news-admin/operators/maintenance-log). 18 filer granskade, 21 buggar fixade. Totalt 16 dedikerade stabilitets-sessioner (#13-#29).
