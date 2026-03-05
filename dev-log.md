@@ -1,3 +1,25 @@
+## 2026-03-05 Session #23 — Bug Hunt #29 + Frontend ogranskade-sidor-audit (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #29** (6 PHP-controllers granskade, 8 buggar fixade):
+- AdminController: 3 fixar — session read_and_close för GET, saknad HTTP 404 i toggleAdmin/toggleActive
+- AuditController: 2 fixar — session read_and_close (GET-only controller), catch-block returnerade success:true vid HTTP 500
+- LoginController: OK — inga buggar
+- RegisterController: OK — inga buggar
+- OperatorController: 1 fix — session read_and_close för GET-requests
+- RebotlingAdminController: 2 fixar — getLiveRankingSettings session read_and_close, saveMaintenanceLog catch returnerade success:true vid HTTP 500
+
+**Worker 2 — Frontend ogranskade-sidor-audit** (12 Angular-komponenter granskade, 13 buggar fixade):
+- users.ts: 6 fixar — 6 HTTP-anrop saknade takeUntil(destroy$)
+- operators.ts: 2 fixar — setTimeout-callbacks utan destroy$.closed-guard
+- operator-detail.ts: 1 fix — setTimeout utan variabel/clearTimeout/guard
+- news-admin.ts: 1 fix — setTimeout i saveNews() utan variabel/clearTimeout/guard
+- maintenance-log.ts: 3 fixar — 3 setTimeout i switchTab() utan variabel/clearTimeout/guard
+- 7 filer rena: about, contact, create-user, operator-compare, login, register, not-found
+
+**Sammanfattning session #23**: 18 filer granskade, 21 buggar fixade. Inga nya features.
+
+---
+
 ## 2026-03-05 Session #22 — Bug Hunt #28 + Frontend admin/bonus-audit (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #28** (BonusController.php + BonusAdminController.php, 13 buggar fixade):

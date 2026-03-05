@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #22)*
+*Senast uppdaterad: 2026-03-05 (session #23)*
 
 ---
 
@@ -130,6 +130,22 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
+
+### Åtgärdat — 2026-03-05 (Bug Hunt #29 + Frontend ogranskade-sidor-audit, session #23)
+
+**PHP — session read_and_close, HTTP-statuskoder, error-hantering:**
+- `AdminController.php`: session read_and_close för GET + saknad HTTP 404 i toggleAdmin/toggleActive
+- `AuditController.php`: session read_and_close (GET-only) + catch returnerade success:true vid HTTP 500
+- `OperatorController.php`: session read_and_close för GET
+- `RebotlingAdminController.php`: getLiveRankingSettings session read_and_close + saveMaintenanceLog catch success:true vid 500
+- `LoginController.php`, `RegisterController.php`: OK
+
+**Angular — takeUntil/setTimeout-läckor:**
+- `users.ts`: 6 HTTP-anrop saknade takeUntil(destroy$)
+- `operators.ts`: 2 setTimeout-callbacks utan destroy$.closed-guard
+- `operator-detail.ts`: setTimeout utan variabel/clearTimeout/guard
+- `news-admin.ts`: setTimeout i saveNews() utan variabel/clearTimeout/guard
+- `maintenance-log.ts`: 3 setTimeout i switchTab() utan variabel/clearTimeout/guard
 
 ### Åtgärdat `a9716cd` — 2026-03-03 (Bug Hunt #2 + Operators-agent)
 
