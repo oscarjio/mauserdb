@@ -1,3 +1,13 @@
+## 2026-03-05 — Executive Dashboard: multi-linje status
+
+- Ny publik endpoint `?action=status&run=all-lines` i StatusController.php (ingen auth)
+- Rebotling: realtidsstatus (running/idle/offline) baserat pa senaste data (15/60 min granser), OEE%, IBC idag
+- Tvattlinje, Saglinje, Klassificeringslinje: statiskt "ej igang" tills databastabeller finns
+- Frontend: linjestatus-banner uppdaterad med pulsande gron cirkel (running), orange (idle), rod (offline), gra (ej igang)
+- Dashboard pollar publik endpoint var 60:e sekund
+
+---
+
 ## 2026-03-05 Session #12 — Månadsrapport + Bug Hunt #19
 
 **Worker 1 — monthly-report förbättring** (`c0c683b`):
