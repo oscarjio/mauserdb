@@ -9,8 +9,15 @@
 - my-bonus.ts/html/css: OK — `takeUntil(destroy$)` överallt, timeout+catchError, null-safe UI
 - INSTALL_ALL.sql vs individuella migreringar: OK (shift_handover inkluderar acknowledge-kolumner, news inkluderar alla tillägg)
 
-**Planerat**:
-- Worker 2: Kodkvalitets-audit — äldre controllers/komponenter, auth, error handling, subscription-städning
+**Worker 2 — Kodkvalitets-audit** (10 filer granskade, 5 buggar fixade):
+- **ProfileController.php**: UPDATE+SELECT vid profiluppdatering saknade try-catch — PDOException kunde ge okontrollerat PHP-fel — FIXAD
+- **ShiftPlanController.php**: 8 catch-block fångade bara PDOException, inte generell Exception — FIXAD alla 8
+- **HistorikController.php**: Default-case ekade `$run` i JSON utan sanitering — XSS-risk — FIXAD med htmlspecialchars()
+- **historik.ts**: `setTimeout(() => buildCharts(), 100)` städades aldrig i ngOnDestroy — FIXAD
+- **bonus-admin.ts**: `setTimeout(() => renderAuditChart(), 100)` städades aldrig i ngOnDestroy — FIXAD
+- Godkända utan anmärkning: OperatorCompareController.php, MaintenanceController.php, benchmarking.ts, live-ranking.ts
+
+**Sammanfattning session #14**: 25 filer granskade, 7 buggar fixade (2 Bug Hunt + 5 kodkvalitet). Inga nya features.
 
 ---
 
