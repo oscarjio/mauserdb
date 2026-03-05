@@ -121,6 +121,7 @@ $classNameMap = [
     'lineskiftrapport' => 'LineSkiftrapportController',
     'shift-plan' => 'ShiftPlanController',
     'certifications' => 'CertificationController',
+    'certification'  => 'CertificationController',
     'shift-handover' => 'ShiftHandoverController',
     'andon' => 'AndonController',
     'news' => 'NewsController',

@@ -63,7 +63,6 @@ class AdminController {
                     return;
                 }
                 
-                // Hasha lösenord med bcrypt
                 $hashedPassword = AuthHelper::hashPassword($password);
                 
                 // Kontrollera om active-kolumnen finns

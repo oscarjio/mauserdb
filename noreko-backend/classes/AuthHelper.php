@@ -10,41 +10,17 @@ class AuthHelper {
     private const LOCKOUT_MINUTES = 15;
 
     /**
-     * Verify password with dual-hash support (bcrypt + legacy sha1(md5())).
-     * Om legacy-hash matchar och $pdo + $userId finns, uppgraderas hashen
-     * automatiskt till bcrypt (transparent migration).
+     * Verify password using sha1(md5()) hash.
      */
     public static function verifyPassword(string $password, string $storedHash, ?PDO $pdo = null, ?int $userId = null): bool {
-        // 1. Testa bcrypt först
-        if (password_verify($password, $storedHash)) {
-            return true;
-        }
-
-        // 2. Testa legacy sha1(md5()) som fallback
-        if ($storedHash === sha1(md5($password))) {
-            // Transparent migration: uppgradera till bcrypt om vi har pdo + userId
-            if ($pdo !== null && $userId !== null) {
-                try {
-                    $bcryptHash = password_hash($password, PASSWORD_BCRYPT);
-                    $stmt = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-                    $stmt->execute([$bcryptHash, $userId]);
-                    error_log("AuthHelper: Migrerade lösenord till bcrypt för user_id=$userId");
-                } catch (PDOException $e) {
-                    // Misslyckas tyst — användaren är redan verifierad, migration sker nästa gång
-                    error_log('AuthHelper verifyPassword migration: ' . $e->getMessage());
-                }
-            }
-            return true;
-        }
-
-        return false;
+        return $storedHash === sha1(md5($password));
     }
 
     /**
-     * Hash a password using bcrypt.
+     * Hash a password using sha1(md5()).
      */
     public static function hashPassword(string $password): string {
-        return password_hash($password, PASSWORD_BCRYPT);
+        return sha1(md5($password));
     }
 
     /**

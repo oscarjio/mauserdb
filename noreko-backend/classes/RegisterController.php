@@ -88,7 +88,6 @@ class RegisterController {
             return;
         }
         
-        // Hasha lösenord med bcrypt
         $hashedPassword = AuthHelper::hashPassword($password);
         
         // Spara användare i databasen

@@ -114,7 +114,9 @@ git -C /home/clawd/clawd/mauserdb push
 2. DB-ändringar → SQL i noreko-backend/migrations/ + \`git add -f\`
 3. All UI-text på svenska
 4. Angular dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text, Bootstrap 5
-5. Commit + push bara när en feature är klar och bygger klant
+5. Commit + push bara när en feature är klar och bygger klart
+6. Starta MAX 2 worker-agenter per session (spara token-budget så ägaren kan ställa frågor)
+7. Håll egna token-användning minimal — analysera snabbt, delegera direkt till workers
 
 ## Projektsökväg: /home/clawd/clawd/mauserdb/
 ## Git remote: github.com:oscarjio/mauserdb.git branch main
