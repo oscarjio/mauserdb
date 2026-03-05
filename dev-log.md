@@ -1,3 +1,25 @@
+## 2026-03-05 Session #22 — Bug Hunt #28 + Frontend admin/bonus-audit (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #28** (BonusController.php + BonusAdminController.php, 13 buggar fixade):
+- BonusController: 11 fixar — konsekvent sendError()/sendSuccess() istället för raw echo, HTTP 405 vid felaktig metod, korrekt response-wrapper med data/timestamp
+- BonusAdminController: 1 fix — getFairnessAudit catch-block använde raw echo istället för sendError()
+- Godkänt: session read_and_close, auth-kontroller, prepared statements, division-by-zero-skydd, COALESCE/NULL-hantering
+
+**Worker 2 — Frontend admin/bonus-audit** (rebotling-admin.ts, bonus-admin.ts, my-bonus.ts, 4 buggar fixade):
+- bonus-admin: setTimeout-läckor i showSuccess()/showError() — saknad destroy$.closed-guard
+- my-bonus: setTimeout-läckor i loadAchievements() confetti-timer + submitFeedback() — saknad referens + destroy$-guard
+- Godkänt: rebotling-admin.ts helt ren (alla charts/intervals/subscriptions korrekt städade)
+
+**Sammanfattning session #22**: 5 filer granskade, 17 buggar fixade. Commits: `e9eeef0`, `794f43d`, `14f2f7f`.
+
+---
+
+## 2026-03-05 Session #21 — Bug Hunt #27 + Frontend djupgranskning (INGEN NY FUNKTIONSUTVECKLING)
+
+**Resultat**: 5 buggar fixade i RebotlingAnalyticsController, RebotlingController, rebotling-skiftrapport, rebotling-statistik. Commit: `e9eeef0`.
+
+---
+
 ## 2026-03-05 Session #20 — Bug Hunt #26 + Frontend-stabilitetsaudit (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #26** (6 PHP-controllers granskade, 9 buggar fixade):

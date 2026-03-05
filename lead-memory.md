@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #20)*
+*Senast uppdaterad: 2026-03-05 (session #22)*
 
 ---
 
@@ -300,6 +300,25 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #22
+**Lagesanalys**: Session #21 levererade Bug Hunt #27 (`e9eeef0` — session read_and_close i RebotlingAnalyticsController/RebotlingController, success:false vid HTTP 500, setTimeout-lackor i rebotling-skiftrapport, loading-state i rebotling-statistik). 6 filer granskade (de 2 storsta backend + 3 storsta frontend), 5 buggar fixade. Totalt 15 dedikerade stabilitets-sessioner (#13-#27).
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #28 — djupgranskning av BonusController.php (2560 rader) och BonusAdminController.php (1506 rader). Dessa hanterar all bonusberakning och ar affarskritiska. Fokus: division-by-zero i bonusberakningar, felaktiga SQL-aggregeringar, saknade null-kontroller nar inga skift/operatorer finns, korrekt HTTP-statuskoder, session read_and_close, auth-kontroller pa alla endpoints.
+2. Worker 2: Frontend djupgranskning — rebotling-admin.ts (1480 rader), bonus-admin.ts (1323 rader), my-bonus.ts (1294 rader). Stora admin/bonus-komponenter med komplex logik. Fokus: subscription-lackor, Chart.js-resurslackor, setTimeout-lackor, felhantering vid tomma API-svar, race conditions i polling.
+
+**Motivering**: BonusController/BonusAdminController hanterar operatorernas bonus — fel i berakningar har direkt ekonomisk paverkan och undergraver fortroende. Frontend admin/bonus-sidorna ar stora och komplexa med bade polling och Chart.js — hog risk for minneslakor. Denna session kompletterar session #21:s granskning av de storsta filerna.
+
+### 2026-03-05 Session #21 (KLAR)
+**Resultat**: Bug Hunt #27 (`e9eeef0`) — 5 buggar fixade:
+- RebotlingAnalyticsController: session read_and_close i getProductionReport
+- RebotlingController: success:false vid HTTP 500 i getEvents + lista-fallback (2 stallen)
+- RebotlingController: session read_and_close i getAttendance
+- rebotling-skiftrapport: trendBuildTimer + scrollRestoreTimer med clearTimeout + destroy$-check
+- rebotling-statistik: loading=false vid misslyckad response
+
+**Motivering**: RebotlingAnalyticsController och RebotlingController ar de tva storsta och mest komplexa backend-filerna (sammanlagt 8126 rader). De hanterar all produktionsdata, statistik och analyser — buggar har kan paverka VD-rapporter och bonusberakningar. Frontend-sidorna rebotling-statistik, rebotling-skiftrapport och operator-compare ar de storsta TS-komponenterna med komplex Chart.js-logik — hog risk for minneslakor och resurslackor. En grundlig andra pass pa dessa kritiska filer ar mer vardefullt an att granska mindre filer.
 
 ### 2026-03-05 Session #20
 **Lagesanalys**: Session #19 levererade Bug Hunt #25 (`76e5efc` — setTimeout-lackor i operator-dashboard, benchmarking, shift-handover) + Backend-endpoint konsistensaudit (`e4670cd` — HTTP 405/500/404 i HistorikController, AndonController, ShiftPlanController). 8 filer granskade, 7 brister fixade. Totalt 13 dedikerade stabilitets-sessioner (#13-#25).
