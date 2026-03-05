@@ -438,40 +438,45 @@ CREATE TABLE IF NOT EXISTS rebotling_skift_kommentar (
 
 -- ============================================================
 -- 2026-03-04_stoppage_log.sql
+-- OBS: Använder schema från StoppageController.php (code, planned/unplanned, color, sort_order)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS stoppage_reasons (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(120) NOT NULL,
-    category ENUM('maskin','material','operatör','övrigt') NOT NULL DEFAULT 'övrigt',
-    description TEXT,
-    active TINYINT(1) NOT NULL DEFAULT 1,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `id`         INT          NOT NULL AUTO_INCREMENT,
+    `code`       VARCHAR(50)  NOT NULL,
+    `name`       VARCHAR(100) NOT NULL,
+    `category`   ENUM('planned','unplanned') NOT NULL DEFAULT 'unplanned',
+    `color`      VARCHAR(7)   DEFAULT '#6b7280',
+    `active`     TINYINT(1)   NOT NULL DEFAULT 1,
+    `sort_order` INT          NOT NULL DEFAULT 0,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_code` (`code`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS stoppage_log (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    reason_id INT NOT NULL,
-    started_at DATETIME NOT NULL,
-    ended_at DATETIME,
-    duration_minutes DECIMAL(8,2),
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by INT,
-    notes TEXT,
-    FOREIGN KEY (reason_id) REFERENCES stoppage_reasons(id) ON DELETE RESTRICT
+    `id`               INT       NOT NULL AUTO_INCREMENT,
+    `line`             VARCHAR(50) NOT NULL DEFAULT 'rebotling',
+    `reason_id`        INT       NOT NULL,
+    `start_time`       DATETIME  NOT NULL,
+    `end_time`         DATETIME  DEFAULT NULL,
+    `duration_minutes` INT       DEFAULT NULL,
+    `comment`          TEXT,
+    `user_id`          INT       DEFAULT NULL,
+    `created_at`       DATETIME  DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`       DATETIME  DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_line_start` (`line`, `start_time`),
+    INDEX `idx_reason` (`reason_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT IGNORE INTO stoppage_reasons (id, name, category, description) VALUES
-    (1,'PLC-larm','maskin','PLC-larm eller felindikatorer'),
-    (2,'Mekaniskt fel','maskin','Mekaniska fel på linjen'),
-    (3,'Sensorkalibrering','maskin','Sensor ur kalibrering'),
-    (4,'Ventilfel','maskin','Ventil eller pumpproblem'),
-    (5,'Materialbrist','material','Tom buffert, inväntar material'),
-    (6,'Fel IBC-typ','material','Fel IBC-typ eller skadad IBC'),
-    (7,'Etikettproblem','material','Etikett saknas eller fel'),
-    (8,'Operatörsrast','operatör','Planerad rast'),
-    (9,'Operatörsavstängning','operatör','Operatör stängde av linjen manuellt'),
-    (10,'Rengöring','operatör','Rengöring av utrustning'),
-    (11,'Övrigt','övrigt','Övrig orsak');
+INSERT IGNORE INTO stoppage_reasons (id, code, name, category, color, sort_order) VALUES
+    (1, 'PLAN_MAINT', 'Planerat underhåll',  'planned',   '#3b82f6', 0),
+    (2, 'BREAKDOWN',  'Haveri/Maskinfel',     'unplanned', '#ef4444', 1),
+    (3, 'MATERIAL',   'Materialbrist',        'unplanned', '#f97316', 2),
+    (4, 'CHANGEOVER', 'Produktbyte',          'planned',   '#8b5cf6', 3),
+    (5, 'CLEANING',   'Rengöring',            'planned',   '#06b6d4', 4),
+    (6, 'QUALITY',    'Kvalitetsproblem',     'unplanned', '#eab308', 5),
+    (7, 'OPERATOR',   'Personalbrist',        'unplanned', '#ec4899', 6),
+    (8, 'OTHER',      'Övrigt',               'unplanned', '#6b7280', 7);
 
 -- ============================================================
 -- 2026-03-04_tvattlinje_settings.sql + tvattlinje_alert_thresholds.sql
