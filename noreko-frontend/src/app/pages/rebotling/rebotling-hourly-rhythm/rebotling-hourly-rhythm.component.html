@@ -1,0 +1,74 @@
+<div class="container-fluid mt-4">
+  <div class="row">
+    <div class="col-12">
+      <div class="card mb-4" style="background:#2d3748; border-color:#4a5568;">
+        <div class="card-header" style="background:#1a202c; border-color:#4a5568;">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="mb-0 text-light">
+              <i class="fas fa-clock me-2 text-info"></i>Produktionsrytm per timme
+            </h6>
+            <div class="btn-group btn-group-sm">
+              <button class="btn"
+                [class]="hourlyRhythmDays===7?'btn-info':'btn-outline-info'"
+                (click)="hourlyRhythmDays=7; loadHourlyRhythm()">7d</button>
+              <button class="btn"
+                [class]="hourlyRhythmDays===30?'btn-info':'btn-outline-info'"
+                (click)="hourlyRhythmDays=30; loadHourlyRhythm()">30d</button>
+              <button class="btn"
+                [class]="hourlyRhythmDays===90?'btn-info':'btn-outline-info'"
+                (click)="hourlyRhythmDays=90; loadHourlyRhythm()">90d</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">
+            Genomsnittlig IBC/h per klockslag de senaste {{ hourlyRhythmDays }} dagarna.
+            <span style="color:#48bb78;"><i class="fas fa-square me-1"></i>Topp (&#8805;85%)</span>
+            <span class="ms-2" style="color:#ed8936;"><i class="fas fa-square me-1"></i>Medel (60-85%)</span>
+            <span class="ms-2" style="color:#fc8181;"><i class="fas fa-square me-1"></i>Lag (&lt;60%)</span>
+          </p>
+
+          <div *ngIf="hourlyRhythmLoading" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+            <div class="text-muted small mt-2">Hamtar produktionsrytm...</div>
+          </div>
+
+          <div *ngIf="!hourlyRhythmLoading && hourlyRhythm.length > 0" style="height:260px; position:relative;">
+            <canvas id="hourlyRhythmChart"></canvas>
+          </div>
+
+          <div *ngIf="!hourlyRhythmLoading && hourlyRhythm.length === 0" class="text-center py-4">
+            <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+            <p class="text-muted">Ingen data tillganglig for vald period.</p>
+          </div>
+
+          <div class="mt-3" *ngIf="!hourlyRhythmLoading && hourlyRhythm.length > 0">
+            <div class="table-responsive">
+              <table class="table table-sm" style="color:#e2e8f0; font-size:0.85rem;">
+                <thead>
+                  <tr style="border-color:#4a5568; color:#a0aec0;">
+                    <th>Klockslag</th>
+                    <th class="text-end">Snitt IBC/h</th>
+                    <th class="text-end">Snitt kvalitet</th>
+                    <th class="text-end">Antal dagar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let h of hourlyRhythm" style="border-color:#4a5568;">
+                    <td class="fw-bold">{{ h.label }}</td>
+                    <td class="text-end"
+                      [style.color]="h.avg_ibc_h > 0 && h.avg_ibc_h === getHourlyRhythmMax() ? '#48bb78' : '#e2e8f0'">
+                      {{ h.avg_ibc_h | number:'1.1-1' }}
+                    </td>
+                    <td class="text-end">{{ h.avg_kvalitet > 0 ? (h.avg_kvalitet | number:'1.1-1') + '%' : '&ndash;' }}</td>
+                    <td class="text-end text-muted">{{ h.antal_dagar > 0 ? h.antal_dagar : '&ndash;' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

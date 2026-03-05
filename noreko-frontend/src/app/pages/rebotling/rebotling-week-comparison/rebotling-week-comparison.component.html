@@ -1,0 +1,40 @@
+<div class="row mb-4" *ngIf="weekComparisonLoaded && !weekComparisonLoading">
+  <div class="col-12">
+    <div class="dark-card">
+      <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0"><i class="fas fa-calendar-week me-2 text-info"></i>Veckojämförelse — IBC per dag</h5>
+          <small class="text-muted">Denna vecka vs förra veckan</small>
+        </div>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <div class="granularity-toggle">
+            <button class="gran-btn" [class.active]="weekGranularity==='day'" (click)="setWeekGranularity('day')">Per dag</button>
+            <button class="gran-btn" [class.active]="weekGranularity==='shift'" (click)="setWeekGranularity('shift')">Per skift</button>
+          </div>
+          <div class="d-flex gap-3">
+            <div class="text-center">
+              <div class="small text-muted">Denna vecka</div>
+              <strong class="text-info">{{ getWeekComparisonTotal(weekComparisonThisWeek) }} IBC</strong>
+            </div>
+            <div class="text-center">
+              <div class="small text-muted">Förra veckan</div>
+              <strong style="color:#a0aec0">{{ getWeekComparisonTotal(weekComparisonPrevWeek) }} IBC</strong>
+            </div>
+            <div class="text-center">
+              <div class="small text-muted">Skillnad</div>
+              <strong [class.text-success]="getWeekComparisonDiff() >= 0" [class.text-danger]="getWeekComparisonDiff() < 0">
+                {{ getWeekComparisonDiff() >= 0 ? '+' : '' }}{{ getWeekComparisonDiff() }} IBC
+                ({{ getWeekComparisonDiffPct() >= 0 ? '+' : '' }}{{ getWeekComparisonDiffPct() }}%)
+              </strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="height: 220px; position:relative;">
+          <canvas id="weekComparisonChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

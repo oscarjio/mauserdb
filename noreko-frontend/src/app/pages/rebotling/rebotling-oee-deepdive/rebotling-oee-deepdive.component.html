@@ -1,0 +1,89 @@
+<div class="row mb-4" *ngIf="oeeLoaded && !oeeLoading">
+  <div class="col-12">
+    <div class="dark-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-tachometer-alt me-2 text-success"></i>OEE Deep-dive — Senaste 30 dagarna</h5>
+        <small class="text-muted">Overall Equipment Effectiveness = Tillgänglighet × Prestanda × Kvalitet</small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3 mb-4" *ngIf="oeeData">
+          <div class="col-12">
+            <h6 style="color:#718096;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px" class="mb-3">Senaste månaden — Breakdown</h6>
+          </div>
+          <div class="col-md-3 text-center">
+            <div class="small text-muted mb-2">OEE Total</div>
+            <div style="font-size:2.4rem;font-weight:800;"
+                 [class.text-success]="oeeData.oee >= 75"
+                 [class.text-warning]="oeeData.oee >= 50 && oeeData.oee < 75"
+                 [class.text-danger]="oeeData.oee < 50">
+              {{ oeeData.oee }}%
+            </div>
+            <div class="small text-muted">Världsklass: {{ oeeData.world_class_benchmark }}%</div>
+          </div>
+          <div class="col-md-9">
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted"><i class="fas fa-check-circle me-1 text-success"></i>Tillgänglighet</span>
+                <span class="fw-bold text-success">{{ oeeData.availability }}%</span>
+              </div>
+              <div class="progress" style="height:14px;background:rgba(255,255,255,0.07);border-radius:7px">
+                <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.availability)"
+                     [style.width.%]="getOEEBarWidth(oeeData.availability)" style="border-radius:7px"></div>
+              </div>
+              <div class="small text-muted mt-1">Körtid: {{ oeeData.operating_hours }}h / Planerad tid: {{ oeeData.planned_hours }}h</div>
+            </div>
+            <div class="mb-3">
+              <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted"><i class="fas fa-tachometer-alt me-1 text-warning"></i>Prestanda</span>
+                <span class="fw-bold text-warning">{{ oeeData.performance }}%</span>
+              </div>
+              <div class="progress" style="height:14px;background:rgba(255,255,255,0.07);border-radius:7px">
+                <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.performance)"
+                     [style.width.%]="getOEEBarWidth(oeeData.performance)" style="border-radius:7px"></div>
+              </div>
+              <div class="small text-muted mt-1">Faktisk takt vs ideal takt (15 IBC/h)</div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small mb-1">
+                <span class="text-muted"><i class="fas fa-star me-1 text-info"></i>Kvalitet</span>
+                <span class="fw-bold text-info">{{ oeeData.quality }}%</span>
+              </div>
+              <div class="progress" style="height:14px;background:rgba(255,255,255,0.07);border-radius:7px">
+                <div class="progress-bar" [ngClass]="getOEEBarClass(oeeData.quality)"
+                     [style.width.%]="getOEEBarWidth(oeeData.quality)" style="border-radius:7px"></div>
+              </div>
+              <div class="small text-muted mt-1">{{ oeeData.good_ibc }} godkända / {{ oeeData.total_ibc }} totala IBC</div>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="oeeTrendDays.length > 0">
+          <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <h6 style="color:#718096;font-size:.8rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:0">
+              OEE-trend (senaste 30 dagar)
+            </h6>
+            <div class="granularity-toggle">
+              <button class="gran-btn" [class.active]="oeeGranularity==='day'" (click)="setOeeGranularity('day')">Per dag</button>
+              <button class="gran-btn" [class.active]="oeeGranularity==='shift'" (click)="setOeeGranularity('shift')">Per skift</button>
+            </div>
+          </div>
+          <div class="d-flex gap-3 mb-2 flex-wrap align-items-center">
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:20px; border-top:2px dashed #48bb78;"></div>
+              <small class="text-muted">WCM = 85%</small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <div style="width:20px; border-top:2px dashed #ed8936;"></div>
+              <small class="text-muted">Branschsnitt = 70%</small>
+            </div>
+          </div>
+          <div style="height:220px;position:relative;">
+            <canvas id="oeeTrendChart"></canvas>
+          </div>
+        </div>
+        <div *ngIf="oeeTrendDays.length === 0 && oeeLoaded" class="text-center text-muted py-3">
+          <i class="fas fa-info-circle me-2"></i>Ingen OEE-trenddata tillgänglig (OEE-kolumner saknas i DB)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

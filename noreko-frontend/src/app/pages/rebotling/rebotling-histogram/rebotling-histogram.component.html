@@ -1,0 +1,66 @@
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="dark-card">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="mb-0" style="color:#e2e8f0;">
+          <i class="fas fa-chart-bar me-2" style="color:#48bb78;"></i>Cykeltidsfördelning
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <label class="text-muted small mb-0">Datum:</label>
+          <input type="date" class="form-control form-control-sm"
+            style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:160px;"
+            [(ngModel)]="histogramDate" (change)="onHistogramDateChange()" />
+          <button class="btn btn-sm btn-outline-success" (click)="onHistogramDateChange()" [disabled]="histogramLoading">
+            <i class="fas fa-sync-alt me-1" [class.fa-spin]="histogramLoading"></i>Hämta
+          </button>
+        </div>
+      </div>
+
+      <div class="row g-2 mb-3" *ngIf="histogramLoaded && histogramStats">
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">Antal skift</div>
+            <div class="fw-bold" style="color:#e2e8f0;font-size:1.1rem;">{{ histogramStats.n }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">Snitt</div>
+            <div class="fw-bold" style="color:#e2e8f0;font-size:1.1rem;">{{ histogramStats.snitt | number:'1.1-1' }} min</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">P50 (median)</div>
+            <div class="fw-bold" style="color:#48bb78;font-size:1.1rem;">{{ histogramStats.p50 | number:'1.1-1' }} min</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">P90</div>
+            <div class="fw-bold" style="color:#ecc94b;font-size:1.1rem;">{{ histogramStats.p90 | number:'1.1-1' }} min</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center py-4" *ngIf="histogramLoading">
+        <div class="spinner-border text-success" role="status"></div>
+        <div class="text-muted mt-2 small">Hämtar cykeltidsdata...</div>
+      </div>
+
+      <div class="text-center py-4" *ngIf="histogramLoaded && !histogramLoading && histogramStats && histogramStats.n === 0">
+        <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+        <p class="text-muted">Ingen data för valt datum. Välj ett datum med produktion.</p>
+      </div>
+
+      <div style="height:260px;position:relative;" *ngIf="histogramLoaded && !histogramLoading && histogramStats && histogramStats.n > 0">
+        <canvas id="cycleHistogramChart"></canvas>
+      </div>
+
+      <p class="small text-muted mt-2 mb-0" *ngIf="histogramLoaded && histogramStats && histogramStats.n > 0">
+        <i class="fas fa-lightbulb me-1" style="color:#ecc94b;"></i>
+        Jämn fördelning = stabil produktion. Höga toppar på +5 min = potentiella störningar.
+      </p>
+    </div>
+  </div>
+</div>
