@@ -57,6 +57,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   fetchOperators() {
     this.operatorsService.getOperators().pipe(
+      takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of({ operators: [] }))
     ).subscribe({
@@ -73,6 +74,7 @@ export class UsersPage implements OnInit, OnDestroy {
   fetchUsers() {
     this.loading = true;
     this.usersService.getUsers().pipe(
+      takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of(null))
     ).subscribe({
@@ -182,6 +184,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   saveUser(user: any) {
     this.usersService.updateUser(user).pipe(
+      takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of(null))
     ).subscribe({
@@ -207,6 +210,7 @@ export class UsersPage implements OnInit, OnDestroy {
     }
 
     this.usersService.deleteUser(user.id).pipe(
+      takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of(null))
     ).subscribe({
@@ -227,6 +231,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   toggleAdmin(user: any) {
     this.usersService.toggleAdmin(user.id).pipe(
+      takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of(null))
     ).subscribe({
@@ -248,6 +253,7 @@ export class UsersPage implements OnInit, OnDestroy {
 
   toggleActive(user: any) {
     this.usersService.toggleActive(user.id).pipe(
+      takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of(null))
     ).subscribe({

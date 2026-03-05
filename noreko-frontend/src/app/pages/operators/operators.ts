@@ -238,6 +238,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
       // Bygg om diagram när detaljvyn öppnas (canvas kan ha återskapats)
       clearTimeout(this.trendTimers[id]);
       this.trendTimers[id] = setTimeout(() => {
+        if (this.destroy$.closed) return;
         if (this.expandedStatId === id) this.buildTrendChart(id);
       }, 100);
     }
@@ -252,6 +253,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
         this.trendData[id] = res.success ? res.data : [];
         clearTimeout(this.trendTimers[id]);
         this.trendTimers[id] = setTimeout(() => {
+          if (this.destroy$.closed) return;
           if (this.expandedStatId === id) this.buildTrendChart(id);
         }, 100);
       },

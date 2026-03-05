@@ -457,6 +457,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private trendChart: Chart | null = null;
+  private chartTimer: any = null;
 
   constructor(
     private http: HttpClient,
@@ -476,6 +477,7 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     try { this.trendChart?.destroy(); } catch (e) {}
     this.trendChart = null;
   }
@@ -504,7 +506,10 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
           }
           this.profil = res;
           // Rita trendgraf efter DOM-uppdatering
-          setTimeout(() => this.buildTrendChart(), 120);
+          this.chartTimer = setTimeout(() => {
+            if (this.destroy$.closed) return;
+            this.buildTrendChart();
+          }, 120);
         },
         error: () => {
           this.laddar = false;

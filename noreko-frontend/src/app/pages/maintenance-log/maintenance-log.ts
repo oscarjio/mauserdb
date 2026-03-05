@@ -261,6 +261,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   successMessage = '';
   errorMessage = '';
   private successTimer: any = null;
+  private tabTimer: any = null;
 
   activeTab: 'logg' | 'statistik' | 'kpi' | 'service' = 'logg';
 
@@ -281,6 +282,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearTimeout(this.successTimer);
+    clearTimeout(this.tabTimer);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -291,15 +293,25 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
     // subsequent tab switches if the ViewChild is available
     if (tab === 'statistik') {
       this.statsTabLoaded = true;
-      // statsComp loads via ngOnDestroy/recreate since *ngIf recreates it
-      // We rely on the component loading data itself via loadEquipmentStats
-      setTimeout(() => this.statsComp?.loadEquipmentStats(), 0);
+      clearTimeout(this.tabTimer);
+      this.tabTimer = setTimeout(() => {
+        if (this.destroy$.closed) return;
+        this.statsComp?.loadEquipmentStats();
+      }, 0);
     }
     if (tab === 'kpi') {
-      setTimeout(() => this.kpiComp?.loadKpiData(), 0);
+      clearTimeout(this.tabTimer);
+      this.tabTimer = setTimeout(() => {
+        if (this.destroy$.closed) return;
+        this.kpiComp?.loadKpiData();
+      }, 0);
     }
     if (tab === 'service') {
-      setTimeout(() => this.serviceComp?.loadServiceIntervals(), 0);
+      clearTimeout(this.tabTimer);
+      this.tabTimer = setTimeout(() => {
+        if (this.destroy$.closed) return;
+        this.serviceComp?.loadServiceIntervals();
+      }, 0);
     }
   }
 

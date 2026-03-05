@@ -451,6 +451,7 @@ interface NewsItem {
 export class NewsAdminPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiBase = environment.apiUrl;
+  private saveTimer: any = null;
 
   adminNews: NewsItem[] = [];
   loading = false;
@@ -492,6 +493,7 @@ export class NewsAdminPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.saveTimer) { clearTimeout(this.saveTimer); this.saveTimer = null; }
   }
 
   get aktiva(): number {
@@ -611,7 +613,10 @@ export class NewsAdminPage implements OnInit, OnDestroy {
       this.saving = false;
       if (res && res.success) {
         this.formSuccess = this.editingId ? 'Nyhet uppdaterad.' : 'Nyhet skapad.';
-        setTimeout(() => { this.cancelForm(); this.loadNews(); }, 800);
+        this.saveTimer = setTimeout(() => {
+          if (this.destroy$.closed) return;
+          this.cancelForm(); this.loadNews();
+        }, 800);
       } else {
         this.formError = res?.error ?? 'Kunde inte spara. Försök igen.';
       }
