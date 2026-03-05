@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #12)*
+*Senast uppdaterad: 2026-03-05 (session #13)*
 
 ---
 
@@ -234,13 +234,13 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - [x] **Operatörsdashboard förbättring**: PÅGÅR (a1934683e7c0bf6f6) — veckovy, trend, summary-kort
 - [x] **Andon-tavla skiftnoter**: PÅGÅR (ad5e36138558c6ba2) — okvitterade noter, urgency-badge
 - [x] **VD Månadsrapport förbättring**: KLAR `c0c683b` — VD-sammanfattning (auto-genererad text), dagsmål-referenslinje i diagram, förbättrad PDF/print (A4, logotyp, sidfot), guld/silver/brons print-styling
-- [ ] **Executive dashboard: multi-linje status**: Lägg till real-time statusrad för alla 4 linjer i executive dashboard — grön/orange/röd per linje baserat på om de körs + senaste OEE.
+- [ ] **Executive dashboard: multi-linje status**: Lägg till real-time statusrad för alla 4 linjer i executive dashboard — grön/orange/röd per linje baserat på om de körs + senaste OEE. → PÅGÅR session #13
 
 ### 🟡 Medium prioritet
 - [ ] **Rebotling statistik: Pareto-diagram för stopporsaker**: Horisontellt pareto-diagram (80/20-regel) med kumulativ linje i production-analysis. Visar vilka stopporsaker som tar mest produktionstid.
 - [ ] **Skiftplaneringsvy förbättring**: `/admin/skiftplan` — lägg till veckoöversikt (peka ut operatörer per skift med drag-and-drop eller klick-assign), integration med faktisk närvaro från rebotling_ibc.
 - [ ] **Bonus-admin: Utbetalningshistorik** — lista historiska bonusutbetalningar per månad per operatör. Kräver `bonus_payouts`-tabell. Migration + admin-vy med period-filter.
-- [ ] **Min bonus: Jämförelse med kollegor** — anonymiserad rankingtabell i min-bonus: "Du är #2 av 5 operatörer denna vecka" utan att visa andras exacta bonus.
+- [ ] **Min bonus: Jämförelse med kollegor** — anonymiserad rankingtabell i min-bonus: "Du är #2 av 5 operatörer denna vecka" utan att visa andras exacta bonus. → PÅGÅR session #13
 
 ### 🟢 Lägre prioritet
 - [ ] **Cykeltid per operatör** — breakdown av cykeltids-histogrammet per operatör. Visa vilken operatör som har bäst (lägst) median cykeltid. Ny endpoint i RebotlingController.
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #13
+**Lägesanalys**: Session #12 levererade VD-månadsrapport förbättring (`c0c683b`) och Bug Hunt #19 (`7892a3f`, 3 buggar). Allt committat och pushat.
+
+**Beslut denna session**:
+1. Worker 1: Executive dashboard multi-linje status — real-time statusrad för alla 4 linjer (grön/orange/röd). VD ser direkt vilka linjer som körs.
+2. Worker 2: Min bonus: Jämförelse med kollegor — anonymiserad rankingtabell "Du är #2 av 5 denna vecka" i my-bonus. Motiverar operatörer utan att exponera exakta belopp.
+
+**Motivering**: Multi-linje status ger VD:n överblick på 5 sekunder — vilka linjer lever? Kollegajämförelse driver operatörsmotivation via tävlingsinstinkt. Båda direkt affärsvärde.
 
 ### 2026-03-05 Session #12
 **Lägesanalys**: Session #10-11 körde rebotling-statistik refactoring (55% reduktion), maintenance-log split, Bug Hunt #18. Allt committat och pushat.

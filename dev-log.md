@@ -1,3 +1,11 @@
+## 2026-03-05 Session #13 — Multi-linje status + Kollegajämförelse
+
+**Planerade workers**:
+1. Executive dashboard: multi-linje statusrad (4 linjer grön/orange/röd, senaste OEE)
+2. Min bonus: anonymiserad kollegajämförelse ("Du är #2 av 5 denna vecka")
+
+---
+
 ## 2026-03-05 Session #12 — Månadsrapport + Bug Hunt #19
 
 **Worker 1 — monthly-report förbättring** (`c0c683b`):
