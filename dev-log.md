@@ -1,3 +1,12 @@
+## 2026-03-05 Session #9 — Refactoring, UX-polish, Mobilanpassning
+
+**Planerade workers**:
+1. rebotling-statistik.ts refactoring (4248 rader → child-components med @defer)
+2. Error-handling UX + Empty-states batch 3 (catchError→feedback + "Inga resultat" i 5 sidor)
+3. Mobilanpassning batch 3 (col-class-fixar, responsiva tabeller i 10+ filer)
+
+---
+
 ## 2026-03-05 Session #8 batch 4 — Services, PHP-validering, Loading-states
 
 **Worker 1 — Saglinje/Klassificeringslinje services** (`e60e196`):
