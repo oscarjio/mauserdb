@@ -14,16 +14,27 @@ class LoginController {
         AuthHelper::ensureRateLimitTable($pdo);
         AuditLogger::ensureTable($pdo);
 
-        $run = $_GET['run'] ?? 'login';
+        $run = trim($_GET['run'] ?? 'login');
         if ($run === 'logout') {
             $this->logout();
             return;
         }
 
         $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
+            return;
+        }
         $username = trim($data['username'] ?? '');
         $password = $data['password'] ?? '';
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+
+        if ($username === '' || $password === '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Användarnamn och lösenord krävs']);
+            return;
+        }
 
         // Rate limiting
         if (AuthHelper::isRateLimited($pdo, $ip)) {

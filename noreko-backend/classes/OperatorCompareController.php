@@ -23,7 +23,7 @@ class OperatorCompareController {
             return;
         }
 
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         match ($run) {
             'compare'        => $this->compare(),

@@ -27,7 +27,7 @@ class WeeklyReportController {
             return;
         }
 
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         match ($run) {
             'summary'      => $this->getSummary(),

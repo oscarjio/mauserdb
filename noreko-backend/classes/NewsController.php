@@ -9,7 +9,7 @@ class NewsController {
 
     public function handle() {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         if ($method === 'GET' && $run === 'events') {
             $this->getEvents();

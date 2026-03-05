@@ -38,7 +38,7 @@ class StoppageController {
     public function handle() {
         if (session_status() === PHP_SESSION_NONE) session_start();
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         if ($method === 'GET') {
             if ($run === 'reasons') {
@@ -65,7 +65,12 @@ class StoppageController {
             }
 
             $data = json_decode(file_get_contents('php://input'), true);
-            $action = $data['action'] ?? '';
+            if (!is_array($data)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
+                return;
+            }
+            $action = trim($data['action'] ?? '');
 
             if ($action === 'create') {
                 $this->createStoppage($data);
@@ -147,9 +152,9 @@ class StoppageController {
 
     private function getStoppages() {
         try {
-            $line = $_GET['line'] ?? 'rebotling';
+            $line = trim($_GET['line'] ?? 'rebotling');
             if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
-            $period = $_GET['period'] ?? 'week';
+            $period = trim($_GET['period'] ?? 'week');
 
             $dateFilter = $this->getDateFilter($period);
 
@@ -177,9 +182,9 @@ class StoppageController {
 
     private function getStats() {
         try {
-            $line = $_GET['line'] ?? 'rebotling';
+            $line = trim($_GET['line'] ?? 'rebotling');
             if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
-            $period = $_GET['period'] ?? 'month';
+            $period = trim($_GET['period'] ?? 'month');
 
             $dateFilter = $this->getDateFilter($period);
 
@@ -390,7 +395,7 @@ class StoppageController {
 
     private function getPareto() {
         try {
-            $line = $_GET['line'] ?? 'rebotling';
+            $line = trim($_GET['line'] ?? 'rebotling');
             if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
             $dagar = max(1, min(365, intval($_GET['dagar'] ?? 30)));
 
@@ -443,7 +448,7 @@ class StoppageController {
 
     private function getPatternAnalysis() {
         try {
-            $line = $_GET['line'] ?? 'rebotling';
+            $line = trim($_GET['line'] ?? 'rebotling');
             if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
             $days = max(1, min(365, intval($_GET['days'] ?? 30)));
 
@@ -545,7 +550,7 @@ class StoppageController {
 
     private function getWeeklySummary() {
         try {
-            $line = $_GET['line'] ?? 'rebotling';
+            $line = trim($_GET['line'] ?? 'rebotling');
             if (!in_array($line, self::VALID_LINES, true)) $line = 'rebotling';
 
             $thisWeekStart = date('Y-m-d 00:00:00', strtotime('monday this week'));

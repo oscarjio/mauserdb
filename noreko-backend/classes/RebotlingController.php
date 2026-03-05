@@ -16,7 +16,7 @@ class RebotlingController {
 
     public function handle() {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $action = $_GET['run'] ?? '';
+        $action = trim($_GET['run'] ?? '');
 
         if ($method === 'GET') {
             // Skydda admin-only GET-endpoints med sessions-kontroll
@@ -1536,10 +1536,10 @@ class RebotlingController {
             echo json_encode(['error' => 'Åtkomst nekad']);
             return;
         }
-        $date  = $_POST['event_date']   ?? '';
+        $date  = trim($_POST['event_date']   ?? '');
         $title = trim($_POST['title']   ?? '');
         $desc  = trim($_POST['description'] ?? '');
-        $type  = $_POST['event_type']   ?? 'ovrigt';
+        $type  = trim($_POST['event_type']   ?? 'ovrigt');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !$title) {
             http_response_code(400);
             echo json_encode(['error' => 'Ogiltiga uppgifter']);

@@ -27,7 +27,7 @@ class FeedbackController {
         }
 
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $run    = $_GET['run'] ?? '';
+        $run    = trim($_GET['run'] ?? '');
 
         if ($method === 'POST') {
             switch ($run) {

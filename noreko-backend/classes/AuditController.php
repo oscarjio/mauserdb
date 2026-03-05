@@ -25,7 +25,7 @@ class AuditController {
             return;
         }
 
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         if ($run === 'stats') {
             $this->getStats();
@@ -49,13 +49,13 @@ class AuditController {
             $limit = min(200, max(10, intval($_GET['limit'] ?? 50)));
             $offset = ($page - 1) * $limit;
 
-            $actionFilter = $_GET['filter_action'] ?? '';
-            $userFilter   = $_GET['filter_user'] ?? '';
-            $entityFilter = $_GET['filter_entity'] ?? '';
+            $actionFilter = trim($_GET['filter_action'] ?? '');
+            $userFilter   = trim($_GET['filter_user'] ?? '');
+            $entityFilter = trim($_GET['filter_entity'] ?? '');
             $searchText   = trim($_GET['search'] ?? '');
-            $periodFilter = $_GET['period'] ?? 'custom';
-            $fromDate     = $_GET['from_date'] ?? '';
-            $toDate       = $_GET['to_date'] ?? '';
+            $periodFilter = trim($_GET['period'] ?? 'custom');
+            $fromDate     = trim($_GET['from_date'] ?? '');
+            $toDate       = trim($_GET['to_date'] ?? '');
 
             // Date range: explicit from/to takes priority over period preset
             if ($periodFilter !== 'custom' || (empty($fromDate) && empty($toDate))) {
@@ -136,7 +136,7 @@ class AuditController {
 
     private function getStats() {
         try {
-            $periodFilter = $_GET['period'] ?? 'month';
+            $periodFilter = trim($_GET['period'] ?? 'month');
             $dateFilter = $this->getDateFilter($periodFilter);
 
             // Actions per type

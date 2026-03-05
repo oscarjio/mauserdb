@@ -15,7 +15,7 @@ class RuntimeController {
 
     public function handle() {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $action = $_GET['run'] ?? '';
+        $action = trim($_GET['run'] ?? '');
         
         if ($method === 'GET') {
             if ($action === 'stats') {

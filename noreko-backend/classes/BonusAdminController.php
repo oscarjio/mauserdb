@@ -26,7 +26,7 @@ class BonusAdminController {
     public function handle() {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         // Admin-kontroll via session
         if (!$this->isAdmin()) {
@@ -410,8 +410,8 @@ class BonusAdminController {
      * Exportera bonusrapport (CSV)
      */
     private function exportReport() {
-        $period = $_GET['period'] ?? date('Y-m');
-        $format = $_GET['format'] ?? 'csv';
+        $period = trim($_GET['period'] ?? date('Y-m'));
+        $format = trim($_GET['format'] ?? 'csv');
 
         // Validate period format (YYYY-MM)
         if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
@@ -865,7 +865,7 @@ class BonusAdminController {
         try {
             $year   = isset($_GET['year'])  ? intval($_GET['year'])  : intval(date('Y'));
             $op_id  = isset($_GET['op_id']) ? intval($_GET['op_id']) : 0;
-            $status = $_GET['status'] ?? '';
+            $status = trim($_GET['status'] ?? '');
             $allowedStatuses = ['pending', 'approved', 'paid'];
 
             $where  = "WHERE YEAR(bp.period_start) = :year";
@@ -1172,7 +1172,7 @@ class BonusAdminController {
      * 5. Beräkna bonus-diff baserat på bonus_level_amounts
      */
     private function getFairnessAudit(): void {
-        $period = $_GET['period'] ?? '';
+        $period = trim($_GET['period'] ?? '');
 
         // Validera YYYY-MM
         if (!preg_match('/^\d{4}-\d{2}$/', $period)) {

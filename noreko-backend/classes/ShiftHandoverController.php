@@ -9,7 +9,7 @@ class ShiftHandoverController {
     }
 
     public function handle() {
-        $run    = $_GET['run'] ?? '';
+        $run    = trim($_GET['run'] ?? '');
         $method = $_SERVER['REQUEST_METHOD'];
 
         if ($method === 'GET' && $run === 'recent') {

@@ -154,7 +154,7 @@ class OperatorController {
         }
 
         // GET - dispatch based on run param
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
         if ($run === 'stats') {
             $this->getStats();
             return;
