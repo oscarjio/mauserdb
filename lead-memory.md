@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #19)*
+*Senast uppdaterad: 2026-03-05 (session #20)*
 
 ---
 
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #20
+**Lagesanalys**: Session #19 levererade Bug Hunt #25 (`76e5efc` — setTimeout-lackor i operator-dashboard, benchmarking, shift-handover) + Backend-endpoint konsistensaudit (`e4670cd` — HTTP 405/500/404 i HistorikController, AndonController, ShiftPlanController). 8 filer granskade, 7 brister fixade. Totalt 13 dedikerade stabilitets-sessioner (#13-#25).
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #26 — granska PHP-controllers som ALDRIG genomgatt djupgranskning: OperatorDashboardController.php, WeeklyReportController.php, SkiftrapportController.php, StoppageController.php, ProfileController.php, VpnController.php. Fokus: auth-kontroller pa alla endpoints, prepared statements, korrekt HTTP-statuskoder, session read_and_close, edge cases med tom/null data.
+2. Worker 2: Frontend-stabilitetsaudit — granska Angular-komponenter som EJ granskats: production-calendar.ts, historik.ts, live-ranking.ts, operator-trend.ts, weekly-report.ts, rebotling-prognos.ts, operator-attendance.ts. Fokus: subscription-lackor (takeUntil saknas), Chart.js-resurslackor (chart.destroy()), setTimeout/setInterval-lackor, null/undefined edge cases, felhantering vid tomma API-svar.
+
+**Motivering**: Dessa controllers och komponenter har byggts under feature-fasen men aldrig genomgatt systematisk bug-hunting. OperatorDashboardController och WeeklyReportController hanterar affarskritisk data (operatorsprestanda, veckorapporter). Frontend-komponenterna for kalender, historik och live-ranking har Chart.js-logik och polling — hog risk for minneslakor.
 
 ### 2026-03-05 Session #19
 **Lagesanalys**: Session #18 levererade Bug Hunt #24 (`a893905` — dag_oee-kolumn + success:true vid HTTP 500) + Data-integritet (`36b52ea` — BonusController kolumnnamn + RebotlingController HTTP-statuskoder). 10 filer granskade, 4 buggar fixade (1 kritisk). Totalt 12 dedikerade stabilitets-sessioner (#13-#24) sedan direktivet "INGEN NY FUNKTIONSUTVECKLING".

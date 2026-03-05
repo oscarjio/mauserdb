@@ -1,3 +1,22 @@
+## 2026-03-05 Session #20 — Bug Hunt #26 + Frontend-stabilitetsaudit (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #26** (6 PHP-controllers granskade, 9 buggar fixade):
+- **WeeklyReportController.php**: KRITISK FIX — operators-JOIN anvande `o.id` istallet for `o.number`, gav fel operatorsdata. + session read_and_close + HTTP 405.
+- **VpnController.php**: FIXAD — saknad auth-check (401 for utloggade), saknad HTTP 500 i catch-block, session read_and_close.
+- **OperatorDashboardController.php**: FIXAD — HTTP 405 vid felaktig metod.
+- **SkiftrapportController.php**: FIXAD — session read_and_close for GET-requests.
+- **StoppageController.php**: FIXAD — session read_and_close for GET-requests.
+- **ProfileController.php**: FIXAD — session read_and_close for GET-requests (POST behaller skrivbar session).
+
+**Worker 2 — Frontend-stabilitetsaudit** (7 Angular-komponenter granskade, 2 buggar fixade):
+- **production-calendar.ts**: FIXAD — setTimeout-lacka i dagdetalj-chart (saknad referens + clearTimeout)
+- **weekly-report.ts**: FIXAD — setTimeout-lacka i chart-bygge (saknad referens + clearTimeout)
+- **historik.ts, live-ranking.ts, operator-trend.ts, rebotling-prognos.ts, operator-attendance.ts**: OK — alla hade korrekt takeUntil, chart.destroy(), felhantering
+
+**Sammanfattning session #20**: 13 filer granskade, 11 brister fixade (1 kritisk). Inga nya features.
+
+---
+
 ## 2026-03-05 Session #19 — Bug Hunt #25 + Backend-endpoint konsistensaudit (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #25** (5 filer granskade, 3 buggar fixade):
