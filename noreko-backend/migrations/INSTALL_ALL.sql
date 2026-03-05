@@ -487,6 +487,12 @@ CREATE TABLE IF NOT EXISTS tvattlinje_settings (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Om tabellen existerar med gammalt schema (antal_per_dag etc), lägg till de nya kolumnerna
+ALTER TABLE tvattlinje_settings
+  ADD COLUMN IF NOT EXISTS setting VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS value VARCHAR(255) DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
 INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES
   ('dagmal','80'),('takt_mal','15'),('skift_start','06:00'),('skift_slut','22:00'),
   ('alert_thresholds','{"kvalitet_warn":90,"plc_max_min":15,"dagmal_warn_pct":80}');
