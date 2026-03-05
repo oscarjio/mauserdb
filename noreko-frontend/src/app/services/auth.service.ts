@@ -3,12 +3,21 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, interval, of, Observable } from 'rxjs';
 import { timeout, catchError, retry, tap, map } from 'rxjs/operators';
 
+export interface AuthUser {
+  id: number;
+  role: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  operator_id?: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   loggedIn$ = new BehaviorSubject<boolean>(false);
-  user$ = new BehaviorSubject<any>(undefined);
+  user$ = new BehaviorSubject<AuthUser | null | undefined>(undefined);
   /** Sätts till true när första status-anropet är klart (oavsett resultat). */
   initialized$ = new BehaviorSubject<boolean>(false);
 
@@ -32,7 +41,7 @@ export class AuthService {
   }
 
   fetchStatus(): Observable<void> {
-    return this.http.get<any>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
+    return this.http.get<{ loggedIn?: boolean; user?: AuthUser | null }>('/noreko-backend/api.php?action=status', { withCredentials: true }).pipe(
       timeout(8000),
       retry(1),
       catchError(() => of(null)), // null = transient error, ändra inte auth-state

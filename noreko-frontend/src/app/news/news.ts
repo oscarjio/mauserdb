@@ -7,7 +7,25 @@ import { catchError, timeout, takeUntil } from 'rxjs/operators';
 import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from '../services/rebotling.service';
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
 import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
-import { AuthService } from '../services/auth.service';
+import { AuthService, AuthUser } from '../services/auth.service';
+
+interface LineSkiftrapportReport {
+  id: number;
+  datum: string;
+  antal_ok: number;
+  antal_ej_ok: number;
+  totalt: number;
+  kommentar: string;
+  user_name: string;
+  inlagd: number;
+  user_id: number;
+}
+
+interface LineReportsResponse {
+  success: boolean;
+  data?: LineSkiftrapportReport[];
+  message?: string;
+}
 
 export interface NewsEvent {
   id: number | null;
@@ -31,8 +49,8 @@ export type NewsCategory = 'alla' | 'produktion' | 'bonus' | 'system' | 'info' |
 })
 export class News implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
-  intervalId: any;
-  eventsIntervalId: any;
+  intervalId: ReturnType<typeof setInterval> | null = null;
+  eventsIntervalId: ReturnType<typeof setInterval> | null = null;
   loggedIn = false;
   isAdmin = false;
 
@@ -93,7 +111,7 @@ export class News implements OnInit, OnDestroy {
     private http: HttpClient
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
-    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: any) => {
+    this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: AuthUser | null | undefined) => {
       this.isAdmin = val?.role === 'admin';
     });
   }
@@ -175,13 +193,13 @@ export class News implements OnInit, OnDestroy {
   private fetchSaglinjeData() {
     this.lineSkiftrapportService.getReports('saglinje').pipe(
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe((res: any) => {
+    ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
         const today = new Date().toISOString().split('T')[0];
-        const reps = (res.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
+        const reps = res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today);
         this.saglinjeSkiftCount = reps.length;
-        this.saglinjeToday = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
-        this.saglinjeTarget = reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0) + this.saglinjeToday;
+        this.saglinjeToday = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ok || 0), 0);
+        this.saglinjeTarget = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ej_ok || 0), 0) + this.saglinjeToday;
         this.saglinjeKvalitetPct = this.saglinjeTarget > 0
           ? Math.round((this.saglinjeToday / this.saglinjeTarget) * 100) : 0;
         this.saglinjeStatus = reps.length > 0;
@@ -192,13 +210,13 @@ export class News implements OnInit, OnDestroy {
   private fetchKlassificeringslinjeData() {
     this.lineSkiftrapportService.getReports('klassificeringslinje').pipe(
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe((res: any) => {
+    ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
         const today = new Date().toISOString().split('T')[0];
-        const reps = (res.data as any[]).filter((r: any) => (r.datum || '').substring(0, 10) === today);
+        const reps = res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today);
         this.klassificeringslinjeSkiftCount = reps.length;
-        this.klassificeringslinjeToday = reps.reduce((s: number, r: any) => s + (r.antal_ok || 0), 0);
-        this.klassificeringslinjeTarget = reps.reduce((s: number, r: any) => s + (r.antal_ej_ok || 0), 0) + this.klassificeringslinjeToday;
+        this.klassificeringslinjeToday = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ok || 0), 0);
+        this.klassificeringslinjeTarget = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ej_ok || 0), 0) + this.klassificeringslinjeToday;
         this.klassificeringslinjeKvalitetPct = this.klassificeringslinjeTarget > 0
           ? Math.round((this.klassificeringslinjeToday / this.klassificeringslinjeTarget) * 100) : 0;
         this.klassificeringslinjeStatus = reps.length > 0;

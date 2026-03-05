@@ -3,9 +3,24 @@ import { RouterModule, Router } from '@angular/router';
 import { NgIf, CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { AuthService } from '../services/auth.service';
+import { AuthService, AuthUser } from '../services/auth.service';
 import { forkJoin, catchError, of, timeout, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
+interface LineStatusApiResponse {
+  success?: boolean;
+  data?: { running: boolean };
+}
+
+interface VpnApiResponse {
+  success?: boolean;
+  total_connected?: number;
+}
+
+interface ProfileApiResponse {
+  success?: boolean;
+  message?: string;
+}
 
 @Component({
   selector: 'app-menu',
@@ -16,7 +31,7 @@ import { takeUntil } from 'rxjs/operators';
 })
 export class Menu implements OnInit, OnDestroy {
   loggedIn = false;
-  user: any = null;
+  user: AuthUser | null = null;
   showMenu = false;
   selectedMenu: string = 'Älvängen';
   vpnConnectedCount: number = 0;
@@ -35,10 +50,10 @@ export class Menu implements OnInit, OnDestroy {
   profileError: string | null = null;
   savingProfile = false;
   private destroy$ = new Subject<void>();
-  private refreshInterval: any;
-  private lineStatusInterval: any;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private lineStatusInterval: ReturnType<typeof setInterval> | null = null;
   private notifTimer: ReturnType<typeof setInterval> | null = null;
-  private certExpiryInterval: any = null;
+  private certExpiryInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
     private router: Router, 
@@ -72,7 +87,7 @@ export class Menu implements OnInit, OnDestroy {
       }
     });
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
-      this.user = val;
+      this.user = val ?? null;
       if (val?.email) {
         this.profileForm.email = val.email;
       }
@@ -130,8 +145,8 @@ export class Menu implements OnInit, OnDestroy {
 
   loadLineStatus() {
     forkJoin({
-      rebotling: this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
-      tvattlinje: this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
+      rebotling: this.http.get<LineStatusApiResponse>('/noreko-backend/api.php?action=rebotling&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null))),
+      tvattlinje: this.http.get<LineStatusApiResponse>('/noreko-backend/api.php?action=tvattlinje&run=status', { withCredentials: true }).pipe(timeout(3000), catchError(() => of(null)))
     }).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.rebotlingRunning = res.rebotling?.data?.running ?? false;
       this.tvattlinjeRunning = res.tvattlinje?.data?.running ?? false;
@@ -143,7 +158,7 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   loadUrgentCount(): void {
-    this.http.get<any>('/noreko-backend/api.php?action=shift-handover&run=unread-count', { withCredentials: true }).pipe(
+    this.http.get<{ antal?: number }>('/noreko-backend/api.php?action=shift-handover&run=unread-count', { withCredentials: true }).pipe(
       timeout(4000),
       catchError(() => of({ antal: 0 })),
       takeUntil(this.destroy$)
@@ -154,7 +169,7 @@ export class Menu implements OnInit, OnDestroy {
 
   loadCertExpiryCount(): void {
     if (!this.loggedIn || this.user?.role !== 'admin') return;
-    this.http.get<any>('/noreko-backend/api.php?action=certification&run=expiry-count', { withCredentials: true })
+    this.http.get<{ success?: boolean; count?: number }>('/noreko-backend/api.php?action=certification&run=expiry-count', { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         if (res?.success) this.certExpiryCount = res.count ?? 0;
@@ -171,7 +186,7 @@ export class Menu implements OnInit, OnDestroy {
     }
 
     // Ladda i bakgrunden utan att visa loading
-    this.http.get<any>('/noreko-backend/api.php?action=vpn', { withCredentials: true })
+    this.http.get<VpnApiResponse>('/noreko-backend/api.php?action=vpn', { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -216,7 +231,7 @@ export class Menu implements OnInit, OnDestroy {
       }
     }
 
-    const payload: any = {
+    const payload: { email: string; operator_id: number | null; currentPassword?: string; newPassword?: string } = {
       email: trimmedEmail,
       operator_id: this.profileForm.operatorId ? parseInt(this.profileForm.operatorId, 10) : null
     };
@@ -226,7 +241,7 @@ export class Menu implements OnInit, OnDestroy {
     }
 
     this.savingProfile = true;
-    this.http.post<any>('/noreko-backend/api.php?action=profile', payload, { withCredentials: true })
+    this.http.post<ProfileApiResponse>('/noreko-backend/api.php?action=profile', payload, { withCredentials: true })
       .pipe(
         timeout(10000),
         catchError((error) => {

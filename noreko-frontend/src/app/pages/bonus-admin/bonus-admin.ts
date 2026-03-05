@@ -4,8 +4,131 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
-import { AuthService } from '../../services/auth.service';
-import { BonusAdminService, BonusPeriod, OperatorForecastResponse } from '../../services/bonus-admin.service';
+import { AuthService, AuthUser } from '../../services/auth.service';
+import { BonusAdminService, BonusPeriod, BonusConfigResponse, BonusSystemStatsResponse, OperatorForecastResponse } from '../../services/bonus-admin.service';
+
+interface SimOperatorResult {
+  op_number: number;
+  op_name: string;
+  tier: string;
+  total_bonus: number;
+  bonus_sek: number;
+  avg_ibc_per_hour: number;
+  shifts: number;
+}
+
+interface SimulationResult {
+  results: SimOperatorResult[];
+  total_cost?: number;
+  total_shifts?: number;
+  avg_bonus_per_operator?: number;
+  period?: string;
+}
+
+interface SimComparisonRow {
+  op_name: string;
+  op_number: number;
+  base_tier: string;
+  new_tier: string;
+  base_bonus: number;
+  new_bonus: number;
+  diff: number;
+  avg_ibc_per_hour: number;
+  shifts: number;
+}
+
+interface SimHistResult {
+  baseline: SimulationResult;
+  simulated: SimulationResult;
+  period: { start: string; end: string; label: string };
+  operators: HistOperatorComparison[];
+}
+
+interface HistOperatorComparison {
+  op_name: string;
+  op_number: number;
+  actual_bonus: number;
+  simulated_bonus: number;
+  diff: number;
+  actual_tier: string;
+  simulated_tier: string;
+}
+
+interface SimPreset {
+  name: string;
+  icon: string;
+  desc: string;
+  tiers: { label: string; min_ibc_per_hour: number; bonus_sek: number }[];
+}
+
+interface PayoutRecord {
+  id: number;
+  op_id: number;
+  namn?: string;
+  initialer?: string;
+  period_start: string;
+  period_end: string;
+  period_label?: string;
+  amount_sek: number;
+  ibc_count?: number;
+  avg_ibc_per_h?: number;
+  avg_quality_pct?: number;
+  notes?: string;
+  status?: string;
+  bonus_level?: string;
+  created_at?: string;
+}
+
+interface PayoutSummaryEntry {
+  op_id: number;
+  namn: string;
+  initialer?: string;
+  total_utbetalat: number;
+  antal_utbetalningar: number;
+  snitt_per_utbetalning: number;
+  senaste_utbetalning: string;
+}
+
+interface AvailableOperator {
+  id: number;
+  name: string;
+  namn?: string;
+  op_number: number;
+}
+
+interface AuditOperator {
+  name: string;
+  actual_ibc: number;
+  simulated_ibc: number;
+  ibc_diff: number;
+  shifts: number;
+  avg_ibc_per_hour: number;
+  actual_bonus_tier: string;
+  simulated_bonus_tier: string;
+  bonus_diff_kr: number;
+  lost_hours: number;
+}
+
+interface AuditSummary {
+  total_lost_bonus_kr?: number;
+  total_stoppages?: number;
+  most_affected?: string;
+  total_stop_hours?: number;
+  longest_stop_hours?: number;
+  top_stop_reasons?: string[];
+}
+
+interface AuditResult {
+  operators: AuditOperator[];
+  summary?: AuditSummary;
+  period?: string;
+}
+
+interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
 
 @Component({
   standalone: true,
@@ -17,7 +140,7 @@ import { BonusAdminService, BonusPeriod, OperatorForecastResponse } from '../../
 export class BonusAdminPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   loggedIn = false;
-  user: any = null;
+  user: AuthUser | null = null;
   isAdmin = false;
 
   // State
@@ -26,10 +149,10 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   errorMessage = '';
 
   // System stats
-  systemStats: any = null;
+  systemStats: BonusSystemStatsResponse['data'] | null = null;
 
   // Config
-  config: any = null;
+  config: BonusConfigResponse['data'] | null = null;
   editingWeights: { [key: number]: boolean } = {};
   weightsForm: { [key: number]: { eff: number; prod: number; qual: number } } = {};
 
@@ -64,7 +187,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     { label: 'Platinum', min_ibc_per_hour: 7.0, bonus_sek: 2800 },
   ];
   simLoading = false;
-  simResult: any = null;
+  simResult: SimulationResult | null = null;
   simError = '';
 
   // ========== What-if: Scenario-jämförelse ==========
@@ -75,8 +198,8 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     { label: 'Guld',     min_ibc_per_hour: 6.0, bonus_sek: 1800 },
     { label: 'Platinum', min_ibc_per_hour: 7.0, bonus_sek: 2800 },
   ];
-  simBaselineResult: any = null;
-  simComparisonRows: any[] = [];
+  simBaselineResult: SimulationResult | null = null;
+  simComparisonRows: SimComparisonRow[] = [];
   simCostDiff = 0;
 
   // ========== What-if: Preset-scenarios ==========
@@ -120,7 +243,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== What-if: Historisk simulering ==========
   simHistPeriod = 'last-month';
   simHistLoading = false;
-  simHistResult: any = null;
+  simHistResult: SimHistResult | null = null;
   simHistError = '';
 
   // ========== What-if: Sub-tab ==========
@@ -135,8 +258,8 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
 
   // ========== Utbetalningar ==========
-  payouts: any[] = [];
-  payoutSummary: any[] = [];
+  payouts: PayoutRecord[] = [];
+  payoutSummary: PayoutSummaryEntry[] = [];
   payoutsLoading = false;
   showPayoutForm = false;
   payoutForm = {
@@ -154,11 +277,11 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   payoutError = '';
   payoutYearFilter = new Date().getFullYear();
   payoutOpFilter = '';
-  availableOperators: any[] = [];
+  availableOperators: AvailableOperator[] = [];
   payoutSummaryYear = new Date().getFullYear();
 
   // ========== Utbetalningshistorik (ny flik) ==========
-  payoutHistory: any[] = [];
+  payoutHistory: PayoutRecord[] = [];
   payoutHistoryLoading = false;
   payoutHistoryYear = new Date().getFullYear();
   payoutHistoryStatusFilter = '';
@@ -171,14 +294,14 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Rättviseaudit ==========
   auditPeriod = '';
   auditLoading = false;
-  auditResult: any = null;
+  auditResult: AuditResult | null = null;
   auditError = '';
   auditChartRendered = false;
 
   // Toast timer IDs
-  private successTimerId: any = null;
-  private errorTimerId: any = null;
-  private auditChartTimerId: any = null;
+  private successTimerId: ReturnType<typeof setTimeout> | undefined;
+  private errorTimerId: ReturnType<typeof setTimeout> | undefined;
+  private auditChartTimerId: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     private auth: AuthService,
@@ -187,7 +310,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
-      this.user = val;
+      this.user = val ?? null;
       this.isAdmin = val?.role === 'admin';
     });
 
@@ -248,8 +371,8 @@ export class BonusAdminPage implements OnInit, OnDestroy {
             tvattade: res.data.productivity_target_tvattade || 15
           };
           // Ladda veckobonusmål
-          if ((res.data as any).weekly_bonus_goal) {
-            this.weeklyGoalForm = (res.data as any).weekly_bonus_goal;
+          if (res.data.weekly_bonus_goal) {
+            this.weeklyGoalForm = res.data.weekly_bonus_goal;
           }
         }
         this.loading = false;
@@ -424,10 +547,10 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (!confirm(`Godkänn alla bonusar för period ${period}?`)) return;
 
     this.loading = true;
-    this.bonusAdmin.approveBonuses(period).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' } as any)), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.approveBonuses(period).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' } as { success: boolean; data?: { cycles_approved?: number }; error?: string })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
-          this.showSuccess(`Bonusar godkända för ${period}! (${(res as any).data?.cycles_approved} cykler)`);
+          this.showSuccess(`Bonusar godkända för ${period}! (${(res as { data?: { cycles_approved?: number } }).data?.cycles_approved} cykler)`);
           this.loadPeriods();
         } else {
           this.showError(res.error || 'Fel vid godkännande');
@@ -459,7 +582,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       bonus_tiers:        this.simTiers,
     };
 
-    this.http.post<any>(
+    this.http.post<ApiResponse<SimulationResult>>(
       '/noreko-backend/api.php?action=bonus&run=simulate',
       payload,
       { withCredentials: true }
@@ -480,9 +603,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   }
 
   // ========== What-if: Apply Preset ==========
-  applyPreset(preset: any) {
+  applyPreset(preset: SimPreset) {
     this.simActivePreset = preset.name;
-    this.simTiers = preset.tiers.map((t: any) => ({ ...t }));
+    this.simTiers = preset.tiers.map((t) => ({ ...t }));
   }
 
   // ========== What-if: Scenario Comparison ==========
@@ -509,7 +632,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     };
 
     // Run baseline simulation
-    this.http.post<any>(
+    this.http.post<ApiResponse<SimulationResult>>(
       '/noreko-backend/api.php?action=bonus&run=simulate',
       basePay,
       { withCredentials: true }
@@ -524,10 +647,10 @@ export class BonusAdminPage implements OnInit, OnDestroy {
           this.simLoading = false;
           return;
         }
-        this.simBaselineResult = baseRes.data;
+        this.simBaselineResult = baseRes.data ?? null;
 
         // Run new simulation
-        this.http.post<any>(
+        this.http.post<ApiResponse<SimulationResult>>(
           '/noreko-backend/api.php?action=bonus&run=simulate',
           newPay,
           { withCredentials: true }
@@ -542,7 +665,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
               this.simLoading = false;
               return;
             }
-            this.simResult = newRes.data;
+            this.simResult = newRes.data ?? null;
             this.buildComparisonRows();
             this.simLoading = false;
           },
@@ -560,16 +683,16 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   }
 
   private buildComparisonRows() {
-    const baseMap: { [key: number]: any } = {};
-    (this.simBaselineResult?.results || []).forEach((r: any) => {
+    const baseMap: { [key: number]: SimOperatorResult } = {};
+    (this.simBaselineResult?.results || []).forEach((r: SimOperatorResult) => {
       baseMap[r.op_number] = r;
     });
 
-    const rows: any[] = [];
+    const rows: SimComparisonRow[] = [];
     let totalBaseCost = 0;
     let totalNewCost = 0;
 
-    (this.simResult?.results || []).forEach((r: any) => {
+    (this.simResult?.results || []).forEach((r: SimOperatorResult) => {
       const base = baseMap[r.op_number];
       const baseTotalBonus = base ? base.total_bonus : 0;
       const diff = r.total_bonus - baseTotalBonus;
@@ -589,7 +712,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     });
 
     // Add operators only in baseline
-    (this.simBaselineResult?.results || []).forEach((base: any) => {
+    (this.simBaselineResult?.results || []).forEach((base: SimOperatorResult) => {
       if (!rows.find(r => r.op_number === base.op_number)) {
         totalBaseCost += base.total_bonus;
         rows.push({
@@ -644,7 +767,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       bonus_tiers: this.simBaselineTiers,
     };
 
-    this.http.post<any>(
+    this.http.post<ApiResponse<SimulationResult>>(
       '/noreko-backend/api.php?action=bonus&run=simulate',
       basePayload,
       { withCredentials: true }
@@ -654,7 +777,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe({
       next: (baseRes) => {
-        this.http.post<any>(
+        this.http.post<ApiResponse<SimulationResult>>(
           '/noreko-backend/api.php?action=bonus&run=simulate',
           simPayload,
           { withCredentials: true }
@@ -670,10 +793,10 @@ export class BonusAdminPage implements OnInit, OnDestroy {
               return;
             }
             this.simHistResult = {
-              baseline: baseRes.data,
-              simulated: simRes.data,
+              baseline: baseRes.data!,
+              simulated: simRes.data!,
               period: dates,
-              operators: this.buildHistOperatorComparison(baseRes.data, simRes.data),
+              operators: this.buildHistOperatorComparison(baseRes.data ?? null, simRes.data ?? null),
             };
             this.simHistLoading = false;
           },
@@ -721,19 +844,19 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     }
   }
 
-  private buildHistOperatorComparison(baseline: any, simulated: any): any[] {
-    const baseMap: { [key: number]: any } = {};
-    (baseline?.results || []).forEach((r: any) => baseMap[r.op_number] = r);
+  private buildHistOperatorComparison(baseline: SimulationResult | null, simulated: SimulationResult | null): HistOperatorComparison[] {
+    const baseMap: { [key: number]: SimOperatorResult } = {};
+    (baseline?.results || []).forEach((r: SimOperatorResult) => baseMap[r.op_number] = r);
 
-    const simMap: { [key: number]: any } = {};
-    (simulated?.results || []).forEach((r: any) => simMap[r.op_number] = r);
+    const simMap: { [key: number]: SimOperatorResult } = {};
+    (simulated?.results || []).forEach((r: SimOperatorResult) => simMap[r.op_number] = r);
 
     const allOps = new Set([
       ...Object.keys(baseMap).map(Number),
       ...Object.keys(simMap).map(Number)
     ]);
 
-    const rows: any[] = [];
+    const rows: HistOperatorComparison[] = [];
     allOps.forEach(opId => {
       const base = baseMap[opId];
       const sim = simMap[opId];
@@ -765,7 +888,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Bonusnivåer i kr ==========
   loadAmounts() {
     this.amountsLoading = true;
-    this.http.get<any>(
+    this.http.get<ApiResponse<{ amounts: { brons: number; silver: number; guld: number; platina: number }; last_updated?: string; last_updated_by?: string }>>(
       '/noreko-backend/api.php?action=bonusadmin&run=getAmounts',
       { withCredentials: true }
     ).pipe(
@@ -813,7 +936,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     }
 
     this.amountsSaving = true;
-    this.http.post<any>(
+    this.http.post<ApiResponse>(
       '/noreko-backend/api.php?action=bonusadmin&run=setAmounts',
       this.amountsForm,
       { withCredentials: true }
@@ -896,7 +1019,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   // ========== Utbetalningar ==========
   loadOperators() {
-    this.http.get<any>(
+    this.http.get<ApiResponse<{ operators: AvailableOperator[] }>>(
       '/noreko-backend/api.php?action=bonusadmin&run=list-operators',
       { withCredentials: true }
     ).pipe(
@@ -919,7 +1042,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     const opId = parseInt(this.payoutOpFilter, 10);
     if (opId > 0) params.set('op_id', String(opId));
 
-    this.http.get<any>(
+    this.http.get<ApiResponse<{ payouts: PayoutRecord[] }>>(
       `/noreko-backend/api.php?action=bonusadmin&run=list-payouts&${params.toString()}`,
       { withCredentials: true }
     ).pipe(
@@ -938,7 +1061,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   }
 
   loadPayoutSummary() {
-    this.http.get<any>(
+    this.http.get<ApiResponse<{ summary: PayoutSummaryEntry[] }>>(
       `/noreko-backend/api.php?action=bonusadmin&run=payout-summary&year=${this.payoutSummaryYear}`,
       { withCredentials: true }
     ).pipe(
@@ -976,7 +1099,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     }
 
     this.payoutSaving = true;
-    this.http.post<any>(
+    this.http.post<ApiResponse>(
       '/noreko-backend/api.php?action=bonusadmin&run=record-payout',
       this.payoutForm,
       { withCredentials: true }
@@ -1006,7 +1129,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   deletePayout(id: number) {
     if (!confirm('Ta bort denna utbetalning?')) return;
-    this.http.post<any>(
+    this.http.post<ApiResponse>(
       '/noreko-backend/api.php?action=bonusadmin&run=delete-payout',
       { id },
       { withCredentials: true }
@@ -1056,7 +1179,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (this.payoutHistoryStatusFilter) {
       url += `&status=${encodeURIComponent(this.payoutHistoryStatusFilter)}`;
     }
-    this.http.get<any>(url, { withCredentials: true }).pipe(
+    this.http.get<ApiResponse<{ payouts: PayoutRecord[] }>>(url, { withCredentials: true }).pipe(
       timeout(8000),
       catchError(() => of(null)),
       takeUntil(this.destroy$)
@@ -1074,7 +1197,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   }
 
   updatePayoutStatus(id: number, status: string): void {
-    this.http.post<any>(
+    this.http.post<ApiResponse>(
       '/noreko-backend/api.php?action=bonusadmin&run=update-payout-status',
       JSON.stringify({ id, status }),
       { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
@@ -1143,9 +1266,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     const rows = this.payoutHistory.map(p => [
       p.namn || '',
       (p.period_label || (p.period_start + ' – ' + p.period_end)),
-      this.getBonusLevelLabel(p.bonus_level),
+      this.getBonusLevelLabel(p.bonus_level ?? ''),
       String(p.amount_sek || 0),
-      this.getPayoutStatusLabel(p.status)
+      this.getPayoutStatusLabel(p.status ?? '')
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -1175,7 +1298,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.auditError = '';
     this.auditChartRendered = false;
 
-    this.http.get<any>(
+    this.http.get<ApiResponse<AuditResult>>(
       `/noreko-backend/api.php?action=bonusadmin&run=fairness&period=${encodeURIComponent(this.auditPeriod)}`,
       { withCredentials: true }
     ).pipe(
@@ -1206,9 +1329,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
     this.auditChartRendered = true;
     const ops = this.auditResult.operators.slice(0, 15); // max 15 operatörer
-    const labels = ops.map((o: any) => o.name);
-    const actualData = ops.map((o: any) => o.actual_ibc);
-    const simData = ops.map((o: any) => o.simulated_ibc);
+    const labels = ops.map((o: AuditOperator) => o.name);
+    const actualData = ops.map((o: AuditOperator) => o.actual_ibc);
+    const simData = ops.map((o: AuditOperator) => o.simulated_ibc);
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;

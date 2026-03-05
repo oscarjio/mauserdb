@@ -3,13 +3,45 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { AuthService } from '../../services/auth.service';
-import { BonusService, RankingEntry, ShiftStats } from '../../services/bonus.service';
-import { RebotlingService, BestShift, StoppageDayEntry, StoppageCategoryEntry, StoppageReasonEntry } from '../../services/rebotling.service';
+import { AuthService, AuthUser } from '../../services/auth.service';
+import { BonusService, RankingEntry, ShiftStats, TeamStatsResponse } from '../../services/bonus.service';
+import { RebotlingService, BestShift, StoppageDayEntry, StoppageCategoryEntry, StoppageReasonEntry, RastStatusResponse, LineStatusResponse, RastEvent } from '../../services/rebotling.service';
 import { catchError, of, timeout } from 'rxjs';
-import { Chart, registerables } from 'chart.js';
+import { Chart, registerables, TooltipItem } from 'chart.js';
 
 Chart.register(...registerables);
+
+interface DailyDataPoint {
+  date: string;
+  bonus: number;
+  ibcOk: number;
+}
+
+interface WeekdayDataPoint {
+  day: string;
+  avgBonus: number;
+  avgIbc: number;
+}
+
+interface ParetoItem {
+  orsak: string;
+  kategori: string;
+  total_minuter: number;
+  snitt_minuter: number;
+  antal_stopp: number;
+  pct_av_total: number;
+  kumulativ_pct: number;
+}
+
+interface HeatmapApiResponse {
+  success: boolean;
+  data: { date: string; hour: number; count: number }[];
+}
+
+interface ParetoApiResponse {
+  success: boolean;
+  items?: ParetoItem[];
+}
 
 @Component({
   standalone: true,
@@ -22,7 +54,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   Math = Math;
 
   loggedIn = false;
-  user: any = null;
+  user: AuthUser | null = null;
   isAdmin = false;
 
   loading = false;
@@ -40,11 +72,11 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
 
   // Tab 2: Dagsanalys
   shifts: ShiftStats[] = [];
-  teamAggregate: any = null;
-  dailyData: { date: string; bonus: number; ibcOk: number }[] = [];
-  weekdayData: { day: string; avgBonus: number; avgIbc: number }[] = [];
-  bestDay: any = null;
-  worstDay: any = null;
+  teamAggregate: NonNullable<TeamStatsResponse['data']>['aggregate'] | null = null;
+  dailyData: DailyDataPoint[] = [];
+  weekdayData: WeekdayDataPoint[] = [];
+  bestDay: DailyDataPoint | null = null;
+  worstDay: DailyDataPoint | null = null;
   avgBonus = 0;
   totalIbc = 0;
 
@@ -75,14 +107,14 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   stoppageTotalEvents = 0;
   stoppageTotalMinutes = 0;
   // Tidslinje-data (rast-proxy, behålls)
-  rastStatus: any = null;
-  lineStatus: any = null;
+  rastStatus: RastStatusResponse['data'] | null = null;
+  lineStatus: LineStatusResponse['data'] | null = null;
   rastHistory14: { date: string; totalRastMinutes: number; rastCount: number }[] = [];
   private stopRastChart: Chart | null = null;
   private stoppageDailyChart: Chart | null = null;
 
   // Tab 7: Pareto-analys
-  paretoData: any[] = [];
+  paretoData: ParetoItem[] = [];
   paretoLoading = false;
   paretoPeriod = 30;
   private paretoChart: Chart | null = null;
@@ -97,9 +129,9 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   private bubbleChart: Chart | null = null;
 
   // Timeout IDs
-  private tabTimeout: any = null;
-  private chartTimeout: any = null;
-  private radarTimeout: any = null;
+  private tabTimeout: ReturnType<typeof setTimeout> | undefined;
+  private chartTimeout: ReturnType<typeof setTimeout> | undefined;
+  private radarTimeout: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     private auth: AuthService,
@@ -108,7 +140,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   ) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
-      this.user = val;
+      this.user = val ?? null;
       this.isAdmin = val?.role === 'admin';
     });
   }
@@ -197,9 +229,9 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     else if (this.positionFilter === 'Kontroll') data = this.positionRankings['Kontroll'] || [];
     else if (this.positionFilter === 'Truck') data = this.positionRankings['Truck'] || [];
 
-    return [...data].sort((a: any, b: any) => {
-      const aVal = a[this.sortColumn] ?? 0;
-      const bVal = b[this.sortColumn] ?? 0;
+    return [...data].sort((a: RankingEntry, b: RankingEntry) => {
+      const aVal = (a as unknown as Record<string, number>)[this.sortColumn] ?? 0;
+      const bVal = (b as unknown as Record<string, number>)[this.sortColumn] ?? 0;
       return this.sortDirection === 'desc' ? bVal - aVal : aVal - bVal;
     });
   }
@@ -246,7 +278,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     if (!ctx) return;
 
     const data = this.getFilteredRanking().slice(0, 15);
-    const labels = data.map((d: any) => d.operator_name || ('Op ' + d.operator_id));
+    const labels = data.map((d: RankingEntry) => d.operator_name || ('Op ' + d.operator_id));
     const values = data.map(d => d.bonus_avg);
     const colors = values.map(v => v >= 90 ? 'rgba(72,187,120,0.8)' : v >= 70 ? 'rgba(236,201,75,0.8)' : 'rgba(229,62,62,0.8)');
 
@@ -289,7 +321,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       const op = this.overallRanking.find(r => r.operator_id === opId);
       if (!op) return null;
       return {
-        label: (op as any).operator_name || ('Op ' + opId),
+        label: op.operator_name || ('Op ' + opId),
         data: [op.effektivitet, Math.min(op.produktivitet, 100), op.kvalitet],
         backgroundColor: radarColors[i],
         borderColor: radarBorders[i],
@@ -301,7 +333,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       type: 'radar',
       data: {
         labels: ['Effektivitet', 'Produktivitet', 'Kvalitet'],
-        datasets: datasets as any
+        datasets: datasets as NonNullable<typeof datasets[number]>[]
       },
       options: {
         scales: {
@@ -477,13 +509,13 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       timeout(10000),
       takeUntil(this.destroy$),
       catchError(() => { this.error = 'Kunde inte ladda timdata'; this.loading = false; return of(null); })
-    ).subscribe((res: any) => {
+    ).subscribe((res: HeatmapApiResponse | null) => {
       if (!res?.success) { this.loading = false; return; }
 
       const rows: { [date: string]: { [hour: number]: number } } = {};
       const hourTotals: { [hour: number]: { sum: number; count: number } } = {};
 
-      (res.data as { date: string; hour: number; count: number }[]).forEach(({ date, hour, count }) => {
+      res.data.forEach(({ date, hour, count }) => {
         if (!rows[date]) rows[date] = {};
         rows[date][hour] = count;
       });
@@ -627,7 +659,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (ctx: any) => {
+              label: (ctx: TooltipItem<'bubble'>) => {
                 const s = shifts[ctx.dataIndex];
                 if (!s) return 'Ingen data';
                 return `Skift #${s.shift_number}: Eff ${s.kpis?.effektivitet}%, Prod ${s.kpis?.produktivitet}, Bonus ${s.kpis?.bonus_avg}`;
@@ -784,7 +816,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
             titleColor: '#e2e8f0',
             bodyColor: '#a0aec0',
             callbacks: {
-              label: (ctx: any) => ctx.raw > 0 ? ` ${ctx.dataset.label}: ${ctx.raw} min` : ''
+              label: (ctx: TooltipItem<'bar'>) => (ctx.raw as number) > 0 ? ` ${ctx.dataset.label}: ${ctx.raw} min` : ''
             }
           }
         },
@@ -822,13 +854,13 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     };
 
     const blocks: { type: 'running' | 'rast'; label: string; widthPct: number; tooltip: string }[] = [];
-    const events = [...this.rastStatus.events].sort((a: any, b: any) =>
+    const events = [...this.rastStatus.events].sort((a: RastEvent, b: RastEvent) =>
       new Date(a.datum).getTime() - new Date(b.datum).getTime()
     );
 
     let curMin = 0;
 
-    events.forEach((ev: any) => {
+    events.forEach((ev: RastEvent) => {
       const evMin = Math.max(0, Math.min(toMin(ev.datum), totalMin));
       if (evMin <= curMin) return;
 
@@ -955,7 +987,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         scales: {
           x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: '#2d3748' } },
           y: { position: 'left', ticks: { color: '#718096' }, grid: { color: '#2d3748' }, beginAtZero: true, title: { display: true, text: 'IBC OK', color: '#718096' } },
-          y1: { position: 'right', ticks: { color: '#718096', callback: (v: any) => v + '%' }, grid: { display: false }, min: 0, max: 100, title: { display: true, text: 'Kvalitet %', color: '#718096' } }
+          y1: { position: 'right', ticks: { color: '#718096', callback: (v: string | number) => v + '%' }, grid: { display: false }, min: 0, max: 100, title: { display: true, text: 'Kvalitet %', color: '#718096' } }
         }
       }
     });
@@ -974,7 +1006,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       : (this.positionRankings[this.positionFilter] || []);
     if (data.length === 0) return;
     const header = ['Rank', 'Operatör', 'Position', 'Bonus Snitt', 'Effektivitet', 'Produktivitet', 'Kvalitet', 'IBC OK', 'Timmar'];
-    const rows = data.map((r: any) => [
+    const rows = data.map((r: RankingEntry) => [
       r.rank,
       r.operator_name || ('Op ' + r.operator_id),
       r.position || '-',
@@ -985,7 +1017,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       r.total_ibc_ok ?? 0,
       (r.total_hours ?? 0).toFixed(1)
     ]);
-    const csv = [header, ...rows].map(r => r.map((c: any) => `"${c}"`).join(';')).join('\n');
+    const csv = [header, ...rows].map(r => r.map((c: string | number) => `"${c}"`).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1041,7 +1073,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     ]);
 
     const csv = [header, ...rows]
-      .map(r => r.map((c: any) => `"${c}"`).join(';'))
+      .map(r => r.map((c: string | number) => `"${c}"`).join(';'))
       .join('\n');
 
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -1178,7 +1210,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
             borderColor: '#4a5568',
             borderWidth: 1,
             callbacks: {
-              label: (ctx: any) => {
+              label: (ctx: TooltipItem<'bar'>) => {
                 const item = this.paretoData[ctx.dataIndex];
                 if (!item) return '';
                 if (ctx.datasetIndex === 0) {
@@ -1218,7 +1250,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
             max: 100,
             ticks: {
               color: '#a0aec0',
-              callback: (v: any) => v + '%'
+              callback: (v: string | number) => v + '%'
             },
             grid: { display: false },
             title: { display: true, text: 'Kumulativt %', color: '#718096', font: { size: 11 } }

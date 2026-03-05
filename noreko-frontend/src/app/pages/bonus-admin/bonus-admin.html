@@ -147,7 +147,7 @@
               <tr><th>Tier</th><th>Tröskel</th><th>Multiplikator</th></tr>
             </thead>
             <tbody>
-              <tr *ngFor="let tier of config.tier_multipliers">
+              <tr *ngFor="let tier of config?.tier_multipliers">
                 <td><strong>{{ tier.name }}</strong></td>
                 <td>&ge; {{ tier.threshold }} poäng</td>
                 <td>x{{ tier.multiplier }}</td>
@@ -684,7 +684,7 @@
                 </div>
 
                 <!-- Resultattabell -->
-                <div class="table-responsive" *ngIf="simResult.results?.length > 0">
+                <div class="table-responsive" *ngIf="simResult?.results?.length">
                   <table class="table table-dark table-sm table-hover">
                     <thead>
                       <tr>
@@ -882,16 +882,16 @@
                 <div class="sim-gauge-container">
                   <div class="sim-gauge-half">
                     <div class="sim-gauge-fill"
-                         [style.transform]="'rotate(' + (simBaselineResult.total_cost > 0 ? ((simResult.total_cost / simBaselineResult.total_cost) * 180 - 180) : 0) + 'deg)'"
+                         [style.transform]="'rotate(' + ($any(simBaselineResult)?.total_cost ? ((($any(simResult)?.total_cost || 0) / $any(simBaselineResult).total_cost) * 180 - 180) : 0) + 'deg)'"
                          [class.sim-gauge-green]="simCostDiff <= 0"
                          [class.sim-gauge-red]="simCostDiff > 0">
                     </div>
                   </div>
                   <div class="sim-gauge-label">
-                    <span *ngIf="simBaselineResult.total_cost > 0">
-                      {{ ((simResult.total_cost / simBaselineResult.total_cost) * 100) | number:'1.0-0' }}%
+                    <span *ngIf="simBaselineResult?.total_cost">
+                      {{ ((($any(simResult)?.total_cost || 0) / $any(simBaselineResult).total_cost) * 100) | number:'1.0-0' }}%
                     </span>
-                    <span *ngIf="!simBaselineResult.total_cost">--</span>
+                    <span *ngIf="!simBaselineResult?.total_cost">--</span>
                   </div>
                   <div class="sim-gauge-sublabel">av nuvarande kostnad</div>
                 </div>
@@ -1018,11 +1018,11 @@
               </div>
               <div class="col-6 col-md-3">
                 <div class="sim-cost-diff-card"
-                     [class.sim-diff-positive]="(simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) > 0"
-                     [class.sim-diff-negative]="(simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) < 0">
+                     [class.sim-diff-positive]="(simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0) > 0"
+                     [class.sim-diff-negative]="(simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0) < 0">
                   <div class="sim-kpi-label">Skillnad</div>
                   <div class="sim-cost-diff-value sim-animated-number">
-                    {{ getDiffPrefix(simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) }}{{ (simHistResult.simulated.total_cost - simHistResult.baseline.total_cost) | number }} kr
+                    {{ getDiffPrefix((simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0)) }}{{ ((simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0)) | number }} kr
                   </div>
                 </div>
               </div>
@@ -1040,8 +1040,8 @@
                 <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Faktisk vs simulerad bonus per operatör</h6>
               </div>
               <div class="card-body">
-                <div class="sim-hist-bar-chart" *ngIf="simHistResult.operators?.length > 0">
-                  <div class="sim-hist-bar-row" *ngFor="let op of simHistResult.operators">
+                <div class="sim-hist-bar-chart" *ngIf="simHistResult?.operators?.length">
+                  <div class="sim-hist-bar-row" *ngFor="let op of simHistResult?.operators">
                     <div class="sim-hist-bar-label">
                       {{ op.op_name }}
                       <span class="text-muted small ms-1">#{{ op.op_number }}</span>
@@ -1458,8 +1458,8 @@
                 </td>
                 <td class="text-end fw-bold text-success">{{ formatSek(p.amount_sek) }}</td>
                 <td>
-                  <span class="badge" [ngClass]="getPayoutStatusClass(p.status)">
-                    {{ getPayoutStatusLabel(p.status) }}
+                  <span class="badge" [ngClass]="getPayoutStatusClass(p.status ?? '')">
+                    {{ getPayoutStatusLabel(p.status ?? '') }}
                   </span>
                 </td>
                 <td>
@@ -1538,34 +1538,34 @@
         <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Total förlorad bonus pga stopp</div>
-            <div class="audit-summary-value text-warning">{{ formatSek(auditResult.summary.total_lost_bonus_kr) }}</div>
-            <div class="audit-summary-sub">{{ auditResult.summary.total_stoppages }} stoppregistreringar</div>
+            <div class="audit-summary-value text-warning">{{ formatSek(auditResult?.summary?.total_lost_bonus_kr ?? 0) }}</div>
+            <div class="audit-summary-sub">{{ auditResult?.summary?.total_stoppages }} stoppregistreringar</div>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Mest drabbad operatör</div>
-            <div class="audit-summary-value" style="color: #fc8181;">{{ auditResult.summary.most_affected || 'Ingen' }}</div>
+            <div class="audit-summary-value" style="color: #fc8181;">{{ auditResult?.summary?.most_affected || 'Ingen' }}</div>
             <div class="audit-summary-sub">Högst bonusdiff</div>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Total stopptid</div>
-            <div class="audit-summary-value" style="color: #ed8936;">{{ auditResult.summary.total_stop_hours }} h</div>
-            <div class="audit-summary-sub">Längsta enskilda stopp: {{ auditResult.summary.longest_stop_hours }} h</div>
+            <div class="audit-summary-value" style="color: #ed8936;">{{ auditResult?.summary?.total_stop_hours }} h</div>
+            <div class="audit-summary-sub">Längsta enskilda stopp: {{ auditResult?.summary?.longest_stop_hours }} h</div>
           </div>
         </div>
       </div>
 
       <!-- Top stopporsaker -->
-      <div class="card mb-4" *ngIf="auditResult.summary.top_stop_reasons?.length">
+      <div class="card mb-4" *ngIf="auditResult?.summary?.top_stop_reasons?.length">
         <div class="card-header">
           <h6 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Topp stopporsaker</h6>
         </div>
         <div class="card-body p-2">
           <div class="d-flex gap-2 flex-wrap">
-            <span class="audit-reason-tag" *ngFor="let reason of auditResult.summary.top_stop_reasons; let i = index">
+            <span class="audit-reason-tag" *ngFor="let reason of auditResult?.summary?.top_stop_reasons; let i = index">
               <span class="audit-reason-rank">#{{ i + 1 }}</span> {{ reason }}
             </span>
           </div>

@@ -15,6 +15,7 @@ export interface BonusConfigResponse {
     max_bonus: number;
     team_bonus_enabled: boolean;
     safety_bonus_enabled: boolean;
+    weekly_bonus_goal?: number;
   };
   error?: string;
 }

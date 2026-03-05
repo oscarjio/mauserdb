@@ -1,3 +1,14 @@
+## 2026-03-05 — Refactor: TypeScript `any`-audit — 72 `any` ersatta med korrekta interfaces
+
+Ersatte alla `: any` i 5 filer (bonus-admin.ts, production-analysis.ts, news.ts, menu.ts, auth.service.ts):
+- **bonus-admin.ts** (31→0): SimulationResult, SimOperatorResult, SimComparisonRow, SimHistResult, PayoutRecord, PayoutSummaryEntry, AuditResult, AuditOperator m.fl. interfaces
+- **production-analysis.ts** (23→0): DailyDataPoint, WeekdayDataPoint, ParetoItem, HeatmapApiResponse, Chart.js TooltipItem-typer, RastEvent
+- **news.ts** (11→0): LineSkiftrapportReport, LineReportsResponse, ReturnType<typeof setInterval>
+- **menu.ts** (5→0): LineStatusApiResponse, VpnApiResponse, ProfileApiResponse, explicit payload-typ
+- **auth.service.ts** (2→0): AuthUser-interface exporteras, BehaviorSubject<AuthUser | null | undefined>
+- Uppdaterade bonus-admin.html med optional chaining för nullable templates
+- Alla filer bygger utan fel
+
 ## 2026-03-05 — Refactor: Generic SkiftrapportComponent (DRY)
 
 Slog ihop 3 nästintill identiska skiftrapport-sidor (tvattlinje/saglinje/klassificeringslinje) till 1 delad komponent:
