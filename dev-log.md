@@ -1,3 +1,20 @@
+## 2026-03-05 Session #8 batch 4 — Services, PHP-validering, Loading-states
+
+**Worker 1 — Saglinje/Klassificeringslinje services** (`e60e196`):
+- Nya filer: `saglinje.service.ts`, `klassificeringslinje.service.ts`
+- Uppdaterade: saglinje-admin.ts, saglinje-statistik.ts, klassificeringslinje-admin.ts, klassificeringslinje-statistik.ts
+- Mönster: `@Injectable({ providedIn: 'root' })`, withCredentials, Observable-retur
+
+**Worker 2 — PHP input-validering audit** (`704ee80`):
+- 25 PHP-controllers uppdaterade med filter_input, trim, FILTER_VALIDATE_EMAIL, isset-checks
+- Nyckelfiler: AdminController, LoginController, RegisterController, StoppageController, RebotlingController
+
+**Worker 3 — Loading-states batch 2** (`1a3a4b8`):
+- Spinners tillagda: production-analysis.html, saglinje-statistik.html, klassificeringslinje-statistik.html
+- Mönster: Bootstrap spinner-border text-info med "Laddar data..." text
+
+---
+
 ## 2026-03-05 Bug Hunt #17 — Session #8 batch 2+3 granskning
 
 **Scope**: BonusController, BonusAdminController, bonus-admin.ts

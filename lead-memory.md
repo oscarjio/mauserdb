@@ -569,7 +569,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-04 session #6**: Backlog var nere i 2 items (push-notiser, energi-vy). Kodbasanalys (15 fynd) + MES-research (7 idéer) genererade 12 nya backlog-items. Nyckel-fynd: LoginController helt utan try-catch, ~100 RebotlingController catch-block returnerar HTTP 200 vid fel, users.ts/operators.ts saknar timeout/catchError, maintenance cost-data och operatörsstämning redan finns i backend men visas inte i exec dashboard. Startar 3 workers: Bug Hunt #14 (felhantering), Exec Dashboard (underhållskostnad+stämning), Users Admin UX.
 **2026-03-04 session #5 (orig)**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
 **2026-03-05 session #7**: Behovsanalys avslöjade 30+ backend-endpoints utan frontend, 64 HTTP-anrop utan error-handling, login.ts memory leak (saknar ngOnDestroy), RebotlingController 8601 rader. Backlogen tunna (5 öppna items) — fyllde på med 10+ nya items. Startar 3 workers: Bug Hunt #15 (error-handling+login), Operatör×Maskin kompatibilitetsmatris, Oparade endpoints frontend (staffing-warning, monthly-stop-summary, production-rate). MES-research identifierade gamification-trender (daily challenges, achievement badges) + hållbarhets-KPI:er.
-**2026-03-05 session #8**: Session #7 komplett — alla 3 workers klara. Operatör×Maskin committat (`6b34381`), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Batch 1 (3 workers): Commit+bygg (`572f326`+`8389d09`), Oparade endpoints batch 2 (`0af052d`), Gamification (`60c5af2`). Batch 2 (3 workers): Bug Hunt #16 (`348ee07`), Bonus rättviseaudit (`9e54e8d`), VD Veckosammanfattning (`eb930e2`). Batch 3 (3 workers): RebotlingController refactoring (`d295fa8`), Lösenordshashing bcrypt (`286fb1b`), Bug Hunt #17 (`272d48e`). Totalt 11 commits i 3 batchar, 8 features + 3 bugfixar + 1 security + 1 refactor. Startar batch 4: medium prioritet items.
+**2026-03-05 session #8**: Session #7 komplett — alla 3 workers klara. Operatör×Maskin committat (`6b34381`), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Batch 1 (3 workers): Commit+bygg (`572f326`+`8389d09`), Oparade endpoints batch 2 (`0af052d`), Gamification (`60c5af2`). Batch 2 (3 workers): Bug Hunt #16 (`348ee07`), Bonus rättviseaudit (`9e54e8d`), VD Veckosammanfattning (`eb930e2`). Batch 3 (3 workers): RebotlingController refactoring (`d295fa8`), Lösenordshashing bcrypt (`286fb1b`), Bug Hunt #17 (`272d48e`). Totalt 11 commits i 3 batchar, 8 features + 3 bugfixar + 1 security + 1 refactor. Batch 4 (3 workers): Saglinje/Klassificeringslinje services (`e60e196`), PHP input-validering (`704ee80`), Loading-states batch 2 (`1a3a4b8`). Behovsanalys: 12 fynd, 6 nya medium-items + 5 nya idébank-items. MES-research: predictive shift-end, IBC traceability, WebSocket. Startar batch 5.
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -657,14 +657,22 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Lösenordshashing-migration**: KLAR `286fb1b` — SHA1(MD5) → bcrypt via AuthHelper.php, transparent migration (verifyPassword tries bcrypt first, falls back to legacy, auto-upgrades), VARCHAR(255) migration
 - [x] **Bug Hunt #17 — session #8 batch 2 granskning**: KLAR `272d48e` — sendError(500) audit BonusController (15 endpoints) + BonusAdminController (17 endpoints), bonus-admin.ts HTTP-guard (timeout/catchError/null-safe)
 
+### ✅ Levererat session #8 batch 4
+- [x] **Saglinje/Klassificeringslinje service-filer**: KLAR `e60e196` — 2 nya services (saglinje.service.ts, klassificeringslinje.service.ts), 4 komponenter uppdaterade
+- [x] **PHP input-validering audit**: KLAR `704ee80` — sanitering i 25 PHP-controllers (filter_input, trim, FILTER_VALIDATE_EMAIL, isset-checks)
+- [x] **Loading-states batch 2**: KLAR `1a3a4b8` — spinners på production-analysis, saglinje-statistik, klassificeringslinje-statistik
+
 ### 🟡 Medium prioritet — Nästa batch
-- [ ] **Saglinje/Klassificeringslinje service-filer**: Skapa dedikerade Angular services (istället för direkt HTTP i komponenterna)
-- [ ] **Dynamiska effektivitetsmål**: Auto-justera dagsmål baserat på historisk prestation — visa rekommendation i admin
 - [ ] **rebotling-statistik.ts refactoring**: 4248 rader — bryt ut flikar till standalone child-components med @defer
+- [ ] **Dynamiska effektivitetsmål**: Auto-justera dagsmål baserat på historisk prestation — visa rekommendation i admin
 - [ ] **Accessibility-batch**: aria-labels på alla Chart.js canvas, aria-live på spinners, keyboard-navigation i tabeller (10+ filer)
 - [ ] **Mobilanpassning batch 3**: Ändra col-lg-3 col-md-6 → col-12 col-md-6 col-lg-3 i stoppage-log, saglinje-statistik m.fl. (20+ filer)
-- [ ] **PHP input-validering audit**: filter_input/FILTER_VALIDATE_EMAIL i AdminController, LoginController, RegisterController — direkta $_POST utan sanitering
-- [ ] **Loading-states batch 2**: Lägg till spinners i production-analysis, saglinje-statistik, certifications (3+ sidor saknar visuell feedback)
+- [ ] **Error-handling UX-konsistens**: catchError-block med console.error utan feedback → toast.error() med svenskt meddelande i 20+ ställen (skiftrapporter, bonus-dashboard, operators)
+- [ ] **Empty-states batch 3**: operators, audit-log, certifications, users, news-admin — saknar "Inga resultat"-meddelande
+- [ ] **Design system — CSS-variabler**: Ersätt hårdkodade #1a202c/#2d3748/#e2e8f0 med CSS custom properties, skapa .dark-card komponent
+- [ ] **TypeScript any → interfaces**: ~100 : any som bör ersättas med interface/type (operators.ts, rebotling-skiftrapport.ts, production-analysis.ts)
+- [ ] **Shared type definitions**: Centraliserad shared-types.ts för Operator, SkiftReport, DashboardResponse — idag duplicerat i 8+ filer
+- [ ] **maintenance-log.ts refactoring**: 1817 rader — extrahera MaintenanceFormComponent, EquipmentStatsComponent + flytta template till separat fil
 
 ### 🟢 Lägre prioritet / Idébank
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
@@ -675,3 +683,8 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **Actionable OEE-alerts**: "OEE ner 12% pga 6 mikrostopp senaste 10 min" istället för bara "OEE: 68%" — åtgärdsförslag i exec-dashboard alerts
 - [ ] **Six Big Losses (TPM) dashboard**: Strukturerad förlustkategorisering — utrustningsfel, omställningar, mikrostopp, reducerad hastighet, startrejects, produktionsdefekter
 - [ ] **ChartInitializerService**: Extrahera duplicerad Chart.js setup-kod (destroy/canvas/context) till shared service — 20+ komponenter har samma mönster
+- [ ] **Predictive shift-end forecast**: Prediktion av OEE vid skiftslut baserat på aktuell trend — visuell indikator "Vi når X% om inget ändras"
+- [ ] **IBC traceability-vy**: Spåra varje tank genom hela kedjan (inleverans → klassificering → tvätt → rebotling → utleverans), tidslinjevy
+- [ ] **WebSocket för live-sidor**: Ersätt polling med WebSocket för andon/live-ranking — lägre belastning, snabbare uppdateringar
+- [ ] **Feedback-system UI**: FeedbackController finns i backend men saknar frontend — operatör-feedback efter skift
+- [ ] **Generic SkiftrapportComponent**: 4 identiska skiftrapport-sidor → en generisk komponent med linjekonfiguration
