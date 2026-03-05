@@ -16,7 +16,12 @@ class AdminController {
         // POST - Skapa, uppdatera användare, ta bort, eller ändra status
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $data = json_decode(file_get_contents('php://input'), true);
-            $action = $data['action'] ?? 'update';
+            if (!is_array($data)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
+                return;
+            }
+            $action = trim($data['action'] ?? 'update');
             
             // CREATE - Skapa ny användare
             if ($action === 'create') {
@@ -36,7 +41,12 @@ class AdminController {
                     echo json_encode(['success' => false, 'message' => 'Lösenordet måste vara minst 8 tecken']);
                     return;
                 }
-                
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress']);
+                    return;
+                }
+
                 // Kontrollera om användarnamn redan finns
                 try {
                     $stmt = $pdo->prepare("SELECT id FROM users WHERE username = ?");
@@ -96,8 +106,8 @@ class AdminController {
                 return;
             }
             
-            $id = $data['id'] ?? null;
-            
+            $id = isset($data['id']) ? (int)$data['id'] : 0;
+
             if (!$id) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'ID saknas']);
@@ -220,12 +230,19 @@ class AdminController {
             }
             
             // Standard update
-            $username = $data['username'] ?? null;
-            $email = $data['email'] ?? null;
-            $phone = $data['phone'] ?? null;
+            $username = isset($data['username']) ? trim($data['username']) : null;
+            $email = isset($data['email']) ? trim($data['email']) : null;
+            $phone = isset($data['phone']) ? trim($data['phone']) : null;
             $password = $data['password'] ?? null;
             $admin = isset($data['admin']) ? ($data['admin'] ? 1 : 0) : null;
             $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';
+
+            // Validera email om angiven
+            if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress']);
+                return;
+            }
 
             $fields = [];
             $params = [];

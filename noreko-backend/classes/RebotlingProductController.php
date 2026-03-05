@@ -13,7 +13,7 @@ class RebotlingProductController {
         if (session_status() === PHP_SESSION_NONE) session_start();
 
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $action = $_GET['run'] ?? '';
+        $action = trim($_GET['run'] ?? '');
 
         // Write operations require admin
         if ($method !== 'GET') {

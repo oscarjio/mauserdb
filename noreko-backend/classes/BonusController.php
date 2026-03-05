@@ -37,7 +37,7 @@ class BonusController {
         }
 
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
-        $run    = $_GET['run'] ?? '';
+        $run    = trim($_GET['run'] ?? '');
 
         // POST-endpoints
         if ($method === 'POST') {
@@ -139,7 +139,7 @@ class BonusController {
      */
     private function getOperatorStats() {
         $op_id      = isset($_GET['id']) ? intval($_GET['id']) : null;
-        $period     = $_GET['period'] ?? 'week';
+        $period     = trim($_GET['period'] ?? 'week');
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
 
@@ -283,7 +283,7 @@ class BonusController {
      * GET /api.php?action=bonus&run=ranking&period=week|month&limit=10
      */
     private function getRanking() {
-        $period     = $_GET['period'] ?? 'week';
+        $period     = trim($_GET['period'] ?? 'week');
         $limit      = min((int)($_GET['limit'] ?? 10), 100);
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
@@ -425,7 +425,7 @@ class BonusController {
      * GET /api.php?action=bonus&run=team&period=week|month
      */
     private function getTeamStats() {
-        $period     = $_GET['period'] ?? 'week';
+        $period     = trim($_GET['period'] ?? 'week');
         $start_date = $_GET['start']  ?? null;
         $end_date   = $_GET['end']    ?? null;
 
@@ -550,7 +550,7 @@ class BonusController {
      */
     private function getKPIDetails() {
         $op_id  = isset($_GET['id']) ? intval($_GET['id']) : null;
-        $period = $_GET['period'] ?? 'week';
+        $period = trim($_GET['period'] ?? 'week');
 
         // Whitelist-validering av $period
         $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
@@ -1895,7 +1895,7 @@ class BonusController {
             return;
         }
 
-        $period = $_GET['period'] ?? 'week';
+        $period = trim($_GET['period'] ?? 'week');
         // Tillåt enbart giltiga perioder
         $allowedPeriods = ['day', 'today', 'week', 'month'];
         if (!in_array($period, $allowedPeriods, true)) {

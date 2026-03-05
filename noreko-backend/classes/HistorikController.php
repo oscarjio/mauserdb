@@ -16,7 +16,7 @@ class HistorikController {
     }
 
     public function handle() {
-        $run = $_GET['run'] ?? 'monthly';
+        $run = trim($_GET['run'] ?? 'monthly');
 
         switch ($run) {
             case 'monthly':

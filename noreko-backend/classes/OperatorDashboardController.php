@@ -19,7 +19,7 @@ class OperatorDashboardController {
     }
 
     public function handle() {
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
 
         switch ($run) {
             case 'today':   $this->getToday();   break;

@@ -15,7 +15,7 @@ class SkiftrapportController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         
         if ($method === 'GET') {
-            $run = $_GET['run'] ?? '';
+            $run = trim($_GET['run'] ?? '');
             if ($run === 'lopnummer') {
                 $this->getLopnummerForSkift();
                 return;

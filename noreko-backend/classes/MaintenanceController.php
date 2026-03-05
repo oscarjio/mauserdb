@@ -38,7 +38,7 @@ class MaintenanceController {
             return;
         }
 
-        $run = $_GET['run'] ?? 'list';
+        $run = trim($_GET['run'] ?? 'list');
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
         match ($run) {

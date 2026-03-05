@@ -12,7 +12,7 @@ class CertificationController {
             session_start();
         }
 
-        $run = $_GET['run'] ?? '';
+        $run = trim($_GET['run'] ?? '');
         $method = $_SERVER['REQUEST_METHOD'];
 
         if ($method === 'GET' && $run === 'all') {
