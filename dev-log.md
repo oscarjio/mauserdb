@@ -1,3 +1,13 @@
+## 2026-03-05 — Refactor: Generic SkiftrapportComponent (DRY)
+
+Slog ihop 3 nästintill identiska skiftrapport-sidor (tvattlinje/saglinje/klassificeringslinje) till 1 delad komponent:
+- Skapade `shared-skiftrapport/` med generisk TS + HTML + CSS som konfigureras via `LineSkiftrapportConfig`-input
+- Tvattlinje (364 rader -> 20), Saglinje (244 -> 20), Klassificeringslinje (220 -> 20) = tunna wrappers
+- Ca 800 rader duplicerad kod eliminerad, ersatt med 1 komponent (~310 rader TS + HTML + CSS)
+- Rebotling-skiftrapporten (1812 rader) behölls separat — helt annan funktionalitet (charts, produkter, email, sortering etc.)
+- Routing oförändrad — samma URL:er, samma exporterade klassnamn
+- Alla 3 linjer behåller sin unika färgtema (primary/warning/success) via konfiguration
+
 ## 2026-03-05 Session #24 — Bug Hunt #30 + Frontend sista-audit (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #30** (6 PHP-filer granskade, 24 buggar fixade):

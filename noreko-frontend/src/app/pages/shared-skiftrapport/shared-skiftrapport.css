@@ -1,0 +1,64 @@
+/* ---- Summary Cards ---- */
+.summary-card {
+  background: #1a202c;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  transition: box-shadow 0.2s;
+}
+.summary-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.3); }
+.summary-icon { font-size: 1.5rem; margin-bottom: 0.5rem; color: #4a90d9; }
+.summary-value { font-size: 1.75rem; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+.summary-label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.25rem; }
+
+/* ---- Empty State ---- */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: #2d3748;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 1.5rem;
+  color: #e2e8f0;
+}
+
+/* ---- Dark theme base ---- */
+.card { background-color: #2d3748; border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; }
+.card-header { border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 600; }
+.card-body { background-color: #2d3748; color: #e2e8f0; }
+.form-control { background-color: #4a5568; border-color: #718096; color: #e2e8f0; }
+.form-control:focus { background-color: #4a5568; border-color: #86b7fe; color: #e2e8f0; box-shadow: 0 0 0 0.25rem rgba(13,110,253,0.25); }
+.form-control::placeholder { color: #a0aec0; }
+.form-label { color: #e2e8f0; font-weight: 600; font-size: 0.875rem; }
+
+/* ---- Table ---- */
+.table { background-color: #2d3748; color: #e2e8f0; }
+.table th { background-color: #1a202c; border-color: #4a5568; color: #e2e8f0; font-size: 0.875rem; text-transform: uppercase; }
+.table td { vertical-align: middle; border-color: #4a5568; background-color: #2d3748; color: #e2e8f0; }
+.table-hover tbody tr:hover { background-color: rgba(66,153,225,0.1); }
+.table-striped tbody tr:nth-of-type(odd) { background-color: rgba(255,255,255,0.02); }
+.inlagd-row { background-color: rgba(56,161,105,0.15) !important; }
+.table-responsive { border-radius: 0.375rem; overflow-x: auto; }
+.text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Form elements ---- */
+.form-check-input { background-color: #4a5568; border-color: #718096; }
+.form-check-input:checked { background-color: #198754; border-color: #198754; }
+.form-check-label { color: #e2e8f0; margin-left: 0.5rem; }
+
+/* ---- Misc ---- */
+.text-muted { color: #a0aec0 !important; }
+.alert-danger { background-color: #e53e3e; border-color: #c53030; color: #fff; }
+.toast { background-color: #2d3748; border: 1px solid rgba(255,255,255,0.1); }
+.toast-body { background-color: #2d3748 !important; color: #e2e8f0 !important; }
+.btn-close-white { filter: invert(1) grayscale(100%) brightness(200%); }
+.btn-outline-light { border-color: rgba(255,255,255,0.5); color: #fff; }
+.btn-outline-light:hover { background-color: rgba(255,255,255,0.2); }
+.btn-outline-dark { border-color: rgba(0,0,0,0.5); }
+
+/* ---- Expand panel & KPI ---- */
+.expand-panel { background: #1e2535; border-top: 2px solid #3182ce; }
+.kpi-card { background: #1a202c; border: 1px solid #2d3748; border-radius: 8px; padding: 10px 14px; text-align: center; }
+.kpi-label { font-size: 0.68rem; color: #718096; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.kpi-value { font-size: 1.4rem; font-weight: 700; line-height: 1.2; }
