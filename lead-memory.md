@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #7)*
+*Senast uppdaterad: 2026-03-05 (session #8)*
 
 ---
 
@@ -304,8 +304,8 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ---
 
-## AKTIVA AGENTER (session 2026-03-05 session #7)
-*(Session #7: Behovsanalys genomförd — 30+ oparade endpoints, 64 HTTP-anrop utan error-handling, login.ts memory leak. Startar 3 workers.)*
+## AKTIVA AGENTER (session 2026-03-05 session #8)
+*(Session #8: Session #7 komplett — alla 3 workers klara. 2 features uncommitted, committas nu. Startar 3 nya workers.)*
 
 ---
 
@@ -569,6 +569,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-04 session #6**: Backlog var nere i 2 items (push-notiser, energi-vy). Kodbasanalys (15 fynd) + MES-research (7 idéer) genererade 12 nya backlog-items. Nyckel-fynd: LoginController helt utan try-catch, ~100 RebotlingController catch-block returnerar HTTP 200 vid fel, users.ts/operators.ts saknar timeout/catchError, maintenance cost-data och operatörsstämning redan finns i backend men visas inte i exec dashboard. Startar 3 workers: Bug Hunt #14 (felhantering), Exec Dashboard (underhållskostnad+stämning), Users Admin UX.
 **2026-03-04 session #5 (orig)**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
 **2026-03-05 session #7**: Behovsanalys avslöjade 30+ backend-endpoints utan frontend, 64 HTTP-anrop utan error-handling, login.ts memory leak (saknar ngOnDestroy), RebotlingController 8601 rader. Backlogen tunna (5 öppna items) — fyllde på med 10+ nya items. Startar 3 workers: Bug Hunt #15 (error-handling+login), Operatör×Maskin kompatibilitetsmatris, Oparade endpoints frontend (staffing-warning, monthly-stop-summary, production-rate). MES-research identifierade gamification-trender (daily challenges, achievement badges) + hållbarhets-KPI:er.
+**2026-03-05 session #8**: Session #7 komplett — alla 3 workers klara. Operatör×Maskin committat (`6b34381`), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Startar 3 workers: (1) Commit+bygg session #7, (2) Oparade endpoints batch 2 (alert-thresholds, notification-settings, goal-history), (3) Gamification (achievement badges + daily challenges).
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -632,19 +633,28 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ## AKTIV BATCH (2026-03-05 session #7)
 
+### ✅ Levererat session #7
+- [x] **Bug Hunt #15 — HTTP error-handling + login.ts**: KLAR — login.ts ngOnDestroy+destroy$, register.ts, create-user.ts, 4 skiftrapporter, bonus-dashboard. Alla med takeUntil/timeout(8000)/catchError. (uncommitted — committas session #8)
+- [x] **Operatör × Maskin kompatibilitetsmatris**: KLAR `6b34381` — heatmap OEE per operatör+produkt, tooltip med IBC/h/kvalitet%/antal skift, ny sektion i operators-sidan
+- [x] **Oparade endpoints frontend**: KLAR — bemanningsöversikt i exec-dashboard, månadssammanfattning stopp i stoppage-log, produktionstakt KPI i andon. (uncommitted — committas session #8)
+
+---
+
+## AKTIV BATCH (2026-03-05 session #8)
+
 ### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Bug Hunt #15 — HTTP error-handling + login.ts**: Fixa login.ts saknat ngOnDestroy (memory leak), lägg till timeout/catchError på 64 HTTP-anrop som saknar det. Systematisk grep genom alla .ts-filer.
-- [ ] **Operatör × Maskin kompatibilitetsmatris**: OEE per operatör+maskin-kombination, optimala parningar, heatmap-visualisering. Ny sektion i rebotling-statistik eller operators-sidan.
-- [ ] **Oparade endpoints frontend**: Bygg frontend-UI för befintliga backend-endpoints som saknar frontend: staffing-warning (bemanningsvarning-dashboard), monthly-stop-summary (månatlig stoppsammanfattning), production-rate (realtids IBC/h med targets).
+- [ ] **Commit + bygg session #7 uncommitted**: Bygg Angular, committa Bug Hunt #15 + Oparade endpoints ändringar, pusha
+- [ ] **Oparade endpoints batch 2**: alert-thresholds admin UI (konfigurera varningströsklar), notification-settings admin UI, goal-history visualisering (hur dagsmålet ändrats över tid)
+- [ ] **Gamification — Achievement badges + Daily challenges**: Operatörsmilstolpar (100/500/1000 IBC, perfekt vecka, 5-dagars streak), badge-galleri i my-bonus, daily challenge-widget på andon-tavlan
 
 ### 🟡 Medium prioritet — Nästa batch
-- [ ] **Skiftöverlämning: Email-notis vid brådskande**: PHP mail() vid brådskande not → admin-adress
-- [ ] **Oparade endpoints batch 2**: alert-thresholds admin UI, notification-settings admin UI, goal-history visualisering
 - [ ] **RebotlingController refactoring**: 8601 rader — split till RebotlingLiveController, RebotlingAdminController, RebotlingAnalyticsController
+- [ ] **Saglinje/Klassificeringslinje service-filer**: Skapa dedikerade Angular services
+- [ ] **Lösenordshashing-migration**: SHA1(MD5) → bcrypt/argon2 (kräver planerad migration)
 
 ### 🟢 Lägre prioritet / Idébank
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
 - [ ] **Energieffektivitet-vy**: IBC per kWh, energikostnad per IBC (om data finns)
-- [ ] **Saglinje/Klassificeringslinje service-filer**: Skapa dedikerade Angular services istället för direkta HTTP-anrop i sidorna
-- [ ] **Lösenordshashing-migration**: SHA1(MD5) → bcrypt/argon2 (kräver planerad migration)
-- [ ] **Gamification-utökning**: Daily challenges ("Nå 15 IBC/h före lunch!"), achievement badges, streak-counter på TV-skärmen
+- [ ] **Flödesanalys-vy**: Visualisera IBC-flödet genom anläggningen
+- [ ] **Hållbarhets-KPI dashboard**: Vatten/kemikalie/energiförbrukning per IBC, CO₂-estimat
+- [ ] **Skiftrapport auto-email vid skiftslut**: Automatisk email med skiftsammanfattning

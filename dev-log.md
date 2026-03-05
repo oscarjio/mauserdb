@@ -1,3 +1,45 @@
+## 2026-03-05 session #8 — Lead: Session #7 komplett, 3 nya workers
+
+**Analys**: Session #7 alla 3 workers klara. Operatör×Maskin committat (6b34381), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Startar 3 workers: (1) Commit+bygg session #7 ändringar, (2) Oparade endpoints batch 2 (alert-thresholds admin UI, notification-settings admin UI, goal-history visualisering), (3) Gamification (achievement badges, daily challenges, streak-counter).
+
+---
+
+## 2026-03-05 Worker: Bug Hunt #15 -- login.ts memory leak + HTTP error-handling audit
+
+**login.ts**: Lade till `implements OnDestroy`, `destroy$` Subject, `ngOnDestroy()`. Alla HTTP-anrop har nu `.pipe(takeUntil(this.destroy$), timeout(8000), catchError(...))`. Importerade `Subject`, `of`, `takeUntil`, `timeout`, `catchError`.
+
+**register.ts**: Lade till `destroy$` Subject, `ngOnDestroy()` med destroy$-cleanup. HTTP-anrop wrappat med `takeUntil/timeout/catchError`.
+
+**create-user.ts**: Lade till `of`, `timeout`, `catchError` i imports. `createUser()`-anropet wrappat med `takeUntil/timeout/catchError`.
+
+**saglinje-skiftrapport.ts**: Lade till `of`, `timeout`, `catchError` i imports. Alla 7 service-anrop (getReports, createReport, updateReport, deleteReport, bulkDelete, updateInlagd, bulkUpdateInlagd) wrappade med `pipe(takeUntil, timeout(8000), catchError)`.
+
+**klassificeringslinje-skiftrapport.ts**: Samma fix som saglinje -- alla 7 service-anrop wrappade.
+
+**tvattlinje-skiftrapport.ts**: Samma fix -- alla 7 service-anrop wrappade.
+
+**rebotling-skiftrapport.ts**: 10 subscribe-anrop fixade: loadSettings, fetchProducts, getSkiftrapporter, updateInlagd, bulkUpdateInlagd, deleteSkiftrapport, bulkDelete, createSkiftrapport, getLopnummer, updateSkiftrapport, laddaKommentar, sparaKommentar, shift-compare. Alla med `pipe(takeUntil, timeout(8000), catchError)`.
+
+**bonus-dashboard.ts**: 4 subscribe-anrop fixade: getConfig (weekly goal), getTeamStats, getOperatorStats, getKPIDetails. Alla med `pipe(takeUntil, timeout(8000), catchError)`.
+
+**Filer**: `login.ts`, `register.ts`, `create-user.ts`, `saglinje-skiftrapport.ts`, `klassificeringslinje-skiftrapport.ts`, `tvattlinje-skiftrapport.ts`, `rebotling-skiftrapport.ts`, `bonus-dashboard.ts`
+
+---
+
+## 2026-03-05 Worker: Oparade endpoints -- bemanningsöversikt, månadssammanfattning stopp, produktionstakt
+
+**Service**: 3 nya metoder i `rebotling.service.ts`: `getStaffingWarning()`, `getMonthlyStopSummary(month)`, `getProductionRate()`. Nya TypeScript-interfaces: `StaffingWarningResponse`, `MonthlyStopSummaryResponse`, `ProductionRateResponse` med tillhorande sub-interfaces.
+
+**Executive Dashboard** (`executive-dashboard.ts/html/css`): Ny sektion "Bemanningsöversikt" som visar underbemannade skift kommande 7 dagar. Kort per dag med skift-nr och antal operatorer vs minimum. Fargkodad danger/warning baserat pa 0 eller lag bemanning. Dold om inga varningar. CSS med dark theme.
+
+**Stoppage Log** (`stoppage-log.ts/html`): Ny sektion "Månadssammanfattning -- Topp 5 stopporsaker" langst ner pa sidan. Horisontellt bar chart (Chart.js) + tabell med orsak, antal, total tid, andel. Manadväljare (input type=month). `RebotlingService` injicerad, `loadMonthlyStopSummary()` med takeUntil/timeout/catchError.
+
+**Andon** (`andon.ts/html/css`): Nytt KPI-kort "Aktuell Produktionstakt" mellan KPI-raden och prognosbannern. Visar snitt IBC/dag for 7d (stort, med progress bar), 30d och 90d. Gron/gul/rod baserat pa hur nära dagsmalet. Polling var 60s. `RebotlingService` injicerad.
+
+**Filer**: `rebotling.service.ts`, `executive-dashboard.ts/html/css`, `stoppage-log.ts/html`, `andon.ts/html/css`
+
+---
+
 ## 2026-03-05 Worker: Operator x Produkt Kompatibilitetsmatris
 
 **Backend**: Nytt endpoint `GET ?action=operators&run=machine-compatibility&days=90` i `OperatorController.php`. SQL aggregerar fran `rebotling_ibc` med UNION ALL op1/op2/op3, JOIN `operators` + `rebotling_products`, GROUP BY operator+produkt. Returnerar avg_ibc_per_h, avg_kvalitet, OEE, antal_skift per kombination. Prepared statements, try-catch, http_response_code(500) vid fel.
