@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #23)*
+*Senast uppdaterad: 2026-03-05 (session #24)*
 
 ---
 
@@ -130,6 +130,24 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 ## BUGGAR / TEKNISK SKULD
 *(Uppdateras av bug hunting-agenter och workers som hittar problem)*
+
+### Åtgärdat — 2026-03-05 (Bug Hunt #30 + Frontend sista-audit, session #24)
+
+**PHP — HTTP-statuskoder, session read_and_close, prepared statements:**
+- `RebotlingProductController.php`: session read_and_close for GET, HTTP 400/404/500 (8 fixar)
+- `RuntimeController.php`: HTTP 405 vid ogiltig metod, HTTP 400/500 (10 fixar)
+- `ShiftHandoverController.php`: success:false i error-responses, session read_and_close (3 fixar)
+- `LineSkiftrapportController.php`: session read_and_close, SQL prepared statements (3 fixar)
+- `AuthHelper.php`: OK — ren utility-klass
+- `ProductController.php`: Tom fil (0 bytes)
+
+**Angular — timeout/catchError/setTimeout-lackor:**
+- `tvattlinje-statistik.ts`: saknad timeout/catchError, felaktig chart.destroy(), setTimeout-lacka (3 fixar)
+- `saglinje-statistik.ts`: saknad timeout/catchError, setTimeout-lacka (2 fixar)
+- `klassificeringslinje-statistik.ts`: saknad timeout/catchError, setTimeout-lacka (2 fixar)
+- 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
+
+**MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
 
 ### Åtgärdat — 2026-03-05 (Bug Hunt #29 + Frontend ogranskade-sidor-audit, session #23)
 
@@ -316,6 +334,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #24
+**Lagesanalys**: Session #23 levererade Bug Hunt #29 (`df2767a` — session read_and_close, success:false vid fel, HTTP 404 vid user-not-found i AdminController, AuditController, OperatorController, RebotlingAdminController) + Frontend ogranskade-sidor-audit (`82f16c0` — takeUntil i users, setTimeout-lackor i operator-detail/news-admin/operators/maintenance-log). 18 filer granskade, 21 buggar fixade. Totalt 16 dedikerade stabilitets-sessioner (#13-#29).
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #30 — granska de SISTA ogranskade PHP-filerna: AuthHelper.php, ProductController.php, RebotlingProductController.php, RuntimeController.php, ShiftHandoverController.php, LineSkiftrapportController.php. Fokus: auth-kontroller, prepared statements, session read_and_close, HTTP-statuskoder, error handling, edge cases med tom data.
+2. Worker 2: Frontend sista-audit — granska alla kvarstaende ogranskade Angular-komponenter: certifications.ts, vpn-admin.ts, andon.ts, tvattlinje-admin.ts, tvattlinje-skiftrapport.ts, tvattlinje-statistik.ts, saglinje-admin.ts, saglinje-skiftrapport.ts, saglinje-statistik.ts, klassificeringslinje-admin.ts, klassificeringslinje-skiftrapport.ts, klassificeringslinje-statistik.ts. Fokus: subscription-lackor (takeUntil saknas), setTimeout/setInterval-lackor, Chart.js-resurslackor, felhantering, null/undefined edge cases. ROR ALDRIG *-live.ts.
+
+**Motivering**: Detta ar den sista omgangen — alla ovriga PHP-controllers och Angular-komponenter har redan granskats i Bug Hunt #1-#29. Nar denna session ar klar har hela kodbasen genomgatt systematisk bug-hunting.
 
 ### 2026-03-05 Session #22
 **Lagesanalys**: Session #21 levererade Bug Hunt #27 (`e9eeef0` — session read_and_close i RebotlingAnalyticsController/RebotlingController, success:false vid HTTP 500, setTimeout-lackor i rebotling-skiftrapport, loading-state i rebotling-statistik). 6 filer granskade (de 2 storsta backend + 3 storsta frontend), 5 buggar fixade. Totalt 15 dedikerade stabilitets-sessioner (#13-#27).
