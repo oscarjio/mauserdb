@@ -569,7 +569,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-04 session #6**: Backlog var nere i 2 items (push-notiser, energi-vy). Kodbasanalys (15 fynd) + MES-research (7 idéer) genererade 12 nya backlog-items. Nyckel-fynd: LoginController helt utan try-catch, ~100 RebotlingController catch-block returnerar HTTP 200 vid fel, users.ts/operators.ts saknar timeout/catchError, maintenance cost-data och operatörsstämning redan finns i backend men visas inte i exec dashboard. Startar 3 workers: Bug Hunt #14 (felhantering), Exec Dashboard (underhållskostnad+stämning), Users Admin UX.
 **2026-03-04 session #5 (orig)**: Session #4 batch 2 komplett — Skiftplaneringsvy (`f0a57ba`) och Benchmarking (`7996e1f`) levererade. Backlogen tunnas — fyllt på med nya items. Startar 3 workers: Prediktivt underhåll körningsbaserat, IBC-kvalitets deep-dive, Bug Hunt #13 (granska session #4 features).
 **2026-03-05 session #7**: Behovsanalys avslöjade 30+ backend-endpoints utan frontend, 64 HTTP-anrop utan error-handling, login.ts memory leak (saknar ngOnDestroy), RebotlingController 8601 rader. Backlogen tunna (5 öppna items) — fyllde på med 10+ nya items. Startar 3 workers: Bug Hunt #15 (error-handling+login), Operatör×Maskin kompatibilitetsmatris, Oparade endpoints frontend (staffing-warning, monthly-stop-summary, production-rate). MES-research identifierade gamification-trender (daily challenges, achievement badges) + hållbarhets-KPI:er.
-**2026-03-05 session #8**: Session #7 komplett — alla 3 workers klara. Operatör×Maskin committat (`6b34381`), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Batch 1 (3 workers): Commit+bygg (`572f326`+`8389d09`), Oparade endpoints batch 2 (`0af052d`), Gamification (`60c5af2`). Batch 2 (3 workers): Bug Hunt #16 (`348ee07`), Bonus rättviseaudit (`9e54e8d`), VD Veckosammanfattning (`eb930e2`). Totalt 8 commits, 6 features + 1 bugfix. Startar batch 3: RebotlingController refactoring, Lösenordshashing, Bug Hunt #17.
+**2026-03-05 session #8**: Session #7 komplett — alla 3 workers klara. Operatör×Maskin committat (`6b34381`), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Batch 1 (3 workers): Commit+bygg (`572f326`+`8389d09`), Oparade endpoints batch 2 (`0af052d`), Gamification (`60c5af2`). Batch 2 (3 workers): Bug Hunt #16 (`348ee07`), Bonus rättviseaudit (`9e54e8d`), VD Veckosammanfattning (`eb930e2`). Batch 3 (3 workers): RebotlingController refactoring (`d295fa8`), Lösenordshashing bcrypt (`286fb1b`), Bug Hunt #17 (`272d48e`). Totalt 11 commits i 3 batchar, 8 features + 3 bugfixar + 1 security + 1 refactor. Startar batch 4: medium prioritet items.
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -652,15 +652,19 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **Bonus rättviseaudit**: KLAR `9e54e8d` — counterfactual rapport stoppåverkan på operatörsbonus, simulerings-endpoint, ny flik i bonus-admin
 - [x] **VD Veckosammanfattning-email**: KLAR `eb930e2` — preview + send via executive dashboard, HTML-email med inline CSS, KPI:er
 
-### 🔴 Hög prioritet — Workers startas NU (batch 3)
-- [ ] **RebotlingController refactoring**: 8601 rader — split till RebotlingLiveController, RebotlingAdminController, RebotlingAnalyticsController
-- [ ] **Lösenordshashing-migration**: SHA1(MD5) → bcrypt/argon2 (kräver planerad migration med dual-hash-verifiering)
-- [ ] **Bug Hunt #17 — session #8 batch 2 granskning**: Granska bonus rättviseaudit, VD veckosammanfattning, bug hunt #16 fixar
+### ✅ Levererat session #8 batch 3
+- [x] **RebotlingController refactoring**: KLAR `d295fa8` — 9207→3 controllers: RebotlingController (2838 rader dispatcher+30 live-data), RebotlingAdminController (1333 rader, 33 admin-metoder), RebotlingAnalyticsController (5271 rader, 34 analytics-metoder). API-URL:er oförändrade.
+- [x] **Lösenordshashing-migration**: KLAR `286fb1b` — SHA1(MD5) → bcrypt via AuthHelper.php, transparent migration (verifyPassword tries bcrypt first, falls back to legacy, auto-upgrades), VARCHAR(255) migration
+- [x] **Bug Hunt #17 — session #8 batch 2 granskning**: KLAR `272d48e` — sendError(500) audit BonusController (15 endpoints) + BonusAdminController (17 endpoints), bonus-admin.ts HTTP-guard (timeout/catchError/null-safe)
 
 ### 🟡 Medium prioritet — Nästa batch
 - [ ] **Saglinje/Klassificeringslinje service-filer**: Skapa dedikerade Angular services (istället för direkt HTTP i komponenterna)
 - [ ] **Dynamiska effektivitetsmål**: Auto-justera dagsmål baserat på historisk prestation — visa rekommendation i admin
 - [ ] **rebotling-statistik.ts refactoring**: 4248 rader — bryt ut flikar till standalone child-components med @defer
+- [ ] **Accessibility-batch**: aria-labels på alla Chart.js canvas, aria-live på spinners, keyboard-navigation i tabeller (10+ filer)
+- [ ] **Mobilanpassning batch 3**: Ändra col-lg-3 col-md-6 → col-12 col-md-6 col-lg-3 i stoppage-log, saglinje-statistik m.fl. (20+ filer)
+- [ ] **PHP input-validering audit**: filter_input/FILTER_VALIDATE_EMAIL i AdminController, LoginController, RegisterController — direkta $_POST utan sanitering
+- [ ] **Loading-states batch 2**: Lägg till spinners i production-analysis, saglinje-statistik, certifications (3+ sidor saknar visuell feedback)
 
 ### 🟢 Lägre prioritet / Idébank
 - [ ] **Push-notiser webbläsare**: Web Push API vid stopp > 10 min
@@ -668,3 +672,6 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [ ] **Flödesanalys-vy**: Visualisera IBC-flödet genom anläggningen
 - [ ] **Hållbarhets-KPI dashboard**: Vatten/kemikalie/energiförbrukning per IBC, CO₂-estimat
 - [ ] **Skiftrapport auto-email vid skiftslut**: Automatisk email med skiftsammanfattning
+- [ ] **Actionable OEE-alerts**: "OEE ner 12% pga 6 mikrostopp senaste 10 min" istället för bara "OEE: 68%" — åtgärdsförslag i exec-dashboard alerts
+- [ ] **Six Big Losses (TPM) dashboard**: Strukturerad förlustkategorisering — utrustningsfel, omställningar, mikrostopp, reducerad hastighet, startrejects, produktionsdefekter
+- [ ] **ChartInitializerService**: Extrahera duplicerad Chart.js setup-kod (destroy/canvas/context) till shared service — 20+ komponenter har samma mönster

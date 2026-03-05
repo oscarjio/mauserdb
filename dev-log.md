@@ -1,3 +1,50 @@
+## 2026-03-05 Bug Hunt #17 — Session #8 batch 2+3 granskning
+
+**Scope**: BonusController, BonusAdminController, bonus-admin.ts
+
+**Fixade buggar (PHP)**:
+- BonusAdminController.php — 17 catch-block saknade `500` i `sendError()` (returnerade HTTP 200 vid databasfel)
+- BonusController.php — 15 catch-block saknade `500` i `sendError()`
+
+**Fixade buggar (TypeScript)**:
+- bonus-admin.ts — 12 HTTP-anrop saknade `timeout(8000)` och `catchError()`. Null-safe access (`res?.success`) på 5 ställen.
+
+**Commit**: `272d48e`
+
+---
+
+## 2026-03-05 RebotlingController refactoring
+
+**Före**: RebotlingController.php — 9207 rader, 97 metoder, allt i en klass.
+**Efter**: 3 controllers:
+- `RebotlingController.php` — 2838 rader. Dispatcher + 30 live-data endpoints (PLC-data, skiftöversikt, countdown)
+- `RebotlingAdminController.php` — 1333 rader. 33 admin-only metoder (konfiguration, mål, notifieringar)
+- `RebotlingAnalyticsController.php` — 5271 rader. 34 analytics/rapportmetoder (statistik, prognos, export)
+
+Sub-controllers skapas med `new XxxController($this->pdo)` och dispatchas via `$run`-parametern.
+API-URL:er oförändrade (`?action=rebotling&run=X`).
+Bugfix: Ersatte odefinierad `$this->sendError()` med inline `http_response_code(500)` + JSON.
+
+**Commit**: `d295fa8`
+
+---
+
+## 2026-03-05 Lösenordshashing SHA1(MD5) → bcrypt
+
+**Nya filer**:
+- `noreko-backend/classes/AuthHelper.php` — `hashPassword()` (bcrypt), `verifyPassword()` (bcrypt first, legacy fallback + auto-upgrade)
+- `noreko-backend/migrations/2026-03-05_password_bcrypt.sql` — `ALTER TABLE users MODIFY COLUMN password VARCHAR(255)`
+
+**Ändrade filer**:
+- RegisterController.php — `sha1(md5())` → `AuthHelper::hashPassword()`
+- AdminController.php — 2 ställen (create + update user)
+- ProfileController.php — Password change
+- LoginController.php — Verifiering via `AuthHelper::verifyPassword()` med transparent migration
+
+**Commit**: `286fb1b`
+
+---
+
 ## 2026-03-05 Bug Hunt #16 — Session #8 granskning
 
 **Scope**: 4 commits (572f326, 8389d09, 0af052d, 60c5af2), 24 ändrade filer.
