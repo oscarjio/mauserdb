@@ -125,6 +125,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
   totalIbcLifetime = 0;
   achievementCurrentStreak = 0;
   showConfetti = false;
+  private confettiTimerId: any = null;
+  private feedbackSavedTimerId: any = null;
 
   // Peer ranking (anonymiserad kollegajamforelse)
   peerRanking: {
@@ -175,6 +177,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    clearTimeout(this.confettiTimerId);
+    clearTimeout(this.feedbackSavedTimerId);
     try { if (this.kpiChart) this.kpiChart.destroy(); } catch (e) {}
     this.kpiChart = null;
     try { if (this.historyChart) this.historyChart.destroy(); } catch (e) {}
@@ -369,7 +373,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
           const earnedCount = res.badges.filter((b: any) => b.earned).length;
           if (earnedCount > 0) {
             this.showConfetti = true;
-            setTimeout(() => { this.showConfetti = false; }, 4000);
+            clearTimeout(this.confettiTimerId);
+            this.confettiTimerId = setTimeout(() => { if (!this.destroy$.closed) this.showConfetti = false; }, 4000);
           }
         }
         this.achievementsLoading = false;
@@ -1279,7 +1284,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
           this.feedbackSaved = true;
           this.feedbackKommentar = '';
           this.loadFeedbackHistory();
-          setTimeout(() => { this.feedbackSaved = false; }, 3000);
+          clearTimeout(this.feedbackSavedTimerId);
+          this.feedbackSavedTimerId = setTimeout(() => { if (!this.destroy$.closed) this.feedbackSaved = false; }, 3000);
         } else {
           this.feedbackError = res?.error || 'Kunde inte spara feedback.';
         }

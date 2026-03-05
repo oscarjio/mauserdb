@@ -1311,13 +1311,13 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.successMessage = msg;
     this.errorMessage = '';
     clearTimeout(this.successTimerId);
-    this.successTimerId = setTimeout(() => this.successMessage = '', 4000);
+    this.successTimerId = setTimeout(() => { if (!this.destroy$.closed) this.successMessage = ''; }, 4000);
   }
 
   private showError(msg: string) {
     this.errorMessage = msg;
     this.successMessage = '';
     clearTimeout(this.errorTimerId);
-    this.errorTimerId = setTimeout(() => this.errorMessage = '', 6000);
+    this.errorTimerId = setTimeout(() => { if (!this.destroy$.closed) this.errorMessage = ''; }, 6000);
   }
 }
