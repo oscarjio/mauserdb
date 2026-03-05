@@ -1,3 +1,18 @@
+## 2026-03-05 Session #12 — Månadsrapport + Bug Hunt #19
+
+**Planerade workers**:
+1. VD Månadsrapport förbättring — föregående-månads-jämförelse, operator-of-the-month, diff-indikatorer, bättre PDF
+2. Bug Hunt #19 — granska commits sedan session #8, fokus TypeScript + PHP
+
+**Bug Hunt #19** (`aa9cdd7`):
+- 3 buggar hittade och fixade:
+  1. BonusController.php getAchievements: catch-block anvande raw http_response_code(500) istallet for sendError() — inkonsekvent error-handling, klient fick inte korrekt JSON-format
+  2. AndonController.php getDailyChallenge: tom catch-block svaljer dagmal-query-fel tyst — loggning saknades
+  3. operator-dashboard.ts loadFeedbackSummary: saknad isFetching-guard — snabba tabb-byten kunde trigga parallella HTTP-anrop (race condition)
+- 23 filer granskade och rena: operator-trend.ts, operator-detail.ts, shift-handover.ts, operator-attendance.ts, weekly-report.ts, andon.ts, my-bonus.ts, RebotlingAnalyticsController.php, 16 rebotling statistik child-components, 5 maintenance-log child-components
+
+---
+
 ## 2026-03-05 Session #10 — Stora refactorings + Bug Hunt
 
 **Worker 1 — rebotling-statistik.ts refactoring** (`9eec10d`):
