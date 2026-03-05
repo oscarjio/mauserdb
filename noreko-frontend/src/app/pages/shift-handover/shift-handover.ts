@@ -65,6 +65,7 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit {
 
   private destroy$ = new Subject<void>();
   private pollInterval: ReturnType<typeof setInterval> | null = null;
+  private focusTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private http: HttpClient,
@@ -99,10 +100,15 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
+    if (this.focusTimer !== null) {
+      clearTimeout(this.focusTimer);
+      this.focusTimer = null;
+    }
   }
 
   focusTextarea(): void {
-    setTimeout(() => {
+    if (this.focusTimer !== null) clearTimeout(this.focusTimer);
+    this.focusTimer = setTimeout(() => {
       this.noteTextareaRef?.nativeElement?.focus();
     }, 100);
   }

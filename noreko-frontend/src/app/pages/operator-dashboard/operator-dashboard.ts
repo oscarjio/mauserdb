@@ -652,6 +652,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private pollingInterval: any = null;
   private weekChart: Chart | null = null;
+  private weekChartTimer: any = null;
 
   constructor(private http: HttpClient) {}
 
@@ -674,6 +675,10 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
+    }
+    if (this.weekChartTimer) {
+      clearTimeout(this.weekChartTimer);
+      this.weekChartTimer = null;
     }
     try { this.weekChart?.destroy(); } catch (e) {}
     this.weekChart = null;
@@ -760,7 +765,10 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
       .subscribe(res => {
         if (res?.success) {
           this.historyData = res;
-          setTimeout(() => this.buildWeekChart(), 100);
+          if (this.weekChartTimer) clearTimeout(this.weekChartTimer);
+          this.weekChartTimer = setTimeout(() => {
+            if (!this.destroy$.closed) this.buildWeekChart();
+          }, 100);
         }
       });
   }

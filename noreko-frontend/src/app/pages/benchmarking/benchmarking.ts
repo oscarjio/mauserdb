@@ -198,7 +198,12 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
         }
 
         this.loading = false;
-        this.chartTimer = setTimeout(() => this.buildMonthlyChart(), 50);
+        if (this.chartTimer !== null) {
+          clearTimeout(this.chartTimer);
+        }
+        this.chartTimer = setTimeout(() => {
+          if (!this.destroy$.closed) this.buildMonthlyChart();
+        }, 50);
       });
   }
 
