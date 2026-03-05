@@ -168,6 +168,13 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     new Date().getFullYear() - 2
   ];
 
+  // ========== Rättviseaudit ==========
+  auditPeriod = '';
+  auditLoading = false;
+  auditResult: any = null;
+  auditError = '';
+  auditChartRendered = false;
+
   // Toast timer IDs
   private successTimerId: any = null;
   private errorTimerId: any = null;
@@ -191,6 +198,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     const pad = (n: number) => String(n).padStart(2, '0');
     this.simPeriodStart = firstLastMonth.getFullYear() + '-' + pad(firstLastMonth.getMonth() + 1) + '-01';
     this.simPeriodEnd   = lastLastMonth.getFullYear()  + '-' + pad(lastLastMonth.getMonth()  + 1) + '-' + pad(lastLastMonth.getDate());
+
+    // Default audit period: förra månaden
+    this.auditPeriod = firstLastMonth.getFullYear() + '-' + pad(firstLastMonth.getMonth() + 1);
   }
 
   ngOnDestroy() {
@@ -838,6 +848,11 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (tab === 'simulator') {
       this.simSubTab = 'params';
     }
+    if (tab === 'fairness') {
+      if (!this.auditResult) {
+        this.loadFairnessAudit();
+      }
+    }
   }
 
   setSimSubTab(tab: 'params' | 'compare' | 'history') {
@@ -1148,6 +1163,146 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   getPayoutsYears(): number[] {
     const cur = new Date().getFullYear();
     return [cur, cur - 1, cur - 2];
+  }
+
+  // ========== Rättviseaudit ==========
+  loadFairnessAudit() {
+    if (!this.auditPeriod) return;
+    this.auditLoading = true;
+    this.auditResult = null;
+    this.auditError = '';
+    this.auditChartRendered = false;
+
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonusadmin&run=fairness&period=${encodeURIComponent(this.auditPeriod)}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.data) {
+          this.auditResult = res.data;
+          setTimeout(() => this.renderAuditChart(), 100);
+        } else {
+          this.auditError = res?.error || 'Kunde inte ladda rättviseaudit';
+        }
+        this.auditLoading = false;
+      },
+      error: () => {
+        this.auditError = 'Nätverksfel vid hämtning av rättviseaudit';
+        this.auditLoading = false;
+      }
+    });
+  }
+
+  renderAuditChart() {
+    if (this.auditChartRendered || !this.auditResult?.operators?.length) return;
+    const canvas = document.getElementById('auditChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    this.auditChartRendered = true;
+    const ops = this.auditResult.operators.slice(0, 15); // max 15 operatörer
+    const labels = ops.map((o: any) => o.name);
+    const actualData = ops.map((o: any) => o.actual_ibc);
+    const simData = ops.map((o: any) => o.simulated_ibc);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Simple horizontal bar chart with Canvas2D
+    const barHeight = 18;
+    const gap = 8;
+    const rowHeight = barHeight * 2 + gap + 12;
+    const labelWidth = 140;
+    const chartPadding = 20;
+    const chartWidth = canvas.parentElement?.clientWidth || 600;
+    const chartHeight = ops.length * rowHeight + chartPadding * 2;
+
+    canvas.width = chartWidth;
+    canvas.height = chartHeight;
+    canvas.style.width = chartWidth + 'px';
+    canvas.style.height = chartHeight + 'px';
+
+    ctx.fillStyle = '#1e2535';
+    ctx.fillRect(0, 0, chartWidth, chartHeight);
+
+    const maxVal = Math.max(...actualData, ...simData, 1);
+    const barAreaWidth = chartWidth - labelWidth - chartPadding * 2;
+
+    for (let i = 0; i < ops.length; i++) {
+      const y = chartPadding + i * rowHeight;
+
+      // Label
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'right';
+      ctx.fillText(labels[i], labelWidth - 8, y + barHeight + 2);
+
+      // Actual bar (blue-gray)
+      const actualWidth = (actualData[i] / maxVal) * barAreaWidth;
+      ctx.fillStyle = '#4a5568';
+      ctx.fillRect(labelWidth, y, actualWidth, barHeight);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'left';
+      if (actualWidth > 30) {
+        ctx.fillText(String(actualData[i]), labelWidth + actualWidth - 30, y + 13);
+      }
+
+      // Simulated bar (green)
+      const simWidth = (simData[i] / maxVal) * barAreaWidth;
+      ctx.fillStyle = '#48bb78';
+      ctx.fillRect(labelWidth, y + barHeight + 2, simWidth, barHeight);
+      ctx.fillStyle = '#fff';
+      if (simWidth > 30) {
+        ctx.fillText(String(simData[i]), labelWidth + simWidth - 30, y + barHeight + 15);
+      }
+
+      // Diff label
+      const diff = simData[i] - actualData[i];
+      if (diff > 0) {
+        ctx.fillStyle = '#48bb78';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('+' + diff, labelWidth + Math.max(actualWidth, simWidth) + 8, y + barHeight + 8);
+      }
+    }
+
+    // Legend
+    const legendY = chartHeight - 14;
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(labelWidth, legendY, 12, 12);
+    ctx.fillStyle = '#a0aec0';
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Faktisk IBC', labelWidth + 16, legendY + 10);
+
+    ctx.fillStyle = '#48bb78';
+    ctx.fillRect(labelWidth + 110, legendY, 12, 12);
+    ctx.fillStyle = '#a0aec0';
+    ctx.fillText('Simulerad IBC (utan stopp)', labelWidth + 126, legendY + 10);
+  }
+
+  getAuditBonusDiffClass(diff: number): string {
+    if (diff > 0) return 'audit-diff-positive';
+    if (diff < 0) return 'audit-diff-negative';
+    return '';
+  }
+
+  getAuditInitials(name: string): string {
+    if (!name) return '??';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
+  }
+
+  formatLostTime(hours: number): string {
+    if (!hours || hours <= 0) return '0:00';
+    const h = Math.floor(hours);
+    const m = Math.round((hours - h) * 60);
+    return h + ':' + String(m).padStart(2, '0');
   }
 
   private showSuccess(msg: string) {

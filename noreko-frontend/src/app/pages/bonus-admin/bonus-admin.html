@@ -65,6 +65,11 @@
         <i class="fas fa-history me-1"></i>Utbetalningshistorik
       </a>
     </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'fairness'" (click)="setTab('fairness')">
+        <i class="fas fa-gavel me-1"></i>Rättviseaudit
+      </a>
+    </li>
   </ul>
 
   <!-- Loading -->
@@ -1490,6 +1495,154 @@
         </div>
 
       </div>
+    </div>
+  </div>
+
+  <!-- ========== RÄTTVISEAUDIT ========== -->
+  <div *ngIf="activeTab === 'fairness'">
+
+    <!-- Periodväljare -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="fas fa-gavel me-2"></i>Rättviseaudit — Stoppåverkan på bonus</h6>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-end gap-3 flex-wrap">
+          <div>
+            <label class="form-label">Period (månad)</label>
+            <input type="month" class="form-control form-control-sm" [(ngModel)]="auditPeriod"
+                   style="max-width: 200px;">
+          </div>
+          <button class="btn btn-outline-info btn-sm" (click)="loadFairnessAudit()" [disabled]="auditLoading">
+            <i class="fas" [ngClass]="auditLoading ? 'fa-spinner fa-spin' : 'fa-search'"></i>
+            Analysera
+          </button>
+        </div>
+        <div *ngIf="auditError" class="alert alert-danger mt-3 mb-0">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ auditError }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="auditLoading" class="text-center py-4">
+      <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+      <p class="text-muted mt-2">Analyserar stoppåverkan...</p>
+    </div>
+
+    <!-- Resultat -->
+    <div *ngIf="auditResult && !auditLoading">
+
+      <!-- Sammanfattningskort -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <div class="audit-summary-card">
+            <div class="audit-summary-label">Total förlorad bonus pga stopp</div>
+            <div class="audit-summary-value text-warning">{{ formatSek(auditResult.summary.total_lost_bonus_kr) }}</div>
+            <div class="audit-summary-sub">{{ auditResult.summary.total_stoppages }} stoppregistreringar</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="audit-summary-card">
+            <div class="audit-summary-label">Mest drabbad operatör</div>
+            <div class="audit-summary-value" style="color: #fc8181;">{{ auditResult.summary.most_affected || 'Ingen' }}</div>
+            <div class="audit-summary-sub">Högst bonusdiff</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="audit-summary-card">
+            <div class="audit-summary-label">Total stopptid</div>
+            <div class="audit-summary-value" style="color: #ed8936;">{{ auditResult.summary.total_stop_hours }} h</div>
+            <div class="audit-summary-sub">Längsta enskilda stopp: {{ auditResult.summary.longest_stop_hours }} h</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top stopporsaker -->
+      <div class="card mb-4" *ngIf="auditResult.summary.top_stop_reasons?.length">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-exclamation-circle me-2"></i>Topp stopporsaker</h6>
+        </div>
+        <div class="card-body p-2">
+          <div class="d-flex gap-2 flex-wrap">
+            <span class="audit-reason-tag" *ngFor="let reason of auditResult.summary.top_stop_reasons; let i = index">
+              <span class="audit-reason-rank">#{{ i + 1 }}</span> {{ reason }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Operatörstabell -->
+      <div class="card mb-4" *ngIf="auditResult.operators?.length">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-users me-2"></i>Operatörsöversikt — {{ auditResult.period }}</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Operatör</th>
+                  <th class="text-end">Faktisk IBC</th>
+                  <th class="text-end">Simulerad IBC</th>
+                  <th class="text-end">Diff</th>
+                  <th class="text-center">Faktisk tier</th>
+                  <th class="text-center">Simulerad tier</th>
+                  <th class="text-end">Bonus-diff (kr)</th>
+                  <th class="text-end">Förlorad tid</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of auditResult.operators">
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="audit-avatar">{{ getAuditInitials(op.name) }}</span>
+                      <div>
+                        <div class="fw-bold" style="font-size: 0.85rem;">{{ op.name }}</div>
+                        <div style="font-size: 0.68rem; color: #718096;">{{ op.shifts }} skift | {{ op.avg_ibc_per_hour }} IBC/h</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="text-end">{{ op.actual_ibc }}</td>
+                  <td class="text-end" style="color: #48bb78;">{{ op.simulated_ibc }}</td>
+                  <td class="text-end" style="color: #90cdf4;">+{{ op.ibc_diff }}</td>
+                  <td class="text-center">
+                    <span class="tier-badge" [style]="'color:' + getSimTierColor(op.actual_bonus_tier) + ';border-color:' + getSimTierColor(op.actual_bonus_tier)">
+                      {{ op.actual_bonus_tier }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <span class="tier-badge" [style]="'color:' + getSimTierColor(op.simulated_bonus_tier) + ';border-color:' + getSimTierColor(op.simulated_bonus_tier)">
+                      {{ op.simulated_bonus_tier }}
+                    </span>
+                  </td>
+                  <td class="text-end fw-bold" [ngClass]="getAuditBonusDiffClass(op.bonus_diff_kr)">
+                    <span *ngIf="op.bonus_diff_kr > 0">+</span>{{ formatSek(op.bonus_diff_kr) }}
+                  </td>
+                  <td class="text-end" style="color: #a0aec0;">{{ formatLostTime(op.lost_hours) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stapeldiagram -->
+      <div class="card mb-4" *ngIf="auditResult.operators?.length">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Faktisk vs simulerad IBC per operatör</h6>
+        </div>
+        <div class="card-body">
+          <canvas id="auditChart" style="width:100%; border-radius: 8px;"></canvas>
+        </div>
+      </div>
+
+      <!-- Tomt resultat -->
+      <div *ngIf="!auditResult.operators?.length" class="text-center py-4 text-muted">
+        <i class="fas fa-info-circle fa-2x mb-2"></i>
+        <p>Ingen data hittades för perioden {{ auditResult.period }}.</p>
+      </div>
+
     </div>
   </div>
 

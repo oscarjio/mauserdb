@@ -118,6 +118,9 @@ class BonusAdminController {
                 }
                 $this->updatePayoutStatus();
                 break;
+            case 'fairness':
+                $this->getFairnessAudit();
+                break;
             default:
                 $this->sendError('Invalid action: ' . $run);
         }
@@ -1155,6 +1158,263 @@ class BonusAdminController {
     }
 
     // ============ HELPER FUNCTIONS ============
+
+    /**
+     * GET ?action=bonusadmin&run=fairness&period=YYYY-MM
+     *
+     * Counterfactual rapport: "Om maskin X inte hade stoppat hade
+     * operatör Y tjänat Z kr mer i bonus."
+     *
+     * 1. Hämta alla skiftrapporter för perioden med operatör-data (op1, op2, op3)
+     * 2. Hämta stopptid per skift från stoppage_log + rebotling_ibc rasttime/runtime_plc
+     * 3. Beräkna "förlorad produktion" per stopp
+     * 4. Simulera ny IBC-total per operatör om stoppen inte hänt
+     * 5. Beräkna bonus-diff baserat på bonus_level_amounts
+     */
+    private function getFairnessAudit(): void {
+        $period = $_GET['period'] ?? '';
+
+        // Validera YYYY-MM
+        if (!preg_match('/^\d{4}-\d{2}$/', $period)) {
+            $this->sendError('Ogiltigt periodformat. Använd YYYY-MM.');
+            return;
+        }
+
+        $yearMonth  = $period;
+        $startDate  = $yearMonth . '-01';
+        $endDate    = date('Y-m-t', strtotime($startDate));
+
+        try {
+            // 1. Hämta bonus-belopp per tier
+            $tierAmounts = ['brons' => 500, 'silver' => 1000, 'guld' => 2000, 'platina' => 3500];
+            try {
+                $stmt = $this->pdo->query("SELECT level_name, amount_sek FROM bonus_level_amounts");
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $tierAmounts[$row['level_name']] = (int)$row['amount_sek'];
+                }
+            } catch (PDOException $e) {
+                // Använd defaults
+            }
+
+            // Bonus-tiers (bonus_poang -> tier_key)
+            $bonusTiers = [
+                ['min' => 95, 'key' => 'platina', 'label' => 'Platina'],
+                ['min' => 90, 'key' => 'guld',    'label' => 'Guld'],
+                ['min' => 80, 'key' => 'silver',  'label' => 'Silver'],
+                ['min' => 70, 'key' => 'brons',   'label' => 'Brons'],
+                ['min' => 0,  'key' => 'ingen',   'label' => 'Ingen'],
+            ];
+
+            $matchTier = function (float $avgBonus) use ($bonusTiers, $tierAmounts): array {
+                foreach ($bonusTiers as $t) {
+                    if ($avgBonus >= $t['min']) {
+                        return [
+                            'key'   => $t['key'],
+                            'label' => $t['label'],
+                            'sek'   => $tierAmounts[$t['key']] ?? 0,
+                        ];
+                    }
+                }
+                return ['key' => 'ingen', 'label' => 'Ingen', 'sek' => 0];
+            };
+
+            // 2. Hämta operatörsnamn
+            $opNames = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // 3. Per-skift per operatör: IBC, runtime, rasttime, bonus_poang
+            $perShiftRows = [];
+            for ($pos = 1; $pos <= 3; $pos++) {
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        op{$pos}       AS operator_id,
+                        skiftraknare,
+                        MAX(ibc_ok)         AS shift_ibc_ok,
+                        MAX(runtime_plc)    AS shift_runtime,
+                        MAX(rasttime)       AS shift_rasttime,
+                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
+                    FROM rebotling_ibc
+                    WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
+                      AND skiftraknare IS NOT NULL
+                      AND DATE(datum) BETWEEN :start AND :end
+                    GROUP BY op{$pos}, skiftraknare
+                ");
+                $stmt->execute(['start' => $startDate, 'end' => $endDate]);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                foreach ($rows as $row) {
+                    $key = $row['operator_id'] . '_' . $row['skiftraknare'] . '_' . $pos;
+                    $perShiftRows[$key] = $row;
+                }
+            }
+
+            // 4. Aggregera per operatör
+            $opData = [];
+            foreach ($perShiftRows as $row) {
+                $opId = (int)$row['operator_id'];
+                if (!isset($opData[$opId])) {
+                    $opData[$opId] = [
+                        'shifts'         => 0,
+                        'total_ibc_ok'   => 0,
+                        'total_runtime'  => 0,
+                        'total_rasttime' => 0,
+                        'bonus_sum'      => 0,
+                    ];
+                }
+                $opData[$opId]['shifts']++;
+                $opData[$opId]['total_ibc_ok']   += (int)$row['shift_ibc_ok'];
+                $opData[$opId]['total_runtime']   += (int)$row['shift_runtime'];
+                $opData[$opId]['total_rasttime']  += (int)$row['shift_rasttime'];
+                $opData[$opId]['bonus_sum']       += (float)$row['last_bonus'];
+            }
+
+            if (empty($opData)) {
+                $this->sendSuccess([
+                    'period'    => $yearMonth,
+                    'operators' => [],
+                    'summary'   => [
+                        'total_lost_bonus_kr'  => 0,
+                        'most_affected'        => null,
+                        'longest_stop_hours'   => 0,
+                    ],
+                ]);
+                return;
+            }
+
+            // 5. Hämta stopploggar för perioden
+            $stoppStmt = $this->pdo->prepare("
+                SELECT
+                    s.start_time,
+                    s.end_time,
+                    s.duration_minutes,
+                    r.name AS reason_name,
+                    r.category
+                FROM stoppage_log s
+                JOIN stoppage_reasons r ON s.reason_id = r.id
+                WHERE s.line = 'rebotling'
+                  AND s.start_time >= :start
+                  AND s.start_time <= :end_ts
+                ORDER BY s.duration_minutes DESC
+            ");
+            $stoppStmt->execute([
+                'start'  => $startDate . ' 00:00:00',
+                'end_ts' => $endDate . ' 23:59:59',
+            ]);
+            $stoppages = $stoppStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Totalt stopptid i minuter
+            $totalStopMinutes = 0;
+            $stopReasonTotals = [];
+            foreach ($stoppages as $s) {
+                $dur = (int)($s['duration_minutes'] ?? 0);
+                $totalStopMinutes += $dur;
+                $reason = $s['reason_name'] ?? 'Okänd';
+                if (!isset($stopReasonTotals[$reason])) {
+                    $stopReasonTotals[$reason] = 0;
+                }
+                $stopReasonTotals[$reason] += $dur;
+            }
+            arsort($stopReasonTotals);
+            $topStopReasons = array_slice(array_keys($stopReasonTotals), 0, 3);
+
+            // Längsta enskilda stopp i timmar
+            $longestStopMinutes = 0;
+            foreach ($stoppages as $s) {
+                $dur = (int)($s['duration_minutes'] ?? 0);
+                if ($dur > $longestStopMinutes) $longestStopMinutes = $dur;
+            }
+            $longestStopHours = round($longestStopMinutes / 60, 1);
+
+            // 6. Beräkna per operatör: snitt IBC/h, förlorad produktion, simulerad IBC
+            $totalOperators = count($opData);
+            // Fördela stopptid lika — varje operatör förlorar sin andel
+            // (alla operatörer som jobbar vid stopp påverkas lika)
+            $results = [];
+            $totalLostBonusKr = 0;
+            $mostAffected = null;
+            $maxBonusDiff = 0;
+
+            foreach ($opData as $opId => $data) {
+                $shifts      = $data['shifts'];
+                $totalIbc    = $data['total_ibc_ok'];
+                $totalRuntime = $data['total_runtime']; // minuter
+                $avgBonus    = $shifts > 0 ? $data['bonus_sum'] / $shifts : 0;
+
+                $totalHours  = $totalRuntime > 0 ? $totalRuntime / 60.0 : 0;
+                $ibcPerHour  = $totalHours > 0 ? $totalIbc / $totalHours : 0;
+
+                // Förlorad tid per operatör = total stopptid fördelat proportionellt
+                // per skiftandel (operatörens skift / totalt antal skift)
+                $totalShiftsAll = array_sum(array_column($opData, 'shifts'));
+                $shiftShare     = $totalShiftsAll > 0 ? $shifts / $totalShiftsAll : 0;
+                $lostMinutes    = $totalStopMinutes * $shiftShare;
+                $lostHours      = $lostMinutes / 60.0;
+
+                // Simulerad produktion: faktisk + (förlorad tid * snitt IBC/h)
+                $lostIbc         = $ibcPerHour * $lostHours;
+                $simulatedIbc    = $totalIbc + $lostIbc;
+
+                // Simulerad snitt IBC/h (med den extra produktionstiden)
+                $simulatedHours  = $totalHours + $lostHours;
+                $simulatedIbcPerH = $simulatedHours > 0 ? $simulatedIbc / $simulatedHours : 0;
+
+                // Simulerad bonus_poang (proportionell ökning baserad på IBC)
+                $ibcRatio = $totalIbc > 0 ? $simulatedIbc / $totalIbc : 1;
+                $simulatedBonus = min(100, $avgBonus * $ibcRatio);
+
+                // Matcha tier
+                $actualTier    = $matchTier($avgBonus);
+                $simulatedTier = $matchTier($simulatedBonus);
+
+                $bonusDiffKr = ($simulatedTier['sek'] - $actualTier['sek']);
+                $totalLostBonusKr += $bonusDiffKr;
+
+                if ($bonusDiffKr > $maxBonusDiff) {
+                    $maxBonusDiff = $bonusDiffKr;
+                    $mostAffected = $opNames[$opId] ?? 'Operatör ' . $opId;
+                }
+
+                $results[] = [
+                    'operator_id'         => $opId,
+                    'name'                => $opNames[$opId] ?? 'Operatör ' . $opId,
+                    'actual_ibc'          => (int)$totalIbc,
+                    'simulated_ibc'       => (int)round($simulatedIbc),
+                    'ibc_diff'            => (int)round($lostIbc),
+                    'actual_bonus_poang'  => round($avgBonus, 1),
+                    'simulated_bonus_poang' => round($simulatedBonus, 1),
+                    'actual_bonus_tier'   => $actualTier['label'],
+                    'simulated_bonus_tier' => $simulatedTier['label'],
+                    'actual_bonus_kr'     => $actualTier['sek'],
+                    'simulated_bonus_kr'  => $simulatedTier['sek'],
+                    'bonus_diff_kr'       => $bonusDiffKr,
+                    'lost_hours'          => round($lostHours, 2),
+                    'top_stop_reasons'    => $topStopReasons,
+                    'shifts'              => $shifts,
+                    'avg_ibc_per_hour'    => round($ibcPerHour, 2),
+                ];
+            }
+
+            // Sortera: mest drabbad operatör först
+            usort($results, fn($a, $b) => $b['bonus_diff_kr'] <=> $a['bonus_diff_kr']);
+
+            $this->sendSuccess([
+                'period'    => $yearMonth,
+                'operators' => $results,
+                'summary'   => [
+                    'total_lost_bonus_kr'  => $totalLostBonusKr,
+                    'most_affected'        => $mostAffected,
+                    'longest_stop_hours'   => $longestStopHours,
+                    'total_stop_hours'     => round($totalStopMinutes / 60, 1),
+                    'total_stoppages'      => count($stoppages),
+                    'top_stop_reasons'     => $topStopReasons,
+                ],
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusAdmin getFairnessAudit error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid rättviseaudit']);
+        }
+    }
 
     private function isAdmin(): bool {
         return !empty($_SESSION['user_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
