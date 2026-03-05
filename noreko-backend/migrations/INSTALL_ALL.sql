@@ -89,10 +89,9 @@ INSERT IGNORE INTO `rebotling_shift_times` (`shift_name`, `start_time`, `end_tim
 
 -- ============================================================
 -- 2026-03-03_tvattlinje_settings_extend.sql
+-- (tvattlinje_settings skapas i 2026-03-04_tvattlinje_settings.sql längre ned,
+--  ALTER finns redan där nedan — hoppas över här för att undvika fel)
 -- ============================================================
-ALTER TABLE tvattlinje_settings
-  ADD COLUMN IF NOT EXISTS timtakt INT NOT NULL DEFAULT 20,
-  ADD COLUMN IF NOT EXISTS skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0;
 
 -- ============================================================
 -- 2026-03-04_bonus_payouts.sql
