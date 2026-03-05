@@ -428,6 +428,21 @@ export class RebotlingService {
     );
   }
 
+  getWeeklySummary(week: string): Observable<WeeklySummaryResponse> {
+    return this.http.get<WeeklySummaryResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=weekly-summary-email&week=${week}`,
+      { withCredentials: true }
+    );
+  }
+
+  sendWeeklySummary(week: string): Observable<SendWeeklySummaryResponse> {
+    return this.http.post<SendWeeklySummaryResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=send-weekly-summary',
+      JSON.stringify({ week }),
+      { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
 }
 
 export interface AlertThresholdsResponse {
@@ -954,5 +969,58 @@ export interface ProductionRateResponse {
     avg_ibc_per_day_90d: number;
     dag_mal: number;
   };
+  error?: string;
+}
+
+export interface WeeklySummaryOperator {
+  id: number;
+  name: string;
+  ibc_total: number;
+  ibc_h: number;
+  kvalitet: number;
+  bonus_tier: string;
+  antal_skift: number;
+}
+
+export interface WeeklySummaryStop {
+  orsak: string;
+  category: string;
+  antal: number;
+  total_min: number;
+}
+
+export interface WeeklySummaryData {
+  week: string;
+  start_date: string;
+  end_date: string;
+  total_ibc: number;
+  prev_ibc: number;
+  ibc_diff_pct: number;
+  avg_oee: number;
+  prev_oee: number;
+  oee_diff: number;
+  oee_trend: 'up' | 'down' | 'stable';
+  kvalitet: number;
+  best_day: { date: string; ibc: number } | null;
+  worst_day: { date: string; ibc: number } | null;
+  drifttid: string;
+  drifttid_min: number;
+  stopptid: string;
+  stopptid_min: number;
+  antal_skift: number;
+  operators: WeeklySummaryOperator[];
+  top_stops: WeeklySummaryStop[];
+}
+
+export interface WeeklySummaryResponse {
+  success: boolean;
+  data?: WeeklySummaryData;
+  error?: string;
+}
+
+export interface SendWeeklySummaryResponse {
+  success: boolean;
+  recipients?: string[];
+  week?: string;
   error?: string;
 }

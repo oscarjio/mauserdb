@@ -1,3 +1,93 @@
+## 2026-03-05 Worker: VD Veckosammanfattning-email
+
+**Backend (RebotlingController.php)**:
+- `computeWeeklySummary(week)`: Beräknar all aggregerad data för en ISO-vecka
+  - Total IBC denna vs förra veckan (med diff %)
+  - Snitt OEE med trendpil (up/down/stable) vs förra veckan
+  - Bästa/sämsta dag (datum + IBC)
+  - Drifttid vs stopptid (h:mm), antal skift körda
+  - Per operatör: IBC totalt, IBC/h snitt, kvalitet%, bonus-tier (Guld/Silver/Brons)
+  - Topp 3 stopporsaker med total tid
+- `GET ?action=rebotling&run=weekly-summary-email&week=YYYY-WXX` (admin-only) — JSON-preview
+- `POST ?action=rebotling&run=send-weekly-summary` (admin-only) — genererar HTML + skickar via mail()
+- `buildWeeklySummaryHtml()`: Email med all inline CSS, 600px max-width, 2x2 KPI-grid, operatörstabell med alternating rows, stopporsaker, footer
+- Hämtar mottagare från notification_settings (rebotling_settings.notification_emails)
+
+**Frontend (executive-dashboard.ts, sektion 8)**:
+- Ny "Veckorapport"-sektion i executive dashboard
+- ISO-veckoväljare (input type="week"), default förra veckan
+- "Förhandsgranska"-knapp laddar JSON-preview
+- "Skicka veckorapport"-knapp triggar POST, visar feedback med mottagare
+- 4 KPI-kort: Total IBC (med diff%), Snitt OEE (med trendpil), Bästa dag, Drifttid/Stopptid
+- Operatörstabell med ranking, IBC, IBC/h, kvalitet, bonus-tier, antal skift
+- Stopporsaks-lista med kategori och total tid
+- Dark theme, takeUntil(destroy$), timeout, catchError
+
+**Filer ändrade**: RebotlingController.php, rebotling.service.ts, executive-dashboard.ts/html/css
+
+---
+
+## 2026-03-05 Worker: Bonus Rättviseaudit — Counterfactual stoppåverkan
+
+**Backend (BonusAdminController.php)**:
+- Ny endpoint: `GET ?action=bonusadmin&run=fairness&period=YYYY-MM`
+- Hämtar per-skift-data (op1/op2/op3) från rebotling_ibc med kumulativa fält (MAX per skiftraknare)
+- Hämtar stopploggar från stoppage_log + stoppage_reasons för perioden
+- Beräknar förlorad IBC-produktion: stopptid * operatörens snitt IBC/h, fördelat proportionellt per skiftandel
+- Simulerar ny bonus-tier utan stopp baserat på bonus_level_amounts (brons/silver/guld/platina)
+- Returnerar per operatör: actual/simulated IBC, actual/simulated tier, bonus_diff_kr, lost_hours, top_stop_reasons
+- Sammanfattning: total förlorad bonus, mest drabbad operatör, total/längsta stopptid, topp stopporsaker
+- Prepared statements, try-catch med http_response_code(500)
+
+**Frontend (bonus-admin flik "Rättviseaudit")**:
+- Ny nav-pill + flik i bonus-admin sidan
+- Periodväljare (input type="month"), default förra månaden
+- 3 sammanfattningskort: total förlorad bonus, mest drabbad operatör, total stopptid
+- Topp stopporsaker som taggar med ranknummer
+- Operatörstabell: avatar-initialer, faktisk/simulerad IBC, diff, tier-badges, bonus-diff (kr), förlorad tid (h:mm)
+- Canvas2D horisontellt stapeldiagram: blå-grå=faktisk IBC, grön=simulerad IBC, diff-label
+- Dark theme (#1e2535 cards, #2d3748 border), takeUntil(destroy$), timeout(8000), catchError()
+
+**Filer ändrade**: BonusAdminController.php, bonus-admin.ts, bonus-admin.html, bonus-admin.css
+
+---
+
+## 2026-03-05 Worker: Gamification — Achievement Badges + Daily Challenge
+
+**Achievement Badges (my-bonus)**:
+- Backend: `GET ?action=bonus&run=achievements&operator_id=X` i BonusController.php
+- 10 badges totalt: IBC-milstolpar (100/500/1000/2500/5000), Perfekt vecka, 3 streak-nivåer (5/10/20 dagar), Hastighets-mästare, Kvalitets-mästare
+- Varje badge returnerar: badge_id, name, description, icon (FA-klass), earned (bool), progress (0-100%)
+- SQL mot rebotling_ibc med prepared statements, kumulativa fält hanterade korrekt (MAX-MIN per skiftraknare)
+- Frontend: "Mina Utmärkelser" sektion med grid, progress-bars på ej uppnådda, konfetti CSS-animation vid uppnådd badge
+- Fallback till statiska badges om backend returnerar tom array
+
+**Daily Challenge (andon)**:
+- Backend: `GET ?action=andon&run=daily-challenge` i AndonController.php
+- 5 utmaningstyper: IBC/h-mål (+15% över snitt), slå igårs rekord, perfekt kvalitet, teamrekord (30d), nå dagsmålet
+- Deterministisk per dag (dag-i-året som seed)
+- Returnerar: challenge, icon, target, current, progress_pct, completed, type
+- Frontend: Widget mellan status-baner och KPI-kort med progress-bar, pulse-animation vid KLART
+- Polling var 60s, visibilitychange-guard, takeUntil(destroy$), timeout(8000), catchError()
+
+**Filer ändrade**: BonusController.php, AndonController.php, my-bonus.ts/html/css, andon.css
+
+---
+
+## 2026-03-05 Worker: Oparade endpoints batch 2 — Alert Thresholds, Notification Settings, Goal History
+
+**Alert Thresholds Admin UI**: Expanderbar sektion i rebotling-admin med OEE-trösklar (warning/danger %), produktionströsklar (warning/danger %), PLC max-tid, kvalitetsvarning. Formulär med number inputs + spara-knapp. Visar befintliga värden vid laddning. Sammanfattningsrad när panelen är hopfälld. Alla anrop har takeUntil/timeout(8000)/catchError.
+
+**Notification Settings Admin UI**: Utökad med huvudtoggle (email on/off), 5 händelsetyp-toggles (produktionsstopp, låg OEE, certifikat-utgång, underhåll planerat, skiftrapport brådskande), e-postadressfält för mottagare. Backend utökad med `notification_config` JSON-kolumn (auto-skapad via ensureNotificationEmailsColumn), `defaultNotificationConfig()`, utökad GET/POST som returnerar/sparar config-objekt. Prepared statements i PHP.
+
+**Goal History Visualisering**: Periodväljare (3/6/12 månader) med knappar i card-header. Badge som visar nuvarande mål. Linjegraf (Chart.js stepped line) med streckad horisontell referenslinje för nuvarande mål. Stödjer enstaka datapunkter (inte bara >1). Senaste 10 ändringar i tabell.
+
+**Service-metoder**: `getAlertThresholds()`, `saveAlertThresholds()`, `getNotificationSettings()`, `saveNotificationSettings()`, `getGoalHistory()` + interfaces (AlertThresholdsResponse, NotificationSettingsResponse, GoalHistoryResponse) i rebotling.service.ts.
+
+Commit: 0af052d — bygge OK, pushad.
+
+---
+
 ## 2026-03-05 session #8 — Lead: Session #7 komplett, 3 nya workers
 
 **Analys**: Session #7 alla 3 workers klara. Operatör×Maskin committat (6b34381), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Startar 3 workers: (1) Commit+bygg session #7 ändringar, (2) Oparade endpoints batch 2 (alert-thresholds admin UI, notification-settings admin UI, goal-history visualisering), (3) Gamification (achievement badges, daily challenges, streak-counter).

@@ -720,3 +720,56 @@
   color: #fbd38d;
   border: 1px solid rgba(237, 137, 54, 0.4);
 }
+
+/* ============================================================
+   VECKORAPPORT
+   ============================================================ */
+
+.weekly-week-input {
+  background: #1a202c;
+  border: 1px solid #3a4a61;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.weekly-week-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.25);
+  outline: none;
+}
+
+.weekly-kpi {
+  padding: 1rem;
+}
+
+.weekly-kpi .kpi-value {
+  font-size: 1.4rem;
+}
+
+.weekly-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid #3a4a61;
+}
+
+.tier-gold {
+  color: #d69e2e;
+  font-weight: 700;
+}
+
+.tier-silver {
+  color: #a0aec0;
+  font-weight: 700;
+}
+
+.tier-bronze {
+  color: #c05621;
+  font-weight: 700;
+}

@@ -665,6 +665,171 @@
 
     </div>
 
+    <!-- ============================================================
+         SEKTION 8 — VECKORAPPORT (VD Veckosammanfattning)
+    ============================================================ -->
+    <div class="detail-card mb-4 d-print-none">
+      <div class="detail-card-header">
+        <h6 class="mb-0">
+          <i class="fas fa-envelope-open-text me-2 text-info"></i>Veckorapport
+        </h6>
+      </div>
+      <div class="detail-card-body">
+
+        <!-- Veckoväljare + knappar -->
+        <div class="row g-2 align-items-end mb-3">
+          <div class="col-auto">
+            <label class="form-label text-muted mb-1" style="font-size:0.75rem;">ISO-vecka</label>
+            <input type="week" class="form-control form-control-sm weekly-week-input"
+                   [(ngModel)]="weeklySelectedWeek" />
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-outline-info" (click)="loadWeeklySummary()" [disabled]="weeklyLoading">
+              <i class="fas fa-search me-1" [class.fa-spin]="weeklyLoading"></i>Förhandsgranska
+            </button>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-info" (click)="sendWeeklyReport()"
+                    [disabled]="weeklySending || !weeklyData">
+              <i class="fas fa-paper-plane me-1" [class.fa-spin]="weeklySending"></i>Skicka veckorapport
+            </button>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div *ngIf="weeklySendResult" class="alert mb-3"
+             [class.alert-success]="weeklySendResult.success"
+             [class.alert-danger]="!weeklySendResult.success"
+             style="font-size:0.85rem;">
+          <i class="fas me-1" [class.fa-check-circle]="weeklySendResult.success"
+             [class.fa-times-circle]="!weeklySendResult.success"></i>
+          {{ weeklySendResult.message }}
+        </div>
+
+        <div *ngIf="weeklyError" class="alert alert-danger mb-3" style="font-size:0.85rem;">
+          <i class="fas fa-exclamation-triangle me-1"></i>{{ weeklyError }}
+        </div>
+
+        <!-- Loading -->
+        <div *ngIf="weeklyLoading" class="text-center py-4">
+          <i class="fas fa-spinner fa-spin fa-lg text-info"></i>
+          <p class="text-muted mt-2 mb-0">Hämtar veckodata...</p>
+        </div>
+
+        <!-- Preview -->
+        <ng-container *ngIf="weeklyData && !weeklyLoading">
+
+          <!-- KPI-kort -->
+          <div class="row g-2 mb-3">
+            <div class="col-md-3 col-6">
+              <div class="kpi-card weekly-kpi">
+                <div class="kpi-icon text-info"><i class="fas fa-boxes"></i></div>
+                <div class="kpi-label">Total IBC</div>
+                <div class="kpi-value">{{ weeklyData.total_ibc }}</div>
+                <div class="kpi-sub">
+                  <span [class.text-success]="weeklyData.ibc_diff_pct >= 0"
+                        [class.text-danger]="weeklyData.ibc_diff_pct < 0">
+                    {{ weeklyData.ibc_diff_pct >= 0 ? '+' : '' }}{{ weeklyData.ibc_diff_pct }}%
+                  </span> vs f.v. ({{ weeklyData.prev_ibc }})
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="kpi-card weekly-kpi">
+                <div class="kpi-icon text-success"><i class="fas fa-cogs"></i></div>
+                <div class="kpi-label">Snitt OEE</div>
+                <div class="kpi-value" [ngClass]="getOeeClass(weeklyData.avg_oee)">{{ weeklyData.avg_oee }}%</div>
+                <div class="kpi-sub">
+                  <i class="fas" [ngClass]="[getOeeTrendArrow(weeklyData.oee_trend), getOeeTrendColorClass(weeklyData.oee_trend)]"></i>
+                  <span [ngClass]="getOeeTrendColorClass(weeklyData.oee_trend)">
+                    {{ weeklyData.oee_diff > 0 ? '+' : '' }}{{ weeklyData.oee_diff }}pp
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="kpi-card weekly-kpi">
+                <div class="kpi-icon text-warning"><i class="fas fa-trophy"></i></div>
+                <div class="kpi-label">Bästa dag</div>
+                <div class="kpi-value" style="font-size:1rem;" *ngIf="weeklyData.best_day">
+                  {{ weeklyData.best_day.date }}
+                </div>
+                <div class="kpi-sub" *ngIf="weeklyData.best_day">{{ weeklyData.best_day.ibc }} IBC</div>
+                <div class="kpi-value text-muted" *ngIf="!weeklyData.best_day">-</div>
+              </div>
+            </div>
+            <div class="col-md-3 col-6">
+              <div class="kpi-card weekly-kpi">
+                <div class="kpi-icon text-danger"><i class="fas fa-clock"></i></div>
+                <div class="kpi-label">Drifttid / Stopptid</div>
+                <div class="kpi-value" style="font-size:1rem;">{{ weeklyData.drifttid }}</div>
+                <div class="kpi-sub">Stopp: {{ weeklyData.stopptid }} | {{ weeklyData.antal_skift }} skift</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operatörstabell -->
+          <div class="weekly-section-title">Operatörer</div>
+          <div class="table-responsive mb-3" *ngIf="weeklyData.operators.length > 0">
+            <table class="table table-dark table-hover mb-0 ops-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Operatör</th>
+                  <th class="text-end">IBC totalt</th>
+                  <th class="text-end">IBC/h</th>
+                  <th class="text-end">Kvalitet</th>
+                  <th class="text-center">Bonus</th>
+                  <th class="text-end">Skift</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of weeklyData.operators; let idx = index">
+                  <td class="text-muted">{{ idx + 1 }}</td>
+                  <td class="fw-semibold">{{ op.name }}</td>
+                  <td class="text-end">{{ op.ibc_total }}</td>
+                  <td class="text-end fw-bold">{{ op.ibc_h }}</td>
+                  <td class="text-end" [ngClass]="getQualityClass(op.kvalitet)">{{ op.kvalitet }}%</td>
+                  <td class="text-center" [ngClass]="getBonusTierClass(op.bonus_tier)">{{ op.bonus_tier }}</td>
+                  <td class="text-end text-muted">{{ op.antal_skift }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="weeklyData.operators.length === 0" class="text-center text-muted py-2 mb-3">
+            <i class="fas fa-info-circle me-1"></i>Inga operatörsdata denna vecka.
+          </div>
+
+          <!-- Topp 3 stopporsaker -->
+          <div class="weekly-section-title">Topp 3 stopporsaker</div>
+          <div class="table-responsive" *ngIf="weeklyData.top_stops.length > 0">
+            <table class="table table-dark table-hover mb-0 ops-table">
+              <thead>
+                <tr>
+                  <th>Orsak</th>
+                  <th>Kategori</th>
+                  <th class="text-end">Antal</th>
+                  <th class="text-end">Total tid</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let st of weeklyData.top_stops">
+                  <td class="fw-semibold">{{ st.orsak }}</td>
+                  <td><span class="position-badge">{{ st.category }}</span></td>
+                  <td class="text-end">{{ st.antal }}</td>
+                  <td class="text-end text-danger fw-bold">{{ formatStopTime(st.total_min) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="weeklyData.top_stops.length === 0" class="text-center text-muted py-2">
+            <i class="fas fa-info-circle me-1"></i>Inga stopporsaker registrerade denna vecka.
+          </div>
+
+        </ng-container>
+      </div>
+    </div>
+
   </ng-container>
 
   <!-- Ingen data -->

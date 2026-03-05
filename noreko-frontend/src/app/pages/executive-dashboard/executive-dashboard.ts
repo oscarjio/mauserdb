@@ -1,12 +1,13 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subject, Subscription } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService, ExecDashboardResponse, MaintenanceStatsResponse, FeedbackSummaryResponse, FeedbackSummaryDayEntry, StaffingWarningDay } from '../../services/rebotling.service';
+import { RebotlingService, ExecDashboardResponse, MaintenanceStatsResponse, FeedbackSummaryResponse, FeedbackSummaryDayEntry, StaffingWarningDay, WeeklySummaryData, WeeklySummaryOperator, WeeklySummaryStop } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -21,7 +22,7 @@ interface NewsSnippet {
 @Component({
   selector: 'app-executive-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './executive-dashboard.html',
   styleUrls: ['./executive-dashboard.css']
 })
@@ -71,6 +72,14 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   staffingWarnings: StaffingWarningDay[] = [];
   staffingMinOperators: number = 2;
   private isFetchingStaffing = false;
+
+  // Veckorapport
+  weeklySelectedWeek: string = '';
+  weeklyData: WeeklySummaryData | null = null;
+  weeklyLoading = false;
+  weeklySending = false;
+  weeklySendResult: { success: boolean; message: string } | null = null;
+  weeklyError: string | null = null;
 
   private pollInterval: any;
   private dataSub: Subscription | null = null;
@@ -649,6 +658,97 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   getStaffingSeverity(day: StaffingWarningDay): 'danger' | 'warning' {
     return day.underbemanning.some((s: any) => s.antal_ops === 0) ? 'danger' : 'warning';
+  }
+
+  // ---- Veckorapport ----
+
+  initWeeklyWeek(): void {
+    if (!this.weeklySelectedWeek) {
+      // Default: förra veckan
+      const now = new Date();
+      const dayOfWeek = now.getDay() || 7; // 1=mon..7=sun
+      const lastMonday = new Date(now);
+      lastMonday.setDate(now.getDate() - dayOfWeek - 6);
+      // Beräkna ISO-vecka
+      const d = new Date(lastMonday);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+      const yearStart = new Date(d.getFullYear(), 0, 4);
+      const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + yearStart.getDay() + 1) / 7);
+      this.weeklySelectedWeek = d.getFullYear() + '-W' + String(weekNum).padStart(2, '0');
+    }
+  }
+
+  loadWeeklySummary(): void {
+    this.initWeeklyWeek();
+    if (this.weeklyLoading) return;
+    this.weeklyLoading = true;
+    this.weeklyError = null;
+    this.weeklySendResult = null;
+
+    this.rebotlingService.getWeeklySummary(this.weeklySelectedWeek)
+      .pipe(timeout(10000), catchError(err => {
+        this.weeklyError = 'Kunde inte hamta veckosammanfattning.';
+        return of(null);
+      }), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.weeklyLoading = false;
+        if (res?.success && res.data) {
+          this.weeklyData = res.data;
+          this.weeklyError = null;
+        } else if (res && !res.success) {
+          this.weeklyError = res.error || 'Okant fel.';
+        }
+      });
+  }
+
+  sendWeeklyReport(): void {
+    this.initWeeklyWeek();
+    if (this.weeklySending) return;
+    this.weeklySending = true;
+    this.weeklySendResult = null;
+
+    this.rebotlingService.sendWeeklySummary(this.weeklySelectedWeek)
+      .pipe(timeout(15000), catchError(err => {
+        this.weeklySendResult = { success: false, message: 'Kunde inte skicka veckorapport.' };
+        return of(null);
+      }), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.weeklySending = false;
+        if (res?.success && res.recipients) {
+          this.weeklySendResult = {
+            success: true,
+            message: 'Veckorapport skickad till ' + res.recipients.join(', ')
+          };
+        } else if (res && !res.success) {
+          this.weeklySendResult = { success: false, message: res.error || 'Okant fel.' };
+        }
+      });
+  }
+
+  getOeeTrendArrow(trend: string): string {
+    if (trend === 'up') return 'fa-arrow-up';
+    if (trend === 'down') return 'fa-arrow-down';
+    return 'fa-minus';
+  }
+
+  getOeeTrendColorClass(trend: string): string {
+    if (trend === 'up') return 'text-success';
+    if (trend === 'down') return 'text-danger';
+    return 'text-muted';
+  }
+
+  getBonusTierClass(tier: string): string {
+    if (tier === 'Guld') return 'tier-gold';
+    if (tier === 'Silver') return 'tier-silver';
+    if (tier === 'Brons') return 'tier-bronze';
+    return 'text-muted';
+  }
+
+  formatStopTime(min: number): string {
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return h + ':' + String(m).padStart(2, '0');
   }
 
   printDashboard(): void {

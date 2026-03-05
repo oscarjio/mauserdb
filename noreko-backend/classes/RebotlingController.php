@@ -16,7 +16,7 @@ class RebotlingController {
             $adminOnlyActions = [
                 'admin-settings', 'weekday-goals', 'shift-times', 'system-status',
                 'alert-thresholds', 'today-snapshot', 'notification-settings',
-                'all-lines-status', 'goal-exceptions',
+                'all-lines-status', 'goal-exceptions', 'weekly-summary-email',
             ];
             if (in_array($action, $adminOnlyActions, true)) {
                 if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
@@ -155,6 +155,8 @@ class RebotlingController {
                 $this->getRejectionAnalysis();
             } elseif ($action === 'shift-pdf-summary') {
                 $this->getShiftPdfSummary();
+            } elseif ($action === 'weekly-summary-email') {
+                $this->getWeeklySummaryEmail();
             } else {
                 $this->getLiveStats();
             }
@@ -222,6 +224,8 @@ class RebotlingController {
                 $this->saveServiceInterval();
             } elseif ($action === 'auto-shift-report') {
                 $this->sendAutoShiftReport();
+            } elseif ($action === 'send-weekly-summary') {
+                $this->sendWeeklySummaryEmail();
             } else {
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
             }
@@ -8641,5 +8645,563 @@ HTML;
             http_response_code(500);
             echo '<!DOCTYPE html><html><body><h1>Serverfel</h1><p>Kunde inte generera skiftsammanfattning</p></body></html>';
         }
+    }
+
+    // =========================================================
+    // VD Veckosammanfattning — GET (JSON preview) + POST (send)
+    // =========================================================
+
+    /**
+     * Beräkna veckosammanfattnings-data för en given ISO-vecka.
+     * Returnerar en assoc array med all aggregerad data.
+     */
+    private function computeWeeklySummary(string $week): array {
+        // Parsa YYYY-WXX
+        if (!preg_match('/^(\d{4})-W(\d{2})$/', $week, $m)) {
+            throw new InvalidArgumentException('Ogiltigt veckoformat. Använd YYYY-WXX (t.ex. 2026-W10).');
+        }
+        $year = (int)$m[1];
+        $wk   = (int)$m[2];
+        if ($wk < 1 || $wk > 53) {
+            throw new InvalidArgumentException('Veckonummer måste vara mellan 01 och 53.');
+        }
+
+        // Beräkna måndag–söndag för denna vecka och förra veckan
+        $mondayThis = new DateTime();
+        $mondayThis->setISODate($year, $wk, 1);
+        $sundayThis = clone $mondayThis;
+        $sundayThis->modify('+6 days');
+        $startThis = $mondayThis->format('Y-m-d');
+        $endThis   = $sundayThis->format('Y-m-d');
+
+        $mondayPrev = clone $mondayThis;
+        $mondayPrev->modify('-7 days');
+        $sundayPrev = clone $mondayPrev;
+        $sundayPrev->modify('+6 days');
+        $startPrev = $mondayPrev->format('Y-m-d');
+        $endPrev   = $sundayPrev->format('Y-m-d');
+
+        // ---- Total IBC per dag (denna vecka) ----
+        $stmtDays = $this->pdo->prepare("
+            SELECT
+                dag,
+                SUM(shift_ibc_ok)    AS ibc_ok,
+                SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                SUM(shift_runtime)   AS runtime_min,
+                SUM(shift_rast)      AS rast_min,
+                COUNT(DISTINCT skiftraknare) AS skift_count
+            FROM (
+                SELECT
+                    DATE(datum) AS dag,
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                    MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                    MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                    MAX(COALESCE(rasttime,   0)) AS shift_rast
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ?
+                  AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+            ) AS ps
+            GROUP BY dag
+            ORDER BY dag ASC
+        ");
+        $stmtDays->execute([$startThis, $endThis]);
+        $daysRows = $stmtDays->fetchAll(PDO::FETCH_ASSOC);
+
+        $totalIbc = 0;
+        $totalIbcEj = 0;
+        $totalRuntime = 0;
+        $totalRast = 0;
+        $totalSkift = 0;
+        $bestDay = null;
+        $worstDay = null;
+        $dayOees = [];
+
+        foreach ($daysRows as $d) {
+            $ok = (int)$d['ibc_ok'];
+            $ej = (int)$d['ibc_ej_ok'];
+            $rt = (float)$d['runtime_min'];
+            $ra = (float)$d['rast_min'];
+            $sc = (int)$d['skift_count'];
+
+            $totalIbc     += $ok;
+            $totalIbcEj   += $ej;
+            $totalRuntime += $rt;
+            $totalRast    += $ra;
+            $totalSkift   += $sc;
+
+            if ($bestDay === null || $ok > $bestDay['ibc']) {
+                $bestDay = ['date' => $d['dag'], 'ibc' => $ok];
+            }
+            if (($worstDay === null || $ok < $worstDay['ibc']) && $ok > 0) {
+                $worstDay = ['date' => $d['dag'], 'ibc' => $ok];
+            }
+
+            // Day OEE
+            $tot = $ok + $ej;
+            if ($rt > 0) {
+                $avail = min($rt / max($rt + $ra, 1), 1.0);
+                $perf  = min(($tot / $rt) / (15.0 / 60.0), 1.0);
+                $qual  = $tot > 0 ? $ok / $tot : 0;
+                $dayOees[] = round($avail * $perf * $qual * 100, 1);
+            }
+        }
+
+        // Snitt OEE
+        $avgOee = count($dayOees) > 0 ? round(array_sum($dayOees) / count($dayOees), 1) : 0;
+
+        // ---- Förra veckan (total IBC + OEE) ----
+        $stmtPrev = $this->pdo->prepare("
+            SELECT
+                SUM(shift_ibc_ok)    AS ibc_ok,
+                SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                SUM(shift_runtime)   AS runtime_min,
+                SUM(shift_rast)      AS rast_min
+            FROM (
+                SELECT
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                    MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                    MAX(COALESCE(runtime_plc, 0)) AS shift_runtime,
+                    MAX(COALESCE(rasttime,   0)) AS shift_rast
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ?
+                  AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                GROUP BY skiftraknare
+            ) AS ps
+        ");
+        $stmtPrev->execute([$startPrev, $endPrev]);
+        $prevRow = $stmtPrev->fetch(PDO::FETCH_ASSOC);
+
+        $prevIbc = (int)($prevRow['ibc_ok'] ?? 0);
+        $prevOee = 0;
+        if ($prevRow && (float)($prevRow['runtime_min'] ?? 0) > 0) {
+            $pOk  = (float)$prevRow['ibc_ok'];
+            $pEj  = (float)$prevRow['ibc_ej_ok'];
+            $pTot = $pOk + $pEj;
+            $pRt  = max((float)$prevRow['runtime_min'], 1);
+            $pRa  = (float)$prevRow['rast_min'];
+            $pA   = min($pRt / max($pRt + $pRa, 1), 1.0);
+            $pP   = min(($pTot / $pRt) / (15.0 / 60.0), 1.0);
+            $pQ   = $pTot > 0 ? $pOk / $pTot : 0;
+            $prevOee = round($pA * $pP * $pQ * 100, 1);
+        }
+
+        $ibcDiffPct = $prevIbc > 0 ? round(($totalIbc - $prevIbc) / $prevIbc * 100, 1) : 0;
+        $oeeDiff = round($avgOee - $prevOee, 1);
+        if ($oeeDiff > 0.5) $oeeTrend = 'up';
+        elseif ($oeeDiff < -0.5) $oeeTrend = 'down';
+        else $oeeTrend = 'stable';
+
+        // Drifttid / Stopptid formaterat
+        $driftH = floor($totalRuntime / 60);
+        $driftM = (int)($totalRuntime % 60);
+        $stoppMin = $totalRast;
+        $stoppH = floor($stoppMin / 60);
+        $stoppM = (int)($stoppMin % 60);
+
+        // Kvalitet %
+        $totalAll = $totalIbc + $totalIbcEj;
+        $kvalitet = $totalAll > 0 ? round($totalIbc / $totalAll * 100, 1) : 0;
+
+        // ---- Per operatör (op1 = tvättplats) ----
+        $stmtOps = $this->pdo->prepare("
+            SELECT
+                operator_id,
+                SUM(shift_ibc_ok) AS ibc_ok,
+                SUM(shift_ibc_ej_ok) AS ibc_ej_ok,
+                SUM(shift_runtime) AS runtime_min,
+                COUNT(DISTINCT skiftraknare) AS antal_skift
+            FROM (
+                SELECT
+                    op1 AS operator_id,
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                    MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                    MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ?
+                  AND op1 IS NOT NULL AND op1 > 0
+                  AND skiftraknare IS NOT NULL AND ibc_ok IS NOT NULL
+                GROUP BY op1, skiftraknare
+            ) AS ps
+            GROUP BY operator_id
+            HAVING runtime_min > 0
+            ORDER BY (ibc_ok * 60.0 / runtime_min) DESC
+        ");
+        $stmtOps->execute([$startThis, $endThis]);
+        $opRows = $stmtOps->fetchAll(PDO::FETCH_ASSOC);
+
+        $opIds = array_unique(array_column($opRows, 'operator_id'));
+        $nameMap = [];
+        if (!empty($opIds)) {
+            $ph = implode(',', array_fill(0, count($opIds), '?'));
+            $ns = $this->pdo->prepare("SELECT id, name FROM users WHERE id IN ($ph)");
+            $ns->execute(array_values($opIds));
+            foreach ($ns->fetchAll(PDO::FETCH_ASSOC) as $nr) {
+                $nameMap[(int)$nr['id']] = $nr['name'] ?? 'Okänd';
+            }
+        }
+
+        $operators = [];
+        foreach ($opRows as $op) {
+            $opId = (int)$op['operator_id'];
+            $ok   = (float)$op['ibc_ok'];
+            $ej   = (float)$op['ibc_ej_ok'];
+            $rt   = max((float)$op['runtime_min'], 1);
+            $ibcH = round($ok * 60.0 / $rt, 1);
+            $oTot = $ok + $ej;
+            $qual = $oTot > 0 ? round($ok / $oTot * 100, 1) : 0;
+
+            // Bonus-tier baserat på IBC/h
+            if ($ibcH >= 15) $bonusTier = 'Guld';
+            elseif ($ibcH >= 12) $bonusTier = 'Silver';
+            elseif ($ibcH >= 10) $bonusTier = 'Brons';
+            else $bonusTier = '-';
+
+            $operators[] = [
+                'id'          => $opId,
+                'name'        => $nameMap[$opId] ?? 'Op #' . $opId,
+                'ibc_total'   => (int)$ok,
+                'ibc_h'       => $ibcH,
+                'kvalitet'    => $qual,
+                'bonus_tier'  => $bonusTier,
+                'antal_skift' => (int)$op['antal_skift'],
+            ];
+        }
+
+        // ---- Topp 3 stopporsaker ----
+        $topStops = [];
+        try {
+            $stmtStops = $this->pdo->prepare("
+                SELECT
+                    sr.name AS orsak,
+                    sr.category,
+                    COUNT(*) AS antal,
+                    COALESCE(SUM(sl.duration_minutes), 0) AS total_min
+                FROM stoppage_log sl
+                JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                WHERE DATE(sl.created_at) BETWEEN ? AND ?
+                GROUP BY sr.name, sr.category
+                ORDER BY total_min DESC
+                LIMIT 3
+            ");
+            $stmtStops->execute([$startThis, $endThis]);
+            $topStops = $stmtStops->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($topStops as &$s) {
+                $s['total_min'] = (int)$s['total_min'];
+                $s['antal'] = (int)$s['antal'];
+            }
+            unset($s);
+        } catch (Exception $e) {
+            // stoppage_log kanske inte finns
+            error_log('weeklySummary stoppage: ' . $e->getMessage());
+        }
+
+        return [
+            'week'       => $week,
+            'start_date' => $startThis,
+            'end_date'   => $endThis,
+            'total_ibc'  => $totalIbc,
+            'prev_ibc'   => $prevIbc,
+            'ibc_diff_pct' => $ibcDiffPct,
+            'avg_oee'    => $avgOee,
+            'prev_oee'   => $prevOee,
+            'oee_diff'   => $oeeDiff,
+            'oee_trend'  => $oeeTrend,
+            'kvalitet'   => $kvalitet,
+            'best_day'   => $bestDay,
+            'worst_day'  => $worstDay,
+            'drifttid'   => sprintf('%d:%02d', $driftH, $driftM),
+            'drifttid_min' => (int)$totalRuntime,
+            'stopptid'   => sprintf('%d:%02d', $stoppH, $stoppM),
+            'stopptid_min' => (int)$stoppMin,
+            'antal_skift' => $totalSkift,
+            'operators'  => $operators,
+            'top_stops'  => $topStops,
+            'days'       => $daysRows,
+        ];
+    }
+
+    /**
+     * GET ?action=rebotling&run=weekly-summary-email&week=YYYY-WXX
+     * Returnerar JSON-preview av veckosammanfattningen.
+     */
+    private function getWeeklySummaryEmail(): void {
+        $week = $_GET['week'] ?? '';
+        if (empty($week)) {
+            // Default: förra veckan
+            $dt = new DateTime('last monday');
+            $dt->modify('-7 days');
+            $week = $dt->format('o') . '-W' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
+        }
+
+        try {
+            $summary = $this->computeWeeklySummary($week);
+            echo json_encode(['success' => true, 'data' => $summary]);
+        } catch (InvalidArgumentException $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        } catch (Exception $e) {
+            error_log('getWeeklySummaryEmail: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid generering av veckosammanfattning']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=send-weekly-summary
+     * Genererar HTML-email och skickar via mail().
+     */
+    private function sendWeeklySummaryEmail(): void {
+        $data = json_decode(file_get_contents('php://input'), true);
+        $week = $data['week'] ?? '';
+
+        if (empty($week)) {
+            $dt = new DateTime('last monday');
+            $dt->modify('-7 days');
+            $week = $dt->format('o') . '-W' . str_pad($dt->format('W'), 2, '0', STR_PAD_LEFT);
+        }
+
+        try {
+            $summary = $this->computeWeeklySummary($week);
+
+            // Hämta mottagare
+            $this->ensureNotificationEmailsColumn();
+            $row = $this->pdo->query(
+                "SELECT notification_emails FROM rebotling_settings WHERE id = 1"
+            )->fetch(PDO::FETCH_ASSOC);
+
+            $emailsRaw = $row['notification_emails'] ?? '';
+            if (empty(trim($emailsRaw))) {
+                echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.']);
+                return;
+            }
+
+            $recipients = [];
+            $parts = array_map('trim', explode(';', str_replace(',', ';', $emailsRaw)));
+            foreach ($parts as $email) {
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    $recipients[] = $email;
+                }
+            }
+
+            if (count($recipients) === 0) {
+                echo json_encode(['success' => false, 'error' => 'Inga giltiga e-postadresser konfigurerade.']);
+                return;
+            }
+
+            $html = $this->buildWeeklySummaryHtml($summary);
+
+            $subject = "=?UTF-8?B?" . base64_encode("MauserDB Veckorapport — v." . substr($week, 6)) . "?=";
+            $headers  = "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+            $headers .= "From: MauserDB <noreply@noreko.se>\r\n";
+
+            $sentTo = [];
+            foreach ($recipients as $email) {
+                if (mail($email, $subject, $html, $headers)) {
+                    $sentTo[] = $email;
+                } else {
+                    error_log("sendWeeklySummaryEmail: Kunde inte skicka till $email");
+                }
+            }
+
+            if (count($sentTo) === 0) {
+                echo json_encode(['success' => false, 'error' => 'Kunde inte skicka till nagon mottagare. Kontrollera serverinställningar.']);
+                return;
+            }
+
+            echo json_encode([
+                'success'    => true,
+                'recipients' => $sentTo,
+                'week'       => $week,
+            ]);
+
+        } catch (InvalidArgumentException $e) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        } catch (Exception $e) {
+            error_log('sendWeeklySummaryEmail: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid sändning av veckorapport']);
+        }
+    }
+
+    /**
+     * Bygg HTML-email med inline CSS for veckosammanfattningen.
+     */
+    private function buildWeeklySummaryHtml(array $s): string {
+        $week     = htmlspecialchars($s['week']);
+        $startD   = htmlspecialchars($s['start_date']);
+        $endD     = htmlspecialchars($s['end_date']);
+        $totalIbc = (int)$s['total_ibc'];
+        $prevIbc  = (int)$s['prev_ibc'];
+        $diffPct  = (float)$s['ibc_diff_pct'];
+        $avgOee   = (float)$s['avg_oee'];
+        $oeeDiff  = (float)$s['oee_diff'];
+        $oeeTrend = $s['oee_trend'];
+        $kvalitet = (float)$s['kvalitet'];
+        $drifttid = htmlspecialchars($s['drifttid']);
+        $stopptid = htmlspecialchars($s['stopptid']);
+        $skift    = (int)$s['antal_skift'];
+
+        // Trendpilar
+        $diffSign  = $diffPct >= 0 ? '+' : '';
+        $diffColor = $diffPct >= 0 ? '#38a169' : '#e53e3e';
+
+        $oeeTrendArrow = $oeeTrend === 'up' ? '&#8593;' : ($oeeTrend === 'down' ? '&#8595;' : '&#8594;');
+        $oeeTrendColor = $oeeTrend === 'up' ? '#38a169' : ($oeeTrend === 'down' ? '#e53e3e' : '#718096');
+
+        $kvalColor = $kvalitet >= 95 ? '#38a169' : ($kvalitet >= 85 ? '#d69e2e' : '#e53e3e');
+
+        // Bästa/sämsta dag
+        $bestDayText = $s['best_day'] ? htmlspecialchars($s['best_day']['date']) . ' (' . (int)$s['best_day']['ibc'] . ' IBC)' : 'Ingen data';
+        $worstDayText = $s['worst_day'] ? htmlspecialchars($s['worst_day']['date']) . ' (' . (int)$s['worst_day']['ibc'] . ' IBC)' : 'Ingen data';
+
+        // Operatörstabell
+        $opsHtml = '';
+        $i = 0;
+        foreach ($s['operators'] as $op) {
+            $bgColor = $i % 2 === 0 ? '#f7fafc' : '#ffffff';
+            $tierColor = $op['bonus_tier'] === 'Guld' ? '#d69e2e' : ($op['bonus_tier'] === 'Silver' ? '#718096' : ($op['bonus_tier'] === 'Brons' ? '#c05621' : '#a0aec0'));
+            $qColor = $op['kvalitet'] >= 95 ? '#38a169' : ($op['kvalitet'] >= 85 ? '#d69e2e' : '#e53e3e');
+            $opsHtml .= '<tr style="background:' . $bgColor . ';">'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#2d3748;">' . htmlspecialchars($op['name']) . '</td>'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; color:#2d3748;">' . $op['ibc_total'] . '</td>'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:700; color:#2d3748;">' . $op['ibc_h'] . '</td>'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; color:' . $qColor . ';">' . $op['kvalitet'] . '%</td>'
+                . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:center; color:' . $tierColor . '; font-weight:700;">' . htmlspecialchars($op['bonus_tier']) . '</td>'
+                . '</tr>';
+            $i++;
+        }
+
+        // Stopporsaker
+        $stopsHtml = '';
+        if (!empty($s['top_stops'])) {
+            foreach ($s['top_stops'] as $idx => $st) {
+                $stBg = $idx % 2 === 0 ? '#f7fafc' : '#ffffff';
+                $stH = floor($st['total_min'] / 60);
+                $stM = $st['total_min'] % 60;
+                $stopsHtml .= '<tr style="background:' . $stBg . ';">'
+                    . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; color:#2d3748;">' . htmlspecialchars($st['orsak']) . '</td>'
+                    . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; color:#2d3748;">' . $st['antal'] . '</td>'
+                    . '<td style="padding:8px 12px; border-bottom:1px solid #e2e8f0; text-align:right; font-weight:700; color:#e53e3e;">' . $stH . ':' . str_pad($stM, 2, '0', STR_PAD_LEFT) . '</td>'
+                    . '</tr>';
+            }
+        } else {
+            $stopsHtml = '<tr><td colspan="3" style="padding:12px; text-align:center; color:#718096;">Inga stopporsaker registrerade denna vecka.</td></tr>';
+        }
+
+        $genererad = date('Y-m-d H:i');
+
+        return <<<HTML
+<!DOCTYPE html>
+<html lang="sv">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>MauserDB Veckorapport {$week}</title></head>
+<body style="margin:0; padding:0; font-family:Arial,Helvetica,sans-serif; background:#f0f2f5; -webkit-text-size-adjust:100%;">
+<div style="max-width:600px; margin:20px auto; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+
+  <!-- Header -->
+  <div style="background:#1a202c; color:#e2e8f0; padding:24px 28px; text-align:center;">
+    <h1 style="margin:0; font-size:22px; font-weight:800; letter-spacing:0.5px;">MauserDB Veckorapport</h1>
+    <p style="margin:8px 0 0; font-size:14px; color:#a0aec0;">Vecka {$week} &mdash; {$startD} till {$endD}</p>
+  </div>
+
+  <!-- KPI-kort 2x2 -->
+  <div style="padding:20px 24px 0;">
+    <table style="width:100%; border-collapse:separate; border-spacing:10px;">
+      <tr>
+        <!-- Total IBC -->
+        <td style="width:50%; padding:14px 16px; background:#f7fafc; border-radius:8px; border-left:4px solid #4299e1; vertical-align:top;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#718096; margin-bottom:4px;">Total IBC</div>
+          <div style="font-size:28px; font-weight:800; color:#2d3748; line-height:1.1;">{$totalIbc}</div>
+          <div style="font-size:12px; margin-top:4px; color:{$diffColor}; font-weight:600;">{$diffSign}{$diffPct}% vs f.v. ({$prevIbc})</div>
+        </td>
+        <!-- Snitt OEE -->
+        <td style="width:50%; padding:14px 16px; background:#f7fafc; border-radius:8px; border-left:4px solid #48bb78; vertical-align:top;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#718096; margin-bottom:4px;">Snitt OEE</div>
+          <div style="font-size:28px; font-weight:800; color:#2d3748; line-height:1.1;">{$avgOee}%</div>
+          <div style="font-size:12px; margin-top:4px; color:{$oeeTrendColor}; font-weight:600;">{$oeeTrendArrow} {$oeeDiff}pp vs f.v.</div>
+        </td>
+      </tr>
+      <tr>
+        <!-- Bästa dag -->
+        <td style="width:50%; padding:14px 16px; background:#f7fafc; border-radius:8px; border-left:4px solid #d69e2e; vertical-align:top;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#718096; margin-bottom:4px;">Bästa dag</div>
+          <div style="font-size:16px; font-weight:700; color:#2d3748;">{$bestDayText}</div>
+        </td>
+        <!-- Drifttid vs Stopptid -->
+        <td style="width:50%; padding:14px 16px; background:#f7fafc; border-radius:8px; border-left:4px solid #e53e3e; vertical-align:top;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#718096; margin-bottom:4px;">Drifttid / Stopptid</div>
+          <div style="font-size:16px; font-weight:700; color:#2d3748;">{$drifttid} / {$stopptid}</div>
+          <div style="font-size:12px; margin-top:4px; color:#718096;">{$skift} skift körda</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Extra KPI-rad -->
+  <div style="padding:8px 24px 16px;">
+    <table style="width:100%; border-collapse:separate; border-spacing:10px;">
+      <tr>
+        <td style="width:50%; padding:10px 16px; background:#f7fafc; border-radius:8px; vertical-align:top;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#718096;">Kvalitet</div>
+          <div style="font-size:20px; font-weight:800; color:{$kvalColor};">{$kvalitet}%</div>
+        </td>
+        <td style="width:50%; padding:10px 16px; background:#f7fafc; border-radius:8px; vertical-align:top;">
+          <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:#718096;">Sämsta dag</div>
+          <div style="font-size:14px; font-weight:600; color:#e53e3e;">{$worstDayText}</div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Operatörstabell -->
+  <div style="padding:0 24px 16px;">
+    <h3 style="font-size:15px; color:#2d3748; margin:0 0 10px; font-weight:700;">Operatörer</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr style="background:#edf2f7;">
+          <th style="padding:8px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">Namn</th>
+          <th style="padding:8px 12px; text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">IBC</th>
+          <th style="padding:8px 12px; text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">IBC/h</th>
+          <th style="padding:8px 12px; text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">Kvalitet</th>
+          <th style="padding:8px 12px; text-align:center; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">Bonus</th>
+        </tr>
+      </thead>
+      <tbody>
+        {$opsHtml}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Topp 3 stopporsaker -->
+  <div style="padding:0 24px 20px;">
+    <h3 style="font-size:15px; color:#2d3748; margin:0 0 10px; font-weight:700;">Topp 3 stopporsaker</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr style="background:#edf2f7;">
+          <th style="padding:8px 12px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">Orsak</th>
+          <th style="padding:8px 12px; text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">Antal</th>
+          <th style="padding:8px 12px; text-align:right; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; color:#718096; border-bottom:2px solid #e2e8f0;">Total tid</th>
+        </tr>
+      </thead>
+      <tbody>
+        {$stopsHtml}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div style="background:#f7fafc; padding:16px 24px; text-align:center; border-top:1px solid #e2e8f0;">
+    <p style="margin:0; font-size:12px; color:#a0aec0;">Genererad automatiskt av MauserDB &mdash; {$genererad}</p>
+  </div>
+
+</div>
+</body>
+</html>
+HTML;
     }
 }
