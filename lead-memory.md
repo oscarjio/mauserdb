@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #14)*
+*Senast uppdaterad: 2026-03-05 (session #15)*
 
 ---
 
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #15
+**Lägesanalys**: Session #14 levererade Bug Hunt #20 (2 buggar) + Kodkvalitets-audit (5 buggar). Efter sessionen kom 6 manuella fixar: bcrypt-återställning (`15dea51`, `94b308c`) och 4 INSTALL_ALL.sql-korrigeringar (`7f69f8e..567e201`). Ägarens direktiv kvarstår: INGEN NY FUNKTIONSUTVECKLING.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #21 — bred granskning av PHP-controllers och Angular-komponenter som EJ granskats i #19 eller #20. Fokus: LoginController/RegisterController (bcrypt-flöde efter manuella fixar), HistorikController, ShiftPlanController, AndonController, skiftrapport-komponenter, benchmarking.ts, kalender.ts.
+2. Worker 2: INSTALL_ALL.sql fullständighetscheck + Angular build-verifiering — validera att INSTALL_ALL.sql matchar alla individuella migreringar, att Angular bygger utan fel, och att inga TypeScript-varningar finns.
+
+**Motivering**: Bcrypt-fixarna gjordes manuellt — behöver verifieras av bug-hunting. INSTALL_ALL.sql har haft 5 fixar i rad → behöver systematisk validering mot alla migreringar. Build-verifiering säkerställer att allt kompilerar rent.
 
 ### 2026-03-05 Session #14
 **Lägesanalys**: Session #13 levererade multi-linje status (`7a27851`), kollegajämförelse (`cb55bd5`), och INSTALL_ALL.sql (`964d52f`). Ägarens direktiv: INGEN NY FUNKTIONSUTVECKLING — enbart buggar och slutförande.

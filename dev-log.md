@@ -1,3 +1,20 @@
+## 2026-03-05 Session #15 — Bug Hunt #21 + INSTALL_ALL validering (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #21** (12 filer granskade, 2 buggar fixade):
+- **LoginController.php**: Misslyckad inloggning returnerade HTTP 200 med `success: false` istället för HTTP 401 — FIXAD
+- **andon.ts**: `setTimeout` för skiftbytes-notis spårades/rensades inte i ngOnDestroy — FIXAD
+- Godkända utan anmärkning: RegisterController, NewsController, StoppageController, AuthHelper, benchmarking.ts, monthly-report.ts, shift-handover.ts, live-ranking.ts
+
+**Worker 2 — INSTALL_ALL.sql validering + build** (33 migreringar kontrollerade):
+- **Redundant ALTER TABLE tvattlinje_settings** — kolumner redan definierade i CREATE TABLE — BORTTAGEN
+- **Saknad ADD INDEX idx_status** på bonus_payouts — TILLAGD
+- **Saknad bcrypt-migrering** (password VARCHAR(255)) — TILLAGD (var felaktigt exkluderad)
+- Angular build: OK (57s, inga fel, 14 icke-kritiska varningar)
+
+**Sammanfattning session #15**: 45 filer granskade, 2 buggar fixade + 3 INSTALL_ALL-korrigeringar. Inga nya features.
+
+---
+
 ## 2026-03-05 Session #14 — Bug Hunt #20 + Kodkvalitets-audit (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #20** (commits `7a27851..964d52f`, 15 filer granskade):
