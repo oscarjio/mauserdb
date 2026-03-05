@@ -445,7 +445,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
       catchError(() => {
         this.error = 'Kunde inte ladda statistik från backend';
         this.loading = false;
-        this.loadMockData();
         return of(null);
       }),
       takeUntil(this.destroy$)
@@ -510,130 +509,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
-  }
-
-  loadMockData() {
-    const mockData = this.generateMockData();
-    this.lastStatisticsData = mockData;
-    this.updateStatistics(mockData);
-    this.updateChart(mockData);
-    this.updateTable(mockData);
-  }
-
-  generateMockData() {
-    const cycles: any[] = [];
-    const onoff_events: any[] = [];
-
-    const { start, end } = this.getDateRange();
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-
-
-    let currentDate = new Date(startDate);
-
-    while (currentDate <= endDate) {
-      const dayOfWeek = currentDate.getDay();
-
-      // Skip weekends
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        // Working hours 6-18
-        for (let hour = 6; hour < 18; hour++) {
-          const shouldRun = Math.random() > 0.2; // 80% chance running
-
-          if (shouldRun) {
-            // Generate 20-30 cycles per hour for tvättlinje (faster than rebotling)
-            const numCycles = 20 + Math.floor(Math.random() * 11);
-
-            for (let c = 0; c < numCycles; c++) {
-              const minute = Math.floor(Math.random() * 60);
-              const cycleDate = new Date(currentDate);
-              cycleDate.setHours(hour, minute, 0, 0);
-
-              const cycleTime = 2 + Math.random() * 2; // 2-4 minutes (faster than rebotling)
-              const targetCycleTime = 3; // Mock target
-
-              cycles.push({
-                datum: cycleDate.toISOString(),
-                ibc_count: 1,
-                produktion_procent: 85 + Math.random() * 15,
-                skiftraknare: 1,
-                cycle_time: cycleTime,
-                target_cycle_time: targetCycleTime
-              });
-            }
-
-            // Add running events - more detailed for day view
-            if (this.viewMode === 'day') {
-              // Start of hour
-              const startDate = new Date(currentDate);
-              startDate.setHours(hour, 2, 0, 0);
-              onoff_events.push({
-                datum: startDate.toISOString(),
-                running: true
-              });
-
-              // Maybe stop mid-hour (rast)
-              if (Math.random() > 0.8) {
-                const stopDate = new Date(currentDate);
-                stopDate.setHours(hour, 35, 0, 0);
-                onoff_events.push({
-                  datum: stopDate.toISOString(),
-                  running: false
-                });
-
-                const resumeDate = new Date(currentDate);
-                resumeDate.setHours(hour, 48, 0, 0);
-                onoff_events.push({
-                  datum: resumeDate.toISOString(),
-                  running: true
-                });
-              }
-            } else {
-              // For year/month view: one event per hour
-              const eventDate = new Date(currentDate);
-              eventDate.setHours(hour, 0, 0, 0);
-              onoff_events.push({
-                datum: eventDate.toISOString(),
-                running: true
-              });
-            }
-          } else {
-            // Not running - add stopped event
-            const eventDate = new Date(currentDate);
-            eventDate.setHours(hour, 0, 0, 0);
-            onoff_events.push({
-              datum: eventDate.toISOString(),
-              running: false
-            });
-          }
-        }
-      }
-
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    const avgCycleTime = cycles.length > 0
-      ? cycles.reduce((sum, c) => sum + c.cycle_time, 0) / cycles.length
-      : 0;
-
-    const avgProduction = cycles.length > 0
-      ? cycles.reduce((sum, c) => sum + c.produktion_procent, 0) / cycles.length
-      : 0;
-
-    const targetCycleTime = 3; // Mock target
-
-    return {
-      cycles,
-      onoff_events,
-      summary: {
-        total_cycles: cycles.length,
-        avg_production_percent: avgProduction,
-        avg_cycle_time: Math.round(avgCycleTime * 10) / 10,
-        target_cycle_time: targetCycleTime,
-        total_runtime_hours: onoff_events.filter(e => e.running).length * 0.9,
-        days_with_production: Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-      }
-    };
   }
 
   updateStatistics(data: any) {

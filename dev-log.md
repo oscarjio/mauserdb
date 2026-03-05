@@ -1,3 +1,11 @@
+## 2026-03-05 — Ta bort mockData-fallbacks + tom ProductController
+
+- **rebotling-statistik.ts**: Borttagen `loadMockData()` + `generateMockData()` — vid API-fel visas felmeddelande istället för falska random-siffror
+- **tvattlinje-statistik.ts**: Samma rensning
+- **ProductController.php**: Tom fil (0 bytes) borttagen
+
+---
+
 ## 2026-03-05 Session #25 — DRY-refactoring + kodkvalitet (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Generic SkiftrapportComponent** (`a6520cf`):
@@ -2349,3 +2357,4 @@ Granskade 10 filer (5 PHP controllers, 5 Angular komponenter) som ej granskats i
 - 5 filer godkanda utan anmarkningar
 - 0 SQL injection-risker hittade (alla anvander prepared statements)
 - 0 auth-brister hittade (alla admin-endpoints har korrekt rollkontroll)
+[2026-03-05] Lead session #26: Worker 1 — rensa mockData-fallbacks i rebotling-statistik+tvattlinje-statistik, ta bort tom ProductController.php. Worker 2 — Bug Hunt #31 logikbuggar i rebotling-statistik/production-analysis/bonus-dashboard.
