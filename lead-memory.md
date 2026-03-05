@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #18)*
+*Senast uppdaterad: 2026-03-05 (session #19)*
 
 ---
 
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #19
+**Lagesanalys**: Session #18 levererade Bug Hunt #24 (`a893905` — dag_oee-kolumn + success:true vid HTTP 500) + Data-integritet (`36b52ea` — BonusController kolumnnamn + RebotlingController HTTP-statuskoder). 10 filer granskade, 4 buggar fixade (1 kritisk). Totalt 12 dedikerade stabilitets-sessioner (#13-#24) sedan direktivet "INGEN NY FUNKTIONSUTVECKLING".
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #25 — djupgranskning av storre TypeScript-komponenter: executive-dashboard.ts, monthly-report.ts, operator-dashboard.ts, shift-handover.ts, benchmarking.ts. Fokus: minneslakor (subscribe utan takeUntil, setInterval utan clearInterval), felhantering vid tomma svar, null/undefined edge cases, Chart.js-resurslackor (chart.destroy() saknas).
+2. Worker 2: Backend-endpoint konsistensaudit — systematisk granskning av HistorikController.php, AndonController.php, ProductionEventsController.php, ShiftPlanController.php. Fokus: auth-kontroller pa alla POST-endpoints, korrekt HTTP-statuskoder vid fel, prepared statements, Content-Type headers, edge cases med tom data.
+
+**Motivering**: Storre TS-komponenter (executive-dashboard, monthly-report, benchmarking) har komplex Chart.js-logik och polling — hog risk for minneslakor och resurslackor. Backend-controllers fran nyare features har inte genomgatt systematisk sakerhetsgranskning.
 
 ### 2026-03-05 Session #18
 **Lagesanalys**: Session #17 levererade Bug Hunt #23 (`503bdbd` — session read_and_close i NewsController + CertificationController) + Build/runtime-beredskap (`2e41df2` — RuntimeController saknades i api.php classNameMap). 6 Bug Hunts genomforda (#18-#23), API-kontraktsvalidering, INSTALL_ALL validering, kodkvalitets-audit alla klara. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

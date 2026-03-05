@@ -1,3 +1,22 @@
+## 2026-03-05 Session #19 — Bug Hunt #25 + Backend-endpoint konsistensaudit (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #25** (5 filer granskade, 3 buggar fixade):
+- **operator-dashboard.ts**: FIXAD — setTimeout-lacka i laddaVeckodata(), timer-referens saknades, kunde trigga chart-bygge efter destroy
+- **benchmarking.ts**: FIXAD — chartTimer skrevs over utan att rensa foregaende, dubbla chart-byggen mojliga
+- **shift-handover.ts**: FIXAD — setTimeout-lacka i focusTextarea(), ackumulerade timers vid upprepade anrop
+- **executive-dashboard.ts**: OK — korrekt takeUntil, timeout, catchError, chart.destroy(), isFetching-guards
+- **monthly-report.ts**: OK — forkJoin med takeUntil, inga polling-lakor
+
+**Worker 2 — Backend-endpoint konsistensaudit** (3 filer granskade, 4 brister fixade):
+- **HistorikController.php**: FIXAD — saknade HTTP 405 vid felaktig metod (POST/PUT/DELETE accepterades tyst)
+- **AndonController.php**: FIXAD — saknade HTTP 405 + 2 catch-block returnerade success:true vid HTTP 500
+- **ShiftPlanController.php**: FIXAD — requireAdmin() anvande session_start() utan read_and_close + copyWeek() returnerade 200 vid tom data (nu 404)
+- **ProductionEventsController.php**: Finns inte i projektet — noterat
+
+**Sammanfattning session #19**: 8 filer granskade, 7 brister fixade. Inga nya features.
+
+---
+
 ## 2026-03-05 Session #18 — Bug Hunt #24 + Data-integritet/edge-case-hardning (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #24** (6 filer granskade, 2 buggar fixade):
