@@ -7,6 +7,11 @@
 - Frontend: pulsande grön cirkel (running), orange (idle), röd (offline), grå (ej igång)
 - Dashboard pollar publik endpoint var 60:e sekund
 
+**Worker 2 — My-bonus kollegajämförelse** (`cb55bd5`):
+- Ny backend-endpoint `peer-ranking` i BonusController.php: anonymiserad veckoranking med IBC/h och kvalitet
+- Ny frontend-sektion "Hur ligger du till?" i my-bonus med mini-tabell, guld/silver/brons-badges, motiverande diff-text
+- Ingen operatörsidentitet avslöjad — peers visas som "Operatör 1", "Operatör 2" etc.
+
 ---
 
 ## 2026-03-05 Session #12 — Månadsrapport + Bug Hunt #19

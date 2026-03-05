@@ -557,6 +557,84 @@
       </div>
     </div>
 
+    <!-- ===== VECKANS RANKING (anonymiserad kollegajamforelse) ===== -->
+    <!-- Laddar -->
+    <div class="card mb-4 p-4" style="background:#2d3748;" *ngIf="peerRankingLoading && savedOperatorId">
+      <div class="text-center">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        <span class="text-muted ms-2 small">Laddar veckoranking...</span>
+      </div>
+    </div>
+
+    <!-- Peer ranking card -->
+    <div class="peer-ranking-card mb-4" *ngIf="!peerRankingLoading && peerRanking && peerRanking.your_rank !== null && peerRanking.total_operators > 1 && savedOperatorId">
+      <div class="peer-ranking-header">
+        <i class="fas fa-ranking-star me-2"></i>Hur ligger du till?
+        <span class="peer-week-label ms-auto">{{ peerRanking.week_label }}</span>
+      </div>
+      <div class="peer-ranking-body">
+
+        <!-- Stor rankningstext -->
+        <div class="peer-rank-hero text-center mb-3">
+          <div class="peer-rank-big">
+            <span class="peer-rank-hash">#</span><span class="peer-rank-number">{{ peerRanking.your_rank }}</span>
+          </div>
+          <div class="peer-rank-subtitle">av {{ peerRanking.total_operators }} operatorer</div>
+
+          <!-- Badge for top 3 -->
+          <div class="peer-medal mt-2" *ngIf="peerRanking.your_rank === 1">
+            <span class="peer-badge peer-badge-gold"><i class="fas fa-crown me-1"></i>Bast denna vecka!</span>
+          </div>
+          <div class="peer-medal mt-2" *ngIf="peerRanking.your_rank === 2">
+            <span class="peer-badge peer-badge-silver"><i class="fas fa-medal me-1"></i>Silver</span>
+          </div>
+          <div class="peer-medal mt-2" *ngIf="peerRanking.your_rank === 3">
+            <span class="peer-badge peer-badge-bronze"><i class="fas fa-medal me-1"></i>Brons</span>
+          </div>
+        </div>
+
+        <!-- Mini-tabell med anonymiserade kollegor -->
+        <table class="peer-table">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th></th>
+              <th class="text-end">IBC/h</th>
+              <th class="text-end">Kvalitet</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let peer of peerRanking.peers; let i = index"
+                [class.peer-row-you]="peer.is_you"
+                [class.peer-row-gold]="peer.rank === 1 && peer.is_you"
+                [class.peer-row-silver]="peer.rank === 2 && peer.is_you"
+                [class.peer-row-bronze]="peer.rank === 3 && peer.is_you">
+              <td class="fw-bold">{{ peer.rank }}</td>
+              <td>
+                <span *ngIf="peer.is_you" class="peer-you-tag">Du</span>
+                <span *ngIf="!peer.is_you" class="peer-anon">Operator {{ peer.rank }}</span>
+              </td>
+              <td class="text-end fw-bold">{{ peer.ibc_h | number:'1.1-1' }}</td>
+              <td class="text-end">{{ peer.quality | number:'1.1-1' }}%</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Motiverande text -->
+        <div class="peer-motivation mt-3 text-center" *ngIf="peerRanking.your_rank > 1 && getPeerDiffFromAbove() !== null">
+          <span class="peer-motivation-text">
+            <i class="fas fa-arrow-up me-1"></i>{{ getPeerDiffFromAbove() | number:'1.1-1' }} IBC/h skiljer dig fran platsen ovan
+          </span>
+        </div>
+        <div class="peer-motivation mt-3 text-center" *ngIf="peerRanking.your_rank === 1">
+          <span class="peer-motivation-text peer-motivation-leader">
+            <i class="fas fa-star me-1"></i>Du leder! Fortsatt sa!
+          </span>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ===== MINA UTMARKELSER (backend-driven achievement badges) ===== -->
     <div class="achievements-card-v2 mb-4" *ngIf="savedOperatorId && stats" [class.confetti-active]="showConfetti">
       <div class="achievements-header-v2">

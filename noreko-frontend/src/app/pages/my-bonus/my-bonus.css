@@ -1041,6 +1041,166 @@
   color: #4a5568;
 }
 
+/* ============================================================
+   PEER RANKING (anonymiserad kollegajamforelse)
+   ============================================================ */
+.peer-ranking-card {
+  background: #1e2535;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.peer-ranking-header {
+  display: flex;
+  align-items: center;
+  padding: .9rem 1.25rem;
+  background: linear-gradient(135deg, #161c29 0%, #1a2235 100%);
+  border-bottom: 1px solid #4a5568;
+  font-weight: 600;
+  font-size: .95rem;
+  color: #e2e8f0;
+}
+.peer-week-label {
+  font-size: .72rem;
+  color: #718096;
+  font-weight: 400;
+}
+.peer-ranking-body {
+  padding: 1.25rem;
+}
+.peer-rank-hero {
+  margin-bottom: .75rem;
+}
+.peer-rank-big {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: .1rem;
+}
+.peer-rank-hash {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #718096;
+  line-height: 1;
+}
+.peer-rank-number {
+  font-size: 4rem;
+  font-weight: 900;
+  color: #e2e8f0;
+  line-height: 1;
+}
+.peer-rank-subtitle {
+  font-size: .95rem;
+  color: #a0aec0;
+  margin-top: .25rem;
+}
+.peer-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: .82rem;
+  font-weight: 700;
+  padding: .35rem .85rem;
+  border-radius: 999px;
+  letter-spacing: .03em;
+}
+.peer-badge-gold {
+  background: rgba(255, 215, 0, .15);
+  color: #ffd700;
+  border: 1px solid rgba(255, 215, 0, .4);
+}
+.peer-badge-silver {
+  background: rgba(192, 192, 192, .12);
+  color: #c0c0c0;
+  border: 1px solid rgba(192, 192, 192, .35);
+}
+.peer-badge-bronze {
+  background: rgba(205, 127, 50, .12);
+  color: #cd7f32;
+  border: 1px solid rgba(205, 127, 50, .35);
+}
+/* Mini-tabell */
+.peer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+.peer-table thead th {
+  background: #161c29;
+  color: #718096;
+  font-size: .7rem;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  padding: .5rem .75rem;
+  border-bottom: 1px solid #2d3748;
+}
+.peer-table tbody td {
+  padding: .5rem .75rem;
+  border-bottom: 1px solid #2d3748;
+  color: #a0aec0;
+}
+.peer-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.peer-row-you {
+  background: rgba(66, 153, 225, .1) !important;
+}
+.peer-row-you td {
+  color: #e2e8f0 !important;
+}
+.peer-row-gold {
+  background: rgba(255, 215, 0, .08) !important;
+}
+.peer-row-gold td {
+  color: #ffd700 !important;
+}
+.peer-row-silver {
+  background: rgba(192, 192, 192, .06) !important;
+}
+.peer-row-silver td {
+  color: #c0c0c0 !important;
+}
+.peer-row-bronze {
+  background: rgba(205, 127, 50, .06) !important;
+}
+.peer-row-bronze td {
+  color: #cd7f32 !important;
+}
+.peer-you-tag {
+  display: inline-block;
+  background: rgba(66, 153, 225, .2);
+  color: #63b3ed;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .15rem .5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.peer-anon {
+  color: #718096;
+  font-size: .82rem;
+}
+.peer-motivation {
+  padding: .5rem .75rem;
+  background: rgba(255, 255, 255, .03);
+  border-radius: 8px;
+}
+.peer-motivation-text {
+  font-size: .85rem;
+  color: #a0aec0;
+  font-weight: 500;
+}
+.peer-motivation-leader {
+  color: #ffd700 !important;
+}
+
+@media (max-width: 768px) {
+  .peer-rank-number { font-size: 3rem; }
+  .peer-rank-hash { font-size: 1.4rem; }
+  .peer-table { font-size: .78rem; }
+  .peer-table thead th, .peer-table tbody td { padding: .4rem .5rem; }
+}
+
 /* Confetti animation (CSS-only) */
 .confetti-active::before,
 .confetti-active::after {

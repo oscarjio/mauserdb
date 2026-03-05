@@ -69,6 +69,7 @@ class BonusController {
             case 'week-trend':        $this->getWeekTrend();         break;
             case 'ranking-position':  $this->getRankingPosition();   break;
             case 'achievements':      $this->getAchievements();      break;
+            case 'peer-ranking':      $this->getPeerRanking();       break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -2416,6 +2417,141 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getRankingPosition error: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=peer-ranking&operator_id=X
+     *
+     * Anonymiserad kollegajamforelse for aktuell ISO-vecka.
+     * Returnerar operatorens ranking bland alla aktiva operatorer
+     * samt en anonymiserad peers-lista (utan namn/id).
+     */
+    private function getPeerRanking(): void {
+        $operatorId = isset($_GET['operator_id']) ? intval($_GET['operator_id']) : null;
+
+        if (!$operatorId || $operatorId <= 0) {
+            $this->sendError('operator_id saknas');
+            return;
+        }
+
+        // Vecka-filter: innevarande ISO-vecka
+        $dateFilter = "YEARWEEK(DATE(datum), 3) = YEARWEEK(NOW(), 3)";
+        $weekNum    = (int)date('W');
+        $yearNum    = (int)date('o');
+        $weekLabel  = "Vecka $weekNum, $yearNum";
+
+        try {
+            // Aggregera alla operatorers prestationer via UNION ALL (alla tre positioner)
+            $s1 = $this->perShiftByPosition(1, $dateFilter);
+            $s2 = $this->perShiftByPosition(2, $dateFilter);
+            $s3 = $this->perShiftByPosition(3, $dateFilter);
+
+            $stmt = $this->pdo->query("
+                SELECT
+                    operator_id,
+                    SUM(total_shifts)   AS total_shifts,
+                    SUM(total_ibc_ok)   AS total_ibc_ok,
+                    SUM(total_runtime)  AS total_runtime,
+                    AVG(avg_kval)       AS avg_kvalitet
+                FROM (
+                    SELECT operator_id,
+                           COUNT(*)            AS total_shifts,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime,
+                           AVG(last_kval)      AS avg_kval
+                    FROM ($s1) AS x1
+                    GROUP BY operator_id
+
+                    UNION ALL
+
+                    SELECT operator_id,
+                           COUNT(*)            AS total_shifts,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime,
+                           AVG(last_kval)      AS avg_kval
+                    FROM ($s2) AS x2
+                    GROUP BY operator_id
+
+                    UNION ALL
+
+                    SELECT operator_id,
+                           COUNT(*)            AS total_shifts,
+                           SUM(shift_ibc_ok)   AS total_ibc_ok,
+                           SUM(shift_runtime)  AS total_runtime,
+                           AVG(last_kval)      AS avg_kval
+                    FROM ($s3) AS x3
+                    GROUP BY operator_id
+                ) AS combined
+                GROUP BY operator_id
+                HAVING total_runtime > 0
+            ");
+            $all = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($all)) {
+                echo json_encode([
+                    'success'         => true,
+                    'your_rank'       => null,
+                    'total_operators' => 0,
+                    'your_ibc_h'      => null,
+                    'your_quality'    => null,
+                    'peers'           => [],
+                    'week_label'      => $weekLabel,
+                ]);
+                return;
+            }
+
+            // Berakna IBC/h och kvalitet per operator
+            $opStats = [];
+            foreach ($all as $row) {
+                $hours   = (float)$row['total_runtime'] / 60.0;
+                $ibcPerH = $hours > 0 ? round((float)$row['total_ibc_ok'] / $hours, 1) : 0.0;
+                $quality = round((float)($row['avg_kvalitet'] ?? 0), 1);
+                $opStats[] = [
+                    'operator_id' => (int)$row['operator_id'],
+                    'ibc_h'       => $ibcPerH,
+                    'quality'     => $quality,
+                ];
+            }
+
+            // Sortera fallande pa IBC/h
+            usort($opStats, fn($a, $b) => $b['ibc_h'] <=> $a['ibc_h']);
+
+            $totalOps  = count($opStats);
+            $yourRank  = null;
+            $yourIbcH  = null;
+            $yourQual  = null;
+
+            // Bygg anonymiserad peers-lista och finn operatorens position
+            $peers = [];
+            foreach ($opStats as $idx => $op) {
+                $isYou = ($op['operator_id'] === $operatorId);
+                if ($isYou) {
+                    $yourRank = $idx + 1;
+                    $yourIbcH = $op['ibc_h'];
+                    $yourQual = $op['quality'];
+                }
+                $peers[] = [
+                    'rank'    => $idx + 1,
+                    'ibc_h'   => $op['ibc_h'],
+                    'quality' => $op['quality'],
+                    'is_you'  => $isYou,
+                ];
+            }
+
+            echo json_encode([
+                'success'         => true,
+                'your_rank'       => $yourRank,
+                'total_operators' => $totalOps,
+                'your_ibc_h'      => $yourIbcH,
+                'your_quality'    => $yourQual,
+                'peers'           => $peers,
+                'week_label'      => $weekLabel,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getPeerRanking error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }

@@ -126,6 +126,17 @@ export class MyBonusPage implements OnInit, OnDestroy {
   achievementCurrentStreak = 0;
   showConfetti = false;
 
+  // Peer ranking (anonymiserad kollegajamforelse)
+  peerRanking: {
+    your_rank: number | null;
+    total_operators: number;
+    your_ibc_h: number | null;
+    your_quality: number | null;
+    peers: { rank: number; ibc_h: number; quality: number; is_you: boolean }[];
+    week_label: string;
+  } | null = null;
+  peerRankingLoading = false;
+
   // Närvaro-kalender
   workCalendar: WorkDay[] = [];
   calendarLoading = false;
@@ -193,6 +204,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.streakData = null;
     this.myRanking = null;
     this.rankingPosition = null;
+    this.peerRanking = null;
     this.achievementBadges = [];
     this.totalIbcLifetime = 0;
     this.achievementCurrentStreak = 0;
@@ -286,6 +298,9 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
     // Min placering (anonymiserad kollegajämförelse)
     this.loadMyRanking();
+
+    // Peer ranking (anonymiserad veckoranking)
+    this.loadPeerRanking();
   }
 
   loadPersonalBest(): void {
@@ -463,6 +478,47 @@ export class MyBonusPage implements OnInit, OnDestroy {
     if (total <= 1) return 100;
     const pct = ((total - rank) / (total - 1)) * 90 + 10;
     return Math.round(pct);
+  }
+
+  // ===== Peer ranking (anonymiserad veckoranking) =====
+  loadPeerRanking(): void {
+    if (!this.savedOperatorId) return;
+    this.peerRankingLoading = true;
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonus&run=peer-ranking&operator_id=${this.savedOperatorId}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success) {
+          this.peerRanking = res;
+        } else {
+          this.peerRanking = null;
+        }
+        this.peerRankingLoading = false;
+      },
+      error: () => { this.peerRankingLoading = false; }
+    });
+  }
+
+  getPeerRankBadgeClass(rank: number): string {
+    if (rank === 1) return 'peer-badge-gold';
+    if (rank === 2) return 'peer-badge-silver';
+    if (rank === 3) return 'peer-badge-bronze';
+    return '';
+  }
+
+  getPeerDiffFromAbove(): number | null {
+    if (!this.peerRanking || !this.peerRanking.your_rank || this.peerRanking.your_rank <= 1) return null;
+    const peers = this.peerRanking.peers;
+    const myIdx = this.peerRanking.your_rank - 1;
+    if (myIdx > 0 && myIdx < peers.length) {
+      return Math.round((peers[myIdx - 1].ibc_h - peers[myIdx].ibc_h) * 10) / 10;
+    }
+    return null;
   }
 
   // ===== Achievement-medaljer =====
