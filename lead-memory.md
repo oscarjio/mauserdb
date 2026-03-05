@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #15)*
+*Senast uppdaterad: 2026-03-05 (session #16)*
 
 ---
 
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #16
+**Lägesanalys**: Session #15 levererade Bug Hunt #21 (`12b73d9` — login 401, andon timeout leak) + INSTALL_ALL validering (`60c5eab`). Inga nya commits sedan `6164a64`. Ägarens direktiv kvarstår: INGEN NY FUNKTIONSUTVECKLING.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #22 — granska controllers/komponenter som EJ granskats i #20 eller #21. Fokus: HistorikController.php (monthly/yearly endpoints), MaintenanceController.php (service-intervals), bonus-admin what-if simulator (bonus-admin.ts), dagdetalj drill-down (kalender.ts dagdetalj), notifikationscentral (navbar notifications). Kolla auth, prepared statements, subscription-städning, error handling.
+2. Worker 2: End-to-end API-kontraktsvalidering — granska att frontend service-anrop matchar backend endpoints (rätt URL-parametrar, rätt response-interface-typer, felhantering). Fokus på nyare endpoints som kan ha missmatch.
+
+**Motivering**: Bug Hunt #22 täcker äldre controllers som inte granskats på länge. API-kontraktsvalidering fångar up subtila buggar (felaktiga URL:er, saknade parametrar, missmatchade typer) som inte syns i build men kraschar runtime.
 
 ### 2026-03-05 Session #15
 **Lägesanalys**: Session #14 levererade Bug Hunt #20 (2 buggar) + Kodkvalitets-audit (5 buggar). Efter sessionen kom 6 manuella fixar: bcrypt-återställning (`15dea51`, `94b308c`) och 4 INSTALL_ALL.sql-korrigeringar (`7f69f8e..567e201`). Ägarens direktiv kvarstår: INGEN NY FUNKTIONSUTVECKLING.
