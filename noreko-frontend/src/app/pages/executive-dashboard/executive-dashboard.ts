@@ -168,7 +168,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.linesSub = this.http.get<any>(
       '/noreko-backend/api.php?action=status&run=all-lines'
     )
-      .pipe(timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res?.success && res.lines) {

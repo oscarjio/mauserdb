@@ -1,3 +1,19 @@
+## 2026-03-05 Session #14 — Bug Hunt #20 + Kodkvalitets-audit (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #20** (commits `7a27851..964d52f`, 15 filer granskade):
+- **INSTALL_ALL.sql**: Saknade `operators`-tabellen (`add_operators_table.sql`-migrering) — FIXAD
+- **executive-dashboard.ts**: `loadAllLinesStatus()` saknade `takeUntil(this.destroy$)` — potentiell minnesläcka vid navigering bort under pågående HTTP-anrop — FIXAD
+- StatusController.php `all-lines`: OK — publik endpoint (avsiktligt), inget user input i SQL, bra felhantering, hanterar tomma DB
+- BonusController.php `peer-ranking`: OK — `operator_id` castad via `intval()`, aldrig i SQL, anonymiserad output utan namn/ID-läcka, bra edge case (0 operatörer)
+- executive-dashboard.html/css: OK — null-safe med `*ngIf`, korrekt bindings
+- my-bonus.ts/html/css: OK — `takeUntil(destroy$)` överallt, timeout+catchError, null-safe UI
+- INSTALL_ALL.sql vs individuella migreringar: OK (shift_handover inkluderar acknowledge-kolumner, news inkluderar alla tillägg)
+
+**Planerat**:
+- Worker 2: Kodkvalitets-audit — äldre controllers/komponenter, auth, error handling, subscription-städning
+
+---
+
 ## 2026-03-05 Session #13 — Multi-linje status + Kollegajämförelse
 
 **Worker 1 — Executive Dashboard multi-linje status** (`7a27851`):

@@ -10,6 +10,18 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================
+-- add_operators_table.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS operators (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  number INT NOT NULL,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_operators_number (number)
+);
+
+-- ============================================================
 -- 2026-03-03_bonus_amounts.sql
 -- ============================================================
 CREATE TABLE IF NOT EXISTS bonus_level_amounts (
