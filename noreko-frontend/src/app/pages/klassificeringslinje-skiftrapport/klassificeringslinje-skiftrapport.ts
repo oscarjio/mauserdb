@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -97,7 +97,7 @@ export class KlassificeringslinjeSkiftrapportPage implements OnInit, OnDestroy {
   fetchReports(silent = false) {
     if (!silent) this.loading = true;
     this.fetchSub?.unsubscribe();
-    this.fetchSub = this.service.getReports(this.line).pipe(takeUntil(this.destroy$)).subscribe({
+    this.fetchSub = this.service.getReports(this.line).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fetch reports failed:', err); return of({ success: false, message: 'Kunde inte hämta rapporter', data: [] }); })).subscribe({
       next: (res) => {
         if (!silent) this.loading = false;
         if (res.success) {
@@ -105,8 +105,7 @@ export class KlassificeringslinjeSkiftrapportPage implements OnInit, OnDestroy {
           if (silent) { const ec = { ...this.expanded }; const sc = new Set(this.selectedIds); this.reports = nr; this.expanded = ec; this.selectedIds = new Set(Array.from(sc).filter(id => nr.some((r: any) => r.id === id))); }
           else this.reports = nr;
         } else this.errorMessage = res.message || 'Fel';
-      },
-      error: (err) => { if (!silent) this.loading = false; this.errorMessage = err.error?.message || 'Fel'; }
+      }
     });
   }
 
@@ -114,39 +113,37 @@ export class KlassificeringslinjeSkiftrapportPage implements OnInit, OnDestroy {
     this.errorMessage = '';
     if (!this.newReport.datum) { this.errorMessage = 'Datum krävs'; return; }
     this.loading = true;
-    this.service.createReport(this.line, this.newReport).subscribe({
-      next: (res) => { this.loading = false; if (res.success) { this.fetchReports(); this.newReport = { datum: new Date().toISOString().split('T')[0], antal_ok: 0, antal_ej_ok: 0, kommentar: '' }; this.showAddForm = false; this.showSuccess('Rapport tillagd'); } else this.errorMessage = res.message || 'Fel'; },
-      error: (err) => { this.loading = false; this.errorMessage = err.error?.message || 'Fel'; }
+    this.service.createReport(this.line, this.newReport).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Create report failed:', err); return of({ success: false, message: 'Kunde inte skapa rapport' }); })).subscribe({
+      next: (res) => { this.loading = false; if (res.success) { this.fetchReports(); this.newReport = { datum: new Date().toISOString().split('T')[0], antal_ok: 0, antal_ej_ok: 0, kommentar: '' }; this.showAddForm = false; this.showSuccess('Rapport tillagd'); } else this.errorMessage = res.message || 'Fel'; }
     });
   }
 
   saveReport(report: any) {
     const datum = (report.datum || '').split(' ')[0];
-    this.service.updateReport(this.line, report.id, { datum, antal_ok: parseInt(report.antal_ok, 10) || 0, antal_ej_ok: parseInt(report.antal_ej_ok, 10) || 0, kommentar: report.kommentar || '' }).subscribe({
-      next: (res) => { if (res.success) { report.totalt = (parseInt(report.antal_ok, 10) || 0) + (parseInt(report.antal_ej_ok, 10) || 0); report.datum = datum; this.expanded[report.id] = false; this.fetchReports(); this.showSuccess('Rapport uppdaterad'); } else this.errorMessage = res.message || 'Fel'; },
-      error: (err) => { this.errorMessage = err.error?.message || 'Fel'; }
+    this.service.updateReport(this.line, report.id, { datum, antal_ok: parseInt(report.antal_ok, 10) || 0, antal_ej_ok: parseInt(report.antal_ej_ok, 10) || 0, kommentar: report.kommentar || '' }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Update report failed:', err); return of({ success: false, message: 'Kunde inte uppdatera rapport' }); })).subscribe({
+      next: (res) => { if (res.success) { report.totalt = (parseInt(report.antal_ok, 10) || 0) + (parseInt(report.antal_ej_ok, 10) || 0); report.datum = datum; this.expanded[report.id] = false; this.fetchReports(); this.showSuccess('Rapport uppdaterad'); } else this.errorMessage = res.message || 'Fel'; }
     });
   }
 
   deleteReport(id: number) {
     if (!confirm('Ta bort rapport?')) return;
-    this.service.deleteReport(this.line, id).subscribe({ next: (res) => { if (res.success) { this.reports = this.reports.filter(r => r.id !== id); this.selectedIds.delete(id); this.showSuccess('Borttagen'); } else this.errorMessage = res.message || 'Fel'; } });
+    this.service.deleteReport(this.line, id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Delete report failed:', err); return of({ success: false, message: 'Kunde inte ta bort rapport' }); })).subscribe({ next: (res) => { if (res.success) { this.reports = this.reports.filter(r => r.id !== id); this.selectedIds.delete(id); this.showSuccess('Borttagen'); } else this.errorMessage = res.message || 'Fel'; } });
   }
 
   bulkDelete() {
     if (!this.selectedIds.size) { this.errorMessage = 'Inga rader valda'; return; }
     if (!confirm(`Ta bort ${this.selectedIds.size}?`)) return;
-    this.service.bulkDelete(this.line, Array.from(this.selectedIds)).subscribe({ next: (res) => { if (res.success) { this.reports = this.reports.filter(r => !this.selectedIds.has(r.id)); this.selectedIds.clear(); this.showSuccess(res.message); } } });
+    this.service.bulkDelete(this.line, Array.from(this.selectedIds)).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Bulk delete failed:', err); return of({ success: false, message: 'Kunde inte ta bort rapporter' }); })).subscribe({ next: (res) => { if (res.success) { this.reports = this.reports.filter(r => !this.selectedIds.has(r.id)); this.selectedIds.clear(); this.showSuccess(res.message); } } });
   }
 
   toggleInlagd(report: any) {
     const v = !report.inlagd;
-    this.service.updateInlagd(this.line, report.id, v).subscribe({ next: (res) => { if (res.success) { report.inlagd = v ? 1 : 0; this.showSuccess('Status uppdaterad'); } } });
+    this.service.updateInlagd(this.line, report.id, v).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Update inlagd failed:', err); return of({ success: false }); })).subscribe({ next: (res) => { if (res.success) { report.inlagd = v ? 1 : 0; this.showSuccess('Status uppdaterad'); } } });
   }
 
   bulkMarkInlagd(inlagd: boolean) {
     if (!this.selectedIds.size) { this.errorMessage = 'Inga rader valda'; return; }
-    this.service.bulkUpdateInlagd(this.line, Array.from(this.selectedIds), inlagd).subscribe({ next: (res) => { if (res.success) { this.reports.forEach(r => { if (this.selectedIds.has(r.id)) r.inlagd = inlagd ? 1 : 0; }); this.selectedIds.clear(); this.showSuccess(res.message); } } });
+    this.service.bulkUpdateInlagd(this.line, Array.from(this.selectedIds), inlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Bulk update inlagd failed:', err); return of({ success: false }); })).subscribe({ next: (res) => { if (res.success) { this.reports.forEach(r => { if (this.selectedIds.has(r.id)) r.inlagd = inlagd ? 1 : 0; }); this.selectedIds.clear(); this.showSuccess(res.message); } } });
   }
 
   exportCSV() {

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -90,7 +90,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
     if (!silent) this.loading = true;
     this.fetchSub?.unsubscribe();
     this.fetchSub = this.service.getReports(this.line)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Fetch reports failed:', err); return of({ success: false, message: 'Kunde inte hämta rapporter', data: [] }); }))
       .subscribe({
         next: (res) => {
           if (!silent) this.loading = false;
@@ -108,10 +108,6 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
           } else {
             this.errorMessage = res.message || 'Kunde inte hämta rapporter';
           }
-        },
-        error: (err) => {
-          if (!silent) this.loading = false;
-          if (!silent) this.errorMessage = 'Kunde inte hämta rapporter. Kontrollera din anslutning.';
         }
       });
   }
@@ -138,7 +134,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
     this.errorMessage = '';
     if (!this.newReport.datum) { this.errorMessage = 'Datum krävs'; return; }
     this.loading = true;
-    this.service.createReport(this.line, this.newReport).subscribe({
+    this.service.createReport(this.line, this.newReport).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Create report failed:', err); return of({ success: false, message: 'Kunde inte skapa rapport' }); })).subscribe({
       next: (res) => {
         this.loading = false;
         if (res.success) {
@@ -149,8 +145,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
         } else {
           this.errorMessage = res.message || 'Kunde inte lägga till';
         }
-      },
-      error: (err) => { this.loading = false; this.errorMessage = err.error?.message || 'Fel'; }
+      }
     });
   }
 
@@ -160,7 +155,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
       datum, antal_ok: parseInt(report.antal_ok, 10) || 0,
       antal_ej_ok: parseInt(report.antal_ej_ok, 10) || 0,
       kommentar: report.kommentar || ''
-    }).subscribe({
+    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Update report failed:', err); return of({ success: false, message: 'Kunde inte uppdatera rapport' }); })).subscribe({
       next: (res) => {
         if (res.success) {
           report.totalt = (parseInt(report.antal_ok, 10) || 0) + (parseInt(report.antal_ej_ok, 10) || 0);
@@ -169,19 +164,17 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
           this.fetchReports();
           this.showSuccess('Rapport uppdaterad');
         } else { this.errorMessage = res.message || 'Kunde inte uppdatera'; }
-      },
-      error: (err) => { this.errorMessage = err.error?.message || 'Fel'; }
+      }
     });
   }
 
   deleteReport(id: number) {
     if (!confirm('Är du säker på att du vill ta bort denna rapport?')) return;
-    this.service.deleteReport(this.line, id).subscribe({
+    this.service.deleteReport(this.line, id).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Delete report failed:', err); return of({ success: false, message: 'Kunde inte ta bort rapport' }); })).subscribe({
       next: (res) => {
         if (res.success) { this.reports = this.reports.filter(r => r.id !== id); this.selectedIds.delete(id); this.showSuccess('Rapport borttagen'); }
         else { this.errorMessage = res.message || 'Kunde inte ta bort'; }
-      },
-      error: (err) => { this.errorMessage = err.error?.message || 'Fel'; }
+      }
     });
   }
 
@@ -189,7 +182,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
     if (this.selectedIds.size === 0) { this.errorMessage = 'Inga rader valda'; return; }
     if (!confirm(`Ta bort ${this.selectedIds.size} rapport(er)?`)) return;
     const ids = Array.from(this.selectedIds);
-    this.service.bulkDelete(this.line, ids).subscribe({
+    this.service.bulkDelete(this.line, ids).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Bulk delete failed:', err); return of({ success: false, message: 'Kunde inte ta bort rapporter' }); })).subscribe({
       next: (res) => {
         if (res.success) { this.reports = this.reports.filter(r => !this.selectedIds.has(r.id)); this.selectedIds.clear(); this.showSuccess(res.message); }
         else { this.errorMessage = res.message || 'Fel'; }
@@ -199,7 +192,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
 
   toggleInlagd(report: any) {
     const newVal = !report.inlagd;
-    this.service.updateInlagd(this.line, report.id, newVal).subscribe({
+    this.service.updateInlagd(this.line, report.id, newVal).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Update inlagd failed:', err); return of({ success: false }); })).subscribe({
       next: (res) => { if (res.success) { report.inlagd = newVal ? 1 : 0; this.showSuccess('Status uppdaterad'); } }
     });
   }
@@ -207,7 +200,7 @@ export class TvattlinjeSkiftrapportPage implements OnInit, OnDestroy {
   bulkMarkInlagd(inlagd: boolean) {
     if (this.selectedIds.size === 0) { this.errorMessage = 'Inga rader valda'; return; }
     const ids = Array.from(this.selectedIds);
-    this.service.bulkUpdateInlagd(this.line, ids, inlagd).subscribe({
+    this.service.bulkUpdateInlagd(this.line, ids, inlagd).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Bulk update inlagd failed:', err); return of({ success: false }); })).subscribe({
       next: (res) => {
         if (res.success) {
           this.reports.forEach(r => { if (this.selectedIds.has(r.id)) r.inlagd = inlagd ? 1 : 0; });

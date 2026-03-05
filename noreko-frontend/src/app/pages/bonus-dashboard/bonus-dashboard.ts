@@ -120,13 +120,12 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   }
 
   private loadWeeklyGoal() {
-    this.bonusAdminService.getConfig().pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdminService.getConfig().pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Load weekly goal failed:', err); return of(null); })).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.weeklyGoal = (res.data as any).weekly_bonus_goal || 80;
         }
-      },
-      error: () => {}
+      }
     });
   }
 
@@ -314,8 +313,9 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.teamStatsSub?.unsubscribe();
 
     this.loading = true;
-    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).subscribe({
+    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Load team stats failed:', err); this.error = 'Kunde inte ladda skiftdata'; this.loading = false; return of(null); })).subscribe({
       next: (res) => {
+        if (!res) return;
         if (res.success && res.data) {
           this.teamAggregate = res.data.aggregate;
           this.shifts = res.data.shifts || [];
@@ -324,10 +324,6 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
             if (!this.destroy$.closed) this.buildShiftCompareChart();
           }, 100);
         }
-        this.loading = false;
-      },
-      error: (err) => {
-        this.error = 'Kunde inte ladda skiftdata: ' + err.message;
         this.loading = false;
       }
     });
@@ -345,8 +341,9 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     let pending = 2;
     const done = () => { if (--pending === 0) this.loading = false; };
 
-    this.searchSub = this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).subscribe({
+    this.searchSub = this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Load operator stats failed:', err); this.error = 'Kunde inte hämta operatörsdata'; done(); return of(null); })).subscribe({
       next: (res) => {
+        if (!res) return;
         if (res.success && res.data) {
           this.operatorData = res.data;
           this.loadOperatorCharts();
@@ -354,22 +351,18 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
           this.error = res.error || 'Ingen data hittades';
         }
         done();
-      },
-      error: (err) => {
-        this.error = 'Kunde inte hämta operatörsdata: ' + err.message;
-        done();
       }
     });
 
-    this.bonusService.getKPIDetails(this.searchOperatorId, this.selectedPeriod).subscribe({
+    this.bonusService.getKPIDetails(this.searchOperatorId, this.selectedPeriod).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Load KPI details failed:', err); done(); return of(null); })).subscribe({
       next: (res) => {
+        if (!res) return;
         if (res.success && res.data) {
           this.operatorKPIData = res.data;
           this.renderTrendChart();
         }
         done();
-      },
-      error: () => { done(); }
+      }
     });
   }
 

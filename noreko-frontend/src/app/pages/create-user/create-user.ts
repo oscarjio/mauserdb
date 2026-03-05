@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { UsersService } from '../../services/users.service';
 
@@ -79,8 +79,18 @@ export class CreateUserPage implements OnInit, OnDestroy {
 
     this.isLoading = true;
 
-    this.usersService.createUser(this.user).subscribe({
+    this.usersService.createUser(this.user).pipe(
+      takeUntil(this.destroy$),
+      timeout(8000),
+      catchError(err => {
+        console.error('Create user request failed:', err);
+        this.isLoading = false;
+        this.errorMessage = err?.error?.message || 'Ett fel uppstod vid skapande av användare. Försök igen senare.';
+        return of(null);
+      })
+    ).subscribe({
       next: (res) => {
+        if (!res) return;
         this.isLoading = false;
         if (res.success) {
           this.successMessage = res.message || 'Användare skapad!';
@@ -94,16 +104,7 @@ export class CreateUserPage implements OnInit, OnDestroy {
         } else {
           this.errorMessage = res.message || 'Kunde inte skapa användare.';
         }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        if (error.error && error.error.message) {
-          this.errorMessage = error.error.message;
-        } else {
-          this.errorMessage = 'Ett fel uppstod vid skapande av användare. Försök igen senare.';
-        }
       }
     });
   }
 }
-

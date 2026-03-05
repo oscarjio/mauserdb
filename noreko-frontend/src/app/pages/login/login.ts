@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -69,17 +71,23 @@ import { AuthService } from '../../services/auth.service';
     .form-control::placeholder { color: #718096; }
   `]
 })
-export class LoginPage {
+export class LoginPage implements OnDestroy {
   username = '';
   password = '';
   error = '';
   loading = false;
+  private destroy$ = new Subject<void>();
 
   constructor(
     private http: HttpClient,
     private auth: AuthService,
     private router: Router
   ) {}
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   login() {
     this.error = '';
@@ -88,8 +96,18 @@ export class LoginPage {
     this.http.post<any>('/noreko-backend/api.php?action=login', {
       username: this.username,
       password: this.password
-    }, { withCredentials: true }).subscribe({
+    }, { withCredentials: true }).pipe(
+      takeUntil(this.destroy$),
+      timeout(8000),
+      catchError(err => {
+        console.error('Login request failed:', err);
+        this.error = err?.error?.message || 'Inloggningen misslyckades. Försök igen.';
+        this.loading = false;
+        return of(null);
+      })
+    ).subscribe({
       next: (res) => {
+        if (!res) return;
         if (res.success) {
           // Sätt auth-state SYNKRONT från login-svaret innan navigate().
           // Utan detta hinner authGuard se loggedIn$=false (från startup-fetchStatus
@@ -99,15 +117,18 @@ export class LoginPage {
           this.auth.initialized$.next(true);
           sessionStorage.setItem('auth_user', JSON.stringify(res.user));
           this.router.navigate(['/']);
-          this.auth.fetchStatus().subscribe(); // bakgrundsverifiering
+          this.auth.fetchStatus().pipe(
+            takeUntil(this.destroy$),
+            timeout(8000),
+            catchError(err => {
+              console.error('Auth fetchStatus failed:', err);
+              return of(null);
+            })
+          ).subscribe(); // bakgrundsverifiering
         } else {
           this.error = res.message || 'Fel användarnamn eller lösenord.';
           this.loading = false;
         }
-      },
-      error: (err) => {
-        this.error = err.error?.message || 'Inloggningen misslyckades. Försök igen.';
-        this.loading = false;
       }
     });
   }

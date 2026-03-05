@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 
 @Component({
   standalone: true,
@@ -12,6 +14,7 @@ import { HttpClient } from '@angular/common/http';
   styleUrl: './register.css'
 })
 export class RegisterPage implements OnDestroy {
+  private destroy$ = new Subject<void>();
   private redirectTimerId: any = null;
   user = {
     username: '',
@@ -36,6 +39,8 @@ export class RegisterPage implements OnDestroy {
   constructor(private http: HttpClient, private router: Router) {}
 
   ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
     clearTimeout(this.redirectTimerId);
   }
 
@@ -81,8 +86,18 @@ export class RegisterPage implements OnDestroy {
       email: this.user.email,
       phone: this.user.phone,
       code: this.user.code
-    }, { withCredentials: true }).subscribe({
+    }, { withCredentials: true }).pipe(
+      takeUntil(this.destroy$),
+      timeout(8000),
+      catchError(err => {
+        console.error('Register request failed:', err);
+        this.isLoading = false;
+        this.errorMessage = err?.error?.message || 'Ett fel uppstod vid registrering. Försök igen senare.';
+        return of(null);
+      })
+    ).subscribe({
       next: (res) => {
+        if (!res) return;
         this.isLoading = false;
         if (res.success) {
           this.successMessage = res.message || 'Registrering lyckades! Omdirigerar till inloggning...';
@@ -92,10 +107,6 @@ export class RegisterPage implements OnDestroy {
         } else {
           this.errorMessage = res.message || 'Registrering misslyckades. Försök igen.';
         }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.errorMessage = error.error?.message || 'Ett fel uppstod vid registrering. Försök igen senare.';
       }
     });
   }
