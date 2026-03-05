@@ -219,9 +219,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   // ========== System Stats ==========
   loadSystemStats() {
-    this.bonusAdmin.getSystemStats().pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getSystemStats().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.systemStats = res.data;
         }
       },
@@ -232,9 +232,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // ========== Config ==========
   loadConfig() {
     this.loading = true;
-    this.bonusAdmin.getConfig().pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getConfig().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.config = res.data;
           // Fyll i forms
           this.weightsForm[1] = { ...(res.data.weights_foodgrade || { eff: 0.3, prod: 0.3, qual: 0.4 }) };
@@ -277,7 +277,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     }
 
     this.loading = true;
-    this.bonusAdmin.updateWeights(produkt, weights).pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.updateWeights(produkt, weights).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Viktningar uppdaterade!');
@@ -312,7 +312,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   saveTargets() {
     this.loading = true;
-    this.bonusAdmin.setTargets(this.targetsForm).pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.setTargets(this.targetsForm).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Produktivitetsmål uppdaterade!');
@@ -345,7 +345,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       return;
     }
     this.loading = true;
-    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
           this.showSuccess('Veckobonusmål sparat!');
@@ -382,12 +382,12 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.forecastError = '';
     this.operatorForecast = null;
 
-    this.bonusAdmin.getOperatorForecast(id).pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getOperatorForecast(id).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.operatorForecast = res.data;
         } else {
-          this.forecastError = res.error || 'Ingen data hittades';
+          this.forecastError = res?.error || 'Ingen data hittades';
         }
         this.forecastLoading = false;
       },
@@ -408,9 +408,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   // ========== Periods ==========
   loadPeriods() {
-    this.bonusAdmin.getPeriods().pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.getPeriods().pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.periods = res.data.periods || [];
         }
       },
@@ -422,10 +422,10 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (!confirm(`Godkänn alla bonusar för period ${period}?`)) return;
 
     this.loading = true;
-    this.bonusAdmin.approveBonuses(period).pipe(takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.approveBonuses(period).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' } as any)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
-          this.showSuccess(`Bonusar godkända för ${period}! (${res.data?.cycles_approved} cykler)`);
+          this.showSuccess(`Bonusar godkända för ${period}! (${(res as any).data?.cycles_approved} cykler)`);
           this.loadPeriods();
         } else {
           this.showError(res.error || 'Fel vid godkännande');
@@ -461,12 +461,12 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       '/noreko-backend/api.php?action=bonus&run=simulate',
       payload,
       { withCredentials: true }
-    ).pipe(takeUntil(this.destroy$)).subscribe({
+    ).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success && res.data) {
+        if (res?.success && res.data) {
           this.simResult = res.data;
         } else {
-          this.simError = res.error || 'Okänt fel vid simulering';
+          this.simError = res?.error || 'Okänt fel vid simulering';
         }
         this.simLoading = false;
       },

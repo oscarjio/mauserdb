@@ -275,7 +275,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getOperatorStats error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -417,7 +417,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getRanking error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -539,7 +539,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getTeamStats error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -635,7 +635,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getKPIDetails error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -700,7 +700,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getOperatorHistory error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -764,7 +764,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getDailySummary error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -882,7 +882,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('Bonus getWeeklyHistory error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -1031,7 +1031,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getHallOfFame error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -1151,7 +1151,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getLoneprognos error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -1270,7 +1270,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getPersonalBest error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -1356,7 +1356,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getStreak error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -1764,7 +1764,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController simulate error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -2037,7 +2037,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getMyRanking error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -2200,7 +2200,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getWeekTrend error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -2417,7 +2417,7 @@ class BonusController {
 
         } catch (PDOException $e) {
             error_log('BonusController getRankingPosition error: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
