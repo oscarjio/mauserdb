@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #17)*
+*Senast uppdaterad: 2026-03-05 (session #18)*
 
 ---
 
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #18
+**Lagesanalys**: Session #17 levererade Bug Hunt #23 (`503bdbd` — session read_and_close i NewsController + CertificationController) + Build/runtime-beredskap (`2e41df2` — RuntimeController saknades i api.php classNameMap). 6 Bug Hunts genomforda (#18-#23), API-kontraktsvalidering, INSTALL_ALL validering, kodkvalitets-audit alla klara. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #24 — granska PHP-controllers och TS-komponenter som inte granskats pa djupet: FeedbackController.php, RebotlingAnalyticsController.php (5271 rader — stor fil, hog risk), StatusController.php, tvattlinje-admin.ts, saglinje-admin.ts, klassificeringslinje-admin.ts. Fokus: SQL injection, auth, error handling, edge cases med tomma resultat.
+2. Worker 2: Data-integritet och edge-case-hardning — granska bonusberakningar (BonusController.php) for division-by-zero, null-hantering nar inga skift finns, korrekt avrundning. Granska RebotlingController dispatch-logik for ogiltig action/run-parameter (felmeddelanden, HTTP-koder). Verifiera att alla controllers returnerar korrekt Content-Type header.
+
+**Motivering**: RebotlingAnalyticsController ar 5271 rader och har aldrig genomgatt systematisk bug-hunting — hog risk for dolda buggar. Data-integritet i bonusberakningar ar affarskritiskt — fel i bonusutbetalningar undergraver fortroende. Edge-case-hardning sakerstaller stabilitet nar produktionsdata saknas eller ar ofullstandig.
 
 ### 2026-03-05 Session #17
 **Lägesanalys**: Session #16 levererade Bug Hunt #22 (`f2d4ea0` — getEquipmentStats soft-delete filter) + API-kontraktsvalidering (`148b528` — live-ranking-config endpoints saknades). Ägarens direktiv kvarstår: INGEN NY FUNKTIONSUTVECKLING.

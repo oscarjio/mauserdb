@@ -1,3 +1,22 @@
+## 2026-03-05 Session #18 — Bug Hunt #24 + Data-integritet/edge-case-hardning (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #24** (6 filer granskade, 2 buggar fixade):
+- **RebotlingAnalyticsController.php**: FIXAD — `getWeekdayStats()` refererade icke-existerande kolumn `dag_oee` i subquery (SQL-krasch). Lade till fullstandig OEE-berakning.
+- **RebotlingAnalyticsController.php**: FIXAD — 4 catch-block returnerade `success: true` vid HTTP 500 (getStoppageAnalysis, getParetoStoppage)
+- **FeedbackController.php**: OK — prepared statements, auth, error handling
+- **StatusController.php**: OK — read_and_close korrekt, division guards
+- **tvattlinje-admin.ts, saglinje-admin.ts, klassificeringslinje-admin.ts**: Alla OK — takeUntil, clearInterval, catchError
+
+**Worker 2 — Data-integritet/edge-case-hardning** (4 filer granskade, 2 buggar fixade):
+- **BonusController.php**: FIXAD — KRITISK: `week-trend` endpoint anvande kolumn `namn` istallet for `name` — kraschade alltid med PDOException
+- **RebotlingController.php**: FIXAD — ogiltiga POST-actions returnerade HTTP 200 istf 400, ogiltig metod returnerade 200 istf 405
+- **BonusAdminController.php**: OK — robust validering, division-by-zero-skydd, negativa tal blockeras
+- **api.php**: OK — korrekt 404 vid ogiltig action, try-catch runt controller-instantiering, Content-Type korrekt
+
+**Sammanfattning session #18**: 10 filer granskade, 4 buggar fixade (1 kritisk bonusberaknings-endpoint). Inga nya features.
+
+---
+
 ## 2026-03-05 Session #17 — Bug Hunt #23 + Build/runtime-beredskap (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #23** (7 filer granskade, 2 buggar fixade):
