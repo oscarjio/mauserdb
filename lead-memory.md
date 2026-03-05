@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #24)*
+*Senast uppdaterad: 2026-03-05 (session #25)*
 
 ---
 
@@ -722,6 +722,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-05 session #9**: Session #8 komplett — 14 commits i 4 batchar (gamification, rättviseaudit, veckosammanfattning, RebotlingController split, bcrypt, bug hunt #16+#17, PHP input-validering, services, loading-states). Backlog har 10+ öppna medium-items. Startar 3 workers: rebotling-statistik refactoring (4248→child-components), Error-handling UX + Empty-states batch 3, Mobilanpassning batch 3.
 **2026-03-05 session #10**: Session #9 levererade 2 av 3 workers (Error-handling UX `6d203d5`, Mobilanpassning `36bb854`). rebotling-statistik refactoring ej klar — kvarstår. Inga uncommitted ändringar. Backlog har 10+ medium-items öppna. Startar 3 workers: rebotling-statistik refactoring (4248→child-components), maintenance-log refactoring (1817→child-components), Bug Hunt #18 (granska session #9 commits).
 **2026-03-05 session #11**: Session #10 komplett — alla 3 workers levererade (rebotling-statistik 16 child-components `9eec10d`, maintenance-log 7 filer `c39d3cb`, Bug Hunt #18 `6baa2bf`). Backlog har ~15 öppna medium/låg-items. Startar 3 workers: Bug Hunt #19 (granska 23 nya child-components), Six Big Losses TPM dashboard (ny VD-feature), Generic SkiftrapportComponent (4→1 sida, ~2000 rader DRY).
+**2026-03-05 session #25**: Hela kodbasen bugg-granskad (Bug Hunt #1-#30, 34 PHP + 50+ Angular). Ägarens direktiv INGEN NY FUNKTIONSUTVECKLING kvarstår. Fokus skiftar till DRY-refactoring och kodkvalitet: Worker 1 — Generic SkiftrapportComponent (4→1 sida), Worker 2 — TypeScript any-audit (~100 ställen). Dessa minskar teknisk skuld utan att vara ny funktionalitet.
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -861,9 +862,17 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 
 ---
 
-## AKTIV BATCH (2026-03-05 session #11)
+## AKTIV BATCH (2026-03-05 session #11) — session #12-#24 levererade Bug Hunt #19-#30
+
+### Status: ALLA BUG HUNTS KLARA
+- [x] **Bug Hunt #19-#30**: Hela kodbasen granskad (34 PHP-controllers + 50+ Angular-komponenter)
+- [ ] **Six Big Losses (TPM) dashboard**: BLOCKERAD — ägarens direktiv: INGEN NY FUNKTIONSUTVECKLING
+- [ ] **Generic SkiftrapportComponent**: 4 identiska skiftrapport-sidor → 1 generisk. Eliminerar ~2000 rader DRY. PÅGÅR session #25.
+
+---
+
+## AKTIV BATCH (2026-03-05 session #25) — DRY-refactoring + kodkvalitet
 
 ### 🔴 Hög prioritet — Workers startas NU
-- [ ] **Bug Hunt #19 — session #10 refactoring-granskning**: Granska alla 23 nya child-components (16 statistik + 7 maintenance-log). Verifiera: @Input/@Output korrekt, takeUntil(destroy$) i child-subscriptions, Chart.js destroy i try-catch, inga duplicerade imports, inga any-typer i nya filer.
-- [ ] **Six Big Losses (TPM) dashboard**: Ny sida `/rebotling/tpm-losses` — strukturerad OEE-förlustkategorisering: Tillgänglighetsförluster (utrustningsfel, omställningar), Prestandaförluster (mikrostopp, reducerad hastighet), Kvalitetsförluster (startrejects, produktionsdefekter). Backend: TPM-endpoint i RebotlingAnalyticsController. Frontend: 6 förlustkort med ikoner, vattenfallsdiagram, trend 30d.
-- [ ] **Generic SkiftrapportComponent**: 4 identiska skiftrapport-sidor (rebotling/tvattlinje/saglinje/klassificeringslinje) → 1 generisk komponent med linjekonfiguration. Eliminerar ~2000 rader duplicerad kod.
+- [x] **Generic SkiftrapportComponent**: KLAR `a6520cf` — shared-skiftrapport/ skapad med LineSkiftrapportConfig. 3 linje-sidor (tvattlinje/saglinje/klassificeringslinje) reducerade från 220-364 rader till ~20 rader vardera. Rebotling (1812 rader) behölls separat pga väsentligt annorlunda funktionalitet.
+- [x] **TypeScript any-audit**: KLAR `ab16ad5` — 72 `: any` ersatta med korrekta interfaces i 5 filer (bonus-admin 31, production-analysis 23, news 11, menu 5, auth.service 2). 11+ nya interfaces skapade. AuthUser exporterad från auth.service.
