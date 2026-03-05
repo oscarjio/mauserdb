@@ -1,87 +1,28 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Subject } from 'rxjs';
+import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
 import { environment } from '../../../environments/environment';
-
-interface MaintenanceEntry {
-  id: number;
-  line: string;
-  maintenance_type: string;
-  title: string;
-  description: string | null;
-  start_time: string;
-  duration_minutes: number | null;
-  performed_by: string | null;
-  cost_sek: number | null;
-  status: string;
-  created_by: number | null;
-  created_at: string;
-  equipment: string | null;
-  downtime_minutes: number;
-  resolved: number;
-}
-
-interface MaintenanceStats {
-  total_events: number;
-  total_minutes: number;
-  total_cost: number;
-  akut_count: number;
-  pagaende_count: number;
-}
-
-interface EquipmentItem {
-  id: number;
-  namn: string;
-  kategori: string;
-  linje: string;
-}
-
-interface EquipmentStat {
-  namn: string;
-  kategori: string;
-  antal_handelser: number;
-  total_driftstopp_min: number;
-  snitt_driftstopp_min: number;
-  total_kostnad: number;
-  senaste_handelse: string | null;
-}
-
-interface EquipmentSummary {
-  total_downtime_min: number;
-  total_cost: number;
-  worst_equipment: string | null;
-}
-
-interface KpiRow {
-  equipment: string;
-  antal_fel: number;
-  total_stillestand_h: number;
-  avg_mttr_h: number;
-  avg_mtbf_dagar: number | null;
-}
-
-interface ServiceInterval {
-  id: number;
-  maskin_namn: string;
-  intervall_ibc: number;
-  senaste_service_datum: string | null;
-  senaste_service_ibc: number;
-  ibc_sedan_service: number;
-  kvar: number;
-  procent_kvar: number;
-  status: 'ok' | 'varning' | 'kritisk';
-  skapad: string;
-  uppdaterad: string;
-}
+import { MaintenanceStats, MaintenanceEntry, EquipmentItem } from './maintenance-log.models';
+import { formatDuration, formatCost } from './maintenance-log.helpers';
+import { MaintenanceListComponent } from './components/maintenance-list.component';
+import { EquipmentStatsComponent } from './components/equipment-stats.component';
+import { KpiAnalysisComponent } from './components/kpi-analysis.component';
+import { ServiceIntervalsComponent } from './components/service-intervals.component';
+import { MaintenanceFormComponent } from './components/maintenance-form.component';
 
 @Component({
   selector: 'app-maintenance-log',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    MaintenanceListComponent,
+    EquipmentStatsComponent,
+    KpiAnalysisComponent,
+    ServiceIntervalsComponent,
+    MaintenanceFormComponent
+  ],
   template: `
 <div class="maintenance-page">
   <!-- Header -->
@@ -150,7 +91,7 @@ interface ServiceInterval {
     </button>
     <button class="tab-btn" [class.tab-active]="activeTab === 'statistik'" (click)="switchTab('statistik')">
       <i class="fas fa-chart-bar me-2"></i>Utrustningsstatistik
-      <span class="tab-badge" *ngIf="equipmentStats.length > 0">90d</span>
+      <span class="tab-badge" *ngIf="statsTabLoaded">90d</span>
     </button>
     <button class="tab-btn" [class.tab-active]="activeTab === 'kpi'" (click)="switchTab('kpi')">
       <i class="fas fa-tachometer-alt me-2"></i>KPI-analys
@@ -162,641 +103,42 @@ interface ServiceInterval {
   </div>
 
   <!-- === LOGG-FLIK === -->
-  <div *ngIf="activeTab === 'logg'">
-    <!-- Filter -->
-    <div class="filter-bar mb-3">
-      <div class="row g-2 align-items-end">
-        <div class="col-12 col-sm-6 col-md-3">
-          <label class="filter-label">Linje</label>
-          <select class="form-select form-select-sm filter-select" [(ngModel)]="filterLine" (ngModelChange)="loadEntries()">
-            <option value="">Alla linjer</option>
-            <option value="rebotling">Rebotling</option>
-            <option value="tvattlinje">Tvättlinje</option>
-            <option value="saglinje">Såglinje</option>
-            <option value="klassificeringslinje">Klassificeringslinje</option>
-            <option value="allmant">Allmänt</option>
-          </select>
-        </div>
-        <div class="col-12 col-sm-6 col-md-3">
-          <label class="filter-label">Status</label>
-          <select class="form-select form-select-sm filter-select" [(ngModel)]="filterStatus" (ngModelChange)="loadEntries()">
-            <option value="">Alla statusar</option>
-            <option value="planerat">Planerat</option>
-            <option value="pagaende">Pågående</option>
-            <option value="klart">Klart</option>
-            <option value="avbokat">Avbokat</option>
-          </select>
-        </div>
-        <div class="col-12 col-sm-6 col-md-3">
-          <label class="filter-label">Fr.o.m. datum</label>
-          <input type="date" class="form-control form-control-sm filter-select"
-                 [(ngModel)]="filterFromDate" (ngModelChange)="loadEntries()" />
-        </div>
-        <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
-          <button class="btn btn-sm btn-outline-secondary flex-fill" (click)="clearFilters()">
-            <i class="fas fa-times me-1"></i>Rensa
-          </button>
-          <button class="btn btn-sm btn-outline-info flex-fill" (click)="loadEntries(); loadStats()">
-            <i class="fas fa-sync me-1"></i>Uppdatera
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Laddningsindikator -->
-    <div *ngIf="isLoading" class="text-center py-3 text-muted">
-      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar...
-    </div>
-
-    <!-- Inga poster -->
-    <div *ngIf="!isLoading && entries.length === 0" class="empty-state">
-      <i class="fas fa-tools fa-3x mb-3 text-muted"></i>
-      <p class="mb-0">Inga underhållsposter hittades för valda filter.</p>
-      <button class="btn btn-outline-success btn-sm mt-3" (click)="openAddForm()">
-        <i class="fas fa-plus me-1"></i>Lägg till första posten
-      </button>
-    </div>
-
-    <!-- Postlista -->
-    <div class="entries-list" *ngIf="!isLoading && entries.length > 0">
-      <div class="entry-card" *ngFor="let entry of entries"
-           [class.entry-pagaende]="entry.status === 'pagaende'"
-           [class.entry-akut]="entry.maintenance_type === 'akut'">
-        <div class="entry-header">
-          <div class="d-flex align-items-center gap-2 flex-wrap">
-            <span class="badge line-badge" [class]="getLineBadgeClass(entry.line)">
-              {{ getLineLabel(entry.line) }}
-            </span>
-            <span class="badge type-badge" [class]="getTypeBadgeClass(entry.maintenance_type)">
-              {{ getTypeLabel(entry.maintenance_type) }}
-            </span>
-            <span class="badge status-badge" [class]="getStatusBadgeClass(entry.status)">
-              {{ getStatusLabel(entry.status) }}
-            </span>
-            <span class="badge equipment-badge" *ngIf="entry.equipment">
-              <i class="fas fa-cog me-1"></i>{{ entry.equipment }}
-            </span>
-            <span class="badge resolved-badge" *ngIf="entry.resolved">
-              <i class="fas fa-check me-1"></i>Åtgärdad
-            </span>
-            <span class="entry-title">{{ entry.title }}</span>
-          </div>
-          <div class="entry-actions">
-            <button class="btn btn-sm btn-action btn-edit" (click)="openEditForm(entry)" title="Redigera">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-action btn-delete" (click)="deleteEntry(entry.id, entry.title)" title="Ta bort">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="entry-meta">
-          <span class="meta-item">
-            <i class="fas fa-calendar-alt me-1 text-muted"></i>
-            {{ formatDateTime(entry.start_time) }}
-          </span>
-          <span class="meta-sep">—</span>
-          <span class="meta-item">
-            <i class="fas fa-hourglass-half me-1 text-muted"></i>
-            {{ formatDuration(entry.duration_minutes) }}
-          </span>
-          <span class="meta-sep" *ngIf="entry.downtime_minutes > 0">—</span>
-          <span class="meta-item meta-downtime" *ngIf="entry.downtime_minutes > 0">
-            <i class="fas fa-pause-circle me-1"></i>
-            Driftstopp: {{ formatDuration(entry.downtime_minutes) }}
-          </span>
-          <span class="meta-sep" *ngIf="entry.performed_by">—</span>
-          <span class="meta-item" *ngIf="entry.performed_by">
-            <i class="fas fa-user me-1 text-muted"></i>
-            {{ entry.performed_by }}
-          </span>
-          <span class="meta-sep" *ngIf="entry.cost_sek !== null && entry.cost_sek !== undefined">—</span>
-          <span class="meta-item cost-item" *ngIf="entry.cost_sek !== null && entry.cost_sek !== undefined">
-            <i class="fas fa-tag me-1 text-warning"></i>
-            {{ formatCost(entry.cost_sek) }}
-          </span>
-        </div>
-
-        <div class="entry-description" *ngIf="entry.description">
-          {{ entry.description }}
-        </div>
-      </div>
-    </div>
-
-    <!-- Räknare -->
-    <div class="text-muted small mt-2" *ngIf="entries.length > 0">
-      Visar {{ entries.length }} av {{ totalCount }} poster
-    </div>
-  </div>
+  <app-maintenance-list
+    *ngIf="activeTab === 'logg'"
+    #listComp
+    (addEntry)="openAddForm()"
+    (editEntry)="openEditForm($event)"
+    (refreshStats)="loadStats()"
+    (entryDeleted)="onEntryChanged()">
+  </app-maintenance-list>
 
   <!-- === STATISTIK-FLIK === -->
-  <div *ngIf="activeTab === 'statistik'">
+  <app-equipment-stats
+    *ngIf="activeTab === 'statistik'"
+    #statsComp>
+  </app-equipment-stats>
 
-    <!-- Laddning -->
-    <div *ngIf="statsLoading" class="text-center py-4 text-muted">
-      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar statistik...
-    </div>
-
-    <div *ngIf="!statsLoading">
-      <!-- KPI-summering (90 dagar) -->
-      <div class="row g-3 mb-4" *ngIf="equipmentSummary">
-        <div class="col-12 col-md-4">
-          <div class="kpi-card">
-            <div class="kpi-icon text-danger"><i class="fas fa-pause-circle"></i></div>
-            <div class="kpi-value">{{ formatDuration(equipmentSummary.total_downtime_min) }}</div>
-            <div class="kpi-label">Total driftstopp (90 dagar)</div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4">
-          <div class="kpi-card">
-            <div class="kpi-icon text-warning"><i class="fas fa-coins"></i></div>
-            <div class="kpi-value">{{ formatCost(equipmentSummary.total_cost) }}</div>
-            <div class="kpi-label">Total kostnad (90 dagar)</div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4">
-          <div class="kpi-card" [class.kpi-alert]="!!equipmentSummary.worst_equipment">
-            <div class="kpi-icon text-orange"><i class="fas fa-exclamation-triangle"></i></div>
-            <div class="kpi-value kpi-value-sm">{{ equipmentSummary.worst_equipment ?? '—' }}</div>
-            <div class="kpi-label">Mest problembenägen utrustning</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ingen data -->
-      <div *ngIf="equipmentStats.length === 0" class="empty-state">
-        <i class="fas fa-chart-bar fa-3x mb-3 text-muted"></i>
-        <p class="mb-0">Inga underhållshändelser registrerade de senaste 90 dagarna.</p>
-      </div>
-
-      <!-- Statistiktabell -->
-      <div class="stats-table-wrap" *ngIf="equipmentStats.length > 0">
-        <div class="table-responsive">
-          <table class="table table-dark table-stats">
-            <thead>
-              <tr>
-                <th (click)="sortStats('namn')" class="sortable">
-                  Utrustning <i class="fas" [class]="getSortIcon('namn')"></i>
-                </th>
-                <th (click)="sortStats('kategori')" class="sortable">
-                  Kategori <i class="fas" [class]="getSortIcon('kategori')"></i>
-                </th>
-                <th (click)="sortStats('antal_handelser')" class="sortable text-end">
-                  Händelser <i class="fas" [class]="getSortIcon('antal_handelser')"></i>
-                </th>
-                <th (click)="sortStats('total_driftstopp_min')" class="sortable text-end">
-                  Total driftstopp <i class="fas" [class]="getSortIcon('total_driftstopp_min')"></i>
-                </th>
-                <th (click)="sortStats('snitt_driftstopp_min')" class="sortable text-end">
-                  Snitt/händelse <i class="fas" [class]="getSortIcon('snitt_driftstopp_min')"></i>
-                </th>
-                <th (click)="sortStats('total_kostnad')" class="sortable text-end">
-                  Total kostnad <i class="fas" [class]="getSortIcon('total_kostnad')"></i>
-                </th>
-                <th (click)="sortStats('senaste_handelse')" class="sortable">
-                  Senaste händelse <i class="fas" [class]="getSortIcon('senaste_handelse')"></i>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let row of sortedEquipmentStats">
-                <td class="fw-semibold">{{ row.namn }}</td>
-                <td>
-                  <span class="badge kategori-badge" [class]="getKategoriBadgeClass(row.kategori)">
-                    {{ getKategoriLabel(row.kategori) }}
-                  </span>
-                </td>
-                <td class="text-end">
-                  <span *ngIf="row.antal_handelser > 0" class="text-warning fw-bold">{{ row.antal_handelser }}</span>
-                  <span *ngIf="row.antal_handelser === 0" class="text-muted">0</span>
-                </td>
-                <td class="text-end">
-                  <span *ngIf="row.total_driftstopp_min > 0" class="text-danger">{{ formatDuration(row.total_driftstopp_min) }}</span>
-                  <span *ngIf="row.total_driftstopp_min === 0" class="text-muted">—</span>
-                </td>
-                <td class="text-end text-muted">
-                  <span *ngIf="row.snitt_driftstopp_min > 0">{{ formatDuration(Math.round(row.snitt_driftstopp_min)) }}</span>
-                  <span *ngIf="row.snitt_driftstopp_min === 0">—</span>
-                </td>
-                <td class="text-end">
-                  <span *ngIf="row.total_kostnad > 0" class="cost-item">{{ formatCost(row.total_kostnad) }}</span>
-                  <span *ngIf="row.total_kostnad === 0" class="text-muted">—</span>
-                </td>
-                <td class="text-muted small">
-                  {{ row.senaste_handelse ? formatDateTime(row.senaste_handelse) : '—' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Uppdatera-knapp -->
-      <div class="text-end mt-2">
-        <button class="btn btn-sm btn-outline-info" (click)="loadEquipmentStats()">
-          <i class="fas fa-sync me-1"></i>Uppdatera statistik
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- === KPI-ANALYS-FLIK: MTTR / MTBF === -->
-  <div *ngIf="activeTab === 'kpi'">
-
-    <!-- Datumfilter -->
-    <div class="filter-bar mb-3 d-flex align-items-center gap-3 flex-wrap">
-      <label class="filter-label mb-0">Period:</label>
-      <div class="d-flex gap-2 flex-wrap">
-        <button class="btn btn-sm" *ngFor="let d of kpiDayOptions"
-                [class.btn-info]="kpiDays === d"
-                [class.btn-outline-secondary]="kpiDays !== d"
-                (click)="setKpiDays(d)">
-          {{ d }} dagar
-        </button>
-      </div>
-      <button class="btn btn-sm btn-outline-info ms-auto" (click)="loadKpiData()">
-        <i class="fas fa-sync me-1"></i>Uppdatera
-      </button>
-    </div>
-
-    <!-- Laddning -->
-    <div *ngIf="kpiLoading" class="text-center py-4 text-muted">
-      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar KPI-data...
-    </div>
-
-    <div *ngIf="!kpiLoading">
-
-      <!-- Ingen data -->
-      <div *ngIf="kpiRows.length === 0" class="empty-state">
-        <i class="fas fa-tachometer-alt fa-3x mb-3 text-muted"></i>
-        <p class="mb-0">Inga underhållshändelser med registrerad utrustning de senaste {{ kpiDays }} dagarna.</p>
-      </div>
-
-      <!-- KPI-tabell -->
-      <div class="stats-table-wrap" *ngIf="kpiRows.length > 0">
-        <div class="table-responsive">
-          <table class="table table-dark table-stats">
-            <thead>
-              <tr>
-                <th>Utrustning</th>
-                <th class="text-end">Antal fel</th>
-                <th class="text-end">MTBF (dagar)</th>
-                <th class="text-end">MTTR (timmar)</th>
-                <th class="text-end">Total stillestånd</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let row of kpiRows">
-                <td class="fw-semibold">{{ row.equipment }}</td>
-                <td class="text-end">
-                  <span class="text-warning fw-bold">{{ row.antal_fel }}</span>
-                </td>
-                <td class="text-end">
-                  <span *ngIf="row.avg_mtbf_dagar !== null" [class.text-success]="row.avg_mtbf_dagar >= 30" [class.text-warning]="row.avg_mtbf_dagar >= 7 && row.avg_mtbf_dagar < 30" [class.text-danger]="row.avg_mtbf_dagar < 7">
-                    {{ row.avg_mtbf_dagar }} d
-                  </span>
-                  <span *ngIf="row.avg_mtbf_dagar === null" class="text-muted">— (1 händelse)</span>
-                </td>
-                <td class="text-end">
-                  <span *ngIf="row.avg_mttr_h > 0" [class.text-success]="row.avg_mttr_h < 1" [class.text-warning]="row.avg_mttr_h >= 1 && row.avg_mttr_h < 4" [class.text-danger]="row.avg_mttr_h >= 4">
-                    {{ row.avg_mttr_h }} h
-                  </span>
-                  <span *ngIf="row.avg_mttr_h === 0" class="text-muted">—</span>
-                </td>
-                <td class="text-end">
-                  <span *ngIf="row.total_stillestand_h > 0" class="text-danger">{{ row.total_stillestand_h }} h</span>
-                  <span *ngIf="row.total_stillestand_h === 0" class="text-muted">—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <!-- Förklaring -->
-        <div class="kpi-legend p-3 border-top" style="border-color: #3d4f6b !important; font-size: 0.78rem; color: #718096;">
-          <strong class="text-muted">MTBF</strong> = Genomsnittlig tid mellan fel (dagar) &nbsp;·&nbsp;
-          <strong class="text-muted">MTTR</strong> = Genomsnittlig reparationstid per incident (timmar) &nbsp;·&nbsp;
-          Period: senaste {{ kpiDays }} dagar
-        </div>
-      </div>
-
-    </div>
-  </div>
+  <!-- === KPI-ANALYS-FLIK === -->
+  <app-kpi-analysis
+    *ngIf="activeTab === 'kpi'"
+    #kpiComp>
+  </app-kpi-analysis>
 
   <!-- === SERVICEINTERVALL-FLIK === -->
-  <div *ngIf="activeTab === 'service'">
+  <app-service-intervals
+    *ngIf="activeTab === 'service'"
+    #serviceComp
+    (showSuccess)="onShowSuccess($event)"
+    (showError)="onShowError($event)">
+  </app-service-intervals>
 
-    <!-- Varning-banner om kritisk -->
-    <div class="alert alert-danger d-flex align-items-center mb-3" *ngIf="serviceKritiskCount > 0">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      <span><strong>{{ serviceKritiskCount }} maskin{{ serviceKritiskCount > 1 ? 'er' : '' }}</strong> har &lt;10% kvar till service! Planera underhåll omgående.</span>
-    </div>
-
-    <!-- Laddning -->
-    <div *ngIf="serviceLoading" class="text-center py-4 text-muted">
-      <i class="fas fa-circle-notch fa-spin me-2"></i>Laddar serviceintervall...
-    </div>
-
-    <div *ngIf="!serviceLoading">
-
-      <!-- Ingen data -->
-      <div *ngIf="serviceIntervals.length === 0" class="empty-state">
-        <i class="fas fa-oil-can fa-3x mb-3 text-muted"></i>
-        <p class="mb-0">Inga serviceintervall konfigurerade.</p>
-        <button class="btn btn-outline-success btn-sm mt-3" (click)="openServiceForm()">
-          <i class="fas fa-plus me-1"></i>Lägg till serviceintervall
-        </button>
-      </div>
-
-      <!-- Tabell -->
-      <div class="stats-table-wrap" *ngIf="serviceIntervals.length > 0">
-        <div class="d-flex justify-content-between align-items-center p-3" style="border-bottom: 1px solid #3d4f6b;">
-          <h6 class="mb-0 text-muted"><i class="fas fa-oil-can me-2"></i>Konfigurerade serviceintervall</h6>
-          <button class="btn btn-sm btn-outline-success" (click)="openServiceForm()">
-            <i class="fas fa-plus me-1"></i>Nytt intervall
-          </button>
-        </div>
-        <div class="table-responsive">
-          <table class="table table-dark table-stats mb-0">
-            <thead>
-              <tr>
-                <th>Maskin</th>
-                <th class="text-end">Intervall</th>
-                <th class="text-end">IBC sedan service</th>
-                <th class="text-end">Kvar</th>
-                <th>Status</th>
-                <th style="width: 200px;">Progress</th>
-                <th class="text-end">Åtgärder</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let si of serviceIntervals">
-                <td class="fw-semibold">{{ si.maskin_namn }}</td>
-                <td class="text-end">{{ si.intervall_ibc | number }} IBC</td>
-                <td class="text-end">{{ si.ibc_sedan_service | number }} IBC</td>
-                <td class="text-end">
-                  <span [class.text-success]="si.status === 'ok'"
-                        [class.text-warning]="si.status === 'varning'"
-                        [class.text-danger]="si.status === 'kritisk'">
-                    {{ si.kvar | number }} IBC
-                  </span>
-                </td>
-                <td>
-                  <span class="badge"
-                        [class.bg-success]="si.status === 'ok'"
-                        [class.bg-warning]="si.status === 'varning'"
-                        [class.text-dark]="si.status === 'varning'"
-                        [class.bg-danger]="si.status === 'kritisk'">
-                    {{ si.status === 'ok' ? 'OK' : si.status === 'varning' ? 'Snart service' : 'Kritisk' }}
-                  </span>
-                </td>
-                <td>
-                  <div class="progress" style="height: 10px; border-radius: 6px; background: #1a202c;">
-                    <div class="progress-bar"
-                         [class.bg-success]="si.status === 'ok'"
-                         [class.bg-warning]="si.status === 'varning'"
-                         [class.bg-danger]="si.status === 'kritisk'"
-                         [style.width.%]="si.procent_kvar"
-                         style="border-radius: 6px; transition: width 0.6s ease;">
-                    </div>
-                  </div>
-                  <small class="text-muted" style="font-size: 0.7rem;">{{ si.procent_kvar }}% kvar</small>
-                </td>
-                <td class="text-end">
-                  <div class="d-flex gap-1 justify-content-end">
-                    <button class="btn btn-sm btn-action btn-service-reset" (click)="resetServiceCounter(si)"
-                            title="Registrera utförd service">
-                      <i class="fas fa-check-circle"></i>
-                    </button>
-                    <button class="btn btn-sm btn-action btn-edit" (click)="openServiceEditForm(si)"
-                            title="Redigera intervall">
-                      <i class="fas fa-edit"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="p-3 text-muted" style="font-size: 0.78rem; border-top: 1px solid #3d4f6b;">
-          <i class="fas fa-info-circle me-1"></i>
-          Serviceintervall baseras på antal tvättade IBC sedan senaste service. Nollställ räknaren efter utförd service.
-        </div>
-      </div>
-
-      <!-- Uppdatera-knapp -->
-      <div class="text-end mt-2">
-        <button class="btn btn-sm btn-outline-info" (click)="loadServiceIntervals()">
-          <i class="fas fa-sync me-1"></i>Uppdatera
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- SERVICEINTERVALL-MODAL -->
-  <div class="modal-overlay" *ngIf="showServiceForm" (click)="closeServiceForm()">
-    <div class="modal-panel" (click)="$event.stopPropagation()">
-      <div class="modal-header-custom">
-        <h5 class="mb-0">
-          <i class="fas fa-oil-can me-2"></i>
-          {{ editingServiceId ? 'Redigera serviceintervall' : 'Nytt serviceintervall' }}
-        </h5>
-        <button class="btn-close-custom" (click)="closeServiceForm()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      <div class="modal-body-custom">
-        <form (ngSubmit)="saveServiceInterval()">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label form-label-dark">Maskinnamn *</label>
-              <input type="text" class="form-control form-control-dark"
-                     [(ngModel)]="serviceForm.maskin_namn" name="maskin_namn"
-                     placeholder="t.ex. Rebotling-linje 1" maxlength="100" required />
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Intervall (IBC) *</label>
-              <input type="number" class="form-control form-control-dark"
-                     [(ngModel)]="serviceForm.intervall_ibc" name="intervall_ibc"
-                     placeholder="5000" min="1" required />
-              <div class="form-text text-muted">Service var X:e IBC</div>
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Senaste service IBC-räknare</label>
-              <input type="number" class="form-control form-control-dark"
-                     [(ngModel)]="serviceForm.senaste_service_ibc" name="senaste_service_ibc"
-                     placeholder="0" min="0" />
-            </div>
-            <div class="col-12">
-              <label class="form-label form-label-dark">Senaste servicedatum</label>
-              <input type="datetime-local" class="form-control form-control-dark"
-                     [(ngModel)]="serviceForm.senaste_service_datum" name="senaste_service_datum" />
-            </div>
-          </div>
-          <div *ngIf="serviceFormError" class="alert alert-danger mt-3 mb-0 py-2">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ serviceFormError }}
-          </div>
-          <div class="d-flex gap-2 mt-4 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="closeServiceForm()">Avbryt</button>
-            <button type="submit" class="btn btn-success" [disabled]="isSavingService">
-              <span *ngIf="isSavingService"><i class="fas fa-circle-notch fa-spin me-2"></i>Sparar...</span>
-              <span *ngIf="!isSavingService"><i class="fas fa-save me-2"></i>{{ editingServiceId ? 'Uppdatera' : 'Spara' }}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- FORMULÄRMODAL (overlay) -->
-  <div class="modal-overlay" *ngIf="showForm" (click)="closeForm()">
-    <div class="modal-panel" (click)="$event.stopPropagation()">
-      <div class="modal-header-custom">
-        <h5 class="mb-0">
-          <i class="fas fa-tools me-2"></i>
-          {{ editingId ? 'Redigera underhållspost' : 'Ny underhållspost' }}
-        </h5>
-        <button class="btn-close-custom" (click)="closeForm()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <div class="modal-body-custom">
-        <form (ngSubmit)="saveEntry()" #f="ngForm">
-          <div class="row g-3">
-
-            <!-- Linje -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Linje *</label>
-              <select class="form-select form-select-dark" [(ngModel)]="form.line" name="line" required>
-                <option value="rebotling">Rebotling</option>
-                <option value="tvattlinje">Tvättlinje</option>
-                <option value="saglinje">Såglinje</option>
-                <option value="klassificeringslinje">Klassificeringslinje</option>
-                <option value="allmant">Allmänt</option>
-              </select>
-            </div>
-
-            <!-- Typ -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Typ *</label>
-              <select class="form-select form-select-dark" [(ngModel)]="form.maintenance_type" name="maintenance_type" required>
-                <option value="planerat">Planerat underhåll</option>
-                <option value="akut">Akut reparation</option>
-                <option value="inspektion">Inspektion</option>
-                <option value="kalibrering">Kalibrering</option>
-                <option value="rengoring">Rengöring</option>
-                <option value="ovrigt">Övrigt</option>
-              </select>
-            </div>
-
-            <!-- Utrustning -->
-            <div class="col-12">
-              <label class="form-label form-label-dark">Utrustning</label>
-              <select class="form-select form-select-dark" [(ngModel)]="form.equipment" name="equipment">
-                <option value="">Välj utrustning</option>
-                <option *ngFor="let eq of equipmentList" [value]="eq.namn">{{ eq.namn }} ({{ getKategoriLabel(eq.kategori) }})</option>
-              </select>
-            </div>
-
-            <!-- Titel -->
-            <div class="col-12">
-              <label class="form-label form-label-dark">Titel *</label>
-              <input type="text" class="form-control form-control-dark"
-                     [(ngModel)]="form.title" name="title"
-                     placeholder="Kortfattad beskrivning av underhållet"
-                     maxlength="150" required />
-            </div>
-
-            <!-- Beskrivning -->
-            <div class="col-12">
-              <label class="form-label form-label-dark">Beskrivning</label>
-              <textarea class="form-control form-control-dark" [(ngModel)]="form.description"
-                        name="description" rows="3"
-                        placeholder="Detaljerad beskrivning, orsak, åtgärd..."></textarea>
-            </div>
-
-            <!-- Starttid -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Starttid *</label>
-              <input type="datetime-local" class="form-control form-control-dark"
-                     [(ngModel)]="form.start_time" name="start_time" required />
-            </div>
-
-            <!-- Varaktighet -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Varaktighet (minuter)</label>
-              <input type="number" class="form-control form-control-dark"
-                     [(ngModel)]="form.duration_minutes" name="duration_minutes"
-                     placeholder="Lämna tomt om pågående" min="0" />
-              <div class="form-text text-muted">Lämna tomt om underhållet pågår</div>
-            </div>
-
-            <!-- Driftstopp -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Driftstopp (min)</label>
-              <input type="number" class="form-control form-control-dark"
-                     [(ngModel)]="form.downtime_minutes" name="downtime_minutes"
-                     placeholder="0 om inget driftstopp" min="0" />
-              <div class="form-text text-muted">Hur länge produktionen stod stilla</div>
-            </div>
-
-            <!-- Utförd av -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Utförd av</label>
-              <input type="text" class="form-control form-control-dark"
-                     [(ngModel)]="form.performed_by" name="performed_by"
-                     placeholder="Namn eller företag" maxlength="100" />
-            </div>
-
-            <!-- Kostnad -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Kostnad (kr)</label>
-              <input type="number" class="form-control form-control-dark"
-                     [(ngModel)]="form.cost_sek" name="cost_sek"
-                     placeholder="Valfritt — lämna tomt om okänd" min="0" step="0.01" />
-            </div>
-
-            <!-- Status -->
-            <div class="col-12 col-md-6">
-              <label class="form-label form-label-dark">Status *</label>
-              <select class="form-select form-select-dark" [(ngModel)]="form.status" name="status" required>
-                <option value="planerat">Planerat</option>
-                <option value="pagaende">Pågående</option>
-                <option value="klart">Klart</option>
-                <option value="avbokat">Avbokat</option>
-              </select>
-            </div>
-
-            <!-- Åtgärdad -->
-            <div class="col-12 d-flex align-items-center gap-2">
-              <div class="form-check form-check-dark">
-                <input class="form-check-input" type="checkbox" id="resolvedCheck"
-                       [(ngModel)]="form.resolved" name="resolved" />
-                <label class="form-check-label form-label-dark" for="resolvedCheck">
-                  Åtgärdad — problemet är löst
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <!-- Formulärfel -->
-          <div *ngIf="formError" class="alert alert-danger mt-3 mb-0 py-2">
-            <i class="fas fa-exclamation-triangle me-2"></i>{{ formError }}
-          </div>
-
-          <!-- Knappar -->
-          <div class="d-flex gap-2 mt-4 justify-content-end">
-            <button type="button" class="btn btn-secondary" (click)="closeForm()">Avbryt</button>
-            <button type="submit" class="btn btn-success" [disabled]="isSaving">
-              <span *ngIf="isSaving"><i class="fas fa-circle-notch fa-spin me-2"></i>Sparar...</span>
-              <span *ngIf="!isSaving"><i class="fas fa-save me-2"></i>{{ editingId ? 'Uppdatera' : 'Spara' }}</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+  <!-- FORMULÄR-MODAL -->
+  <app-maintenance-form
+    #formComp
+    [equipmentList]="equipmentList"
+    (saved)="onEntryChanged()"
+    (closed)="onFormClosed()">
+  </app-maintenance-form>
 </div>
   `,
   styles: [`
@@ -806,18 +148,15 @@ interface ServiceInterval {
       padding: 1.5rem;
       color: #e2e8f0;
     }
-
     .page-title {
       font-size: 1.6rem;
       font-weight: 700;
       color: #e2e8f0;
     }
-
     .page-subtitle {
       color: #a0aec0;
       font-size: 0.9rem;
     }
-
     .btn-add {
       background: #38a169;
       border-color: #38a169;
@@ -843,27 +182,10 @@ interface ServiceInterval {
       border-color: #ed8936;
       box-shadow: 0 0 0 2px rgba(237,137,54,0.25);
     }
-    .kpi-icon {
-      font-size: 1.4rem;
-      margin-bottom: 0.4rem;
-    }
-    .kpi-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #e2e8f0;
-      line-height: 1.2;
-    }
-    .kpi-value-sm {
-      font-size: 1.1rem;
-    }
-    .kpi-label {
-      font-size: 0.75rem;
-      color: #a0aec0;
-      margin-top: 0.2rem;
-    }
-    .kpi-skeleton {
-      min-height: 100px;
-    }
+    .kpi-icon { font-size: 1.4rem; margin-bottom: 0.4rem; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+    .kpi-label { font-size: 0.75rem; color: #a0aec0; margin-top: 0.2rem; }
+    .kpi-skeleton { min-height: 100px; }
     .skeleton-box {
       height: 60px;
       background: linear-gradient(90deg, #3d4f6b 25%, #4a5f7a 50%, #3d4f6b 75%);
@@ -874,7 +196,6 @@ interface ServiceInterval {
       0%, 100% { opacity: 0.6; }
       50% { opacity: 1; }
     }
-
     .text-orange { color: #ed8936 !important; }
 
     /* Flik-nav */
@@ -897,9 +218,7 @@ interface ServiceInterval {
       transition: color 0.2s, border-color 0.2s;
       white-space: nowrap;
     }
-    .tab-btn:hover {
-      color: #e2e8f0;
-    }
+    .tab-btn:hover { color: #e2e8f0; }
     .tab-btn.tab-active {
       color: #63b3ed;
       border-bottom-color: #63b3ed;
@@ -913,341 +232,6 @@ interface ServiceInterval {
       margin-left: 0.3rem;
       vertical-align: middle;
     }
-
-    /* Filter */
-    .filter-bar {
-      background: #2d3748;
-      border-radius: 10px;
-      padding: 1rem;
-      border: 1px solid #3d4f6b;
-    }
-    .filter-label {
-      font-size: 0.75rem;
-      color: #a0aec0;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.3rem;
-      display: block;
-    }
-    .filter-select {
-      background: #1a202c;
-      border: 1px solid #4a5568;
-      color: #e2e8f0;
-      font-size: 0.875rem;
-    }
-    .filter-select:focus {
-      background: #1a202c;
-      border-color: #63b3ed;
-      color: #e2e8f0;
-      box-shadow: 0 0 0 2px rgba(99,179,237,0.25);
-    }
-
-    /* Lista */
-    .entries-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .entry-card {
-      background: #2d3748;
-      border-radius: 10px;
-      padding: 1rem 1.1rem;
-      border: 1px solid #3d4f6b;
-      transition: border-color 0.2s;
-    }
-    .entry-card:hover {
-      border-color: #4a6fa5;
-    }
-    .entry-card.entry-pagaende {
-      border-left: 3px solid #ed8936;
-    }
-    .entry-card.entry-akut {
-      border-left: 3px solid #e53e3e;
-    }
-
-    .entry-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .entry-title {
-      font-weight: 600;
-      color: #e2e8f0;
-      font-size: 0.95rem;
-    }
-
-    .entry-actions {
-      display: flex;
-      gap: 0.35rem;
-      flex-shrink: 0;
-    }
-
-    .btn-action {
-      width: 30px;
-      height: 30px;
-      padding: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      font-size: 0.8rem;
-    }
-    .btn-edit {
-      background: rgba(99,179,237,0.15);
-      border: 1px solid rgba(99,179,237,0.4);
-      color: #63b3ed;
-    }
-    .btn-edit:hover {
-      background: rgba(99,179,237,0.3);
-      color: #63b3ed;
-    }
-    .btn-delete {
-      background: rgba(229,62,62,0.15);
-      border: 1px solid rgba(229,62,62,0.4);
-      color: #fc8181;
-    }
-    .btn-delete:hover {
-      background: rgba(229,62,62,0.3);
-      color: #fc8181;
-    }
-
-    .entry-meta {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.3rem;
-      font-size: 0.82rem;
-      color: #a0aec0;
-      margin-bottom: 0.3rem;
-    }
-    .meta-sep {
-      color: #4a5568;
-    }
-    .cost-item {
-      color: #ecc94b;
-    }
-    .meta-downtime {
-      color: #fc8181;
-    }
-
-    .entry-description {
-      font-size: 0.85rem;
-      color: #a0aec0;
-      margin-top: 0.4rem;
-      padding-top: 0.4rem;
-      border-top: 1px solid #3d4f6b;
-      line-height: 1.5;
-    }
-
-    /* Badges — linje */
-    .line-badge { font-size: 0.7rem; letter-spacing: 0.03em; }
-    .badge-line-rebotling { background: #2b6cb0; color: #bee3f8; }
-    .badge-line-tvattlinje { background: #276749; color: #c6f6d5; }
-    .badge-line-saglinje { background: #744210; color: #fefcbf; }
-    .badge-line-klassificeringslinje { background: #553c9a; color: #e9d8fd; }
-    .badge-line-allmant { background: #4a5568; color: #e2e8f0; }
-
-    /* Badges — typ */
-    .type-badge { font-size: 0.7rem; }
-    .badge-type-akut { background: #c53030; color: #fed7d7; }
-    .badge-type-planerat { background: #2b6cb0; color: #bee3f8; }
-    .badge-type-inspektion { background: #7b341e; color: #fbd38d; }
-    .badge-type-kalibrering { background: #086f83; color: #c4f1f9; }
-    .badge-type-rengoring { background: #276749; color: #c6f6d5; }
-    .badge-type-ovrigt { background: #4a5568; color: #e2e8f0; }
-
-    /* Badges — status */
-    .status-badge { font-size: 0.7rem; }
-    .badge-status-planerat { background: #2b6cb0; color: #bee3f8; }
-    .badge-status-pagaende { background: #c05621; color: #fed7aa; }
-    .badge-status-klart { background: #276749; color: #c6f6d5; }
-    .badge-status-avbokat { background: #4a5568; color: #a0aec0; }
-
-    /* Badges — utrustning & åtgärdad */
-    .equipment-badge {
-      background: #2c4a6e;
-      color: #90cdf4;
-      font-size: 0.7rem;
-    }
-    .resolved-badge {
-      background: #22543d;
-      color: #9ae6b4;
-      font-size: 0.7rem;
-    }
-
-    /* Badges — kategori */
-    .kategori-badge { font-size: 0.7rem; }
-    .badge-kategori-maskin { background: #2b4c8c; color: #90cdf4; }
-    .badge-kategori-transport { background: #276749; color: #c6f6d5; }
-    .badge-kategori-verktyg { background: #744210; color: #fbd38d; }
-    .badge-kategori-infrastruktur { background: #553c9a; color: #e9d8fd; }
-    .badge-kategori-ovrigt { background: #4a5568; color: #e2e8f0; }
-
-    /* Tom lista */
-    .empty-state {
-      text-align: center;
-      padding: 3rem 1rem;
-      color: #718096;
-    }
-
-    /* Statistiktabell */
-    .stats-table-wrap {
-      background: #2d3748;
-      border-radius: 10px;
-      border: 1px solid #3d4f6b;
-      overflow: hidden;
-    }
-    .table-stats {
-      margin-bottom: 0;
-      background: transparent;
-      color: #e2e8f0;
-      font-size: 0.875rem;
-    }
-    .table-stats thead tr {
-      background: #1a202c;
-      border-bottom: 1px solid #4a5568;
-    }
-    .table-stats thead th {
-      color: #a0aec0;
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      padding: 0.75rem 1rem;
-      border: none;
-      white-space: nowrap;
-    }
-    .table-stats tbody tr {
-      border-bottom: 1px solid #3d4f6b;
-      transition: background 0.15s;
-    }
-    .table-stats tbody tr:last-child {
-      border-bottom: none;
-    }
-    .table-stats tbody tr:hover {
-      background: rgba(99,179,237,0.05);
-    }
-    .table-stats tbody td {
-      padding: 0.7rem 1rem;
-      border: none;
-      vertical-align: middle;
-    }
-    .sortable {
-      cursor: pointer;
-      user-select: none;
-    }
-    .sortable:hover {
-      color: #e2e8f0;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1050;
-      padding: 1rem;
-    }
-
-    .modal-panel {
-      background: #2d3748;
-      border-radius: 14px;
-      width: 100%;
-      max-width: 640px;
-      max-height: 90vh;
-      overflow-y: auto;
-      border: 1px solid #4a5568;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-    }
-
-    .modal-header-custom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 1.2rem 1.5rem;
-      border-bottom: 1px solid #4a5568;
-      color: #e2e8f0;
-    }
-
-    .modal-body-custom {
-      padding: 1.5rem;
-    }
-
-    .btn-close-custom {
-      background: none;
-      border: none;
-      color: #a0aec0;
-      font-size: 1.1rem;
-      cursor: pointer;
-      padding: 0.25rem 0.5rem;
-      border-radius: 6px;
-      transition: color 0.2s, background 0.2s;
-    }
-    .btn-close-custom:hover {
-      color: #e2e8f0;
-      background: rgba(255,255,255,0.1);
-    }
-
-    /* Dark form controls */
-    .form-label-dark {
-      color: #a0aec0;
-      font-size: 0.82rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 0.3rem;
-    }
-    .form-control-dark,
-    .form-select-dark {
-      background: #1a202c;
-      border: 1px solid #4a5568;
-      color: #e2e8f0;
-      font-size: 0.9rem;
-    }
-    .form-control-dark:focus,
-    .form-select-dark:focus {
-      background: #1a202c;
-      border-color: #63b3ed;
-      color: #e2e8f0;
-      box-shadow: 0 0 0 2px rgba(99,179,237,0.25);
-    }
-    .form-control-dark::placeholder {
-      color: #718096;
-    }
-    .form-control-dark option,
-    .form-select-dark option {
-      background: #2d3748;
-    }
-    .form-text { font-size: 0.75rem; }
-
-    /* Dark checkbox */
-    .form-check-dark .form-check-input {
-      background-color: #1a202c;
-      border-color: #4a5568;
-    }
-    .form-check-dark .form-check-input:checked {
-      background-color: #38a169;
-      border-color: #38a169;
-    }
-    .form-check-dark .form-check-label {
-      margin-bottom: 0;
-    }
-
-    /* Service-interval specifik */
-    .btn-service-reset {
-      background: rgba(72,187,120,0.15);
-      border: 1px solid rgba(72,187,120,0.4);
-      color: #48bb78;
-    }
-    .btn-service-reset:hover {
-      background: rgba(72,187,120,0.3);
-      color: #48bb78;
-    }
     .tab-badge-danger {
       background: #e53e3e !important;
       color: #fff !important;
@@ -1256,8 +240,6 @@ interface ServiceInterval {
     @media (max-width: 576px) {
       .maintenance-page { padding: 1rem; }
       .kpi-value { font-size: 1.3rem; }
-      .entry-header { flex-direction: column; }
-      .entry-actions { align-self: flex-end; }
       .tab-btn { padding: 0.5rem 0.8rem; font-size: 0.82rem; }
     }
   `]
@@ -1266,90 +248,35 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private apiBase = environment.apiUrl;
 
-  Math = Math;
+  @ViewChild('listComp') listComp?: MaintenanceListComponent;
+  @ViewChild('statsComp') statsComp?: EquipmentStatsComponent;
+  @ViewChild('kpiComp') kpiComp?: KpiAnalysisComponent;
+  @ViewChild('serviceComp') serviceComp?: ServiceIntervalsComponent;
+  @ViewChild('formComp') formComp!: MaintenanceFormComponent;
 
-  entries: MaintenanceEntry[] = [];
   stats: MaintenanceStats | null = null;
   isLoading = false;
-  isSaving = false;
-  showForm = false;
-  editingId: number | null = null;
-  totalCount = 0;
+  equipmentList: EquipmentItem[] = [];
 
   successMessage = '';
   errorMessage = '';
-  formError = '';
-
   private successTimer: any = null;
 
-  // Filtrar
-  filterLine = '';
-  filterStatus = '';
-  filterFromDate = '';
-
-  // Flik
   activeTab: 'logg' | 'statistik' | 'kpi' | 'service' = 'logg';
 
-  // KPI-analys (MTTR/MTBF)
-  kpiRows: KpiRow[] = [];
-  kpiLoading = false;
-  kpiDays = 90;
-  kpiDayOptions = [30, 90, 180, 365];
+  // Track which tabs have been loaded
+  statsTabLoaded = false;
+  serviceKritiskCount = 0;
 
-  // Utrustning
-  equipmentList: EquipmentItem[] = [];
-  equipmentStats: EquipmentStat[] = [];
-  equipmentSummary: EquipmentSummary | null = null;
-  statsLoading = false;
-
-  // Sortering av statistiktabell
-  sortField: keyof EquipmentStat = 'total_driftstopp_min';
-  sortDir: 'asc' | 'desc' = 'desc';
-
-  // Serviceintervall
-  serviceIntervals: ServiceInterval[] = [];
-  serviceLoading = false;
-  showServiceForm = false;
-  editingServiceId: number | null = null;
-  isSavingService = false;
-  serviceFormError = '';
-  serviceForm = {
-    maskin_namn: '',
-    intervall_ibc: 5000,
-    senaste_service_datum: '',
-    senaste_service_ibc: 0
-  };
-
-  get serviceKritiskCount(): number {
-    return this.serviceIntervals.filter(s => s.status === 'kritisk').length;
-  }
-
-  // Formulär
-  form = {
-    line: 'rebotling',
-    maintenance_type: 'ovrigt',
-    title: '',
-    description: '',
-    start_time: '',
-    duration_minutes: null as number | null,
-    performed_by: '',
-    cost_sek: null as number | null,
-    status: 'klart',
-    equipment: '',
-    downtime_minutes: 0 as number,
-    resolved: false
-  };
+  formatDuration = formatDuration;
+  formatCost = formatCost;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
-    const now = new Date();
-    now.setMinutes(0, 0, 0);
-    this.form.start_time = now.toISOString().slice(0, 16);
-
-    this.loadEntries();
     this.loadStats();
     this.loadEquipmentList();
+    this.loadServiceKritiskCount();
   }
 
   ngOnDestroy(): void {
@@ -1360,46 +287,28 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
 
   switchTab(tab: 'logg' | 'statistik' | 'kpi' | 'service'): void {
     this.activeTab = tab;
-    if (tab === 'statistik' && this.equipmentStats.length === 0) {
-      this.loadEquipmentStats();
+    // Child components load their own data on init, but we trigger on
+    // subsequent tab switches if the ViewChild is available
+    if (tab === 'statistik') {
+      this.statsTabLoaded = true;
+      // statsComp loads via ngOnDestroy/recreate since *ngIf recreates it
+      // We rely on the component loading data itself via loadEquipmentStats
+      setTimeout(() => this.statsComp?.loadEquipmentStats(), 0);
     }
-    if (tab === 'kpi' && this.kpiRows.length === 0) {
-      this.loadKpiData();
+    if (tab === 'kpi') {
+      setTimeout(() => this.kpiComp?.loadKpiData(), 0);
     }
-    if (tab === 'service' && this.serviceIntervals.length === 0) {
-      this.loadServiceIntervals();
+    if (tab === 'service') {
+      setTimeout(() => this.serviceComp?.loadServiceIntervals(), 0);
     }
-  }
-
-  loadEntries(): void {
-    if (this.isLoading) return;
-    this.isLoading = true;
-
-    const params = new URLSearchParams();
-    if (this.filterLine) params.set('line', this.filterLine);
-    if (this.filterStatus) params.set('status', this.filterStatus);
-    if (this.filterFromDate) params.set('from_date', this.filterFromDate);
-
-    const paramStr = params.toString();
-    const url = `${this.apiBase}?action=maintenance&run=list${paramStr ? '&' + paramStr : ''}`;
-
-    this.http.get<any>(url, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(data => {
-        this.isLoading = false;
-        if (data?.entries) {
-          this.entries = data.entries;
-          this.totalCount = data.total_count ?? data.entries.length;
-        } else if (data?.error) {
-          this.showError(data.error);
-        }
-      });
   }
 
   loadStats(): void {
+    this.isLoading = true;
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=stats`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
+        this.isLoading = false;
         if (data?.stats) {
           this.stats = {
             total_events: +data.stats.total_events,
@@ -1422,387 +331,38 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
       });
   }
 
-  loadEquipmentStats(): void {
-    this.statsLoading = true;
-    this.http.get<any>(`${this.apiBase}?action=maintenance&run=equipment-stats`, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(data => {
-        this.statsLoading = false;
-        if (data?.stats) {
-          this.equipmentStats = data.stats;
-          this.equipmentSummary = data.summary ?? null;
-        }
-      });
-  }
-
-  get sortedEquipmentStats(): EquipmentStat[] {
-    const field = this.sortField;
-    const dir = this.sortDir === 'asc' ? 1 : -1;
-    return [...this.equipmentStats].sort((a, b) => {
-      const av = a[field];
-      const bv = b[field];
-      if (av === null || av === undefined) return 1;
-      if (bv === null || bv === undefined) return -1;
-      if (typeof av === 'string' && typeof bv === 'string') {
-        return av.localeCompare(bv, 'sv') * dir;
-      }
-      return (+av - +bv) * dir;
-    });
-  }
-
-  sortStats(field: keyof EquipmentStat): void {
-    if (this.sortField === field) {
-      this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      this.sortField = field;
-      this.sortDir = 'desc';
-    }
-  }
-
-  getSortIcon(field: string): string {
-    if (this.sortField !== field) return 'fa-sort';
-    return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
-  }
-
-  openAddForm(): void {
-    this.editingId = null;
-    const now = new Date();
-    now.setMinutes(0, 0, 0);
-    this.form = {
-      line: 'rebotling',
-      maintenance_type: 'ovrigt',
-      title: '',
-      description: '',
-      start_time: now.toISOString().slice(0, 16),
-      duration_minutes: null,
-      performed_by: '',
-      cost_sek: null,
-      status: 'klart',
-      equipment: '',
-      downtime_minutes: 0,
-      resolved: false
-    };
-    this.formError = '';
-    this.showForm = true;
-  }
-
-  openEditForm(entry: MaintenanceEntry): void {
-    this.editingId = entry.id;
-    this.form = {
-      line: entry.line,
-      maintenance_type: entry.maintenance_type,
-      title: entry.title,
-      description: entry.description ?? '',
-      start_time: entry.start_time?.replace(' ', 'T').slice(0, 16) ?? '',
-      duration_minutes: entry.duration_minutes,
-      performed_by: entry.performed_by ?? '',
-      cost_sek: entry.cost_sek,
-      status: entry.status,
-      equipment: entry.equipment ?? '',
-      downtime_minutes: entry.downtime_minutes ?? 0,
-      resolved: !!entry.resolved
-    };
-    this.formError = '';
-    this.showForm = true;
-  }
-
-  closeForm(): void {
-    this.showForm = false;
-    this.formError = '';
-  }
-
-  saveEntry(): void {
-    this.formError = '';
-
-    if (!this.form.title.trim()) {
-      this.formError = 'Titel krävs';
-      return;
-    }
-    if (!this.form.start_time) {
-      this.formError = 'Starttid krävs';
-      return;
-    }
-
-    this.isSaving = true;
-    const payload = {
-      ...this.form,
-      duration_minutes: this.form.duration_minutes !== null && this.form.duration_minutes !== undefined && this.form.duration_minutes !== ('' as any)
-        ? +this.form.duration_minutes : null,
-      cost_sek: this.form.cost_sek !== null && this.form.cost_sek !== undefined && this.form.cost_sek !== ('' as any)
-        ? +this.form.cost_sek : null,
-      downtime_minutes: this.form.downtime_minutes ? +this.form.downtime_minutes : 0,
-      equipment: this.form.equipment || null,
-      resolved: this.form.resolved ? 1 : 0
-    };
-
-    const url = this.editingId
-      ? `${this.apiBase}?action=maintenance&run=update&id=${this.editingId}`
-      : `${this.apiBase}?action=maintenance&run=add`;
-
-    this.http.post<any>(url, payload, { withCredentials: true })
-      .pipe(timeout(10000), catchError(err => of({ error: err?.error?.error || 'Nätverksfel' })), takeUntil(this.destroy$))
-      .subscribe(data => {
-        this.isSaving = false;
-        if (data?.success) {
-          this.showSuccess(this.editingId ? 'Post uppdaterad!' : 'Post sparad!');
-          this.closeForm();
-          this.loadEntries();
-          this.loadStats();
-          if (this.activeTab === 'statistik') this.loadEquipmentStats();
-        } else {
-          this.formError = data?.error || 'Kunde inte spara';
-        }
-      });
-  }
-
-  deleteEntry(id: number, title: string): void {
-    if (!confirm(`Ta bort underhållsposten "${title}"?\n(Posten markeras som avbokad och bevaras i historiken.)`)) return;
-
-    this.http.post<any>(`${this.apiBase}?action=maintenance&run=delete&id=${id}`, {}, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(data => {
-        if (data?.success) {
-          this.showSuccess('Post borttagen');
-          this.loadEntries();
-          this.loadStats();
-        } else {
-          this.showError(data?.error || 'Kunde inte ta bort posten');
-        }
-      });
-  }
-
-  clearFilters(): void {
-    this.filterLine = '';
-    this.filterStatus = '';
-    this.filterFromDate = '';
-    this.loadEntries();
-  }
-
-  // --- KPI-analys ---
-
-  loadKpiData(): void {
-    this.kpiLoading = true;
-    const url = `${this.apiBase}?action=maintenance&run=mttr-mtbf&days=${this.kpiDays}`;
-    this.http.get<any>(url, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(data => {
-        this.kpiLoading = false;
-        if (data?.kpis) {
-          this.kpiRows = data.kpis;
-        }
-      });
-  }
-
-  setKpiDays(days: number): void {
-    this.kpiDays = days;
-    this.loadKpiData();
-  }
-
-  // --- Formattering ---
-
-  formatDuration(minutes: number | null | undefined): string {
-    if (minutes === null || minutes === undefined) return 'Pågående';
-    if (+minutes === 0) return 'Pågående';
-    const m = +minutes;
-    if (m < 60) return `${m} min`;
-    const h = Math.floor(m / 60);
-    const rem = m % 60;
-    return rem > 0 ? `${h}h ${rem}min` : `${h}h`;
-  }
-
-  formatCost(cost: number | null | undefined): string {
-    if (cost === null || cost === undefined || +cost === 0) return '';
-    return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(+cost);
-  }
-
-  formatDateTime(dt: string | null): string {
-    if (!dt) return '';
-    return dt.replace('T', ' ').slice(0, 16);
-  }
-
-  // --- Badges ---
-
-  getLineBadgeClass(line: string): string {
-    const map: Record<string, string> = {
-      rebotling: 'badge-line-rebotling',
-      tvattlinje: 'badge-line-tvattlinje',
-      saglinje: 'badge-line-saglinje',
-      klassificeringslinje: 'badge-line-klassificeringslinje',
-      allmant: 'badge-line-allmant'
-    };
-    return map[line] ?? 'badge-line-allmant';
-  }
-
-  getLineLabel(line: string): string {
-    const map: Record<string, string> = {
-      rebotling: 'Rebotling',
-      tvattlinje: 'Tvättlinje',
-      saglinje: 'Såglinje',
-      klassificeringslinje: 'Klassificeringslinje',
-      allmant: 'Allmänt'
-    };
-    return map[line] ?? line;
-  }
-
-  getTypeBadgeClass(type: string): string {
-    const map: Record<string, string> = {
-      akut: 'badge-type-akut',
-      planerat: 'badge-type-planerat',
-      inspektion: 'badge-type-inspektion',
-      kalibrering: 'badge-type-kalibrering',
-      rengoring: 'badge-type-rengoring',
-      ovrigt: 'badge-type-ovrigt'
-    };
-    return map[type] ?? 'badge-type-ovrigt';
-  }
-
-  getTypeLabel(type: string): string {
-    const map: Record<string, string> = {
-      planerat: 'Planerat',
-      akut: 'Akut',
-      inspektion: 'Inspektion',
-      kalibrering: 'Kalibrering',
-      rengoring: 'Rengöring',
-      ovrigt: 'Övrigt'
-    };
-    return map[type] ?? type;
-  }
-
-  getStatusBadgeClass(status: string): string {
-    const map: Record<string, string> = {
-      planerat: 'badge-status-planerat',
-      pagaende: 'badge-status-pagaende',
-      klart: 'badge-status-klart',
-      avbokat: 'badge-status-avbokat'
-    };
-    return map[status] ?? 'badge-status-klart';
-  }
-
-  getStatusLabel(status: string): string {
-    const map: Record<string, string> = {
-      planerat: 'Planerat',
-      pagaende: 'Pågående',
-      klart: 'Klart',
-      avbokat: 'Avbokat'
-    };
-    return map[status] ?? status;
-  }
-
-  getKategoriBadgeClass(kategori: string): string {
-    const map: Record<string, string> = {
-      maskin: 'badge-kategori-maskin',
-      transport: 'badge-kategori-transport',
-      verktyg: 'badge-kategori-verktyg',
-      infrastruktur: 'badge-kategori-infrastruktur',
-      'övrigt': 'badge-kategori-ovrigt'
-    };
-    return map[kategori] ?? 'badge-kategori-ovrigt';
-  }
-
-  getKategoriLabel(kategori: string): string {
-    const map: Record<string, string> = {
-      maskin: 'Maskin',
-      transport: 'Transport',
-      verktyg: 'Verktyg',
-      infrastruktur: 'Infrastruktur',
-      'övrigt': 'Övrigt'
-    };
-    return map[kategori] ?? kategori;
-  }
-
-  // --- Serviceintervall ---
-
-  loadServiceIntervals(): void {
-    this.serviceLoading = true;
+  loadServiceKritiskCount(): void {
     this.http.get<any>(`${this.apiBase}?action=maintenance&run=service-intervals`, { withCredentials: true })
       .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(data => {
-        this.serviceLoading = false;
         if (data?.intervals) {
-          this.serviceIntervals = data.intervals;
+          this.serviceKritiskCount = data.intervals.filter((s: any) => s.status === 'kritisk').length;
         }
       });
   }
 
-  openServiceForm(): void {
-    this.editingServiceId = null;
-    this.serviceForm = {
-      maskin_namn: '',
-      intervall_ibc: 5000,
-      senaste_service_datum: '',
-      senaste_service_ibc: 0
-    };
-    this.serviceFormError = '';
-    this.showServiceForm = true;
+  openAddForm(): void {
+    this.formComp.openAdd();
   }
 
-  openServiceEditForm(si: ServiceInterval): void {
-    this.editingServiceId = si.id;
-    this.serviceForm = {
-      maskin_namn: si.maskin_namn,
-      intervall_ibc: si.intervall_ibc,
-      senaste_service_datum: si.senaste_service_datum?.replace(' ', 'T').slice(0, 16) ?? '',
-      senaste_service_ibc: si.senaste_service_ibc
-    };
-    this.serviceFormError = '';
-    this.showServiceForm = true;
+  openEditForm(entry: MaintenanceEntry): void {
+    this.formComp.openEdit(entry);
   }
 
-  closeServiceForm(): void {
-    this.showServiceForm = false;
-    this.serviceFormError = '';
-  }
-
-  saveServiceInterval(): void {
-    this.serviceFormError = '';
-    if (!this.serviceForm.maskin_namn.trim()) {
-      this.serviceFormError = 'Maskinnamn krävs';
-      return;
+  onEntryChanged(): void {
+    this.onShowSuccess('Post sparad!');
+    this.loadStats();
+    this.listComp?.loadEntries();
+    if (this.activeTab === 'statistik') {
+      this.statsComp?.loadEquipmentStats();
     }
-    if (!this.serviceForm.intervall_ibc || this.serviceForm.intervall_ibc <= 0) {
-      this.serviceFormError = 'Intervall måste vara > 0';
-      return;
-    }
-
-    this.isSavingService = true;
-    const payload: any = {
-      ...this.serviceForm,
-      senaste_service_datum: this.serviceForm.senaste_service_datum || null
-    };
-    if (this.editingServiceId) {
-      payload.id = this.editingServiceId;
-    }
-
-    this.http.post<any>(`${this.apiBase}?action=maintenance&run=set-service-interval`, payload, { withCredentials: true })
-      .pipe(timeout(10000), catchError(err => of({ error: err?.error?.error || 'Nätverksfel' })), takeUntil(this.destroy$))
-      .subscribe(data => {
-        this.isSavingService = false;
-        if (data?.success) {
-          this.showSuccess(this.editingServiceId ? 'Serviceintervall uppdaterat!' : 'Serviceintervall sparat!');
-          this.closeServiceForm();
-          this.loadServiceIntervals();
-        } else {
-          this.serviceFormError = data?.error || 'Kunde inte spara';
-        }
-      });
   }
 
-  resetServiceCounter(si: ServiceInterval): void {
-    if (!confirm(`Registrera utförd service för "${si.maskin_namn}"?\nDetta nollställer IBC-räknaren.`)) return;
-
-    this.http.post<any>(`${this.apiBase}?action=maintenance&run=reset-service-counter`, { id: si.id }, { withCredentials: true })
-      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(data => {
-        if (data?.success) {
-          this.showSuccess('Serviceräknare nollställd!');
-          this.loadServiceIntervals();
-        } else {
-          this.showError(data?.error || 'Kunde inte nollställa räknare');
-        }
-      });
+  onFormClosed(): void {
+    // noop - form handles its own state
   }
 
-  private showSuccess(msg: string): void {
+  onShowSuccess(msg: string): void {
     this.successMessage = msg;
     this.errorMessage = '';
     clearTimeout(this.successTimer);
@@ -1811,7 +371,7 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
     }, 4000);
   }
 
-  private showError(msg: string): void {
+  onShowError(msg: string): void {
     this.errorMessage = msg;
   }
 }
