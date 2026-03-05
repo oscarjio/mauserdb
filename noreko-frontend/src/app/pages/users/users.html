@@ -207,14 +207,14 @@
             </table>
 
             <!-- Inga resultat -->
-            <div *ngIf="filteredUsers.length === 0 && users.length > 0" class="text-center text-muted py-4 no-results">
-              <i class="fas fa-search me-2"></i>
-              Inga användare matchar sökningen
+            <div *ngIf="filteredUsers.length === 0 && users.length > 0" class="text-center py-5">
+              <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+              <p class="text-muted mt-2">Inga användare matchar sökningen</p>
             </div>
 
-            <div *ngIf="users.length === 0" class="text-center text-muted py-4">
-              <i class="fas fa-info-circle me-2"></i>
-              Inga användare hittades.
+            <div *ngIf="users.length === 0 && !loading" class="text-center py-5">
+              <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+              <p class="text-muted mt-2">Inga användare hittades</p>
             </div>
           </div>
         </div>

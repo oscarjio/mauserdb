@@ -26,6 +26,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
   stats: AuditStats | null = null;
   loading = false;
   exportingAll = false;
+  errorMessage = '';
 
   // Filters
   selectedPeriod = 'month';
@@ -110,6 +111,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
 
   loadLogs() {
     this.loading = true;
+    this.errorMessage = '';
     this.auditService.getLogs(this.buildParams()).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
         if (res.success) {
@@ -120,7 +122,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
         }
         this.loading = false;
       },
-      error: () => this.loading = false
+      error: () => { this.errorMessage = 'Kunde inte hämta loggar. Försök igen.'; this.loading = false; }
     });
   }
 

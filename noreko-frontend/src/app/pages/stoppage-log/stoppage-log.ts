@@ -643,7 +643,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           color: { dark: '#000000', light: '#FFFFFF' }
         });
       } catch (e) {
-        console.error('QR-generering misslyckades:', maskin, e);
+        this.errorMessage = 'QR-generering misslyckades för ' + maskin;
       }
     }
     this.qrLoading = false;

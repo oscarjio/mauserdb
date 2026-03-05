@@ -127,6 +127,9 @@
         </button>
       </div>
 
+      <!-- Felmeddelande -->
+      <div *ngIf="errorMessage" class="alert alert-danger mt-3">{{ errorMessage }}</div>
+
       <!-- LOG TAB -->
       <div *ngIf="activeTab === 'log'">
 
@@ -235,9 +238,8 @@
 
         <!-- No data -->
         <div class="dark-card text-center py-5" *ngIf="!loading && logs.length === 0">
-          <i class="fas fa-clipboard-check fa-3x text-muted mb-3"></i>
-          <h5>Inga loggar</h5>
-          <p class="text-muted">Inga aktiviteter hittades för vald period och filter.</p>
+          <i class="bi bi-inbox" style="font-size: 2rem; color: #4a5568;"></i>
+          <p class="text-muted mt-2">Inga loggposter för vald period</p>
         </div>
       </div>
 

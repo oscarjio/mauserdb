@@ -327,9 +327,10 @@ interface NewsItem {
                     </td>
                   </tr>
                   <tr *ngIf="filtreradeListan.length === 0 && !loading">
-                    <td colspan="9" class="text-center text-muted py-4">
-                      <span *ngIf="newsSearchQuery">Inga nyheter matchar din sökning.</span>
-                      <span *ngIf="!newsSearchQuery">Inga nyheter hittades. Skapa en ny nyhet ovan.</span>
+                    <td colspan="9" class="text-center py-5">
+                      <i class="bi bi-inbox d-block mb-2" style="font-size: 2rem; color: #4a5568;"></i>
+                      <span class="text-muted" *ngIf="newsSearchQuery">Inga nyheter matchar din sökning.</span>
+                      <span class="text-muted" *ngIf="!newsSearchQuery">Inga nyheter att visa</span>
                     </td>
                   </tr>
                 </tbody>
