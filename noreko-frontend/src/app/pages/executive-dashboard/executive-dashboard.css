@@ -365,7 +365,7 @@
 }
 
 /* ============================================================
-   LINJESTATUS-BANNER
+   LINJESTATUS-BANNER — Multi-linje realtidsstatus
    ============================================================ */
 
 .lines-status-banner {
@@ -373,6 +373,14 @@
   border: 1px solid #2d3748;
   border-radius: 12px;
   padding: 0.9rem 1.1rem;
+}
+
+.lines-status-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #718096;
 }
 
 .lines-status-grid {
@@ -385,13 +393,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding: 0.6rem 1rem;
-  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  border-radius: 10px;
   background: #2d3748;
   border: 1px solid #3a4a5c;
   text-decoration: none;
   color: #e2e8f0;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.3s;
   min-width: 160px;
   flex: 1 1 160px;
   cursor: pointer;
@@ -405,15 +413,21 @@
   text-decoration: none;
 }
 
+/* Status-specifika kanter */
 .line-status-running {
   border-left: 3px solid #48bb78;
+  box-shadow: 0 0 12px rgba(72, 187, 120, 0.15);
 }
 
-.line-status-slow {
-  border-left: 3px solid #f6c90e;
+.line-status-idle {
+  border-left: 3px solid #ed8936;
 }
 
-.line-status-stopped {
+.line-status-offline {
+  border-left: 3px solid #e53e3e;
+}
+
+.line-status-not-started {
   border-left: 3px solid #4a5568;
 }
 
@@ -423,9 +437,82 @@
   gap: 0.5rem;
 }
 
-.line-dot {
-  font-size: 0.55rem;
+/* Pulsande statuscirkel */
+.line-dot-wrapper {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+.line-dot-circle {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4a5568;
+}
+
+.line-dot-circle.dot-running {
+  background: #48bb78;
+  box-shadow: 0 0 6px rgba(72, 187, 120, 0.6);
+  animation: pulseGreen 2s ease-in-out infinite;
+}
+
+.line-dot-circle.dot-idle {
+  background: #ed8936;
+}
+
+.line-dot-circle.dot-offline {
+  background: #e53e3e;
+}
+
+.line-dot-circle.dot-not-started {
+  background: #4a5568;
+}
+
+@keyframes pulseGreen {
+  0%, 100% {
+    box-shadow: 0 0 4px rgba(72, 187, 120, 0.4);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(72, 187, 120, 0.8);
+    transform: scale(1.15);
+  }
+}
+
+/* Statusetikett */
+.line-status-label {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.12rem 0.5rem;
+  border-radius: 6px;
+}
+
+.line-status-label.label-running {
+  background: rgba(72, 187, 120, 0.18);
+  color: #48bb78;
+}
+
+.line-status-label.label-idle {
+  background: rgba(237, 137, 54, 0.18);
+  color: #ed8936;
+}
+
+.line-status-label.label-offline {
+  background: rgba(229, 62, 62, 0.18);
+  color: #e53e3e;
+}
+
+.line-status-label.label-not-started {
+  background: rgba(74, 85, 104, 0.3);
+  color: #718096;
 }
 
 .line-namn {
