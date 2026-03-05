@@ -74,6 +74,48 @@
   margin-bottom: 2rem;
 }
 
+.print-logo {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  color: #1a365d;
+  margin-bottom: 0.3rem;
+}
+
+.print-subtitle {
+  font-size: 0.9rem;
+  color: #718096;
+  margin-bottom: 0.2rem;
+}
+
+.print-date {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+/* Print footer (hidden on screen) */
+.print-footer {
+  display: none;
+}
+
+/* =============================================
+   VD-sammanfattning
+   ============================================= */
+.executive-summary-card {
+  background: linear-gradient(135deg, #2d3748 0%, #1e2a38 100%);
+  border: 1px solid #4a5568;
+  border-left: 4px solid #63b3ed;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+.executive-summary-text {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #e2e8f0;
+  margin: 0;
+}
+
 /* --- Section --- */
 .report-section {
   margin-bottom: 2.5rem;
@@ -300,6 +342,11 @@
    PRINT / PDF styles
    ============================================= */
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm 12mm 20mm 12mm;
+  }
+
   /* Dölj navigation och kontroller */
   app-header,
   app-menu,
@@ -319,18 +366,60 @@
     padding: 0 !important;
     margin: 0 !important;
     min-height: unset !important;
+    font-size: 11pt;
   }
 
   /* Visa print-titeln */
   .print-title {
     display: block !important;
+    border-bottom: 2px solid #1a365d;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .print-logo {
+    display: block !important;
+    color: #1a365d !important;
+  }
+
+  .print-subtitle { color: #4a5568 !important; }
+  .print-date { color: #718096 !important; }
+
+  /* Print footer */
+  .print-footer {
+    display: block !important;
+    margin-top: 2rem;
+    padding-top: 0.5rem;
+  }
+
+  .print-footer-line {
+    border-color: #cbd5e0 !important;
+    margin-bottom: 0.5rem;
+  }
+
+  .print-footer-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: #718096 !important;
   }
 
   /* Sektionsrubriker */
   .section-title {
     color: #1a365d !important;
     border-bottom-color: #bee3f8 !important;
+    font-size: 12pt !important;
   }
+
+  /* VD-sammanfattning i utskrift */
+  .executive-summary-card {
+    background: #f7fafc !important;
+    border-color: #bee3f8 !important;
+    border-left-color: #3182ce !important;
+    break-inside: avoid;
+  }
+
+  .executive-summary-text { color: #1a202c !important; }
 
   /* KPI-kort */
   .kpi-card {
@@ -348,7 +437,7 @@
   .chart-container {
     background: #f7fafc !important;
     border-color: #bee3f8 !important;
-    height: 280px;
+    height: 250px;
     break-inside: avoid;
   }
 
@@ -399,6 +488,11 @@
   .report-section {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  /* Sidbrytning före charts och operator-sektionen */
+  .report-section:has(.chart-container) {
+    page-break-before: auto;
   }
 
   .report-title { color: #1a202c !important; }
@@ -980,4 +1074,17 @@
   /* Veckobar i utskrift */
   .week-bar-value { color: #1a202c !important; }
   .week-bar-track { background: #e2e8f0 !important; }
+
+  /* Gold/silver/bronze rader i utskrift */
+  .gold-row { border-left-color: #d69e2e !important; background: #fffff0 !important; }
+  .silver-row { border-left-color: #a0aec0 !important; background: #f7fafc !important; }
+  .bronze-row { border-left-color: #c05621 !important; background: #fffaf0 !important; }
+
+  /* Rekordmanad-banner i utskrift (duplicate guard) */
+  .record-month-banner {
+    animation: none !important;
+    background: #fefcbf !important;
+    color: #744210 !important;
+    border: 2px solid #d69e2e !important;
+  }
 }

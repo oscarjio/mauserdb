@@ -179,6 +179,40 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   Math = Math;
   stopSummary: StopItem[] = [];
   stopSummaryLoading = false;
+  printTimestamp = '';
+
+  /** Genererad VD-sammanfattning */
+  get executiveSummary(): string {
+    if (!this.report) return '';
+    const s = this.report.summary;
+    const lines: string[] = [];
+
+    if (s.goal_pct >= 100) {
+      lines.push(`Produktionsm\u00e5let uppn\u00e5ddes med ${s.goal_pct}% m\u00e5luppfyllnad.`);
+    } else {
+      lines.push(`Produktionsm\u00e5let n\u00e5ddes inte \u2014 ${s.goal_pct}% av m\u00e5l (${s.ibc_total} av ${s.ibc_goal} IBC).`);
+    }
+    lines.push(`Snitt ${s.avg_ibc_per_day.toFixed(0)} IBC/dag \u00f6ver ${s.production_days} produktionsdagar.`);
+    if (s.avg_oee >= 85) {
+      lines.push(`OEE-snittet l\u00e5g p\u00e5 ${s.avg_oee}% vilket \u00f6vertr\u00e4ffar WCM-m\u00e5let p\u00e5 85%.`);
+    } else {
+      lines.push(`OEE-snittet l\u00e5g p\u00e5 ${s.avg_oee}% (WCM-m\u00e5l: 85%).`);
+    }
+
+    if (this.compareData?.diff) {
+      const d = this.compareData.diff;
+      if (d.total_ibc_pct !== null) {
+        const dir = d.total_ibc_pct >= 0 ? '\u00f6kning' : 'minskning';
+        lines.push(`J\u00e4mf\u00f6rt med f\u00f6reg\u00e5ende m\u00e5nad: ${Math.abs(d.total_ibc_pct).toFixed(1)}% ${dir} i total IBC.`);
+      }
+    }
+
+    if (this.compareData?.operator_of_month) {
+      lines.push(`M\u00e5nadens operat\u00f6r: ${this.compareData.operator_of_month.namn}.`);
+    }
+
+    return lines.join(' ');
+  }
 
   get isRecordMonth(): boolean {
     return !!(this.report && this.report.summary.goal_pct >= 110);
@@ -255,6 +289,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
         this.report = report as MonthlyReport;
         this.hasData = true;
         this.chartPendingRender = true;
+        this.printTimestamp = new Date().toLocaleString('sv-SE');
       } else {
         this.errorMsg = report?.error || 'Ingen data hittades för vald månad';
       }
@@ -385,6 +420,13 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
       return 'rgba(245, 101, 101, 0.85)';
     });
 
+    // Kumulativ IBC-linje (visar progress mot målet)
+    const cumulativeIbc: number[] = [];
+    days.reduce((acc, d) => { acc += d.ibc; cumulativeIbc.push(acc); return acc; }, 0);
+
+    // Dagsmål-linje (konstant)
+    const goalLine = days.map(() => dailyGoal);
+
     this.chart = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -396,6 +438,18 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
             backgroundColor: ibcColors,
             borderColor: ibcColors.map(c => c.replace('0.85', '1')),
             borderWidth: 1,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Dagsmål',
+            data: goalLine,
+            type: 'line',
+            borderColor: 'rgba(246, 224, 94, 0.6)',
+            borderWidth: 1.5,
+            borderDash: [6, 3],
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
             yAxisID: 'y',
           },
           {
