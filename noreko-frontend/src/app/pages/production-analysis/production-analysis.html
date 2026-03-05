@@ -17,8 +17,10 @@
   </div>
 
   <!-- Loading -->
-  <div *ngIf="loading" class="text-center py-4">
-    <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
     <p class="text-muted mt-2">Laddar analysdata...</p>
   </div>
 
@@ -450,7 +452,9 @@
 
     <!-- Loading -->
     <div *ngIf="bestShiftsLoading" class="text-center py-4">
-      <i class="fas fa-spinner fa-spin fa-2x text-warning"></i>
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
       <p class="text-muted mt-2">Laddar historik...</p>
     </div>
 
@@ -532,7 +536,9 @@
 
     <!-- Loading -->
     <div *ngIf="stopAnalysisLoading" class="text-center py-4">
-      <i class="fas fa-spinner fa-spin fa-2x text-warning"></i>
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
       <p class="text-muted mt-2">Laddar stoppdata...</p>
     </div>
 
@@ -821,7 +827,9 @@
 
     <!-- Laddning -->
     <div *ngIf="paretoLoading" class="text-center py-5">
-      <i class="fas fa-spinner fa-spin fa-2x text-warning"></i>
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
       <p class="text-muted mt-2">Laddar paretodata...</p>
     </div>
 
