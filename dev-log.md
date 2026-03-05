@@ -1,3 +1,20 @@
+## 2026-03-05 Session #17 — Bug Hunt #23 + Build/runtime-beredskap (INGEN NY FUNKTIONSUTVECKLING)
+
+**Worker 1 — Bug Hunt #23** (7 filer granskade, 2 buggar fixade):
+- **NewsController.php**: FIXAD — requireAdmin() startade session utan read_and_close trots att den bara läser session-data
+- **CertificationController.php**: FIXAD — session startades för ALLA endpoints inkl GET-only. Refaktorerat: getAll/getMatrix skippar session, expiry-count använder read_and_close
+- **ProductionEventsController.php**: FINNS EJ (bara migration existerar)
+- **production-analysis.ts**: OK — alla subscriptions takeUntil, alla timeouts rensas, alla charts destroyas
+- **skiftplan.ts**: FINNS EJ i kodbasen
+- **nyhetsflode.ts**: FINNS EJ i kodbasen
+- **certifications.ts**: OK — ren kod, inga läckor
+
+**Worker 2 — Build + runtime-beredskap**:
+- Angular build: PASS (inga fel, bara template-varningar NG8107/NG8102)
+- Route-validering: PASS (50 lazy-loaded routes, alla korrekta)
+- Service-injection: PASS (7 komponenter granskade, alla OK)
+- Dead code: ProductController.php tom fil (harmless), **RuntimeController.php saknades i api.php classNameMap** — FIXAD (`2e41df2`)
+
 ## 2026-03-05 Session #16 — Bug Hunt #22 + API-kontraktsvalidering (INGEN NY FUNKTIONSUTVECKLING)
 
 **Worker 1 — Bug Hunt #22** (6 filer granskade, 1 bugg fixad):

@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #16)*
+*Senast uppdaterad: 2026-03-05 (session #17)*
 
 ---
 
@@ -300,6 +300,15 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-05 Session #17
+**Lägesanalys**: Session #16 levererade Bug Hunt #22 (`f2d4ea0` — getEquipmentStats soft-delete filter) + API-kontraktsvalidering (`148b528` — live-ranking-config endpoints saknades). Ägarens direktiv kvarstår: INGEN NY FUNKTIONSUTVECKLING.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #23 — granska ej-granskade filer: NewsController.php, CertificationController.php, ProductionEventsController.php, production-analysis.ts (pareto-flik), skiftplan.ts, nyhetsflode.ts, certifiering.ts. Kolla auth, prepared statements, subscription-städning, error handling, edge cases.
+2. Worker 2: Angular build + runtime-beredskap — verifiera att `npx ng build` lyckas, granska alla lazy-loaded routes att de har korrekta imports, kolla att alla service-injections fungerar, leta efter unused imports och dead code som kan orsaka problem.
+
+**Motivering**: Bug Hunt #23 täcker controllers och komponenter som aldrig granskats. Build+runtime-beredskap säkerställer att appen faktiskt fungerar korrekt efter alla senaste sessions bugfixar.
 
 ### 2026-03-05 Session #16
 **Lägesanalys**: Session #15 levererade Bug Hunt #21 (`12b73d9` — login 401, andon timeout leak) + INSTALL_ALL validering (`60c5eab`). Inga nya commits sedan `6164a64`. Ägarens direktiv kvarstår: INGEN NY FUNKTIONSUTVECKLING.
