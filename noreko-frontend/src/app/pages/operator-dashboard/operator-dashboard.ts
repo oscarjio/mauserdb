@@ -929,7 +929,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
   }
 
   timmar(min: number): number { return Math.floor(min / 60); }
-  minuter(min: number): number { return min % 60; }
+  minuter(min: number): number { return Math.round(min % 60); }
 
   private formatDatum(datum: string): string {
     if (!datum) return '';

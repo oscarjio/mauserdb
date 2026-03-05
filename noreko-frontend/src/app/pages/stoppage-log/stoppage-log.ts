@@ -496,7 +496,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   formatMinutes(min: number): string {
     const h = Math.floor(min / 60);
-    const m = min % 60;
+    const m = Math.round(min % 60);
     if (h === 0) return `${m} min`;
     return `${h}h ${m}min`;
   }
@@ -511,9 +511,9 @@ export class StoppageLogPage implements OnInit, OnDestroy {
 
   formatDuration(minutes: number | null): string {
     if (minutes === null || minutes === undefined) return 'Pågår';
-    if (minutes < 60) return minutes + ' min';
+    if (minutes < 60) return Math.round(minutes) + ' min';
     const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
+    const m = Math.round(minutes % 60);
     return h + ' h ' + (m > 0 ? m + ' min' : '');
   }
 
@@ -709,7 +709,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
                 if (h.snitt_min) {
                   const sm = h.snitt_min;
                   const sh = Math.floor(sm / 60);
-                  const smin = sm % 60;
+                  const smin = Math.round(sm % 60);
                   parts.push(`  Snitt varaktighet: ${sh > 0 ? sh + 'h ' + smin + 'min' : smin + ' min'}`);
                 }
                 if (topHours.includes(h.timme)) parts.push('  \u26a0 Peak-stoptid');
@@ -830,7 +830,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
                 const item = items[tooltipCtx.dataIndex];
                 const min = item.total_min;
                 const h = Math.floor(min / 60);
-                const m = min % 60;
+                const m = Math.round(min % 60);
                 const formatted = h > 0 ? `${h}h ${m}min` : `${m} min`;
                 return [`  Stopptid: ${formatted}`, `  Antal: ${item.antal} stopp`, `  Andel: ${item.pct}%`];
               }
@@ -887,7 +887,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
               label: (ctx) => {
                 const min = ctx.parsed.y ?? 0;
                 const h = Math.floor(min / 60);
-                const m = min % 60;
+                const m = Math.round(min % 60);
                 const formatted = h > 0 ? `${h}h ${m}min` : `${m} min`;
                 const r = reasons[ctx.dataIndex];
                 const pct = r && this.stats ? Math.round((r.total_minutes / this.stats.reasons.reduce((s, x) => s + x.total_minutes, 0)) * 100) : 0;
@@ -964,7 +964,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
                 const min = minuteData[ctx.dataIndex];
                 if (min > 0) {
                   const h = Math.floor(min / 60);
-                  const m = min % 60;
+                  const m = Math.round(min % 60);
                   return `  Stopptid: ${h > 0 ? h + 'h ' + m + 'min' : m + ' min'}`;
                 }
                 return '';
@@ -1034,7 +1034,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
                 if (ctx.datasetIndex === 0) {
                   const min = ctx.parsed.y ?? 0;
                   const h = Math.floor(min / 60);
-                  const m = min % 60;
+                  const m = Math.round(min % 60);
                   return `  Stopptid: ${h > 0 ? h + 'h ' + m + 'min' : m + ' min'}`;
                 }
                 return `  Antal stopp: ${ctx.parsed.y}`;

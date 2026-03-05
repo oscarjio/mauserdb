@@ -482,7 +482,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   private formatSekunder(sek: number): string {
     const h = Math.floor(sek / 3600);
     const m = Math.floor((sek % 3600) / 60);
-    const s = sek % 60;
+    const s = Math.floor(sek % 60);
     return [
       String(h).padStart(2, '0'),
       String(m).padStart(2, '0'),
@@ -538,7 +538,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     if (diffMin < 1)  return 'Just nu';
     if (diffMin < 60) return `${diffMin} min sedan`;
     const h = Math.floor(diffMin / 60);
-    const m = diffMin % 60;
+    const m = Math.round(diffMin % 60);
     return m > 0 ? `${h}h ${m}min sedan` : `${h}h sedan`;
   }
 

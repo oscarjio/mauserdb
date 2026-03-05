@@ -1005,7 +1005,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       ? (achievePct >= 100 ? 'green' : (achievePct >= 80 ? 'orange' : 'red'))
       : 'black';
 
-    const driftH = totalDrift > 0 ? `${Math.floor(totalDrift / 60)}h ${totalDrift % 60}min` : '–';
+    const driftH = totalDrift > 0 ? `${Math.floor(totalDrift / 60)}h ${Math.round(totalDrift % 60)}min` : '–';
 
     const content: any[] = [
       // ---- HEADER ----
@@ -1441,7 +1441,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   formatMinutes(min: number | null): string {
     if (min == null || min === 0) return '–';
     const h = Math.floor(min / 60);
-    const m = min % 60;
+    const m = Math.round(min % 60);
     return h > 0 ? `${h}h ${m}min` : `${m}min`;
   }
 
@@ -1755,7 +1755,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   formatDrifttid(min: number | null): string {
     if (min == null || min === 0) return '–';
     const h = Math.floor(min / 60);
-    const m = min % 60;
+    const m = Math.round(min % 60);
     return h > 0 ? `${h}h ${m}min` : `${m}min`;
   }
 

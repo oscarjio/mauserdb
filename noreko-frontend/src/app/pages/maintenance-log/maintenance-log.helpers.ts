@@ -4,9 +4,9 @@ export function formatDuration(minutes: number | null | undefined): string {
   if (minutes === null || minutes === undefined) return 'Pågående';
   if (+minutes === 0) return 'Pågående';
   const m = +minutes;
-  if (m < 60) return `${m} min`;
+  if (m < 60) return `${Math.round(m)} min`;
   const h = Math.floor(m / 60);
-  const rem = m % 60;
+  const rem = Math.round(m % 60);
   return rem > 0 ? `${h}h ${rem}min` : `${h}h`;
 }
 

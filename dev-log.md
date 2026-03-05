@@ -1,3 +1,16 @@
+## 2026-03-05 — Bug Hunt #31: Float-modulo i tidsformatering (17 fixar i 7 filer)
+
+- **executive-dashboard.ts**: `formatDuration()` och `formatStopTime()` — `min % 60` utan `Math.round()` producerade decimalminuter (t.ex. "2:05.5" istället för "2:06") när backend-SUM returnerade float
+- **stoppage-log.ts**: 7 ställen i formatMinutes/formatDuration/tooltip-callbacks — samma float-modulo-bugg
+- **rebotling-skiftrapport.ts**: `formatMinutes()`, `formatDrifttid()`, PDF-export drifttid — samma bugg
+- **andon.ts**: `formatSekunder()` och tidsålder-formatering — sekunder och minuter utan avrundning
+- **operator-dashboard.ts**: `minuter()` helper — returnerade `min % 60` utan avrundning
+- **maintenance-log.helpers.ts**: Delad `formatDuration()` — samma bugg
+
+**Granskade utan buggar**: production-analysis.ts (redan fixat i #30), bonus-dashboard.ts, monthly-report.ts, BonusController.php, RebotlingAnalyticsController.php — backend har genomgående `max(..., 1)` guards mot division-by-zero.
+
+---
+
 ## 2026-03-05 — Ta bort mockData-fallbacks + tom ProductController
 
 - **rebotling-statistik.ts**: Borttagen `loadMockData()` + `generateMockData()` — vid API-fel visas felmeddelande istället för falska random-siffror

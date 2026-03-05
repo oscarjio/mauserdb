@@ -534,7 +534,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   formatDuration(): string {
     const h = Math.floor(this.maintenanceDurationMin / 60);
-    const m = this.maintenanceDurationMin % 60;
+    const m = Math.round(this.maintenanceDurationMin % 60);
     return h + ':' + (m < 10 ? '0' : '') + m;
   }
 
@@ -750,7 +750,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   formatStopTime(min: number): string {
     const h = Math.floor(min / 60);
-    const m = min % 60;
+    const m = Math.round(min % 60);
     return h + ':' + String(m).padStart(2, '0');
   }
 
