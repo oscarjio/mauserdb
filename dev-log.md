@@ -1,8 +1,11 @@
 ## 2026-03-05 Session #13 — Multi-linje status + Kollegajämförelse
 
-**Planerade workers**:
-1. Executive dashboard: multi-linje statusrad (4 linjer grön/orange/röd, senaste OEE)
-2. Min bonus: anonymiserad kollegajämförelse ("Du är #2 av 5 denna vecka")
+**Worker 1 — Executive Dashboard multi-linje status** (`7a27851`):
+- Ny publik endpoint `?action=status&run=all-lines` i StatusController.php
+- Rebotling: realtidsstatus (running/idle/offline) baserat på senaste data (15/60 min gränser), OEE%, IBC idag
+- Tvättlinje, Såglinje, Klassificeringslinje: statiskt "ej igång" tills databastabeller finns
+- Frontend: pulsande grön cirkel (running), orange (idle), röd (offline), grå (ej igång)
+- Dashboard pollar publik endpoint var 60:e sekund
 
 ---
 

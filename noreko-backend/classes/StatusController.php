@@ -1,9 +1,23 @@
 <?php
 class StatusController {
     public function handle() {
-        // Öppna sessionen i read_and_close-läge så att session-fillåset
-        // släpps omedelbart efter läsning. Hindrar polling-requests på föregående
-        // sida från att blockera den nya status-checken vid sidomladdning.
+        $run = $_GET['run'] ?? '';
+
+        // ============================================================
+        // GET ?action=status&run=all-lines
+        // Publik endpoint — ingen session-check.
+        // Returnerar live-status for alla 4 produktionslinjer.
+        // ============================================================
+        if ($run === 'all-lines') {
+            $this->getAllLinesStatus();
+            return;
+        }
+
+        // --- Default: session-status (inloggad/ej inloggad) ---
+
+        // Oppna sessionen i read_and_close-lage sa att session-fillaset
+        // slapps omedelbart efter lasning. Hindrar polling-requests pa foregaende
+        // sida fran att blockera den nya status-checken vid sidomladdning.
         if (session_status() === PHP_SESSION_NONE) {
             session_start(['read_and_close' => true]);
         }
@@ -14,7 +28,7 @@ class StatusController {
         }
 
         $userId = (int)$_SESSION['user_id'];
-        // Session-låset är nu fritt — gör DB-frågan utan att blockera andra requests.
+        // Session-laset ar nu fritt -- gor DB-fragan utan att blockera andra requests.
 
         try {
             global $pdo;
@@ -23,7 +37,7 @@ class StatusController {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$user) {
-                // Användaren borttagen ur DB — förstör sessionen
+                // Anvandaren borttagen ur DB -- forstor sessionen
                 session_start();
                 session_unset();
                 session_destroy();
@@ -44,6 +58,155 @@ class StatusController {
         } catch (Exception $e) {
             error_log('StatusController fel: ' . $e->getMessage());
             echo json_encode(['loggedIn' => false]);
+        }
+    }
+
+    // ============================================================
+    // Publik endpoint: alla produktionslinjers status
+    // Rebotling: hamtar senaste data fran rebotling_ibc
+    //   - < 15 min => running, 15-60 min => idle, > 60 min => offline
+    // Tvattlinje, Saglinje, Klassificeringslinje: statiskt "not_started"
+    // ============================================================
+    private function getAllLinesStatus(): void {
+        try {
+            global $pdo;
+            $lines = [];
+
+            // --- Rebotling ---
+            try {
+                $tz  = new DateTimeZone('Europe/Stockholm');
+                $now = new DateTime('now', $tz);
+
+                // Senaste raden i rebotling_ibc
+                $stmt = $pdo->query(
+                    "SELECT datum FROM rebotling_ibc ORDER BY datum DESC LIMIT 1"
+                );
+                $latestRow = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                $senaste_data_min = null;
+                $status = 'offline';
+                $statusLabel = 'Offline';
+                if ($latestRow && !empty($latestRow['datum'])) {
+                    $latestDt = new DateTime($latestRow['datum'], $tz);
+                    $diffSec  = $now->getTimestamp() - $latestDt->getTimestamp();
+                    $senaste_data_min = round($diffSec / 60, 1);
+
+                    if ($diffSec < 900) {           // < 15 min
+                        $status = 'running';
+                        $statusLabel = 'Kor';
+                    } elseif ($diffSec < 3600) {    // 15-60 min
+                        $status = 'idle';
+                        $statusLabel = 'Vila';
+                    } else {                         // > 60 min
+                        $status = 'offline';
+                        $statusLabel = 'Offline';
+                    }
+                }
+
+                // IBC idag
+                $ibcIdag = (int)$pdo->query(
+                    "SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()"
+                )->fetchColumn();
+
+                // OEE idag
+                $oeePct = null;
+                try {
+                    $oeeRow = $pdo->query(
+                        "SELECT
+                            SUM(max_ibc_ok)      AS ibc_ok,
+                            SUM(max_runtime_plc) AS runtime,
+                            SUM(max_rasttime)    AS rasttime
+                         FROM (
+                            SELECT
+                                skiftraknare,
+                                MAX(ibc_ok)      AS max_ibc_ok,
+                                MAX(runtime_plc) AS max_runtime_plc,
+                                MAX(rasttime)    AS max_rasttime
+                            FROM rebotling_ibc
+                            WHERE DATE(datum) = CURDATE()
+                            GROUP BY skiftraknare
+                         ) agg"
+                    )->fetch(PDO::FETCH_ASSOC);
+
+                    if ($oeeRow && $oeeRow['runtime'] > 0) {
+                        $ibcOk      = (float)$oeeRow['ibc_ok'];
+                        $runtimeSek = (float)$oeeRow['runtime'];
+                        $rastSek    = (float)$oeeRow['rasttime'];
+                        $prodTid    = $runtimeSek - $rastSek;
+                        if ($prodTid > 0) {
+                            $snittCykel = 60;
+                            try {
+                                $cRow = $pdo->query(
+                                    "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
+                                )->fetchColumn();
+                                if ($cRow > 0) $snittCykel = (float)$cRow;
+                            } catch (Exception $e) { /* ignorera */ }
+                            $maxMojlig = $prodTid / $snittCykel;
+                            if ($maxMojlig > 0) {
+                                $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
+                            }
+                        }
+                    }
+                } catch (Exception $e) { /* ignorera OEE-fel */ }
+
+                $lines[] = [
+                    'id'              => 'rebotling',
+                    'namn'            => 'Rebotling',
+                    'status'          => $status,
+                    'status_label'    => $statusLabel,
+                    'kor'             => ($status === 'running'),
+                    'senaste_data_min'=> $senaste_data_min,
+                    'ibc_idag'        => $ibcIdag,
+                    'oee_pct'         => $oeePct,
+                    'ej_i_drift'      => false
+                ];
+            } catch (Exception $e) {
+                error_log('StatusController all-lines rebotling: ' . $e->getMessage());
+                $lines[] = [
+                    'id'           => 'rebotling',
+                    'namn'         => 'Rebotling',
+                    'status'       => 'offline',
+                    'status_label' => 'Offline',
+                    'kor'          => false,
+                    'ej_i_drift'   => false
+                ];
+            }
+
+            // --- Tvattlinje ---
+            $lines[] = [
+                'id'           => 'tvattlinje',
+                'namn'         => 'Tvattlinje',
+                'status'       => 'not_started',
+                'status_label' => 'Ej igang',
+                'kor'          => false,
+                'ej_i_drift'   => true
+            ];
+
+            // --- Saglinje ---
+            $lines[] = [
+                'id'           => 'saglinje',
+                'namn'         => 'Saglinje',
+                'status'       => 'not_started',
+                'status_label' => 'Ej igang',
+                'kor'          => false,
+                'ej_i_drift'   => true
+            ];
+
+            // --- Klassificeringslinje ---
+            $lines[] = [
+                'id'           => 'klassificeringslinje',
+                'namn'         => 'Klassificeringslinje',
+                'status'       => 'not_started',
+                'status_label' => 'Ej igang',
+                'kor'          => false,
+                'ej_i_drift'   => true
+            ];
+
+            echo json_encode(['success' => true, 'lines' => $lines]);
+        } catch (Exception $e) {
+            error_log('StatusController all-lines: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta linjestatus']);
         }
     }
 }

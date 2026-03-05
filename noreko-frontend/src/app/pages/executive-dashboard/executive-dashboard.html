@@ -25,21 +25,39 @@
   </div>
 
   <!-- ============================================================
-       LINJESTATUS-BANNER — Alla 4 linjer
+       LINJESTATUS-BANNER — Alla 4 linjer med realtidsstatus
   ============================================================ -->
   <div class="lines-status-banner mb-4 d-print-none" *ngIf="allLinesStatus.length > 0">
+    <div class="lines-status-title mb-2">
+      <i class="fas fa-industry me-2 text-info"></i>
+      <span>Linjestatus</span>
+    </div>
     <div class="lines-status-grid">
       <a
         *ngFor="let line of allLinesStatus"
         [routerLink]="getLineRoute(line)"
         class="line-status-card"
-        [class.line-status-running]="line.kor && !(line.senaste_data_min > 5)"
-        [class.line-status-slow]="line.kor && line.senaste_data_min > 5"
-        [class.line-status-stopped]="!line.kor"
+        [class.line-status-running]="line.status === 'running'"
+        [class.line-status-idle]="line.status === 'idle'"
+        [class.line-status-offline]="line.status === 'offline'"
+        [class.line-status-not-started]="line.status === 'not_started'"
       >
         <div class="line-status-top">
-          <i [ngClass]="getLineIconClass(line)" class="line-dot"></i>
+          <span class="line-dot-wrapper">
+            <span class="line-dot-circle"
+              [class.dot-running]="line.status === 'running'"
+              [class.dot-idle]="line.status === 'idle'"
+              [class.dot-offline]="line.status === 'offline'"
+              [class.dot-not-started]="line.status === 'not_started'"
+            ></span>
+          </span>
           <span class="line-namn">{{ line.namn }}</span>
+          <span class="line-status-label"
+            [class.label-running]="line.status === 'running'"
+            [class.label-idle]="line.status === 'idle'"
+            [class.label-offline]="line.status === 'offline'"
+            [class.label-not-started]="line.status === 'not_started'"
+          >{{ line.status_label }}</span>
         </div>
 
         <!-- Rebotling-detaljer -->
@@ -54,19 +72,13 @@
             </span>
             <span class="line-detail-label">OEE</span>
           </div>
-          <div class="line-detail-row" *ngIf="line.mal_pct != null">
-            <span class="line-detail-value" [class.text-success]="line.mal_pct >= 80" [class.text-warning]="line.mal_pct >= 60 && line.mal_pct < 80" [class.text-danger]="line.mal_pct < 60">
-              {{ line.mal_pct }}%
-            </span>
-            <span class="line-detail-label">av mål</span>
-          </div>
           <div class="line-data-age" *ngIf="line.senaste_data_min != null">
-            <small class="text-muted">Data: {{ line.senaste_data_min | number:'1.0-0' }} min sedan</small>
+            <small class="text-muted">{{ line.senaste_data_min | number:'1.0-0' }} min sedan</small>
           </div>
         </ng-container>
 
-        <!-- Övriga linjer -->
-        <ng-container *ngIf="line.id !== 'rebotling'">
+        <!-- Ej igangvarande linjer -->
+        <ng-container *ngIf="line.ej_i_drift">
           <div class="line-status-sub text-secondary">
             <small>Ej i drift</small>
           </div>
