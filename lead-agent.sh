@@ -11,7 +11,10 @@ CLAUDE="/home/clawd/.npm-global/bin/claude"
 LOCKFILE="/tmp/mauserdb-lead.lock"
 RUNLOG="/tmp/mauserdb-lead.log"
 RATELIMIT_FILE="/tmp/mauserdb-ratelimit.txt"
+BUDGET_FILE="/tmp/mauserdb-budget.txt"
 MAX_LOG_LINES=2000
+BUDGET_WINDOW=18000   # 5 timmar i sekunder
+MAX_RUNS_PER_WINDOW=8 # max 8 körningar per fönster (~90% av budget, lämnar ~1 för frågor)
 
 # Se till att node/npm finns i PATH (för npx ng build i worker-agenter)
 export PATH="/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -39,6 +42,27 @@ if [ -f "$RUNLOG" ]; then
         echo "[$(date '+%Y-%m-%d %H:%M')] Log roterad (var $LOG_LINES rader)" >> "$RUNLOG"
     fi
 fi
+
+# Token-budget: räkna körningar de senaste 5 timmarna
+NOW=$(date +%s)
+WINDOW_START=$((NOW - BUDGET_WINDOW))
+
+# Läs befintliga tidsstämplar, filtrera bort gamla
+if [ -f "$BUDGET_FILE" ]; then
+    grep -v "^$" "$BUDGET_FILE" | awk -v ws="$WINDOW_START" '$1 > ws {print}' > "${BUDGET_FILE}.tmp" || true
+    mv "${BUDGET_FILE}.tmp" "$BUDGET_FILE" 2>/dev/null || true
+fi
+
+RUNS_IN_WINDOW=$(wc -l < "$BUDGET_FILE" 2>/dev/null || echo 0)
+
+if [ "$RUNS_IN_WINDOW" -ge "$MAX_RUNS_PER_WINDOW" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $RUNS_IN_WINDOW/$MAX_RUNS_PER_WINDOW körningar i 5h-fönstret — hoppar över för att bevara tokens för ägaren." >> "$RUNLOG"
+    exit 0
+fi
+
+# Registrera denna körning
+echo "$NOW" >> "$BUDGET_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $((RUNS_IN_WINDOW + 1))/$MAX_RUNS_PER_WINDOW körningar i 5h-fönstret." >> "$RUNLOG"
 
 echo "[$(date '+%Y-%m-%d %H:%M')] ========== Lead-agent session startar ==========" >> "$RUNLOG"
 
@@ -126,7 +150,7 @@ echo "[$(date '+%Y-%m-%d %H:%M')] Startar lead-agent Claude-session (prompt: $(w
 
 # Kör Claude via stdin (undviker argument-storleksproblem) med streaming till log
 TMPOUT=$(mktemp)
-$CLAUDE --dangerously-skip-permissions --print "$(cat "$PROMPT_FILE")" 2>&1 | tee -a "$RUNLOG" > "$TMPOUT"
+$CLAUDE --dangerously-skip-permissions --max-turns 30 --print "$(cat "$PROMPT_FILE")" 2>&1 | tee -a "$RUNLOG" > "$TMPOUT"
 CLAUDE_EXIT=${PIPESTATUS[0]}
 rm -f "$PROMPT_FILE"
 
