@@ -99,6 +99,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
+  private oeeTrendChartTimer: any = null;
 
   constructor(
     private tvattlinjeService: TvattlinjeService,
@@ -178,6 +179,7 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
+    clearTimeout(this.oeeTrendChartTimer);
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
     try { this.oeeTrendChart?.destroy(); } catch (e) {}
@@ -438,8 +440,18 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
 
     const { start, end } = this.getDateRange();
 
-    this.tvattlinjeService.getStatistics(start, end).pipe(takeUntil(this.destroy$)).subscribe({
+    this.tvattlinjeService.getStatistics(start, end).pipe(
+      timeout(15000),
+      catchError(() => {
+        this.error = 'Kunde inte ladda statistik från backend';
+        this.loading = false;
+        this.loadMockData();
+        return of(null);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (response) => {
+        if (!response) return;
         if (response.success) {
           // Spara senaste data så vi kan zooma/markera i grafen
           this.lastStatisticsData = response.data;
@@ -448,12 +460,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
           this.updateTable(response.data);
         }
         this.loading = false;
-      },
-      error: (err) => {
-        console.error('Error loading statistics:', err);
-        this.error = 'Kunde inte ladda statistik från backend';
-        this.loading = false;
-        this.loadMockData();
       }
     });
   }
@@ -732,8 +738,6 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
   updateChart(data: any) {
     try { this.productionChart?.destroy(); } catch (e) {}
     this.productionChart = null;
-    try { this.oeeTrendChart?.destroy(); } catch (e) {}
-    this.oeeTrendChart = null;
 
     clearTimeout(this.chartUpdateTimer);
     this.chartUpdateTimer = setTimeout(() => {
@@ -1354,7 +1358,11 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
               this.bastaDagLabel = this.oeeTrendSummary.basta_dag;
               this.bastaDagIbc = this.oeeTrendSummary.basta_ibc;
             }
-            setTimeout(() => this.renderOeeTrendChart(), 100);
+            clearTimeout(this.oeeTrendChartTimer);
+            this.oeeTrendChartTimer = setTimeout(() => {
+              if (this.destroy$.closed) return;
+              this.renderOeeTrendChart();
+            }, 100);
           }
         },
         error: () => {

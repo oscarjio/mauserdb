@@ -73,6 +73,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   private monthlyChart: Chart | null = null;
   private oeeTrendChart: Chart | null = null;
   private chartTimer: any = null;
+  private oeeTrendChartTimer: any = null;
   private destroy$ = new Subject<void>();
 
   constructor(private service: LineSkiftrapportService, private saglinjeService: SaglinjeService) {}
@@ -86,6 +87,7 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnDestroy() {
     clearTimeout(this.chartTimer);
+    clearTimeout(this.oeeTrendChartTimer);
     try { this.qualityChart?.destroy(); } catch (e) {}
     this.qualityChart = null;
     try { this.monthlyChart?.destroy(); } catch (e) {}
@@ -111,7 +113,15 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
 
   private loadReports() {
     this.loading = true;
-    this.service.getReports(this.line).pipe(takeUntil(this.destroy$)).subscribe({
+    this.service.getReports(this.line).pipe(
+      timeout(15000),
+      catchError(() => {
+        this.loading = false;
+        this.errorMessage = 'Serverfel vid hämtning av statistik';
+        return of({ success: false, data: [], message: '' });
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe({
       next: (res) => {
         this.loading = false;
         if (res.success) {
@@ -119,13 +129,9 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
             (a.datum || '').localeCompare(b.datum || '')
           );
           this.buildCharts();
-        } else {
+        } else if (res.message) {
           this.errorMessage = res.message || 'Kunde inte ladda statistik';
         }
-      },
-      error: () => {
-        this.loading = false;
-        this.errorMessage = 'Serverfel vid hämtning av statistik';
       }
     });
   }
@@ -151,7 +157,11 @@ export class SaglinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy {
             this.oeeTrendEmpty = false;
             this.oeeTrendData = res.data || [];
             this.oeeTrendSummary = res.summary || { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 };
-            setTimeout(() => this.renderOeeTrendChart(), 100);
+            clearTimeout(this.oeeTrendChartTimer);
+            this.oeeTrendChartTimer = setTimeout(() => {
+              if (this.destroy$.closed) return;
+              this.renderOeeTrendChart();
+            }, 100);
           }
         },
         error: () => {
