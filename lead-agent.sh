@@ -154,7 +154,7 @@ echo "[$(date '+%Y-%m-%d %H:%M')] Startar lead-agent Claude-session (prompt: $(w
 
 # Kör Claude via stdin (undviker argument-storleksproblem) med streaming till log
 TMPOUT=$(mktemp)
-$CLAUDE --dangerously-skip-permissions --max-turns 30 --print "$(cat "$PROMPT_FILE")" 2>&1 | tee -a "$RUNLOG" > "$TMPOUT"
+stdbuf -oL $CLAUDE --dangerously-skip-permissions --max-turns 30 --print "$(cat "$PROMPT_FILE")" 2>&1 | stdbuf -oL tee -a "$RUNLOG" > "$TMPOUT"
 CLAUDE_EXIT=${PIPESTATUS[0]}
 rm -f "$PROMPT_FILE"
 
