@@ -102,6 +102,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   dayDetail: DayDetailResponse | null = null;
   dayDetailLoading = false;
   private dayDetailChart: Chart | null = null;
+  private dayDetailTimer: ReturnType<typeof setTimeout> | null = null;
 
   private destroy$ = new Subject<void>();
 
@@ -131,6 +132,10 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.dayDetailTimer !== null) {
+      clearTimeout(this.dayDetailTimer);
+      this.dayDetailTimer = null;
+    }
     try { this.dayDetailChart?.destroy(); } catch (e) {}
     this.dayDetailChart = null;
     this.destroy$.next();
@@ -241,7 +246,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.dayDetail = res;
             // Ge Angular tid att rendera canvas-elementet
-            setTimeout(() => this.buildDayDetailChart(), 50);
+            this.dayDetailTimer = setTimeout(() => this.buildDayDetailChart(), 50);
           }
         }
       });

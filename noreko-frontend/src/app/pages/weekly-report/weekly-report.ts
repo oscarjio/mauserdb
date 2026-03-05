@@ -903,6 +903,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('weekChart') weekChartRef!: ElementRef<HTMLCanvasElement>;
   private chart: Chart | null = null;
   private pendingChart = false;
+  private chartBuildTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Standardvärde: förra veckan
   currentYear = new Date().getFullYear();
@@ -969,6 +970,10 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.chartBuildTimer !== null) {
+      clearTimeout(this.chartBuildTimer);
+      this.chartBuildTimer = null;
+    }
     try { this.chart?.destroy(); } catch (e) {}
     this.chart = null;
   }
@@ -996,7 +1001,11 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
         if (res && res.success) {
           this.data = res;
           this.pendingChart = true;
-          setTimeout(() => {
+          if (this.chartBuildTimer !== null) {
+            clearTimeout(this.chartBuildTimer);
+          }
+          this.chartBuildTimer = setTimeout(() => {
+            this.chartBuildTimer = null;
             if (this.weekChartRef) {
               this.pendingChart = false;
               this.buildChart();
