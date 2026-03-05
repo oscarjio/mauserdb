@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
 require_once __DIR__ . '/AuditController.php';
 
 class RegisterController {
@@ -82,8 +83,8 @@ class RegisterController {
             return;
         }
         
-        // Hasha lösenord med sha1(md5()) – samma som befintlig produktion
-        $hashedPassword = sha1(md5($password));
+        // Hasha lösenord med bcrypt
+        $hashedPassword = AuthHelper::hashPassword($password);
         
         // Spara användare i databasen
         try {

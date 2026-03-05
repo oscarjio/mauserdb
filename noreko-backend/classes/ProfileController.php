@@ -81,7 +81,7 @@ class ProfileController {
                 return;
             }
             $fields[] = 'password = ?';
-            $params[] = sha1(md5($newPassword));
+            $params[] = AuthHelper::hashPassword($newPassword);
         }
 
         // Operator ID (kan sättas till null för att ta bort kopplingen)

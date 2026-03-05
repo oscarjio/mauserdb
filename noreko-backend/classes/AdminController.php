@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/AuthHelper.php';
 require_once __DIR__ . '/AuditController.php';
 
 class AdminController {
@@ -52,8 +53,8 @@ class AdminController {
                     return;
                 }
                 
-                // Hasha lösenord med sha1(md5()) – samma som befintlig produktion
-                $hashedPassword = sha1(md5($password));
+                // Hasha lösenord med bcrypt
+                $hashedPassword = AuthHelper::hashPassword($password);
                 
                 // Kontrollera om active-kolumnen finns
                 try {
@@ -231,7 +232,7 @@ class AdminController {
             if ($username) { $fields[] = 'username = ?'; $params[] = $username; }
             if ($email) { $fields[] = 'email = ?'; $params[] = $email; }
             if ($phone !== null) { $fields[] = 'phone = ?'; $params[] = $phone; }
-            if ($password) { $fields[] = 'password = ?'; $params[] = sha1(md5($password)); }
+            if ($password) { $fields[] = 'password = ?'; $params[] = AuthHelper::hashPassword($password); }
             if ($admin !== null && $id != $_SESSION['user_id']) {
                 $fields[] = 'admin = ?';
                 $params[] = $admin;
