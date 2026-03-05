@@ -111,6 +111,21 @@ export class MyBonusPage implements OnInit, OnDestroy {
   feedbackHistory: FeedbackItem[] = [];
   feedbackHistoryLoading = false;
 
+  // Achievement badges (backend-driven)
+  achievementBadges: {
+    badge_id: string;
+    name: string;
+    description: string;
+    icon: string;
+    earned: boolean;
+    earned_date: string | null;
+    progress: number;
+  }[] = [];
+  achievementsLoading = false;
+  totalIbcLifetime = 0;
+  achievementCurrentStreak = 0;
+  showConfetti = false;
+
   // Närvaro-kalender
   workCalendar: WorkDay[] = [];
   calendarLoading = false;
@@ -178,6 +193,9 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.streakData = null;
     this.myRanking = null;
     this.rankingPosition = null;
+    this.achievementBadges = [];
+    this.totalIbcLifetime = 0;
+    this.achievementCurrentStreak = 0;
     try { if (this.kpiChart) this.kpiChart.destroy(); } catch (e) {}
     this.kpiChart = null;
     try { if (this.historyChart) this.historyChart.destroy(); } catch (e) {}
@@ -263,6 +281,9 @@ export class MyBonusPage implements OnInit, OnDestroy {
     // Streak
     this.loadStreak();
 
+    // Achievement badges
+    this.loadAchievements();
+
     // Min placering (anonymiserad kollegajämförelse)
     this.loadMyRanking();
   }
@@ -311,6 +332,39 @@ export class MyBonusPage implements OnInit, OnDestroy {
       },
       error: () => { this.streakLoading = false; }
     });
+  }
+
+  loadAchievements(): void {
+    if (!this.savedOperatorId) return;
+    this.achievementsLoading = true;
+    this.http.get<any>(
+      `/noreko-backend/api.php?action=bonus&run=achievements&operator_id=${this.savedOperatorId}`,
+      { withCredentials: true }
+    ).pipe(
+      timeout(8000),
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res?.success && res.badges) {
+          this.achievementBadges = res.badges;
+          this.totalIbcLifetime = res.total_ibc_lifetime ?? 0;
+          this.achievementCurrentStreak = res.current_streak ?? 0;
+          // Konfetti om någon badge precis uppnåddes (inom session)
+          const earnedCount = res.badges.filter((b: any) => b.earned).length;
+          if (earnedCount > 0) {
+            this.showConfetti = true;
+            setTimeout(() => { this.showConfetti = false; }, 4000);
+          }
+        }
+        this.achievementsLoading = false;
+      },
+      error: () => { this.achievementsLoading = false; }
+    });
+  }
+
+  getAchievementBadgesEarned(): number {
+    return this.achievementBadges.filter(b => b.earned).length;
   }
 
   loadRankingPosition(): void {

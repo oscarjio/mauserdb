@@ -557,12 +557,65 @@
       </div>
     </div>
 
-    <!-- ===== ACHIEVEMENT-MEDALJER ===== -->
-    <div class="achievements-card mb-4" *ngIf="savedOperatorId && stats">
-      <div class="achievements-header">
-        <i class="fas fa-medal me-2 text-warning"></i>Dina medaljer
+    <!-- ===== MINA UTMARKELSER (backend-driven achievement badges) ===== -->
+    <div class="achievements-card-v2 mb-4" *ngIf="savedOperatorId && stats" [class.confetti-active]="showConfetti">
+      <div class="achievements-header-v2">
+        <i class="fas fa-award me-2"></i>Mina Utmarkelser
+        <span class="achievements-counter-badge ms-auto" *ngIf="achievementBadges.length > 0">
+          {{ getAchievementBadgesEarned() }} / {{ achievementBadges.length }}
+        </span>
       </div>
-      <div class="achievements-body">
+
+      <!-- Loading -->
+      <div class="achievements-body-v2" *ngIf="achievementsLoading">
+        <div class="text-center py-3" style="color:#718096">
+          <i class="fas fa-spinner fa-spin me-1"></i> Laddar utmarkelser...
+        </div>
+      </div>
+
+      <!-- Badges grid -->
+      <div class="achievements-body-v2" *ngIf="!achievementsLoading && achievementBadges.length > 0">
+        <!-- Livstids-IBC banner -->
+        <div class="lifetime-ibc-banner mb-3" *ngIf="totalIbcLifetime > 0">
+          <i class="fas fa-boxes-stacked me-2"></i>
+          <span>Totalt producerat: <strong>{{ totalIbcLifetime | number }}</strong> IBC</span>
+          <span class="ms-3" *ngIf="achievementCurrentStreak > 0">
+            <i class="fas fa-fire text-warning me-1"></i>{{ achievementCurrentStreak }} dagars streak
+          </span>
+        </div>
+
+        <div class="achievements-grid-v2">
+          <div class="achievement-item-v2"
+               *ngFor="let badge of achievementBadges"
+               [class.achievement-earned-v2]="badge.earned"
+               [class.achievement-locked-v2]="!badge.earned"
+               [title]="badge.description">
+            <div class="achievement-icon-v2">
+              <i class="fas {{ badge.icon }}"></i>
+            </div>
+            <div class="achievement-name-v2">{{ badge.name }}</div>
+            <div class="achievement-desc-v2">{{ badge.description }}</div>
+            <!-- Progress bar for non-earned -->
+            <div class="achievement-progress-v2" *ngIf="!badge.earned">
+              <div class="achievement-progress-bar-v2">
+                <div class="achievement-progress-fill-v2" [style.width.%]="badge.progress"></div>
+              </div>
+              <span class="achievement-progress-text-v2">{{ badge.progress }}%</span>
+            </div>
+            <!-- Earned indicator -->
+            <div class="achievement-earned-label" *ngIf="badge.earned">
+              <i class="fas fa-check-circle me-1"></i>Uppnadd
+            </div>
+            <!-- Lock icon for non-earned -->
+            <div class="achievement-lock-v2" *ngIf="!badge.earned">
+              <i class="fas fa-lock"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fallback: old static achievements if backend returns nothing -->
+      <div class="achievements-body" *ngIf="!achievementsLoading && achievementBadges.length === 0">
         <div class="achievements-grid">
           <div class="achievement-item"
                *ngFor="let ach of getAchievements()"
@@ -579,7 +632,7 @@
           </div>
         </div>
         <div class="achievements-count text-muted small mt-2">
-          {{ getEarnedAchievementsCount() }} / {{ getAchievements().length }} medaljer upplåsta
+          {{ getEarnedAchievementsCount() }} / {{ getAchievements().length }} medaljer upplasta
         </div>
       </div>
     </div>

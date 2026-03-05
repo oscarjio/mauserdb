@@ -906,3 +906,184 @@
   border-radius: 999px;
   letter-spacing: 0.02em;
 }
+
+/* ============================================================
+   ACHIEVEMENT BADGES V2 (backend-driven)
+   ============================================================ */
+.achievements-card-v2 {
+  background: #1e2535;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+.achievements-header-v2 {
+  background: linear-gradient(135deg, #161c29 0%, #1a2235 100%);
+  padding: .75rem 1.1rem;
+  font-size: .87rem;
+  font-weight: 600;
+  color: #f6e05e;
+  border-bottom: 1px solid #2d3748;
+  display: flex;
+  align-items: center;
+}
+.achievements-counter-badge {
+  background: rgba(246,224,94,.15);
+  color: #f6e05e;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: .2rem .55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(246,224,94,.3);
+}
+.achievements-body-v2 {
+  padding: 1rem 1.25rem;
+}
+.lifetime-ibc-banner {
+  background: rgba(66,153,225,.08);
+  border: 1px solid rgba(66,153,225,.2);
+  border-radius: 8px;
+  padding: .5rem .75rem;
+  font-size: .82rem;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.achievements-grid-v2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: .75rem;
+}
+.achievement-item-v2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .3rem;
+  padding: .75rem .5rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: default;
+  transition: transform .2s, box-shadow .2s;
+  position: relative;
+  text-align: center;
+}
+.achievement-item-v2:hover { transform: translateY(-2px); }
+.achievement-earned-v2 {
+  background: rgba(246,224,94,.08);
+  border-color: rgba(246,224,94,.3);
+  box-shadow: 0 2px 12px rgba(246,224,94,.12);
+}
+.achievement-locked-v2 {
+  background: rgba(255,255,255,.02);
+  border-color: rgba(255,255,255,.05);
+  filter: grayscale(.7);
+  opacity: .55;
+}
+.achievement-locked-v2:hover { opacity: .7; }
+.achievement-icon-v2 { font-size: 1.8rem; }
+.achievement-earned-v2 .achievement-icon-v2 { color: #f6e05e; }
+.achievement-locked-v2 .achievement-icon-v2 { color: #4a5568; }
+.achievement-name-v2 {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #cbd5e0;
+  line-height: 1.2;
+}
+.achievement-earned-v2 .achievement-name-v2 { color: #f6e05e; }
+.achievement-desc-v2 {
+  font-size: .6rem;
+  color: #718096;
+  line-height: 1.2;
+  max-height: 2.4em;
+  overflow: hidden;
+}
+.achievement-progress-v2 {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .2rem;
+}
+.achievement-progress-bar-v2 {
+  flex: 1;
+  height: 4px;
+  background: #2d3748;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.achievement-progress-fill-v2 {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #4299e1, #667eea);
+  transition: width .5s ease;
+}
+.achievement-progress-text-v2 {
+  font-size: .58rem;
+  color: #718096;
+  font-weight: 600;
+  min-width: 26px;
+  text-align: right;
+}
+.achievement-earned-label {
+  font-size: .6rem;
+  color: #48bb78;
+  font-weight: 600;
+  margin-top: .15rem;
+}
+.achievement-lock-v2 {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: .6rem;
+  color: #4a5568;
+}
+
+/* Confetti animation (CSS-only) */
+.confetti-active::before,
+.confetti-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10;
+  animation: confetti-fall 3s ease-out forwards;
+}
+.confetti-active::before {
+  background: #f6e05e;
+  box-shadow:
+    -30px -10px 0 #48bb78,
+    30px -20px 0 #4299e1,
+    -60px -5px 0 #fc8181,
+    60px -15px 0 #ed8936,
+    -15px -25px 0 #667eea,
+    45px -8px 0 #f6e05e,
+    -45px -18px 0 #48bb78,
+    15px -30px 0 #fc8181;
+}
+.confetti-active::after {
+  background: #4299e1;
+  box-shadow:
+    -20px -15px 0 #ed8936,
+    40px -25px 0 #48bb78,
+    -50px -8px 0 #f6e05e,
+    50px -20px 0 #667eea,
+    -10px -30px 0 #fc8181,
+    25px -12px 0 #4299e1;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(120px) scale(0.3); opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  .achievements-grid-v2 { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .achievement-icon-v2 { font-size: 1.4rem; }
+  .lifetime-ibc-banner { font-size: .75rem; }
+}

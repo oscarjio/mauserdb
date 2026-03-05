@@ -68,6 +68,7 @@ class BonusController {
             case 'my-ranking':        $this->getMyRanking();         break;
             case 'week-trend':        $this->getWeekTrend();         break;
             case 'ranking-position':  $this->getRankingPosition();   break;
+            case 'achievements':      $this->getAchievements();      break;
             default: $this->sendError('Ogiltig action: ' . $run);
         }
     }
@@ -1356,6 +1357,239 @@ class BonusController {
         } catch (PDOException $e) {
             error_log('BonusController getStreak error: ' . $e->getMessage());
             $this->sendError('Databasfel');
+        }
+    }
+
+    /**
+     * GET /api.php?action=bonus&run=achievements&operator_id=X
+     *
+     * Returnerar achievement badges med status, progress och uppnått-datum.
+     * Milstolpar: IBC-totalt (livstid), Perfekt vecka, Streak, Hastighets-mästare, Kvalitets-mästare.
+     */
+    private function getAchievements(): void {
+        $opId = intval($_GET['operator_id'] ?? 0);
+        if (!$opId) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Saknar operator_id']);
+            return;
+        }
+
+        try {
+            $badges = [];
+
+            // --- 1. IBC-milstolpar (livstid) ---
+            $stmt = $this->pdo->prepare("
+                SELECT COALESCE(SUM(delta_ok), 0) AS total_ibc
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
+                    FROM rebotling_ibc
+                    WHERE (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmt->execute([$opId, $opId, $opId]);
+            $totalIbc = intval($stmt->fetchColumn());
+
+            $ibcMilestones = [
+                ['id' => 'ibc_100',  'target' => 100,  'name' => '100 IBC',   'desc' => 'Producerat 100 IBC totalt',  'icon' => 'fa-box-open'],
+                ['id' => 'ibc_500',  'target' => 500,  'name' => '500 IBC',   'desc' => 'Producerat 500 IBC totalt',  'icon' => 'fa-boxes-stacked'],
+                ['id' => 'ibc_1000', 'target' => 1000, 'name' => '1 000 IBC', 'desc' => 'Producerat 1 000 IBC totalt','icon' => 'fa-trophy'],
+                ['id' => 'ibc_2500', 'target' => 2500, 'name' => '2 500 IBC', 'desc' => 'Producerat 2 500 IBC totalt','icon' => 'fa-medal'],
+                ['id' => 'ibc_5000', 'target' => 5000, 'name' => '5 000 IBC', 'desc' => 'Producerat 5 000 IBC totalt','icon' => 'fa-gem'],
+            ];
+
+            foreach ($ibcMilestones as $ms) {
+                $earned = $totalIbc >= $ms['target'];
+                $progress = $ms['target'] > 0 ? min(100, round(($totalIbc / $ms['target']) * 100)) : 0;
+                $badges[] = [
+                    'badge_id'    => $ms['id'],
+                    'name'        => $ms['name'],
+                    'description' => $ms['desc'],
+                    'icon'        => $ms['icon'],
+                    'earned'      => $earned,
+                    'earned_date' => null,
+                    'progress'    => $earned ? 100 : $progress,
+                ];
+            }
+
+            // --- 2. Perfekt vecka: alla skift med kvalitet >= 95% ---
+            $stmt2 = $this->pdo->prepare("
+                SELECT COUNT(*) AS total_shifts, SUM(CASE WHEN kvalitet_pct >= 95 THEN 1 ELSE 0 END) AS perfect_shifts
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS ok,
+                           MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS ej_ok,
+                           CASE WHEN (MAX(ibc_ok) - MIN(ibc_ok) + MAX(ibc_ej_ok) - MIN(ibc_ej_ok)) > 0
+                                THEN (MAX(ibc_ok) - MIN(ibc_ok)) / (MAX(ibc_ok) - MIN(ibc_ok) + MAX(ibc_ej_ok) - MIN(ibc_ej_ok)) * 100
+                                ELSE 100 END AS kvalitet_pct
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmt2->execute([$opId, $opId, $opId]);
+            $kvalRow = $stmt2->fetch(PDO::FETCH_ASSOC);
+            $totalShiftsWeek = intval($kvalRow['total_shifts'] ?? 0);
+            $perfectShifts = intval($kvalRow['perfect_shifts'] ?? 0);
+            $perfectWeekEarned = $totalShiftsWeek >= 3 && $perfectShifts === $totalShiftsWeek;
+            $perfectWeekProgress = $totalShiftsWeek > 0 ? min(100, round(($perfectShifts / max($totalShiftsWeek, 5)) * 100)) : 0;
+
+            $badges[] = [
+                'badge_id'    => 'perfect_week',
+                'name'        => 'Perfekt vecka',
+                'description' => 'Alla skift med kvalitet >= 95% denna vecka',
+                'icon'        => 'fa-star',
+                'earned'      => $perfectWeekEarned,
+                'earned_date' => null,
+                'progress'    => $perfectWeekEarned ? 100 : $perfectWeekProgress,
+            ];
+
+            // --- 3. Streak: 5, 10, 20 dagar i rad ---
+            $stmtStreak = $this->pdo->prepare("
+                SELECT DATE(datum) AS dag, SUM(delta_ok) AS ibc_dag
+                FROM (
+                    SELECT DATE(datum) AS datum, skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) x
+                GROUP BY DATE(datum)
+                ORDER BY dag DESC
+            ");
+            $stmtStreak->execute([$opId, $opId, $opId]);
+            $streakRows = $stmtStreak->fetchAll(PDO::FETCH_ASSOC);
+
+            $currentStreak = 0;
+            $prevDate = null;
+            $todayDt = new DateTime('today');
+            foreach ($streakRows as $row) {
+                $dag = new DateTime($row['dag']);
+                if ($row['ibc_dag'] <= 0) {
+                    if ($currentStreak > 0) break;
+                    if ($prevDate === null && $dag->diff($todayDt)->days <= 1) continue;
+                    break;
+                }
+                if ($prevDate !== null) {
+                    $diff = $prevDate->diff($dag)->days;
+                    if ($diff > 1) break;
+                }
+                $currentStreak++;
+                $prevDate = $dag;
+            }
+
+            $streakLevels = [
+                ['id' => 'streak_5',  'target' => 5,  'name' => '5-dagars streak',  'desc' => '5 dagar i rad med produktion'],
+                ['id' => 'streak_10', 'target' => 10, 'name' => '10-dagars streak', 'desc' => '10 dagar i rad med produktion'],
+                ['id' => 'streak_20', 'target' => 20, 'name' => '20-dagars streak', 'desc' => '20 dagar i rad med produktion'],
+            ];
+
+            foreach ($streakLevels as $sl) {
+                $earned = $currentStreak >= $sl['target'];
+                $progress = min(100, round(($currentStreak / $sl['target']) * 100));
+                $badges[] = [
+                    'badge_id'    => $sl['id'],
+                    'name'        => $sl['name'],
+                    'description' => $sl['desc'],
+                    'icon'        => 'fa-fire',
+                    'earned'      => $earned,
+                    'earned_date' => null,
+                    'progress'    => $earned ? 100 : $progress,
+                ];
+            }
+
+            // --- 4. Hastighets-mästare: snitt IBC/h >= 12 en hel vecka ---
+            $stmtSpeed = $this->pdo->prepare("
+                SELECT
+                    COALESCE(SUM(shift_ibc_ok), 0) AS week_ibc,
+                    COALESCE(SUM(shift_runtime_h), 0) AS week_runtime_h,
+                    COUNT(*) AS shift_count
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS shift_ibc_ok,
+                           MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmtSpeed->execute([$opId, $opId, $opId]);
+            $speedRow = $stmtSpeed->fetch(PDO::FETCH_ASSOC);
+            $weekRuntime = floatval($speedRow['week_runtime_h'] ?? 0);
+            $weekIbc = intval($speedRow['week_ibc'] ?? 0);
+            $weekShifts = intval($speedRow['shift_count'] ?? 0);
+            $avgIbcPerH = $weekRuntime > 0 ? $weekIbc / $weekRuntime : 0;
+            $speedEarned = $weekShifts >= 3 && $avgIbcPerH >= 12;
+            $speedProgress = min(100, round(($avgIbcPerH / 12) * 100));
+
+            $badges[] = [
+                'badge_id'    => 'speed_master',
+                'name'        => 'Hastighets-mastare',
+                'description' => 'Snitt IBC/h >= 12 en hel vecka (min 3 skift)',
+                'icon'        => 'fa-bolt',
+                'earned'      => $speedEarned,
+                'earned_date' => null,
+                'progress'    => $speedEarned ? 100 : $speedProgress,
+            ];
+
+            // --- 5. Kvalitets-mästare: snitt kvalitet >= 98% en hel vecka ---
+            $stmtQual = $this->pdo->prepare("
+                SELECT
+                    COALESCE(SUM(shift_ok), 0) AS total_ok,
+                    COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_all,
+                    COUNT(*) AS shift_count
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS shift_ok,
+                           MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+                      AND (op1 = ? OR op2 = ? OR op3 = ?)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmtQual->execute([$opId, $opId, $opId]);
+            $qualRow = $stmtQual->fetch(PDO::FETCH_ASSOC);
+            $qualTotalOk = intval($qualRow['total_ok'] ?? 0);
+            $qualTotalAll = intval($qualRow['total_all'] ?? 0);
+            $qualShifts = intval($qualRow['shift_count'] ?? 0);
+            $avgQuality = $qualTotalAll > 0 ? ($qualTotalOk / $qualTotalAll) * 100 : 0;
+            $qualEarned = $qualShifts >= 3 && $avgQuality >= 98;
+            $qualProgress = min(100, round(($avgQuality / 98) * 100));
+
+            $badges[] = [
+                'badge_id'    => 'quality_master',
+                'name'        => 'Kvalitets-mastare',
+                'description' => 'Snitt kvalitet >= 98% en hel vecka (min 3 skift)',
+                'icon'        => 'fa-gem',
+                'earned'      => $qualEarned,
+                'earned_date' => null,
+                'progress'    => $qualEarned ? 100 : $qualProgress,
+            ];
+
+            echo json_encode([
+                'success' => true,
+                'badges'  => $badges,
+                'total_ibc_lifetime' => $totalIbc,
+                'current_streak'     => $currentStreak,
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusController getAchievements error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel']);
         }
     }
 

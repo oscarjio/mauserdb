@@ -28,6 +28,8 @@ class AndonController {
             $this->andonNotes();
         } elseif ($run === 'hourly-today') {
             $this->getHourlyToday();
+        } elseif ($run === 'daily-challenge') {
+            $this->getDailyChallenge();
         } else {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Okänd metod']);
@@ -344,6 +346,234 @@ class AndonController {
 
         } catch (\Exception $e) {
             error_log('AndonController::getHourlyToday fel: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+        }
+    }
+
+    /**
+     * GET /api.php?action=andon&run=daily-challenge
+     *
+     * Genererar en daglig utmaning baserad på historik.
+     * Returnerar: challenge_text, icon, target, current, progress_pct, completed
+     */
+    private function getDailyChallenge(): void {
+        try {
+            $datum = date('Y-m-d');
+
+            // Hämta dagsmål
+            $malIdag = 100;
+            try {
+                $stmt = $this->pdo->prepare(
+                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                );
+                $stmt->execute();
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row) $malIdag = intval($row['value']);
+            } catch (\Exception $e) {}
+
+            // Hämta dagens IBC
+            $stmt = $this->pdo->prepare("
+                SELECT COALESCE(MAX(ibc_ok), 0) AS ibc_idag
+                FROM rebotling_ibc
+                WHERE DATE(datum) = ?
+            ");
+            $stmt->execute([$datum]);
+            $ibcIdag = intval($stmt->fetchColumn());
+
+            // Hämta igårs IBC
+            $stmt2 = $this->pdo->prepare("
+                SELECT COALESCE(SUM(delta_ok), 0) AS ibc_igar
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = DATE_SUB(?, INTERVAL 1 DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmt2->execute([$datum]);
+            $ibcIgar = intval($stmt2->fetchColumn());
+
+            // Hämta snitt IBC/h senaste 7 dagarna
+            $stmt3 = $this->pdo->prepare("
+                SELECT
+                    COALESCE(SUM(delta_ok), 0) AS total_ibc,
+                    COALESCE(SUM(runtime_h), 0) AS total_h
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok,
+                           MAX(runtime_plc) / 3600.0 AS runtime_h
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(?, INTERVAL 7 DAY)
+                      AND datum < ?
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmt3->execute([$datum, $datum]);
+            $avgRow = $stmt3->fetch(PDO::FETCH_ASSOC);
+            $avgIbcPerH = floatval($avgRow['total_h'] ?? 0) > 0
+                ? floatval($avgRow['total_ibc'] ?? 0) / floatval($avgRow['total_h'])
+                : 0;
+
+            // Hämta bästa skift-IBC (team) senaste 30 dagarna
+            $stmt4 = $this->pdo->prepare("
+                SELECT MAX(shift_ibc) AS best_shift
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) - MIN(ibc_ok) AS shift_ibc
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(?, INTERVAL 30 DAY)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmt4->execute([$datum]);
+            $bestShift = intval($stmt4->fetchColumn());
+
+            // Hämta snitt kvalitet senaste 7 dagarna
+            $stmt5 = $this->pdo->prepare("
+                SELECT
+                    COALESCE(SUM(ok), 0) AS total_ok,
+                    COALESCE(SUM(ok + ej), 0) AS total_all
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(ibc_ok) - MIN(ibc_ok) AS ok,
+                           MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS ej
+                    FROM rebotling_ibc
+                    WHERE datum >= DATE_SUB(?, INTERVAL 7 DAY)
+                      AND datum < ?
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                    HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                ) x
+            ");
+            $stmt5->execute([$datum, $datum]);
+            $qualRow = $stmt5->fetch(PDO::FETCH_ASSOC);
+            $avgQuality = intval($qualRow['total_all'] ?? 0) > 0
+                ? (intval($qualRow['total_ok'] ?? 0) / intval($qualRow['total_all'])) * 100
+                : 100;
+
+            // Välj utmaning baserad på dag-seed (deterministic per dag)
+            $daySeed = intval(date('z')); // dag i året
+            $challenges = [];
+
+            // Utmaning 1: Slå IBC/h-mål
+            $targetIbcH = round($avgIbcPerH * 1.15, 1); // 15% över snitt
+            if ($targetIbcH > 0) {
+                $challenges[] = [
+                    'text'     => "Na {$targetIbcH} IBC/h idag!",
+                    'icon'     => 'fa-rocket',
+                    'target'   => $targetIbcH,
+                    'type'     => 'ibc_per_h',
+                ];
+            }
+
+            // Utmaning 2: Slå igårs rekord
+            if ($ibcIgar > 0) {
+                $challenges[] = [
+                    'text'     => "Sla igars rekord: {$ibcIgar} IBC!",
+                    'icon'     => 'fa-trophy',
+                    'target'   => $ibcIgar,
+                    'type'     => 'ibc_total',
+                ];
+            }
+
+            // Utmaning 3: Perfekt kvalitet
+            if ($avgQuality < 99) {
+                $challenges[] = [
+                    'text'     => 'Perfekt kvalitet hela skiftet!',
+                    'icon'     => 'fa-star',
+                    'target'   => 100,
+                    'type'     => 'quality',
+                ];
+            }
+
+            // Utmaning 4: Teamrekord
+            if ($bestShift > 0) {
+                $challenges[] = [
+                    'text'     => "Teamrekord att sla: {$bestShift} IBC pa ett skift!",
+                    'icon'     => 'fa-users',
+                    'target'   => $bestShift,
+                    'type'     => 'ibc_total',
+                ];
+            }
+
+            // Utmaning 5: Nå dagsmålet
+            $challenges[] = [
+                'text'     => "Na dagsmalet: {$malIdag} IBC!",
+                'icon'     => 'fa-bullseye',
+                'target'   => $malIdag,
+                'type'     => 'ibc_total',
+            ];
+
+            // Välj baserat på dag-seed
+            $chosen = $challenges[$daySeed % count($challenges)];
+
+            // Beräkna current progress baserat på typ
+            $current = 0;
+            $completed = false;
+
+            if ($chosen['type'] === 'ibc_total') {
+                $current = $ibcIdag;
+                $completed = $ibcIdag >= $chosen['target'];
+            } elseif ($chosen['type'] === 'ibc_per_h') {
+                // Beräkna dagens IBC/h
+                $stmtToday = $this->pdo->prepare("
+                    SELECT COALESCE(MAX(runtime_plc), 0) / 3600.0 AS runtime_h
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = ?
+                ");
+                $stmtToday->execute([$datum]);
+                $todayRuntimeH = floatval($stmtToday->fetchColumn());
+                $current = $todayRuntimeH > 0 ? round($ibcIdag / $todayRuntimeH, 1) : 0;
+                $completed = $current >= $chosen['target'];
+            } elseif ($chosen['type'] === 'quality') {
+                // Dagens kvalitet
+                $stmtQ = $this->pdo->prepare("
+                    SELECT
+                        COALESCE(SUM(ok), 0) AS ok,
+                        COALESCE(SUM(ok + ej), 0) AS total
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(ibc_ok) - MIN(ibc_ok) AS ok,
+                               MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS ej
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = ?
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY skiftraknare
+                        HAVING (MAX(ibc_ok) - MIN(ibc_ok)) > 0
+                    ) x
+                ");
+                $stmtQ->execute([$datum]);
+                $qr = $stmtQ->fetch(PDO::FETCH_ASSOC);
+                $todayAll = intval($qr['total'] ?? 0);
+                $todayOk = intval($qr['ok'] ?? 0);
+                $current = $todayAll > 0 ? round(($todayOk / $todayAll) * 100, 1) : 100;
+                $completed = $current >= 100;
+            }
+
+            $progressPct = $chosen['target'] > 0
+                ? min(100, round(($current / $chosen['target']) * 100))
+                : 0;
+
+            echo json_encode([
+                'success'      => true,
+                'challenge'    => $chosen['text'],
+                'icon'         => $chosen['icon'],
+                'target'       => $chosen['target'],
+                'current'      => $current,
+                'progress_pct' => $progressPct,
+                'completed'    => $completed,
+                'type'         => $chosen['type'],
+                'datum'        => $datum,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('AndonController::getDailyChallenge fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
