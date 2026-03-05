@@ -130,6 +130,7 @@ $classNameMap = [
     'maintenance' => 'MaintenanceController',
     'weekly-report' => 'WeeklyReportController',
     'feedback'     => 'FeedbackController',
+    'runtime'      => 'RuntimeController',
 ];
 
 $actionKey = strtolower($action);
