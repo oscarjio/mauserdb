@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #10)*
+*Senast uppdaterad: 2026-03-05 (session #12)*
 
 ---
 
@@ -233,7 +233,7 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - [x] **Rebotling-skiftrapport trendgraf**: KLAR `6af3e1e` — timupplösning vs genomsnittsprofil, skiftnavigering
 - [x] **Operatörsdashboard förbättring**: PÅGÅR (a1934683e7c0bf6f6) — veckovy, trend, summary-kort
 - [x] **Andon-tavla skiftnoter**: PÅGÅR (ad5e36138558c6ba2) — okvitterade noter, urgency-badge
-- [ ] **VD Månadsrapport förbättring**: Månadsrapport (`/rapporter/manad`) behöver: föregående månads-jämförelse med diff-indikatorer, "Månadens bästa dag" highlight, operator-of-the-month tabell, bättre PDF-design. Backend: month-compare endpoint.
+- [x] **VD Månadsrapport förbättring**: KLAR `c0c683b` — VD-sammanfattning (auto-genererad text), dagsmål-referenslinje i diagram, förbättrad PDF/print (A4, logotyp, sidfot), guld/silver/brons print-styling
 - [ ] **Executive dashboard: multi-linje status**: Lägg till real-time statusrad för alla 4 linjer i executive dashboard — grön/orange/röd per linje baserat på om de körs + senaste OEE.
 
 ### 🟡 Medium prioritet
@@ -296,6 +296,21 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - [ ] **My-bonus**: Push-notifikation (Web Push API) när operatören passerar en bonusnivå (Brons→Silver osv).
 - [ ] **Rebotling-statistik**: Annotationer i grafer — markera ut driftstopp, helgdagar, nya operatörer direkt i tidslinjen.
 - [ ] **Skiftrapport**: Automatisk e-post/export vid skiftslut — skicka skiftsammanfattning som PDF till chef.
+
+---
+
+## BESLUTSDAGBOK
+
+### 2026-03-05 Session #12
+**Lägesanalys**: Session #10-11 körde rebotling-statistik refactoring (55% reduktion), maintenance-log split, Bug Hunt #18. Allt committat och pushat.
+
+**Beslut denna session**:
+1. Worker 1: VD Månadsrapport förbättring — monthly-report sidan finns redan, förbättra med föregående-månads-jämförelse, operator-of-the-month, diff-indikatorer
+2. Worker 2: Bug Hunt #19 — granska alla commits sedan session #8 (senaste bugfix-session var #10/Bug Hunt #18)
+
+**Motivering**: Månadsrapporten ger direkt VD-värde (måndag-morgon-scenario). Bug hunting vart 3:e session håller teknisk skuld nere.
+
+---
 
 ### Data & Analytics
 - [ ] **Prediktiv underhållsindikator**: Baserat på cykeltidsdata — om cykeltid ökar stadigt kan det indikera maskinslitage. Visa varning.
@@ -572,6 +587,7 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 **2026-03-05 session #8**: Session #7 komplett — alla 3 workers klara. Operatör×Maskin committat (`6b34381`), Bug Hunt #15 + Oparade endpoints uncommitted (15 filer). Batch 1 (3 workers): Commit+bygg (`572f326`+`8389d09`), Oparade endpoints batch 2 (`0af052d`), Gamification (`60c5af2`). Batch 2 (3 workers): Bug Hunt #16 (`348ee07`), Bonus rättviseaudit (`9e54e8d`), VD Veckosammanfattning (`eb930e2`). Batch 3 (3 workers): RebotlingController refactoring (`d295fa8`), Lösenordshashing bcrypt (`286fb1b`), Bug Hunt #17 (`272d48e`). Totalt 11 commits i 3 batchar, 8 features + 3 bugfixar + 1 security + 1 refactor. Batch 4 (3 workers): Saglinje/Klassificeringslinje services (`e60e196`), PHP input-validering (`704ee80`), Loading-states batch 2 (`1a3a4b8`). Behovsanalys: 12 fynd, 6 nya medium-items + 5 nya idébank-items. MES-research: predictive shift-end, IBC traceability, WebSocket. Startar batch 5.
 **2026-03-05 session #9**: Session #8 komplett — 14 commits i 4 batchar (gamification, rättviseaudit, veckosammanfattning, RebotlingController split, bcrypt, bug hunt #16+#17, PHP input-validering, services, loading-states). Backlog har 10+ öppna medium-items. Startar 3 workers: rebotling-statistik refactoring (4248→child-components), Error-handling UX + Empty-states batch 3, Mobilanpassning batch 3.
 **2026-03-05 session #10**: Session #9 levererade 2 av 3 workers (Error-handling UX `6d203d5`, Mobilanpassning `36bb854`). rebotling-statistik refactoring ej klar — kvarstår. Inga uncommitted ändringar. Backlog har 10+ medium-items öppna. Startar 3 workers: rebotling-statistik refactoring (4248→child-components), maintenance-log refactoring (1817→child-components), Bug Hunt #18 (granska session #9 commits).
+**2026-03-05 session #11**: Session #10 komplett — alla 3 workers levererade (rebotling-statistik 16 child-components `9eec10d`, maintenance-log 7 filer `c39d3cb`, Bug Hunt #18 `6baa2bf`). Backlog har ~15 öppna medium/låg-items. Startar 3 workers: Bug Hunt #19 (granska 23 nya child-components), Six Big Losses TPM dashboard (ny VD-feature), Generic SkiftrapportComponent (4→1 sida, ~2000 rader DRY).
 **2026-03-04 session #4**: Genomgång av alla öppna items. Kväll #3 levererade: empty-states (12 sidor), mobilanpassning (6 sidor), loading-states, design-konsistens, Chart.js tooltips, prediktiv underhåll v2 (korrelation). Massiv leverans — nästan alla behovsanalys-items klara. Kvarstående öppna: Executive dashboard multi-linje, bonus-admin utbetalningshistorik, halvfärdiga features-cleanup, push-notiser, skiftplaneringsvy förbättring. Startar 3 workers: multi-linje exec dashboard, bonus utbetalningshistorik, halvfärdiga features-granskning.
 
 ---
@@ -708,3 +724,12 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 - [x] **rebotling-statistik.ts refactoring**: KLAR `9eec10d` — 4248→1922 rader TS (55%), 2188→694 HTML (68%). 16 child-components i statistik/: histogram, SPC, cykeltid-operator, kvalitetstrend, waterfall-OEE, veckodag, produktionsrytm, pareto-stopp, kassation-pareto, OEE-komponenter, kvalitetsanalys, händelser, veckojämförelse, prediktion, OEE-deepdive, cykeltrend. @defer on viewport + *ngIf toggle.
 - [x] **maintenance-log.ts refactoring**: KLAR `c39d3cb` — 1817→377 rader. 7 nya filer: models, helpers, 5 child-components (list, equipment-stats, kpi-analysis, service-intervals, form).
 - [x] **Bug Hunt #18 — session #9 granskning**: KLAR `6baa2bf` — 1 bugg fixad: operators.html svenska specialtecken (å/ä/ö) i kompatibilitetsmatris. Övriga 9 filer rena.
+
+---
+
+## AKTIV BATCH (2026-03-05 session #11)
+
+### 🔴 Hög prioritet — Workers startas NU
+- [ ] **Bug Hunt #19 — session #10 refactoring-granskning**: Granska alla 23 nya child-components (16 statistik + 7 maintenance-log). Verifiera: @Input/@Output korrekt, takeUntil(destroy$) i child-subscriptions, Chart.js destroy i try-catch, inga duplicerade imports, inga any-typer i nya filer.
+- [ ] **Six Big Losses (TPM) dashboard**: Ny sida `/rebotling/tpm-losses` — strukturerad OEE-förlustkategorisering: Tillgänglighetsförluster (utrustningsfel, omställningar), Prestandaförluster (mikrostopp, reducerad hastighet), Kvalitetsförluster (startrejects, produktionsdefekter). Backend: TPM-endpoint i RebotlingAnalyticsController. Frontend: 6 förlustkort med ikoner, vattenfallsdiagram, trend 30d.
+- [ ] **Generic SkiftrapportComponent**: 4 identiska skiftrapport-sidor (rebotling/tvattlinje/saglinje/klassificeringslinje) → 1 generisk komponent med linjekonfiguration. Eliminerar ~2000 rader duplicerad kod.
