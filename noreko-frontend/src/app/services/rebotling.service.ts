@@ -367,6 +367,109 @@ export class RebotlingService {
     );
   }
 
+  getStaffingWarning(): Observable<StaffingWarningResponse> {
+    return this.http.get<StaffingWarningResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=staffing-warning',
+      { withCredentials: true }
+    );
+  }
+
+  getMonthlyStopSummary(month: string): Observable<MonthlyStopSummaryResponse> {
+    return this.http.get<MonthlyStopSummaryResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=monthly-stop-summary&month=${month}`,
+      { withCredentials: true }
+    );
+  }
+
+  getProductionRate(): Observable<ProductionRateResponse> {
+    return this.http.get<ProductionRateResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=production-rate',
+      { withCredentials: true }
+    );
+  }
+
+  // ---- Alert Thresholds ----
+  getAlertThresholds(): Observable<AlertThresholdsResponse> {
+    return this.http.get<AlertThresholdsResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=alert-thresholds',
+      { withCredentials: true }
+    );
+  }
+
+  saveAlertThresholds(thresholds: any): Observable<any> {
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=save-alert-thresholds',
+      thresholds,
+      { withCredentials: true }
+    );
+  }
+
+  // ---- Notification Settings ----
+  getNotificationSettings(): Observable<NotificationSettingsResponse> {
+    return this.http.get<NotificationSettingsResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=notification-settings',
+      { withCredentials: true }
+    );
+  }
+
+  saveNotificationSettings(settings: any): Observable<any> {
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=save-notification-settings',
+      settings,
+      { withCredentials: true }
+    );
+  }
+
+  // ---- Goal History ----
+  getGoalHistory(days: number = 180): Observable<GoalHistoryResponse> {
+    return this.http.get<GoalHistoryResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=goal-history&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+}
+
+export interface AlertThresholdsResponse {
+  success: boolean;
+  data?: {
+    oee_warn: number;
+    oee_danger: number;
+    prod_warn: number;
+    prod_danger: number;
+    plc_max_min: number;
+    quality_warn: number;
+  };
+  error?: string;
+}
+
+export interface NotificationSettingsResponse {
+  success: boolean;
+  data?: {
+    notification_emails: string;
+    config: {
+      enabled: boolean;
+      on_stopp: boolean;
+      on_low_oee: boolean;
+      on_cert_expiry: boolean;
+      on_maintenance: boolean;
+      on_shift_report: boolean;
+    };
+  };
+  error?: string;
+}
+
+export interface GoalHistoryEntry {
+  goal_type: string;
+  value: number;
+  changed_by: string;
+  changed_at: string;
+}
+
+export interface GoalHistoryResponse {
+  success: boolean;
+  data?: GoalHistoryEntry[];
+  error?: string;
 }
 
 export interface PersonalBestOperator {
@@ -809,5 +912,47 @@ export interface FeedbackSummaryResponse {
   avg_stamning: number | null;
   total?: number;
   per_dag?: FeedbackSummaryDayEntry[];
+  error?: string;
+}
+
+export interface StaffingWarningShift {
+  skift_nr: number;
+  antal_ops: number;
+}
+
+export interface StaffingWarningDay {
+  datum: string;
+  dag_namn: string;
+  underbemanning: StaffingWarningShift[];
+}
+
+export interface StaffingWarningResponse {
+  success: boolean;
+  warnings?: StaffingWarningDay[];
+  min_operators?: number;
+  error?: string;
+}
+
+export interface MonthlyStopSummaryItem {
+  orsak: string;
+  total_min: number;
+  antal: number;
+  pct: number;
+}
+
+export interface MonthlyStopSummaryResponse {
+  success: boolean;
+  items?: MonthlyStopSummaryItem[];
+  error?: string;
+}
+
+export interface ProductionRateResponse {
+  success: boolean;
+  data?: {
+    avg_ibc_per_day_7d: number;
+    avg_ibc_per_day_30d: number;
+    avg_ibc_per_day_90d: number;
+    dag_mal: number;
+  };
   error?: string;
 }

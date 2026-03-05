@@ -6,7 +6,7 @@ import { Subject, Subscription } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService, ExecDashboardResponse, MaintenanceStatsResponse, FeedbackSummaryResponse, FeedbackSummaryDayEntry } from '../../services/rebotling.service';
+import { RebotlingService, ExecDashboardResponse, MaintenanceStatsResponse, FeedbackSummaryResponse, FeedbackSummaryDayEntry, StaffingWarningDay } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -67,6 +67,11 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   private moodChart: Chart | null = null;
   private moodChartTimer: any = null;
 
+  // Bemanningsöversikt
+  staffingWarnings: StaffingWarningDay[] = [];
+  staffingMinOperators: number = 2;
+  private isFetchingStaffing = false;
+
   private pollInterval: any;
   private dataSub: Subscription | null = null;
   private barChart: Chart | null = null;
@@ -92,6 +97,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     this.loadLatestNews();
     this.loadMaintenanceStats();
     this.loadFeedbackSummary();
+    this.loadStaffingWarning();
     this.pollInterval = setInterval(() => {
       this.loadData();
       this.loadMaintenanceStats();
@@ -613,6 +619,36 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  // ---- Bemanningsöversikt ----
+
+  loadStaffingWarning(): void {
+    if (this.isFetchingStaffing) return;
+    this.isFetchingStaffing = true;
+
+    this.rebotlingService.getStaffingWarning()
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.isFetchingStaffing = false;
+        if (res?.success) {
+          this.staffingWarnings = res.warnings ?? [];
+          this.staffingMinOperators = res.min_operators ?? 2;
+        }
+      });
+  }
+
+  getStaffingSkiftLabel(skiftNr: number): string {
+    switch (skiftNr) {
+      case 1: return 'Skift 1 (06-14)';
+      case 2: return 'Skift 2 (14-22)';
+      case 3: return 'Skift 3 (22-06)';
+      default: return 'Skift ' + skiftNr;
+    }
+  }
+
+  getStaffingSeverity(day: StaffingWarningDay): 'danger' | 'warning' {
+    return day.underbemanning.some((s: any) => s.antal_ops === 0) ? 'danger' : 'warning';
   }
 
   printDashboard(): void {

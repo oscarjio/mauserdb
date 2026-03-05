@@ -180,6 +180,40 @@
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 7: Daily Challenge
+         ═══════════════════════════════════════════════════════ -->
+    <div class="daily-challenge-widget" *ngIf="dailyChallenge" [class]="challengeStatusClass">
+      <div class="dc-left">
+        <div class="dc-icon-wrap">
+          <i class="fas {{ dailyChallenge.icon }}"></i>
+        </div>
+        <div class="dc-text-block">
+          <div class="dc-label">DAGENS UTMANING</div>
+          <div class="dc-challenge-text">{{ dailyChallenge.challenge }}</div>
+        </div>
+      </div>
+      <div class="dc-right">
+        <div class="dc-progress-wrap">
+          <div class="dc-progress-outer">
+            <div class="dc-progress-inner"
+                 [style.width.%]="dailyChallenge.progress_pct"
+                 [class.dc-progress-done]="dailyChallenge.completed">
+            </div>
+          </div>
+          <div class="dc-progress-label">
+            <span class="dc-current">{{ dailyChallenge.current }}</span>
+            <span class="dc-separator">/</span>
+            <span class="dc-target">{{ dailyChallenge.target }}</span>
+            <span class="dc-pct">({{ dailyChallenge.progress_pct }}%)</span>
+          </div>
+        </div>
+        <div class="dc-done-badge" *ngIf="dailyChallenge.completed">
+          KLART!
+        </div>
+      </div>
+    </div>
+
     <!-- KPI-kort-rad -->
     <div class="kpi-rad">
 
@@ -220,6 +254,48 @@
         <div class="kpi-sub kpi-sub2">Drifttid: {{ status.runtime_min }} min</div>
       </div>
 
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         Feature 6: Aktuell Produktionstakt
+         ═══════════════════════════════════════════════════════ -->
+    <div class="prod-rate-sektion" *ngIf="productionRate">
+      <div class="prod-rate-huvud">
+        <div class="prod-rate-rubrik">AKTUELL PRODUKTIONSTAKT</div>
+        <div class="prod-rate-target-label">Dagsmål: {{ productionRate.dag_mal }} IBC</div>
+      </div>
+      <div class="prod-rate-kort-rad">
+        <div class="prod-rate-kort" [style.border-color]="productionRateColor">
+          <div class="prod-rate-kort-label">Snitt 7 dagar</div>
+          <div class="prod-rate-kort-varde" [style.color]="productionRateColor">
+            {{ productionRate.avg_ibc_per_day_7d | number:'1.1-1' }}
+          </div>
+          <div class="prod-rate-kort-enhet">IBC/dag</div>
+          <div class="prod-rate-kort-progress">
+            <div class="prod-rate-bar-outer">
+              <div class="prod-rate-bar-inner"
+                   [style.width.%]="productionRatePct"
+                   [style.background-color]="productionRateColor">
+              </div>
+            </div>
+            <span class="prod-rate-pct" [style.color]="productionRateColor">{{ productionRatePct }}%</span>
+          </div>
+        </div>
+        <div class="prod-rate-kort prod-rate-kort-small">
+          <div class="prod-rate-kort-label">Snitt 30 dagar</div>
+          <div class="prod-rate-kort-varde prod-rate-varde-sm">
+            {{ productionRate.avg_ibc_per_day_30d | number:'1.1-1' }}
+          </div>
+          <div class="prod-rate-kort-enhet">IBC/dag</div>
+        </div>
+        <div class="prod-rate-kort prod-rate-kort-small">
+          <div class="prod-rate-kort-label">Snitt 90 dagar</div>
+          <div class="prod-rate-kort-varde prod-rate-varde-sm">
+            {{ productionRate.avg_ibc_per_day_90d | number:'1.1-1' }}
+          </div>
+          <div class="prod-rate-kort-enhet">IBC/dag</div>
+        </div>
+      </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════

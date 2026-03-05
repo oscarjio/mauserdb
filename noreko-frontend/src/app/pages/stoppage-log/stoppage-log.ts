@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary, ParetoData, ParetoOrsak } from '../../services/stoppage.service';
+import { RebotlingService, MonthlyStopSummaryItem } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 import QRCode from 'qrcode';
 
@@ -161,9 +162,17 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   // Legacy ref kept for stats-tab simple chart
   private paretoChart: Chart | null = null;
 
+  // Monthly stop summary
+  monthlyStopItems: MonthlyStopSummaryItem[] = [];
+  monthlyStopMonth: string = '';
+  monthlyStopLoading = false;
+  monthlyStopError = '';
+  private monthlyStopChart: Chart | null = null;
+
   constructor(
     private auth: AuthService,
     private stoppageService: StoppageService,
+    private rebotlingService: RebotlingService,
     private route: ActivatedRoute
   ) {}
 
@@ -194,9 +203,13 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.newEntry.start_time = this.formatDateTime(now);
     this.newEntry.end_time = this.formatDateTime(now);
 
+    // Set default monthly stop month to current month
+    this.monthlyStopMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+
     this.loadReasons();
     this.loadStoppages();
     this.loadWeeklySummary();
+    this.loadMonthlyStopSummary();
 
     this.refreshInterval = setInterval(() => this.loadStoppages(), 30000);
   }
@@ -216,6 +229,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.weekly14Chart = null;
     try { this.hourlyChart?.destroy(); } catch (e) {}
     this.hourlyChart = null;
+    try { this.monthlyStopChart?.destroy(); } catch (e) {}
+    this.monthlyStopChart = null;
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -730,6 +745,112 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.successTimerId = setTimeout(() => {
       if (!this.destroy$.closed) this.successMessage = '';
     }, 3000);
+  }
+
+  // ---- Månadssammanfattning stopp ----
+
+  loadMonthlyStopSummary(): void {
+    if (this.monthlyStopLoading) return;
+    this.monthlyStopLoading = true;
+    this.monthlyStopError = '';
+
+    this.rebotlingService.getMonthlyStopSummary(this.monthlyStopMonth)
+      .pipe(
+        takeUntil(this.destroy$),
+        timeout(8000),
+        catchError(() => of({ success: false, items: [], error: 'Timeout' }))
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.monthlyStopLoading = false;
+          if (res.success) {
+            this.monthlyStopItems = res.items ?? [];
+            setTimeout(() => this.buildMonthlyStopChart(), 100);
+          } else {
+            this.monthlyStopError = res.error || 'Kunde inte hämta data';
+          }
+        },
+        error: () => {
+          this.monthlyStopLoading = false;
+          this.monthlyStopError = 'Anslutningsfel';
+        }
+      });
+  }
+
+  onMonthlyStopMonthChange(): void {
+    this.loadMonthlyStopSummary();
+  }
+
+  getMonthLabel(monthStr: string): string {
+    const manadNamn = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
+                       'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
+    const parts = monthStr.split('-');
+    if (parts.length !== 2) return monthStr;
+    const idx = parseInt(parts[1], 10) - 1;
+    return (manadNamn[idx] ?? parts[1]) + ' ' + parts[0];
+  }
+
+  private buildMonthlyStopChart(): void {
+    try { this.monthlyStopChart?.destroy(); } catch (e) {}
+    this.monthlyStopChart = null;
+    const canvas = document.getElementById('monthlyStopChart') as HTMLCanvasElement;
+    if (!canvas || this.monthlyStopItems.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const items = this.monthlyStopItems;
+    const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6'];
+
+    this.monthlyStopChart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: items.map(i => i.orsak),
+        datasets: [{
+          label: 'Stopptid (min)',
+          data: items.map(i => i.total_min),
+          backgroundColor: items.map((_, idx) => (colors[idx] || '#6b7280') + 'cc'),
+          borderColor: items.map((_, idx) => colors[idx] || '#6b7280'),
+          borderWidth: 1,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            borderColor: '#4a5568',
+            borderWidth: 1,
+            callbacks: {
+              label: (tooltipCtx: any) => {
+                const item = items[tooltipCtx.dataIndex];
+                const min = item.total_min;
+                const h = Math.floor(min / 60);
+                const m = min % 60;
+                const formatted = h > 0 ? `${h}h ${m}min` : `${m} min`;
+                return [`  Stopptid: ${formatted}`, `  Antal: ${item.antal} stopp`, `  Andel: ${item.pct}%`];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0' },
+            grid: { color: '#2d3748' },
+            title: { display: true, text: 'Minuter', color: '#a0aec0' }
+          },
+          y: {
+            ticks: { color: '#e2e8f0', font: { size: 12 } },
+            grid: { color: '#2d3748' }
+          }
+        }
+      }
+    });
   }
 
   private buildParetoChart() {

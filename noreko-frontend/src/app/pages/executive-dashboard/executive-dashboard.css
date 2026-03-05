@@ -638,3 +638,85 @@
   position: relative;
   height: 160px;
 }
+
+/* ============================================================
+   BEMANNINGSÖVERSIKT
+   ============================================================ */
+
+.staffing-card {
+  background: #1a202c;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  border: 1px solid #3a4a61;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.staffing-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.staffing-card.staffing-danger {
+  border-left: 4px solid #e53e3e;
+  background: rgba(229, 62, 62, 0.06);
+}
+
+.staffing-card.staffing-warning {
+  border-left: 4px solid #ed8936;
+  background: rgba(237, 137, 54, 0.06);
+}
+
+.staffing-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.staffing-dag {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.staffing-datum {
+  font-size: 0.78rem;
+  color: #718096;
+}
+
+.staffing-skift-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.staffing-skift-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+}
+
+.staffing-skift-namn {
+  font-size: 0.82rem;
+  color: #a0aec0;
+}
+
+.staffing-ops-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 8px;
+}
+
+.staffing-ops-badge.staffing-ops-zero {
+  background: rgba(229, 62, 62, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.4);
+}
+
+.staffing-ops-badge.staffing-ops-low {
+  background: rgba(237, 137, 54, 0.2);
+  color: #fbd38d;
+  border: 1px solid rgba(237, 137, 54, 0.4);
+}

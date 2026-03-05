@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { RebotlingService } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -110,6 +111,29 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
   isFetchingHourly = false;
   private hourlyInterval: any = null;
 
+  // Feature 7: Daily Challenge
+  dailyChallenge: {
+    challenge: string;
+    icon: string;
+    target: number;
+    current: number;
+    progress_pct: number;
+    completed: boolean;
+    type: string;
+  } | null = null;
+  isFetchingChallenge = false;
+  private challengeInterval: any = null;
+
+  // Feature 6: Produktionstakt
+  productionRate: {
+    avg_ibc_per_day_7d: number;
+    avg_ibc_per_day_30d: number;
+    avg_ibc_per_day_90d: number;
+    dag_mal: number;
+  } | null = null;
+  isFetchingProductionRate = false;
+  private productionRateInterval: any = null;
+
   private destroy$ = new Subject<void>();
   private pollInterval: any = null;
   private stoppagePollInterval: any = null;
@@ -214,7 +238,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     return Math.min(100, Math.round((this.status.ibc_idag / this.status.mal_idag) * 100));
   }
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private rebotlingService: RebotlingService) {}
 
   ngOnInit(): void {
     document.addEventListener('visibilitychange', this.visibilityHandler);
@@ -225,6 +249,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.hamtaStoppages();
     this.hamtaHandoverNotes();
     this.hamtaHourlyToday();
+    this.hamtaProductionRate();
+    this.hamtaDailyChallenge();
 
     // Klocka + skifttimer + nedräkning uppdateras varje sekund
     this.clockInterval = setInterval(() => {
@@ -264,6 +290,16 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.hourlyInterval = setInterval(() => {
       this.hamtaHourlyToday();
     }, 60000);
+
+    // Produktionstakt var 60s
+    this.productionRateInterval = setInterval(() => {
+      this.hamtaProductionRate();
+    }, 60000);
+
+    // Daily challenge var 60s
+    this.challengeInterval = setInterval(() => {
+      this.hamtaDailyChallenge();
+    }, 60000);
   }
 
   /** Stoppa polling-timers */
@@ -272,10 +308,14 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     clearInterval(this.stoppagePollInterval);
     clearInterval(this.notesInterval);
     clearInterval(this.hourlyInterval);
+    clearInterval(this.productionRateInterval);
+    clearInterval(this.challengeInterval);
     this.pollInterval = null;
     this.stoppagePollInterval = null;
     this.notesInterval = null;
     this.hourlyInterval = null;
+    this.productionRateInterval = null;
+    this.challengeInterval = null;
   }
 
   /** Pausa polling när tabben är dold, återuppta när synlig */
@@ -289,6 +329,8 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
       this.hamtaStoppages();
       this.hamtaHandoverNotes();
       this.hamtaHourlyToday();
+      this.hamtaProductionRate();
+      this.hamtaDailyChallenge();
       this.startPollingTimers();
     }
   }
@@ -785,6 +827,81 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     this.cumulativeChart.data.datasets[0].data = planData;
     this.cumulativeChart.data.datasets[1].data = faktiskData;
     this.cumulativeChart.update('none');
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 6: Produktionstakt
+  // ─────────────────────────────────────────────
+
+  hamtaProductionRate(): void {
+    if (this.isFetchingProductionRate) return;
+    this.isFetchingProductionRate = true;
+
+    this.rebotlingService.getProductionRate()
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(data => {
+        this.isFetchingProductionRate = false;
+        if (data && data.success && data.data) {
+          this.productionRate = data.data;
+        }
+      });
+  }
+
+  /** Färg baserat på hur nära target snitt7d ligger */
+  get productionRateColor(): string {
+    if (!this.productionRate) return '#718096';
+    const pct = this.productionRate.dag_mal > 0
+      ? (this.productionRate.avg_ibc_per_day_7d / this.productionRate.dag_mal) * 100
+      : 0;
+    if (pct >= 90) return '#48bb78';
+    if (pct >= 70) return '#ed8936';
+    return '#f44336';
+  }
+
+  get productionRatePct(): number {
+    if (!this.productionRate || this.productionRate.dag_mal <= 0) return 0;
+    return Math.min(100, Math.round((this.productionRate.avg_ibc_per_day_7d / this.productionRate.dag_mal) * 100));
+  }
+
+  // ─────────────────────────────────────────────
+  // Feature 7: Daily Challenge
+  // ─────────────────────────────────────────────
+
+  hamtaDailyChallenge(): void {
+    if (this.isFetchingChallenge) return;
+    this.isFetchingChallenge = true;
+
+    this.http.get<any>(`${this.apiUrl}?action=andon&run=daily-challenge`)
+      .pipe(
+        timeout(8000),
+        catchError(() => of(null)),
+        takeUntil(this.destroy$)
+      )
+      .subscribe(data => {
+        this.isFetchingChallenge = false;
+        if (data && data.success) {
+          this.dailyChallenge = {
+            challenge: data.challenge,
+            icon: data.icon,
+            target: data.target,
+            current: data.current,
+            progress_pct: data.progress_pct,
+            completed: data.completed,
+            type: data.type,
+          };
+        }
+      });
+  }
+
+  get challengeStatusClass(): string {
+    if (!this.dailyChallenge) return '';
+    if (this.dailyChallenge.completed) return 'challenge-done';
+    if (this.dailyChallenge.progress_pct >= 75) return 'challenge-close';
+    return 'challenge-active';
   }
 
   // ─────────────────────────────────────────────

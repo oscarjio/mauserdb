@@ -120,6 +120,47 @@
     </span>
   </div>
 
+  <!-- ============================================================
+       BEMANNINGSÖVERSIKT — Varningskort för underbemannade skift
+  ============================================================ -->
+  <div class="detail-card mb-4 d-print-none" *ngIf="staffingWarnings.length > 0">
+    <div class="detail-card-header">
+      <h6 class="mb-0">
+        <i class="fas fa-user-shield me-2 text-warning"></i>Bemanningsöversikt -- Kommande 7 dagar
+      </h6>
+      <span class="badge bg-warning text-dark">
+        {{ staffingWarnings.length }} dag{{ staffingWarnings.length > 1 ? 'ar' : '' }} med underbemanning
+      </span>
+    </div>
+    <div class="detail-card-body">
+      <p class="text-muted mb-3" style="font-size: 0.82rem;">
+        Skift med färre än {{ staffingMinOperators }} operatörer markeras som underbemannade.
+      </p>
+      <div class="row g-2">
+        <div class="col-md-4 col-sm-6 col-12" *ngFor="let day of staffingWarnings">
+          <div class="staffing-card"
+               [class.staffing-danger]="getStaffingSeverity(day) === 'danger'"
+               [class.staffing-warning]="getStaffingSeverity(day) === 'warning'">
+            <div class="staffing-card-header">
+              <span class="staffing-dag">{{ day.dag_namn }}</span>
+              <span class="staffing-datum">{{ day.datum }}</span>
+            </div>
+            <div class="staffing-skift-list">
+              <div class="staffing-skift-row" *ngFor="let s of day.underbemanning">
+                <span class="staffing-skift-namn">{{ getStaffingSkiftLabel(s.skift_nr) }}</span>
+                <span class="staffing-ops-badge"
+                      [class.staffing-ops-zero]="s.antal_ops === 0"
+                      [class.staffing-ops-low]="s.antal_ops > 0">
+                  {{ s.antal_ops }} / {{ staffingMinOperators }} operatörer
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <ng-container *ngIf="!loading && dashData">
 
     <!-- ============================================================
