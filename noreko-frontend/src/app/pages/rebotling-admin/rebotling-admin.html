@@ -223,42 +223,42 @@
             <i class="fas fa-exclamation-triangle me-2"></i>{{ settingsError }}
           </div>
           <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-box me-1 text-info"></i>Dagsmål – standard (IBC/dag)
               </label>
               <input type="number" class="form-control" [(ngModel)]="settings.rebotlingTarget" min="1" />
               <div class="form-text">Fallback om inget veckodagsmål är satt</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-tachometer-alt me-1 text-warning"></i>Timmål (IBC/h) standard
               </label>
               <input type="number" class="form-control" [(ngModel)]="settings.hourlyTarget" min="1" />
               <div class="form-text">Används om produkt saknar cykeltid</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-clock me-1 text-success"></i>Skiftlängd (timmar)
               </label>
               <input type="number" class="form-control" [(ngModel)]="settings.shiftHours" min="1" max="24" step="0.5" />
               <div class="form-text">Antal arbetstimmar per skift</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-bell me-1 text-danger"></i>Varnivå (%)
               </label>
               <input type="number" class="form-control" [(ngModel)]="settings.systemSettings.alertThreshold" min="0" max="100" />
               <div class="form-text">Varning om effektivitet sjunker under detta värde</div>
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">
                 <i class="fas fa-users me-1 text-info"></i>Min. operatörer per skift
               </label>
               <input type="number" class="form-control" [(ngModel)]="settings.minOperators" min="1" max="10" />
               <div class="form-text">Bemanningsvarning om färre operatörer är schemalagda</div>
             </div>
-            <div class="col-md-4 d-flex flex-column justify-content-center">
+            <div class="col-12 col-md-4 d-flex flex-column justify-content-center">
               <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" id="maintenanceMode"
                        [(ngModel)]="settings.systemSettings.maintenanceMode" />
@@ -268,7 +268,7 @@
               </div>
               <div class="form-text">Stoppar produktionsräknaren temporärt</div>
             </div>
-            <div class="col-md-4 d-flex flex-column justify-content-center">
+            <div class="col-12 col-md-4 d-flex flex-column justify-content-center">
               <div class="form-check form-switch mt-3">
                 <input class="form-check-input" type="checkbox" id="autoStart"
                        [(ngModel)]="settings.systemSettings.autoStart" />
@@ -391,26 +391,26 @@
             <div class="col-12 mb-2">
               <h6 class="fw-semibold text-light">Sätt justerat mål för specifikt datum:</h6>
             </div>
-            <div class="col-md-3">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-semibold small">
                 <i class="fas fa-calendar-day me-1 text-info"></i>Datum
               </label>
               <input type="date" class="form-control" [(ngModel)]="newExceptionDatum" />
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-semibold small">
                 <i class="fas fa-box me-1 text-success"></i>Justerat mål (IBC)
               </label>
               <input type="number" class="form-control" [(ngModel)]="newExceptionMal" min="1" max="9999" placeholder="t.ex. 40" />
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold small">
                 <i class="fas fa-comment-alt me-1 text-secondary"></i>Orsak (valfri)
               </label>
               <input type="text" class="form-control" [(ngModel)]="newExceptionOrsak"
                 maxlength="255" placeholder="t.ex. Planerat underhåll, reducerad bemanning..." />
             </div>
-            <div class="col-md-3 d-flex align-items-end gap-2">
+            <div class="col-12 col-md-3 d-flex align-items-end gap-2">
               <button class="btn btn-warning" (click)="saveGoalException()" [disabled]="savingException">
                 <span *ngIf="savingException" class="spinner-border spinner-border-sm me-2"></span>
                 <i *ngIf="!savingException" class="fas fa-save me-2"></i>
@@ -491,7 +491,7 @@
           </div>
           <div class="row g-3">
             <!-- OEE-varning -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="threshold-card threshold-warn">
                 <label class="form-label fw-semibold">
                   <i class="fas fa-exclamation-circle me-1 text-warning"></i>OEE-varning under (%)
@@ -501,7 +501,7 @@
               </div>
             </div>
             <!-- OEE-fara -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="threshold-card threshold-danger">
                 <label class="form-label fw-semibold">
                   <i class="fas fa-times-circle me-1 text-danger"></i>OEE-fara under (%)
@@ -511,7 +511,7 @@
               </div>
             </div>
             <!-- Produktion-varning -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="threshold-card threshold-warn">
                 <label class="form-label fw-semibold">
                   <i class="fas fa-chart-bar me-1 text-warning"></i>Produktion-varning under (% av mål)
@@ -521,7 +521,7 @@
               </div>
             </div>
             <!-- Produktion-fara -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="threshold-card threshold-danger">
                 <label class="form-label fw-semibold">
                   <i class="fas fa-chart-bar me-1 text-danger"></i>Produktion-fara under (% av mål)
@@ -531,7 +531,7 @@
               </div>
             </div>
             <!-- PLC-max min -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="threshold-card threshold-danger">
                 <label class="form-label fw-semibold">
                   <i class="fas fa-plug me-1 text-danger"></i>Max tid utan PLC-data (min)
@@ -541,7 +541,7 @@
               </div>
             </div>
             <!-- Kvalitet-varning -->
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <div class="threshold-card threshold-warn">
                 <label class="form-label fw-semibold">
                   <i class="fas fa-star me-1 text-warning"></i>Kvalitet-varning under (%)
@@ -592,7 +592,7 @@
             <i class="fas fa-exclamation-triangle me-2"></i>{{ shiftTimesError }}
           </div>
           <div class="row g-3" *ngIf="shiftTimes.length > 0">
-            <div class="col-md-4" *ngFor="let shift of shiftTimes">
+            <div class="col-12 col-md-4" *ngFor="let shift of shiftTimes">
               <div class="shift-time-card" [class.shift-disabled]="!shift.enabled">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span class="fw-semibold">{{ getShiftLabel(shift.shift_name) }}</span>
@@ -644,7 +644,7 @@
             Skiftrapporten visar ett förenklat bonus-estimat baserat på dagsmål och kvalitetsprocent.
           </p>
           <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <div class="bonus-info-card">
                 <div class="bonus-info-title">
                   <i class="fas fa-info-circle me-2 text-info"></i>
@@ -657,7 +657,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-md-6 d-flex align-items-center">
+            <div class="col-12 col-md-6 d-flex align-items-center">
               <a href="/admin/bonus" class="btn btn-outline-success">
                 <i class="fas fa-external-link-alt me-2"></i>
                 Gå till Bonus-admin
@@ -690,21 +690,21 @@
                 </div>
                 <div class="card-body">
                   <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-12 col-md-6">
                       <div class="mb-3">
                         <label for="newProductName" class="form-label">Produktnamn</label>
                         <input type="text" class="form-control" id="newProductName"
                           [(ngModel)]="newProduct.name" placeholder="Ange produktnamn">
                       </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-12 col-md-4">
                       <div class="mb-3">
                         <label for="newProductCycleTime" class="form-label">Cykeltid (minuter)</label>
                         <input type="number" class="form-control" id="newProductCycleTime"
                           [(ngModel)]="newProduct.cycle_time_minutes" min="1" step="1" placeholder="0">
                       </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-12 col-md-2">
                       <div class="mb-3">
                         <label class="form-label">&nbsp;</label>
                         <button class="btn btn-primary w-100" (click)="addProduct()"
@@ -962,7 +962,7 @@
             <div class="mb-4" [class.opacity-50]="!notificationSettings.config.enabled">
               <label class="form-label fw-semibold mb-3">Notifiera vid</label>
               <div class="row g-3">
-                <div class="col-md-6 col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="notifOnStopp"
                            [(ngModel)]="notificationSettings.config.on_stopp"
@@ -972,7 +972,7 @@
                     </label>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="notifOnLowOEE"
                            [(ngModel)]="notificationSettings.config.on_low_oee"
@@ -982,7 +982,7 @@
                     </label>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="notifOnCert"
                            [(ngModel)]="notificationSettings.config.on_cert_expiry"
@@ -992,7 +992,7 @@
                     </label>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="notifOnMaint"
                            [(ngModel)]="notificationSettings.config.on_maintenance"
@@ -1002,7 +1002,7 @@
                     </label>
                   </div>
                 </div>
-                <div class="col-md-6 col-lg-4">
+                <div class="col-12 col-md-6 col-lg-4">
                   <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="notifOnShiftReport"
                            [(ngModel)]="notificationSettings.config.on_shift_report"
@@ -1063,13 +1063,13 @@
           </div>
 
           <div class="row g-3 mb-3">
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label">Datum</label>
               <input type="date" class="form-control bg-dark text-light border-secondary"
                      [(ngModel)]="shiftReportTestDate"
                      [disabled]="shiftReportSending">
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label">Skift</label>
               <select class="form-select bg-dark text-light border-secondary"
                       [(ngModel)]="shiftReportTestShift"
@@ -1079,7 +1079,7 @@
                 <option [ngValue]="3">3 — Natt (22–06)</option>
               </select>
             </div>
-            <div class="col-md-4 d-flex align-items-end">
+            <div class="col-12 col-md-4 d-flex align-items-end">
               <button class="btn btn-warning w-100"
                       (click)="sendTestShiftReport()"
                       [disabled]="shiftReportSending">
@@ -1314,7 +1314,7 @@
             <div>
               <label class="form-label">Registrera service utförd</label>
               <div class="row g-2 align-items-end">
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                   <input type="text"
                          class="form-control bg-dark text-light border-secondary"
                          [(ngModel)]="serviceNote"
@@ -1484,14 +1484,14 @@
           </p>
 
           <div class="row g-3">
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Sidrubrik</label>
               <input type="text" class="form-control bg-dark text-light border-secondary"
                      [(ngModel)]="lrSettings.lr_title"
                      placeholder="Live Ranking"
                      maxlength="80" />
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Uppdateringsintervall (sekunder)</label>
               <input type="number" class="form-control bg-dark text-light border-secondary"
                      [(ngModel)]="lrSettings.lr_poll_interval"
@@ -1582,7 +1582,7 @@
             </div>
 
             <!-- Sortering -->
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Sortera efter</label>
               <select class="form-select bg-dark text-light border-secondary"
                       [(ngModel)]="lrConfig.sort_by">
@@ -1593,7 +1593,7 @@
             </div>
 
             <!-- Uppdateringsintervall -->
-            <div class="col-md-6">
+            <div class="col-12 col-md-6">
               <label class="form-label">Uppdateringsintervall (sekunder)</label>
               <input type="number" class="form-control bg-dark text-light border-secondary"
                      [(ngModel)]="lrConfig.refresh_interval"
@@ -1670,22 +1670,22 @@
 
           <!-- Formulär -->
           <div class="row g-3 mb-4">
-            <div class="col-md-3">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-semibold">Datum</label>
               <input type="date" class="form-control" [(ngModel)]="kassationForm.datum" />
             </div>
-            <div class="col-md-3">
+            <div class="col-12 col-md-3">
               <label class="form-label fw-semibold">Kassationsorsak</label>
               <select class="form-select" [(ngModel)]="kassationForm.orsak_id">
                 <option [value]="0" disabled>Välj orsak...</option>
                 <option *ngFor="let t of kassationTyper" [value]="t.id">{{ t.namn }}</option>
               </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-12 col-md-2">
               <label class="form-label fw-semibold">Antal</label>
               <input type="number" class="form-control" [(ngModel)]="kassationForm.antal" min="1" max="9999" />
             </div>
-            <div class="col-md-4">
+            <div class="col-12 col-md-4">
               <label class="form-label fw-semibold">Kommentar (valfri)</label>
               <input type="text" class="form-control" [(ngModel)]="kassationForm.kommentar"
                      placeholder="Valfri notering..." maxlength="500" />
@@ -1751,7 +1751,7 @@
 <!-- Åtkomst nekad -->
 <div class="container-fluid mt-4" *ngIf="!loggedIn || !isAdmin">
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-12 col-md-6">
       <div class="card border-danger">
         <div class="card-header bg-danger text-white text-center">
           <h5 class="card-title mb-0">

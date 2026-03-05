@@ -799,7 +799,7 @@
 
     <!-- KPI-brickor -->
     <div class="row g-3 mb-4" *ngIf="!paretoLoading && paretoData.length > 0">
-      <div class="col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card text-center h-100">
           <div class="card-body py-3">
             <div class="text-warning fw-bold" style="font-size:1.6rem;">{{ getParetoTotalMinuter() | number:'1.0-0' }}</div>
@@ -807,7 +807,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card text-center h-100">
           <div class="card-body py-3">
             <div class="text-info fw-bold" style="font-size:1.6rem;">{{ getParetoTotalStopp() }}</div>
@@ -815,7 +815,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-12 col-md-4">
         <div class="card text-center h-100">
           <div class="card-body py-3">
             <div class="text-danger fw-bold" style="font-size:1.6rem;">{{ getParetoEightyPctGroup() }}</div>

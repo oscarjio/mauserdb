@@ -528,6 +528,7 @@
   .table-responsive {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    font-size: 0.85rem;
   }
 
   .comment-cell {
