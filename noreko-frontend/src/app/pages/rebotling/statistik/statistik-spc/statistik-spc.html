@@ -1,0 +1,84 @@
+<!-- SPC-KONTROLLKORT -->
+<div class="row mt-4 mb-4">
+  <div class="col-12">
+    <div class="dark-card">
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="mb-0" style="color:#e2e8f0;">
+          <i class="fas fa-chart-line me-2" style="color:#4299e1;"></i>SPC-kontrollkort &mdash; IBC/h
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <label class="text-muted small mb-0">Dagar:</label>
+          <select
+            class="form-select form-select-sm"
+            style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:100px;"
+            [(ngModel)]="spcDays"
+            (change)="onSPCDaysChange()"
+          >
+            <option [value]="3">3 dagar</option>
+            <option [value]="7">7 dagar</option>
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+          </select>
+          <button
+            class="btn btn-sm btn-outline-primary"
+            (click)="onSPCDaysChange()"
+            [disabled]="spcLoading"
+          >
+            <i class="fas fa-sync-alt me-1" [class.fa-spin]="spcLoading"></i>
+            Hamta
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI-brickor -->
+      <div class="row g-2 mb-3" *ngIf="spcLoaded && spcN > 0">
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">Medelvarde IBC/h</div>
+            <div class="fw-bold" style="color:#48bb78;font-size:1.1rem;">{{ spcMean | number:'1.1-1' }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">Std.avv. (&#963;)</div>
+            <div class="fw-bold" style="color:#e2e8f0;font-size:1.1rem;">{{ spcStddev | number:'1.1-1' }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">UCL (X&#772;+2&#963;)</div>
+            <div class="fw-bold" style="color:#fc8181;font-size:1.1rem;">{{ spcUCL | number:'1.1-1' }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-sm-3">
+          <div class="p-2 rounded text-center" style="background:#2d3748;">
+            <div class="small text-muted">LCL (X&#772;&minus;2&#963;)</div>
+            <div class="fw-bold" style="color:#ed8936;font-size:1.1rem;">{{ spcLCL | number:'1.1-1' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Laddningsindikator -->
+      <div class="text-center py-4" *ngIf="spcLoading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-2 small">Beraknar kontrollgranser...</div>
+      </div>
+
+      <!-- Ingen data -->
+      <div class="text-center py-4" *ngIf="spcLoaded && !spcLoading && spcN === 0">
+        <i class="fas fa-info-circle text-muted fa-2x mb-2"></i>
+        <p class="text-muted">Inga datapunkter for vald period. Utoka antalet dagar eller vanta pa att skiftrapporter registreras.</p>
+      </div>
+
+      <!-- Graf -->
+      <div style="height:300px;position:relative;" *ngIf="spcLoaded && !spcLoading && spcN > 0">
+        <canvas id="spcChart"></canvas>
+      </div>
+
+      <p class="small text-muted mt-2 mb-0" *ngIf="spcLoaded && spcN > 0">
+        <i class="fas fa-exclamation-triangle me-1" style="color:#fc8181;"></i>
+        Punkter utanfor kontrollgranserna (rod/orange) indikerar onormal variation i processen.
+      </p>
+    </div>
+  </div>
+</div>

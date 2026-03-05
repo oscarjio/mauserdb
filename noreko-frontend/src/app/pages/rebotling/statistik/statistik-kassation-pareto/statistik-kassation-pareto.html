@@ -1,0 +1,27 @@
+<div class="container-fluid mt-4 pb-4" style="padding:0 16px;">
+<div style="background:#2d3748; border-radius:12px; border:1px solid #4a5568; padding:20px;">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+<div class="d-flex align-items-center gap-2"><i class="fas fa-exclamation-triangle" style="color:#fc8181; font-size:1.1rem;"></i>
+<span style="color:#e2e8f0; font-weight:600; font-size:1rem;">Kassationsorsaksanalys \u2014 Pareto</span>
+<span *ngIf="kassationLoading" class="spinner-border spinner-border-sm text-secondary" style="margin-left:8px;" role="status"></span></div>
+<div class="d-flex align-items-center gap-2 flex-wrap">
+<div class="btn-group btn-group-sm" role="group">
+<button type="button" class="btn btn-sm" [class]="kassationDays===7?'btn-danger':'btn-outline-danger'" (click)="kassationDays=7; onKassationDaysChange()">7d</button>
+<button type="button" class="btn btn-sm" [class]="kassationDays===30?'btn-danger':'btn-outline-danger'" (click)="kassationDays=30; onKassationDaysChange()">30d</button>
+<button type="button" class="btn btn-sm" [class]="kassationDays===90?'btn-danger':'btn-outline-danger'" (click)="kassationDays=90; onKassationDaysChange()">90d</button></div>
+<button class="btn btn-sm btn-outline-secondary" [disabled]="!kassationPareto || kassationPareto.length === 0" (click)="exportKassationCSV()"><i class="fas fa-download me-1"></i>Exportera CSV</button></div></div>
+<div class="row g-3 mb-4" *ngIf="!kassationLoading">
+<div class="col-6 col-md-3"><div style="background:#1a202c; border-radius:8px; padding:14px; text-align:center;"><div style="color:#a0aec0; font-size:0.78rem; text-transform:uppercase;">Totalt kasserat</div><div style="color:#fc8181; font-size:1.8rem; font-weight:700;">{{ kassationTotalAntal }}</div><div style="color:#718096; font-size:0.78rem;">enheter</div></div></div>
+<div class="col-6 col-md-3"><div style="background:#1a202c; border-radius:8px; padding:14px; text-align:center;"><div style="color:#a0aec0; font-size:0.78rem; text-transform:uppercase;">% av produktion</div><div style="font-size:1.8rem; font-weight:700;" [style.color]="kassationPct > 5 ? '#fc8181' : kassationPct > 2 ? '#f6ad55' : '#68d391'">{{ kassationPct }}%</div><div style="color:#718096; font-size:0.78rem;">{{ kassationDays }} dagarsperiod</div></div></div>
+<div class="col-6 col-md-3"><div style="background:#1a202c; border-radius:8px; padding:14px; text-align:center;"><div style="color:#a0aec0; font-size:0.78rem; text-transform:uppercase;">Total produktion</div><div style="color:#68d391; font-size:1.8rem; font-weight:700;">{{ kassationTotalProduktion }}</div><div style="color:#718096; font-size:0.78rem;">IBC i perioden</div></div></div>
+<div class="col-6 col-md-3"><div style="background:#1a202c; border-radius:8px; padding:14px; text-align:center;"><div style="color:#a0aec0; font-size:0.78rem; text-transform:uppercase;">Vanligaste orsak</div><div style="color:#f6ad55; font-size:1rem; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ kassationPareto[0]?.namn ?? '\u2013' }}</div><div style="color:#718096; font-size:0.78rem;">{{ kassationPareto[0]?.antal ? kassationPareto[0].antal + ' st' : '' }}</div></div></div></div>
+<div *ngIf="!kassationLoading && kassationPareto.length > 0" style="position:relative; height:300px;"><canvas id="kassationParetoChart"></canvas></div>
+<div *ngIf="!kassationLoading && kassationPareto.length === 0" class="text-center py-5"><i class="fas fa-check-circle fa-3x mb-3" style="color:#48bb78; opacity:0.5;"></i><p style="color:#a0aec0; margin:0;">Inga kassationer registrerade for perioden.</p></div>
+<div *ngIf="!kassationLoading && kassationPareto.length > 0" class="table-responsive mt-4">
+<table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.83rem;">
+<thead><tr style="border-color:#4a5568; color:#a0aec0;"><th>Orsak</th><th class="text-end">Antal</th><th class="text-end">Andel</th><th class="text-end">Kumulativ %</th><th style="width:160px;">Kumulativ bar</th></tr></thead>
+<tbody><tr *ngFor="let item of kassationPareto" style="border-color:#4a5568;">
+<td>{{ item.namn }}</td><td class="text-end text-warning fw-bold">{{ item.antal }}</td><td class="text-end" style="color:#a0aec0;">{{ item.pct }}%</td>
+<td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#fc8181' : '#a0aec0'">{{ item.kumulativ_pct }}%</td>
+<td><div style="background:#4a5568; border-radius:4px; height:8px; overflow:hidden;"><div [style.width.%]="item.kumulativ_pct" [style.background]="item.kumulativ_pct <= 80 ? '#fc8181' : '#718096'" style="height:100%; border-radius:4px; transition:width 0.4s ease;"></div></div></td></tr></tbody></table></div>
+</div></div>

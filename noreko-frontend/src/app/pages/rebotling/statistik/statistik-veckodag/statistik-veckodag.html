@@ -1,0 +1,24 @@
+<div class="container-fluid mt-4 pb-4"><div class="row"><div class="col-12">
+<div class="card mb-4" style="background:#2d3748; border-color:#4a5568;">
+<div class="card-header" style="background:#1a202c; border-color:#4a5568;">
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+<h6 class="mb-0 text-light"><i class="fas fa-calendar-week me-2 text-info"></i>Veckodag-analys</h6>
+<select class="form-select form-select-sm" style="width:auto; background:#2d3748; color:#e2e8f0; border-color:#4a5568;" [(ngModel)]="weekdayDagar" (change)="loadWeekdayStats()">
+<option [value]="30">Senaste 30 dagar</option><option [value]="90">Senaste 90 dagar</option><option [value]="180">Senaste 180 dagar</option><option [value]="365">Senaste 365 dagar</option></select></div></div>
+<div class="card-body">
+<p class="text-muted small mb-3">Visar genomsnittlig IBC-produktion per veckodag baserat pa de senaste {{ weekdayDagar }} dagarna.
+<span style="color:#48bb78;"><i class="fas fa-square me-1"></i>Basta dag</span>
+<span class="ms-2" style="color:#fc8181;"><i class="fas fa-square me-1"></i>Samsta dag</span></p>
+<div *ngIf="weekdayLoading" class="text-center py-4"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div><div class="text-muted small mt-2">Hamtar veckodag-statistik...</div></div>
+<div *ngIf="!weekdayLoading && weekdayData.length > 0" style="height:260px; position:relative;"><canvas id="weekdayChart"></canvas></div>
+<div *ngIf="!weekdayLoading && weekdayData.length === 0" class="text-center py-4"><i class="fas fa-info-circle text-muted fa-2x mb-2"></i><p class="text-muted">Ingen data tillganglig for vald period.</p></div>
+<div class="mt-3" *ngIf="!weekdayLoading && weekdayData.length > 0"><div class="table-responsive">
+<table class="table table-sm" style="color:#e2e8f0; font-size:0.85rem;">
+<thead><tr style="border-color:#4a5568; color:#a0aec0;"><th>Veckodag</th><th class="text-end">Snitt IBC/dag</th><th class="text-end">Max IBC</th><th class="text-end">Min IBC</th><th class="text-end" *ngIf="weekdayData[0]?.snitt_oee !== null">Snitt OEE</th><th class="text-end">Antal dagar</th></tr></thead>
+<tbody><tr *ngFor="let d of weekdayData" style="border-color:#4a5568;">
+<td class="fw-bold">{{ d.namn }}</td>
+<td class="text-end" [style.color]="d.snitt_ibc === getWeekdayMaxIbc() ? '#48bb78' : d.snitt_ibc === getWeekdayMinIbc() ? '#fc8181' : '#e2e8f0'">{{ d.snitt_ibc | number:'1.1-1' }}</td>
+<td class="text-end">{{ d.max_ibc }}</td><td class="text-end">{{ d.min_ibc }}</td>
+<td class="text-end" *ngIf="weekdayData[0]?.snitt_oee !== null">{{ d.snitt_oee !== null ? (d.snitt_oee | number:'1.1-1') + '%' : '\u2013' }}</td>
+<td class="text-end text-muted">{{ d.antal_dagar }}</td></tr></tbody></table></div></div>
+</div></div></div></div></div>
