@@ -113,7 +113,12 @@ Redigera /home/clawd/clawd/mauserdb/lead-memory.md:
 - Uppdatera "Senast uppdaterad" datumet
 
 ### Steg 3 — Starta worker-agenter
-Starta 2-3 parallella worker-agenter (via Task-verktyget) på de högst prioriterade ÖPPNA items.
+Starta MAX 2 parallella worker-agenter (via Task-verktyget).
+
+KRITISKT — sätt alltid max_turns: 40 i varje Task-anrop för att hålla nere token-förbrukning:
+\`\`\`
+Task(subagent_type="general-purpose", max_turns=40, prompt="...")
+\`\`\`
 
 Varje worker-agent ska:
 - Få tydliga instruktioner om EXAKT vilka filer de äger
