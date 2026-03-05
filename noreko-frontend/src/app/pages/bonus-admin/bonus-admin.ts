@@ -178,6 +178,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
   // Toast timer IDs
   private successTimerId: any = null;
   private errorTimerId: any = null;
+  private auditChartTimerId: any = null;
 
   constructor(
     private auth: AuthService,
@@ -208,6 +209,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     clearTimeout(this.successTimerId);
     clearTimeout(this.errorTimerId);
+    clearTimeout(this.auditChartTimerId);
   }
 
   ngOnInit() {
@@ -1184,7 +1186,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success && res.data) {
           this.auditResult = res.data;
-          setTimeout(() => this.renderAuditChart(), 100);
+          this.auditChartTimerId = setTimeout(() => this.renderAuditChart(), 100);
         } else {
           this.auditError = res?.error || 'Kunde inte ladda rättviseaudit';
         }

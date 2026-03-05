@@ -104,34 +104,44 @@ class ProfileController {
             return;
         }
 
-        $params[] = $user['id'];
-        $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
-        $updateStmt = $pdo->prepare($sql);
-        $updateStmt->execute($params);
-        $changedFields = array_map(fn($f) => strtok($f, ' '), $fields);
-        AuditLogger::log($pdo, 'update_profile', 'users', (int)$user['id'],
-            'Profil uppdaterad: ' . implode(', ', $changedFields));
+        try {
+            $params[] = $user['id'];
+            $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
+            $updateStmt = $pdo->prepare($sql);
+            $updateStmt->execute($params);
+            $changedFields = array_map(fn($f) => strtok($f, ' '), $fields);
+            AuditLogger::log($pdo, 'update_profile', 'users', (int)$user['id'],
+                'Profil uppdaterad: ' . implode(', ', $changedFields));
 
-        $stmt = $pdo->prepare("SELECT id, username, email, admin, operator_id FROM users WHERE id = ?");
-        $stmt->execute([$user['id']]);
-        $updatedUser = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt = $pdo->prepare("SELECT id, username, email, admin, operator_id FROM users WHERE id = ?");
+            $stmt->execute([$user['id']]);
+            $updatedUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $_SESSION['username'] = $updatedUser['username'];
-        $_SESSION['email'] = $updatedUser['email'];
-        $_SESSION['role'] = ($updatedUser['admin'] == 1) ? 'admin' : 'user';
-        $_SESSION['operator_id'] = $updatedUser['operator_id'] ? (int)$updatedUser['operator_id'] : null;
+            $_SESSION['username'] = $updatedUser['username'];
+            $_SESSION['email'] = $updatedUser['email'];
+            $_SESSION['role'] = ($updatedUser['admin'] == 1) ? 'admin' : 'user';
+            $_SESSION['operator_id'] = $updatedUser['operator_id'] ? (int)$updatedUser['operator_id'] : null;
 
-        echo json_encode([
-            'success' => true,
-            'message' => 'Konto uppdaterat.',
-            'user' => [
-                'id' => $updatedUser['id'],
-                'username' => $updatedUser['username'],
-                'email' => $updatedUser['email'],
-                'role' => $_SESSION['role'],
-                'operator_id' => $_SESSION['operator_id']
-            ]
-        ]);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Konto uppdaterat.',
+                'user' => [
+                    'id' => $updatedUser['id'],
+                    'username' => $updatedUser['username'],
+                    'email' => $updatedUser['email'],
+                    'role' => $_SESSION['role'],
+                    'operator_id' => $_SESSION['operator_id']
+                ]
+            ]);
+        } catch (PDOException $e) {
+            error_log('ProfileController update error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Databasfel vid uppdatering av profil.']);
+        } catch (Exception $e) {
+            error_log('ProfileController update error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Internt serverfel vid uppdatering av profil.']);
+        }
     }
 
 }

@@ -2084,3 +2084,38 @@ Kort logg över vad som hänt — uppdateras automatiskt av Claude-agenter.
 [2026-03-04] Worker: Historik-sida — CSV/Excel-export (SheetJS), trendpil per månad (↑↓→ >3%), progressbar mot snitt per rad, ny Trend-kolumn i månadsdetaljatabell, disable-state på knappar — e6a36f5
 [2026-03-04] Worker: Executive dashboard förbättringar — veckoframgångsmätare (IBC denna vecka vs förra, progressbar grön/gul/röd, OEE+kvalitet+toppop KPI-rad), senaste nyheter (3 senaste via news&run=admin-list, kategori-badges), 6 snabblänkar (Andontavla/Skiftrapport/Veckorapport/Statistik/Bonus/Underhåll), lastUpdated property satt vid lyckad fetch — 3d14b95
 [2026-03-04] Worker: Benchmarking — emoji-medaljer (🥇🥈🥉) med glow-animationer, KPI-sammanfattning (4 brickor: veckor/rekord/snitt/OEE), personbästa-kort (AuthService-integration, visar stats om inloggad operatör finns i personalBests annars motiveringstext), CSV-export topplista (knapp i sidhuvud+sektion), rekordmånad guld-stjärnanimation i legend, silver+brons radmarkering i tabellen
+
+## 2026-03-05 Session #14 — Kodkvalitets-audit: aldre controllers och komponenter
+
+Granskade 10 filer (5 PHP controllers, 5 Angular komponenter) som ej granskats i bug hunts #18-#20.
+
+### PHP-fixar:
+
+**ProfileController.php** — Saknade try-catch runt UPDATE+SELECT queries vid profiluppdatering. La till PDOException+Exception catch med http_response_code(500) + JSON-felmeddelande.
+
+**ShiftPlanController.php** — Alla 8 catch-block fangade bara PDOException. La till generell Exception-catch i: getWeek, getWeekView, getStaffingWarning, getOperators, getOperatorsList, assign, copyWeek, remove.
+
+**HistorikController.php** — Default-case i handle() ekade osanitiserad user input ($run) direkt i JSON-svar. La till htmlspecialchars() for att forhindra XSS.
+
+**OperatorCompareController.php** — Godkand: admin-auth, prepared statements, fullstandig felhantering.
+
+**MaintenanceController.php** — Godkand: admin-auth med user_id+role-check, prepared statements, validering av alla input, catch-block i alla metoder.
+
+### TypeScript-fixar:
+
+**historik.ts** — setTimeout(buildCharts, 100) sparades inte i variabel och stadades ej i ngOnDestroy. La till chartBuildTimer-tracking + clearTimeout i ngOnDestroy.
+
+**bonus-admin.ts** — setTimeout(renderAuditChart, 100) sparades inte. La till auditChartTimerId-tracking + clearTimeout i ngOnDestroy.
+
+**benchmarking.ts** — Godkand: destroy$/takeUntil pa alla subscriptions, pollInterval+chartTimer stadade, Chart.js destroy i ngOnDestroy.
+
+**live-ranking.ts** — Godkand: destroy$/takeUntil, alla tre timers (poll/countdown/motivation) stadade i ngOnDestroy, timeout+catchError pa alla HTTP-anrop.
+
+**bonus-admin.ts** — Godkand (ovriga aspekter): destroy$/takeUntil pa alla subscriptions, timeout(8000)+catchError pa alla HTTP-anrop, null-safe access (res?.success, res?.data).
+
+### Sammanfattning:
+- 3 PHP-filer fixade (ProfileController, ShiftPlanController, HistorikController)
+- 2 TypeScript-filer fixade (historik, bonus-admin)
+- 5 filer godkanda utan anmarkningar
+- 0 SQL injection-risker hittade (alla anvander prepared statements)
+- 0 auth-brister hittade (alla admin-endpoints har korrekt rollkontroll)

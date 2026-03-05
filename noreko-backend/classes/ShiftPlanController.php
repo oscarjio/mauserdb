@@ -147,6 +147,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController getWeek: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftplan']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController getWeek Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -333,6 +337,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController getWeekView: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckoöversikt']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController getWeekView Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -414,6 +422,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController getStaffingWarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController getStaffingWarning Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -440,6 +452,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController getOperators: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController getOperators Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -470,6 +486,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController getOperatorsList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController getOperatorsList Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -518,6 +538,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController assign: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till operatör']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController assign Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -606,6 +630,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController copyWeek: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte kopiera schema']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController copyWeek Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 
@@ -641,6 +669,10 @@ class ShiftPlanController {
             error_log('ShiftPlanController remove: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort operatör']);
+        } catch (Exception $e) {
+            error_log('ShiftPlanController remove Exception: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }
     }
 }

@@ -27,7 +27,7 @@ class HistorikController {
                 break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig run: ' . $run]);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')]);
         }
     }
 

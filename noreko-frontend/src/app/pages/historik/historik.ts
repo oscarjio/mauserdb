@@ -399,6 +399,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   private monthlyChart: Chart | null = null;
   private yearlyChart: Chart | null = null;
   private chartsBuilt = false;
+  private chartBuildTimer: ReturnType<typeof setTimeout> | null = null;
 
   // API-basURL
   private apiBase = environment.apiUrl;
@@ -426,6 +427,10 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.chartBuildTimer !== null) {
+      clearTimeout(this.chartBuildTimer);
+      this.chartBuildTimer = null;
+    }
     try { this.monthlyChart?.destroy(); } catch (e) {}
     this.monthlyChart = null;
     try { this.yearlyChart?.destroy(); } catch (e) {}
@@ -457,7 +462,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
           this.error = 'Kunde inte hämta historikdata. Kontrollera anslutningen.';
         } else {
           this.error = '';
-          setTimeout(() => this.buildCharts(), 100);
+          this.chartBuildTimer = setTimeout(() => this.buildCharts(), 100);
         }
       }
     };
