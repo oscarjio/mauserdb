@@ -46,14 +46,13 @@ fi
 # Token-budget: räkna körningar de senaste 5 timmarna
 NOW=$(date +%s)
 WINDOW_START=$((NOW - BUDGET_WINDOW))
+touch "$BUDGET_FILE" 2>/dev/null || true
 
-# Läs befintliga tidsstämplar, filtrera bort gamla
-if [ -f "$BUDGET_FILE" ]; then
-    grep -v "^$" "$BUDGET_FILE" | awk -v ws="$WINDOW_START" '$1 > ws {print}' > "${BUDGET_FILE}.tmp" || true
-    mv "${BUDGET_FILE}.tmp" "$BUDGET_FILE" 2>/dev/null || true
-fi
+# Filtrera bort tidsstämplar utanför fönstret
+awk -v ws="$WINDOW_START" '$1+0 > ws {print}' "$BUDGET_FILE" > "${BUDGET_FILE}.tmp" 2>/dev/null || true
+mv "${BUDGET_FILE}.tmp" "$BUDGET_FILE" 2>/dev/null || true
 
-RUNS_IN_WINDOW=$(wc -l < "$BUDGET_FILE" 2>/dev/null || echo 0)
+RUNS_IN_WINDOW=$(wc -l < "$BUDGET_FILE" 2>/dev/null | tr -d ' ' || echo 0)
 
 if [ "$RUNS_IN_WINDOW" -ge "$MAX_RUNS_PER_WINDOW" ]; then
     echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $RUNS_IN_WINDOW/$MAX_RUNS_PER_WINDOW körningar i 5h-fönstret — hoppar över för att bevara tokens för ägaren." >> "$RUNLOG"
