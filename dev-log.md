@@ -8,7 +8,27 @@
 - **notification-center.ts**: Fil existerar ej, ingen notifikationskomponent i navbar — SKIPPED
 - **maintenance-log.ts** + **service-intervals.component.ts**: OK — destroy$ korrekt, alla HTTP med takeUntil/timeout/catchError, successTimer rensas i ngOnDestroy
 
-**Plan**: Worker 2 — End-to-end API-kontraktsvalidering (frontend service-anrop vs backend endpoints).
+**Worker 2 — End-to-end API-kontraktsvalidering** (50+ endpoints verifierade, 1 missmatch fixad):
+
+Verifierade alla HTTP-anrop i `rebotling.service.ts` (42 endpoints), samt page-level anrop i `rebotling-admin.ts`, `live-ranking.ts`, `rebotling-skiftrapport.ts`, `executive-dashboard.ts`, `my-bonus.ts`, `operator-trend.ts`, `production-calendar.ts`, `monthly-report.ts`, `maintenance-log/` m.fl.
+
+Kontrollerade controllers: `RebotlingController`, `RebotlingAdminController`, `RebotlingAnalyticsController`, `MaintenanceController`, `FeedbackController`, `BonusController`, `ShiftPlanController`.
+
+**MISSMATCH HITTAD & FIXAD:**
+- `live-ranking-config` (GET) och `set-live-ranking-config` (POST) — frontend (`live-ranking.ts` + `rebotling-admin.ts`) anropade dessa endpoints men backend saknade dispatch-case och handler-metoder. Lade till `getLiveRankingConfig()` och `setLiveRankingConfig()` i `RebotlingAdminController.php` (sparar/läser kolumnkonfiguration, sortering, refresh-intervall i `rebotling_settings`-tabellen) samt dispatch-cases i `RebotlingController.php`.
+
+**Verifierade utan anmärkning (fokus-endpoints):**
+- `exec-dashboard`, `all-lines-status`, `peer-ranking`, `shift-compare` — alla OK
+- `service-intervals`, `set-service-interval`, `reset-service-counter` (MaintenanceController) — alla OK
+- `live-ranking-settings`, `save-live-ranking-settings` — alla OK
+- `rejection-analysis`, `cycle-histogram`, `spc` — alla OK
+- `benchmarking`, `personal-bests`, `hall-of-fame` — alla OK
+- `copy-week` (ShiftPlanController) — OK
+- `feedback/summary`, `feedback/my-history`, `feedback/submit` — alla OK
+
+Angular build: OK (inga kompileringsfel).
+
+**Sammanfattning session #16**: 50+ endpoints verifierade, 1 API-kontraktsmissmatch hittad och fixad (live-ranking-config). Inga nya features.
 
 ---
 

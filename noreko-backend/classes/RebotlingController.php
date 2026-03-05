@@ -53,6 +53,8 @@ class RebotlingController {
                 $this->adminController->getNotificationSettings();
             } elseif ($action === 'live-ranking-settings') {
                 $this->adminController->getLiveRankingSettings();
+            } elseif ($action === 'live-ranking-config') {
+                $this->adminController->getLiveRankingConfig();
             } elseif ($action === 'goal-history') {
                 $this->adminController->getGoalHistory();
             } elseif ($action === 'goal-exceptions') {
@@ -224,6 +226,8 @@ class RebotlingController {
                 $this->adminController->saveNotificationSettings();
             } elseif ($action === 'save-live-ranking-settings') {
                 $this->adminController->saveLiveRankingSettings();
+            } elseif ($action === 'set-live-ranking-config') {
+                $this->adminController->setLiveRankingConfig();
             } elseif ($action === 'create-record-news') {
                 $this->adminController->createRecordNewsManual();
             } elseif ($action === 'save-maintenance-log') {

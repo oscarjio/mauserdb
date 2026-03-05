@@ -978,6 +978,82 @@ class RebotlingAdminController {
         }
     }
 
+    /**
+     * GET ?action=rebotling&run=live-ranking-config
+     * Hämtar KPI-kolumner, sortering och refresh-intervall för Live Ranking.
+     */
+    public function getLiveRankingConfig(): void {
+        try {
+            $keys = ['lrc_columns', 'lrc_sort_by', 'lrc_refresh_interval'];
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt->execute($keys);
+            $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+
+            $columns = json_decode($rows['lrc_columns'] ?? '{}', true);
+            if (empty($columns)) {
+                $columns = [
+                    'ibc_per_hour'  => true,
+                    'quality_pct'   => true,
+                    'bonus_level'   => false,
+                    'goal_progress' => true,
+                    'ibc_today'     => true,
+                ];
+            }
+            echo json_encode(['success' => true, 'data' => [
+                'columns'          => $columns,
+                'sort_by'          => $rows['lrc_sort_by'] ?? 'ibc_per_hour',
+                'refresh_interval' => intval($rows['lrc_refresh_interval'] ?? 30),
+            ]]);
+        } catch (Exception $e) {
+            error_log('getLiveRankingConfig: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=set-live-ranking-config
+     * Sparar KPI-kolumner, sortering och refresh-intervall för Live Ranking.
+     */
+    public function setLiveRankingConfig(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Ej behörig']);
+            return;
+        }
+        try {
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $columns = $body['columns'] ?? [
+                'ibc_per_hour'  => true,
+                'quality_pct'   => true,
+                'bonus_level'   => false,
+                'goal_progress' => true,
+                'ibc_today'     => true,
+            ];
+            $sortBy = in_array($body['sort_by'] ?? '', ['ibc_per_hour', 'quality_pct', 'bonus_level', 'goal_progress', 'ibc_today'], true)
+                ? $body['sort_by']
+                : 'ibc_per_hour';
+            $refreshInterval = max(10, min(120, intval($body['refresh_interval'] ?? 30)));
+
+            $settings = [
+                'lrc_columns'          => json_encode($columns),
+                'lrc_sort_by'          => $sortBy,
+                'lrc_refresh_interval' => strval($refreshInterval),
+            ];
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
+            foreach ($settings as $k => $v) {
+                $stmt->execute([$k, $v]);
+            }
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('setLiveRankingConfig: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
+
 
     public function createRecordNewsManual(): void {
         try {
