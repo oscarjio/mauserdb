@@ -18,6 +18,12 @@ class AndonController {
     }
 
     public function handle(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
+            return;
+        }
+
         $run = strtolower(trim($_GET['run'] ?? ''));
 
         if ($run === 'status') {
@@ -206,8 +212,8 @@ class AndonController {
 
         } catch (\Exception $e) {
             error_log('AndonController::recentStoppages fel: ' . $e->getMessage());
-            // Tabellen kanske inte finns — returnera tom lista gracefully
-            echo json_encode(['success' => true, 'stoppages' => []]);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stoppregistreringar']);
         }
     }
 
@@ -255,8 +261,8 @@ class AndonController {
 
         } catch (\Exception $e) {
             error_log('AndonController::andonNotes fel: ' . $e->getMessage());
-            // Tabell kanske inte finns — returnera tomt gracefully
-            echo json_encode(['success' => true, 'notes' => [], 'unread_count' => 0]);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta andon-noter']);
         }
     }
 

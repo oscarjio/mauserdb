@@ -16,6 +16,12 @@ class HistorikController {
     }
 
     public function handle() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
+            return;
+        }
+
         $run = trim($_GET['run'] ?? 'monthly');
 
         switch ($run) {

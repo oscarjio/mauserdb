@@ -65,7 +65,7 @@ class ShiftPlanController {
 
     private function requireAdmin() {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['read_and_close' => true]);
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
@@ -594,6 +594,7 @@ class ShiftPlanController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($rows)) {
+                http_response_code(404);
                 echo json_encode(['success' => false, 'error' => 'Inga tilldelningar att kopiera från föregående vecka']);
                 return;
             }
