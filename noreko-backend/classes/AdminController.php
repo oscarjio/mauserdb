@@ -4,7 +4,14 @@ require_once __DIR__ . '/AuditController.php';
 
 class AdminController {
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        $isPost = ($_SERVER['REQUEST_METHOD'] === 'POST');
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($isPost) {
+                session_start();
+            } else {
+                session_start(['read_and_close' => true]);
+            }
+        }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
             echo json_encode(['error' => 'Endast admin har behörighet.']);
@@ -12,9 +19,9 @@ class AdminController {
         }
         global $pdo;
         AuditLogger::ensureTable($pdo);
-        
+
         // POST - Skapa, uppdatera användare, ta bort, eller ändra status
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($isPost) {
             $data = json_decode(file_get_contents('php://input'), true);
             if (!is_array($data)) {
                 http_response_code(400);
@@ -169,6 +176,7 @@ class AdminController {
                         );
                         echo json_encode(['success' => true, 'message' => 'Admin-status uppdaterad', 'admin' => $newAdminStatus]);
                     } else {
+                        http_response_code(404);
                         echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
                     }
                 } catch (PDOException $e) {
@@ -218,6 +226,7 @@ class AdminController {
                         );
                         echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'active' => $newActiveStatus]);
                     } else {
+                        http_response_code(404);
                         echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
                     }
                 } catch (PDOException $e) {

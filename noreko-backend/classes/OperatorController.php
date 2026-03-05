@@ -10,7 +10,14 @@ class OperatorController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        $isPost = ($_SERVER['REQUEST_METHOD'] === 'POST');
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($isPost) {
+                session_start();
+            } else {
+                session_start(['read_and_close' => true]);
+            }
+        }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
             echo json_encode(['error' => 'Endast admin har behörighet.']);
@@ -19,7 +26,7 @@ class OperatorController {
         global $pdo;
         AuditLogger::ensureTable($pdo);
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($isPost) {
             $data = json_decode(file_get_contents('php://input'), true);
             $action = $data['action'] ?? '';
 

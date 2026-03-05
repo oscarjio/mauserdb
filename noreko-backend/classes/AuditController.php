@@ -17,7 +17,7 @@ class AuditController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
 
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
@@ -201,7 +201,8 @@ class AuditController {
             ]);
         } catch (PDOException $e) {
             error_log('AuditController getActions: ' . $e->getMessage());
-            echo json_encode(['success' => true, 'data' => []]);
+            http_response_code(500);
+            echo json_encode(['success' => false, 'data' => []]);
         }
     }
 

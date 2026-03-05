@@ -925,7 +925,7 @@ class RebotlingAdminController {
      */
 
     public function getLiveRankingSettings(): void {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         try {
             $keys = ['lr_show_quality', 'lr_show_progress', 'lr_show_motto', 'lr_poll_interval', 'lr_title'];
             $placeholders = implode(',', array_fill(0, count($keys), '?'));
@@ -1149,10 +1149,10 @@ class RebotlingAdminController {
                 ]);
                 echo json_encode(['success' => true, 'message' => 'Underhållsåtgärd sparad']);
             } catch (\Exception $tableErr) {
-                // Tabellen finns inte ännu — returnera ändå success så frontend inte kraschar
+                // Tabellen finns inte ännu
                 error_log('saveMaintenanceLog: rebotling_maintenance_log saknas: ' . $tableErr->getMessage());
                 http_response_code(500);
-                echo json_encode(['success' => true, 'message' => 'Noterat (logg-tabell ej konfigurerad)']);
+                echo json_encode(['success' => false, 'error' => 'Logg-tabell ej konfigurerad']);
             }
         } catch (\Exception $e) {
             error_log('saveMaintenanceLog: ' . $e->getMessage());
