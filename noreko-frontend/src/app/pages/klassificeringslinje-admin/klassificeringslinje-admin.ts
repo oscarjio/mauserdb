@@ -4,8 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { KlassificeringslinjeService } from '../../services/klassificeringslinje.service';
 
 interface WeekdayGoal {
   weekday: number;
@@ -59,7 +59,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
   // ---- Visibilitychange-guard ----
   private visibilityHandler = () => this.onVisibilityChange();
 
-  constructor(private auth: AuthService, private http: HttpClient) {
+  constructor(private auth: AuthService, private klassService: KlassificeringslinjeService) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user = val;
@@ -111,7 +111,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
   loadSettings() {
     this.settingsLoading = true;
     this.settingsError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=klassificeringslinje&run=settings', { withCredentials: true })
+    this.klassService.getSettings()
       .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -146,7 +146,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
     }
     this.settingsSaving = true;
     this.settingsError = '';
-    this.http.post<any>('/noreko-backend/api.php?action=klassificeringslinje&run=settings', this.settings, { withCredentials: true })
+    this.klassService.saveSettings(this.settings)
       .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -169,7 +169,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
   loadWeekdayGoals() {
     this.weekdayGoalsLoading = true;
     this.weekdayGoalsError = '';
-    this.http.get<any>('/noreko-backend/api.php?action=klassificeringslinje&run=weekday-goals', { withCredentials: true })
+    this.klassService.getWeekdayGoals()
       .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -197,7 +197,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
     this.weekdayGoalsSaving = true;
     this.weekdayGoalsError = '';
     const payload = { goals: this.weekdayGoals.map(g => ({ weekday: g.weekday, mal: g.mal })) };
-    this.http.post<any>('/noreko-backend/api.php?action=klassificeringslinje&run=weekday-goals', payload, { withCredentials: true })
+    this.klassService.saveWeekdayGoals(payload)
       .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
@@ -224,7 +224,7 @@ export class KlassificeringslinjeAdminPage implements OnInit, OnDestroy {
       this.systemStatusLoading = true;
       this.systemStatusError = '';
     }
-    this.http.get<any>('/noreko-backend/api.php?action=klassificeringslinje&run=system-status', { withCredentials: true })
+    this.klassService.getSystemStatus()
       .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {

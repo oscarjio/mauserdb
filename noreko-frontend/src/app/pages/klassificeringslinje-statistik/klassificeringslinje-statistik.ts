@@ -1,12 +1,12 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
+import { KlassificeringslinjeService } from '../../services/klassificeringslinje.service';
 
 Chart.register(...registerables);
 
@@ -74,9 +74,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
   private chartTimer: any = null;
   private destroy$ = new Subject<void>();
 
-  private readonly apiBase = '/api/api.php';
-
-  constructor(private service: LineSkiftrapportService, private http: HttpClient) {}
+  constructor(private service: LineSkiftrapportService, private klassService: KlassificeringslinjeService) {}
 
   ngOnInit() {
     this.loadReports();
@@ -133,8 +131,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
 
   loadOeeTrend() {
     this.oeeTrendLoading = true;
-    const url = `${this.apiBase}?action=klassificeringslinje&run=oee-trend&dagar=${this.oeeTrendDagar}`;
-    this.http.get<any>(url, { withCredentials: true })
+    this.klassService.getOeeTrend(this.oeeTrendDagar)
       .pipe(
         timeout(8000),
         catchError(() => of({ success: true, empty: true, message: 'Linjen ej i drift', data: [], summary: { total_ibc: 0, snitt_per_dag: 0, snitt_oee_pct: 0, basta_dag: null, basta_ibc: 0 } })),
