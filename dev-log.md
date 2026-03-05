@@ -1,3 +1,11 @@
+## 2026-03-05 — my-bonus kollegajamforelse
+
+- Ny backend-endpoint `peer-ranking` i BonusController.php: anonymiserad veckoranking med IBC/h och kvalitet for alla operatorer
+- Ny frontend-sektion "Hur ligger du till?" i my-bonus med mini-tabell, guld/silver/brons-badges, motiverande diff-text
+- Ingen operatorsidentitet avslojad — peers visas som "Operator 1", "Operator 2" etc.
+
+---
+
 ## 2026-03-05 Session #12 — Månadsrapport + Bug Hunt #19
 
 **Worker 1 — monthly-report förbättring** (`c0c683b`):
