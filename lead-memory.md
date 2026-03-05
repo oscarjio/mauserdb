@@ -705,6 +705,6 @@ Nästa session (cron ~3h): Starta ny omgång på återstående öppna items + ny
 ## AKTIV BATCH (2026-03-05 session #10)
 
 ### 🔴 Hög prioritet — Workers startas NU
-- [ ] **rebotling-statistik.ts refactoring**: 4248 rader → bryt ut varje flik till standalone child-component med @defer. Mål: huvudfilen under 500 rader, varje flik-komponent self-contained.
-- [ ] **maintenance-log.ts refactoring**: 1817 rader — extrahera MaintenanceFormComponent, EquipmentStatsComponent + flytta template till separat fil. Mål: under 400 rader.
-- [ ] **Bug Hunt #18 — session #9 granskning**: Granska Mobilanpassning batch 3 (`36bb854`) och Error-handling UX (`6d203d5`). Kolla att: (a) alla col-classes är korrekta, (b) catchError-meddelanden är konsekventa svenska, (c) inga regressionsbuggar i de 15+ ändrade filerna.
+- [x] **rebotling-statistik.ts refactoring**: KLAR `9eec10d` — 4248→1922 rader TS (55%), 2188→694 HTML (68%). 16 child-components i statistik/: histogram, SPC, cykeltid-operator, kvalitetstrend, waterfall-OEE, veckodag, produktionsrytm, pareto-stopp, kassation-pareto, OEE-komponenter, kvalitetsanalys, händelser, veckojämförelse, prediktion, OEE-deepdive, cykeltrend. @defer on viewport + *ngIf toggle.
+- [x] **maintenance-log.ts refactoring**: KLAR `c39d3cb` — 1817→377 rader. 7 nya filer: models, helpers, 5 child-components (list, equipment-stats, kpi-analysis, service-intervals, form).
+- [x] **Bug Hunt #18 — session #9 granskning**: KLAR `6baa2bf` — 1 bugg fixad: operators.html svenska specialtecken (å/ä/ö) i kompatibilitetsmatris. Övriga 9 filer rena.

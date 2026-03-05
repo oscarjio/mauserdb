@@ -1,9 +1,15 @@
 ## 2026-03-05 Session #10 — Stora refactorings + Bug Hunt
 
-**Planerade workers**:
-1. rebotling-statistik.ts refactoring (4248 rader → child-components med @defer)
-2. maintenance-log.ts refactoring (1817 rader → child-components)
-3. Bug Hunt #18 — granska session #9 commits (36bb854 + 6d203d5)
+**Worker 1 — rebotling-statistik.ts refactoring** (`9eec10d`):
+- 4248→1922 TS-rader (55% reduktion), 2188→694 HTML-rader (68%)
+- 16 nya child-components i `statistik/`: histogram, SPC, cykeltid-operator, kvalitetstrend, waterfall-OEE, veckodag, produktionsrytm, pareto-stopp, kassation-pareto, OEE-komponenter, kvalitetsanalys, händelser, veckojämförelse, prediktion, OEE-deepdive, cykeltrend
+- 12 laddas med `@defer (on viewport)`, 4 med `*ngIf` toggle
+
+**Worker 2 — maintenance-log.ts refactoring** (`c39d3cb`):
+- 1817→377 rader. 7 nya filer: models, helpers, 5 child-components
+
+**Worker 3 — Bug Hunt #18** (`6baa2bf`):
+- 1 bugg fixad: operators.html svenska specialtecken (å/ä/ö). 9 filer rena
 
 ---
 
