@@ -18,15 +18,20 @@ class FeedbackController {
     }
 
     public function handle(): void {
-        if (session_status() === PHP_SESSION_NONE) session_start();
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'POST') {
+                session_start();
+            } else {
+                session_start(['read_and_close' => true]);
+            }
+        }
 
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
             return;
         }
-
-        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run    = trim($_GET['run'] ?? '');
 
         if ($method === 'POST') {

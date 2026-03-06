@@ -60,8 +60,8 @@ class ShiftHandoverController {
             session_start();
         }
         if (!isset($_SESSION['user_id'])) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Inloggning krävs.']);
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
             exit;
         }
     }

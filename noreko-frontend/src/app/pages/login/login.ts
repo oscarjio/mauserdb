@@ -116,6 +116,7 @@ export class LoginPage implements OnDestroy {
           this.auth.user$.next(res.user);
           this.auth.initialized$.next(true);
           sessionStorage.setItem('auth_user', JSON.stringify(res.user));
+          this.auth.onLoginSuccess();
           this.router.navigate(['/']);
           this.auth.fetchStatus().pipe(
             takeUntil(this.destroy$),

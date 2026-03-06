@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, interval, of, Observable } from 'rxjs';
+import { Router } from '@angular/router';
+import { BehaviorSubject, Subscription, interval, of, Observable } from 'rxjs';
 import { timeout, catchError, retry, tap, map } from 'rxjs/operators';
 
 export interface AuthUser {
@@ -21,6 +22,9 @@ export class AuthService {
   /** Sätts till true när första status-anropet är klart (oavsett resultat). */
   initialized$ = new BehaviorSubject<boolean>(false);
 
+  private pollSub: Subscription | null = null;
+  private router = inject(Router);
+
   constructor(private http: HttpClient) {
     // Återställ cachad auth-status direkt så guards inte redirectar vid sidomladdning
     const cached = sessionStorage.getItem('auth_user');
@@ -37,7 +41,21 @@ export class AuthService {
     // Det initiala fetchStatus()-anropet görs av APP_INITIALIZER (se app.config.ts)
     // så att Angular väntar på svaret innan routing startar.
     // Här sätter vi bara upp polling för efterföljande kontroller.
-    interval(60000).subscribe(() => this.fetchStatus().subscribe());
+    this.startPolling();
+  }
+
+  /** Starta status-polling (anropas vid konstruktion och kan återstartas efter login). */
+  private startPolling(): void {
+    this.stopPolling();
+    this.pollSub = interval(60000).subscribe(() => this.fetchStatus().subscribe());
+  }
+
+  /** Stoppa status-polling (anropas vid logout). */
+  private stopPolling(): void {
+    if (this.pollSub) {
+      this.pollSub.unsubscribe();
+      this.pollSub = null;
+    }
   }
 
   fetchStatus(): Observable<void> {
@@ -66,11 +84,23 @@ export class AuthService {
     );
   }
 
-  logout() {
+  logout(): void {
+    // Rensa state och stoppa polling INNAN HTTP-anropet — säkerställer
+    // att polling inte fortsätter om logout-anropet misslyckas.
+    this.stopPolling();
     sessionStorage.removeItem('auth_user');
-    this.http.get('/noreko-backend/api.php?action=login&run=logout', { withCredentials: true }).subscribe(() => {
-      this.loggedIn$.next(false);
-      this.user$.next(null);
+    this.loggedIn$.next(false);
+    this.user$.next(null);
+
+    this.http.get('/noreko-backend/api.php?action=login&run=logout', { withCredentials: true }).pipe(
+      catchError(() => of(null))
+    ).subscribe(() => {
+      this.router.navigate(['/login']);
     });
+  }
+
+  /** Anropas efter lyckad inloggning för att återstarta polling. */
+  onLoginSuccess(): void {
+    this.startPolling();
   }
 }

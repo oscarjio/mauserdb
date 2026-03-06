@@ -77,8 +77,8 @@ class SkiftrapportController {
 
     private function checkOwnerOrAdmin($reportId) {
         if (!isset($_SESSION['user_id'])) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Inte inloggad']);
+            http_response_code(401);
+            echo json_encode(['success' => false, 'message' => 'Sessionen har gått ut. Logga in igen.']);
             exit;
         }
 

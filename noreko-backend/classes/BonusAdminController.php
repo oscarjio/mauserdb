@@ -24,8 +24,14 @@ class BonusAdminController {
     }
 
     public function handle() {
-        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'POST') {
+                session_start();
+            } else {
+                session_start(['read_and_close' => true]);
+            }
+        }
         $run = trim($_GET['run'] ?? '');
 
         // Admin-kontroll via session
