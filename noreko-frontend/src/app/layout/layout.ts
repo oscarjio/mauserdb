@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, HostBinding } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { RouterOutlet, Router } from '@angular/router';
 import { Header } from '../header/header';
 import { Menu } from '../menu/menu';

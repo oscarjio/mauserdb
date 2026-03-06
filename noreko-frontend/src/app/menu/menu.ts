@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterModule, Router } from '@angular/router';
-import { NgIf, CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, AuthUser } from '../services/auth.service';
@@ -25,7 +25,7 @@ interface ProfileApiResponse {
 @Component({
   selector: 'app-menu',
   standalone: true,
-  imports: [RouterModule, NgIf, FormsModule, CommonModule],
+  imports: [RouterModule, FormsModule, CommonModule],
   templateUrl: './menu.html',
   styleUrl: './menu.css'
 })
@@ -107,6 +107,9 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Lazy-load Bootstrap Dropdown JS (behövs för data-bs-toggle="dropdown")
+    import('bootstrap/js/dist/dropdown');
+
     this.loadLineStatus();
     if (this.loggedIn && this.user?.role === 'admin') {
       this.loadVpnStatus();

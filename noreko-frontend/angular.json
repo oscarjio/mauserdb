@@ -27,14 +27,14 @@
             "styles": [
               "src/styles.css"
             ],
-            "scripts": [
-              "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"
-            ],
+            "scripts": [],
             "allowedCommonJsDependencies": [
               "pdfmake",
               "pdfmake/build/pdfmake",
               "pdfmake/build/vfs_fonts",
-              "qrcode"
+              "qrcode",
+              "bootstrap/js/dist/dropdown",
+              "bootstrap/js/dist/collapse"
             ]
           },
           "configurations": {

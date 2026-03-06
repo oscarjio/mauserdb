@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth.service';
 import { BonusService, RankingEntry, ShiftStats, HallOfFameEntry, LoneprognosOperator } from '../../services/bonus.service';
 import { BonusAdminService } from '../../services/bonus-admin.service';
 import { Chart, registerables } from 'chart.js';
+import 'bootstrap/js/dist/collapse';
 
 Chart.register(...registerables);
 
