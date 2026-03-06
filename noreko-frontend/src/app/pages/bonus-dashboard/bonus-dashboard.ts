@@ -279,7 +279,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (!this.prevRanking || this.prevRanking.length === 0) return 0;
     const prev = this.prevRanking.find(p => p.operator_id === op.operator_id);
     if (!prev || !prev.bonus_avg || prev.bonus_avg === 0) return 0;
-    return Math.round(((op.bonus_avg - prev.bonus_avg) / prev.bonus_avg) * 100);
+    const opBonus = op.bonus_avg ?? 0;
+    return Math.round(((opBonus - prev.bonus_avg) / prev.bonus_avg) * 100);
   }
 
   /** Get previous period rank for an operator */

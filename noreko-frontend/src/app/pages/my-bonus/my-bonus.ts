@@ -651,14 +651,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   getNextTierInfo(bonus: number): { name: string; pointsNeeded: number } | null {
     const tiers = [
-      { name: 'Outstanding (x2.0)', threshold: 95 },
-      { name: 'Excellent (x1.5)', threshold: 90 },
+      { name: 'Basbonus (x1.0)', threshold: 70 },
       { name: 'God prestanda (x1.25)', threshold: 80 },
-      { name: 'Basbonus (x1.0)', threshold: 70 }
+      { name: 'Excellent (x1.5)', threshold: 90 },
+      { name: 'Outstanding (x2.0)', threshold: 95 }
     ];
     for (const tier of tiers) {
       if (bonus < tier.threshold) {
-        return { name: tier.name, pointsNeeded: tier.threshold - bonus };
+        return { name: tier.name, pointsNeeded: Math.round((tier.threshold - bonus) * 10) / 10 };
       }
     }
     return null;
