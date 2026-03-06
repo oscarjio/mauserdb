@@ -1,3 +1,9 @@
+## 2026-03-06 Session #33 — Bug Hunt #38 service-backend kontrakt + CSS/UX-konsistens
+
+**Plan**: Worker 1 granskar Angular service→PHP endpoint kontrakt (parameternamn, URL-matchning, respons-typer). Worker 2 granskar build-varningar + dark theme CSS-konsistens + loading/error/empty-state-mönster.
+
+---
+
 ## 2026-03-06 Session #32 — Bug Hunt #37 formulärvalidering + error recovery
 
 **Worker 1 — Bug Hunt #37 Formulärvalidering** (`5bb732e`):
