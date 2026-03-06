@@ -1,7 +1,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
@@ -78,11 +78,16 @@ export class LoginPage implements OnDestroy {
   loading = false;
   private destroy$ = new Subject<void>();
 
+  private returnUrl: string = '/';
+
   constructor(
     private http: HttpClient,
     private auth: AuthService,
-    private router: Router
-  ) {}
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+  }
 
   ngOnDestroy() {
     this.destroy$.next();
@@ -117,7 +122,7 @@ export class LoginPage implements OnDestroy {
           this.auth.initialized$.next(true);
           sessionStorage.setItem('auth_user', JSON.stringify(res.user));
           this.auth.onLoginSuccess();
-          this.router.navigate(['/']);
+          this.router.navigateByUrl(this.returnUrl);
           this.auth.fetchStatus().pipe(
             takeUntil(this.destroy$),
             timeout(8000),

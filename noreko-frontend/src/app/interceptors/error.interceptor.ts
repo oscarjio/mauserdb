@@ -25,9 +25,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         // Clear auth state and redirect to login
         auth.loggedIn$.next(false);
         auth.user$.next(null);
+        sessionStorage.removeItem('auth_user');
         if (!router.url.includes('/login')) {
           message = 'Sessionen har gått ut. Logga in igen.';
-          router.navigate(['/login']);
+          // Bevara nuvarande URL som returnUrl så användaren kan komma tillbaka efter login
+          router.navigate(['/login'], { queryParams: { returnUrl: router.url } });
         } else {
           // On login page, don't show session expired - show specific error
           return throwError(() => error);

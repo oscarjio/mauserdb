@@ -1,9 +1,9 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { map, filter, take, switchMap } from 'rxjs';
+import { map, filter, take, switchMap, combineLatestWith } from 'rxjs';
 
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
@@ -15,13 +15,14 @@ export const authGuard: CanActivateFn = () => {
     switchMap(() => auth.loggedIn$.pipe(take(1))),
     map(loggedIn => {
       if (loggedIn) return true;
-      router.navigate(['/login']);
+      // Spara önskad URL så login-sidan kan redirecta tillbaka efter inloggning
+      router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       return false;
     })
   );
 };
 
-export const adminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = (route, state) => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
@@ -31,10 +32,19 @@ export const adminGuard: CanActivateFn = () => {
   return auth.initialized$.pipe(
     filter(init => init === true),
     take(1),
-    switchMap(() => auth.user$.pipe(take(1))),
-    map(user => {
+    switchMap(() => auth.loggedIn$.pipe(
+      take(1),
+      combineLatestWith(auth.user$.pipe(take(1)))
+    )),
+    map(([loggedIn, user]) => {
       if (user?.role === 'admin') return true;
-      router.navigate(['/']);
+      if (!loggedIn) {
+        // Ej inloggad — skicka till login med returnUrl
+        router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+      } else {
+        // Inloggad men ej admin — skicka till startsidan
+        router.navigate(['/']);
+      }
       return false;
     })
   );
