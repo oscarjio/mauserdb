@@ -357,6 +357,7 @@ class RebotlingAnalyticsController {
         $toDate   = $_GET['to_date']   ?? null;
         if ($fromDate && $toDate) {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
                 return;
             }
@@ -1511,6 +1512,7 @@ class RebotlingAnalyticsController {
     public function getDayDetail() {
         $date = $_GET['date'] ?? '';
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
             return;
         }
@@ -2803,6 +2805,7 @@ class RebotlingAnalyticsController {
         $end   = $_GET['end']   ?? '';
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+            http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltiga datumparametrar']);
             return;
         }
@@ -4100,6 +4103,7 @@ class RebotlingAnalyticsController {
 
             $emailsRaw = $row['notification_emails'] ?? '';
             if (empty(trim($emailsRaw))) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.']);
                 return;
             }
@@ -4113,6 +4117,7 @@ class RebotlingAnalyticsController {
             }
 
             if (count($recipients) === 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Inga giltiga e-postadresser konfigurerade.']);
                 return;
             }
@@ -4225,6 +4230,7 @@ class RebotlingAnalyticsController {
             }
 
             if (count($sentTo) === 0) {
+                http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Kunde inte skicka till någon mottagare. Kontrollera serverinställningar.']);
                 return;
             }
@@ -5057,6 +5063,7 @@ HTML;
 
             $emailsRaw = $row['notification_emails'] ?? '';
             if (empty(trim($emailsRaw))) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.']);
                 return;
             }
@@ -5070,6 +5077,7 @@ HTML;
             }
 
             if (count($recipients) === 0) {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Inga giltiga e-postadresser konfigurerade.']);
                 return;
             }
@@ -5091,6 +5099,7 @@ HTML;
             }
 
             if (count($sentTo) === 0) {
+                http_response_code(500);
                 echo json_encode(['success' => false, 'error' => 'Kunde inte skicka till nagon mottagare. Kontrollera serverinställningar.']);
                 return;
             }
