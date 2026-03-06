@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #31)*
+*Senast uppdaterad: 2026-03-06 (session #32)*
 
 ---
 
@@ -423,6 +423,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #32
+**Lagesanalys**: Session #31 levererade Bug Hunt #36 sakerhetsrevision PHP-backend (`04217be` — 18 fixar: 3 SQL injection, 14 input-sanitering, 1 XSS) + Bug Hunt #36b bonus-logik edge cases (`ab6242f` — 2 fixar: tier-sortering, null guard). Totalt 20 fixar. Hela PHP-backend har nu genomgatt sakerhetsrevision. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Bug Hunts #1-#36 har tackt ALLA stora backend-kategorier: minneslakor, HTTP-koder, auth, session, berakningslogik, template-varningar, dead code, float-modulo, routing, datum/tid, performance, error handling, API consistency, sakerhet (SQL injection, XSS, input sanitering).
+- Frontend-sidan av input-validering har INTE granskats systematiskt — Angular-formular i admin-sidor kan sakna min/max/required-validering, vilket lat ogiltiga varden passera till backend.
+- Error recovery (retry-logik, aterstallning efter natverksfel, polling-aterhamtning) har granskats delvis men inte systematiskt.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #37 — Angular formularvalidering och input-sanitering. Granska ALLA formular i admin-sidor (rebotling-admin, bonus-admin, users, operators, shift-plan, certifications, news-admin, maintenance-log) for: (a) saknad HTML5-validering (required, min, max, pattern, type=email/number), (b) saknad Angular-validering (Validators.required/min/max i FormGroup), (c) negativa/noll-varden dar positiva kravs (bonusnivaer, mal, skifttider), (d) XSS-risk i inputs som renderas tillbaka i template (innerHTML, [title], tooltips). Fokus pa admin-sidor dar felaktiga varden har storst paverkan.
+2. Worker 2: Bug Hunt #37b — Error recovery och polling-robusthet. Granska: (a) alla catchError-handlers — aterstar error-state vid nytt forsok? (b) "Forsok igen"-knappar — fungerar de korrekt (rensar error, laddar om data)? (c) polling-komponenter (executive-dashboard, rebotling-admin, live-ranking, andon, operator-dashboard) — aterupptar polling efter tillfalligt natverksfel? (d) HTTP timeout-varden — ar de rimliga (inte for korta for langsamma queries)? Fokus pa de mest anvandarkritiska sidorna.
+
+**Motivering**: Frontend-validering ar sista forsvarslinjen mot ogiltiga data — backend har sakrats men frontend kan fortfarande skicka ogiltiga varden (t.ex. negativ bonus, tomt namn). Error recovery paverkar UX direkt — om en operator far ett fel och inte kan aterhemta sig maste de ladda om sidan, vilket bryter arbetsflödet.
 
 ### 2026-03-06 Session #31
 **Lagesanalys**: Session #30 levererade Bug Hunt #35 error handling (`d5a6576` — 10 buggar i 4 Angular-komponenter: cachad getActiveRanking, separata loading-flaggor, empty states, error-rensning) + Bug Hunt #35b PHP API consistency (`1806cc9` — 9 buggar i RebotlingAnalyticsController: HTTP 200→400/500 for error-responses). Totalt 19 buggar fixade. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

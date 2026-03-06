@@ -1,3 +1,11 @@
+## 2026-03-06 Session #32 — Bug Hunt #37 formulärvalidering + error recovery
+
+**Plan**: Två parallella workers:
+- Worker 1: Bug Hunt #37 — Angular formulärvalidering och input-sanitering i admin-sidor (rebotling-admin, bonus-admin, users, operators, certifications, news-admin, maintenance-log)
+- Worker 2: Bug Hunt #37b — Error recovery och polling-robusthet (catchError-handlers, "Försök igen"-knappar, polling-återhämtning efter nätverksfel)
+
+---
+
 ## 2026-03-06 Session #31 — Bug Hunt #36 säkerhetsrevision + bonus-logik edge cases
 
 **Worker 1 — Bug Hunt #36 Säkerhetsrevision PHP** (`04217be`):
