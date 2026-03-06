@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #34)*
+*Senast uppdaterad: 2026-03-06 (session #35)*
 
 ---
 
@@ -148,6 +148,25 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #35: Bug Hunt #40 PHP-robusthet + Angular navigation)
+
+**Bug Hunt #40 — PHP backend-robusthet (9 fixar i 6 filer):**
+- BonusController getDateFilter: period='all' och default saknade datumgrans → obegransad query. Fixat: max 365 dagar.
+- RebotlingAnalyticsController: getOEETrend, getBestShifts, getCycleByOperator saknade max-intervallbegransning. Fixat: max 365 dagar.
+- RebotlingController getHeatmap: saknade max-intervallbegransning. Fixat: max 365 dagar.
+- BonusAdminController exportReport: CSV-query saknade LIMIT → memory exhaustion vid stor data. Fixat: LIMIT 50000.
+- ShiftPlanController copyWeek: multi-row insert utan transaktion → race condition. Fixat: BEGIN/COMMIT.
+- RebotlingAdminController saveWeekdayGoals: multi-row update utan transaktion. Fixat: BEGIN/COMMIT.
+- BonusAdminController setAmounts: multi-row upsert utan transaktion. Fixat: BEGIN/COMMIT.
+- Granskade OK: WeeklyReportController, ExecDashboardController, alla controllers har try/catch, inga stack traces.
+
+**Bug Hunt #40b — Angular navigation edge cases (4 fixar i 3 filer):**
+- auth.guard.ts: authGuard saknade returnUrl → anvandare tappade sin sida vid redirect till login. Fixat.
+- auth.guard.ts: adminGuard skilde ej mellan ej-inloggad och ej-admin. Fixat: ej-inloggade → /login med returnUrl.
+- login.ts: ignorerade returnUrl queryParam → navigerade alltid till /. Fixat: laser returnUrl och navigerar tillbaka.
+- error.interceptor.ts: rensade ej sessionStorage vid 401 → stale auth-cache. Fixat.
+- Granskade OK: 404-route finns (NotFoundPage), alla routes lazy loadade, alla guards konsistenta, navigation cleanup korrekt.
 
 ### Atgärdat — 2026-03-06 (Session #34: Bug Hunt #39 session/auth + data-konsistens)
 
@@ -464,6 +483,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #35
+**Lagesanalys**: Session #34 levererade Bug Hunt #39 session/auth edge cases (`4cda3af` — 9 fixar: 403→401 vid expired session, session read_and_close for POST, auth.service.ts minnesläcka/race condition/logout/login-polling) + Bug Hunt #39b data-konsistens (`91329eb` — 18 fixar: KRITISK runtime_plc /3600→/60 kvarstod i 4 controllers, IBC/h 60x for lagt). Totalt 27 fixar. Bug Hunts #1-#39 har tackt alla kanda systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Kodbasen ar i utmarkt skick efter 39 Bug Hunts. Alla stora kategorier ar tackta. For att hitta kvarstaende buggar kravs nu specialiserade djupgranskningar av edge cases.
+- Omrade som EJ granskats: PHP edge cases vid stora datamangder — vad hander nar analytics-queries kor pa 6+ manaders data? Timeout? Memory exhaustion? Concurrent writes till settings-tabeller?
+- Omrade som EJ granskats: Angular navigation edge cases — deep linking till auth-skyddade sidor, browser refresh pa admin-sidor, query parameter-hantering vid sidnavigering, korrekt lazy loading.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #40 — PHP backend robusthet vid stora datamangder och edge cases. Granska: (a) analytics-queries i RebotlingAnalyticsController — finns det datumintervallbegransningar som forhindrar queries pa hela aret (performance)? (b) concurrent writes — kan tva admins spara settings samtidigt och overskriva varandra? Anvands transactions/locking? (c) database connection error handling — vad hander vid tillfälligt DB-avbrott under en request? Returneras rimligt felmeddelande? (d) PHP memory_limit/max_execution_time — kan stora rapporter (monthly-report, weekly-report) overskrida limiter? (e) File operations — PDF-generering, CSV-export — hanteras diskutrymme/filskrivningsfel? Fokus pa: RebotlingAnalyticsController, WeeklyReportController, BonusController, ExecDashboardController.
+2. Worker 2: Bug Hunt #40b — Angular navigation och routing edge cases. Granska: (a) deep linking — om en anvandare bokmärker `/admin/bonus` och oppnar i ny flik, fungerar auth-guard + data-laddning korrekt? (b) browser back/forward — navigerar korrekt utan dubbla API-anrop eller stale data? (c) query parameters — sidorna som anvander datumvaljare/filter, bevaras filter vid navigation? (d) route guards — adminGuard och authGuard — ar de konsekvent applicerade pa alla skyddade routes? (e) lazy loading — ar alla routes korrekt lazy loadade? (f) 404/wildcard-route — finns en catch-all for ogiltiga URL:er? Fokus pa: app.routes.ts, auth guards, alla admin-komponenter, navigeringsflöde.
+
+**Motivering**: PHP-robusthet vid stora datamangder ar relevant nar systemet anvands i flera manader — analytics-queries pa 6+ manaders data kan bli langsamma eller ge timeout. Navigation edge cases paverkar UX — om en admin bokmärker en sida och inte nar den nasta gang tappar hen fortroendet for systemet.
 
 ### 2026-03-06 Session #34
 **Lagesanalys**: Session #33 levererade Bug Hunt #38 service-backend kontrakt (`6aac887` — 2 fixar: KRITISK action=operator saknad i api.php, CORS PUT/DELETE blockerad) + Bug Hunt #38b CSS/UX-konsistens (`aa5ee90` — 8 fixar: 100% varningsfri build, dark theme standardisering, bg-info cyan→bla, focus ring). Totalt 10 fixar. Bug Hunts #1-#38 har nu tackt alla systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

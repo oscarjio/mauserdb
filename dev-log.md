@@ -1,3 +1,22 @@
+## 2026-03-06 Session #35 — Bug Hunt #40 PHP-robusthet + Angular navigation edge cases
+
+**Worker 1 — Bug Hunt #40 PHP-robusthet** (commit via worker):
+- 5 datumintervallbegränsningar (max 365 dagar): BonusController period='all'/default/custom, RebotlingAnalyticsController getOEETrend+getBestShifts+getCycleByOperator, RebotlingController getHeatmap
+- 1 export LIMIT: BonusAdminController exportReport CSV saknade LIMIT → max 50000 rader
+- 3 SQL-transaktioner: ShiftPlanController copyWeek, RebotlingAdminController saveWeekdayGoals, BonusAdminController setAmounts — alla multi-row writes nu i BEGIN/COMMIT
+- Granskade OK: WeeklyReportController, ExecDashboardController, alla controllers har try/catch utan stack traces
+
+**Worker 2 — Bug Hunt #40b Angular navigation** (commit via worker):
+- authGuard: saknade returnUrl vid redirect till /login — användare tappade sin sida
+- adminGuard: skilde ej mellan ej-inloggad och ej-admin — fel redirect
+- login.ts: ignorerade returnUrl — navigerade alltid till / efter login
+- error.interceptor.ts: rensade ej sessionStorage vid 401 — stale auth-cache
+- Granskade OK: 404-route finns (NotFoundPage), alla routes lazy loadade, alla guards konsistenta, navigation cleanup korrekt
+
+**Sammanfattning session #35**: 13 fixar (9 PHP backend-robusthet + 4 Angular navigation). Datumintervallbegränsningar förhindrar timeout vid stora queries, SQL-transaktioner säkrar concurrent writes, auth-flödet nu komplett med returnUrl-stöd.
+
+---
+
 ## 2026-03-06 Session #34 — Bug Hunt #39 session/auth edge cases + data-konsistens
 
 **Worker 1 — Bug Hunt #39 Session/auth edge cases** (commit via worker):
