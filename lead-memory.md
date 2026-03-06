@@ -149,6 +149,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
 
+### Atgärdat — 2026-03-06 (Session #32: Bug Hunt #37 formularvalidering + error recovery)
+
+**Bug Hunt #37 — Angular formularvalidering (`5bb732e`, 5 fixar):**
+- `maintenance-form.component.ts`: Negativa varden i duration_minutes/downtime_minutes/cost_sek passerade HTML min="0" vid manuell inmatning — TS-validering tillagd i saveEntry()
+- `rebotling-admin.html`: Produktnamn saknade required+maxlength, cykeltid saknade required, datum-undantag saknade required, fritextfalt saknade maxlength (2 st)
+- `news-admin.ts`: Nyhetsrubrik saknade required HTML-attribut
+- Granskade OK: bonus-admin, operators, users, create-user, shift-plan, certifications. Ingen XSS-risk.
+
+**Bug Hunt #37b — Error recovery och polling-robusthet (`c5efe8d`, 2 fixar):**
+- `rebotling-admin.ts` loadSystemStatus(): KRITISK — saknade timeout+catchError, polling dog permanent efter natverksfel. Fixad med timeout(8000)+catchError.
+- `bonus-dashboard.ts` loadData(): loading=true vid varje 30s poll → UI flicker. Fixad: loading bara vid initial laddning.
+- Granskade OK: executive-dashboard, live-ranking, andon, operator-dashboard, my-bonus, production-analysis, rebotling-statistik.
+
 ### Atgärdat — 2026-03-06 (Session #31: Bug Hunt #36 sakerhet + bonus-logik)
 
 **Bug Hunt #36 — Sakerhetsrevision PHP-backend (`04217be`, 18 fixar):**

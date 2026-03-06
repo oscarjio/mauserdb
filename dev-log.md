@@ -1,8 +1,14 @@
 ## 2026-03-06 Session #32 — Bug Hunt #37 formulärvalidering + error recovery
 
-**Plan**: Två parallella workers:
-- Worker 1: Bug Hunt #37 — Angular formulärvalidering och input-sanitering i admin-sidor (rebotling-admin, bonus-admin, users, operators, certifications, news-admin, maintenance-log)
-- Worker 2: Bug Hunt #37b — Error recovery och polling-robusthet (catchError-handlers, "Försök igen"-knappar, polling-återhämtning efter nätverksfel)
+**Worker 1 — Bug Hunt #37 Formulärvalidering** (`5bb732e`):
+- 5 fixar: negativa värden i maintenance-form (TS-validering), saknad required+maxlength i rebotling-admin (produktnamn, cykeltid, datum-undantag, fritextfält), saknad required i news-admin (rubrik)
+- Granskade OK: bonus-admin, operators, users, create-user, shift-plan, certifications
+
+**Worker 2 — Bug Hunt #37b Error recovery** (`c5efe8d`):
+- 2 fixar: rebotling-admin loadSystemStatus() saknade timeout+catchError (KRITISK — polling dog permanent), bonus-dashboard loading flicker vid 30s polling
+- Granskade OK: executive-dashboard, live-ranking, andon, operator-dashboard, my-bonus, production-analysis, rebotling-statistik
+
+**Sammanfattning session #32**: 7 fixar (5 formulärvalidering + 2 error recovery). Frontend-validering och polling-robusthet nu komplett.
 
 ---
 
