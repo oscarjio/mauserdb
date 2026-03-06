@@ -1798,7 +1798,14 @@ class BonusController {
                 !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
                 return "1=0";
             }
-            // $start/$$end validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
+            // Begränsa datumintervall till max 365 dagar för att förhindra timeout/memory exhaustion
+            $startDt = new DateTime($start);
+            $endDt   = new DateTime($end);
+            $diffDays = (int)$startDt->diff($endDt)->days;
+            if ($diffDays > 365) {
+                $start = $endDt->modify('-365 days')->format('Y-m-d');
+            }
+            // $start/$end validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
             return "DATE(datum) BETWEEN '" . $start . "' AND '" . $end . "'";
         }
 
@@ -1806,8 +1813,9 @@ class BonusController {
             case 'today': return "DATE(datum) = CURDATE()";
             case 'week':  return "datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
             case 'month': return "datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
-            case 'year':  return "datum >= DATE_SUB(NOW(), INTERVAL 365 DAY)";
-            default:      return "1=1";
+            case 'year':  // fall through
+            case 'all':   return "datum >= DATE_SUB(NOW(), INTERVAL 365 DAY)";
+            default:      return "datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
         }
     }
 

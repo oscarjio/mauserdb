@@ -362,6 +362,13 @@ class RebotlingAnalyticsController {
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
                 return;
             }
+            // Begränsa till max 365 dagar för att förhindra timeout/memory exhaustion
+            $startDt = new DateTime($fromDate);
+            $endDt   = new DateTime($toDate);
+            $diffDays = (int)$startDt->diff($endDt)->days;
+            if ($diffDays > 365) {
+                $fromDate = (clone $endDt)->modify('-365 days')->format('Y-m-d');
+            }
             $oeeStart = $fromDate;
             $oeeEnd   = $toDate;
             $useDateRange = true;
@@ -508,6 +515,7 @@ class RebotlingAnalyticsController {
                 FROM rebotling_ibc
                 WHERE skiftraknare IS NOT NULL
                   AND ibc_ok IS NOT NULL
+                  AND datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
                 GROUP BY skiftraknare
                 HAVING ibc_ok > 0
                 ORDER BY ibc_ok DESC
@@ -1281,6 +1289,14 @@ class RebotlingAnalyticsController {
         }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
             $endDate = $today;
+        }
+
+        // Begränsa datumintervall till max 365 dagar
+        $startDt = new DateTime($startDate);
+        $endDt   = new DateTime($endDate);
+        $diffDays = (int)$startDt->diff($endDt)->days;
+        if ($diffDays > 365) {
+            $startDate = (clone $endDt)->modify('-365 days')->format('Y-m-d');
         }
 
         try {

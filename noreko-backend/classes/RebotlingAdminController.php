@@ -175,13 +175,20 @@ class RebotlingAdminController {
         }
         try {
             $this->ensureWeekdayGoalsTable();
-            $stmt = $this->pdo->prepare("UPDATE rebotling_weekday_goals SET daily_goal = ? WHERE weekday = ?");
-            foreach ($goals as $item) {
-                $wd   = intval($item['weekday'] ?? 0);
-                $goal = max(0, intval($item['daily_goal'] ?? 0));
-                if ($wd >= 1 && $wd <= 7) {
-                    $stmt->execute([$goal, $wd]);
+            $this->pdo->beginTransaction();
+            try {
+                $stmt = $this->pdo->prepare("UPDATE rebotling_weekday_goals SET daily_goal = ? WHERE weekday = ?");
+                foreach ($goals as $item) {
+                    $wd   = intval($item['weekday'] ?? 0);
+                    $goal = max(0, intval($item['daily_goal'] ?? 0));
+                    if ($wd >= 1 && $wd <= 7) {
+                        $stmt->execute([$goal, $wd]);
+                    }
                 }
+                $this->pdo->commit();
+            } catch (Exception $txEx) {
+                $this->pdo->rollBack();
+                throw $txEx;
             }
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade']);
         } catch (Exception $e) {

@@ -455,6 +455,7 @@ class BonusAdminController {
                 WHERE DATE_FORMAT(datum, '%Y-%m') = :period
                 AND bonus_poang IS NOT NULL
                 ORDER BY datum DESC
+                LIMIT 50000
             ");
 
             $stmt->execute(['period' => $period]);
@@ -792,6 +793,8 @@ class BonusAdminController {
                     updated_by = :updated_by
             ");
 
+            $this->pdo->beginTransaction();
+            try {
             $saved = [];
             foreach ($allowed as $level) {
                 if (!isset($input[$level])) {
@@ -811,8 +814,15 @@ class BonusAdminController {
             }
 
             if (empty($saved)) {
+                $this->pdo->rollBack();
                 $this->sendError('Inga giltiga belopp skickades');
                 return;
+            }
+
+            $this->pdo->commit();
+            } catch (Exception $txEx) {
+                $this->pdo->rollBack();
+                throw $txEx;
             }
 
             $this->logAudit('set_amounts', 'bonus_level_amounts', null, null, $saved);

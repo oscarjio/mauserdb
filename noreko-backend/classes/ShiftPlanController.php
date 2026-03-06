@@ -599,26 +599,33 @@ class ShiftPlanController {
                 return;
             }
 
-            // Kopiera varje rad med +7 dagar på datumet
-            $insertStmt = $this->pdo->prepare('
-                INSERT INTO shift_plan (datum, skift_nr, op_number, note)
-                VALUES (:datum, :skift_nr, :op_number, :note)
-                ON DUPLICATE KEY UPDATE note = VALUES(note), updated_at = CURRENT_TIMESTAMP
-            ');
+            // Kopiera varje rad med +7 dagar på datumet — använd transaktion
+            $this->pdo->beginTransaction();
+            try {
+                $insertStmt = $this->pdo->prepare('
+                    INSERT INTO shift_plan (datum, skift_nr, op_number, note)
+                    VALUES (:datum, :skift_nr, :op_number, :note)
+                    ON DUPLICATE KEY UPDATE note = VALUES(note), updated_at = CURRENT_TIMESTAMP
+                ');
 
-            $copied = 0;
-            foreach ($rows as $row) {
-                $origDate = new DateTime($row['datum']);
-                $origDate->modify('+7 days');
-                $newDatum = $origDate->format('Y-m-d');
+                $copied = 0;
+                foreach ($rows as $row) {
+                    $origDate = new DateTime($row['datum']);
+                    $origDate->modify('+7 days');
+                    $newDatum = $origDate->format('Y-m-d');
 
-                $insertStmt->execute([
-                    ':datum'     => $newDatum,
-                    ':skift_nr'  => (int)$row['skift_nr'],
-                    ':op_number' => (int)$row['op_number'],
-                    ':note'      => $row['note'],
-                ]);
-                $copied++;
+                    $insertStmt->execute([
+                        ':datum'     => $newDatum,
+                        ':skift_nr'  => (int)$row['skift_nr'],
+                        ':op_number' => (int)$row['op_number'],
+                        ':note'      => $row['note'],
+                    ]);
+                    $copied++;
+                }
+                $this->pdo->commit();
+            } catch (Exception $txEx) {
+                $this->pdo->rollBack();
+                throw $txEx;
             }
 
             echo json_encode([
