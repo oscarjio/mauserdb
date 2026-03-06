@@ -1,3 +1,18 @@
+## 2026-03-06 Session #31 — Bug Hunt #36 säkerhetsrevision + bonus-logik edge cases
+
+**Worker 1 — Bug Hunt #36 Säkerhetsrevision PHP** (`04217be`):
+- 18 fixar: 3 SQL injection (strängkonkatenering→prepared statements), 14 input-sanitering (strip_tags på alla string-inputs i 10 controllers), 1 XSS (osaniterad e-post i error-meddelande)
+- Auth/session: alla endpoints korrekt skyddade
+- Observation: inget CSRF-skydd (API-baserad arkitektur, noterat)
+
+**Worker 2 — Bug Hunt #36b Bonus-logik edge cases** (`ab6242f`):
+- 2 fixar: getNextTierInfo() fel tier-sortering i my-bonus, getOperatorTrendPct() null guard i bonus-dashboard
+- Granskade OK: alla division-by-zero guards, simulator, veckohistorik, Hall of Fame, negativ bonus
+
+**Sammanfattning session #31**: 20 fixar (18 säkerhet + 2 bonus-logik). Säkerhetsrevidering komplett för hela PHP-backend.
+
+---
+
 ## 2026-03-06 Session #30 — Bug Hunt #35 error handling + API consistency
 
 **Worker 1 — Bug Hunt #35 Angular error handling** (`d5a6576`):

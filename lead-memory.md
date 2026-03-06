@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #30)*
+*Senast uppdaterad: 2026-03-06 (session #31)*
 
 ---
 
@@ -148,6 +148,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #31: Bug Hunt #36 sakerhet + bonus-logik)
+
+**Bug Hunt #36 — Sakerhetsrevision PHP-backend (`04217be`, 18 fixar):**
+- 3 SQL injection: strangkonkatenering → prepared statements i `RebotlingAdminController.php` (2 st ensureWeekdayGoalsTable + ensureShiftTimesTable) + `RebotlingAnalyticsController.php` (1 st kopia)
+- 14 input sanitering: `strip_tags()` tillagd pa alla strang-inputs fran $_POST/$_GET i 10 controllers (NewsController, RebotlingController, ShiftHandoverController, FeedbackController, StoppageController, CertificationController, ShiftPlanController, AdminController, OperatorController, RegisterController, LineSkiftrapportController, LoginController)
+- 1 XSS: osaniterad e-postadress i error-meddelande i RebotlingAdminController — `htmlspecialchars()` tillagd
+- Observation: Inget CSRF-skydd i systemet (API-baserad JSON-arkitektur minskar risken, men noterat)
+
+**Bug Hunt #36b — Bonus-logik edge cases (`ab6242f`, 2 fixar):**
+- `my-bonus.ts` getNextTierInfo(): tier-lista sorterad fallande (95,90,80,70) → operatorer fick fel nasta niva. Fixad med stigande sortering + avrundning.
+- `bonus-dashboard.ts` getOperatorTrendPct(): saknade `?? 0` pa op.bonus_avg → NaN i procentberakning vid null/undefined.
+- Granskade och verifierade OK: alla division-by-zero guards i BonusController+BonusAdminController, simulator edge cases, veckohistorik, Hall of Fame, loading/error states.
 
 ### Atgärdat — 2026-03-06 (Session #30: Bug Hunt #35 error handling + API consistency)
 
@@ -410,6 +423,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #31
+**Lagesanalys**: Session #30 levererade Bug Hunt #35 error handling (`d5a6576` — 10 buggar i 4 Angular-komponenter: cachad getActiveRanking, separata loading-flaggor, empty states, error-rensning) + Bug Hunt #35b PHP API consistency (`1806cc9` — 9 buggar i RebotlingAnalyticsController: HTTP 200→400/500 for error-responses). Totalt 19 buggar fixade. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Bug Hunts #1-#35 har tackt alla stora buggkategorier: minneslakor, HTTP-koder, auth, session, berakningslogik, template-varningar, dead code, float-modulo, routing, datum/tid, performance (trackBy+cache), error handling, API consistency.
+- Omraden som INTE granskats systematiskt: sakerhet (XSS-vektorer, CSRF, input sanitering), formularvalidering och dataintegritetslogik i bonus-berakningar.
+- Kodbasen ar i mycket gott skick efter 35 Bug Hunts — fokus bor nu skifta till sakerhetsgranskning och edge cases i affarslogik.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #36 — Sakerhetsrevision. Granska for: (a) XSS-vektorer i Angular (innerHTML, bypassSecurityTrust*, [src]/[href] bindningar med dynamisk data, DomSanitizer-anvandning), (b) SQL injection — verifiera att ALLA queries anvander prepared statements med parametrar (leta efter strangkonkatenering i SQL), (c) input sanitering i PHP — granska alla $_GET/$_POST/$_REQUEST-lasningar for filter_input/intval/strip_tags, (d) CORS/auth headers — verifiera att alla muterings-endpoints kraver auth. Fokus pa: alla PHP-controllers i noreko-backend/classes/.
+2. Worker 2: Bug Hunt #36b — Affarslogik edge cases i bonus-berakningar. Granska: (a) vad hander i BonusController/BonusAdminController nar en operator har 0 IBC, 0 drifttid, eller bara raster? (b) division-by-zero-guards — ar de konsekvent applicerade? (c) bonusniva-granser — kan en operator fa negativ bonus? (d) simuleringslogik i bonus-admin — ger simulatorn korrekta resultat vid extremvarden? (e) veckohistorik — hanteras veckor utan data korrekt? Fokus pa: BonusController.php, BonusAdminController.php, bonus-dashboard.ts, my-bonus.ts, bonus-admin.ts.
+
+**Motivering**: Sakerhetsgranskning ar kritiskt for ett produktionssystem med inloggning och admin-funktioner — XSS/SQL injection kan exponera data. Bonus-berakningslogik ar karnfunktionaliteten — edge cases har kan ge felaktiga utbetalningar.
 
 ### 2026-03-06 Session #30
 **Lagesanalys**: Session #29 levererade Bug Hunt #34 datum/tid edge cases (`8d969af` — 2 buggar: ISO-vecka 0 vid sondag Jan 4, veckosammanfattning utan ISO-ar) + Angular performance audit (`38577f7` — 55 trackBy, 12 cachade template-berakningar). Hela kodbasen har genomgatt 34 Bug Hunts + performance audit. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
