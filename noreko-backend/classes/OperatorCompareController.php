@@ -219,7 +219,7 @@ class OperatorCompareController {
                     skiftraknare,
                     MAX(ibc_ok)    - MIN(ibc_ok)    AS skift_ibc_ok,
                     MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS skift_ibc_ej_ok,
-                    MAX(runtime_plc) / 3600.0        AS skift_runtime_h,
+                    MAX(runtime_plc) / 60.0          AS skift_runtime_h,
                     MAX(runtime_plc)                 AS skift_runtime_plc
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
@@ -279,7 +279,7 @@ class OperatorCompareController {
                         op1, op2, op3,
                         MAX(ibc_ok)    - MIN(ibc_ok)    AS skift_ibc_ok,
                         MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS skift_ibc_ej_ok,
-                        MAX(runtime_plc) / 3600.0        AS skift_runtime_h,
+                        MAX(runtime_plc) / 60.0          AS skift_runtime_h,
                         MAX(runtime_plc)                 AS skift_runtime_plc
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
@@ -323,7 +323,7 @@ class OperatorCompareController {
                         skiftraknare,
                         op1, op2, op3,
                         MAX(ibc_ok)    - MIN(ibc_ok)    AS skift_ibc_ok,
-                        MAX(runtime_plc) / 3600.0        AS skift_runtime_h
+                        MAX(runtime_plc) / 60.0          AS skift_runtime_h
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                     GROUP BY DATE(datum), skiftraknare
@@ -371,7 +371,7 @@ class OperatorCompareController {
                     skiftraknare,
                     MAX(ibc_ok)    - MIN(ibc_ok)    AS skift_ibc_ok,
                     MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS skift_ibc_ej_ok,
-                    MAX(runtime_plc) / 3600.0        AS skift_runtime_h
+                    MAX(runtime_plc) / 60.0          AS skift_runtime_h
                 FROM rebotling_ibc
                 WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                   AND (op1 = ? OR op2 = ? OR op3 = ?)

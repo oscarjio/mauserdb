@@ -80,8 +80,8 @@ class AndonController {
             $stmt = $this->pdo->prepare("
                 SELECT
                     MAX(ibc_ok)                                           AS ibc_idag,
-                    MAX(runtime_plc)                                      AS runtime_sek,
-                    MAX(rasttime)                                         AS rasttime_sek,
+                    MAX(runtime_plc)                                      AS runtime_min_plc,
+                    MAX(rasttime)                                         AS rasttime_min_plc,
                     MIN(datum)                                            AS forsta_post,
                     MAX(datum)                                            AS senaste_ibc_tid,
                     TIMESTAMPDIFF(MINUTE, MIN(datum), NOW())              AS total_min
@@ -91,14 +91,14 @@ class AndonController {
             $stmt->execute([':datum' => $datum]);
             $rad = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $ibcIdag        = (int)($rad['ibc_idag']         ?? 0);
-            $runtimeSek     = (int)($rad['runtime_sek']       ?? 0);
-            $rasttimeSek    = (int)($rad['rasttime_sek']       ?? 0);
-            $senasteTid     = $rad['senaste_ibc_tid']          ?? null;
-            $totalMin       = max(1, (int)($rad['total_min']  ?? 1));
+            $ibcIdag        = (int)($rad['ibc_idag']             ?? 0);
+            $runtimeMinPlc  = (int)($rad['runtime_min_plc']     ?? 0);  // runtime_plc är i MINUTER
+            $rasttimeMinPlc = (int)($rad['rasttime_min_plc']     ?? 0);  // rasttime är i MINUTER
+            $senasteTid     = $rad['senaste_ibc_tid']              ?? null;
+            $totalMin       = max(1, (int)($rad['total_min']      ?? 1));
 
-            $runtimeMin     = (int)round($runtimeSek / 60);
-            $rasttimeMin    = (int)round($rasttimeSek / 60);
+            $runtimeMin     = $runtimeMinPlc;
+            $rasttimeMin    = $rasttimeMinPlc;
 
             // IBC per timme (baserat på total elapsed tid sedan första posten idag)
             $totalH  = $totalMin / 60;
@@ -121,7 +121,7 @@ class AndonController {
                 error_log('AndonController takt_mal: ' . $e->getMessage());
             }
 
-            $runtimeH = $runtimeSek > 0 ? ($runtimeSek / 3600) : ($totalMin / 60);
+            $runtimeH = $runtimeMinPlc > 0 ? ($runtimeMinPlc / 60.0) : ($totalMin / 60);
             if ($runtimeH > 0 && $ibcIdag > 0) {
                 $oeePct = round(($ibcIdag / ($runtimeH * $taktMal)) * 100, 1);
             } else {
@@ -412,7 +412,7 @@ class AndonController {
                 FROM (
                     SELECT skiftraknare,
                            MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok,
-                           MAX(runtime_plc) / 3600.0 AS runtime_h
+                           MAX(runtime_plc) / 60.0 AS runtime_h
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(?, INTERVAL 7 DAY)
                       AND datum < ?
@@ -531,7 +531,7 @@ class AndonController {
             } elseif ($chosen['type'] === 'ibc_per_h') {
                 // Beräkna dagens IBC/h
                 $stmtToday = $this->pdo->prepare("
-                    SELECT COALESCE(MAX(runtime_plc), 0) / 3600.0 AS runtime_h
+                    SELECT COALESCE(MAX(runtime_plc), 0) / 60.0 AS runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) = ?
                 ");

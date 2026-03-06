@@ -319,7 +319,7 @@ class OperatorController {
                 SELECT
                     COUNT(DISTINCT skiftraknare)                                  AS skift_count,
                     SUM(shift_ibc_ok)                                             AS total_ibc,
-                    ROUND(SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_sek) / 3600.0, 0), 1) AS avg_ibc_per_h,
+                    ROUND(SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_min) / 60.0, 0), 1) AS avg_ibc_per_h,
                     ROUND(
                         SUM(shift_ibc_ok) * 100.0 /
                         NULLIF(SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok), 0),
@@ -328,7 +328,7 @@ class OperatorController {
                     SELECT skiftraknare,
                            MAX(ibc_ok)      AS shift_ibc_ok,
                            MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE (op1 = ? OR op2 = ? OR op3 = ?)
                       AND skiftraknare IS NOT NULL
@@ -355,13 +355,13 @@ class OperatorController {
                     SUM(shift_ibc_ok)  AS total_ibc_all_time,
                     MAX(shift_ibc_ok)  AS bast_ibc_skift,
                     MAX(first_datum)   AS bast_datum,
-                    ROUND(MAX(CASE WHEN shift_runtime_sek > 0
-                        THEN shift_ibc_ok / (shift_runtime_sek / 3600.0)
+                    ROUND(MAX(CASE WHEN shift_runtime_min > 0
+                        THEN shift_ibc_ok / (shift_runtime_min / 60.0)
                         ELSE NULL END), 1) AS bast_ibc_per_h_ever
                 FROM (
                     SELECT skiftraknare,
                            MAX(ibc_ok)      AS shift_ibc_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek,
+                           MAX(runtime_plc) AS shift_runtime_min,
                            MIN(datum)       AS first_datum
                     FROM rebotling_ibc
                     WHERE (op1 = ? OR op2 = ? OR op3 = ?)
@@ -405,7 +405,7 @@ class OperatorController {
                 SELECT
                     YEARWEEK(first_datum, 1)                                      AS yw,
                     SUM(shift_ibc_ok)                                             AS ibc,
-                    ROUND(SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_sek) / 3600.0, 0), 1) AS ibc_per_h,
+                    ROUND(SUM(shift_ibc_ok) / NULLIF(SUM(shift_runtime_min) / 60.0, 0), 1) AS ibc_per_h,
                     ROUND(
                         SUM(shift_ibc_ok) * 100.0 /
                         NULLIF(SUM(shift_ibc_ok) + SUM(shift_ibc_ej_ok), 0),
@@ -415,7 +415,7 @@ class OperatorController {
                     SELECT skiftraknare, MIN(datum) AS first_datum,
                            MAX(ibc_ok)      AS shift_ibc_ok,
                            MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op1 = ? AND skiftraknare IS NOT NULL
                       AND datum >= DATE_SUB(NOW(), INTERVAL 56 DAY)
@@ -424,7 +424,7 @@ class OperatorController {
                     SELECT skiftraknare, MIN(datum) AS first_datum,
                            MAX(ibc_ok)      AS shift_ibc_ok,
                            MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op2 = ? AND skiftraknare IS NOT NULL
                       AND datum >= DATE_SUB(NOW(), INTERVAL 56 DAY)
@@ -433,7 +433,7 @@ class OperatorController {
                     SELECT skiftraknare, MIN(datum) AS first_datum,
                            MAX(ibc_ok)      AS shift_ibc_ok,
                            MAX(ibc_ej_ok)   AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op3 = ? AND skiftraknare IS NOT NULL
                       AND datum >= DATE_SUB(NOW(), INTERVAL 56 DAY)
@@ -469,7 +469,7 @@ class OperatorController {
                     MIN(datum)       AS datum,
                     MAX(ibc_ok)      AS ibc,
                     MAX(ibc_ej_ok)   AS ibc_ej_ok,
-                    MAX(runtime_plc) AS runtime_sek
+                    MAX(runtime_plc) AS runtime_min_plc
                 FROM rebotling_ibc
                 WHERE (op1 = ? OR op2 = ? OR op3 = ?)
                   AND skiftraknare IS NOT NULL
@@ -483,8 +483,8 @@ class OperatorController {
             $recent_shifts = array_map(function ($r) {
                 $ibc      = (int)$r['ibc'];
                 $ej_ok    = (int)$r['ibc_ej_ok'];
-                $runtime  = (int)$r['runtime_sek'];
-                $ibc_per_h = ($runtime > 0) ? round($ibc / ($runtime / 3600.0), 1) : null;
+                $runtime  = (int)$r['runtime_min_plc'];  // runtime_plc i MINUTER
+                $ibc_per_h = ($runtime > 0) ? round($ibc / ($runtime / 60.0), 1) : null;
                 $totalt    = $ibc + $ej_ok;
                 $qual_pct  = ($totalt > 0) ? round($ibc * 100.0 / $totalt, 1) : null;
                 return [
@@ -493,7 +493,7 @@ class OperatorController {
                     'ibc'          => $ibc,
                     'ibc_per_h'    => $ibc_per_h,
                     'quality_pct'  => $qual_pct,
-                    'runtime_min'  => $runtime > 0 ? round($runtime / 60) : null,
+                    'runtime_min'  => $runtime > 0 ? $runtime : null,
                 ];
             }, $shiftRows);
 
@@ -584,11 +584,11 @@ class OperatorController {
                        ) AS all_ops WHERE op_id IS NOT NULL) AS total_ops
                 FROM (
                     SELECT sub.op_id,
-                           RANK() OVER (ORDER BY SUM(sub.shift_ibc_ok) / NULLIF(SUM(sub.shift_runtime_sek) / 3600.0, 0) DESC) AS rn
+                           RANK() OVER (ORDER BY SUM(sub.shift_ibc_ok) / NULLIF(SUM(sub.shift_runtime_min) / 60.0, 0) DESC) AS rn
                     FROM (
                         SELECT op1 AS op_id, skiftraknare,
                                MAX(ibc_ok)      AS shift_ibc_ok,
-                               MAX(runtime_plc) AS shift_runtime_sek
+                               MAX(runtime_plc) AS shift_runtime_min
                         FROM rebotling_ibc
                         WHERE op1 IS NOT NULL AND skiftraknare IS NOT NULL
                           AND datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)
@@ -803,7 +803,7 @@ class OperatorController {
                     COUNT(DISTINCT sub.skiftraknare)                             AS antal_skift,
                     ROUND(
                         SUM(sub.shift_ibc_ok) /
-                        NULLIF(SUM(sub.shift_runtime_sek) / 3600.0, 0),
+                        NULLIF(SUM(sub.shift_runtime_min) / 60.0, 0),
                     1)                                                          AS avg_ibc_per_h,
                     ROUND(
                         SUM(sub.shift_ibc_ok) * 100.0 /
@@ -814,7 +814,7 @@ class OperatorController {
                          NULLIF(SUM(sub.shift_ibc_ok) + SUM(sub.shift_ibc_ej_ok), 0))
                         *
                         (SUM(sub.shift_ibc_ok) /
-                         NULLIF(SUM(sub.shift_runtime_sek) / 3600.0, 0))
+                         NULLIF(SUM(sub.shift_runtime_min) / 60.0, 0))
                         / NULLIF(
                             COALESCE(
                                 (SELECT MAX(rp2.cycle_time_minutes)
@@ -828,7 +828,7 @@ class OperatorController {
                     SELECT op1 AS op_id, produkt AS produkt_id, skiftraknare,
                            MAX(ibc_ok) AS shift_ibc_ok,
                            MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op1 IS NOT NULL AND produkt IS NOT NULL AND produkt > 0
                       AND skiftraknare IS NOT NULL
@@ -840,7 +840,7 @@ class OperatorController {
                     SELECT op2 AS op_id, produkt AS produkt_id, skiftraknare,
                            MAX(ibc_ok) AS shift_ibc_ok,
                            MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op2 IS NOT NULL AND op2 > 0 AND produkt IS NOT NULL AND produkt > 0
                       AND skiftraknare IS NOT NULL
@@ -852,7 +852,7 @@ class OperatorController {
                     SELECT op3 AS op_id, produkt AS produkt_id, skiftraknare,
                            MAX(ibc_ok) AS shift_ibc_ok,
                            MAX(ibc_ej_ok) AS shift_ibc_ej_ok,
-                           MAX(runtime_plc) AS shift_runtime_sek
+                           MAX(runtime_plc) AS shift_runtime_min
                     FROM rebotling_ibc
                     WHERE op3 IS NOT NULL AND op3 > 0 AND produkt IS NOT NULL AND produkt > 0
                       AND skiftraknare IS NOT NULL

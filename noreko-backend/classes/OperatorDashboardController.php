@@ -258,7 +258,7 @@ class OperatorDashboardController {
                     op_num,
                     SUM(dag_ibc)                                AS total_ibc,
                     ROUND(
-                        SUM(dag_ibc) * 3600.0 / NULLIF(SUM(dag_runtime_s), 0)
+                        SUM(dag_ibc) * 60.0 / NULLIF(SUM(dag_runtime_s), 0)
                     , 1)                                        AS snitt_ibc_per_h,
                     COUNT(DISTINCT dag)                         AS aktiva_dagar,
                     MAX(dag_ibc)                                AS bast_dag_ibc,
@@ -523,7 +523,7 @@ class OperatorDashboardController {
             $sqlIdag = "
                 SELECT
                     SUM(shift_ibc)  AS total_ibc,
-                    ROUND(SUM(shift_ibc) * 3600.0 / NULLIF(SUM(shift_runtime), 0), 1) AS snitt_ibc_per_h,
+                    ROUND(SUM(shift_ibc) * 60.0 / NULLIF(SUM(shift_runtime), 0), 1) AS snitt_ibc_per_h,
                     COUNT(DISTINCT op_num) AS aktiva_operatorer
                 FROM ({$buildUnion(':today_a', ':today_b')}) AS s
             ";
@@ -556,7 +556,7 @@ class OperatorDashboardController {
                 }
             }
             $veckaSnittIbcPerH = ($veckaSumRuntime > 0)
-                ? round($veckaTotalIbc * 3600.0 / $veckaSumRuntime, 1)
+                ? round($veckaTotalIbc * 60.0 / $veckaSumRuntime, 1)
                 : 0;
 
             $veckaBastNamn = null;
