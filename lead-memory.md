@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #33)*
+*Senast uppdaterad: 2026-03-06 (session #34)*
 
 ---
 
@@ -451,6 +451,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #34
+**Lagesanalys**: Session #33 levererade Bug Hunt #38 service-backend kontrakt (`6aac887` — 2 fixar: KRITISK action=operator saknad i api.php, CORS PUT/DELETE blockerad) + Bug Hunt #38b CSS/UX-konsistens (`aa5ee90` — 8 fixar: 100% varningsfri build, dark theme standardisering, bg-info cyan→bla, focus ring). Totalt 10 fixar. Bug Hunts #1-#38 har nu tackt alla systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Kodbasen ar i utmarkt skick. 38 Bug Hunts har tackt: minneslakor, HTTP-koder, auth, session, berakningslogik, template-varningar, dead code, float-modulo, routing, datum/tid, performance, error handling, API consistency, sakerhet, formularvalidering, error recovery, service-backend kontrakt, CSS/UX.
+- Omrade som EJ granskats: Session/auth edge cases — vad hander nar PHP-sessionen loper ut under polling? Hanterar frontend 401/403 gracefully? Redirectas anvandaren till login?
+- Omrade som EJ granskats: Data-konsistens mellan sidor — executive-dashboard, production-analysis, bonus-dashboard och my-bonus visar overlappande KPI:er (IBC-antal, OEE, bonus). Anvander de samma berakningslogik? Ger de samma siffror for samma tidsperiod?
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #39 — Session/auth edge cases och felhantering vid 401/403. Granska: (a) PHP session-timeout — hur lang ar session.gc_maxlifetime? Nar sessionen loper ut under polling (executive-dashboard, rebotling-admin, live-ranking, andon), vad returnerar backend? (b) Angular HTTP interceptors — finns det en global interceptor som fangar 401/403 och redirectar till login? Om inte, vad hander? (c) adminGuard — fungerar den korrekt nar sessionen lopt ut? (d) Alla POST-endpoints — returnerar de konsekvent HTTP 401/403 vid unauthenticated requests, eller 200 med success:false? Fokus pa: api.php session-hantering, Angular auth guards, HTTP interceptors, polling-komponenter.
+2. Worker 2: Bug Hunt #39b — Data-konsistens cross-page audit. Granska: (a) executive-dashboard och production-analysis visar bada "IBC idag" och "OEE" — anvander de samma SQL/berakning? (b) bonus-dashboard och my-bonus visar bada operatorbonus — anvander de samma endpoint/berakning? (c) rebotling-skiftrapport och executive-dashboard visar bada skiftdata — matchar de? (d) Granska alla PHP-controllers som returnerar IBC-antal, OEE, eller bonus for overlappande SQL-queries med olika logik. Fokus pa: RebotlingAnalyticsController, BonusController, ExecDashboardController — jamfor SQL-queries och berakningsformler.
+
+**Motivering**: Session/auth ar kritiskt for ett produktionssystem — om en operator lamnar appen oppen over natten och sessionen loper ut ska det hanteras gracefully, inte ge kryptiska fel. Data-konsistens ar fortroendefragan — om VD ser en siffra pa dashboarden och en annan i production-analysis tappar hen fortroendet for systemet.
 
 ### 2026-03-06 Session #33
 **Lagesanalys**: Session #32 levererade Bug Hunt #37 formularvalidering (`5bb732e` — 5 fixar: negativa varden, saknad required/maxlength) + Bug Hunt #37b error recovery (`c5efe8d` — 2 fixar: KRITISK polling-dod, loading flicker). Totalt 7 fixar. Bug Hunts #1-#37 har nu tackt ALLA systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

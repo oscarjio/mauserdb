@@ -1,3 +1,9 @@
+## 2026-03-06 Session #34 — Bug Hunt #39 session/auth edge cases + data-konsistens
+
+**Plan**: Worker 1 granskar session/auth edge cases (PHP session timeout, 401/403-hantering, polling vid expired session, auth guards). Worker 2 granskar data-konsistens mellan sidor (samma KPI:er pa olika sidor — anvander de samma berakningar?).
+
+---
+
 ## 2026-03-06 Session #33 — Bug Hunt #38 service-backend kontrakt + CSS/UX-konsistens
 
 **Worker 1 — Bug Hunt #38 Service-backend kontrakt** (`6aac887`):
