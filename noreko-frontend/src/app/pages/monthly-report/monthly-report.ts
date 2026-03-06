@@ -382,9 +382,9 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   exportCSV(): void {
     if (!this.report) return;
     const rows: string[] = [
-      ['Datum', 'IBC Total', 'OEE%', 'Kvalitet%', 'Skift'].join(','),
+      ['Datum', 'IBC Total', 'OEE%', 'Kvalitet%', 'Skift'].join(';'),
       ...this.report.daily_production.map((d: DayEntry) =>
-        [d.date, d.ibc, d.oee?.toFixed(1) ?? '', d.quality?.toFixed(1) ?? '', d.skift_count ?? ''].join(',')
+        [d.date, d.ibc, d.oee?.toFixed(1) ?? '', d.quality?.toFixed(1) ?? '', d.skift_count ?? ''].join(';')
       )
     ];
     const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });

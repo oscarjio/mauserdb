@@ -342,6 +342,10 @@
    PRINT
    ============================================================ */
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm 12mm 20mm 12mm;
+  }
   .exec-dashboard {
     background: #fff !important;
     color: #000 !important;

@@ -513,9 +513,9 @@ export class OperatorsPage implements OnInit, OnDestroy {
       'Aktiva dagar (30d)': op.aktiva_dagar_30d ?? 0
     }));
     if (rows.length === 0) return;
-    const headers = Object.keys(rows[0]).join(',');
+    const headers = Object.keys(rows[0]).join(';');
     const csvRows = rows.map(r =>
-      Object.values(r).map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')
+      Object.values(r).map(v => '"' + String(v).replace(/"/g, '""') + '"').join(';')
     );
     const csv = [headers, ...csvRows].join('\n');
     const bom = '\uFEFF';

@@ -547,12 +547,18 @@ interface WeekCompare {
 
     /* ---- Print ---- */
     @media print {
+      @page {
+        size: A4;
+        margin: 15mm 12mm 20mm 12mm;
+      }
       :host { padding: 0; }
       body  { background: #fff !important; color: #000 !important; }
       .no-print { display: none !important; }
       .kpi-card, .chart-panel, .operators-table-wrap, .day-card, .daily-table-panel {
         border: 1px solid #ccc;
         break-inside: avoid;
+        background: #fff !important;
+        color: #000 !important;
       }
     }
   `],
@@ -1103,17 +1109,17 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
 
     const escape = (val: unknown): string => {
       const s = String(val ?? '');
-      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      if (s.includes(';') || s.includes('"') || s.includes('\n')) {
         return `"${s.replace(/"/g, '""')}"`;
       }
       return s;
     };
 
     const csvLines = [
-      [`Veckorapport ${weekLabel}`].map(escape).join(','),
-      headers.map(escape).join(','),
-      ...rows.map(r => r.map(escape).join(',')),
-      ...summaryRows.map(r => r.map(escape).join(',')),
+      [`Veckorapport ${weekLabel}`].map(escape).join(';'),
+      headers.map(escape).join(';'),
+      ...rows.map(r => r.map(escape).join(';')),
+      ...summaryRows.map(r => r.map(escape).join(';')),
     ];
 
     const csvContent = csvLines.join('\n');

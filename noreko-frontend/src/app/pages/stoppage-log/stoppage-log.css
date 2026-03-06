@@ -1180,6 +1180,10 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm 12mm 20mm 12mm;
+  }
   .no-print {
     display: none !important;
   }

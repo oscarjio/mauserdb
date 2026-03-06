@@ -1436,19 +1436,22 @@ class BonusAdminController {
     }
 
     private function exportCSV(array $data, string $filename) {
-        header('Content-Type: text/csv');
+        header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+        // BOM for Excel UTF-8
+        echo "\xEF\xBB\xBF";
 
         $output = fopen('php://output', 'w');
 
         // Headers
         if (count($data) > 0) {
-            fputcsv($output, array_keys($data[0]));
+            fputcsv($output, array_keys($data[0]), ';');
         }
 
         // Data
         foreach ($data as $row) {
-            fputcsv($output, $row);
+            fputcsv($output, $row, ';');
         }
 
         fclose($output);
