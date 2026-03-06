@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #28)*
+*Senast uppdaterad: 2026-03-06 (session #29)*
 
 ---
 
@@ -148,6 +148,18 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #29: Bug Hunt #34 datum/tid + Angular performance)
+
+**Bug Hunt #34 — Datum/tid edge cases (`8d969af`):**
+- `executive-dashboard.ts` initWeeklyWeek(): ISO-veckoberakning gav vecka 0 nar Jan 4 faller pa sondag (getDay()=0). Drabbar 2026. Fixad med standardformel.
+- `RebotlingAnalyticsController.php` veckosammanfattning: Grupperingsnyckel `'V' . date('W')` saknade arsinformation — vid argranser (december→januari) kunde dagar fran tva ar hamna i samma veckohink. Fixad med `date('o')` (ISO-ar).
+- Granskade utan problem: WeeklyReportController (korrekt setISODate/format), BonusController (YEARWEEK ISO-mode), production-calendar (T00:00:00-suffix), monthly-report (setMonth crossover).
+
+**Angular Performance Audit (`38577f7`):**
+- ~55 trackBy tillagda i 5 komponenter: production-analysis (12), executive-dashboard (10), rebotling-skiftrapport (9), my-bonus (8), bonus-admin (16)
+- ~12 tunga template-funktioner ersatta med cachade properties: getFilteredRanking, getTimelineBlocks, getTimelinePercentages, getStopHoursMin, getAvgStopMinutes, getWorstCategory, getParetoTotalMinuter, getParetoTotalStopp, getParetoEightyPctGroup, getOperatorRanking, getAchievements, getPayoutsYears
+- OnPush EJ aktiverat — alla komponenter muterar data direkt via property-tilldelning i subscribe-callbacks, vilket gor OnPush osakert utan storre refaktorering
 
 ### Atgärdat — 2026-03-06 (Session #28: Dead code + Bundle size)
 
@@ -385,6 +397,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #29
+**Lagesanalys**: Session #28 levererade Bug Hunt #33 dead code cleanup (`70b74c4` — 3 filer/899 rader borttagna, 9 dead methods, 7 interfaces, routing-integritet verifierad) + Bundle size optimering (`90c655b` — 843 kB → 666 kB, −21%). Hela kodbasen har genomgatt 33 Bug Hunts. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Bug Hunts #1-#33 har tackt: minneslakor, HTTP-koder, auth, session, berakningslogik, template-varningar, dead code, float-modulo, routing-integritet. Omraden som EJ granskats systematiskt: datum/tid edge cases (midnatt-crossover, vecko/manadsgranser, tomma dataperioder), Angular performance (OnPush, trackBy).
+- 666 kB bundle — resterande ar Angular core/RxJS/Bootstrap CSS, svaroptimerat. Fokus bor skifta till runtime-prestanda.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #34 — datum/tid edge cases och boundary conditions. Granska PHP-controllers och Angular-komponenter for: midnatt-crossover (skift som korsar 00:00), vecko/manadsgranser (ISO-vecka vs kalender), tomma dataperioder (helger/semestrar ger null/0), timezone-hantering i SQL DATE/DATETIME vs PHP date() vs Angular DatePipe. Fokus pa de mest datumintensiva filerna: RebotlingAnalyticsController, WeeklyReportController, BonusController, executive-dashboard, production-calendar, monthly-report.
+2. Worker 2: Angular performance audit — granska for OnPush change detection strategy (komponenter som renderar om i onodan), saknade trackBy-funktioner i ngFor-loopar, tunga berakningar i templates (flytta till component), onodiga subscription-triggers. Fokus pa de storsta komponenterna med mest data: bonus-admin, rebotling-statistik, production-analysis, executive-dashboard.
+
+**Motivering**: Datum/tid-buggar ar subtila och har aldrig granskats systematiskt — de kan orsaka felaktiga rapporter vid skiftgranser och manadsskiften. Angular performance paverkar UX pa produktionsgolvets surfplattor — OnPush och trackBy kan markant forbattra responsivitet.
 
 ### 2026-03-06 Session #28
 **Lagesanalys**: Session #27 levererade template-varningar cleanup (`57fd644` — 33 NG8107/NG8102-varningar eliminerade) + Bug Hunt #32 (`9c0b431` — 4 KRITISKA berakningsbuggar: OEE 2-faktor→3-faktor, runtime_plc /3600→/60 i WeeklyReport+Bonus+DayDetail). Hela kodbasen har genomgatt systematisk bug-hunting i Bug Hunt #1-#32 (34 PHP-controllers + 50+ Angular-komponenter). Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

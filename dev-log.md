@@ -1,3 +1,19 @@
+## 2026-03-06 Session #29 — Bug Hunt #34 datum/tid + Angular performance audit
+
+**Worker 1 — Bug Hunt #34 datum/tid edge cases** (`8d969af`):
+- 2 buggar fixade: ISO-veckoberäkning i executive-dashboard (vecka 0 vid söndag Jan 4), veckosammanfattning i RebotlingAnalyticsController (årsgräns-kollision i grupperingsnyckel)
+- 4 filer granskade utan problem: WeeklyReportController, BonusController, production-calendar, monthly-report
+
+**Worker 2 — Angular performance audit** (`38577f7`):
+- ~55 trackBy tillagda i 5 komponenter (eliminerar DOM re-rendering)
+- ~12 tunga template-funktioner ersatta med cachade properties
+- OnPush ej aktiverat (kräver större refactor)
+- Bundle size oförändrat (665 kB)
+
+**Sammanfattning session #29**: 2 datum/tid-buggar fixade, 55 trackBy + 12 cachade properties = markant bättre runtime-prestanda
+
+---
+
 ## 2026-03-06 Angular Performance Audit — trackBy + cachade template-beräkningar
 
 **Granskade komponenter (5 st, rebotling-statistik existerade ej):**
