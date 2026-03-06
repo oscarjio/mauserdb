@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #27)*
+*Senast uppdaterad: 2026-03-06 (session #28)*
 
 ---
 
@@ -148,6 +148,22 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #28: Dead code + Bundle size)
+
+**Bug Hunt #33 — Dead code cleanup (`70b74c4`):**
+- Routing-integritet verifierad: alla 48 Angular routes + 32 PHP API actions korrekt mappade
+- 3 filer borttagna (899 rader): oanvand `news.ts` service-klass, `news.spec.ts`, `bonus-charts/` komponent (874 rader, aldrig importerad)
+- 9 dead methods borttagna: `getDayStats()`, `getProductionReport()`, `downloadReportCSV()`, `getAllLinesStatus()`, `getShiftPdfSummaryUrl()`, `getAlertThresholds()`, `getNotificationSettings()`, `getGoalHistory()` fran rebotling.service.ts + `getReport()` fran tvattlinje.service.ts
+- 7 oanvanda interfaces borttagna
+
+**Bundle size optimering (`90c655b`, −21%):**
+- 843 kB → 666 kB (sparade 178 kB)
+- FontAwesome all.min.css (74 kB) → custom subset (13.5 kB) med 190 anvanda ikoner
+- Bootstrap JS (80 kB) → lazy loading via dynamisk import i Menu
+- News-komponent eager → lazy loading
+- Oanvanda imports borttagna (FormsModule, CommonModule, NgIf-dublett, HostBinding)
+- Kvarstaende: 666 kB overskrider fortfarande 500 kB budget — resterande ar Angular core/RxJS/Bootstrap CSS
 
 ### Atgärdat — 2026-03-06 (Session #27: Template-varningar + Bug Hunt #32)
 
@@ -369,6 +385,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #28
+**Lagesanalys**: Session #27 levererade template-varningar cleanup (`57fd644` — 33 NG8107/NG8102-varningar eliminerade) + Bug Hunt #32 (`9c0b431` — 4 KRITISKA berakningsbuggar: OEE 2-faktor→3-faktor, runtime_plc /3600→/60 i WeeklyReport+Bonus+DayDetail). Hela kodbasen har genomgatt systematisk bug-hunting i Bug Hunt #1-#32 (34 PHP-controllers + 50+ Angular-komponenter). Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Bundle size 843 kB (budget 500 kB) — overskrider med 343 kB. Kan reduceras med lazy loading, tree shaking, och borttagning av dead code.
+- Alla Bug Hunts #1-#32 har fokuserat pa: minneslakor, HTTP-koder, auth, session, berakningslogik, template-varningar. Omrade som EJ granskats systematiskt: dead code, oanvanda metoder/variabler, halvfardiga features, routing-integritet.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #33 — dead code och routing-integritet. Soka efter: oanvanda metoder/funktioner i PHP-controllers och Angular-komponenter, routes som pekar pa icke-existerande komponenter, backend-endpoints som inte anropas fran frontend, frontend service-anrop till endpoints som inte finns. Ta bort identifierad dead code. Bygg och verifiera.
+2. Worker 2: Bundle size optimering — analysera bundle size (843 kB, budget 500 kB). Identifiera tunga imports (Chart.js, moment, etc), kontrollera lazy loading av routes, ta bort oanvanda CSS/SCSS. Mal: reducera till under 700 kB.
+
+**Motivering**: Dead code ar en risk — det döljer halvfardiga features och gorr koden svarare att underhalla. Bundle size overskrider budget med 69% — paverkar laddningstid i produktionsmiljon (surfplattor pa produktionsgolvet). Bada omraden ar kvalitetsforhojning utan ny funktionalitet.
 
 ### 2026-03-06 Session #27
 **Lagesanalys**: Session #26 levererade mockData-rensning (`1127ad1`) + Bug Hunt #31 float-modulo (`f8d0a91` — 17 fixar i 7 filer). Hela kodbasen har genomgatt systematisk bug-hunting i Bug Hunt #1-#31. Inga TODO/FIXME kvar i koden. Angular build har 35 varningar: 23x NG8107 (onodiga ?.), 10x NG8102 (onodiga ??), 2x budget-varningar.

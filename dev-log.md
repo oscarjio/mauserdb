@@ -1,3 +1,22 @@
+## 2026-03-06 Session #28 — Bug Hunt #33 dead code + Bundle size optimering
+
+**Worker 1 — Bug Hunt #33 dead code cleanup** (`70b74c4`):
+- Routing-integritet verifierad: alla 48 Angular routes + 32 PHP API actions korrekt mappade
+- 3 filer borttagna (899 rader): oanvänd `news.ts` service, `news.spec.ts`, `bonus-charts/` komponent (aldrig importerad)
+- 9 dead methods borttagna: 8 oanvända metoder i `rebotling.service.ts`, 1 i `tvattlinje.service.ts`
+- 7 oanvända interfaces borttagna
+
+**Worker 2 — Bundle size optimering** (`90c655b`):
+- **843 kB → 666 kB (−21%, sparade 178 kB)**
+- FontAwesome CSS subset: `all.min.css` (74 kB) → custom subset (13.5 kB) med bara 190 använda ikoner
+- Bootstrap JS lazy loading: tog bort `bootstrap.bundle.min.js` (80 kB) från global scripts, dynamisk import i Menu
+- News-komponent lazy loading: eagerly loaded → `loadComponent: () => import(...)`
+- Oanvända imports borttagna: FormsModule, CommonModule, NgIf-dublett, HostBinding
+
+**Sammanfattning session #28**: Dead code borttagen (899 rader + 9 metoder + 7 interfaces), bundle reducerad 21%, all routing verifierad intakt
+
+---
+
 ## 2026-03-06 Session #27 — Angular template-varningar cleanup + Bug Hunt #32
 
 **Worker 1 — Angular template-varningar** (`57fd644`):
