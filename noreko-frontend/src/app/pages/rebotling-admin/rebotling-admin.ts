@@ -344,6 +344,24 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.settingsSaving = true;
     this.settingsError  = '';
     this.settingsSaved  = false;
+
+    // Validera att nyckeltal inte är negativa/noll
+    if (!this.settings.rebotlingTarget || this.settings.rebotlingTarget < 1) {
+      this.settingsError = 'Dagsmål måste vara minst 1';
+      this.settingsSaving = false;
+      return;
+    }
+    if (!this.settings.hourlyTarget || this.settings.hourlyTarget < 1) {
+      this.settingsError = 'Timmål måste vara minst 1';
+      this.settingsSaving = false;
+      return;
+    }
+    if (!this.settings.shiftHours || this.settings.shiftHours < 1 || this.settings.shiftHours > 24) {
+      this.settingsError = 'Skiftlängd måste vara 1–24 timmar';
+      this.settingsSaving = false;
+      return;
+    }
+
     this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', this.settings, { withCredentials: true })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
@@ -501,14 +519,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.systemStatusLoading = true;
     this.systemStatusError   = '';
     this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=system-status', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success) {
+          if (res?.success) {
             this.systemStatus = res.data;
             this.systemStatusLastUpdated = new Date();
-          } else {
-            this.systemStatusError = res.error || 'Kunde inte ladda systemstatus';
+            this.systemStatusError = '';
+          } else if (!this.systemStatus) {
+            this.systemStatusError = res?.error || 'Kunde inte ladda systemstatus';
           }
           this.systemStatusLoading = false;
         },

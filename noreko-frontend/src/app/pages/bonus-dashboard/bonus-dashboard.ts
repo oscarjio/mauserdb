@@ -177,7 +177,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     if (this.destroy$.closed) return;
     this.loadDataSub?.unsubscribe();
 
-    this.loading = true;
+    if (!this.overallRanking.length) this.loading = true;
     this.error = '';
 
     // Ladda summary
