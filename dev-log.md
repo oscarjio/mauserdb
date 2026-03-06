@@ -1,3 +1,33 @@
+## 2026-03-06 Angular Performance Audit — trackBy + cachade template-beräkningar
+
+**Granskade komponenter (5 st, rebotling-statistik existerade ej):**
+
+1. **production-analysis** — 12 ngFor med trackBy, 9 tunga template-funktioner cachade som properties
+   - `getFilteredRanking()` → `cachedFilteredRanking` (sorterad array skapades vid varje CD)
+   - `getTimelineBlocks()`, `getTimelinePercentages()` → cachade properties
+   - `getStopHoursMin()`, `getAvgStopMinutes()`, `getWorstCategory()` → cachade KPI-värden
+   - `getParetoTotalMinuter()`, `getParetoTotalStopp()`, `getParetoEightyPctGroup()` → cachade
+   - Alla cache-properties uppdateras vid data-laddning, inte vid varje change detection
+
+2. **executive-dashboard** — 10 ngFor med trackBy (lines, alerts, days7, operators, nyheter, bemanning, veckorapport)
+
+3. **rebotling-skiftrapport** — 9 ngFor med trackBy, `getOperatorRanking(report)` cachad per rapport-ID
+   - Denna funktion var O(n*m) — itererade alla rapporter per operatör vid varje CD-cykel
+   - Nu cachad i Map<id, result[]>, rensas vid ny dataladdning
+
+4. **my-bonus** — 8 ngFor med trackBy, `getAchievements()` + `getEarnedAchievementsCount()` cachade
+   - Cache uppdateras efter varje async-laddning (stats, pb, streak)
+
+5. **bonus-admin** — 16 ngFor med trackBy, `getPayoutsYears()` cachad som readonly property
+
+**Sammanfattning:**
+- ~55 trackBy tillagda (eliminerar DOM re-rendering vid oförändrad data)
+- ~12 tunga template-funktioner ersatta med cachade properties
+- OnPush INTE aktiverat — alla komponenter muterar data direkt (kräver större refactor)
+- Bygget OK, bundle size oförändrat (665 kB)
+
+---
+
 ## 2026-03-06 Bug Hunt #34 — Datum/tid edge cases och boundary conditions
 
 **Granskade filer (6 st):**
