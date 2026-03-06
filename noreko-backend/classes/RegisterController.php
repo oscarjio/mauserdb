@@ -20,12 +20,12 @@ class RegisterController {
         }
 
         // Hämta och validera input
-        $username = trim($data['username'] ?? '');
+        $username = strip_tags(trim($data['username'] ?? ''));
         $password = $data['password'] ?? '';
         $password2 = $data['password2'] ?? '';
-        $email = trim($data['email'] ?? '');
-        $phone = trim($data['phone'] ?? '');
-        $code = trim($data['code'] ?? '');
+        $email = strip_tags(trim($data['email'] ?? ''));
+        $phone = strip_tags(trim($data['phone'] ?? ''));
+        $code = strip_tags(trim($data['code'] ?? ''));
 
         // Valideringar
         $errors = [];

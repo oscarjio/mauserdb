@@ -261,7 +261,7 @@ class StoppageController {
             $reasonId = intval($data['reason_id'] ?? 0);
             $startTime = $data['start_time'] ?? '';
             $endTime = $data['end_time'] ?? null;
-            $comment = trim($data['comment'] ?? '');
+            $comment = strip_tags(trim($data['comment'] ?? ''));
 
             if ($reasonId <= 0 || empty($startTime)) {
                 http_response_code(400);

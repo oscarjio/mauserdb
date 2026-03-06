@@ -32,10 +32,10 @@ class AdminController {
             
             // CREATE - Skapa ny användare
             if ($action === 'create') {
-                $username = trim($data['username'] ?? '');
+                $username = strip_tags(trim($data['username'] ?? ''));
                 $password = $data['password'] ?? '';
-                $email = trim($data['email'] ?? '');
-                $phone = trim($data['phone'] ?? '');
+                $email = strip_tags(trim($data['email'] ?? ''));
+                $phone = strip_tags(trim($data['phone'] ?? ''));
                 
                 // Enkel validering
                 if (empty($username) || empty($password) || empty($email)) {
@@ -238,9 +238,9 @@ class AdminController {
             }
             
             // Standard update
-            $username = isset($data['username']) ? trim($data['username']) : null;
-            $email = isset($data['email']) ? trim($data['email']) : null;
-            $phone = isset($data['phone']) ? trim($data['phone']) : null;
+            $username = isset($data['username']) ? strip_tags(trim($data['username'])) : null;
+            $email = isset($data['email']) ? strip_tags(trim($data['email'])) : null;
+            $phone = isset($data['phone']) ? strip_tags(trim($data['phone'])) : null;
             $password = $data['password'] ?? null;
             $admin = isset($data['admin']) ? ($data['admin'] ? 1 : 0) : null;
             $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';

@@ -1471,7 +1471,7 @@ class RebotlingController {
 
         $datum     = $body['datum']     ?? '';
         $skiftNr   = intval($body['skift_nr'] ?? 0);
-        $kommentar = $body['kommentar'] ?? '';
+        $kommentar = strip_tags($body['kommentar'] ?? '');
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
@@ -1543,8 +1543,8 @@ class RebotlingController {
             return;
         }
         $date  = trim($_POST['event_date']   ?? '');
-        $title = trim($_POST['title']   ?? '');
-        $desc  = trim($_POST['description'] ?? '');
+        $title = strip_tags(trim($_POST['title']   ?? ''));
+        $desc  = strip_tags(trim($_POST['description'] ?? ''));
         $type  = trim($_POST['event_type']   ?? 'ovrigt');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !$title) {
             http_response_code(400);
@@ -2508,7 +2508,7 @@ class RebotlingController {
         $antal      = isset($data['antal'])       ? (int)$data['antal']       : 1;
         $datum      = $data['datum']      ?? date('Y-m-d');
         $skiftnr    = isset($data['skiftraknare']) ? (int)$data['skiftraknare'] : null;
-        $kommentar  = isset($data['kommentar'])   ? trim($data['kommentar'])   : null;
+        $kommentar  = isset($data['kommentar'])   ? strip_tags(trim($data['kommentar']))   : null;
         $userId     = $_SESSION['user_id'] ?? null;
 
         // Validering

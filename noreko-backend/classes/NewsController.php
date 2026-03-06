@@ -78,8 +78,8 @@ class NewsController {
             return;
         }
 
-        $title     = trim($body['title'] ?? '');
-        $content   = trim($body['content'] ?? '');
+        $title     = strip_tags(trim($body['title'] ?? ''));
+        $content   = strip_tags(trim($body['content'] ?? ''));
         $category  = trim($body['category'] ?? 'info');
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;
@@ -129,8 +129,8 @@ class NewsController {
         }
 
         $id        = intval($body['id'] ?? 0);
-        $title     = trim($body['title'] ?? '');
-        $content   = trim($body['content'] ?? '');
+        $title     = strip_tags(trim($body['title'] ?? ''));
+        $content   = strip_tags(trim($body['content'] ?? ''));
         $category  = trim($body['category'] ?? 'info');
         $pinned    = !empty($body['pinned']) ? 1 : 0;
         $published = !empty($body['published']) ? 1 : 0;

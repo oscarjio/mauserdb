@@ -31,7 +31,7 @@ class OperatorController {
             $action = $data['action'] ?? '';
 
             if ($action === 'create') {
-                $name = trim($data['name'] ?? '');
+                $name = strip_tags(trim($data['name'] ?? ''));
                 $number = isset($data['number']) ? intval($data['number']) : null;
 
                 if (empty($name) || $number === null || $number <= 0) {
@@ -70,7 +70,7 @@ class OperatorController {
             }
 
             if ($action === 'update') {
-                $name = trim($data['name'] ?? '');
+                $name = strip_tags(trim($data['name'] ?? ''));
                 $number = isset($data['number']) ? intval($data['number']) : null;
 
                 if (empty($name) || $number === null || $number <= 0) {

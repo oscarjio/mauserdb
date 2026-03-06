@@ -26,7 +26,7 @@ class LoginController {
             echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
             return;
         }
-        $username = trim($data['username'] ?? '');
+        $username = strip_tags(trim($data['username'] ?? ''));
         $password = $data['password'] ?? '';
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
 

@@ -185,7 +185,7 @@ class LineSkiftrapportController {
             $antal_ok    = intval($data['antal_ok'] ?? 0);
             $antal_ej_ok = intval($data['antal_ej_ok'] ?? 0);
             $totalt      = $antal_ok + $antal_ej_ok;
-            $kommentar   = trim($data['kommentar'] ?? '') ?: null;
+            $kommentar   = strip_tags(trim($data['kommentar'] ?? '')) ?: null;
             $user_id     = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : null;
 
             $stmt = $this->pdo->prepare("
@@ -236,7 +236,7 @@ class LineSkiftrapportController {
             }
             if (array_key_exists('kommentar', $data)) {
                 $fields[] = 'kommentar = ?';
-                $params[] = trim($data['kommentar']) ?: null;
+                $params[] = strip_tags(trim($data['kommentar'])) ?: null;
             }
 
             // Räkna om totalt om några av antal-fälten ändrats

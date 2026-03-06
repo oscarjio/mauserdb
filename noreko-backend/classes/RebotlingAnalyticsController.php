@@ -45,8 +45,9 @@ class RebotlingAnalyticsController {
             ['eftermiddag', '14:00:00', '22:00:00', 1],
             ['natt',        '22:00:00', '06:00:00', 0],
         ];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO rebotling_shift_times (shift_name, start_time, end_time, enabled) VALUES (?, ?, ?, ?)");
         foreach ($defaults as [$name, $start, $end, $enabled]) {
-            $this->pdo->exec("INSERT IGNORE INTO rebotling_shift_times (shift_name, start_time, end_time, enabled) VALUES ('$name', '$start', '$end', $enabled)");
+            $stmt->execute([$name, $start, $end, $enabled]);
         }
     }
 

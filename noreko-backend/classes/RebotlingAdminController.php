@@ -145,8 +145,9 @@ class RebotlingAdminController {
             [6, 0,    'Lördag'],
             [7, 0,    'Söndag'],
         ];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO rebotling_weekday_goals (weekday, daily_goal, label) VALUES (?, ?, ?)");
         foreach ($defaults as [$wd, $goal, $lbl]) {
-            $this->pdo->exec("INSERT IGNORE INTO rebotling_weekday_goals (weekday, daily_goal, label) VALUES ($wd, $goal, '$lbl')");
+            $stmt->execute([$wd, $goal, $lbl]);
         }
     }
 
@@ -418,8 +419,9 @@ class RebotlingAdminController {
             ['eftermiddag', '14:00:00', '22:00:00', 1],
             ['natt',        '22:00:00', '06:00:00', 0],
         ];
+        $stmt = $this->pdo->prepare("INSERT IGNORE INTO rebotling_shift_times (shift_name, start_time, end_time, enabled) VALUES (?, ?, ?, ?)");
         foreach ($defaults as [$name, $start, $end, $enabled]) {
-            $this->pdo->exec("INSERT IGNORE INTO rebotling_shift_times (shift_name, start_time, end_time, enabled) VALUES ('$name', '$start', '$end', $enabled)");
+            $stmt->execute([$name, $start, $end, $enabled]);
         }
     }
 
@@ -800,7 +802,7 @@ class RebotlingAdminController {
                 if ($email === '') continue;
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => "Ogiltig e-postadress: $email"]);
+                    echo json_encode(['success' => false, 'error' => 'Ogiltig e-postadress: ' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8')]);
                     return;
                 }
                 $valid[] = $email;
