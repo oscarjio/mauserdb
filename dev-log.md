@@ -2,6 +2,14 @@
 
 **Plan**: Worker 1 granskar Angular service→PHP endpoint kontrakt (parameternamn, URL-matchning, respons-typer). Worker 2 granskar build-varningar + dark theme CSS-konsistens + loading/error/empty-state-mönster.
 
+**Worker 1 — Bug Hunt #38 service-backend kontrakt-audit**:
+- Granskade alla 14 Angular service-filer + alla komponent-filer med HTTP-anrop (44 filer totalt)
+- Kartlade 31 unika `action=`-värden i frontend mot api.php classNameMap (34 backend-endpoints)
+- **BUG 1 (KRITISK)**: `action=operator` (singular) används i `operator-detail.ts` men saknades i api.php classNameMap → 404-fel, operatörsprofil-sidan helt trasig. Fix: lade till `'operator' => 'OperatorController'` i classNameMap.
+- **BUG 2**: CORS-headern tillät bara `GET, POST, OPTIONS` men `rebotling-admin.ts` skickar `PUT` till `action=rebotlingproduct` → CORS-blockering vid cross-origin. Fix: lade till `PUT, DELETE` i `Access-Control-Allow-Methods`.
+- **Orphan-endpoints** (backend utan frontend): `runtime` — noterat men ej borttaget (kan användas av externa system)
+- **Granskade OK**: Alla POST-body parametrar matchar PHP `json_decode(php://input)`, alla `run=`-parametrar matchar backend switch/if-routing, alla HTTP-metoder (GET vs POST) korrekt förutom de 2 fixade buggarna
+
 ---
 
 ## 2026-03-06 Session #32 — Bug Hunt #37 formulärvalidering + error recovery

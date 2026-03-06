@@ -37,7 +37,7 @@ $originAllowed = $origin && in_array($origin, $allowedOrigins, true);
 if ($originAllowed) {
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type');
 }
 
@@ -117,6 +117,7 @@ $classNameMap = [
     'audit' => 'AuditController',
     'status' => 'StatusController',
     'operators' => 'OperatorController',
+    'operator'  => 'OperatorController',
     'operator-dashboard' => 'OperatorDashboardController',
     'lineskiftrapport' => 'LineSkiftrapportController',
     'shift-plan' => 'ShiftPlanController',
