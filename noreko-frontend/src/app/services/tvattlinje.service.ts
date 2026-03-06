@@ -52,28 +52,6 @@ export interface StatisticsResponse {
   };
 }
 
-export interface ReportDayData {
-  total_ibc: number;
-  total_ok: number;
-  total_ej_ok: number;
-  kvalitet_pct: number;
-  runtime_minutes: number;
-  rast_minutes: number;
-  ibc_per_hour: number;
-  delta_ibc: number;
-  prev_ibc: number;
-  skift_count: number;
-  skift_data: any[];
-}
-
-export interface ReportDayResponse {
-  success: boolean;
-  empty: boolean;
-  message?: string;
-  datum: string;
-  data: ReportDayData;
-}
-
 export interface OeeTrendDay {
   dag: string;
   total_ibc: number;
@@ -120,13 +98,6 @@ export class TvattlinjeService {
   getStatistics(startDate: string, endDate: string): Observable<StatisticsResponse> {
     return this.http.get<StatisticsResponse>(
       `/noreko-backend/api.php?action=tvattlinje&run=statistics&start=${startDate}&end=${endDate}`,
-      { withCredentials: true }
-    );
-  }
-
-  getReport(datum: string): Observable<ReportDayResponse> {
-    return this.http.get<ReportDayResponse>(
-      `/noreko-backend/api.php?action=tvattlinje&run=report&datum=${datum}`,
       { withCredentials: true }
     );
   }

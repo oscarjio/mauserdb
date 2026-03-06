@@ -56,14 +56,6 @@ export interface OnOffEvent {
   runtime_today: number;
 }
 
-export interface DayStats {
-  date: string;
-  total_cycles: number;
-  avg_production_percent: number;
-  total_runtime_minutes: number;
-  shifts_count: number;
-}
-
 export interface StatisticsResponse {
   success: boolean;
   data: {
@@ -130,13 +122,6 @@ export class RebotlingService {
     );
   }
 
-  getDayStats(date: string): Observable<any> {
-    return this.http.get(
-      `/noreko-backend/api.php?action=rebotling&run=day-stats&date=${date}`,
-      { withCredentials: true }
-    );
-  }
-
   getHeatmap(days: number = 30, fromDate?: string, toDate?: string): Observable<any> {
     let url: string;
     if (fromDate && toDate) {
@@ -155,17 +140,6 @@ export class RebotlingService {
       url = `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`;
     }
     return this.http.get<CycleTrendResponse>(url, { withCredentials: true });
-  }
-
-  getProductionReport(period: string = 'week'): Observable<any> {
-    return this.http.get(
-      `/noreko-backend/api.php?action=rebotling&run=report&period=${period}`,
-      { withCredentials: true }
-    );
-  }
-
-  downloadReportCSV(period: string = 'week'): void {
-    window.open(`/noreko-backend/api.php?action=rebotling&run=report&period=${period}&format=csv`, '_blank');
   }
 
   getWeekComparison(granularity: string = 'day'): Observable<WeekComparisonResponse> {
@@ -306,12 +280,6 @@ export class RebotlingService {
     );
   }
 
-  getAllLinesStatus(): Observable<any> {
-    return this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=all-lines-status`,
-      { withCredentials: true }
-    );
-  }
   getPersonalBests(): Observable<PersonalBestsResponse> {
     return this.http.get<PersonalBestsResponse>(
       '/noreko-backend/api.php?action=rebotling&run=personal-bests',
@@ -346,11 +314,6 @@ export class RebotlingService {
       `/noreko-backend/api.php?action=rebotling&run=rejection-analysis&days=${days}`,
       { withCredentials: true }
     );
-  }
-
-  /** Returnerar URL till den utskriftsvanliga skiftsammanfattnings-HTML:en */
-  getShiftPdfSummaryUrl(date: string, shift: number): string {
-    return `/noreko-backend/api.php?action=rebotling&run=shift-pdf-summary&date=${date}&shift=${shift}`;
   }
 
   getMaintenanceStats(): Observable<MaintenanceStatsResponse> {
@@ -389,13 +352,6 @@ export class RebotlingService {
   }
 
   // ---- Alert Thresholds ----
-  getAlertThresholds(): Observable<AlertThresholdsResponse> {
-    return this.http.get<AlertThresholdsResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=alert-thresholds',
-      { withCredentials: true }
-    );
-  }
-
   saveAlertThresholds(thresholds: any): Observable<any> {
     return this.http.post<any>(
       '/noreko-backend/api.php?action=rebotling&run=save-alert-thresholds',
@@ -405,25 +361,10 @@ export class RebotlingService {
   }
 
   // ---- Notification Settings ----
-  getNotificationSettings(): Observable<NotificationSettingsResponse> {
-    return this.http.get<NotificationSettingsResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=notification-settings',
-      { withCredentials: true }
-    );
-  }
-
   saveNotificationSettings(settings: any): Observable<any> {
     return this.http.post<any>(
       '/noreko-backend/api.php?action=rebotling&run=save-notification-settings',
       settings,
-      { withCredentials: true }
-    );
-  }
-
-  // ---- Goal History ----
-  getGoalHistory(days: number = 180): Observable<GoalHistoryResponse> {
-    return this.http.get<GoalHistoryResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=goal-history&days=${days}`,
       { withCredentials: true }
     );
   }
@@ -443,48 +384,6 @@ export class RebotlingService {
     );
   }
 
-}
-
-export interface AlertThresholdsResponse {
-  success: boolean;
-  data?: {
-    oee_warn: number;
-    oee_danger: number;
-    prod_warn: number;
-    prod_danger: number;
-    plc_max_min: number;
-    quality_warn: number;
-  };
-  error?: string;
-}
-
-export interface NotificationSettingsResponse {
-  success: boolean;
-  data?: {
-    notification_emails: string;
-    config: {
-      enabled: boolean;
-      on_stopp: boolean;
-      on_low_oee: boolean;
-      on_cert_expiry: boolean;
-      on_maintenance: boolean;
-      on_shift_report: boolean;
-    };
-  };
-  error?: string;
-}
-
-export interface GoalHistoryEntry {
-  goal_type: string;
-  value: number;
-  changed_by: string;
-  changed_at: string;
-}
-
-export interface GoalHistoryResponse {
-  success: boolean;
-  data?: GoalHistoryEntry[];
-  error?: string;
 }
 
 export interface PersonalBestOperator {
