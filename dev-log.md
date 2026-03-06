@@ -1,6 +1,15 @@
 ## 2026-03-06 Session #34 — Bug Hunt #39 session/auth edge cases + data-konsistens
 
-**Plan**: Worker 1 granskar session/auth edge cases (PHP session timeout, 401/403-hantering, polling vid expired session, auth guards). Worker 2 granskar data-konsistens mellan sidor (samma KPI:er pa olika sidor — anvander de samma berakningar?).
+**Worker 1 — Bug Hunt #39 Session/auth edge cases** (commit via worker):
+- 5 backend-fixar: ShiftHandoverController+SkiftrapportController 403→401 vid expired session, BonusAdminController+MaintenanceController read_and_close for POST→full session, FeedbackController GET→read_and_close
+- 4 frontend-fixar: auth.service.ts polling stoppades aldrig vid logout (minnesläcka), logout rensade state EFTER HTTP (race condition), logout navigerade ej till /login, login aterstartade ej polling
+- Verifierat: errorInterceptor fangar 401 korrekt, auth guards fungerar, session.gc_maxlifetime=86400s
+
+**Worker 2 — Bug Hunt #39b Data-konsistens** (`91329eb`):
+- KRITISK: runtime_plc /3600→/60 missades i 4 controllers (18 stallen): OperatorController (7), OperatorCompareController (4), AndonController (4), OperatorDashboardController (3). IBC/h var 60x for lagt pa dessa sidor.
+- Verifierat konsistent: IBC-antal, OEE 3-faktor-formel, bonus-berakningar, idealRate=0.25 overallt
+
+**Sammanfattning session #34**: 9 backend-fixar + 4 frontend-fixar = 13 fixar. KRITISK bugg: runtime_plc-enhetsfel kvarstaende fran Bug Hunt #32 i 4 controllers — alla IBC/h pa operator-detail, operator-compare, andon, operator-dashboard var 60x for laga.
 
 ---
 

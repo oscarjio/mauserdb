@@ -149,6 +149,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
 
+### Atgärdat — 2026-03-06 (Session #34: Bug Hunt #39 session/auth + data-konsistens)
+
+**Bug Hunt #39 — Session/auth edge cases (9 fixar):**
+- ShiftHandoverController.php + SkiftrapportController.php: 403→401 vid expired session (interceptor fangar bara 401)
+- BonusAdminController.php + MaintenanceController.php: read_and_close for POST→full session (session-skrivning var omojlig)
+- FeedbackController.php: GET→read_and_close (blockerade session-fil i onodan)
+- auth.service.ts: polling stoppades ALDRIG vid logout (minnesläcka), logout rensade state EFTER HTTP (race condition), logout navigerade ej till /login, login aterstartade ej polling
+
+**Bug Hunt #39b — Data-konsistens (`91329eb`, 18 fixar i 4 filer):**
+- KRITISK: runtime_plc /3600→/60 missades av Bug Hunt #32 i 4 controllers — IBC/h 60x for lagt pa operator-detail, operator-compare, andon, operator-dashboard
+- OperatorController (7), OperatorCompareController (4), AndonController (4), OperatorDashboardController (3)
+- Verifierat: IBC-antal, OEE, bonus-berakningar konsistenta mellan alla sidor
+
 ### Atgärdat — 2026-03-06 (Session #33: Bug Hunt #38 service-backend kontrakt + CSS/UX)
 
 **Bug Hunt #38 — Service-backend kontrakt (`6aac887`, 2 fixar):**
