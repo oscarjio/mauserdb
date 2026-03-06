@@ -672,7 +672,7 @@
                   <div class="col-6 col-md-3">
                     <div class="sim-kpi-card">
                       <div class="sim-kpi-label">Antal operatörer</div>
-                      <div class="sim-kpi-value sim-animated-number">{{ simResult.results?.length || 0 }}</div>
+                      <div class="sim-kpi-value sim-animated-number">{{ simResult.results.length || 0 }}</div>
                     </div>
                   </div>
                   <div class="col-6 col-md-3">
@@ -1018,11 +1018,11 @@
               </div>
               <div class="col-6 col-md-3">
                 <div class="sim-cost-diff-card"
-                     [class.sim-diff-positive]="(simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0) > 0"
-                     [class.sim-diff-negative]="(simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0) < 0">
+                     [class.sim-diff-positive]="(simHistResult.simulated.total_cost ?? 0) - (simHistResult.baseline.total_cost ?? 0) > 0"
+                     [class.sim-diff-negative]="(simHistResult.simulated.total_cost ?? 0) - (simHistResult.baseline.total_cost ?? 0) < 0">
                   <div class="sim-kpi-label">Skillnad</div>
                   <div class="sim-cost-diff-value sim-animated-number">
-                    {{ getDiffPrefix((simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0)) }}{{ ((simHistResult?.simulated?.total_cost ?? 0) - (simHistResult?.baseline?.total_cost ?? 0)) | number }} kr
+                    {{ getDiffPrefix((simHistResult.simulated.total_cost ?? 0) - (simHistResult.baseline.total_cost ?? 0)) }}{{ ((simHistResult.simulated.total_cost ?? 0) - (simHistResult.baseline.total_cost ?? 0)) | number }} kr
                   </div>
                 </div>
               </div>
@@ -1538,22 +1538,22 @@
         <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Total förlorad bonus pga stopp</div>
-            <div class="audit-summary-value text-warning">{{ formatSek(auditResult?.summary?.total_lost_bonus_kr ?? 0) }}</div>
-            <div class="audit-summary-sub">{{ auditResult?.summary?.total_stoppages }} stoppregistreringar</div>
+            <div class="audit-summary-value text-warning">{{ formatSek(auditResult.summary?.total_lost_bonus_kr ?? 0) }}</div>
+            <div class="audit-summary-sub">{{ auditResult.summary?.total_stoppages }} stoppregistreringar</div>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Mest drabbad operatör</div>
-            <div class="audit-summary-value" style="color: #fc8181;">{{ auditResult?.summary?.most_affected || 'Ingen' }}</div>
+            <div class="audit-summary-value" style="color: #fc8181;">{{ auditResult.summary?.most_affected || 'Ingen' }}</div>
             <div class="audit-summary-sub">Högst bonusdiff</div>
           </div>
         </div>
         <div class="col-12 col-md-4">
           <div class="audit-summary-card">
             <div class="audit-summary-label">Total stopptid</div>
-            <div class="audit-summary-value" style="color: #ed8936;">{{ auditResult?.summary?.total_stop_hours }} h</div>
-            <div class="audit-summary-sub">Längsta enskilda stopp: {{ auditResult?.summary?.longest_stop_hours }} h</div>
+            <div class="audit-summary-value" style="color: #ed8936;">{{ auditResult.summary?.total_stop_hours }} h</div>
+            <div class="audit-summary-sub">Längsta enskilda stopp: {{ auditResult.summary?.longest_stop_hours }} h</div>
           </div>
         </div>
       </div>

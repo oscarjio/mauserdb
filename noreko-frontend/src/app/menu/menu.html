@@ -190,7 +190,7 @@
                   class="form-control form-control-sm"
                   id="currentPassword"
                   name="currentPassword"
-                  [required]="(profileForm?.newPassword?.length || 0) > 0 || (profileForm?.confirmPassword?.length || 0) > 0"
+                  [required]="(profileForm.newPassword.length || 0) > 0 || (profileForm.confirmPassword.length || 0) > 0"
                   [(ngModel)]="profileForm.currentPassword" />
                 <small class="text-muted d-block mt-1">Behövs bara vid byte av lösenord.</small>
               </div>

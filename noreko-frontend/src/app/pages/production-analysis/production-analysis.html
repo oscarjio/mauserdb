@@ -398,15 +398,15 @@
                 <tr class="shift-row" (click)="toggleShiftExpand(shift.shift_number)">
                   <td><i class="fas" [class.fa-chevron-right]="expandedShift !== shift.shift_number" [class.fa-chevron-down]="expandedShift === shift.shift_number"></i></td>
                   <td>{{ shift.shift_number }}</td>
-                  <td>{{ shift.shift_start?.substring(0, 10) }}</td>
+                  <td>{{ shift.shift_start.substring(0, 10) }}</td>
                   <td>{{ shift.operator_count }} st</td>
                   <td>{{ shift.cycles }}</td>
                   <td>{{ shift.total_ibc_ok }}</td>
                   <td>{{ shift.total_hours }}h</td>
-                  <td>{{ shift.kpis?.effektivitet }}%</td>
-                  <td>{{ shift.kpis?.produktivitet }}</td>
-                  <td>{{ shift.kpis?.kvalitet }}%</td>
-                  <td><span [ngClass]="getBonusBadge(shift.kpis?.bonus_avg || 0)">{{ shift.kpis?.bonus_avg }}</span></td>
+                  <td>{{ shift.kpis.effektivitet }}%</td>
+                  <td>{{ shift.kpis.produktivitet }}</td>
+                  <td>{{ shift.kpis.kvalitet }}%</td>
+                  <td><span [ngClass]="getBonusBadge(shift.kpis.bonus_avg || 0)">{{ shift.kpis.bonus_avg }}</span></td>
                 </tr>
                 <tr *ngIf="expandedShift === shift.shift_number" class="shift-detail-row">
                   <td colspan="11">
@@ -744,15 +744,15 @@
             <div class="stop-summary mt-3" *ngIf="rastStatus">
               <span class="stop-sum-item stop-sum-running">
                 <i class="fas fa-play me-1"></i>
-                Kört: {{ Math.max(0, 480 - (rastStatus.rast_minutes_today ?? 0)) }} min
+                Kört: {{ Math.max(0, 480 - rastStatus.rast_minutes_today) }} min
               </span>
               <span class="stop-sum-item stop-sum-rast">
                 <i class="fas fa-pause me-1"></i>
-                Rast/Stopp: {{ rastStatus.rast_minutes_today ?? 0 }} min
+                Rast/Stopp: {{ rastStatus.rast_minutes_today }} min
               </span>
               <span class="stop-sum-item stop-sum-neutral">
                 <i class="fas fa-hashtag me-1"></i>
-                Antal stopp: {{ rastStatus.rast_count_today ?? 0 }}
+                Antal stopp: {{ rastStatus.rast_count_today }}
               </span>
             </div>
           </div>
@@ -764,7 +764,7 @@
                 <span class="badge" [class.bg-success]="!rastStatus.on_rast" [class.bg-warning]="rastStatus.on_rast" [class.text-dark]="rastStatus.on_rast">
                   Nuläge: {{ rastStatus.on_rast ? 'Rast/Stopp' : 'Körs' }}
                 </span>
-                <span class="ms-2 text-muted small">Rasttid idag: {{ rastStatus.rast_minutes_today ?? 0 }} min</span>
+                <span class="ms-2 text-muted small">Rasttid idag: {{ rastStatus.rast_minutes_today }} min</span>
               </div>
             </div>
           </ng-template>
@@ -880,8 +880,8 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of paretoData; let i = index"
-                  [class.table-warning]="(item.kumulativ_pct ?? 0) <= 80 && i > 0 && (paretoData[i-1]?.kumulativ_pct ?? 0) < 80"
-                  [style.opacity]="(item.kumulativ_pct ?? 100) > 80 && getParetoEightyPctGroup() > 0 && i >= getParetoEightyPctGroup() ? '0.55' : '1'">
+                  [class.table-warning]="item.kumulativ_pct <= 80 && i > 0 && (paretoData[i-1]?.kumulativ_pct ?? 0) < 80"
+                  [style.opacity]="item.kumulativ_pct > 80 && getParetoEightyPctGroup() > 0 && i >= getParetoEightyPctGroup() ? '0.55' : '1'">
                 <td class="text-muted">{{ i + 1 }}</td>
                 <td>
                   <span *ngIf="i < getParetoEightyPctGroup()" class="text-danger me-1"><i class="fas fa-exclamation-circle"></i></span>
@@ -893,7 +893,7 @@
                 <td class="text-end text-muted">{{ item.snitt_minuter }}</td>
                 <td class="text-end">{{ item.pct_av_total }}%</td>
                 <td class="text-end">
-                  <span [class]="(item.kumulativ_pct ?? 100) <= 80 ? 'text-danger fw-bold' : 'text-muted'">{{ item.kumulativ_pct }}%</span>
+                  <span [class]="item.kumulativ_pct <= 80 ? 'text-danger fw-bold' : 'text-muted'">{{ item.kumulativ_pct }}%</span>
                 </td>
               </tr>
             </tbody>

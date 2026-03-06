@@ -82,7 +82,7 @@
           <i class="fas" [ngClass]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry < 0 ? 'fa-times-circle' : 'fa-exclamation-circle'"></i>
         </span>
         <span class="expiry-name">{{ item.opName }}</span>
-        <span class="expiry-line">{{ lineLabels[item.cert.line] ?? item.cert.line }}</span>
+        <span class="expiry-line">{{ lineLabels[item.cert.line] }}</span>
         <span class="expiry-date" *ngIf="item.cert.expires_date">
           Utgår: {{ formatDate(item.cert.expires_date) }}
         </span>
@@ -204,7 +204,7 @@
               <i class="fas fa-clock me-1" *ngIf="getBadgeClass(cert) === 'badge-warning'"></i>
               <i class="fas fa-times-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-expired'"></i>
               <span [class.text-strikethrough]="getBadgeClass(cert) === 'badge-expired'">
-                {{ lineLabels[cert.line] ?? cert.line }}
+                {{ lineLabels[cert.line] }}
               </span>
             </span>
 
