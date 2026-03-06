@@ -7,14 +7,14 @@ export DISABLE_AUTOUPDATER=1
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
 PROJECT="/home/clawd/clawd/mauserdb"
-CLAUDE="/home/clawd/.npm-global/bin/claude"
+CLAUDE="/home/clawd/.local/bin/claude"
 LOCKFILE="/tmp/mauserdb-lead.lock"
 RUNLOG="/tmp/mauserdb-lead.log"
 RATELIMIT_FILE="/tmp/mauserdb-ratelimit.txt"
 BUDGET_FILE="/tmp/mauserdb-budget.txt"
 MAX_LOG_LINES=2000
 BUDGET_WINDOW=18000   # 5 timmar i sekunder
-MAX_RUNS_PER_WINDOW=8 # max 8 körningar per fönster (~90% av budget, lämnar ~1 för frågor)
+MAX_RUNS_PER_WINDOW=5 # max 5 körningar per 5h-fönster — lämnar marginal för ägaren
 
 # Se till att node/npm finns i PATH (för npx ng build i worker-agenter)
 export PATH="/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
@@ -119,9 +119,9 @@ Redigera /home/clawd/clawd/mauserdb/lead-memory.md:
 
 Starta MAX 2 parallella worker-agenter (via Task-verktyget).
 
-KRITISKT — sätt alltid max_turns: 40 i varje Task-anrop:
+KRITISKT — sätt alltid max_turns: 60 i varje Task-anrop:
 \`\`\`
-Task(subagent_type="general-purpose", max_turns=40, prompt="...")
+Task(subagent_type="general-purpose", max_turns=60, prompt="...")
 \`\`\`
 
 Varje worker-agent ska:
@@ -159,7 +159,7 @@ echo "[$(date '+%Y-%m-%d %H:%M')] Startar lead-agent Claude-session (prompt: $(w
 
 # Kör Claude via stdin (undviker argument-storleksproblem) med streaming till log
 TMPOUT=$(mktemp)
-stdbuf -oL $CLAUDE --dangerously-skip-permissions --max-turns 30 --print "$(cat "$PROMPT_FILE")" 2>&1 | stdbuf -oL tee -a "$RUNLOG" > "$TMPOUT"
+stdbuf -oL $CLAUDE --dangerously-skip-permissions --max-turns 45 --print "$(cat "$PROMPT_FILE")" 2>&1 | stdbuf -oL tee -a "$RUNLOG" > "$TMPOUT"
 CLAUDE_EXIT=${PIPESTATUS[0]}
 rm -f "$PROMPT_FILE"
 

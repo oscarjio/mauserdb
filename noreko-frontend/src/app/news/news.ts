@@ -101,7 +101,7 @@ export class News implements OnInit, OnDestroy {
   // Expanderade nyheter (läs-mer)
   expandedIds = new Set<number | string>();
 
-  private apiBase = '/api/api.php';
+  private apiBase = '/noreko-backend/api.php';
 
   constructor(
     private rebotlingService: RebotlingService,
