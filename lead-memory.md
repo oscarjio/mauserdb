@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #29)*
+*Senast uppdaterad: 2026-03-06 (session #30)*
 
 ---
 
@@ -148,6 +148,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #30: Bug Hunt #35 error handling + API consistency)
+
+**Bug Hunt #35 — Angular error handling (`d5a6576`, 10 buggar i 4 komponenter):**
+- `bonus-dashboard.ts`: getActiveRanking() anropades i template vid varje CD — cachad. Delad loading-flagga for 3 floden — separerade. Saknade empty states for skiftoversikt+Hall of Fame. catchError utan felmeddelande. Error-text rensades ej vid periodbyte.
+- `executive-dashboard.ts`: dashError sattes aldrig vid API-fel. "Forsok igen"-knapp ej disabled under laddning.
+- `my-bonus.ts`: Missvisande felmeddelande vid natverksfel (samma text som "ingen data").
+- `production-analysis.ts`: bestDay/worstDay/avgBonus/totalIbc nollstalldes ej vid tom respons.
+
+**Bug Hunt #35b — PHP API consistency (`1806cc9`, 9 buggar i 1 fil):**
+- `RebotlingAnalyticsController.php`: 9 error-responses returnerade HTTP 200 istf 400/500 — getOEETrend, getDayDetail, getAnnotations, sendAutoShiftReport (3 felfall), sendWeeklySummaryEmail (3 felfall).
+- `BonusController.php`: Rent — konsekvent sendError/sendSuccess, korrekt http_response_code, prepared statements.
+- `WeeklyReportController.php`: Rent — konsekvent sendError, auth, datum-validering, division-by-zero guards.
 
 ### Atgärdat — 2026-03-06 (Session #29: Bug Hunt #34 datum/tid + Angular performance)
 
@@ -397,6 +410,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #30
+**Lagesanalys**: Session #29 levererade Bug Hunt #34 datum/tid edge cases (`8d969af` — 2 buggar: ISO-vecka 0 vid sondag Jan 4, veckosammanfattning utan ISO-ar) + Angular performance audit (`38577f7` — 55 trackBy, 12 cachade template-berakningar). Hela kodbasen har genomgatt 34 Bug Hunts + performance audit. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Bug Hunts #1-#34 har nu tackt alla kanda buggkategorier: minneslakor, HTTP-koder, auth, session, berakningslogik, template-varningar, dead code, float-modulo, routing-integritet, datum/tid edge cases. Nastan alla systematiska buggkategorier ar nu genomgangna.
+- Angular runtime-prestanda forbattrad med trackBy+cache, men OnPush kvarstar som potentiell forbattring (kraver stor refactor).
+- Omraden for nasta Bug Hunt: error handling consistency (HTTP error responses i frontend — visas felmeddelanden korrekt for anvandaren?), edge cases i formuler med tomma dataset (0 IBCs, inga operatorer inloggade, tomt skift).
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #35 — Error handling och UX vid fel. Granska Angular-komponenter: vad hander nar API returnerar fel? Visas ett vetigt felmeddelande? Hanteras tomma dataset (inga IBCs, inga operatorer)? Granska catchError-handlers — returnerar de ratt fallback? Fokus pa de mest anvandarkritiska sidorna: executive-dashboard, my-bonus, bonus-dashboard, production-analysis.
+2. Worker 2: Bug Hunt #35b — PHP API consistency. Granska PHP-controllers for: konsekvent JSON-responsformat (success/data/error), korrekt Content-Type header, konsekvent error-meddelanden, CORS-headers om nodvandigt, input-validering av query-parametrar (action/run). Fokus pa de mest anropade controllers: RebotlingAnalyticsController, BonusController, WeeklyReportController.
+
+**Motivering**: Error handling ar den sista stora kvalitetskategorin som inte granskats systematiskt. Felaktiga/saknade felmeddelanden gor det svart for VD/operatorer att forsta vad som gick fel. API-konsistens forhindrar frontend-buggar fran inkonsekvent backend-svar.
 
 ### 2026-03-06 Session #29
 **Lagesanalys**: Session #28 levererade Bug Hunt #33 dead code cleanup (`70b74c4` — 3 filer/899 rader borttagna, 9 dead methods, 7 interfaces, routing-integritet verifierad) + Bundle size optimering (`90c655b` — 843 kB → 666 kB, −21%). Hela kodbasen har genomgatt 33 Bug Hunts. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

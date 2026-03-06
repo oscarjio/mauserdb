@@ -1,3 +1,21 @@
+## 2026-03-06 Session #30 — Bug Hunt #35 error handling + API consistency
+
+**Worker 1 — Bug Hunt #35 Angular error handling** (`d5a6576`):
+- 10 buggar fixade i 4 komponenter (6 filer):
+- bonus-dashboard: cachad getActiveRanking (CD-loop), separata loading-flaggor (3 flöden), empty states för skiftöversikt+Hall of Fame, felmeddelande vid catchError, error-rensning vid periodbyte
+- executive-dashboard: dashError-variabel vid API-fel, disabled "Försök igen" under laddning
+- my-bonus: distinkt felmeddelande vid nätverksfel vs saknad data (sentinel-värde)
+- production-analysis: nollställ bestDay/worstDay/avgBonus/totalIbc vid tom respons
+
+**Worker 2 — Bug Hunt #35b PHP API consistency** (`1806cc9`):
+- 9 buggar fixade i RebotlingAnalyticsController.php:
+- 9 error-responses returnerade HTTP 200 istf 400/500 (getOEETrend, getDayDetail, getAnnotations, sendAutoShiftReport×3, sendWeeklySummaryEmail×3)
+- BonusController + WeeklyReportController: inga buggar — konsekvent format, korrekt sendError/sendSuccess, prepared statements, division-by-zero guards
+
+**Sammanfattning session #30**: 19 buggar fixade (10 Angular + 9 PHP). Error handling och API consistency nu granskade systematiskt.
+
+---
+
 ## 2026-03-06 Session #29 — Bug Hunt #34 datum/tid + Angular performance audit
 
 **Worker 1 — Bug Hunt #34 datum/tid edge cases** (`8d969af`):
