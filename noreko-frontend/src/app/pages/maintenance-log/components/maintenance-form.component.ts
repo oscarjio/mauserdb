@@ -261,6 +261,18 @@ export class MaintenanceFormComponent implements OnDestroy {
       this.formError = 'Starttid krävs';
       return;
     }
+    if (this.form.duration_minutes !== null && this.form.duration_minutes !== undefined && +this.form.duration_minutes < 0) {
+      this.formError = 'Varaktighet kan inte vara negativ';
+      return;
+    }
+    if (this.form.downtime_minutes !== null && this.form.downtime_minutes !== undefined && +this.form.downtime_minutes < 0) {
+      this.formError = 'Driftstopp kan inte vara negativt';
+      return;
+    }
+    if (this.form.cost_sek !== null && this.form.cost_sek !== undefined && +this.form.cost_sek < 0) {
+      this.formError = 'Kostnad kan inte vara negativ';
+      return;
+    }
 
     this.isSaving = true;
     const payload = {

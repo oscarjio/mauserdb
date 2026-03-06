@@ -56,6 +56,7 @@ interface NewsItem {
                 [(ngModel)]="form.title"
                 placeholder="Ange rubrik..."
                 maxlength="255"
+                required
               />
             </div>
 
