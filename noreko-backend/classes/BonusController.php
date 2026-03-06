@@ -912,21 +912,21 @@ class BonusController {
                     FROM (
                         SELECT op1 AS op_id, DATE(datum) AS datum_day,
                                MAX(ibc_ok) AS shift_ibc_ok,
-                               MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                               MAX(runtime_plc) / 60.0 AS shift_runtime_h
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND op1 IS NOT NULL AND op1 > 0
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare, op1
                         UNION ALL
-                        SELECT op2, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/3600.0
+                        SELECT op2, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/60.0
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND op2 IS NOT NULL AND op2 > 0
                           AND skiftraknare IS NOT NULL
                         GROUP BY DATE(datum), skiftraknare, op2
                         UNION ALL
-                        SELECT op3, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/3600.0
+                        SELECT op3, DATE(datum), MAX(ibc_ok), MAX(runtime_plc)/60.0
                         FROM rebotling_ibc
                         WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                           AND op3 IS NOT NULL AND op3 > 0
@@ -1190,7 +1190,7 @@ class BonusController {
                         MIN(datum) AS first_datum,
                         MAX(ibc_ok) - MIN(ibc_ok)       AS shift_ibc_ok,
                         MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS shift_ibc_ej_ok,
-                        MAX(runtime_plc) / 3600.0        AS shift_runtime_h
+                        MAX(runtime_plc) / 60.0        AS shift_runtime_h
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
@@ -1510,7 +1510,7 @@ class BonusController {
                 FROM (
                     SELECT skiftraknare,
                            MAX(ibc_ok) - MIN(ibc_ok) AS shift_ibc_ok,
-                           MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                           MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
                       AND (op1 = ? OR op2 = ? OR op3 = ?)
@@ -2077,7 +2077,7 @@ class BonusController {
                     SELECT DATE(datum) AS dag, op1 AS op_id,
                         skiftraknare,
                         MAX(ibc_ok) AS shift_ibc,
-                        MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                        MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                       AND DATE(datum) <= CURDATE()
@@ -2090,7 +2090,7 @@ class BonusController {
                     SELECT DATE(datum) AS dag, op2 AS op_id,
                         skiftraknare,
                         MAX(ibc_ok) AS shift_ibc,
-                        MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                        MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                       AND DATE(datum) <= CURDATE()
@@ -2103,7 +2103,7 @@ class BonusController {
                     SELECT DATE(datum) AS dag, op3 AS op_id,
                         skiftraknare,
                         MAX(ibc_ok) AS shift_ibc,
-                        MAX(runtime_plc) / 3600.0 AS shift_runtime_h
+                        MAX(runtime_plc) / 60.0 AS shift_runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
                       AND DATE(datum) <= CURDATE()

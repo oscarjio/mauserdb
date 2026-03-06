@@ -64,7 +64,7 @@ class WeeklyReportController {
                 SELECT DATE(datum) AS datum, skiftraknare,
                        MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok,
                        MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS delta_ej,
-                       MAX(runtime_plc) / 3600.0 AS runtime_h
+                       MAX(runtime_plc) / 60.0 AS runtime_h
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ?
                 GROUP BY DATE(datum), skiftraknare
@@ -201,7 +201,7 @@ class WeeklyReportController {
                     SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
                            MAX(ibc_ok)-MIN(ibc_ok) AS delta_ok,
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
-                           MAX(runtime_plc)/3600.0 AS runtime_h
+                           MAX(runtime_plc)/60.0 AS runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op1
@@ -209,7 +209,7 @@ class WeeklyReportController {
                     SELECT op2, DATE(datum), skiftraknare,
                            MAX(ibc_ok)-MIN(ibc_ok),
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/3600.0
+                           MAX(runtime_plc)/60.0
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op2
@@ -217,7 +217,7 @@ class WeeklyReportController {
                     SELECT op3, DATE(datum), skiftraknare,
                            MAX(ibc_ok)-MIN(ibc_ok),
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/3600.0
+                           MAX(runtime_plc)/60.0
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op3
@@ -314,7 +314,7 @@ class WeeklyReportController {
                     SELECT DATE(datum) AS datum, skiftraknare,
                            MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok,
                            MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS delta_ej,
-                           MAX(runtime_plc) / 3600.0 AS runtime_h
+                           MAX(runtime_plc) / 60.0 AS runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ?
                     GROUP BY DATE(datum), skiftraknare
@@ -397,7 +397,7 @@ class WeeklyReportController {
                     SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
                            MAX(ibc_ok)-MIN(ibc_ok) AS delta_ok,
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
-                           MAX(runtime_plc)/3600.0 AS runtime_h
+                           MAX(runtime_plc)/60.0 AS runtime_h
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op1
@@ -405,7 +405,7 @@ class WeeklyReportController {
                     SELECT op2, DATE(datum), skiftraknare,
                            MAX(ibc_ok)-MIN(ibc_ok),
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/3600.0
+                           MAX(runtime_plc)/60.0
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op2
@@ -413,7 +413,7 @@ class WeeklyReportController {
                     SELECT op3, DATE(datum), skiftraknare,
                            MAX(ibc_ok)-MIN(ibc_ok),
                            MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/3600.0
+                           MAX(runtime_plc)/60.0
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
                     GROUP BY DATE(datum), skiftraknare, op3

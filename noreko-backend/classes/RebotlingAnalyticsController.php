@@ -976,8 +976,12 @@ class RebotlingAnalyticsController {
                     ? min($drifttid / $planned, 1)
                     : null;
                 $quality_ratio = ($totalt > 0) ? ($ibc_ok / $totalt) : null;
-                $oee = ($avail !== null && $quality_ratio !== null)
-                    ? round($avail * $quality_ratio * 100, 1)
+                $idealRatePerMin = 15.0 / 60.0; // 0.25 IBC/min
+                $perf = ($drifttid > 0 && $totalt > 0)
+                    ? min(($totalt / $drifttid) / $idealRatePerMin, 1.0)
+                    : null;
+                $oee = ($avail !== null && $perf !== null && $quality_ratio !== null)
+                    ? round($avail * $perf * $quality_ratio * 100, 1)
                     : null;
 
                 $ibc_per_h = ($drifttid > 0)
@@ -1518,7 +1522,7 @@ class RebotlingAnalyticsController {
                     HOUR(datum) AS timme,
                     MAX(ibc_ok)        AS ackumulerat_ibc,
                     MAX(ibc_ej_ok)     AS ej_ok_ackumulerat,
-                    MAX(runtime_plc)   AS runtime_sek,
+                    MAX(runtime_plc)   AS runtime_min_cum,
                     COUNT(DISTINCT skiftraknare) AS skift_count
                 FROM rebotling_ibc
                 WHERE DATE(datum) = ?
@@ -1537,7 +1541,7 @@ class RebotlingAnalyticsController {
                     skiftraknare,
                     MAX(ibc_ok)      AS acc_ibc,
                     MAX(ibc_ej_ok)   AS acc_ej_ok,
-                    MAX(runtime_plc) AS runtime_sek
+                    MAX(runtime_plc) AS runtime_min
                 FROM rebotling_ibc
                 WHERE DATE(datum) = ?
                   AND skiftraknare IS NOT NULL
@@ -1553,14 +1557,14 @@ class RebotlingAnalyticsController {
             $shiftPrevEjOk  = [];
             $deltaMap       = []; // timme → delta_ibc (summerat över alla skift)
             $deltaEjOkMap   = []; // timme → delta_ej_ok
-            $runtimeMap     = []; // timme → runtime_sek (max över skift)
+            $runtimeMap     = []; // timme → runtime_min (max över skift)
 
             foreach ($rawRows as $r) {
                 $t    = (int)$r['timme'];
                 $sk   = (int)$r['skiftraknare'];
                 $acc  = (int)$r['acc_ibc'];
                 $eo   = (int)$r['acc_ej_ok'];
-                $rt   = (int)$r['runtime_sek'];
+                $rt   = (int)$r['runtime_min'];
 
                 // Delta IBC
                 $prev = $shiftPrevIbc[$sk] ?? 0;
@@ -1595,13 +1599,13 @@ class RebotlingAnalyticsController {
             $ibcPerHList = [];
 
             foreach ($deltaMap as $timme => $deltaIbc) {
-                $rt      = $runtimeMap[$timme] ?? 0;
-                $rtMin   = round($rt / 60, 1);
+                $rt      = $runtimeMap[$timme] ?? 0; // runtime_plc i minuter (kumulativt)
+                $rtH     = $rt / 60.0; // konvertera till timmar
                 $deltaEo = $deltaEjOkMap[$timme] ?? 0;
                 $skift   = $hourToSkift($timme);
 
-                // IBC/h: ibc producerat under timmen / effektiv drifttid (eller per heltimme om rt=0)
-                $ibcPerH = $rtMin > 0 ? round($deltaIbc / ($rtMin / 60), 1) : 0.0;
+                // IBC/h: ibc producerat under timmen / effektiv drifttid i timmar
+                $ibcPerH = $rtH > 0 ? round($deltaIbc / $rtH, 1) : 0.0;
 
                 if ($deltaIbc > 0) {
                     $activeHours++;
@@ -1618,7 +1622,7 @@ class RebotlingAnalyticsController {
                     'timme'      => $timme,
                     'ibc'        => $deltaIbc,
                     'ibc_per_h'  => $ibcPerH,
-                    'runtime_min'=> $rtMin,
+                    'runtime_min'=> round($rt, 1),
                     'ej_ok'      => $deltaEo,
                     'skift'      => $skift,
                 ];
