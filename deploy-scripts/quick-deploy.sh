@@ -9,10 +9,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-DEV_FRONTEND="/var/www/dev/frontend"
-DEV_BACKEND="/var/www/dev/backend"
-PROD_FRONTEND="/var/www/frontend"
-PROD_BACKEND="/var/www/backend"
+DEV_FRONTEND="/var/www/mauserdb-dev/noreko-frontend/dist/noreko-frontend/browser"
+DEV_BACKEND="/var/www/mauserdb-dev/noreko-backend"
+PROD_FRONTEND="/var/www/mauserdb-prod/noreko-frontend/dist/noreko-frontend/browser"
+PROD_BACKEND="/var/www/mauserdb-prod/noreko-backend"
 
 echo -e "${YELLOW}⚡ SNABB DEPLOY${NC}"
 echo ""

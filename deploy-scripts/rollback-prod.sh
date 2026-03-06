@@ -10,9 +10,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-BACKUP_DIR="/var/www/backups"
-PROD_FRONTEND="/var/www/frontend"
-PROD_BACKEND="/var/www/backend"
+BACKUP_DIR="/var/www/mauserdb-backups"
+PROD_FRONTEND="/var/www/mauserdb-prod/noreko-frontend/dist/noreko-frontend/browser"
+PROD_BACKEND="/var/www/mauserdb-prod/noreko-backend"
 
 echo -e "${YELLOW}╔════════════════════════════════════════╗${NC}"
 echo -e "${YELLOW}║   NOREKO PRODUCTION ROLLBACK           ║${NC}"
@@ -31,7 +31,7 @@ if [ -n "$1" ]; then
 else
     echo "Ange backup timestamp (eller tryck Enter för senaste):"
     read -r timestamp
-    
+
     if [ -z "$timestamp" ]; then
         # Använd senaste backup
         BACKUP_PATH=$(ls -td "$BACKUP_DIR"/prod_backup_* | head -1)
