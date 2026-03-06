@@ -232,7 +232,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const parts = datesStr.split(',').map((s: string) => s.trim()).filter(Boolean);
       this.selectedPeriods = parts
         .map((s: string) => {
-          const d = new Date(s);
+          const d = new Date(s + 'T00:00:00');
           return isNaN(d.getTime()) ? null : d;
         })
         .filter((d: Date | null): d is Date => d !== null);
