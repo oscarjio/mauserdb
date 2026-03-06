@@ -31,9 +31,9 @@
 
 .form-control:focus {
   background-color: #4a5568;
-  border-color: #86b7fe;
+  border-color: #63b3ed;
   color: #e2e8f0;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.2);
 }
 
 .form-control::placeholder {
@@ -112,7 +112,7 @@
 
 .edit-row .card {
   background-color: #2d3748;
-  border-color: #0d6efd;
+  border-color: #4299e1;
 }
 
 .edit-form .row {
@@ -137,7 +137,8 @@
 }
 
 .bg-info {
-  background-color: #0dcaf0 !important;
+  background-color: rgba(66, 153, 225, 0.25) !important;
+  color: #63b3ed !important;
 }
 
 .bg-secondary {
@@ -161,7 +162,7 @@
 }
 
 .border-primary {
-  border-color: #0d6efd !important;
+  border-color: #4299e1 !important;
 }
 
 /* --- Sökfält --- */
@@ -181,7 +182,7 @@
 
 .input-group .search-icon + .form-control:focus ~ .search-icon,
 .input-group:focus-within .search-icon {
-  border-color: #86b7fe;
+  border-color: #63b3ed;
   color: #e2e8f0;
 }
 

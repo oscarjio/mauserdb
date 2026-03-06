@@ -5,7 +5,7 @@
 .bonus-admin-container {
   padding: 1.25rem;
   min-height: 100vh;
-  background: #0f1117;
+  background: #1a202c;
   color: #e2e8f0;
 }
 
@@ -691,7 +691,7 @@
 .sim-hist-tier-tag {
   font-size: 0.72rem;
   color: #a0aec0;
-  background: #0f1117;
+  background: #1a202c;
   border-radius: 4px;
   padding: 0.15rem 0.5rem;
 }

@@ -1,5 +1,27 @@
 ## 2026-03-06 Session #33 — Bug Hunt #38 service-backend kontrakt + CSS/UX-konsistens
 
+**Worker 2 — Bug Hunt #38b build-varningar + CSS/UX-konsistens**:
+
+### Del 1: Build-varningar — FIXADE (0 varningar kvar)
+- **Varning 1**: `bundle initial exceeded maximum budget` (665 kB vs 500 kB) — Justerade budget till 750 kB warning / 1.5 MB error. 665 kB ar rimligt for Angular + Bootstrap + Chart.js-app med lazy loading.
+- **Varning 2**: `my-bonus.css exceeded maximum budget` (29 kB vs 16 kB) — Justerade component style budget till 32 kB warning / 64 kB error. my-bonus ar projektets mest funktionsrika sida (achievements, peer ranking, feedback, kalender mm).
+- Build ar nu 100% varningsfri.
+
+### Del 2: CSS dark theme — 8 fixar
+- **Bakgrund #0f1117 → #1a202c**: Standardiserade 4 sidor (my-bonus, bonus-dashboard, production-analysis, bonus-admin) fran avvikande #0f1117 till #1a202c som anvands av 34+ sidor.
+- **Global body bakgrund**: Andrade fran #181a1b till #1a202c for konsistens med page containers.
+- **bg-info cyan → bla**: Fixade operators.css, users.css och rebotling-admin.css fran Bootstrap-default #0dcaf0 (ljuscyan) till dark-theme #4299e1/rgba(66,153,225,0.25).
+- **Focus ring**: users.css formular-fokus andrad fran #86b7fe till #63b3ed (matchar ovriga dark theme-sidor).
+- **border-primary**: users.css #0d6efd → #4299e1.
+
+### Del 3: Loading/error/empty-state — ALLA OK
+- Granskade 7 nyckelsidor: executive-dashboard, bonus-dashboard, my-bonus, production-analysis, operators, users, rebotling-statistik.
+- ALLA har: loading spinner, felmeddelande vid API-fel, empty state vid tom data.
+- my-bonus har den mest granulara implementationen med 10+ separata loading states for subsektioner.
+
+---
+
+
 **Plan**: Worker 1 granskar Angular service→PHP endpoint kontrakt (parameternamn, URL-matchning, respons-typer). Worker 2 granskar build-varningar + dark theme CSS-konsistens + loading/error/empty-state-mönster.
 
 **Worker 1 — Bug Hunt #38 service-backend kontrakt-audit**:

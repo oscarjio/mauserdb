@@ -423,7 +423,8 @@
 }
 
 .bg-info {
-  background-color: #0dcaf0 !important;
+  background-color: rgba(66, 153, 225, 0.25) !important;
+  color: #63b3ed !important;
 }
 
 .bg-success {

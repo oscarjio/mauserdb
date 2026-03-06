@@ -5,7 +5,7 @@
 .analysis-container {
   padding: 1.25rem;
   min-height: 100vh;
-  background: #0f1117;
+  background: #1a202c;
   color: #e2e8f0;
 }
 
@@ -264,7 +264,7 @@
 .shift-row { cursor: pointer; }
 .shift-row:hover td { background: rgba(66,153,225,0.06) !important; }
 
-.shift-detail-row td { background: #0f1117 !important; }
+.shift-detail-row td { background: #1a202c !important; }
 .shift-detail {
   padding: 0.75rem 1rem;
   color: #a0aec0;
