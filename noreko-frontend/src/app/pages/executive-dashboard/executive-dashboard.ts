@@ -497,6 +497,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
               afterBody: (items: any[]) => {
                 const idx = items[0]?.dataIndex ?? 0;
                 const d = days[idx];
+                if (!d) return [];
                 const pct = d.target > 0 ? Math.round(d.ibc / d.target * 100) : 0;
                 return [`${pct}% av dagsmål`];
               }

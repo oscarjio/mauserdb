@@ -859,7 +859,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
           },
           tooltip: {
             callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} IBC`
+              label: (ctx) => { const v = ctx.parsed.y; return v != null ? ` ${ctx.dataset.label}: ${v} IBC` : ''; }
             }
           }
         },

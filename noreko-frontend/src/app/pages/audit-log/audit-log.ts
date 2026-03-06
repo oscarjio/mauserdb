@@ -402,6 +402,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
               },
               label: (item) => {
                 const count = item.parsed.y;
+                if (count == null) return '';
                 return `  ${count} aktivitet${count !== 1 ? 'er' : ''}`;
               }
             }

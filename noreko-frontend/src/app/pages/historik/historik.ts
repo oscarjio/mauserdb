@@ -665,6 +665,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
             callbacks: {
               label: ctx => {
                 const v = ctx.raw as number;
+                if (v == null) return '';
                 const diff = v - snitt;
                 const sign = diff >= 0 ? '+' : '';
                 return ` ${v.toLocaleString('sv-SE')} IBC  (${sign}${diff.toLocaleString('sv-SE')} vs snitt)`;

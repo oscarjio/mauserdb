@@ -1199,7 +1199,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             borderColor: '#4a5568',
             borderWidth: 1,
             callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.r}`,
+              label: (ctx) => { const v = ctx.parsed.r; return v != null ? ` ${ctx.dataset.label}: ${v}` : ''; },
             },
           },
         },
@@ -1286,7 +1286,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
             borderColor: '#4a5568',
             borderWidth: 1,
             callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y} IBC`,
+              label: (ctx) => { const v = ctx.parsed.y; return v != null ? ` ${ctx.dataset.label}: ${v} IBC` : ''; },
             },
           },
         },

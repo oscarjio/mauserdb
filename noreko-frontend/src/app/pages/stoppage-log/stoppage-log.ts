@@ -705,7 +705,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
               },
               label: (ctx: any) => {
                 const h = distribution[ctx.dataIndex];
-                const parts = [`  Antal stopp: ${ctx.parsed.y}`];
+                if (!h) return `  Antal stopp: ${ctx.parsed.y ?? 0}`;
+                const parts = [`  Antal stopp: ${ctx.parsed.y ?? 0}`];
                 if (h.snitt_min) {
                   const sm = h.snitt_min;
                   const sh = Math.floor(sm / 60);
@@ -828,6 +829,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
             callbacks: {
               label: (tooltipCtx: any) => {
                 const item = items[tooltipCtx.dataIndex];
+                if (!item) return '';
                 const min = item.total_min;
                 const h = Math.floor(min / 60);
                 const m = Math.round(min % 60);
@@ -957,7 +959,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
                 return idx >= 0 ? labels[idx] : '';
               },
               label: (ctx) => {
-                const count = ctx.parsed.y;
+                const count = ctx.parsed.y ?? 0;
                 return `  Antal stopp: ${count}`;
               },
               afterLabel: (ctx) => {
@@ -1127,10 +1129,12 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           tooltip: {
             callbacks: {
               label: (ctx) => {
+                const v = ctx.parsed.y;
+                if (v == null) return '';
                 if (ctx.datasetIndex === 0) {
-                  return ` ${ctx.parsed.y} min (${orsaker[ctx.dataIndex]?.pct ?? 0}%)`;
+                  return ` ${v} min (${orsaker[ctx.dataIndex]?.pct ?? 0}%)`;
                 }
-                return ` Kumulativ: ${ctx.parsed.y}%`;
+                return ` Kumulativ: ${v}%`;
               }
             }
           }

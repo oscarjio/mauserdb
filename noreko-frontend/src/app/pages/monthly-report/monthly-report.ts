@@ -564,7 +564,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
           },
           tooltip: {
             callbacks: {
-              label: (item) => `${item.dataset.label}: ${item.parsed.y}%`
+              label: (item) => { const v = item.parsed.y; return v != null ? `${item.dataset.label}: ${v}%` : ''; }
             }
           }
         },

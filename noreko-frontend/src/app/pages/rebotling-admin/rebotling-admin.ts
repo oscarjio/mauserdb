@@ -769,7 +769,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           },
           tooltip: {
             callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y} min/IBC`
+              label: (ctx) => { const v = ctx.parsed.y; return v != null ? `${ctx.dataset.label}: ${v} min/IBC` : ''; }
             }
           }
         },
@@ -1040,8 +1040,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           tooltip: {
             callbacks: {
               label: (ctx: any) => {
-                if (ctx.datasetIndex === 1) return `Nuvarande mål: ${ctx.parsed.y} IBC/dag`;
-                return `Mål: ${ctx.parsed.y} IBC/dag`;
+                const v = ctx.parsed.y;
+                if (v == null) return '';
+                if (ctx.datasetIndex === 1) return `Nuvarande mål: ${v} IBC/dag`;
+                return `Mål: ${v} IBC/dag`;
               }
             }
           }
@@ -1406,7 +1408,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           },
           tooltip: {
             callbacks: {
-              label: (ctx: any) => `${ctx.dataset.label}: ${ctx.parsed.y}`
+              label: (ctx: any) => { const v = ctx.parsed.y; return v != null ? `${ctx.dataset.label}: ${v}` : ''; }
             }
           }
         },
