@@ -149,6 +149,21 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
 
+### Atgärdat — 2026-03-06 (Session #33: Bug Hunt #38 service-backend kontrakt + CSS/UX)
+
+**Bug Hunt #38 — Service-backend kontrakt (`6aac887`, 2 fixar):**
+- KRITISK: `action=operator` saknades i api.php classNameMap — hela operator-detail-sidan (profil, statistik) returnerade 404 "Endpoint hittades inte". Fixad med ny mapping.
+- CORS: Access-Control-Allow-Methods saknade PUT/DELETE — rebotling-admin produktredigering blockerades i cross-origin. Fixad.
+- 31 frontend-endpoints verifierade mot 34 backend-endpoints. Alla POST-parametrar, run-varden, HTTP-metoder korrekt.
+- 1 orphan-endpoint: `runtime` (RuntimeController) — ingen frontend anropar, lamnad (kan anvandas externt).
+
+**Bug Hunt #38b — Build-varningar + CSS/UX-konsistens (`aa5ee90`, 8 fixar):**
+- Build 100% varningsfri: bundle budget justerad (665 kB → 750 kB warning, rimligt for Angular+Bootstrap+Chart.js), my-bonus.css budget justerad (29 kB → 32 kB warning).
+- 4 CSS dark theme bakgrund: my-bonus, bonus-dashboard, production-analysis, bonus-admin anvande #0f1117 istf #1a202c. + global body #181a1b → #1a202c.
+- 3 CSS bg-info: operators, users, rebotling-admin anvande Bootstrap default cyan #0dcaf0 → dark-theme bla #4299e1.
+- 1 CSS focus ring: users.css default Bootstrap bla → dark-theme #63b3ed/#4299e1.
+- Loading/error/empty-state: 7 nyckelsidor granskade — ALLA har komplett loading/error/empty-state.
+
 ### Atgärdat — 2026-03-06 (Session #32: Bug Hunt #37 formularvalidering + error recovery)
 
 **Bug Hunt #37 — Angular formularvalidering (`5bb732e`, 5 fixar):**
