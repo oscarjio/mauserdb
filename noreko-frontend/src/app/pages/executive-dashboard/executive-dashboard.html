@@ -34,7 +34,7 @@
     </div>
     <div class="lines-status-grid">
       <a
-        *ngFor="let line of allLinesStatus"
+        *ngFor="let line of allLinesStatus; trackBy: trackByLineId"
         [routerLink]="getLineRoute(line)"
         class="line-status-card"
         [class.line-status-running]="line.status === 'running'"
@@ -97,7 +97,7 @@
   <ng-container *ngIf="!loading && dashData && alerts.length > 0">
     <div class="alerts-container mb-4">
       <div
-        *ngFor="let alert of alerts"
+        *ngFor="let alert of alerts; trackBy: trackByAlertMessage"
         class="alert-banner d-print-none"
         [class.alert-danger-banner]="alert.type === 'danger'"
         [class.alert-warning-banner]="alert.type === 'warning'"
@@ -125,7 +125,7 @@
     <i class="fas fa-oil-can me-2"></i>
     <span>
       <strong>Service snart!</strong>
-      <span *ngFor="let sw of serviceWarnings; let last = last">
+      <span *ngFor="let sw of serviceWarnings; let last = last; trackBy: trackByIndex">
         {{ sw.maskin_namn }} ({{ sw.kvar }} IBC kvar, {{ sw.procent_kvar }}%){{ last ? '' : ', ' }}
       </span>
       — <a routerLink="/admin/underhall" class="alert-link">Hantera underhåll</a>
@@ -149,7 +149,7 @@
         Skift med färre än {{ staffingMinOperators }} operatörer markeras som underbemannade.
       </p>
       <div class="row g-2">
-        <div class="col-md-4 col-sm-6 col-12" *ngFor="let day of staffingWarnings">
+        <div class="col-md-4 col-sm-6 col-12" *ngFor="let day of staffingWarnings; trackBy: trackByDatum">
           <div class="staffing-card"
                [class.staffing-danger]="getStaffingSeverity(day) === 'danger'"
                [class.staffing-warning]="getStaffingSeverity(day) === 'warning'">
@@ -158,7 +158,7 @@
               <span class="staffing-datum">{{ day.datum }}</span>
             </div>
             <div class="staffing-skift-list">
-              <div class="staffing-skift-row" *ngFor="let s of day.underbemanning">
+              <div class="staffing-skift-row" *ngFor="let s of day.underbemanning; trackBy: trackByIndex">
                 <span class="staffing-skift-namn">{{ getStaffingSkiftLabel(s.skift_nr) }}</span>
                 <span class="staffing-ops-badge"
                       [class.staffing-ops-zero]="s.antal_ops === 0"
@@ -449,7 +449,7 @@
         </div>
         <!-- Mini-tabell under graf -->
         <div class="row g-2 mt-2" *ngIf="dashData.days7.length">
-          <div class="col text-center" *ngFor="let d of dashData.days7">
+          <div class="col text-center" *ngFor="let d of dashData.days7; trackBy: trackByDayDate">
             <div class="day-mini"
                  [class.day-mini-green]="d.ibc >= d.target"
                  [class.day-mini-red]="d.ibc < d.target && d.ibc > 0"
@@ -484,7 +484,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let op of dashData.last_shift_operators">
+              <tr *ngFor="let op of dashData.last_shift_operators; trackBy: trackByOpName">
                 <td class="fw-semibold">{{ op.name }}</td>
                 <td>
                   <span class="position-badge">{{ op.position }}</span>
@@ -610,7 +610,7 @@
           <div class="detail-card-body">
             <!-- Nyheter finns -->
             <ul class="news-snippet-list" *ngIf="latestNews.length > 0">
-              <li *ngFor="let n of latestNews" class="news-snippet-item">
+              <li *ngFor="let n of latestNews; trackBy: trackByNewsId" class="news-snippet-item">
                 <div class="d-flex align-items-start gap-2">
                   <span class="badge badge-xs" [ngClass]="getCategoryBadgeClass(n.category)">
                     {{ getCategoryLabel(n.category) }}
@@ -796,7 +796,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of weeklyData.operators; let idx = index">
+                <tr *ngFor="let op of weeklyData.operators; let idx = index; trackBy: trackByOpName">
                   <td class="text-muted">{{ idx + 1 }}</td>
                   <td class="fw-semibold">{{ op.name }}</td>
                   <td class="text-end">{{ op.ibc_total }}</td>
@@ -825,7 +825,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let st of weeklyData.top_stops">
+                <tr *ngFor="let st of weeklyData.top_stops; trackBy: trackByIndex">
                   <td class="fw-semibold">{{ st.orsak }}</td>
                   <td><span class="position-badge">{{ st.category }}</span></td>
                   <td class="text-end">{{ st.antal }}</td>

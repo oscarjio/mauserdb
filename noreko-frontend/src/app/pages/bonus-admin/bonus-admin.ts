@@ -1285,9 +1285,14 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(amount);
   }
 
-  getPayoutsYears(): number[] {
+  /** Cachad lista med utbetalningsår (undviker ny array-allokering vid varje CD) */
+  readonly payoutsYears: number[] = (() => {
     const cur = new Date().getFullYear();
     return [cur, cur - 1, cur - 2];
+  })();
+
+  getPayoutsYears(): number[] {
+    return this.payoutsYears;
   }
 
   // ========== Rättviseaudit ==========
@@ -1442,5 +1447,31 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     this.successMessage = '';
     clearTimeout(this.errorTimerId);
     this.errorTimerId = setTimeout(() => { if (!this.destroy$.closed) this.errorMessage = ''; }, 6000);
+  }
+
+  // ======== trackBy-funktioner ========
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByLabel(index: number, item: { label: string }): string {
+    return item.label;
+  }
+
+  trackByOpNumber(index: number, item: { op_number: number }): number {
+    return item.op_number;
+  }
+
+  trackByPayoutId(index: number, item: PayoutRecord): number {
+    return item.id;
+  }
+
+  trackByOpId(index: number, item: { op_id: number }): number {
+    return item.op_id;
+  }
+
+  trackByName(index: number, item: { name: string }): string {
+    return item.name;
   }
 }

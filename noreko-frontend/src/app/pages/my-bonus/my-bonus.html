@@ -604,7 +604,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let peer of peerRanking.peers; let i = index"
+            <tr *ngFor="let peer of peerRanking.peers; let i = index; trackBy: trackByIndex"
                 [class.peer-row-you]="peer.is_you"
                 [class.peer-row-gold]="peer.rank === 1 && peer.is_you"
                 [class.peer-row-silver]="peer.rank === 2 && peer.is_you"
@@ -664,7 +664,7 @@
 
         <div class="achievements-grid-v2">
           <div class="achievement-item-v2"
-               *ngFor="let badge of achievementBadges"
+               *ngFor="let badge of achievementBadges; trackBy: trackByBadgeId"
                [class.achievement-earned-v2]="badge.earned"
                [class.achievement-locked-v2]="!badge.earned"
                [title]="badge.description">
@@ -696,7 +696,7 @@
       <div class="achievements-body" *ngIf="!achievementsLoading && achievementBadges.length === 0">
         <div class="achievements-grid">
           <div class="achievement-item"
-               *ngFor="let ach of getAchievements()"
+               *ngFor="let ach of cachedAchievements; trackBy: trackByAchLabel"
                [class.achievement-earned]="ach.earned"
                [class.achievement-locked]="!ach.earned"
                [title]="ach.desc">
@@ -710,7 +710,7 @@
           </div>
         </div>
         <div class="achievements-count text-muted small mt-2">
-          {{ getEarnedAchievementsCount() }} / {{ getAchievements().length }} medaljer upplasta
+          {{ cachedEarnedAchievementsCount }} / {{ cachedAchievements.length }} medaljer upplasta
         </div>
       </div>
     </div>
@@ -946,10 +946,10 @@
         </div>
         <div class="calendar-grid">
           <!-- Tomma celler för att starta rätt veckodag -->
-          <div class="cal-day empty" *ngFor="let _ of calendarLeadingDays"></div>
+          <div class="cal-day empty" *ngFor="let _ of calendarLeadingDays; trackBy: trackByIndex"></div>
           <!-- Dagarna -->
           <div class="cal-day"
-               *ngFor="let day of workCalendar"
+               *ngFor="let day of workCalendar; trackBy: trackByDate"
                [class.worked]="day.worked"
                [class.today]="isToday(day.date)"
                [attr.title]="day.worked ? (day.ibc + ' IBC') : 'Ej arbetat'">
@@ -1018,7 +1018,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let day of stats.daily_breakdown">
+              <tr *ngFor="let day of stats.daily_breakdown; trackBy: trackByIndex">
                 <td class="text-muted">{{ day.date }}</td>
                 <td>{{ day.cycles }}</td>
                 <td class="text-success">{{ day.ibc_ok }}</td>
@@ -1091,7 +1091,7 @@
           <p class="text-muted mb-2" style="font-size:0.85rem;">Välj din känsla för skiftet:</p>
           <div class="d-flex gap-2 flex-wrap">
             <button
-              *ngFor="let num of [1, 2, 3, 4]"
+              *ngFor="let num of [1, 2, 3, 4]; trackBy: trackByIndex"
               type="button"
               class="btn feedback-mood-btn"
               [class.feedback-mood-selected]="feedbackMood === num"
@@ -1149,7 +1149,7 @@
             <i class="fas fa-history me-1"></i>Dina senaste feedbacks
           </h6>
           <div class="feedback-history-list">
-            <div *ngFor="let item of feedbackHistory.slice(0, 3)" class="feedback-history-item">
+            <div *ngFor="let item of feedbackHistory.slice(0, 3); trackBy: trackByIndex" class="feedback-history-item">
               <span class="feedback-hist-emoji">{{ moodEmojis[item.stamning] }}</span>
               <div class="feedback-hist-body">
                 <div class="feedback-hist-meta">

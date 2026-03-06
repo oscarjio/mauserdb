@@ -147,7 +147,7 @@
               <tr><th>Tier</th><th>Tröskel</th><th>Multiplikator</th></tr>
             </thead>
             <tbody>
-              <tr *ngFor="let tier of config?.tier_multipliers">
+              <tr *ngFor="let tier of config?.tier_multipliers; trackBy: trackByIndex">
                 <td><strong>{{ tier.name }}</strong></td>
                 <td>&ge; {{ tier.threshold }} poäng</td>
                 <td>x{{ tier.multiplier }}</td>
@@ -472,7 +472,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of periods">
+              <tr *ngFor="let p of periods; trackBy: trackByIndex">
                 <td><strong>{{ p.period }}</strong></td>
                 <td>{{ p.total_cycles }}</td>
                 <td>{{ p.unique_operators }}</td>
@@ -532,7 +532,7 @@
       <div class="mb-4">
         <h6 class="text-muted small text-uppercase mb-2"><i class="fas fa-magic me-1"></i>Snabbscenarier</h6>
         <div class="row g-3">
-          <div class="col-12 col-md-4" *ngFor="let preset of simPresets">
+          <div class="col-12 col-md-4" *ngFor="let preset of simPresets; trackBy: trackByName">
             <div class="sim-preset-card"
                  [class.sim-preset-active]="simActivePreset === preset.name"
                  (click)="applyPreset(preset)">
@@ -587,7 +587,7 @@
               <div class="mb-4">
                 <h6 class="text-muted small text-uppercase mb-2">Bonus-tier-konfiguration</h6>
                 <div class="tier-config-list">
-                  <div class="tier-config-row" *ngFor="let tier of simTiers; let i = index">
+                  <div class="tier-config-row" *ngFor="let tier of simTiers; let i = index; trackBy: trackByLabel">
                     <div class="tier-label-dot"
                          [style.background-color]="getSimTierColor(tier.label)"></div>
                     <span class="tier-name-label">{{ tier.label }}</span>
@@ -697,7 +697,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let r of simResult.results">
+                      <tr *ngFor="let r of simResult.results; trackBy: trackByOpNumber">
                         <td>
                           <span class="fw-semibold">{{ r.op_name }}</span>
                           <span class="text-muted ms-1 small">#{{ r.op_number }}</span>
@@ -753,7 +753,7 @@
             </div>
             <div class="card-body">
               <div class="tier-config-list">
-                <div class="tier-config-row" *ngFor="let tier of simBaselineTiers">
+                <div class="tier-config-row" *ngFor="let tier of simBaselineTiers; trackBy: trackByLabel">
                   <div class="tier-label-dot" [style.background-color]="getSimTierColor(tier.label)"></div>
                   <span class="tier-name-label">{{ tier.label }}</span>
                   <div class="tier-fields">
@@ -795,7 +795,7 @@
                 </button>
               </div>
               <div class="tier-config-list">
-                <div class="tier-config-row" *ngFor="let tier of simTiers">
+                <div class="tier-config-row" *ngFor="let tier of simTiers; trackBy: trackByLabel">
                   <div class="tier-label-dot" [style.background-color]="getSimTierColor(tier.label)"></div>
                   <span class="tier-name-label">{{ tier.label }}</span>
                   <div class="tier-fields">
@@ -919,7 +919,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let row of simComparisonRows">
+                    <tr *ngFor="let row of simComparisonRows; trackBy: trackByOpNumber">
                       <td>
                         <span class="fw-semibold">{{ row.op_name }}</span>
                         <span class="text-muted ms-1 small">#{{ row.op_number }}</span>
@@ -1176,7 +1176,7 @@
           <div class="d-flex gap-2 align-items-center">
             <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:100px;"
                     [(ngModel)]="payoutSummaryYear" (change)="loadPayoutSummary()">
-              <option *ngFor="let y of getPayoutsYears()" [value]="y">{{ y }}</option>
+              <option *ngFor="let y of payoutsYears; trackBy: trackByIndex" [value]="y">{{ y }}</option>
             </select>
           </div>
         </div>
@@ -1198,7 +1198,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of payoutSummary; let i = index">
+              <tr *ngFor="let s of payoutSummary; let i = index; trackBy: trackByOpId">
                 <td class="text-muted">{{ i + 1 }}</td>
                 <td>
                   <span class="badge me-2"
@@ -1237,7 +1237,7 @@
                 <select class="form-select" style="background:#2d3748;color:#e2e8f0;border-color:#4a5568;"
                         [(ngModel)]="payoutForm.op_id">
                   <option [ngValue]="null">— Välj operatör —</option>
-                  <option *ngFor="let op of availableOperators" [ngValue]="op.id">{{ op.name }}</option>
+                  <option *ngFor="let op of availableOperators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
                 </select>
               </div>
               <div class="col-12 col-md-3">
@@ -1295,14 +1295,14 @@
           <div class="col-auto">
             <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:110px;"
                     [(ngModel)]="payoutYearFilter" (change)="loadPayouts()">
-              <option *ngFor="let y of getPayoutsYears()" [value]="y">{{ y }}</option>
+              <option *ngFor="let y of payoutsYears; trackBy: trackByIndex" [value]="y">{{ y }}</option>
             </select>
           </div>
           <div class="col-auto">
             <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;min-width:160px;"
                     [(ngModel)]="payoutOpFilter" (change)="loadPayouts()">
               <option value="">— Alla operatörer —</option>
-              <option *ngFor="let op of availableOperators" [value]="op.id">{{ op.name }}</option>
+              <option *ngFor="let op of availableOperators; trackBy: trackByIndex" [value]="op.id">{{ op.name }}</option>
             </select>
           </div>
           <div class="col-auto">
@@ -1340,7 +1340,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let p of payouts">
+                <tr *ngFor="let p of payouts; trackBy: trackByPayoutId">
                   <td>
                     <span class="badge me-1"
                           style="background:#4a5568;color:#e2e8f0;font-size:.7rem;min-width:1.8rem;">{{ p.initialer }}</span>
@@ -1390,7 +1390,7 @@
             <label class="form-label small text-muted mb-1">År</label>
             <select class="form-select form-select-sm" style="background:#1a202c;color:#e2e8f0;border-color:#4a5568;width:100px;"
                     [(ngModel)]="payoutHistoryYear">
-              <option *ngFor="let y of payoutHistoryYears" [value]="y">{{ y }}</option>
+              <option *ngFor="let y of payoutHistoryYears; trackBy: trackByIndex" [value]="y">{{ y }}</option>
             </select>
           </div>
           <div class="col-auto">
@@ -1437,7 +1437,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let p of payoutHistory">
+              <tr *ngFor="let p of payoutHistory; trackBy: trackByPayoutId">
                 <td>
                   <span class="badge me-1"
                         style="background:#4a5568;color:#e2e8f0;font-size:.7rem;min-width:1.8rem;">{{ p.initialer }}</span>
@@ -1593,7 +1593,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of auditResult.operators">
+                <tr *ngFor="let op of auditResult.operators; trackBy: trackByName">
                   <td>
                     <div class="d-flex align-items-center gap-2">
                       <span class="audit-avatar">{{ getAuditInitials(op.name) }}</span>

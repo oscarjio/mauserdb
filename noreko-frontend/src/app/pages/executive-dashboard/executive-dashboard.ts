@@ -757,4 +757,34 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   printDashboard(): void {
     window.print();
   }
+
+  // ======== trackBy-funktioner (undviker DOM-omskrivning vid change detection) ========
+
+  trackByLineId(index: number, line: any): string {
+    return line.id;
+  }
+
+  trackByAlertMessage(index: number, alert: { message: string }): string {
+    return alert.message;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByDayDate(index: number, d: { date: string }): string {
+    return d.date;
+  }
+
+  trackByOpName(index: number, op: { name: string }): string {
+    return op.name;
+  }
+
+  trackByNewsId(index: number, n: NewsSnippet): number {
+    return n.id;
+  }
+
+  trackByDatum(index: number, day: StaffingWarningDay): string {
+    return day.datum;
+  }
 }

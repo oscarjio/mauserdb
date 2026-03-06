@@ -96,7 +96,7 @@
               <label class="form-label">Produkt</label>
               <select class="form-control" [(ngModel)]="newReport.product_id">
                 <option [value]="null">Välj produkt...</option>
-                <option *ngFor="let product of products" [value]="product.id">{{ product.name }}</option>
+                <option *ngFor="let product of products; trackBy: trackByProductId" [value]="product.id">{{ product.name }}</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -217,7 +217,7 @@
           <label class="form-label small mb-1">Filtrera på operatör</label>
           <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
             <option [ngValue]="null">— Alla operatörer —</option>
-            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()"
@@ -366,7 +366,7 @@
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let report of filteredReports; let i = index">
+                <ng-container *ngFor="let report of filteredReports; let i = index; trackBy: trackByReportId">
                   <tr [class.inlagd-row]="report.inlagd == 1">
                     <td *ngIf="isAdmin">
                       <input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" />
@@ -710,7 +710,7 @@
                         </div>
 
                         <!-- ======== FÖRBÄTTRAD OPERATÖRSTABELL ======== -->
-                        <div class="mb-3" *ngIf="getOperatorRanking(report).length > 0">
+                        <div class="mb-3" *ngIf="getCachedOperatorRanking(report).length > 0">
                           <div class="d-flex align-items-center mb-2">
                             <i class="fas fa-users text-warning me-2"></i>
                             <span class="text-warning fw-semibold">Operatörer detta skift</span>
@@ -727,7 +727,7 @@
                                 </tr>
                               </thead>
                               <tbody>
-                                <ng-container *ngFor="let op of getOperatorRanking(report)">
+                                <ng-container *ngFor="let op of getCachedOperatorRanking(report); trackBy: trackByOpName">
                                   <tr>
                                     <td class="text-center">
                                       <span class="rank-badge" [ngClass]="getRankBadgeClass(op.rank)">
@@ -792,7 +792,7 @@
                                 <label class="form-label small">Produkt</label>
                                 <select class="form-control form-control-sm" [(ngModel)]="report.product_id" name="product_id-{{report.id}}">
                                   <option [value]="null">Välj produkt...</option>
-                                  <option *ngFor="let product of products" [value]="product.id">{{ product.name }}</option>
+                                  <option *ngFor="let product of products; trackBy: trackByProductId" [value]="product.id">{{ product.name }}</option>
                                 </select>
                               </div>
                               <div class="col-md-2">
@@ -1022,7 +1022,7 @@
                                 </div>
                                 <div class="card-body py-2">
                                   <div *ngIf="shiftSummaryData.operators?.length > 0">
-                                    <span *ngFor="let op of shiftSummaryData.operators" class="badge bg-secondary me-2 mb-1 px-3 py-2">
+                                    <span *ngFor="let op of shiftSummaryData.operators; trackBy: trackByIndex" class="badge bg-secondary me-2 mb-1 px-3 py-2">
                                       {{ op }}
                                     </span>
                                   </div>
@@ -1030,7 +1030,7 @@
 
                                   <div class="mt-2" *ngIf="shiftSummaryData.products?.length > 0">
                                     <small class="text-muted d-block mb-1">Produkter:</small>
-                                    <span *ngFor="let p of shiftSummaryData.products" class="badge bg-info me-2 mb-1 px-3 py-2">
+                                    <span *ngFor="let p of shiftSummaryData.products; trackBy: trackByIndex" class="badge bg-info me-2 mb-1 px-3 py-2">
                                       {{ p }}
                                     </span>
                                   </div>
@@ -1054,7 +1054,7 @@
                                 <table class="table table-sm mb-0">
                                   <thead>
                                     <tr>
-                                      <th *ngFor="let h of shiftSummaryData.hourly" class="text-center">
+                                      <th *ngFor="let h of shiftSummaryData.hourly; trackBy: trackByIndex" class="text-center">
                                         {{ h.timme }}:00
                                       </th>
                                     </tr>

@@ -438,6 +438,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
               const expandedCopy    = { ...this.expanded };
               const selectedIdsCopy = new Set(this.selectedIds);
               this.reports    = newReports;
+              this.clearOperatorRankingCache();
               this.expanded   = expandedCopy;
               this.selectedIds = new Set(
                 Array.from(selectedIdsCopy).filter(id =>
@@ -452,6 +453,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
               }
             } else {
               this.reports = newReports;
+              this.clearOperatorRankingCache();
             }
           } else {
             this.errorMessage = res.message || 'Kunde inte hämta skiftrapporter';
@@ -1808,5 +1810,41 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     this.successTimerId = setTimeout(() => {
       if (!this.destroy$.closed) this.showSuccessMessage = false;
     }, 3000);
+  }
+
+  // ======== Cachad operatörsranking per rapport (undviker tung beräkning vid varje CD) ========
+  private operatorRankingCache = new Map<number, Array<{ name: string; ibc_per_h: number | null; personal_avg: number | null; rank: number }>>();
+
+  getCachedOperatorRanking(report: any): Array<{ name: string; ibc_per_h: number | null; personal_avg: number | null; rank: number }> {
+    const id = report?.id;
+    if (id != null && this.operatorRankingCache.has(id)) {
+      return this.operatorRankingCache.get(id)!;
+    }
+    const result = this.getOperatorRanking(report);
+    if (id != null) this.operatorRankingCache.set(id, result);
+    return result;
+  }
+
+  /** Rensa cache vid ny dataladdning */
+  clearOperatorRankingCache(): void {
+    this.operatorRankingCache.clear();
+  }
+
+  // ======== trackBy-funktioner ========
+
+  trackByReportId(index: number, report: any): number {
+    return report.id;
+  }
+
+  trackByProductId(index: number, product: any): number {
+    return product.id;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByOpName(index: number, op: { name: string }): string {
+    return op.name;
   }
 }

@@ -128,6 +128,10 @@ export class MyBonusPage implements OnInit, OnDestroy {
   private confettiTimerId: any = null;
   private feedbackSavedTimerId: any = null;
 
+  // Cachade achievements (undviker funktionsanrop vid varje change detection)
+  cachedAchievements: { icon: string; label: string; earned: boolean; desc: string }[] = [];
+  cachedEarnedAchievementsCount = 0;
+
   // Peer ranking (anonymiserad kollegajamforelse)
   peerRanking: {
     your_rank: number | null;
@@ -241,6 +245,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
         if (res?.success && res.data) {
           this.stats = res.data;
           this.buildKPIChart(res.data);
+          this.refreshAchievementsCache();
         } else {
           this.error = (res as any)?.error || 'Ingen data hittades för detta operatörs-ID.';
           this.stats = null;
@@ -321,6 +326,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success) {
           this.pbData = res;
+          this.refreshAchievementsCache();
         } else {
           this.pbData = null;
         }
@@ -344,6 +350,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success) {
           this.streakData = res;
+          this.refreshAchievementsCache();
         } else {
           this.streakData = null;
         }
@@ -527,6 +534,11 @@ export class MyBonusPage implements OnInit, OnDestroy {
   }
 
   // ===== Achievement-medaljer =====
+  refreshAchievementsCache(): void {
+    this.cachedAchievements = this.getAchievements();
+    this.cachedEarnedAchievementsCount = this.cachedAchievements.filter(a => a.earned).length;
+  }
+
   getEarnedAchievementsCount(): number {
     return this.getAchievements().filter(a => a.earned).length;
   }
@@ -1297,4 +1309,21 @@ export class MyBonusPage implements OnInit, OnDestroy {
     });
   }
 
+  // ======== trackBy-funktioner ========
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByBadgeId(index: number, badge: { badge_id: string }): string {
+    return badge.badge_id;
+  }
+
+  trackByAchLabel(index: number, ach: { label: string }): string {
+    return ach.label;
+  }
+
+  trackByDate(index: number, day: { date: string }): string {
+    return day.date;
+  }
 }

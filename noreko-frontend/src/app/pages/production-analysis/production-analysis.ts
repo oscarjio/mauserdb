@@ -119,6 +119,17 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   paretoPeriod = 30;
   private paretoChart: Chart | null = null;
 
+  // Cachade template-värden (undviker funktionsanrop vid varje change detection)
+  cachedFilteredRanking: RankingEntry[] = [];
+  cachedTimelineBlocks: { type: 'running' | 'rast'; label: string; widthPct: number; tooltip: string }[] = [];
+  cachedTimelinePercentages: { runPct: number; rastPct: number } = { runPct: 100, rastPct: 0 };
+  cachedStopHoursMin = '';
+  cachedAvgStopMinutes = 0;
+  cachedWorstCategory = '-';
+  cachedParetoTotalMinuter = 0;
+  cachedParetoTotalStopp = 0;
+  cachedParetoEightyPctGroup = 0;
+
   // Charts
   private destroy$ = new Subject<void>();
   private rankingChart: Chart | null = null;
@@ -214,6 +225,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
           'Kontroll': res.data.rankings.position_2 || [],
           'Truck': res.data.rankings.position_3 || []
         };
+        this.refreshFilteredRanking();
         clearTimeout(this.chartTimeout);
         this.chartTimeout = setTimeout(() => {
           if (!this.destroy$.closed) this.renderRankingChart();
@@ -236,6 +248,11 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     });
   }
 
+  /** Uppdatera cachad filteredRanking (anropas vid data-/filter-/sort-ändring) */
+  private refreshFilteredRanking(): void {
+    this.cachedFilteredRanking = this.getFilteredRanking();
+  }
+
   toggleSort(col: string) {
     if (this.sortColumn === col) {
       this.sortDirection = this.sortDirection === 'desc' ? 'asc' : 'desc';
@@ -243,6 +260,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       this.sortColumn = col;
       this.sortDirection = 'desc';
     }
+    this.refreshFilteredRanking();
   }
 
   getSortIcon(col: string): string {
@@ -270,6 +288,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
   }
 
   renderRankingChart() {
+    this.refreshFilteredRanking();
     try { if (this.rankingChart) this.rankingChart.destroy(); } catch (e) {}
     this.rankingChart = null;
     const canvas = document.getElementById('rankingChart') as HTMLCanvasElement;
@@ -695,6 +714,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         this.stoppageTopReasons   = res.top_reasons ?? [];
         this.stoppageTotalEvents  = res.total_events ?? 0;
         this.stoppageTotalMinutes = res.total_minutes ?? 0;
+        this.refreshStopKpis();
         clearTimeout(this.chartTimeout);
         this.chartTimeout = setTimeout(() => {
           if (!this.destroy$.closed) this.renderStoppageDailyChart();
@@ -709,7 +729,10 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
       catchError(() => of(null))
     ).subscribe(res => {
-      if (res?.success) this.rastStatus = res.data;
+      if (res?.success) {
+        this.rastStatus = res.data;
+        this.refreshTimelineCache();
+      }
     });
 
     // Hämta linjestatus
@@ -1097,6 +1120,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     ).subscribe(res => {
       if (res?.success) {
         this.paretoData = res.items ?? [];
+        this.refreshParetoKpis();
       }
       this.paretoLoading = false;
       clearTimeout(this.chartTimeout);
@@ -1258,5 +1282,58 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  // ======== Cachade KPI-uppdateringar (undviker funktionsanrop i template) ========
+
+  private refreshStopKpis(): void {
+    this.cachedStopHoursMin = this.getStopHoursMin();
+    this.cachedAvgStopMinutes = this.getAvgStopMinutes();
+    this.cachedWorstCategory = this.getWorstCategory();
+  }
+
+  private refreshTimelineCache(): void {
+    this.cachedTimelineBlocks = this.getTimelineBlocks();
+    this.cachedTimelinePercentages = this.getTimelinePercentages();
+  }
+
+  private refreshParetoKpis(): void {
+    this.cachedParetoTotalMinuter = this.getParetoTotalMinuter();
+    this.cachedParetoTotalStopp = this.getParetoTotalStopp();
+    this.cachedParetoEightyPctGroup = this.getParetoEightyPctGroup();
+  }
+
+  // ======== trackBy-funktioner (undviker DOM-omskrivning vid change detection) ========
+
+  trackByOperatorId(index: number, op: RankingEntry): number {
+    return op.operator_id;
+  }
+
+  trackByShiftNumber(index: number, shift: ShiftStats): number {
+    return shift.shift_number;
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackByRank(index: number, s: BestShift): number {
+    return s.rank;
+  }
+
+  trackByCategory(index: number, cat: StoppageCategoryEntry): string {
+    return cat.category;
+  }
+
+  trackByReasonName(index: number, r: StoppageReasonEntry): string {
+    return r.name;
+  }
+
+  trackByParetoOrsak(index: number, item: ParetoItem): string {
+    return item.orsak;
+  }
+
+  trackByDate(index: number, day: { date: string }): string {
+    return day.date;
   }
 }
