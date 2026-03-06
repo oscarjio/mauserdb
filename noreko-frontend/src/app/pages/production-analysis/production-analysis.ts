@@ -390,6 +390,15 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
             this.renderWeekdayChart();
           }
         }, 100);
+      } else if (!res) {
+        // catchError redan hanterade felet
+      } else {
+        this.dailyData = [];
+        this.weekdayData = [];
+        this.bestDay = null;
+        this.worstDay = null;
+        this.avgBonus = 0;
+        this.totalIbc = 0;
       }
       this.loading = false;
     });

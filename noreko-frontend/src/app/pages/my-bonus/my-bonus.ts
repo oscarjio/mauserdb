@@ -238,11 +238,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
     this.bonusService.getOperatorStats(this.savedOperatorId, this.selectedPeriod).pipe(
       timeout(8000),
-      catchError(() => of(null)),
+      catchError(() => of({ _networkError: true } as any)),
       takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
-        if (res?.success && res.data) {
+        if (res?._networkError) {
+          this.error = 'Kunde inte hämta data. Kontrollera anslutningen och försök igen.';
+          this.stats = null;
+        } else if (res?.success && res.data) {
           this.stats = res.data;
           this.buildKPIChart(res.data);
           this.refreshAchievementsCache();

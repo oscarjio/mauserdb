@@ -138,8 +138,8 @@
       <div class="input-group">
         <input type="text" class="form-control" placeholder="Ange operatör-ID..."
                [(ngModel)]="searchOperatorId" (keyup.enter)="searchOperator()">
-        <button class="btn btn-info" (click)="searchOperator()" [disabled]="!searchOperatorId.trim()">
-          <i class="fas fa-search"></i> Sök
+        <button class="btn btn-info" (click)="searchOperator()" [disabled]="!searchOperatorId.trim() || searchLoading">
+          <i class="fas" [class.fa-search]="!searchLoading" [class.fa-spinner]="searchLoading" [class.fa-spin]="searchLoading"></i> Sök
         </button>
         <button class="btn btn-outline-secondary" *ngIf="operatorData" (click)="clearOperatorSearch()">
           <i class="fas fa-times"></i>
@@ -366,7 +366,7 @@
           <button class="period-toggle-btn" [class.active]="selectedPeriod === 'week'" (click)="selectedPeriod='week'; onPeriodChange()">Denna vecka</button>
           <button class="period-toggle-btn" [class.active]="selectedPeriod === 'month'" (click)="selectedPeriod='month'; onPeriodChange()">Denna månad</button>
         </div>
-        <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="getActiveRanking().length > 0" title="Exportera ranking till CSV">
+        <button class="btn btn-sm btn-outline-info" (click)="exportRankingCSV()" *ngIf="cachedActiveRanking.length > 0" title="Exportera ranking till CSV">
           <i class="fas fa-download me-1"></i>CSV
         </button>
       </div>
@@ -389,13 +389,13 @@
       </ul>
 
       <!-- Empty state -->
-      <div *ngIf="getActiveRanking().length === 0 && !loading" class="text-center py-5">
+      <div *ngIf="cachedActiveRanking.length === 0 && !loading" class="text-center py-5">
         <i class="fas fa-trophy fa-3x mb-3" style="color:#4a5568; opacity:0.4;"></i>
         <div class="text-muted" style="font-size:0.95rem;">Ingen rankingdata för vald period</div>
         <small class="text-muted" style="font-size:0.8rem;">Prova en annan period eller vänta på att data samlas in</small>
       </div>
 
-      <div class="table-responsive" *ngIf="getActiveRanking().length > 0">
+      <div class="table-responsive" *ngIf="cachedActiveRanking.length > 0">
         <table class="table table-dark table-sm table-hover">
           <thead>
             <tr>
@@ -414,7 +414,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of getActiveRanking()" [class.top-three]="op.rank <= 3">
+            <tr *ngFor="let op of cachedActiveRanking" [class.top-three]="op.rank <= 3">
               <td>
                 <span class="rank-medal" *ngIf="op.rank === 1">&#x1F947;</span>
                 <span class="rank-medal" *ngIf="op.rank === 2">&#x1F948;</span>
@@ -543,6 +543,7 @@
                 </div>
               </div>
             </div>
+            <p class="text-muted text-center py-2" style="font-size:0.8rem;" *ngIf="hallOfFame.kvalitet_pct.length === 0">Ingen data</p>
           </div>
         </div>
 
@@ -566,6 +567,7 @@
                 </div>
               </div>
             </div>
+            <p class="text-muted text-center py-2" style="font-size:0.8rem;" *ngIf="hallOfFame.mest_aktiv.length === 0">Ingen data</p>
           </div>
         </div>
       </div>
@@ -664,8 +666,18 @@
       <h5 class="mb-0"><i class="fas fa-users me-2"></i>Skiftöversikt</h5>
     </div>
     <div class="card-body">
+      <!-- Loading -->
+      <div *ngIf="teamLoading" class="text-center py-4">
+        <i class="fas fa-spinner fa-spin fa-2x text-info"></i>
+        <p class="text-muted mt-2">Laddar skiftdata...</p>
+      </div>
+      <!-- Ingen data -->
+      <div *ngIf="!teamLoading && !teamAggregate && shifts.length === 0" class="text-center py-4 text-muted">
+        <i class="fas fa-layer-group fa-2x mb-2 d-block" style="opacity:0.4;"></i>
+        <p class="mb-0">Ingen skiftdata tillgänglig för vald period.</p>
+      </div>
       <!-- Aggregate -->
-      <div class="row g-3 mb-3" *ngIf="teamAggregate">
+      <div class="row g-3 mb-3" *ngIf="teamAggregate && !teamLoading">
         <div class="col-md-2 col-4">
           <div class="mini-stat">
             <div class="mini-stat-label">Skift</div>

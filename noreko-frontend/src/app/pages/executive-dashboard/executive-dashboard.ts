@@ -34,6 +34,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   isFetching = false;
 
   dashData: ExecDashboardResponse['data'] | null = null;
+  dashError = '';
   lastRefresh: Date = new Date();
   lastUpdated: Date | null = null;
 
@@ -141,6 +142,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
         next: (res) => {
           if (res?.success && res.data) {
             this.dashData = res.data;
+            this.dashError = '';
             this.lastRefresh = new Date();
             this.lastUpdated = new Date();
             this.computeAlerts();
@@ -148,11 +150,17 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
             this.barChartTimer = setTimeout(() => {
               if (!this.destroy$.closed) this.buildBarChart();
             }, 100);
+          } else if (!this.dashData) {
+            // Bara visa fel om vi aldrig fått data (undvik att nollställa vid tillfälligt pollingfel)
+            this.dashError = 'Kunde inte hämta produktionsdata. Kontrollera anslutningen.';
           }
           this.loading = false;
           this.isFetching = false;
         },
         error: () => {
+          if (!this.dashData) {
+            this.dashError = 'Kunde inte hämta produktionsdata. Kontrollera anslutningen.';
+          }
           this.loading = false;
           this.isFetching = false;
         }

@@ -25,6 +25,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   // State
   loading = false;
+  searchLoading = false;
+  teamLoading = false;
   error = '';
 
   // Period filter
@@ -37,6 +39,9 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   overallRanking: RankingEntry[] = [];
   positionRankings: { [key: string]: RankingEntry[] } = {};
   activeRankingTab = 'overall';
+
+  // Cachad aktiv ranking (undviker funktionsanrop vid varje change detection)
+  cachedActiveRanking: RankingEntry[] = [];
 
   // Previous-period ranking for trend arrows
   prevRanking: RankingEntry[] = [];
@@ -184,9 +189,10 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success && res.data) {
           this.summary = res.data;
+        } else if (!res) {
+          // Tyst fel — summary saknas men ranking kan fortfarande fungera
         }
-      },
-      error: () => {}
+      }
     });
 
     // Ladda ranking (controls loading flag) + previous period for trend arrows
@@ -202,7 +208,10 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
             'Kontrollstation': res.data.rankings.position_2 || [],
             'Truckförare': res.data.rankings.position_3 || []
           };
+          this.refreshActiveRanking();
           this.loadPrevPeriodRanking();
+        } else if (!res) {
+          this.error = 'Kunde inte ladda rankingdata. Försök igen senare.';
         }
         this.loading = false;
       },
@@ -313,8 +322,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   private reloadTeamStats() {
     this.teamStatsSub?.unsubscribe();
 
-    this.loading = true;
-    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => { this.error = 'Kunde inte ladda skiftdata. Försök igen.'; this.loading = false; return of(null); })).subscribe({
+    this.teamLoading = true;
+    this.teamStatsSub = this.bonusService.getTeamStats(this.selectedPeriod).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => { this.error = 'Kunde inte ladda skiftdata. Försök igen.'; this.teamLoading = false; return of(null); })).subscribe({
       next: (res) => {
         if (!res) return;
         if (res.success && res.data) {
@@ -325,7 +334,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
             if (!this.destroy$.closed) this.buildShiftCompareChart();
           }, 100);
         }
-        this.loading = false;
+        this.teamLoading = false;
       }
     });
   }
@@ -335,12 +344,12 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
     this.searchSub?.unsubscribe();
 
-    this.loading = true;
+    this.searchLoading = true;
     this.operatorData = null;
     this.operatorKPIData = null;
 
     let pending = 2;
-    const done = () => { if (--pending === 0) this.loading = false; };
+    const done = () => { if (--pending === 0) this.searchLoading = false; };
 
     this.searchSub = this.bonusService.getOperatorStats(this.searchOperatorId, this.selectedPeriod).pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => { this.error = 'Kunde inte hämta operatörsdata. Försök igen.'; done(); return of(null); })).subscribe({
       next: (res) => {
@@ -567,6 +576,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   onPeriodChange() {
     this.prevRanking = [];
+    this.error = '';
     this.loadData();
     if (this.operatorData) this.searchOperator();
     if (this.showTeamView) this.reloadTeamStats();
@@ -574,11 +584,17 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   setRankingTab(tab: string) {
     this.activeRankingTab = tab;
+    this.refreshActiveRanking();
   }
 
   getActiveRanking(): RankingEntry[] {
     if (this.activeRankingTab === 'overall') return this.overallRanking;
     return this.positionRankings[this.activeRankingTab] || [];
+  }
+
+  /** Uppdatera cachad activeRanking (anropas vid data-/tab-ändring) */
+  private refreshActiveRanking(): void {
+    this.cachedActiveRanking = this.getActiveRanking();
   }
 
   clearOperatorSearch() {
