@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #35)*
+*Senast uppdaterad: 2026-03-06 (session #36)*
 
 ---
 
@@ -148,6 +148,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #36: Bug Hunt #41 Chart.js lifecycle + Export/formatering)
+
+**Bug Hunt #41 — Chart.js lifecycle och data-rendering (9 fixar i 9 filer):**
+- Alla 37 chart-komponenter granskade: chart.destroy() i ngOnDestroy korrekt overallt, destroy innan ny chart korrekt, tomma dataset hanteras.
+- 9 tooltip-callbacks saknade null/undefined-guards pa ctx.parsed.y/x/r — kunde ge NaN i tooltip-text vid null-datapunkter:
+  - statistik-waterfall-oee.ts, operator-compare.ts (2), operator-dashboard.ts, monthly-report.ts, rebotling-admin.ts (3), stoppage-log.ts (4), audit-log.ts, executive-dashboard.ts (array index), historik.ts
+- Fixat: alla callbacks har nu `?? 0` eller `|| 0` guard.
+
+**Bug Hunt #41b — Export och formaterings-konsistens (7 fixar i 7 filer):**
+- CSV-separator komma→semikolon (Excel Sverige): operators.ts, weekly-report.ts, monthly-report.ts
+- PHP BonusAdminController exportCSV: saknade UTF-8 BOM + charset=utf-8 + semikolon-separator — Excel visade skraptecken for a/a/o
+- Print CSS @page A4: executive-dashboard.css, my-bonus.css, stoppage-log.css, weekly-report.ts (inline) — saknade A4-storlek/marginaler/vit bakgrund for print
+- Redan korrekt: Angular BOM (\uFEFF), RebotlingAnalyticsController CSV, datumformat YYYY-MM-DD konsekvent
 
 ### Atgärdat — 2026-03-06 (Session #35: Bug Hunt #40 PHP-robusthet + Angular navigation)
 
@@ -483,6 +497,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #36
+**Lagesanalys**: Session #35 levererade Bug Hunt #40 PHP-robusthet (`cb11110` — 9 fixar: 5 datumintervallbegransningar max 365 dagar, 1 CSV LIMIT 50000, 3 SQL-transaktioner BEGIN/COMMIT) + Bug Hunt #40b Angular navigation (`b47c9c6` — 4 fixar: returnUrl i authGuard/adminGuard/login, sessionStorage-rensning vid 401). Totalt 13 fixar. Bug Hunts #1-#40 har tackt alla stora systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Kodbasen ar i mycket bra skick efter 40 Bug Hunts. Kvarstaende omraden kräver specialiserade djupgranskningar.
+- Omrade som EJ granskats: Chart.js lifecycle — ar alla charts korrekt destroyade vid komponentbyte? Hanteras tomma dataset (NaN/Infinity i tooltips, division by zero i callback-berakningar)? Ateranvands canvas-element korrekt?
+- Omrade som EJ granskats: Export/print/formatering — CSV/PDF-exporter med svenska tecken (a/a/o), siffror med ratt decimalformat, datumformat konsekvent, BOM for Excel-kompatibilitet.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #41 — Chart.js lifecycle och data-rendering edge cases. Granska ALLA komponenter som anvander Chart.js: (a) ar chart.destroy() alltid anropat i ngOnDestroy? (b) vid komponentbyte (t.ex. flikbyte) — destroyas gamla chart innan ny skapas? (c) vad hander om dataset ar tomt (0 datapunkter) — kraschar chart-skapandet? (d) tooltip callbacks — hanterar de null/undefined/NaN-varden? (e) canvas-element — ateranvands de korrekt (chart created on existing canvas without destroy)? (f) responsive/resize — hanteras window resize? Fokus pa: rebotling-statistik, production-analysis, executive-dashboard, bonus-dashboard, my-bonus, operator-dashboard, monthly-report.
+2. Worker 2: Bug Hunt #41b — Export, print och formaterings-konsistens. Granska: (a) CSV-exporter — anvands UTF-8 BOM (\xEF\xBB\xBF) for Excel-kompatibilitet med a/a/o? (b) PDF/print — anvands korrekta margin/layout for A4? (c) siffror — formateras med konsekvent antal decimaler (1 decimal for IBC/h, 0 for IBC-antal, 1 for %)? (d) datum — konsekvent format (YYYY-MM-DD vs DD/MM vs svenska manadsnamn)? (e) PHP CSV-headers — Content-Type, Content-Disposition, filename med datum? Fokus pa: alla export-funktioner i Angular + PHP, rebotling-skiftrapport PDF, monthly-report print, bonus-admin CSV.
+
+**Motivering**: Chart.js-buggar ar subtila men synliga — en chart som inte destroyas leder till canvas-overlagring och minneslakor. Export-formatering ar viktigt nar VD eller admin oppnar en CSV i Excel — trasiga a/a/o eller felaktigt format ger oprofessionellt intryck.
 
 ### 2026-03-06 Session #35
 **Lagesanalys**: Session #34 levererade Bug Hunt #39 session/auth edge cases (`4cda3af` — 9 fixar: 403→401 vid expired session, session read_and_close for POST, auth.service.ts minnesläcka/race condition/logout/login-polling) + Bug Hunt #39b data-konsistens (`91329eb` — 18 fixar: KRITISK runtime_plc /3600→/60 kvarstod i 4 controllers, IBC/h 60x for lagt). Totalt 27 fixar. Bug Hunts #1-#39 har tackt alla kanda systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

@@ -1,3 +1,18 @@
+## 2026-03-06 Session #36 — Bug Hunt #41 Chart.js lifecycle + Export/formatering
+
+**Worker 1 — Bug Hunt #41 Chart.js lifecycle** (commit via worker):
+- 37 chart-komponenter granskade — alla har korrekt destroy(), tomma dataset-guards, canvas-hantering
+- 9 tooltip-callbacks fixade: null/undefined-guards pa ctx.parsed.y/x/r i 9 filer (statistik-waterfall-oee, operator-compare, operator-dashboard, monthly-report, rebotling-admin, stoppage-log, audit-log, executive-dashboard, historik)
+
+**Worker 2 — Bug Hunt #41b Export/formatering** (commit via worker):
+- 3 CSV-separator komma→semikolon (Excel Sverige): operators, weekly-report, monthly-report
+- 1 PHP BonusAdminController: UTF-8 BOM + charset + semikolon-separator for CSV-export
+- 3 Print CSS @page A4-regler: executive-dashboard, my-bonus, stoppage-log + weekly-report inline
+
+**Sammanfattning session #36**: 16 fixar (9 Chart.js tooltip null-guards + 7 export/formatering). Tooltip-guards forhindrar NaN vid null-datapunkter. CSV-exporter nu Excel-kompatibla i Sverige (semikolon + BOM). Print-layout A4-optimerad.
+
+---
+
 ## 2026-03-06 Session #35 — Bug Hunt #40 PHP-robusthet + Angular navigation edge cases
 
 **Worker 1 — Bug Hunt #40 PHP-robusthet** (commit via worker):
