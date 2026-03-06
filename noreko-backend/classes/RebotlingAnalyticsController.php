@@ -2531,10 +2531,13 @@ class RebotlingAnalyticsController {
             $avgOee = $oeeDays > 0 ? round($oeeSum / $oeeDays, 1) : 0;
 
             // ---- Veckosammanfattning ----
+            // Använd ISO-år (date('o')) för att hantera år-gränser korrekt
+            // (t.ex. dec 30 kan tillhöra V01 nästa år)
             $weekMap = [];
             foreach ($dailyProduction as $day) {
                 $ts  = strtotime($day['date']);
-                $wk  = 'V' . (int)date('W', $ts);
+                $isoYear = (int)date('o', $ts);
+                $wk  = $isoYear . '-V' . (int)date('W', $ts);
                 if (!isset($weekMap[$wk])) {
                     $weekMap[$wk] = ['ibc' => 0, 'quality_sum' => 0, 'oee_sum' => 0, 'days' => 0];
                 }
@@ -2546,8 +2549,10 @@ class RebotlingAnalyticsController {
             $weekSummary = [];
             foreach ($weekMap as $wk => $wd) {
                 $days = max($wd['days'], 1);
+                // Visa kort etikett "V1" men behåll årskvalificerad nyckel internt
+                $shortLabel = preg_replace('/^\d{4}-/', '', $wk);
                 $weekSummary[] = [
-                    'week'        => $wk,
+                    'week'        => $shortLabel,
                     'ibc'         => $wd['ibc'],
                     'avg_quality' => round($wd['quality_sum'] / $days, 1),
                     'avg_oee'     => round($wd['oee_sum'] / $days, 1),

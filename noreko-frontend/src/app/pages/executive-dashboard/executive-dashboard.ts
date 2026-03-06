@@ -672,12 +672,12 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
       const dayOfWeek = now.getDay() || 7; // 1=mon..7=sun
       const lastMonday = new Date(now);
       lastMonday.setDate(now.getDate() - dayOfWeek - 6);
-      // Beräkna ISO-vecka
+      // Beräkna ISO-vecka (nearest-Thursday-metoden)
       const d = new Date(lastMonday);
       d.setHours(0, 0, 0, 0);
       d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-      const yearStart = new Date(d.getFullYear(), 0, 4);
-      const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + yearStart.getDay() + 1) / 7);
+      const yearStart = new Date(d.getFullYear(), 0, 1);
+      const weekNum = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
       this.weeklySelectedWeek = d.getFullYear() + '-W' + String(weekNum).padStart(2, '0');
     }
   }

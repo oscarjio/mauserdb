@@ -1,3 +1,41 @@
+## 2026-03-06 Bug Hunt #34 — Datum/tid edge cases och boundary conditions
+
+**Granskade filer (6 st):**
+
+**PHP Backend:**
+1. `RebotlingAnalyticsController.php` — exec-dashboard, year-calendar, day-detail, monthly-report, month-compare, OEE-trend, week-comparison
+2. `WeeklyReportController.php` — veckosummering, veckokomparation, ISO-vecka-hantering
+3. `BonusController.php` — bonusperioder, getDateFilter(), weekly_history, getWeeklyHistory
+
+**Angular Frontend:**
+4. `executive-dashboard.ts` — daglig data, 7-dagars historik, veckorapport
+5. `production-calendar.ts` — månadskalender, datumnavigering, dagdetalj
+6. `monthly-report.ts` — månadsrapport, datumintervall
+
+**Hittade och fixade buggar (2 st):**
+
+1. **BUG: ISO-veckoberäkning i `initWeeklyWeek()`** (`executive-dashboard.ts` rad 679-680)
+   - Formeln använde `new Date(d.getFullYear(), 0, 4)` (Jan 4) med offset `yearStart.getDay() + 1`
+   - När Jan 4 faller på söndag (getDay()=0) ger formeln vecka 0 istället för vecka 1
+   - Drabbar 2026 (innevarande år!), 2015, 2009 — alla år där 1 jan = torsdag
+   - **Fix**: Ändrade till Jan 1-baserad standardformel: `yearStart = Jan 1`, offset `+ 1`
+
+2. **BUG: Veckosammanfattning i månadsrapporten tappar ISO-år** (`RebotlingAnalyticsController.php` rad 2537)
+   - Veckoetiketten byggdes med `'V' . date('W')` utan ISO-årsinformation
+   - Vid årgränser (t.ex. december 2024) hamnar dec 30-31 i V1 istf V52/V53
+   - Dagar från två olika år med samma veckonummer aggregeras felaktigt ihop
+   - **Fix**: Lade till ISO-år (`date('o')`) i grupperingsnyckel, behåller kort "V"-etikett i output
+
+**Granskat utan buggar:**
+- WeeklyReportController: korrekt `setISODate()` + `format('W')`/`format('o')` — inga ISO-vecka-problem
+- BonusController: `getDateFilter()` använder `BETWEEN` korrekt, `YEARWEEK(..., 3)` = ISO-mode konsekvent
+- production-calendar.ts: korrekta `'T00:00:00'`-suffix vid `new Date()` för att undvika timezone-tolkning
+- monthly-report.ts: `selectedMonth` default beräknas korrekt med `setMonth(getMonth()-1)` inkl. år-crossover
+- SQL-frågor: BETWEEN med DATE()-wrapped kolumner — endpoint-inklusivt som förväntat
+- Tomma dataperioder: NULLIF()-guards överallt, division-by-zero skyddade
+
+---
+
 ## 2026-03-06 Session #28 — Bug Hunt #33 dead code + Bundle size optimering
 
 **Worker 1 — Bug Hunt #33 dead code cleanup** (`70b74c4`):
