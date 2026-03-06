@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-05 (session #26)*
+*Senast uppdaterad: 2026-03-06 (session #27)*
 
 ---
 
@@ -148,6 +148,24 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgärdat — 2026-03-06 (Session #27: Template-varningar + Bug Hunt #32)
+
+**Angular template-varningar (`57fd644`, 33 varningar eliminerade):**
+- `menu.html`: 2 onodiga `?.` pa profileForm-falt
+- `bonus-admin.html`: 13 onodiga `?.` pa simResult/simHistResult/auditResult (type-narrowed av *ngIf)
+- `certifications.html`: 2 onodiga `??` pa lineLabels index
+- `my-bonus.html`: 1 onodig `?.` pa bonusAmounts.brons
+- `production-analysis.html`: 13 onodiga `?.` och `??` pa shift.kpis, rastStatus, ParetoItem
+- `rebotling-skiftrapport.html`: 1 onodig `??` pa lopnummerMap
+
+**Bug Hunt #32 — Berakningslogik (`9c0b431`, 4 buggar i 3 PHP-filer):**
+- `RebotlingAnalyticsController.php` getShiftCompare: KRITISK — OEE beraknades som Availability x Quality (2-faktor) istf Availability x Performance x Quality (3-faktor)
+- `RebotlingAnalyticsController.php` getDayDetail: runtime_plc aliasad som runtime_sek men vardet ar i minuter — IBC/h blev 60x for lagt
+- `WeeklyReportController.php`: 7 stallen delade runtime_plc med 3600 istf 60 — IBC/h blev 60x for hogt
+- `BonusController.php`: 7 stallen samma enhetsblandning /3600 istf /60 i getHallOfFame, getPersonalBest, getAchievements, getWeekTrend
+
+**Frontend granskade utan buggar**: executive-dashboard.ts, production-analysis.ts, bonus-dashboard.ts
 
 ### Atgärdat — 2026-03-05 (Session #26: mockData-rensning + Bug Hunt #31)
 
@@ -351,6 +369,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-06 Session #27
+**Lagesanalys**: Session #26 levererade mockData-rensning (`1127ad1`) + Bug Hunt #31 float-modulo (`f8d0a91` — 17 fixar i 7 filer). Hela kodbasen har genomgatt systematisk bug-hunting i Bug Hunt #1-#31. Inga TODO/FIXME kvar i koden. Angular build har 35 varningar: 23x NG8107 (onodiga ?.), 10x NG8102 (onodiga ??), 2x budget-varningar.
+
+**Nya observationer**:
+- 33 Angular template-varningar (NG8107 + NG8102) — indikerar att TypeScript-typer ar starkare an vad templates antar. Dessa ?. och ?? ar onodiga och kan tas bort for renare kod.
+- Bundle size 843 kB (budget 500 kB) — overskrider med 343 kB. my-bonus.css 29 kB (budget 16 kB). Kan undersoka lazy loading och CSS-optimering framover.
+- 46 console.error-satser i produktionskoden — de flesta ar rimlig felhantering, inte debug-loggar.
+
+**Beslut denna session**:
+1. Worker 1: Angular template-varningar cleanup — fixa alla 33 NG8107/NG8102-varningar genom att ta bort onodiga ?. och ?? operatorer i HTML-templates. Bygg och verifiera 0 varningar (forutom budget).
+2. Worker 2: Bug Hunt #32 — andra-pass djupgranskning av de mest komplexa berakningarna: OEE-berakningar i RebotlingAnalyticsController.php och executive-dashboard.ts, bonusberakningar i BonusController.php, statistik-aggregeringar. Fokus: logikbuggar i matematik (avrundning, division, aggregering), edge cases nar data saknas for en hel dag/vecka, off-by-one i datumhantering, felaktiga SQL GROUP BY.
+
+**Motivering**: Template-varningarna ar enkel men vardefull kodkvalitetsforhojning — renare build-output gor det lattare att upptacka verkliga problem. Bug Hunt #32 gar djupare an tidigare hunts genom att fokusera pa matematiska logikbuggar i affarskritiska berakningar snarare an minneslakor/HTTP-koder.
 
 ### 2026-03-05 Session #26
 **Lagesanalys**: Session #25 levererade Generic SkiftrapportComponent DRY (`a6520cf` — 3 linje-skiftrapporter till 1 delad komponent) + TypeScript any-audit (`ab16ad5` — 72 any ersatta med korrekta interfaces i 5 filer). Hela kodbasen har genomgatt systematisk bug-hunting i Bug Hunt #1-#30. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

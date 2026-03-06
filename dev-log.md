@@ -1,3 +1,19 @@
+## 2026-03-06 Session #27 — Angular template-varningar cleanup + Bug Hunt #32
+
+**Worker 1 — Angular template-varningar** (`57fd644`):
+- 33 NG8107/NG8102-varningar eliminerade i 6 HTML-filer (menu, bonus-admin, certifications, my-bonus, production-analysis, rebotling-skiftrapport)
+- Onödiga `?.` och `??` operatorer borttagna där TypeScript-typer redan garanterar icke-null
+
+**Worker 2 — Bug Hunt #32** (`9c0b431`, 4 buggar fixade):
+- **KRITISK**: RebotlingAnalyticsController getShiftCompare — OEE saknade Performance-komponent (2-faktor istf 3-faktor)
+- **KRITISK**: RebotlingAnalyticsController getDayDetail — runtime_plc-alias felkalkylerade IBC/h (60x för lågt)
+- **KRITISK**: WeeklyReportController — 7 ställen delade runtime_plc/3600 istf /60 (60x för hög IBC/h)
+- **KRITISK**: BonusController — 7 ställen samma enhetsblandning i hall-of-fame/personbästa/achievements/veckotrend
+
+**Sammanfattning session #27**: 6 filer ändrade, 33 varningar eliminerade, 4 KRITISKA beräkningsbuggar fixade
+
+---
+
 ## 2026-03-05 — Bug Hunt #31: Float-modulo i tidsformatering (17 fixar i 7 filer)
 
 - **executive-dashboard.ts**: `formatDuration()` och `formatStopTime()` — `min % 60` utan `Math.round()` producerade decimalminuter (t.ex. "2:05.5" istället för "2:06") när backend-SUM returnerade float
