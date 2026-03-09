@@ -1390,16 +1390,26 @@ class RebotlingAnalyticsController {
                 $median_sek = $percentile($vals, 50);
                 $p90_sek    = $percentile($vals, 90);
 
+                $mean_sek = array_sum($vals) / $n;
+                $stddev_sek = 0.0;
+                if ($n > 1) {
+                    $variance = array_sum(array_map(fn($v) => pow($v - $mean_sek, 2), $vals)) / ($n - 1);
+                    $stddev_sek = sqrt($variance);
+                }
+
                 $operators[] = [
                     'op_id'          => $id,
                     'namn'           => $g['namn'],
                     'initialer'      => $initialer,
                     'antal_skift'    => $n,
-                    'snitt_cykel_sek'=> round(array_sum($vals) / $n, 1),
+                    'snitt_cykel_sek'=> round($mean_sek, 1),
                     'bast_cykel_sek' => round($vals[0], 1),
                     'samst_cykel_sek'=> round($vals[$n - 1], 1),
                     'median_min'     => round($median_sek / 60.0, 2),
+                    'min_min'        => round($vals[0] / 60.0, 2),
+                    'max_min'        => round($vals[$n - 1] / 60.0, 2),
                     'p90_min'        => round($p90_sek / 60.0, 2),
+                    'stddev_min'     => round($stddev_sek / 60.0, 2),
                     'total_ibc'      => (int)$g['total_ibc'],
                 ];
             }

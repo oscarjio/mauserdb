@@ -753,7 +753,10 @@ export interface CycleByOperatorEntry {
   bast_cykel_sek: number;
   samst_cykel_sek: number;
   median_min: number;
+  min_min: number;
+  max_min: number;
   p90_min: number;
+  stddev_min: number;
   total_ibc: number;
   // Beräknat i frontend
   vs_team_snitt?: number;

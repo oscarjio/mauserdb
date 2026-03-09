@@ -12,6 +12,7 @@ import { localDateStr } from '../../../../utils/date-utils';
   standalone: true,
   selector: 'app-statistik-cykeltid-operator',
   templateUrl: './statistik-cykeltid-operator.html',
+  styleUrls: ['./statistik-cykeltid-operator.css'],
   imports: [CommonModule, FormsModule]
 })
 export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
@@ -19,6 +20,8 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
   cycleByOpLoaded: boolean = false;
   cycleByOpLoading: boolean = false;
   cycleByOpData: CycleByOperatorEntry[] = [];
+  rankedData: CycleByOperatorEntry[] = [];
+  teamMedianAvg: number = 0;
   private cycleByOpChart: Chart | null = null;
   private destroy$ = new Subject<void>();
 
@@ -29,7 +32,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    try { this.cycleByOpChart?.destroy(); } catch (e) {}
+    try { this.cycleByOpChart?.destroy(); } catch (_e) { /* ignore */ }
     this.cycleByOpChart = null;
     this.destroy$.next();
     this.destroy$.complete();
@@ -57,44 +60,72 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
       this.cycleByOpLoading = false;
       if (res?.success && res.data) {
         const medians = res.data.map(op => op.median_min ?? ((op.snitt_cykel_sek ?? 0) / 60));
-        const teamSnitt = medians.length > 0 ? medians.reduce((a, b) => a + b, 0) / medians.length : 0;
-        this.cycleByOpData = res.data
-          .map(op => ({
-            ...op,
-            vs_team_snitt: teamSnitt > 0
-              ? Math.round(((op.median_min ?? (op.snitt_cykel_sek ?? 0) / 60) - teamSnitt) / teamSnitt * 100)
-              : 0
-          }))
-          .sort((a, b) => b.antal_skift - a.antal_skift);
+        this.teamMedianAvg = medians.length > 0 ? medians.reduce((a, b) => a + b, 0) / medians.length : 0;
+        this.cycleByOpData = res.data.map(op => ({
+          ...op,
+          vs_team_snitt: this.teamMedianAvg > 0
+            ? Math.round(((op.median_min ?? (op.snitt_cykel_sek ?? 0) / 60) - this.teamMedianAvg) / this.teamMedianAvg * 100)
+            : 0
+        }));
+        this.rankedData = [...this.cycleByOpData].sort((a, b) => (a.median_min ?? 999) - (b.median_min ?? 999));
         this.cycleByOpLoaded = true;
         setTimeout(() => { if (!this.destroy$.closed) this.renderCycleByOpChart(); }, 100);
       } else {
         this.cycleByOpLoaded = true;
         this.cycleByOpData = [];
+        this.rankedData = [];
       }
     });
   }
 
   private renderCycleByOpChart() {
-    try { this.cycleByOpChart?.destroy(); } catch (e) {}
+    try { this.cycleByOpChart?.destroy(); } catch (_e) { /* ignore */ }
     const canvas = document.getElementById('cycleByOpChart') as HTMLCanvasElement;
-    if (!canvas || !this.cycleByOpData.length) return;
+    if (!canvas || !this.rankedData.length) return;
 
-    const sorted = [...this.cycleByOpData];
-    const chartData = [...sorted].reverse();
+    const chartData = [...this.rankedData].reverse();
     const labels = chartData.map(op => op.initialer);
-    const values = chartData.map(op => op.median_min ?? (op.snitt_cykel_sek / 60));
 
-    const teamSnitt = values.reduce((a, b) => a + b, 0) / values.length;
-    const maxVal = Math.max(...values);
-    const xMax = maxVal * 1.2;
+    const minValues = chartData.map(op => op.min_min ?? (op.bast_cykel_sek / 60));
+    const medianValues = chartData.map(op => op.median_min ?? (op.snitt_cykel_sek / 60));
+    const maxValues = chartData.map(op => op.max_min ?? (op.samst_cykel_sek / 60));
 
-    const colors = chartData.map(op => {
-      const v = op.median_min ?? (op.snitt_cykel_sek / 60);
-      if (v <= teamSnitt) return 'rgba(72, 187, 120, 0.8)';
-      return 'rgba(252, 129, 129, 0.8)';
-    });
-    const borderColors = colors.map(c => c.replace('0.8)', '1)'));
+    const allValues = [...minValues, ...medianValues, ...maxValues];
+    const maxVal = Math.max(...allValues);
+    const xMax = maxVal * 1.15;
+
+    const refLineValue = this.teamMedianAvg;
+    const refLinePlugin = {
+      id: 'cycleOpRefLine',
+      afterDraw(chart: Chart) {
+        if (refLineValue <= 0) return;
+        const xScale = (chart as any).scales['x'];
+        if (!xScale) return;
+        const xPixel = xScale.getPixelForValue(refLineValue);
+        const ctx = (chart as any).ctx as CanvasRenderingContext2D;
+        const area = (chart as any).chartArea;
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([6, 4]);
+        ctx.strokeStyle = 'rgba(159, 122, 234, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.moveTo(xPixel, area.top);
+        ctx.lineTo(xPixel, area.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(159, 122, 234, 0.85)';
+        const labelText = 'Snitt median: ' + refLineValue.toFixed(2) + ' min';
+        ctx.font = '10px sans-serif';
+        const textWidth = ctx.measureText(labelText).width;
+        const pad = 4;
+        ctx.fillRect(xPixel - textWidth / 2 - pad, area.top - 16, textWidth + pad * 2, 14);
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(labelText, xPixel, area.top - 9);
+        ctx.restore();
+      }
+    };
 
     this.cycleByOpChart = new Chart(canvas, {
       type: 'bar',
@@ -102,12 +133,28 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
         labels,
         datasets: [
           {
-            label: 'Median cykeltid (min)',
-            data: values,
-            backgroundColor: colors,
-            borderColor: borderColors,
+            label: 'Min (min)',
+            data: minValues,
+            backgroundColor: 'rgba(72, 187, 120, 0.7)',
+            borderColor: 'rgba(72, 187, 120, 1)',
             borderWidth: 1,
-            borderRadius: 4
+            borderRadius: 3
+          },
+          {
+            label: 'Median (min)',
+            data: medianValues,
+            backgroundColor: 'rgba(66, 153, 225, 0.8)',
+            borderColor: 'rgba(66, 153, 225, 1)',
+            borderWidth: 1,
+            borderRadius: 3
+          },
+          {
+            label: 'Max (min)',
+            data: maxValues,
+            backgroundColor: 'rgba(252, 129, 129, 0.7)',
+            borderColor: 'rgba(252, 129, 129, 1)',
+            borderWidth: 1,
+            borderRadius: 3
           }
         ]
       },
@@ -115,8 +162,13 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'top',
+            labels: { color: '#a0aec0', font: { size: 11 }, boxWidth: 14, padding: 16 }
+          },
           tooltip: {
             backgroundColor: 'rgba(15,17,23,0.96)',
             titleColor: '#fff',
@@ -128,15 +180,13 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
                 const idx = items[0].dataIndex;
                 return chartData[idx].namn;
               },
-              label: (ctx: any) => {
-                const op = chartData[ctx.dataIndex];
-                const vsSign = (op.vs_team_snitt ?? 0) >= 0 ? '+' : '';
+              afterBody: (items: any[]) => {
+                const idx = items[0].dataIndex;
+                const op = chartData[idx];
                 return [
-                  ` Median: ${op.median_min?.toFixed(2) ?? '–'} min`,
-                  ` P90: ${op.p90_min?.toFixed(2) ?? '–'} min`,
-                  ` vs Teamsnitt: ${vsSign}${op.vs_team_snitt ?? 0}%`,
-                  ` Antal skift: ${op.antal_skift} st`,
-                  ` Total IBC: ${op.total_ibc}`,
+                  'Antal skift: ' + op.antal_skift + ' st',
+                  'Total IBC: ' + op.total_ibc,
+                  'Stddev: ' + (op.stddev_min?.toFixed(2) ?? '-') + ' min'
                 ];
               }
             }
@@ -148,14 +198,15 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
             max: xMax,
             ticks: { color: '#a0aec0', callback: (v: any) => v.toFixed(1) + ' min' },
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'Median cykeltid (minuter)', color: '#a0aec0', font: { size: 12 } }
+            title: { display: true, text: 'Cykeltid (minuter)', color: '#a0aec0', font: { size: 12 } }
           },
           y: {
             ticks: { color: '#e2e8f0', font: { size: 12 } },
             grid: { color: 'rgba(255,255,255,0.04)' }
           }
         }
-      }
+      },
+      plugins: [refLinePlugin]
     });
   }
 }
