@@ -1,3 +1,23 @@
+## 2026-03-09 Session #37 — Bug Hunt #42 Timezone deep-dive + Dead code audit
+
+**Worker 1 — Bug Hunt #42 Timezone deep-dive** (commit via worker):
+- Ny utility-modul date-utils.ts: localToday(), localDateStr(), parseLocalDate()
+- ~50 instanser av toISOString().split('T')[0] ersatta med localToday() — gav fel dag efter kl 23:00 CET
+- ~10 instanser av datum-formatering pa Date-objekt fixade med localDateStr()
+- formatDate()-funktioner fixade med parseLocalDate() i 6 komponenter
+- PHP api.php: date_default_timezone_set('Europe/Stockholm') tillagd
+- 32 filer andrande, 135 rader tillagda / 64 borttagna
+- 2 kvarstaende timezone-buggar i saglinje-live + klassificeringslinje-live (live-sidor, ror ej)
+
+**Worker 2 — Bug Hunt #42b Dead code audit** (commit via worker):
+- 13 oanvanda imports borttagna i 9 TypeScript-filer
+- 1 oanvand npm-dependency (htmlparser2) borttagen fran package.json
+- Kodbasen ar REN: inga TODO/FIXME, inga console.log, inga tomma PHP-filer, inga oanvanda routes
+
+**Sammanfattning session #37**: ~65 timezone-fixar + 14 dead code-rensningar. Timezone-buggen var systematisk — toISOString() gav fel datum efter kl 23 CET i ~50 komponenter. Nu centraliserat i date-utils.ts.
+
+---
+
 ## 2026-03-06 Session #36 — Bug Hunt #41 Chart.js lifecycle + Export/formatering
 
 **Worker 1 — Bug Hunt #41 Chart.js lifecycle** (commit via worker):

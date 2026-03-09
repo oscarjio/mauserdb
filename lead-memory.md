@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-06 (session #36)*
+*Senast uppdaterad: 2026-03-09 (session #37)*
 
 ---
 
@@ -148,6 +148,21 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgardat — 2026-03-09 (Session #37: Bug Hunt #42 Timezone deep-dive + Dead code audit)
+
+**Bug Hunt #42 — Timezone och date parsing (32 filer, ~65 fixar):**
+- Ny utility-modul `date-utils.ts` med `localToday()`, `localDateStr()`, `parseLocalDate()`
+- ~50 instanser av `toISOString().split('T')[0]` / `.slice(0,10)` ersatta med `localToday()` — dessa gav FEL DAG efter kl 23:00 CET (UTC+1)
+- ~10 instanser av datum-formatering pa Date-objekt fixade med `localDateStr()`
+- `formatDate()`-funktioner i 6 komponenter fixade med `parseLocalDate()`
+- PHP api.php: `date_default_timezone_set('Europe/Stockholm')` tillagd for konsekvent tidszonshantering
+- Kvarstaende: 2 timezone-buggar i saglinje-live + klassificeringslinje-live (live-sidor, ror ej)
+
+**Bug Hunt #42b — Dead code audit (10 filer, 14 fixar):**
+- 13 oanvanda TypeScript-imports borttagna i 9 filer (bonus-dashboard, executive-dashboard, maintenance-list, my-bonus, production-calendar, statistik-handelser, statistik-histogram, stoppage-log, bonus-admin.service)
+- 1 oanvand npm-dependency (`htmlparser2`) borttagen fran package.json
+- Kodbasen verifierad REN: inga TODO/FIXME/HACK, inga console.log, inga tomma PHP-filer, inga oanvanda routes, angular.json clean
 
 ### Atgärdat — 2026-03-06 (Session #36: Bug Hunt #41 Chart.js lifecycle + Export/formatering)
 
@@ -497,6 +512,20 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-09 Session #37
+**Lagesanalys**: Session #36 levererade Bug Hunt #41 Chart.js lifecycle (`76d6392` — 9 tooltip null-guards i 9 filer) + Bug Hunt #41b export/formatering (`aca1844` — 7 fixar: CSV semikolon, UTF-8 BOM, print CSS A4). Totalt 16 fixar. Sedan session #36 har agaren gjort 4 manuella fixar: deploy-scripts (3 commits: `d18d541`, `fc32920`, `5689577`) + KRITISK UTC timezone-bugg i statistik date parsing (`4053cf4` — UTC offset orsakade fel dag efter URL reload). Bug Hunts #1-#41 har tackt alla systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- UTC timezone-buggen (`4053cf4`) visar att date parsing fortfarande har problem. Trots Bug Hunt #34 datum/tid-granskning missades timezone-awareness vid URL-reload. Bor granskas djupare i ALLA komponenter.
+- Kodbasen har 41 Bug Hunts bakom sig. For att hitta kvarstaende buggar kravs extremt specialiserade djupgranskningar.
+- Deploy-scripts har fixats manuellt — inte agenternas ansvarsomrade, men visar att deployment-processen nu fungerar.
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #42 — Timezone och date parsing deep-dive. Den manuella fixen `4053cf4` visade att UTC offset orsakade fel dag i statistik efter URL reload. Granska ALLA Angular-komponenter for: (a) `new Date(string)` utan explicit timezone — kan ge olika resultat i olika browsers, (b) date-strang-parsing som antar lokal tid vs UTC, (c) datumvaljare (mat-datepicker eller liknande) — skickar de datum i ratt format till backend? (d) URL query parameters med datum — bevaras timezone korrekt vid delning/reload? (e) PHP-sidan: date() vs gmdate(), timezone_set — ar det konsekvent? (f) SQL DATE vs DATETIME — tappar vi timezone-info? Fokus pa: alla komponenter med datumhantering, sarskilt de som nyligen fixats.
+2. Worker 2: Bug Hunt #42b — Dead code, oanvanda imports och halvfardiga features. Granska: (a) oanvanda Angular-komponenter (genererade men aldrig routade), (b) oanvanda imports i TypeScript-filer (okar bundle size), (c) oanvanda PHP-controllers eller metoder, (d) TODO/FIXME/HACK-kommentarer i koden — finns det halvfardiga implementationer? (e) tomma filer (ProductController.php var tom), (f) orphan CSS-filer utan matchande komponent. Fokus pa: noreko-frontend/src/app/ och noreko-backend/classes/.
+
+**Motivering**: Timezone-buggar ar subtila och svara att hitta — de fungerar oftast ratt men ger fel vid specifika tidpunkter (midnatt, sommartid, URL reload). Dead code okar underhallsborda och kan maskera buggar.
 
 ### 2026-03-06 Session #36
 **Lagesanalys**: Session #35 levererade Bug Hunt #40 PHP-robusthet (`cb11110` — 9 fixar: 5 datumintervallbegransningar max 365 dagar, 1 CSV LIMIT 50000, 3 SQL-transaktioner BEGIN/COMMIT) + Bug Hunt #40b Angular navigation (`b47c9c6` — 4 fixar: returnUrl i authGuard/adminGuard/login, sessionStorage-rensning vid 401). Totalt 13 fixar. Bug Hunts #1-#40 har tackt alla stora systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
