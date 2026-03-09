@@ -1,3 +1,24 @@
+## 2026-03-09 Bug Hunt #49 — Kodkvalitet och edge cases i rebotling-sidor
+
+**rebotling-admin.ts**: 8 st `console.error()`-anrop i produkt-CRUD-metoder (loadProducts, addProduct, saveProduct, deleteProduct) borttagna. Dessa lacker intern felinformation till webbkonsolen i produktion. Felhanteringen i UI:t (loading-state) behalls intakt. Oanvanda `error`/`response`-parametrar togs bort fran callbacks.
+
+**rebotling-statistik.ts**: 4 st `console.error()`-anrop borttagna:
+- `catchError` i `loadStatistics()` — felmeddelande visas redan i UI via `this.error`
+- `console.error('Background draw error:')` i chart-plugin — silenced, redan i try/catch
+- `console.error('Selection preview draw error:')` i chart-plugin — silenced
+- `console.error` med emoji i `createChart()` catch-block — ersatt med kommentar
+
+Samtliga 25+ filer i scope granskades systematiskt for:
+- Chart.js cleanup (alla charts forstors korrekt i ngOnDestroy)
+- setInterval/setTimeout cleanup (alla timers rensas i ngOnDestroy)
+- Edge cases i berakningar (division med noll skyddas korrekt)
+- Template-bindningar (null-checks finns via `?.` overallt)
+- Datumhantering (parseLocalDate anvands konsekvent)
+
+Bygger OK. Inga backend-andringar.
+
+---
+
 ## 2026-03-09 Bug Hunt #48 — Rebotling-sidor timeout/catchError + bonus-dashboard timer-bugg
 
 **rebotling-admin.ts**: 10 HTTP-anrop saknade `timeout()` och `catchError()` — loadSettings, saveSettings, loadWeekdayGoals, saveWeekdayGoals, loadShiftTimes, saveShiftTimes, loadProducts, addProduct, saveProduct, deleteProduct. Om servern hanger fastnar UI:t i loading-state for evigt. Alla fixade med `timeout(8000), catchError(() => of(null))`. Null-guards (`res?.success` istallet for `res.success`) lagda pa alla tillhorande next-handlers.

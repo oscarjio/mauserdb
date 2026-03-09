@@ -632,8 +632,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     this.rebotlingService.getStatistics(start, end).pipe(
       timeout(15000),
-      catchError((err) => {
-        console.error('Error loading statistics:', err);
+      catchError(() => {
         this.error = 'Kunde inte ladda statistik från backend';
         this.loading = false;
         return of({ success: false, data: null } as any);
@@ -1203,9 +1202,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                   ? 'rgba(34, 139, 34, 0.25)'
                   : 'rgba(220, 53, 69, 0.25)';
                 ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
-              } catch (e) {
-                console.error('Background draw error:', e);
-              }
+              } catch (e) {}
             });
 
             // Rita rast (gul) ovanpå kör/stopp-bakgrunden
@@ -1242,9 +1239,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
                 ctx.fillStyle = 'rgba(0, 153, 255, 0.18)'; // ljusblå, transparent
                 ctx.fillRect(xStart, top, xEnd - xStart, bottom - top);
-              } catch (e) {
-                console.error('Selection preview draw error:', e);
-              }
+              } catch (e) {}
             }
           }
         }]
@@ -1254,7 +1249,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       this.attachChartSelectionHandlers(this.productionChart);
 
     } catch (error) {
-      console.error('❌ Chart creation error:', error);
+      // Silently handle chart creation error — UI will show empty chart area
     }
   }
 

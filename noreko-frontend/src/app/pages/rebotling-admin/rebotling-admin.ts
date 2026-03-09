@@ -592,13 +592,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
               originalName: product.name,
               originalCycleTime: product.cycle_time_minutes
             }));
-          } else if (response) {
-            console.error('Kunde inte ladda produkter:', response.error);
           }
           this.loading = false;
         },
-        error: (error) => {
-          console.error('Fel vid laddning av produkter:', error);
+        error: () => {
           this.loading = false;
         }
       });
@@ -616,13 +613,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
             this.newProduct = { name: '', cycle_time_minutes: null };
             this.showAddProductForm = false;
             this.showSuccess('Produkt tillagd!');
-          } else if (response) {
-            console.error('Kunde inte lägga till produkt:', response.error);
           }
           this.loading = false;
         },
-        error: (error) => {
-          console.error('Fel vid tillägg av produkt:', error);
+        error: () => {
           this.loading = false;
         }
       });
@@ -654,13 +648,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
             product.originalName      = product.name;
             product.originalCycleTime = product.cycle_time_minutes;
             this.showSuccess('Produkt uppdaterad!');
-          } else {
-            if (response) console.error('Kunde inte uppdatera produkt:', response.error);
           }
           this.loading = false;
         },
-        error: (error) => {
-          console.error('Fel vid uppdatering av produkt:', error);
+        error: () => {
           this.loading = false;
         }
       });
@@ -682,13 +673,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           if (response?.success) {
             this.loadProducts();
             this.showSuccess('Produkt borttagen!');
-          } else {
-            if (response) console.error('Kunde inte ta bort produkt:', response.error);
           }
           this.loading = false;
         },
-        error: (error) => {
-          console.error('Fel vid borttagning av produkt:', error);
+        error: () => {
           this.loading = false;
         }
       });
