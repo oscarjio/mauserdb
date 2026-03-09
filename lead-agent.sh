@@ -84,10 +84,11 @@ Läs dessa filer med Read:
 - /home/clawd/clawd/mauserdb/dev-log.md (sista 20 raderna — se vad som senast gjorts)
 
 ## STEG 2 — Starta 2 worker-agenter (via Agent-verktyget)
-Starta dem PARALLELLT. Ge varje worker:
+Starta dem PARALLELLT. Ge STORA, meningsfulla uppgifter — sessions körs bara var 2:e timme.
 - En specifik uppgift från backlog.md (markera den PÅGÅR)
 - Tydliga instruktioner om EXAKT vilka filer de äger (ingen överlapp)
 - En worker på ny feature/förbättring, en på buggjakt ELLER annan feature
+- Varje worker ska ha max_turns=80 — de ska hinna bygga klart ordentliga features
 
 Varje worker-prompt MÅSTE innehålla dessa regler:
 1. Rör ALDRIG: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/
