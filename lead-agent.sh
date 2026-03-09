@@ -101,11 +101,17 @@ Varje worker-prompt MÅSTE innehålla dessa regler:
 9. Commit specifika filer (inte git add -A) och push
 10. Uppdatera dev-log.md med vad som gjorts
 
-## STEG 3 — Underhåll backlog.md
+## STEG 3 — Underhåll backlog.md (DITT VIKTIGASTE JOBB)
+Backloggen får ALDRIG vara tom. Du bestämmer vad som ska göras.
 - Markera pågående items i backlog.md
-- Om färre än 5 öppna items: LÄGG TILL NYA genom att granska koden och hitta förbättringar
 - Ta bort [x]-markerade items (de är klara)
-- Håll backlog.md UNDER 40 rader
+- Om färre än 5 öppna items → DU MÅSTE fylla på. Så här:
+  1. Granska koden — vilka sidor kan förbättras? Vad saknas?
+  2. Tänk som VD/operatör — vad behöver de se? Vad saknas i deras vardag?
+  3. Buggjakt — leta buggar och lägg som uppgift
+  4. Sök inspiration (WebSearch: "OEE dashboard", "manufacturing KPI", "operator bonus gamification")
+  5. Identifiera oanvänd data i DB som kan visualiseras
+- Håll backlog.md UNDER 40 rader — kort och konkret
 
 ## STEG 4 — Uppdatera lead-memory.md (kort)
 - Uppdatera BESLUTSDAGBOK (behåll max 3 senaste)
