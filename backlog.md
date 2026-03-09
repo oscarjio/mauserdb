@@ -5,8 +5,8 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [PÅGÅR] **Pareto-diagram stopporsaker** — horisontellt 80/20-diagram med kumulativ linje (session #45)
-- [PÅGÅR] **Cykeltid per operatör** — grouped bar chart + ranking-tabell med median (session #45)
+- [x] **Pareto-diagram stopporsaker** — horisontellt 80/20-diagram med kumulativ linje (d8c4356)
+- [x] **Cykeltid per operatör** — grouped bar chart + ranking-tabell med median (3327f20)
 - [ ] **Annotationer i grafer** — markera ut driftstopp, helgdagar i tidslinjen på statistiksidan
 - [ ] **Skiftrapport per operatör** — filtrerbar skiftrapport per specifik operatör
 
@@ -24,4 +24,4 @@
 
 ## Buggjakt
 
-- [ ] **Bug Hunt #49** — granska senaste commits för nya buggar (timeout, catchError, lifecycle)
+- [ ] **Bug Hunt #50** — granska session #45 commits (Pareto + Cykeltid) för nya buggar

@@ -12,6 +12,20 @@ Uppgraderat statistik-cykeltid-operator-komponenten:
 
 ---
 
+## 2026-03-09 Horisontellt Pareto-diagram med 80/20 kumulativ linje
+
+Forbattrat statistik-pareto-stopp-komponenten till professionellt horisontellt Pareto-diagram:
+- Liggande staplar (indexAxis: y) sorterade storst-forst med dynamisk hojd
+- Kumulativ linje pa sekundar X-axel (topp) med rod streckad 80%-markering
+- Vital few (<=80%) i orange, ovriga i gra for tydlig visuell skillnad
+- Tooltip visar orsak, stopptid (min+h), antal stopp, andel av total
+- Periodselektor 7/14/30/90 dagar
+- Separat CSS med responsiv design (TV 1080p + tablet)
+- ViewChild for canvas, korrekt Chart.js destroy i ngOnDestroy
+Commit d8c4356.
+
+---
+
 ## 2026-03-09 Session #45 — Lead: Pareto bekräftad klar + Bug Hunt #49
 
 Lead-agent session #45. Worker 1 (Pareto stopporsaker): redan fullt implementerat — ingen ändring.

@@ -66,7 +66,7 @@ Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik
 ### Rebotling-fokus (ägarens prioritet)
 - [x] **Statistiksidan överblick** — KLAR (e708fc3): produktionsöverblick-panel med dagens prod, takt, OEE, veckotrend
 - [x] **Pareto-diagram stopporsaker** — KLAR: redan implementerat (statistik-pareto-stopp komponent + backend)
-- [ ] **Cykeltid per operatör** — grouped bar + ranking-tabell
+- [x] **Cykeltid per operatör** — KLAR (3327f20): grouped bar chart + ranking-tabell + backend stddev
 - [ ] **Annotationer i grafer** — markera driftstopp, helgdagar, nya operatörer i tidslinjen
 - [ ] **Skiftrapport per operatör** — filtrerbar per specifik operatör
 
@@ -83,10 +83,10 @@ Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-09 — Session #45
-Worker 1 (Pareto): Redan fullt implementerat — komponent, backend, service, @defer-integration. Inget behövdes.
-Worker 2 (Bug Hunt #49): 12 console.error borttagna i rebotling-admin + rebotling-statistik. Commit dbc7b1a.
-Systematisk review av 25+ filer: charts, timers, beräkningar, templates — allt rent.
+### 2026-03-09 — Session #45 (slutresultat)
+Worker 1 (Pareto): Horisontellt 80/20-diagram, kumulativ linje, 80%-markering, orange/grå färgdelning, CSV-export. Commit d8c4356.
+Worker 2 (Cykeltid): Grouped bar chart (min/median/max), referenslinje, ranking-tabell med bästa operatör. Backend: stddev. Commits 3327f20 + 3ba6a5a.
+Båda features klara och pushade.
 
 ### 2026-03-09 — Session #44
 Statistiksidan överblick markerad klar. Workers misslyckades (inga commits).
