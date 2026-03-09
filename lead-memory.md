@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-09 (session #42)*
+*Senast uppdaterad: 2026-03-09 (session #43 — ägaren återupptar utveckling)*
 
 ---
 
@@ -44,6 +44,17 @@ Tankarna tas in, inspekteras, tvättas/rebotlas och skickas tillbaka ut i cirkul
 3. All UI-text på svenska
 4. Commit + push när en feature är klar (inte halvfärdig kod)
 5. Bygg alltid: `cd noreko-frontend && npx ng build` och fixa fel innan commit
+
+## ÄGARENS DIREKTIV (2026-03-09) — UTVECKLING ÅTERUPPTAGEN
+**Stoppet för ny utveckling (vecka 10) är UPPHÄVT.** Ägaren har godkänt stabil version i produktion.
+
+**Prioritering:**
+1. **Statistiksidan** — förbättra med enkel överblick hur produktionen går över tid
+2. **Buggjakt** — fortsätt leta och fixa buggar löpande
+3. **Enkel överblick** — VD ska förstå produktionsläget på 10 sekunder
+4. **Övriga sidor** — utveckla och förbättra
+
+**Tidigare direktiv "INGEN NY FUNKTIONSUTVECKLING" är UPPHÄVT.**
 
 ## DRIFTSLÄGE — KONTINUERLIGT ARBETE
 - **Agenterna stannar ALDRIG** — när en agent är klar startas en ny direkt på nästa backlog-item

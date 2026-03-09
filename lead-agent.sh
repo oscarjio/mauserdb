@@ -112,10 +112,12 @@ Redigera /home/clawd/clawd/mauserdb/lead-memory.md:
 - Uppdatera "Senast uppdaterad" datumet
 
 ### Steg 3 — Starta worker-agenter
-⚠️ ÄGARENS DIREKTIV (2026-03-05): INGEN NY FUNKTIONSUTVECKLING. Fokusera ENBART på:
-1. Bug Hunt — leta och fixa buggar i befintlig kod
-2. Slutföra halvfärdiga features som påbörjats men inte är kompletta
-3. Säkerställa att befintliga funktioner fungerar korrekt
+⚠️ ÄGARENS DIREKTIV (2026-03-09): UTVECKLING ÅTERUPPTAGEN. Prioriteringar:
+1. FOKUS PÅ REBOTLING — det är den linje som är klar och får bra data
+2. Statistiksidan (rebotling-statistik) — förbättra med enkel överblick av produktion över tid
+3. Buggjakt — leta och fixa buggar löpande
+4. Övriga rebotling-sidor — utveckla och förbättra
+5. Enkel, tydlig överblick är nyckeln — VD ska förstå läget på 10 sekunder
 
 Starta MAX 2 parallella worker-agenter (via Task-verktyget).
 

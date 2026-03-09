@@ -1,3 +1,21 @@
+## 2026-03-09 — ÄGARENS NYA DIREKTIV: Utveckling återupptagen
+
+Ägaren har lagt över stabil version i produktion. Utvecklingsstoppet från vecka 10 är upphävt.
+
+**Prioriteringar framåt:**
+1. Statistiksidan — enkel överblick av produktion över tid
+2. Buggjakt löpande
+3. Enkel överblick — VD ska förstå läget direkt
+4. Utveckla och förbättra övriga sidor
+
+**Fixar gjorda manuellt av ägaren + claude (session):**
+- `972b8d7` — news.ts API path fix (/api/api.php → /noreko-backend/api.php)
+- `4053cf4` — statistik UTC date parsing fix (fel dag efter URL reload)
+- `d18d541` + `fc32920` + `5689577` — deploy-scripts mappstruktur + chmod + gitattributes
+- Lead-agent.sh: rätt claude-sökväg, max-turns 45/60, budget 5 per 5h
+
+---
+
 ## 2026-03-09 Session #42 — Merge-konflikter (slutgiltigt) + Bug Hunt #47 Null safety
 
 **Worker 1 — Merge-konflikter slutgiltigt losta**: 19 filer med UU-status aterstallda med `git checkout HEAD --`. Filerna matchade redan HEAD — problemet var olost merge-state i git index. `git diff --check` rent, bygge OK. Ingen commit behovdes.
