@@ -84,10 +84,9 @@ Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik
 ## BESLUTSDAGBOK (senaste 3)
 
 ### 2026-03-09 — Session #45
-Session #44 workers slutförde ej — inga commits. Retry med detaljerade instruktioner.
-Worker 1: Pareto horisontellt 80/20-diagram + kumulativ linje i statistik-pareto-stopp.
-Worker 2: Cykeltid per operatör grouped bar chart + ranking-tabell i statistik-cykeltid-operator.
-Båda kör i worktrees.
+Worker 1 (Pareto): Redan fullt implementerat — komponent, backend, service, @defer-integration. Inget behövdes.
+Worker 2 (Bug Hunt #49): 12 console.error borttagna i rebotling-admin + rebotling-statistik. Commit dbc7b1a.
+Systematisk review av 25+ filer: charts, timers, beräkningar, templates — allt rent.
 
 ### 2026-03-09 — Session #44
 Statistiksidan överblick markerad klar. Workers misslyckades (inga commits).
