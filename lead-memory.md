@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-09 (session #40)*
+*Senast uppdaterad: 2026-03-09 (session #41)*
 
 ---
 
@@ -148,6 +148,24 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgardat — 2026-03-09 (Session #41: Merge-konflikter + Bug Hunt #46 Accessibility)
+
+**Merge-konflikter losta (`31e45c3`):**
+- Alla 18 UU-filer fran worktree-agenter losta
+- 3 filer (weekly-report.ts, rebotling-admin.ts, rebotling-skiftrapport.ts) var svart korrupterade — aterstallda fran senaste committen
+- Angular build veriferad ren
+
+**Bug Hunt #46 — Accessibility a11y (`b9d6b4a`, 39 filer):**
+- aria-label pa alla stangknappar (btn-close) i 15 filer
+- scope="col" pa alla tabellhuvuden (<th>) i 28+ filer
+- role="alert" pa alla felmeddelanden (alert-danger/success/warning)
+- role="button" pa lankar med (click)-handlers (bonus-admin, production-analysis, bonus-dashboard)
+- aria-label pa icon-only knappar (Redigera, Ta bort, Profil, pilar) i 5 sidor
+- aria-label pa sokfalt utan label (users, stoppage-log, operators, audit-log)
+- for/id-koppling pa register-sidans 6 formularelement
+- aria-label pa veckodagsmal-inputs i 3 admin-sidor
+- aria-label pa filter-selects i stoppage-log
 
 ### Atgardat — 2026-03-09 (Session #40: Bug Hunt #45 Race conditions + setTimeout cleanup)
 
@@ -550,6 +568,17 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-09 Session #41
+**Lagesanalys**: Session #40 levererade Bug Hunt #45 race conditions (`0d439c0` — 25+ fixar: version-guard monster i 4 komponenter, 20+ setTimeout-cleanup) + merge-konfliktlosning (`f57c34a`). MEN: 18 filer har FORTFARANDE olosta merge-konflikter (UU-status i git). Troligen kvarstaende fran worktree-agenter som inte stagades korrekt efter session #40. Bug Hunts #1-#45 genomforda. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**KRITISKT PROBLEM (kvarstaende)**: Exakt samma 18 filer som session #40 rapporterade har fortfarande UU merge-konflikter. Commit `f57c34a` ("fix: resolve merge conflicts") loste INTE alla — nagra kvarstar. Projektet kan INTE byggas.
+
+**Beslut denna session**:
+1. Worker 1: LOSA ALLA KVARSTAENDE MERGE-KONFLIKTER — ga igenom alla 18 UU-filer, behall korrekt kod (ta bort alla <<<<<<< / ======= / >>>>>>> markeringar), bygg, commita.
+2. Worker 2: Bug Hunt #46 — Accessibility och tangentbordsnavigation. Granska Angular-komponenter for: (a) knappar/lankar utan aria-label, (b) formularelement utan <label>, (c) fokushantering vid modal/dialog, (d) kontrast pa text/bakgrund, (e) tabindex-ordning. Startas EFTER Worker 1 ar klar (maste kunna bygga forst).
+
+**Motivering**: Merge-konflikter blockerar ALLT — maste losas forst. Accessibility ar det enda kvarstaende omradet som inte granskats i Bug Hunts #1-#45.
 
 ### 2026-03-09 Session #40
 **Lagesanalys**: Session #39 levererade Bug Hunt #44 formularvalidering (`af2e7e2` — 28 fixar: required/maxlength/min/max pa inputs, dubbelklick-skydd, PHP defense-in-depth) + Bug Hunt #44b error/loading states (10 retry-knappar pa sidor utan "Forsok igen"-funktion). Totalt 38 fixar. Bug Hunts #1-#44 har tackt formularvalidering, error states, subscribe-lackor, responsiv design, timezone, dead code, chart.js, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

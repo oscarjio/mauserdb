@@ -1,3 +1,13 @@
+## 2026-03-09 Session #41 — Merge-konflikter (igen) + Bug Hunt #46 Accessibility
+
+**Worker 1 — Merge-konflikter losta (`31e45c3`)**: 18 filer med UU-status fran session #40 aterstod. Alla losta — 3 svart korrupterade filer aterstallda fran last commit. Bygge verifierat rent.
+
+**Worker 2 — Bug Hunt #46 Accessibility (`b9d6b4a`)**: 39 filer andrade. aria-label pa knappar/inputs, scope="col" pa tabellhuvuden, role="alert" pa felmeddelanden, for/id-koppling pa register-sidan. Forsta a11y-granskningen i projektets historia.
+
+**Sammanfattning session #41**: Alla merge-konflikter slutgiltigt losta. 39 filer fick accessibility-forbattringar. Bug Hunts #1-#46 genomforda.
+
+---
+
 ## 2026-03-09 Session #40b — Merge-konflikter lösta
 
 **Löste alla kvarvarande merge-konflikter från session #40 worktrees (19 filer)**:
