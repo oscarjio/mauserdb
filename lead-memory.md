@@ -149,6 +149,31 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
 
+### Atgardat — 2026-03-09 (Session #40: Bug Hunt #45 Race conditions + setTimeout cleanup)
+
+**Bug Hunt #45 — Race conditions vid snabb navigation (4 komponenter, 10+ HTTP-anrop):**
+- weekly-report.ts, operator-trend.ts, historik.ts, production-analysis.ts: version-guard monster forhindrar stale data vid snabb navigation (prevWeek/nextWeek/periodbyte)
+- Problem: gamla HTTP-svar kunde anlanda EFTER nya och overskriva korrekt data
+
+**Bug Hunt #45b — setTimeout utan cleanup/destroy-guard (20+ fixar i 18 filer):**
+- stoppage-log.ts: 6 setTimeout utan tracked timer-ID
+- bonus-dashboard.ts, my-bonus.ts: setTimeout utan tracked timer-ID
+- rebotling-admin.ts + 12 statistik-subkomponenter: setTimeout utan destroy$.closed guard — chart-rendering kunde koras efter komponent-destroy
+
+**PHP backend — granskat, inga race conditions funna:**
+- TvattlinjeController, SaglinjeController, KlassificeringslinjeController, SkiftrapportController, StoppageController, WeeklyReportController
+- Alla write-operationer anvander atomara SQL-monster
+
+### Atgardat — 2026-03-09 (Session #39: Bug Hunt #44 Formularvalidering + Error states)
+
+**Bug Hunt #44 — Formularvalidering (28 fixar):**
+- Register/create-user/login: minlength/maxlength, dubbelklick-skydd
+- Stoppage-log, certifications, users, maintenance-form, skiftrapporter, rebotling-admin: required/max/pattern
+- PHP AdminController, MaintenanceController, StoppageController, CertificationController: server-side validering
+
+**Bug Hunt #44b — Error/loading states (10 fixar):**
+- 10 sidor fick retry-knappar: benchmarking, rebotling-prognos, production-analysis, historik, operator-attendance, monthly-report, operator-trend, weekly-report, production-calendar, shift-plan
+
 ### Atgardat — 2026-03-09 (Session #38: Bug Hunt #43 Subscribe-lackor + Responsiv design)
 
 **Bug Hunt #43 — Angular subscribe-lackor (2 fixar i 2 filer):**
