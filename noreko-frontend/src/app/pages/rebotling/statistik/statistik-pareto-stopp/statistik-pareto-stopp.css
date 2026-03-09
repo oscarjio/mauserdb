@@ -1,0 +1,114 @@
+/* Pareto Stoppage Analysis - Dark Theme */
+
+.pareto-card {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.pareto-header {
+  background: #1a202c;
+  border-color: #4a5568;
+}
+
+/* KPI Cards */
+.pareto-kpi-card {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid #4a5568;
+  text-align: center;
+}
+
+.pareto-kpi-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.pareto-kpi-value {
+  color: #e2e8f0;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.pareto-kpi-unit {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+.pareto-kpi-sub {
+  color: #718096;
+  font-size: 0.78rem;
+}
+
+.pareto-vital-few {
+  color: #ed8936;
+}
+
+.pareto-best-improvement {
+  color: #ed8936;
+  font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chart wrapper */
+.pareto-chart-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+}
+
+/* Table */
+.pareto-table {
+  color: #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.pareto-table thead tr {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.pareto-table tbody tr {
+  border-color: #4a5568;
+}
+
+.pareto-vital-row {
+  background: rgba(237, 137, 54, 0.06);
+}
+
+.pareto-row-num {
+  color: #718096;
+}
+
+/* Responsive adjustments for TV (1080p) and tablet */
+@media (min-width: 1200px) {
+  .pareto-chart-wrapper {
+    min-height: 350px;
+  }
+
+  .pareto-kpi-value {
+    font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 767px) {
+  .pareto-kpi-card {
+    padding: 8px 10px;
+  }
+
+  .pareto-kpi-value {
+    font-size: 1.1rem;
+  }
+
+  .pareto-kpi-label {
+    font-size: 0.68rem;
+  }
+
+  .pareto-chart-wrapper {
+    min-height: 250px;
+  }
+}
