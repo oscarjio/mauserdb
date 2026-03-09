@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
-import { MaintenanceEntry, MaintenanceStats } from '../maintenance-log.models';
+import { MaintenanceEntry } from '../maintenance-log.models';
 import {
   formatDuration, formatCost, formatDateTime,
   getLineBadgeClass, getLineLabel,

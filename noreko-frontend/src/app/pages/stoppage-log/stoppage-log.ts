@@ -6,8 +6,9 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary, ParetoData, ParetoOrsak } from '../../services/stoppage.service';
+import { StoppageService, StoppageReason, StoppageEntry, StoppageStats, StoppageWeeklySummary, ParetoData } from '../../services/stoppage.service';
 import { RebotlingService, MonthlyStopSummaryItem } from '../../services/rebotling.service';
+import { localToday, localDateStr } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 import QRCode from 'qrcode';
 
@@ -566,7 +567,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Stopporsaker');
-      const dateStr = new Date().toISOString().slice(0, 10);
+      const dateStr = localToday();
       XLSX.writeFile(wb, `stopporsaker-${this.selectedLine}-${dateStr}.xlsx`);
     });
   }
@@ -921,7 +922,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     for (let i = 13; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateStr(d);
       const found = daily.find(x => x.dag === dateStr);
       labels.push(dateStr.substring(5)); // MM-DD
       countData.push(found ? Number(found.count) : 0);

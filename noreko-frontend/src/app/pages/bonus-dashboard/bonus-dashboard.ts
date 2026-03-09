@@ -4,8 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Subject, Subscription, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { BonusService, RankingEntry, ShiftStats, HallOfFameEntry, LoneprognosOperator } from '../../services/bonus.service';
+import { BonusService, RankingEntry, ShiftStats, HallOfFameEntry } from '../../services/bonus.service';
 import { BonusAdminService } from '../../services/bonus-admin.service';
+import { localToday, localDateStr } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 import 'bootstrap/js/dist/collapse';
 
@@ -245,7 +246,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
 
   private getPreviousPeriod(period: string): { start: string; end: string } | null {
     const now = new Date();
-    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    const fmt = (d: Date) => localDateStr(d);
     if (period === 'today') {
       const y = new Date(now); y.setDate(y.getDate() - 1);
       return { start: fmt(y), end: fmt(y) };
@@ -730,7 +731,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bonus-ranking-${this.selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `bonus-ranking-${this.selectedPeriod}-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

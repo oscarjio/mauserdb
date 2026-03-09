@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DecimalPipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, CycleHistogramResponse } from '../../../../services/rebotling.service';
+import { localToday } from '../../../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -14,7 +15,7 @@ import { RebotlingService, CycleHistogramResponse } from '../../../../services/r
   imports: [CommonModule, FormsModule]
 })
 export class StatistikHistogramComponent implements OnInit, OnDestroy {
-  histogramDate: string = new Date().toISOString().split('T')[0];
+  histogramDate: string = localToday();
   histogramLoaded: boolean = false;
   histogramLoading: boolean = false;
   histogramBuckets: { label: string; count: number }[] = [];

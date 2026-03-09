@@ -7,7 +7,7 @@ import { Subject, Subscription } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
-import { RebotlingService, ExecDashboardResponse, MaintenanceStatsResponse, FeedbackSummaryResponse, FeedbackSummaryDayEntry, StaffingWarningDay, WeeklySummaryData, WeeklySummaryOperator, WeeklySummaryStop } from '../../services/rebotling.service';
+import { RebotlingService, ExecDashboardResponse, FeedbackSummaryDayEntry, StaffingWarningDay, WeeklySummaryData } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);

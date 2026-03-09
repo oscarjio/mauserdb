@@ -6,7 +6,8 @@ import { takeUntil, distinctUntilChanged, timeout, catchError } from 'rxjs/opera
 import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
-import { BonusService, WeeklyHistoryEntry, RankingPositionResponse } from '../../services/bonus.service';
+import { BonusService, WeeklyHistoryEntry } from '../../services/bonus.service';
+import { localToday, localDateStr, parseLocalDate } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -903,7 +904,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `skifthistorik-${this.savedOperatorId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `skifthistorik-${this.savedOperatorId}-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -1214,7 +1215,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     );
     this.workCalendar = Array.from({ length: daysInMonth }, (_, i) => {
       const d = new Date(year, month, i + 1);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localDateStr(d);
       const shift = (this.history || []).find((s: any) => s.datum === dateStr);
       return { date: dateStr, worked: workedDates.has(dateStr), ibc: shift?.ibc_ok || 0 };
     });
@@ -1222,14 +1223,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   get calendarLeadingDays(): number[] {
     if (this.workCalendar.length === 0) return [];
-    const firstDay = new Date(this.workCalendar[0].date).getDay();
+    const firstDay = parseLocalDate(this.workCalendar[0].date).getDay();
     // Måndag=1, Söndag=0 → konvertera till Måndag-start
     const offset = firstDay === 0 ? 6 : firstDay - 1;
     return Array(offset).fill(0);
   }
 
   isToday(dateStr: string): boolean {
-    return dateStr === new Date().toISOString().slice(0, 10);
+    return dateStr === localToday();
   }
 
   getWorkedDaysThisMonth(): number {
@@ -1238,14 +1239,14 @@ export class MyBonusPage implements OnInit, OnDestroy {
 
   getCalendarMonthLabel(): string {
     if (this.workCalendar.length === 0) return '';
-    const d = new Date(this.workCalendar[0].date);
+    const d = parseLocalDate(this.workCalendar[0].date);
     return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'long' });
   }
 
   get currentStreak(): number {
     if (!this.workCalendar || this.workCalendar.length === 0) return 0;
     let streak = 0;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localToday();
     // Ta bara dagar upp till och med idag
     const past = [...this.workCalendar].filter(d => d.date <= todayStr).reverse();
     for (const day of past) {
