@@ -1379,6 +1379,7 @@ class RebotlingAnalyticsController {
                 $vals = $g['values']; // redan sorterat ASC från SQL
                 sort($vals);
                 $n = count($vals);
+                if ($n === 0) continue;
                 $nameParts = array_filter(explode(' ', trim($g['namn'])));
                 $initialer = '';
                 foreach ($nameParts as $p) {

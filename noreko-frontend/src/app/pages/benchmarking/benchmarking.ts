@@ -357,6 +357,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
       'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec',
     ];
     const idx = parseInt(parts[1], 10) - 1;
+    if (isNaN(idx) || idx < 0 || idx > 11) return m;
     return `${monthNames[idx] ?? parts[1]} ${parts[0].slice(2)}`;
   }
 

@@ -1339,14 +1339,14 @@ export class OperatorComparePage implements OnInit, OnDestroy {
       ],
       [
         'Kvalitet %',
-        a.kvalitet_pct.toFixed(1) + '%',
-        b.kvalitet_pct.toFixed(1) + '%',
+        (a.kvalitet_pct ?? 0).toFixed(1) + '%',
+        (b.kvalitet_pct ?? 0).toFixed(1) + '%',
         this.csvDiff(a.kvalitet_pct, b.kvalitet_pct, true),
       ],
       [
         'IBC / timme',
-        a.snitt_ibc_per_h.toFixed(1),
-        b.snitt_ibc_per_h.toFixed(1),
+        (a.snitt_ibc_per_h ?? 0).toFixed(1),
+        (b.snitt_ibc_per_h ?? 0).toFixed(1),
         this.csvDiff(a.snitt_ibc_per_h, b.snitt_ibc_per_h),
       ],
       [
@@ -1357,8 +1357,8 @@ export class OperatorComparePage implements OnInit, OnDestroy {
       ],
       [
         'Total drifttid (h)',
-        a.total_runtime_h.toFixed(1),
-        b.total_runtime_h.toFixed(1),
+        (a.total_runtime_h ?? 0).toFixed(1),
+        (b.total_runtime_h ?? 0).toFixed(1),
         this.csvDiff(a.total_runtime_h, b.total_runtime_h),
       ],
       [

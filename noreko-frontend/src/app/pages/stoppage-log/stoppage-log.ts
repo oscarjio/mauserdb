@@ -459,7 +459,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   saveEdit(entry: StoppageEntry) {
     if (this.savingId) return;
     this.savingId = entry.id;
-    const duration = this.editDuration.trim() === '' ? null : parseInt(this.editDuration, 10);
+    const parsed = parseInt(this.editDuration, 10);
+    const duration = this.editDuration.trim() === '' ? null : (isNaN(parsed) ? null : parsed);
     const comment = this.editComment;
 
     this.stoppageService.update(entry.id, { duration_minutes: duration, comment })

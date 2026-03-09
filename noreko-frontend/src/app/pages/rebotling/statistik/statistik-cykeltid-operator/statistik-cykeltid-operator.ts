@@ -56,13 +56,13 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
     ).subscribe((res: CycleByOperatorResponse | null) => {
       this.cycleByOpLoading = false;
       if (res?.success && res.data) {
-        const medians = res.data.map(op => op.median_min ?? (op.snitt_cykel_sek / 60));
+        const medians = res.data.map(op => op.median_min ?? ((op.snitt_cykel_sek ?? 0) / 60));
         const teamSnitt = medians.length > 0 ? medians.reduce((a, b) => a + b, 0) / medians.length : 0;
         this.cycleByOpData = res.data
           .map(op => ({
             ...op,
             vs_team_snitt: teamSnitt > 0
-              ? Math.round(((op.median_min ?? op.snitt_cykel_sek / 60) - teamSnitt) / teamSnitt * 100)
+              ? Math.round(((op.median_min ?? (op.snitt_cykel_sek ?? 0) / 60) - teamSnitt) / teamSnitt * 100)
               : 0
           }))
           .sort((a, b) => b.antal_skift - a.antal_skift);

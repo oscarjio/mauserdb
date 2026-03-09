@@ -549,7 +549,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
       catchError(() => { if (version === this.loadVersion) { this.error = 'Kunde inte ladda timdata'; this.loading = false; } return of(null); })
     ).subscribe((res: HeatmapApiResponse | null) => {
       if (version !== this.loadVersion) return;
-      if (!res?.success) { this.loading = false; return; }
+      if (!res?.success || !Array.isArray(res.data)) { this.loading = false; return; }
 
       const rows: { [date: string]: { [hour: number]: number } } = {};
       const hourTotals: { [hour: number]: { sum: number; count: number } } = {};

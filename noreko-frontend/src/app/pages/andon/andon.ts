@@ -181,6 +181,7 @@ export class AndonPage implements OnInit, OnDestroy, AfterViewInit {
     const h = parseInt(delar[0], 10);
     const m = parseInt(delar[1], 10);
     const s = parseInt(delar[2], 10);
+    if (isNaN(h) || isNaN(m) || isNaN(s)) return 0;
     return h + m / 60 + s / 3600;
   }
 

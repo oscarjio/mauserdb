@@ -45,7 +45,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
   exportParetoCSV(): void {
     if (!this.paretoItems || this.paretoItems.length === 0) return;
     const headers = ['Stopporsak','Kategori','Antal stopp','Total tid (min)','Total tid (h)','Snitt (min)','Andel %','Kumulativ %'];
-    const rows = this.paretoItems.map(item => [item.orsak, item.kategori || '', item.antal_stopp, item.total_minuter, (item.total_minuter / 60).toFixed(1), item.snitt_minuter.toFixed(1), item.pct_av_total.toFixed(1)+'%', item.kumulativ_pct.toFixed(1)+'%']);
+    const rows = this.paretoItems.map(item => [item.orsak, item.kategori || '', item.antal_stopp, item.total_minuter, ((item.total_minuter ?? 0) / 60).toFixed(1), (item.snitt_minuter ?? 0).toFixed(1), (item.pct_av_total ?? 0).toFixed(1)+'%', (item.kumulativ_pct ?? 0).toFixed(1)+'%']);
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;

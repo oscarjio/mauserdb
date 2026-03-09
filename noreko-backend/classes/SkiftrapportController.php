@@ -430,10 +430,15 @@ class SkiftrapportController {
                 $stmt = $this->pdo->prepare("SELECT ibc_ok, bur_ej_ok, ibc_ej_ok FROM rebotling_skiftrapport WHERE id = ?");
                 $stmt->execute([$id]);
                 $current = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                $final_ibc_ok = $ibc_ok !== null ? $ibc_ok : $current['ibc_ok'];
-                $final_bur_ej_ok = $bur_ej_ok !== null ? $bur_ej_ok : $current['bur_ej_ok'];
-                $final_ibc_ej_ok = $ibc_ej_ok !== null ? $ibc_ej_ok : $current['ibc_ej_ok'];
+                if (!$current) {
+                    http_response_code(404);
+                    echo json_encode(['success' => false, 'message' => 'Skiftrapport hittades inte']);
+                    return;
+                }
+
+                $final_ibc_ok = $ibc_ok !== null ? $ibc_ok : (int)($current['ibc_ok'] ?? 0);
+                $final_bur_ej_ok = $bur_ej_ok !== null ? $bur_ej_ok : (int)($current['bur_ej_ok'] ?? 0);
+                $final_ibc_ej_ok = $ibc_ej_ok !== null ? $ibc_ej_ok : (int)($current['ibc_ej_ok'] ?? 0);
                 $totalt = $final_ibc_ok + $final_bur_ej_ok + $final_ibc_ej_ok;
                 
                 $fields[] = 'totalt = ?';

@@ -1097,9 +1097,9 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
       d.ibc_ok,
       d.ibc_ej,
       d.ibc_total,
-      d.kvalitet_pct.toFixed(1),
-      d.ibc_per_h.toFixed(2),
-      d.drifttid_h.toFixed(1),
+      (d.kvalitet_pct ?? 0).toFixed(1),
+      (d.ibc_per_h ?? 0).toFixed(2),
+      (d.drifttid_h ?? 0).toFixed(1),
       d.ibc_ok - dagmal,
     ]);
 
@@ -1110,12 +1110,12 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
       ['VECKOSUMMERING'],
       ['Total IBC OK', kpi.total_ibc_ok],
       ['Total IBC Kasserade', kpi.total_ibc_ej],
-      ['Kvalitet %', kpi.kvalitet_pct.toFixed(1)],
-      ['Snitt IBC/h', kpi.snitt_ibc_per_h.toFixed(1)],
-      ['Drifttid (h)', kpi.drifttid_h.toFixed(1)],
+      ['Kvalitet %', (kpi.kvalitet_pct ?? 0).toFixed(1)],
+      ['Snitt IBC/h', (kpi.snitt_ibc_per_h ?? 0).toFixed(1)],
+      ['Drifttid (h)', (kpi.drifttid_h ?? 0).toFixed(1)],
       ['Dagmål', kpi.dagmal],
       ['Veckamål', kpi.mal_per_vecka],
-      ['Måluppfyllnad %', kpi.mal_uppfylld_pct.toFixed(1)],
+      ['Måluppfyllnad %', (kpi.mal_uppfylld_pct ?? 0).toFixed(1)],
       ['Dagar på mål', `${kpi.dagar_pa_mal} / ${kpi.totalt_vardagar}`],
     ];
 
@@ -1159,9 +1159,9 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
         <Cell><Data ss:Type="Number">${d.ibc_ok}</Data></Cell>
         <Cell><Data ss:Type="Number">${d.ibc_ej}</Data></Cell>
         <Cell><Data ss:Type="Number">${d.ibc_total}</Data></Cell>
-        <Cell><Data ss:Type="Number">${d.kvalitet_pct.toFixed(1)}</Data></Cell>
-        <Cell><Data ss:Type="Number">${d.ibc_per_h.toFixed(2)}</Data></Cell>
-        <Cell><Data ss:Type="Number">${d.drifttid_h.toFixed(1)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${(d.kvalitet_pct ?? 0).toFixed(1)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${(d.ibc_per_h ?? 0).toFixed(2)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${(d.drifttid_h ?? 0).toFixed(1)}</Data></Cell>
         <Cell><Data ss:Type="Number">${d.ibc_ok - dagmal}</Data></Cell>
       </Row>`).join('');
 
@@ -1200,23 +1200,23 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
       </Row>
       <Row>
         <Cell><Data ss:Type="String">Kvalitet %</Data></Cell>
-        <Cell><Data ss:Type="Number">${kpi.kvalitet_pct.toFixed(1)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${(kpi.kvalitet_pct ?? 0).toFixed(1)}</Data></Cell>
       </Row>
       <Row>
         <Cell><Data ss:Type="String">Snitt IBC/h</Data></Cell>
-        <Cell><Data ss:Type="Number">${kpi.snitt_ibc_per_h.toFixed(1)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${(kpi.snitt_ibc_per_h ?? 0).toFixed(1)}</Data></Cell>
       </Row>
       <Row>
         <Cell><Data ss:Type="String">Dagmål</Data></Cell>
-        <Cell><Data ss:Type="Number">${kpi.dagmal}</Data></Cell>
+        <Cell><Data ss:Type="Number">${kpi.dagmal ?? 0}</Data></Cell>
       </Row>
       <Row>
         <Cell><Data ss:Type="String">Veckamål</Data></Cell>
-        <Cell><Data ss:Type="Number">${kpi.mal_per_vecka}</Data></Cell>
+        <Cell><Data ss:Type="Number">${kpi.mal_per_vecka ?? 0}</Data></Cell>
       </Row>
       <Row>
         <Cell><Data ss:Type="String">Måluppfyllnad %</Data></Cell>
-        <Cell><Data ss:Type="Number">${kpi.mal_uppfylld_pct.toFixed(1)}</Data></Cell>
+        <Cell><Data ss:Type="Number">${(kpi.mal_uppfylld_pct ?? 0).toFixed(1)}</Data></Cell>
       </Row>
       <Row>
         <Cell><Data ss:Type="String">Dagar på mål</Data></Cell>
@@ -1340,9 +1340,9 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
                 if (idx !== undefined && daily[idx]) {
                   const d = daily[idx];
                   return [
-                    `Kvalitet: ${d.kvalitet_pct.toFixed(1)}%`,
-                    `IBC/h: ${d.ibc_per_h.toFixed(1)}`,
-                    `Drifttid: ${d.drifttid_h.toFixed(1)}h`,
+                    `Kvalitet: ${(d.kvalitet_pct ?? 0).toFixed(1)}%`,
+                    `IBC/h: ${(d.ibc_per_h ?? 0).toFixed(1)}`,
+                    `Drifttid: ${(d.drifttid_h ?? 0).toFixed(1)}h`,
                   ];
                 }
                 return [];

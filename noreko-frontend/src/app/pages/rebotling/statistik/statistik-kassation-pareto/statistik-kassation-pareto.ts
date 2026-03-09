@@ -42,8 +42,8 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
   exportKassationCSV(): void {
     if (!this.kassationPareto || this.kassationPareto.length === 0) return;
     const headers = ['Orsak','Antal kassationer','Andel %','Kumulativ %'];
-    const rows: any[] = this.kassationPareto.map(item => [item.namn, item.antal, item.pct.toFixed(1)+'%', item.kumulativ_pct.toFixed(1)+'%']);
-    rows.push(['TOTALT', this.kassationTotalAntal, this.kassationPct.toFixed(1)+'%', '100.0%']);
+    const rows: any[] = this.kassationPareto.map(item => [item.namn, item.antal, (item.pct ?? 0).toFixed(1)+'%', (item.kumulativ_pct ?? 0).toFixed(1)+'%']);
+    rows.push(['TOTALT', this.kassationTotalAntal, (this.kassationPct ?? 0).toFixed(1)+'%', '100.0%']);
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
