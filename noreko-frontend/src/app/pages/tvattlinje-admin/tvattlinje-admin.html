@@ -35,8 +35,8 @@
   <div class="container-fluid py-4">
 
     <!-- ======== DRIFTSTATUS-BANNER (ej i drift) ======== -->
-    <div class="alert d-flex align-items-start mb-4 not-running-banner" role="alert"
-         style="background: #2a3f5f; border: 1px solid #3d6b9e; color: #90cdf4;">
+    <div *ngIf="!systemStatus?.is_running"
+         class="alert d-flex align-items-start mb-4 not-running-banner" role="alert">
       <i class="fas fa-tools me-3 fs-5 mt-1" style="color: #63b3ed;"></i>
       <div>
         <strong style="color: #90cdf4;">Tvättlinjen är ej i drift</strong>
@@ -47,11 +47,108 @@
       </div>
     </div>
 
+    <!-- ======== TODAY-SNAPSHOT — Produktionsläge idag ======== -->
+    <div class="card mb-4" [class]="'snapshot-card ' + snapshotBorderClass">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-tachometer-alt me-2 text-info"></i>
+          Produktionsläge — idag
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span *ngIf="todaySnapshotLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+          <span class="badge"
+            [class.bg-success]="todaySnapshot?.is_running"
+            [class.bg-secondary]="!todaySnapshot?.is_running">
+            <i class="fas"
+              [class.fa-circle]="todaySnapshot?.is_running"
+              [class.fa-stop-circle]="!todaySnapshot?.is_running"></i>
+            {{ todaySnapshot?.is_running ? 'Linjen kör' : 'Linjen stoppad' }}
+          </span>
+          <button class="btn btn-sm btn-outline-secondary" (click)="loadTodaySnapshot()" [disabled]="todaySnapshotLoading">
+            <i class="fas fa-sync-alt me-1"></i>Uppdatera
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body" *ngIf="todaySnapshot">
+        <div class="row g-3 align-items-center">
+          <!-- IBC idag -->
+          <div class="col-6 col-md-2">
+            <div class="snapshot-kpi">
+              <div class="snapshot-kpi-label">IBC idag</div>
+              <div class="snapshot-kpi-value" [class]="snapshotColorClass">
+                {{ todaySnapshot.ibc_idag }}
+              </div>
+            </div>
+          </div>
+          <!-- Dagsmål -->
+          <div class="col-6 col-md-2">
+            <div class="snapshot-kpi">
+              <div class="snapshot-kpi-label">Dagsmål</div>
+              <div class="snapshot-kpi-value text-info">{{ todaySnapshot.dagmal }}</div>
+            </div>
+          </div>
+          <!-- Uppfyllnad -->
+          <div class="col-6 col-md-2">
+            <div class="snapshot-kpi">
+              <div class="snapshot-kpi-label">Uppfyllnad</div>
+              <div class="snapshot-kpi-value" [class]="snapshotColorClass">
+                {{ todaySnapshot.pct_of_goal }}%
+              </div>
+              <div class="snapshot-kpi-bar-bg">
+                <div class="snapshot-kpi-bar"
+                  [style.width.%]="todaySnapshot.pct_of_goal > 100 ? 100 : todaySnapshot.pct_of_goal"
+                  [class.bar-green]="todaySnapshot.pct_of_goal >= 100"
+                  [class.bar-orange]="todaySnapshot.pct_of_goal >= 80 && todaySnapshot.pct_of_goal < 100"
+                  [class.bar-red]="todaySnapshot.pct_of_goal < 80">
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Takt -->
+          <div class="col-6 col-md-2">
+            <div class="snapshot-kpi">
+              <div class="snapshot-kpi-label">Takt (IBC/h)</div>
+              <div class="snapshot-kpi-value text-warning">{{ todaySnapshot.takt_per_h }}</div>
+              <div class="snapshot-kpi-sub text-muted">senaste 2 tim</div>
+            </div>
+          </div>
+          <!-- Prognos -->
+          <div class="col-6 col-md-2">
+            <div class="snapshot-kpi">
+              <div class="snapshot-kpi-label">Prognos</div>
+              <div class="snapshot-kpi-value"
+                [class.text-success]="todaySnapshot.prognos >= todaySnapshot.dagmal"
+                [class.text-warning]="todaySnapshot.prognos >= todaySnapshot.dagmal * 0.8 && todaySnapshot.prognos < todaySnapshot.dagmal"
+                [class.text-danger]="todaySnapshot.prognos < todaySnapshot.dagmal * 0.8">
+                {{ todaySnapshot.prognos }}
+              </div>
+              <div class="snapshot-kpi-sub text-muted">vid skiftets slut</div>
+            </div>
+          </div>
+          <!-- Servertid -->
+          <div class="col-6 col-md-2 text-end">
+            <div class="snapshot-kpi">
+              <div class="snapshot-kpi-label">Servertid</div>
+              <div class="snapshot-kpi-value text-secondary" style="font-size:1rem;">
+                {{ todaySnapshot.server_time }}
+              </div>
+              <div class="snapshot-kpi-sub text-muted">Uppdateras var 60s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body text-muted text-center py-3" *ngIf="!todaySnapshot && !todaySnapshotLoading">
+        <i class="fas fa-spinner fa-spin me-2"></i>Laddar produktionsöversikt...
+      </div>
+    </div>
+
     <!-- ======== SYSTEMSTATUS ======== -->
     <div class="card mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">
-          <i class="fas fa-satellite-dish me-2" style="color: #63b3ed;"></i>
+          <i class="fas fa-satellite-dish me-2 text-danger"></i>
           Systemstatus
         </h5>
         <div class="d-flex align-items-center gap-2">
@@ -69,13 +166,23 @@
         <div class="row g-3" *ngIf="systemStatus">
           <!-- Linjestatus -->
           <div class="col-6 col-md-3">
-            <div class="status-card status-neutral">
+            <div class="status-card"
+              [class.status-ok]="systemStatus.is_running"
+              [class.status-neutral]="!systemStatus.is_running">
               <div class="status-icon">
-                <i class="fas fa-pause-circle" style="color: #718096;"></i>
+                <i class="fas"
+                  [class.fa-play-circle]="systemStatus.is_running"
+                  [class.fa-pause-circle]="!systemStatus.is_running"
+                  [class.text-success]="systemStatus.is_running"
+                  [style.color]="!systemStatus.is_running ? '#718096' : ''"></i>
               </div>
               <div class="status-label">Linjestatus</div>
               <div class="status-value">
-                <span class="badge" style="background: #4a5568; color: #e2e8f0;">Ej i drift</span>
+                <span class="badge"
+                  [style.background]="systemStatus.is_running ? '#276749' : '#4a5568'"
+                  style="color: #e2e8f0;">
+                  {{ systemStatus.is_running ? 'I drift' : 'Ej i drift' }}
+                </span>
               </div>
               <div class="status-sub text-muted small mt-1">{{ systemStatus.note }}</div>
             </div>
@@ -83,37 +190,60 @@
 
           <!-- PLC — senast sedd -->
           <div class="col-6 col-md-3">
-            <div class="status-card status-neutral">
+            <div class="status-card"
+              [class.status-ok]="getPlcStatus() === 'ok'"
+              [class.status-warn]="getPlcStatus() === 'warn'"
+              [class.status-err]="getPlcStatus() === 'err'"
+              [class.status-neutral]="getPlcStatus() === 'unknown'">
               <div class="status-icon">
-                <i class="fas fa-microchip" style="color: #718096;"></i>
+                <i class="fas fa-microchip"
+                  [class.text-success]="getPlcStatus() === 'ok'"
+                  [class.text-warning]="getPlcStatus() === 'warn'"
+                  [class.text-danger]="getPlcStatus() === 'err'"
+                  [style.color]="getPlcStatus() === 'unknown' ? '#718096' : ''"></i>
               </div>
               <div class="status-label">PLC senast sedd</div>
-              <div class="status-value text-muted">{{ systemStatus.plc_last_seen ? (systemStatus.plc_last_seen | date:'HH:mm') : '—' }}</div>
-              <div class="status-sub text-muted small">{{ getPlcAge() }}</div>
+              <div class="status-value"
+                [class.text-success]="getPlcStatus() === 'ok'"
+                [class.text-warning]="getPlcStatus() === 'warn'"
+                [class.text-danger]="getPlcStatus() === 'err'"
+                [class.text-muted]="getPlcStatus() === 'unknown'">
+                {{ getPlcAge() }}
+              </div>
+              <div class="status-sub text-muted small" *ngIf="systemStatus.plc_last_seen">
+                {{ systemStatus.plc_last_seen | date:'HH:mm:ss' }}
+              </div>
             </div>
           </div>
 
           <!-- Databas -->
           <div class="col-6 col-md-3">
-            <div class="status-card" [class.status-ok]="systemStatus.db_status === 'ok'" [class.status-err]="systemStatus.db_status !== 'ok'">
+            <div class="status-card"
+              [class.status-ok]="systemStatus.db_status === 'ok'"
+              [class.status-err]="systemStatus.db_status !== 'ok'">
               <div class="status-icon">
-                <i class="fas fa-database" [class.text-success]="systemStatus.db_status === 'ok'" [class.text-danger]="systemStatus.db_status !== 'ok'"></i>
+                <i class="fas fa-database"
+                  [class.text-success]="systemStatus.db_status === 'ok'"
+                  [class.text-danger]="systemStatus.db_status !== 'ok'"></i>
               </div>
               <div class="status-label">Databas</div>
-              <div class="status-value" [class.text-success]="systemStatus.db_status === 'ok'" [class.text-danger]="systemStatus.db_status !== 'ok'">
+              <div class="status-value"
+                [class.text-success]="systemStatus.db_status === 'ok'"
+                [class.text-danger]="systemStatus.db_status !== 'ok'">
                 {{ getDbStatusLabel() }}
               </div>
             </div>
           </div>
 
-          <!-- Lösnummer -->
+          <!-- Poster idag -->
           <div class="col-6 col-md-3">
             <div class="status-card status-neutral">
               <div class="status-icon">
-                <i class="fas fa-hashtag" style="color: #718096;"></i>
+                <i class="fas fa-database" style="color: #63b3ed;"></i>
               </div>
-              <div class="status-label">Senaste lösnr</div>
-              <div class="status-value text-muted">{{ systemStatus.losnummer ?? '—' }}</div>
+              <div class="status-label">Poster idag</div>
+              <div class="status-value text-info">{{ systemStatus.poster_idag ?? 0 }}</div>
+              <div class="status-sub text-muted small">rader i tvattlinje_ibc</div>
             </div>
           </div>
         </div>
@@ -236,6 +366,25 @@
           <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayGoalsError }}
         </div>
 
+        <!-- Snabbval -->
+        <div class="weekday-tools d-flex align-items-center gap-3 mb-3">
+          <label class="form-label fw-semibold mb-0 text-muted small">
+            <i class="fas fa-magic me-1"></i>Snabbval:
+          </label>
+          <input
+            type="number"
+            class="form-control form-control-sm"
+            [(ngModel)]="snabbvarde"
+            name="snabbvarde"
+            min="0"
+            max="500"
+            style="max-width: 90px;"
+            placeholder="Värde">
+          <button class="btn btn-sm btn-outline-info" (click)="settAllaVeckodagsmal()">
+            <i class="fas fa-arrow-right me-1"></i>Sätt alla till {{ snabbvarde }}
+          </button>
+        </div>
+
         <div class="table-responsive" *ngIf="weekdayGoals.length > 0">
           <table class="table table-sm align-middle mb-3" style="max-width: 480px;">
             <thead>
@@ -298,6 +447,98 @@
             [disabled]="weekdayGoalsLoading || weekdayGoalsSaving">
             <i class="fas fa-undo me-2"></i>Återställ
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== ALERT-TRÖSKLAR (KOLLAPSBAR) ======== -->
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-bell me-2 text-danger"></i>
+          Alert-tröskelkonfiguration
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span *ngIf="alertThresholdsLoading" class="spinner-border spinner-border-sm text-secondary" role="status"></span>
+          <button class="btn btn-sm btn-outline-secondary" (click)="showAlertPanel = !showAlertPanel">
+            <i class="fas" [class.fa-chevron-down]="!showAlertPanel" [class.fa-chevron-up]="showAlertPanel"></i>
+            {{ showAlertPanel ? 'Dölj' : 'Visa' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body" *ngIf="showAlertPanel">
+        <p class="text-muted small mb-3">
+          Konfigurera tröskelvärden för automatiska varningar. Ändringarna gäller omedelbart när de sparas.
+        </p>
+        <div *ngIf="alertThresholdsError" class="alert alert-danger mb-3">
+          <i class="fas fa-exclamation-triangle me-2"></i>{{ alertThresholdsError }}
+        </div>
+        <div class="row g-3">
+          <!-- Kvalitet-varning -->
+          <div class="col-md-4">
+            <div class="threshold-card threshold-warn">
+              <label class="form-label fw-semibold">
+                <i class="fas fa-star me-1 text-warning"></i>Kvalitet-varning under (%)
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="alertThresholds.kvalitet_warn"
+                min="0"
+                max="100">
+              <div class="form-text">Varning när kvalitetsprocenten sjunker under detta värde.</div>
+            </div>
+          </div>
+          <!-- Max tid utan PLC -->
+          <div class="col-md-4">
+            <div class="threshold-card threshold-danger">
+              <label class="form-label fw-semibold">
+                <i class="fas fa-plug me-1 text-danger"></i>Max tid utan PLC-data (min)
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="alertThresholds.plc_max_min"
+                min="1"
+                max="480">
+              <div class="form-text">Triggrar PLC-varning om inga data inkommit på X minuter.</div>
+            </div>
+          </div>
+          <!-- Dagsmål-varning -->
+          <div class="col-md-4">
+            <div class="threshold-card threshold-warn">
+              <label class="form-label fw-semibold">
+                <i class="fas fa-chart-bar me-1 text-warning"></i>Dagsmål-varning vid (% under mål)
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="alertThresholds.dagmal_warn_pct"
+                min="0"
+                max="100">
+              <div class="form-text">Varning när produktionen är under X% av dagsmålet.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 d-flex gap-2 align-items-center">
+          <button class="btn btn-danger" (click)="saveAlertThresholds()" [disabled]="alertThresholdsSaving">
+            <span *ngIf="alertThresholdsSaving" class="spinner-border spinner-border-sm me-2"></span>
+            <i *ngIf="!alertThresholdsSaving" class="fas fa-save me-2"></i>
+            {{ alertThresholdsSaving ? 'Sparar...' : 'Spara trösklar' }}
+          </button>
+          <span *ngIf="alertThresholdsSaved" class="text-success small">
+            <i class="fas fa-check me-1"></i>Trösklar sparade
+          </span>
+        </div>
+      </div>
+
+      <!-- Sammanfattning när panelen är dold -->
+      <div class="card-body py-2" *ngIf="!showAlertPanel && !alertThresholdsLoading">
+        <div class="d-flex flex-wrap gap-3 text-muted small">
+          <span><i class="fas fa-star text-warning me-1"></i>Kvalitet: {{ alertThresholds.kvalitet_warn }}%</span>
+          <span><i class="fas fa-plug text-danger me-1"></i>PLC max: {{ alertThresholds.plc_max_min }} min</span>
+          <span><i class="fas fa-chart-bar text-warning me-1"></i>Dagsmål-varning: {{ alertThresholds.dagmal_warn_pct }}%</span>
         </div>
       </div>
     </div>

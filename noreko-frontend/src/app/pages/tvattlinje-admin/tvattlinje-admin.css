@@ -251,6 +251,80 @@
   border-color: #e53e3e !important;
 }
 
+/* ---- Snapshot-kort ---- */
+.snapshot-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.3s ease;
+}
+
+.snapshot-card.snapshot-green  { border-color: #38a169; }
+.snapshot-card.snapshot-orange { border-color: #d69e2e; }
+.snapshot-card.snapshot-red    { border-color: #e53e3e; }
+
+.snapshot-kpi {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
+.snapshot-kpi-label {
+  font-size: 0.68rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.snapshot-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.snapshot-kpi-sub {
+  font-size: 0.7rem;
+  margin-top: 3px;
+}
+
+.snapshot-kpi-bar-bg {
+  background: #2d3748;
+  border-radius: 4px;
+  height: 5px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.snapshot-kpi-bar {
+  height: 5px;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.snapshot-kpi-bar.bar-green  { background: #38a169; }
+.snapshot-kpi-bar.bar-orange { background: #d69e2e; }
+.snapshot-kpi-bar.bar-red    { background: #e53e3e; }
+
+/* ---- Alert-trösklar ---- */
+.threshold-card {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 14px;
+  border-left: 3px solid transparent;
+  height: 100%;
+}
+
+.threshold-card.threshold-warn   { border-left-color: #d69e2e; }
+.threshold-card.threshold-danger { border-left-color: #e53e3e; }
+
+/* ---- Veckodagsmål snabbval ---- */
+.weekday-tools {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
 /* ---- Responsive ---- */
 @media (max-width: 768px) {
   .admin-header .d-flex {
@@ -260,5 +334,9 @@
 
   .status-card {
     padding: 1rem;
+  }
+
+  .snapshot-kpi-value {
+    font-size: 1.2rem;
   }
 }

@@ -1640,6 +1640,14 @@ Commit: `36cc313` | Pushad till GitHub main.
 - Backend: `personal-bests` + `monthly-leaders` endpoints i RebotlingController. SQL mot `rebotling_skiftrapport` + `operators` (kolumn `number`/`name`).
 - Service: `getPersonalBests()` + `getMonthlyLeaders()` + TypeScript-interfaces i `rebotling.service.ts`.
 - Byggt och pushat: commit `2fbf201`.
+## 2026-03-04
+**Custom Date Range Picker — Heatmap-vy (rebotling-statistik)**
+Implementerat anpassat datumintervall (Från–Till) i heatmap-vyn på /rebotling/statistik.
+- Datum-inputs visas bredvid befintliga period-knappar (7/14/30/60/90d) när heatmap är aktiv
+- Backend: getHeatmap, getOEETrend, getCycleTrend accepterar nu from_date+to_date som alternativ till days
+- Frontend: applyHeatmapCustomRange(), clearHeatmapCustomRange(), buildHeatmapRowsForRange()
+- Val av fast period rensar custom-intervallet automatiskt och vice versa
+- Bygg OK, commit + push: 6d776f6
 
 # MauserDB Dev Log
 

@@ -20,6 +20,8 @@ class KlassificeringslinjeController {
                 $this->getWeekdayGoals();
             } elseif ($action === 'system-status') {
                 $this->getSystemStatus();
+            } elseif ($action === 'today-snapshot') {
+                $this->getTodaySnapshot();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
             } elseif ($action === 'statistics') {
@@ -233,6 +235,85 @@ class KlassificeringslinjeController {
         } catch (\Exception $e) {
             error_log('KlassificeringslinjeController setWeekdayGoals: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål']);
+        }
+    }
+
+    // =========================================================
+    // Today-snapshot — dagens produktionsöversikt
+    // =========================================================
+
+    private function getTodaySnapshot() {
+        try {
+            // Summera IBC idag via delta per skiftraknare
+            $ibcIdag = 0;
+            $senasteDatum = null;
+            try {
+                $stmt = $this->pdo->query("
+                    SELECT SUM(delta_ok) AS ibc_idag
+                    FROM (
+                        SELECT MAX(ibc_count) - MIN(ibc_count) AS delta_ok
+                        FROM klassificeringslinje_ibc
+                        WHERE DATE(datum) = CURDATE()
+                        GROUP BY skiftraknare
+                    ) x
+                ");
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $ibcIdag = max(0, (int)($row['ibc_idag'] ?? 0));
+            } catch (\Exception $e) { /* tabell kanske inte finns */ }
+
+            // Senaste PLC-record — kontrollera om linjen kör
+            $isRunning = false;
+            try {
+                $row = $this->pdo->query("SELECT MAX(datum) as last_ts FROM klassificeringslinje_ibc")->fetch(\PDO::FETCH_ASSOC);
+                if ($row && $row['last_ts']) {
+                    $senasteDatum = $row['last_ts'];
+                    $lastDt = new \DateTime($row['last_ts']);
+                    $now    = new \DateTime();
+                    $diffMin = ($now->getTimestamp() - $lastDt->getTimestamp()) / 60;
+                    $isRunning = ($diffMin < 15);
+                }
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Dagsmål från settings
+            $dagmal = 0;
+            try {
+                $this->ensureSettingsTable();
+                $val = $this->pdo->query("SELECT value FROM klassificeringslinje_settings WHERE setting = 'dagmal'")->fetchColumn();
+                $dagmal = (int)($val ?? 0);
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Tomt om ingen data idag
+            if ($ibcIdag === 0 && !$isRunning) {
+                echo json_encode([
+                    'success' => true,
+                    'data' => [
+                        'empty'         => true,
+                        'ibc_idag'      => 0,
+                        'dagmal'        => $dagmal,
+                        'is_running'    => false,
+                        'pct_of_goal'   => 0,
+                        'senaste_datum' => $senasteDatum,
+                    ]
+                ]);
+                return;
+            }
+
+            $pctOfGoal = ($dagmal > 0) ? round(($ibcIdag / $dagmal) * 100, 1) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'empty'         => false,
+                    'ibc_idag'      => $ibcIdag,
+                    'dagmal'        => $dagmal,
+                    'is_running'    => $isRunning,
+                    'pct_of_goal'   => $pctOfGoal,
+                    'senaste_datum' => $senasteDatum,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            error_log('KlassificeringslinjeController getTodaySnapshot: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot']);
         }
     }
 

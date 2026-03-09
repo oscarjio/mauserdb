@@ -143,6 +143,24 @@ class RebotlingController {
                 $this->getSkiftKommentar();
             } elseif ($action === 'events') {
                 $this->getEvents();
+            } elseif ($action === 'stoppage-analysis') {
+                $this->getStoppageAnalysis();
+            } elseif ($action === 'pareto-stoppage') {
+                $this->getParetoStoppage();
+            } elseif ($action === 'alert-thresholds') {
+                $this->getAlertThresholds();
+            } elseif ($action === 'today-snapshot') {
+                $this->getTodaySnapshot();
+            } elseif ($action === 'cycle-by-operator') {
+                $this->getCycleByOperator();
+            } elseif ($action === 'shift-trend') {
+                $this->getShiftTrend();
+            } elseif ($action === 'all-lines-status') {
+                $this->getAllLinesStatus();
+            } elseif ($action === 'notification-settings') {
+                $this->getNotificationSettings();
+            } elseif ($action === 'live-ranking-settings') {
+                $this->getLiveRankingSettings();
             } elseif ($action === 'personal-bests') {
                 $this->getPersonalBests();
             } elseif ($action === 'hall-of-fame') {
@@ -2018,7 +2036,61 @@ class RebotlingController {
             echo json_encode(['success' => false, 'error' => 'Serverfel']);
         }
     }
+    /**
+     * GET ?action=rebotling&run=live-ranking-settings
+     */
+    private function getLiveRankingSettings(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        try {
+            $keys = ['lr_show_quality', 'lr_show_progress', 'lr_show_motto', 'lr_poll_interval', 'lr_title'];
+            $placeholders = implode(',', array_fill(0, count($keys), '?'));
+            $stmt = $this->pdo->prepare("SELECT `key`, `value` FROM rebotling_settings WHERE `key` IN ($placeholders)");
+            $stmt->execute($keys);
+            $rows = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+            echo json_encode(['success' => true, 'data' => [
+                'lr_show_quality'  => ($rows['lr_show_quality']  ?? '1') === '1',
+                'lr_show_progress' => ($rows['lr_show_progress'] ?? '1') === '1',
+                'lr_show_motto'    => ($rows['lr_show_motto']    ?? '1') === '1',
+                'lr_poll_interval' => intval($rows['lr_poll_interval'] ?? 30),
+                'lr_title'         => $rows['lr_title'] ?? 'Live Ranking',
+            ]]);
+        } catch (Exception $e) {
+            error_log('getLiveRankingSettings: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
 
+    /**
+     * POST ?action=rebotling&run=save-live-ranking-settings
+     */
+    private function saveLiveRankingSettings(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        if (($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Ej behörig']);
+            return;
+        }
+        try {
+            $body = json_decode(file_get_contents('php://input'), true) ?? [];
+            $settings = [
+                'lr_show_quality'  => isset($body['lr_show_quality'])  ? ($body['lr_show_quality']  ? '1' : '0') : '1',
+                'lr_show_progress' => isset($body['lr_show_progress']) ? ($body['lr_show_progress'] ? '1' : '0') : '1',
+                'lr_show_motto'    => isset($body['lr_show_motto'])    ? ($body['lr_show_motto']    ? '1' : '0') : '1',
+                'lr_poll_interval' => strval(max(10, min(120, intval($body['lr_poll_interval'] ?? 30)))),
+                'lr_title'         => substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
+            ];
+            $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
+            foreach ($settings as $k => $v) {
+                $stmt->execute([$k, $v]);
+            }
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            error_log('saveLiveRankingSettings: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+        }
+    }
 
     /**
      * GET ?action=rebotling&run=goal-history

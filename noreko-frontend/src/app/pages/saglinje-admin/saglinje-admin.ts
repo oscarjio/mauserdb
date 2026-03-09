@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
 import { SaglinjeService } from '../../services/saglinje.service';
 
@@ -51,6 +52,12 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
   private systemStatusInterval: any = null;
   private isFetchingStatus = false;
 
+  // ---- Today-snapshot ----
+  todaySnapshot: any = null;
+  todaySnapshotLoading = false;
+  private todaySnapshotInterval: any = null;
+  private isFetchingSnapshot = false;
+
   // ---- Feedback ----
   showSuccessMessage = false;
   successMessage     = '';
@@ -59,7 +66,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
   // ---- Visibilitychange-guard ----
   private visibilityHandler = () => this.onVisibilityChange();
 
-  constructor(private auth: AuthService, private saglinjeService: SaglinjeService) {
+  constructor(private auth: AuthService, private saglinjeService: SaglinjeService, private http: HttpClient) {
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => this.loggedIn = val);
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.user   = val;
@@ -254,6 +261,47 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
 
   getDbStatusLabel(): string {
     return this.systemStatus?.db_status === 'ok' ? 'OK' : 'Fel';
+  }
+
+  // ---- Today-snapshot ----
+
+  loadTodaySnapshot() {
+    if (this.isFetchingSnapshot) return;
+    this.isFetchingSnapshot  = true;
+    this.todaySnapshotLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=saglinje&run=today-snapshot', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          this.isFetchingSnapshot  = false;
+          this.todaySnapshotLoading = false;
+          if (res?.success) this.todaySnapshot = res.data;
+        },
+        error: () => {
+          this.isFetchingSnapshot  = false;
+          this.todaySnapshotLoading = false;
+        }
+      });
+  }
+
+  get snapshotStatusText(): string {
+    if (!this.todaySnapshot) return '';
+    if (this.todaySnapshot.empty) return 'Ej i drift';
+    return this.todaySnapshot.is_running ? 'Kör' : 'Stoppad';
+  }
+
+  get snapshotColorClass(): string {
+    if (!this.todaySnapshot || this.todaySnapshot.empty) return 'text-secondary';
+    if (!this.todaySnapshot.is_running) return 'text-secondary';
+    const pct = this.todaySnapshot.pct_of_goal ?? 0;
+    if (pct >= 100) return 'text-success';
+    if (pct >= 75)  return 'text-warning';
+    return 'text-danger';
+  }
+
+  get snapshotDotClass(): string {
+    if (!this.todaySnapshot || this.todaySnapshot.empty) return 'dot-off';
+    return this.todaySnapshot.is_running ? 'dot-on' : 'dot-off';
   }
 
   // ---- Hjälpmetoder ----

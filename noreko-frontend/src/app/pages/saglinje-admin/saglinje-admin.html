@@ -32,16 +32,60 @@
     </div>
   </div>
 
+  <!-- ======== KOMPAKT STATUSRAD ======== -->
+  <div class="status-bar" *ngIf="todaySnapshot">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <span class="status-dot-wrap">
+          <span class="status-dot" [class.dot-on]="snapshotDotClass === 'dot-on'" [class.dot-off]="snapshotDotClass === 'dot-off'"></span>
+          <span class="ms-1 fw-semibold" [ngClass]="snapshotColorClass">Linjen {{ snapshotStatusText }}</span>
+        </span>
+        <span class="separator">|</span>
+        <span>
+          Idag:
+          <strong [ngClass]="snapshotColorClass">{{ todaySnapshot.ibc_idag ?? 0 }}</strong>
+          enheter
+        </span>
+        <span class="separator">|</span>
+        <span>
+          Mål: <strong>{{ todaySnapshot.dagmal ?? 0 }}</strong>
+        </span>
+        <span class="separator">|</span>
+        <span *ngIf="!todaySnapshot.empty">
+          <span [ngClass]="snapshotColorClass" class="fw-semibold">{{ todaySnapshot.pct_of_goal ?? 0 }}%</span>
+          av dagsmålet
+        </span>
+        <span *ngIf="todaySnapshot.empty" class="text-muted fst-italic">
+          Ingen produktion idag — ej i drift
+        </span>
+        <span class="ms-auto text-muted small" *ngIf="todaySnapshotLoading">
+          <i class="fas fa-circle-notch fa-spin me-1"></i>Uppdaterar...
+        </span>
+      </div>
+    </div>
+  </div>
+
   <div class="container-fluid py-4">
 
     <!-- ======== EJ I DRIFT-BANNER ======== -->
     <div class="alert d-flex align-items-start mb-4 not-running-banner" role="alert">
       <i class="fas fa-tools me-3 fs-5 mt-1" style="color: #63b3ed;"></i>
-      <div>
+      <div class="flex-grow-1">
         <strong style="color: #90cdf4;">Såglinjen är ej i drift</strong>
         <div class="mt-1" style="font-size: 0.875rem; color: #a0aec0;">
           Konfigurera inställningarna i förväg så att systemet är redo när linjen driftsätts.
           Alla inställningar sparas och aktiveras automatiskt vid uppstart.
+        </div>
+        <div class="mt-2 d-flex align-items-center gap-3 flex-wrap" style="font-size: 0.8rem;">
+          <span *ngIf="todaySnapshot?.senaste_datum" class="text-muted">
+            <i class="fas fa-history me-1"></i>
+            Senast aktiv: <strong style="color: #a0aec0;">{{ todaySnapshot.senaste_datum | date:'yyyy-MM-dd HH:mm' }}</strong>
+          </span>
+          <a href="mailto:admin@noreko.se?subject=Igångsättning+Såglinjen"
+             class="btn btn-sm btn-outline-info"
+             style="font-size: 0.78rem; padding: 0.2rem 0.6rem;">
+            <i class="fas fa-envelope me-1"></i>Rapportera igångsättning
+          </a>
         </div>
       </div>
     </div>
@@ -113,14 +157,19 @@
             </div>
           </div>
 
-          <!-- Lösnummer -->
+          <!-- Idag snapshot -->
           <div class="col-6 col-md-3">
             <div class="status-card status-neutral">
               <div class="status-icon">
-                <i class="fas fa-hashtag" style="color: #718096;"></i>
+                <i class="fas fa-chart-bar" style="color: #718096;"></i>
               </div>
-              <div class="status-label">Senaste lösnr</div>
-              <div class="status-value text-muted">{{ systemStatus.losnummer ?? '—' }}</div>
+              <div class="status-label">Enheter idag</div>
+              <div class="status-value" [ngClass]="snapshotColorClass">
+                {{ todaySnapshot?.ibc_idag ?? '—' }}
+              </div>
+              <div class="status-sub text-muted small" *ngIf="todaySnapshot?.dagmal">
+                Mål: {{ todaySnapshot.dagmal }}
+              </div>
             </div>
           </div>
         </div>

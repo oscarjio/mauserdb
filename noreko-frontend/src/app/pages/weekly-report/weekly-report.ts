@@ -893,7 +893,7 @@ interface WeekCompare {
               </td>
               <td>{{ op.snitt_ibc_per_h | number:'1.1-1' }}</td>
               <td [class.text-green]="op.kvalitet_pct >= 98"
-                  [class.text-yellow]="op.kvalitet_pct >= 95 && op.kvalitet_pct < 98"
+                  [class.text-yellow]="op.kvalitet_pct >= 95 && op.kvalitet_pct < 95"
                   [class.text-red]="op.kvalitet_pct < 95">
                 {{ op.kvalitet_pct | number:'1.1-1' }}%
               </td>

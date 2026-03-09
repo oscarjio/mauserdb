@@ -22,6 +22,10 @@ class TvattlinjeController {
                 $this->getWeekdayGoals();
             } elseif ($action === 'system-status') {
                 $this->getSystemStatus();
+            } elseif ($action === 'today-snapshot') {
+                $this->getTodaySnapshot();
+            } elseif ($action === 'alert-thresholds') {
+                $this->getAlertThresholds();
             } elseif ($action === 'status') {
                 $this->getRunningStatus();
             } elseif ($action === 'statistics') {
@@ -67,6 +71,17 @@ class TvattlinjeController {
                     return;
                 }
                 $this->setWeekdayGoals();
+                return;
+            }
+
+            if ($action === 'save-alert-thresholds') {
+                if (session_status() === PHP_SESSION_NONE) session_start();
+                if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                    http_response_code(403);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    return;
+                }
+                $this->saveAlertThresholds();
                 return;
             }
         }
@@ -143,27 +158,40 @@ class TvattlinjeController {
 
     private function getSystemStatus() {
         try {
+            $tz  = new \DateTimeZone('Europe/Stockholm');
+            $now = new \DateTime('now', $tz);
+
             $plcLastSeen   = null;
             $plcAgeMinutes = null;
 
-            // Försök hämta senaste PLC-signal (tvattlinje_ibc)
+            // Senaste PLC-signal (tvattlinje_ibc)
             try {
                 $row = $this->pdo->query("SELECT MAX(datum) as last_ping FROM tvattlinje_ibc")->fetch(\PDO::FETCH_ASSOC);
                 if ($row && $row['last_ping']) {
-                    $plcLastSeen   = $row['last_ping'];
-                    $lastDt        = new \DateTime($plcLastSeen);
-                    $now           = new \DateTime();
-                    $diff          = $now->diff($lastDt);
+                    $plcLastSeen  = $row['last_ping'];
+                    $lastDt       = new \DateTime($plcLastSeen, $tz);
+                    $diff         = $now->diff($lastDt);
                     $plcAgeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                 }
             } catch (\Exception $e) { /* ignorera — tabellen kanske inte finns */ }
 
-            // Lösnummer: försök om tabellen finns
+            // Lösnummer
             $losnummer = null;
             try {
                 $row = $this->pdo->query("SELECT ibc_count FROM tvattlinje_ibc ORDER BY datum DESC LIMIT 1")->fetch(\PDO::FETCH_ASSOC);
                 $losnummer = $row ? (int)$row['ibc_count'] : null;
             } catch (\Exception $e) { /* ignorera */ }
+
+            // Antal poster idag
+            $posterIdag = 0;
+            try {
+                $posterIdag = (int)$this->pdo->query(
+                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
+                )->fetchColumn();
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Är linjen i drift? PLC-data < 15 min gammal
+            $isRunning = ($plcAgeMinutes !== null && $plcAgeMinutes < 15);
 
             // Databas OK
             $dbStatus = 'ok';
@@ -173,6 +201,9 @@ class TvattlinjeController {
                 $dbStatus = 'error';
             }
 
+            // Linjenotering
+            $note = $isRunning ? 'Linjen i drift' : 'Linjen ej i drift';
+
             echo json_encode([
                 'success' => true,
                 'data' => [
@@ -180,13 +211,200 @@ class TvattlinjeController {
                     'plc_age_minutes'  => $plcAgeMinutes,
                     'db_status'        => $dbStatus,
                     'losnummer'        => $losnummer,
-                    'note'             => 'Linjen ej i drift',
-                    'server_time'      => date('Y-m-d H:i:s'),
+                    'poster_idag'      => $posterIdag,
+                    'is_running'       => $isRunning,
+                    'note'             => $note,
+                    'server_time'      => $now->format('Y-m-d H:i:s'),
                 ]
             ]);
         } catch (\Exception $e) {
             error_log('TvattlinjeController getSystemStatus: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus']);
+        }
+    }
+
+    // =========================================================
+    // Today-snapshot — snabb produktionsöversikt för idag
+    // =========================================================
+
+    private function getTodaySnapshot() {
+        try {
+            $tz  = new \DateTimeZone('Europe/Stockholm');
+            $now = new \DateTime('now', $tz);
+
+            // IBC idag — antal rader i tvattlinje_ibc
+            $ibcIdag = 0;
+            try {
+                $ibcIdag = (int)$this->pdo->query(
+                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE DATE(datum) = CURDATE()"
+                )->fetchColumn();
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Dagsmål — veckodagsmål (0=Måndag, PHP ISO-1 → 0-index: ISO-1)
+            $dagmal = 80;
+            try {
+                $this->ensureSettingsTable();
+                $sr = $this->pdo->query(
+                    "SELECT value FROM tvattlinje_settings WHERE setting = 'dagmal'"
+                )->fetch(\PDO::FETCH_ASSOC);
+                if ($sr) $dagmal = (int)$sr['value'];
+
+                // Veckodagsmål: PHP ISO 1=Måndag → weekday index 0-6
+                $isoDay = (int)$now->format('N') - 1; // 0=Måndag
+                try {
+                    $this->ensureWeekdayGoalsTable();
+                    $wg = $this->pdo->prepare(
+                        "SELECT mal FROM tvattlinje_weekday_goals WHERE weekday = ?"
+                    );
+                    $wg->execute([$isoDay]);
+                    $wgRow = $wg->fetch(\PDO::FETCH_ASSOC);
+                    if ($wgRow && (int)$wgRow['mal'] > 0) {
+                        $dagmal = (int)$wgRow['mal'];
+                    }
+                } catch (\Exception $e) { /* ignorera */ }
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Linjen kör? (senaste PLC < 15 min gammal)
+            $isRunning = false;
+            try {
+                $row = $this->pdo->query(
+                    "SELECT MAX(datum) as last_ping FROM tvattlinje_ibc"
+                )->fetch(\PDO::FETCH_ASSOC);
+                if ($row && $row['last_ping']) {
+                    $lastDt = new \DateTime($row['last_ping'], $tz);
+                    $diff   = $now->diff($lastDt);
+                    $ageMin = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
+                    $isRunning = ($ageMin < 15);
+                }
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Takt: IBC per timme senaste 2 timmar
+            $taktPerTimme = 0.0;
+            try {
+                $cnt = (int)$this->pdo->query(
+                    "SELECT COUNT(*) FROM tvattlinje_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 2 HOUR)"
+                )->fetchColumn();
+                $taktPerTimme = round($cnt / 2.0, 1);
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Skiftlängd
+            $skiftTimmar = 8.0;
+            try {
+                $sr = $this->pdo->query(
+                    "SELECT value FROM tvattlinje_settings WHERE setting = 'skift_start'"
+                )->fetch(\PDO::FETCH_ASSOC);
+                $skiftStart = $sr ? $sr['value'] : '06:00';
+                $sr2 = $this->pdo->query(
+                    "SELECT value FROM tvattlinje_settings WHERE setting = 'skift_slut'"
+                )->fetch(\PDO::FETCH_ASSOC);
+                $skiftSlut = $sr2 ? $sr2['value'] : '22:00';
+
+                $startDt = new \DateTime($now->format('Y-m-d') . ' ' . $skiftStart, $tz);
+                $slutDt  = new \DateTime($now->format('Y-m-d') . ' ' . $skiftSlut,  $tz);
+                if ($slutDt > $startDt) {
+                    $skiftTimmar = ($slutDt->getTimestamp() - $startDt->getTimestamp()) / 3600.0;
+                }
+            } catch (\Exception $e) { /* ignorera */ }
+
+            // Prognos
+            $shiftStart = new \DateTime($now->format('Y-m-d') . ' 06:00:00', $tz);
+            $minSinceStart = max(1, ($now->getTimestamp() - $shiftStart->getTimestamp()) / 60);
+            $remainingMin  = max(0, ($skiftTimmar * 60) - $minSinceStart);
+            $prognos = (int)round($ibcIdag + ($taktPerTimme / 60.0) * $remainingMin);
+
+            $pctOfGoal = $dagmal > 0 ? round($ibcIdag / $dagmal * 100, 1) : 0;
+
+            // Tom dag?
+            $empty = ($ibcIdag === 0);
+
+            echo json_encode([
+                'success'      => true,
+                'empty'        => $empty,
+                'data' => [
+                    'ibc_idag'      => $ibcIdag,
+                    'dagmal'        => $dagmal,
+                    'pct_of_goal'   => $pctOfGoal,
+                    'takt_per_h'    => $taktPerTimme,
+                    'prognos'       => $prognos,
+                    'is_running'    => $isRunning,
+                    'server_time'   => $now->format('H:i:s'),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getTodaySnapshot: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot']);
+        }
+    }
+
+    // =========================================================
+    // Alert-trösklar — sparas som JSON i tvattlinje_settings
+    // =========================================================
+
+    private function defaultAlertThresholds(): array {
+        return [
+            'kvalitet_warn'  => 90,
+            'plc_max_min'    => 15,
+            'dagmal_warn_pct'=> 80,
+        ];
+    }
+
+    private function ensureAlertThresholdsRow() {
+        $this->ensureSettingsTable();
+        $stmt = $this->pdo->prepare(
+            "INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES ('alert_thresholds', ?)"
+        );
+        $stmt->execute([json_encode($this->defaultAlertThresholds())]);
+    }
+
+    private function getAlertThresholds() {
+        try {
+            $this->ensureAlertThresholdsRow();
+            $row = $this->pdo->query(
+                "SELECT value FROM tvattlinje_settings WHERE setting = 'alert_thresholds'"
+            )->fetch(\PDO::FETCH_ASSOC);
+
+            $defaults   = $this->defaultAlertThresholds();
+            $thresholds = $defaults;
+            if ($row && !empty($row['value'])) {
+                $saved = json_decode($row['value'], true);
+                if (is_array($saved)) {
+                    $thresholds = array_merge($defaults, $saved);
+                }
+            }
+            echo json_encode(['success' => true, 'data' => $thresholds]);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController getAlertThresholds: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar']);
+        }
+    }
+
+    private function saveAlertThresholds() {
+        $data = json_decode(file_get_contents('php://input'), true);
+        if (!is_array($data)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            return;
+        }
+        try {
+            $this->ensureAlertThresholdsRow();
+            $allowed = array_keys($this->defaultAlertThresholds());
+            $cleaned = [];
+            foreach ($allowed as $key) {
+                if (isset($data[$key])) {
+                    $cleaned[$key] = max(0, intval($data[$key]));
+                }
+            }
+            $json = json_encode($cleaned);
+            $stmt = $this->pdo->prepare(
+                "UPDATE tvattlinje_settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting = 'alert_thresholds'"
+            );
+            $stmt->execute([$json]);
+            AuditLogger::log($this->pdo, 'update_tvattlinje_alert_thresholds', 'tvattlinje_settings', null,
+                'thresholds=' . $json);
+            echo json_encode(['success' => true, 'message' => 'Alert-trösklar sparade']);
+        } catch (\Exception $e) {
+            error_log('TvattlinjeController saveAlertThresholds: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara alert-trösklar']);
         }
     }
 

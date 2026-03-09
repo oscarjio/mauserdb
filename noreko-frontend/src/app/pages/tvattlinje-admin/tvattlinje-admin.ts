@@ -53,6 +53,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   weekdayGoalsLoading = false;
   weekdayGoalsSaving = false;
   weekdayGoalsError = '';
+  snabbvarde = 80;
 
   // ---- Systemstatus ----
   systemStatus: any = null;
@@ -60,6 +61,24 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
   systemStatusError = '';
   private systemStatusInterval: any = null;
   private isFetchingStatus = false;
+
+  // ---- Today-snapshot ----
+  todaySnapshot: any = null;
+  todaySnapshotLoading = false;
+  private todaySnapshotInterval: any = null;
+  private isFetchingSnapshot = false;
+
+  // ---- Alert-trösklar ----
+  alertThresholds = {
+    kvalitet_warn:   90,
+    plc_max_min:     15,
+    dagmal_warn_pct: 80,
+  };
+  alertThresholdsLoading = false;
+  alertThresholdsSaving  = false;
+  alertThresholdsSaved   = false;
+  alertThresholdsError   = '';
+  showAlertPanel         = false;
 
   // ---- Feedback ----
   showSuccessMessage = false;
@@ -123,7 +142,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.loading = true;
     this.settingsError = '';
     this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=admin-settings', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -152,7 +171,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.settingsSaving = true;
     this.settingsError = '';
     this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=admin-settings', this.settings, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
           if (response.success) {
@@ -182,7 +201,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.newSettingsLoading = true;
     this.newSettingsError = '';
     this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=settings', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
           this.newSettingsLoading = false;
@@ -212,7 +231,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.newSettingsSaving = true;
     this.newSettingsError = '';
     this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=settings', this.newSettings, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
           this.newSettingsSaving = false;
@@ -235,7 +254,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.weekdayGoalsLoading = true;
     this.weekdayGoalsError = '';
     this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=weekday-goals', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsLoading = false;
@@ -246,7 +265,6 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
               label:   this.weekdayLabels[item.weekday] ?? `Dag ${item.weekday}`
             }));
           } else {
-            // Fallback: bygg default-lista
             this.weekdayGoals = this.weekdayLabels.map((label, i) => ({
               weekday: i,
               mal:     i < 5 ? 80 : i === 5 ? 60 : 0,
@@ -263,7 +281,7 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.weekdayGoalsError = '';
     const payload = { goals: this.weekdayGoals.map(g => ({ weekday: g.weekday, mal: g.mal })) };
     this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=weekday-goals', payload, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of({ success: false })))
       .subscribe({
         next: (response) => {
           this.weekdayGoalsSaving = false;
@@ -280,6 +298,11 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
       });
   }
 
+  settAllaVeckodagsmal() {
+    if (!this.snabbvarde || this.snabbvarde < 0) return;
+    this.weekdayGoals = this.weekdayGoals.map(g => ({ ...g, mal: this.snabbvarde }));
+  }
+
   // ---- Systemstatus ----
 
   loadSystemStatus(silent = false) {
@@ -290,12 +313,12 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
       this.systemStatusError = '';
     }
     this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=system-status', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$), timeout(5000), catchError(() => of({ success: false })))
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
       .subscribe({
         next: (response) => {
           this.isFetchingStatus = false;
           if (!silent) this.systemStatusLoading = false;
-          if (response.success) {
+          if (response?.success) {
             this.systemStatus = response.data;
           } else {
             if (!silent) this.systemStatusError = 'Kunde inte hämta systemstatus.';
@@ -319,8 +342,95 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     return `${min} min sedan`;
   }
 
+  getPlcStatus(): 'ok' | 'warn' | 'err' | 'unknown' {
+    if (this.systemStatus?.plc_age_minutes == null) return 'unknown';
+    const min = this.systemStatus.plc_age_minutes;
+    if (min < 15)  return 'ok';
+    if (min < 60)  return 'warn';
+    return 'err';
+  }
+
   getDbStatusLabel(): string {
     return this.systemStatus?.db_status === 'ok' ? 'OK' : 'Fel';
+  }
+
+  // ---- Today-snapshot ----
+
+  loadTodaySnapshot(silent = false) {
+    if (this.isFetchingSnapshot) return;
+    this.isFetchingSnapshot = true;
+    if (!silent) this.todaySnapshotLoading = true;
+    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=today-snapshot', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          this.isFetchingSnapshot = false;
+          if (!silent) this.todaySnapshotLoading = false;
+          if (res?.success) this.todaySnapshot = res.data;
+        },
+        error: () => {
+          this.isFetchingSnapshot = false;
+          if (!silent) this.todaySnapshotLoading = false;
+        }
+      });
+  }
+
+  get snapshotColorClass(): string {
+    if (!this.todaySnapshot) return 'text-secondary';
+    const pct = this.todaySnapshot.pct_of_goal;
+    if (pct >= 100) return 'text-success';
+    if (pct >= 80)  return 'text-warning';
+    return 'text-danger';
+  }
+
+  get snapshotBorderClass(): string {
+    if (!this.todaySnapshot) return '';
+    const pct = this.todaySnapshot.pct_of_goal;
+    if (pct >= 100) return 'snapshot-green';
+    if (pct >= 80)  return 'snapshot-orange';
+    return 'snapshot-red';
+  }
+
+  // ---- Alert-trösklar ----
+
+  loadAlertThresholds() {
+    this.alertThresholdsLoading = true;
+    this.alertThresholdsError   = '';
+    this.http.get<any>('/noreko-backend/api.php?action=tvattlinje&run=alert-thresholds', { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          if (res?.success && res.data) {
+            this.alertThresholds = { ...this.alertThresholds, ...res.data };
+          }
+          this.alertThresholdsLoading = false;
+        },
+        error: () => { this.alertThresholdsLoading = false; }
+      });
+  }
+
+  saveAlertThresholds() {
+    this.alertThresholdsSaving = true;
+    this.alertThresholdsSaved  = false;
+    this.alertThresholdsError  = '';
+    this.http.post<any>('/noreko-backend/api.php?action=tvattlinje&run=save-alert-thresholds',
+      this.alertThresholds, { withCredentials: true })
+      .pipe(takeUntil(this.destroy$), timeout(8000), catchError(() => of(null)))
+      .subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.alertThresholdsSaved = true;
+            setTimeout(() => { if (!this.destroy$.closed) this.alertThresholdsSaved = false; }, 3000);
+          } else {
+            this.alertThresholdsError = res?.error || 'Kunde inte spara trösklar';
+          }
+          this.alertThresholdsSaving = false;
+        },
+        error: () => {
+          this.alertThresholdsError = 'Serverfel vid sparning';
+          this.alertThresholdsSaving = false;
+        }
+      });
   }
 
   // ---- Hjälpmetoder ----
