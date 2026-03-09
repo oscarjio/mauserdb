@@ -1,8 +1,7 @@
 #!/bin/bash
-# lead-agent.sh — Ledaragenten som orkesterar allt utvecklingsarbete på mauserdb.
-# Körs av cron var 30 min. Hanterar rate limits och startar om automatiskt.
+# lead-agent.sh — Ledaragent för mauserdb. Körs av cron.
+# Analyserar läget, prioriterar, startar workers som kodar.
 
-# Viktiga env-variabler för headless/autonom drift
 export DISABLE_AUTOUPDATER=1
 export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
@@ -14,12 +13,9 @@ RATELIMIT_FILE="/tmp/mauserdb-ratelimit.txt"
 BUDGET_FILE="/tmp/mauserdb-budget.txt"
 MAX_LOG_LINES=2000
 BUDGET_WINDOW=18000   # 5 timmar i sekunder
-MAX_RUNS_PER_WINDOW=5 # max 5 körningar per 5h-fönster — lämnar marginal för ägaren
+MAX_RUNS_PER_WINDOW=3 # färre körningar, mer turns per körning
 
-# Se till att node/npm finns i PATH (för npx ng build i worker-agenter)
-export PATH="/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
-
-# Tillåt att köras utanför en aktiv Claude-session (t.ex. manuell testning)
+export PATH="/home/clawd/.local/bin:/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 unset CLAUDECODE
 
 # Förhindra parallella körningar
@@ -34,146 +30,111 @@ fi
 echo $$ > "$LOCKFILE"
 trap "rm -f $LOCKFILE" EXIT
 
-# Rotera log om den blir för stor
+# Rotera log
 if [ -f "$RUNLOG" ]; then
     LOG_LINES=$(wc -l < "$RUNLOG" 2>/dev/null || echo 0)
     if [ "$LOG_LINES" -gt "$MAX_LOG_LINES" ]; then
         tail -n 500 "$RUNLOG" > "${RUNLOG}.tmp" && mv "${RUNLOG}.tmp" "$RUNLOG"
-        echo "[$(date '+%Y-%m-%d %H:%M')] Log roterad (var $LOG_LINES rader)" >> "$RUNLOG"
+        echo "[$(date '+%Y-%m-%d %H:%M')] Log roterad" >> "$RUNLOG"
     fi
 fi
 
-# Token-budget: räkna körningar de senaste 5 timmarna
+# Budget-kontroll
 NOW=$(date +%s)
 WINDOW_START=$((NOW - BUDGET_WINDOW))
 touch "$BUDGET_FILE" 2>/dev/null || true
-
-# Filtrera bort tidsstämplar utanför fönstret
 awk -v ws="$WINDOW_START" '$1+0 > ws {print}' "$BUDGET_FILE" > "${BUDGET_FILE}.tmp" 2>/dev/null || true
 mv "${BUDGET_FILE}.tmp" "$BUDGET_FILE" 2>/dev/null || true
-
 RUNS_IN_WINDOW=$(wc -l < "$BUDGET_FILE" 2>/dev/null | tr -d ' ' || echo 0)
 
 if [ "$RUNS_IN_WINDOW" -ge "$MAX_RUNS_PER_WINDOW" ]; then
-    echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $RUNS_IN_WINDOW/$MAX_RUNS_PER_WINDOW körningar i 5h-fönstret — hoppar över för att bevara tokens för ägaren." >> "$RUNLOG"
+    echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $RUNS_IN_WINDOW/$MAX_RUNS_PER_WINDOW i 5h-fönstret — hoppar över." >> "$RUNLOG"
     exit 0
 fi
 
-# Registrera denna körning
 echo "$NOW" >> "$BUDGET_FILE"
-echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $((RUNS_IN_WINDOW + 1))/$MAX_RUNS_PER_WINDOW körningar i 5h-fönstret." >> "$RUNLOG"
-
-echo "[$(date '+%Y-%m-%d %H:%M')] ========== Lead-agent session startar ==========" >> "$RUNLOG"
+echo "[$(date '+%Y-%m-%d %H:%M')] BUDGET: $((RUNS_IN_WINDOW + 1))/$MAX_RUNS_PER_WINDOW. Session startar." >> "$RUNLOG"
 
 cd "$PROJECT"
 
-# Synka från remote: stasha lokala ändringar om det behövs
+# Synka från remote
 if git status --porcelain 2>/dev/null | grep -q '^[^?]'; then
-    echo "[$(date '+%Y-%m-%d %H:%M')] Stashar lokala ändringar inför git pull..." >> "$RUNLOG"
-    git stash push -m "lead-agent-auto-stash-$(date +%s)" >> "$RUNLOG" 2>&1 || true
+    git stash push -m "lead-auto-stash-$(date +%s)" >> "$RUNLOG" 2>&1 || true
     git pull --rebase origin main >> "$RUNLOG" 2>&1 || true
     git stash pop >> "$RUNLOG" 2>&1 || true
 else
     git pull --rebase origin main >> "$RUNLOG" 2>&1 || true
 fi
 
-# Samla kontext och skriv prompt till tempfil (undviker för stora shell-argument)
+# Bygg prompt
 RECENT_COMMITS=$(git log --oneline -10 2>/dev/null || echo "inga commits")
 PROMPT_FILE=$(mktemp /tmp/mauserdb-prompt-XXXXXX.md)
 
 cat > "$PROMPT_FILE" << ENDPROMPT
-Du är LEDARAGENTEN för projektet mauserdb — ett produktionssystem för ett IBC-tvätteri.
-Din roll: Senior programmeringsansvarig / tech lead. Du koordinerar allt arbete, håller projektet rörligt
-och fattar beslut om vad som ska prioriteras. Du skriver ALDRIG kod själv — du delegerar till worker-agenter.
+Du är LEDARAGENTEN för mauserdb — ett produktionssystem (IBC-tvätteri).
+Du koordinerar utvecklingen och startar worker-agenter som kodar.
 
-## Senaste git-commits:
+## Senaste commits:
 $RECENT_COMMITS
 
-## VIKTIGT: Läs dessa filer direkt med Read-verktyget för aktuell kontext:
-- /home/clawd/clawd/mauserdb/lead-memory.md — din backlog och beslutsdagbok
-- /home/clawd/clawd/mauserdb/dev-log.md (sista 60 raderna) — senaste aktivitet
+## STEG 1 — Läs kontext (gör detta SNABBT, lägg inte tid på analys)
+Läs dessa filer med Read:
+- /home/clawd/clawd/mauserdb/lead-memory.md (hela — den är kort nu, ~100 rader)
+- /home/clawd/clawd/mauserdb/dev-log.md (sista 30 raderna)
 
----
+## STEG 2 — Starta 2 worker-agenter (via Agent-verktyget)
+Starta dem PARALLELLT. Ge varje worker:
+- Tydliga instruktioner om EXAKT vilka filer de äger (ingen överlapp)
+- Separerade uppgifter från backloggen i lead-memory.md
+- En worker på ny feature/förbättring, en på buggjakt ELLER annan feature
 
-## Din uppgift denna session:
+Varje worker-prompt MÅSTE innehålla dessa regler:
+1. Rör ALDRIG: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/
+2. ALLTID bcrypt — ändra ALDRIG till sha1/md5
+3. ALDRIG röra dist/
+4. DB-ändringar → SQL i noreko-backend/migrations/ + git add -f
+5. All UI-text på svenska
+6. Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text, Bootstrap 5
+7. Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval/clearTimeout
+8. Bygg: cd /home/clawd/clawd/mauserdb/noreko-frontend && npx ng build
+9. Commit specifika filer (inte git add -A) och push
+10. Uppdatera dev-log.md med vad som gjorts
 
-### Steg 1 — Analysera läget
-- Läs lead-memory.md med Read-verktyget
-- Läs de sista 60 raderna av dev-log.md med Read-verktyget
-- Granska git-loggen (git log --oneline -20) för att se vad som committats
-- Identifiera vilka backlog-items som är klara vs fortfarande öppna
+## STEG 3 — Uppdatera lead-memory.md
+- Markera genomförda items med [x]
+- Lägg till 2-3 nya backlog-items baserat på vad som behövs
+- Uppdatera senaste beslut i BESLUTSDAGBOK (behåll max 3)
+- Håll filen UNDER 150 rader — flytta avslutade items till lead-memory-archive.md
 
-### Steg 2 — Uppdatera lead-memory.md
-Redigera /home/clawd/clawd/mauserdb/lead-memory.md:
-- Markera genomförda items med [x] och commit-hash
-- Lägg till nya observationer och tekniska insikter
-- Prioritera om backlog-listan
-- Skriv in beslut i BESLUTSDAGBOK
-- Uppdatera "Senast uppdaterad" datumet
+## STEG 4 — Commit och push
+git add lead-memory.md dev-log.md
+git commit -m "Lead: \$(date '+%Y-%m-%d') session-update"
+git push
 
-### Steg 3 — Starta worker-agenter
-⚠️ ÄGARENS DIREKTIV (2026-03-09): UTVECKLING ÅTERUPPTAGEN. Prioriteringar:
-1. FOKUS PÅ REBOTLING — det är den linje som är klar och får bra data
-2. Statistiksidan (rebotling-statistik) — förbättra med enkel överblick av produktion över tid
-3. Buggjakt — leta och fixa buggar löpande
-4. Övriga rebotling-sidor — utveckla och förbättra
-5. Enkel, tydlig överblick är nyckeln — VD ska förstå läget på 10 sekunder
-
-Starta MAX 2 parallella worker-agenter (via Task-verktyget).
-
-KRITISKT — sätt alltid max_turns: 60 i varje Task-anrop:
-\`\`\`
-Task(subagent_type="general-purpose", max_turns=60, prompt="...")
-\`\`\`
-
-Varje worker-agent ska:
-- Få tydliga instruktioner om EXAKT vilka filer de äger
-- Inte överlappa med varandra (separerade filuppsättningar)
-- ALDRIG röra livesidorna (rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live)
-- Bygga: \`cd /home/clawd/clawd/mauserdb/noreko-frontend && npx ng build\`
-- Commita specifika filer och pusha
-- Uppdatera dev-log.md
-
-### Steg 4 — Uppdatera dev-log.md
-Skriv en rad i /home/clawd/clawd/mauserdb/dev-log.md med vad som planeras denna session.
-
-### Steg 5 — Commit lead-memory och dev-log
-git -C /home/clawd/clawd/mauserdb add lead-memory.md dev-log.md
-git -C /home/clawd/clawd/mauserdb commit -m "Lead: $(date '+%Y-%m-%d') session-update"
-git -C /home/clawd/clawd/mauserdb push
-
----
-
-## ABSOLUTA REGLER:
-1. Rör ALDRIG: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live
-2. DB-ändringar → SQL i noreko-backend/migrations/ + \`git add -f\`
-3. All UI-text på svenska
-4. Angular dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text, Bootstrap 5
-5. Commit + push bara när en feature är klar och bygger klart
-6. Starta MAX 2 worker-agenter per session (spara token-budget så ägaren kan ställa frågor)
-7. Håll egna token-användning minimal — analysera snabbt, delegera direkt till workers
+## ÄGARENS PRIORITERING (2026-03-09):
+1. FOKUS REBOTLING — enda linjen med bra data
+2. Statistiksidan — enkel överblick produktion över tid
+3. Buggjakt löpande
+4. VD ska förstå läget på 10 sekunder
 
 ## Projektsökväg: /home/clawd/clawd/mauserdb/
-## Git remote: github.com:oscarjio/mauserdb.git branch main
 ENDPROMPT
 
-echo "[$(date '+%Y-%m-%d %H:%M')] Startar lead-agent Claude-session (prompt: $(wc -c < "$PROMPT_FILE") bytes)..." >> "$RUNLOG"
+echo "[$(date '+%Y-%m-%d %H:%M')] Startar Claude (prompt: $(wc -c < "$PROMPT_FILE") bytes)..." >> "$RUNLOG"
 
-# Kör Claude via stdin (undviker argument-storleksproblem) med streaming till log
 TMPOUT=$(mktemp)
-stdbuf -oL $CLAUDE --dangerously-skip-permissions --max-turns 45 --print "$(cat "$PROMPT_FILE")" 2>&1 | stdbuf -oL tee -a "$RUNLOG" > "$TMPOUT"
+stdbuf -oL $CLAUDE --dangerously-skip-permissions --max-turns 50 --print "$(cat "$PROMPT_FILE")" 2>&1 | stdbuf -oL tee -a "$RUNLOG" > "$TMPOUT"
 CLAUDE_EXIT=${PIPESTATUS[0]}
 rm -f "$PROMPT_FILE"
 
-echo "[$(date '+%Y-%m-%d %H:%M')] Claude avslutade med exit-kod: $CLAUDE_EXIT" >> "$RUNLOG"
+echo "[$(date '+%Y-%m-%d %H:%M')] Exit: $CLAUDE_EXIT" >> "$RUNLOG"
 
-# Detektera rate limit
 if grep -qiE "usage limit|rate limit|out of extra usage|resets [0-9]" "$TMPOUT"; then
     RESET_MSG=$(grep -oiE "resets [^\n]+" "$TMPOUT" | head -1 || echo "okänd tid")
-    echo "[$(date '+%Y-%m-%d %H:%M')] RATE LIMIT detekterad. $RESET_MSG. Nästa cron-körning försöker igen." >> "$RUNLOG"
+    echo "[$(date '+%Y-%m-%d %H:%M')] RATE LIMIT: $RESET_MSG" >> "$RUNLOG"
     echo "$(date '+%Y-%m-%d %H:%M') - $RESET_MSG" > "$RATELIMIT_FILE"
 else
     rm -f "$RATELIMIT_FILE"
-    echo "[$(date '+%Y-%m-%d %H:%M')] Lead-agent session klar." >> "$RUNLOG"
+    echo "[$(date '+%Y-%m-%d %H:%M')] Session klar." >> "$RUNLOG"
 fi
 rm -f "$TMPOUT"
