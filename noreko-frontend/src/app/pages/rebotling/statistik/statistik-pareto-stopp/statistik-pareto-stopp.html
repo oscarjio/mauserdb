@@ -30,7 +30,7 @@
 <div *ngIf="!paretoLoading && !paretoEmpty && paretoItems.length > 0" style="height:320px; position:relative;"><canvas id="stoppagePareto"></canvas></div>
 <div *ngIf="!paretoLoading && !paretoEmpty && paretoItems.length > 0" class="mt-4 table-responsive">
 <table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.85rem;">
-<thead><tr style="border-color:#4a5568; color:#a0aec0;"><th>#</th><th>Orsak</th><th class="text-end">Minuter</th><th class="text-end">% av totalt</th><th class="text-end">Kumulativ %</th><th class="text-end">Antal stopp</th><th class="text-end">Snitt (min)</th></tr></thead>
+<thead><tr style="border-color:#4a5568; color:#a0aec0;"><th scope="col">#</th><th scope="col">Orsak</th><th class="text-end" scope="col">Minuter</th><th class="text-end" scope="col">% av totalt</th><th class="text-end" scope="col">Kumulativ %</th><th class="text-end" scope="col">Antal stopp</th><th class="text-end" scope="col">Snitt (min)</th></tr></thead>
 <tbody><tr *ngFor="let item of paretoItems; let i = index" style="border-color:#4a5568;" [style.background]="item.kumulativ_pct <= 80 ? 'rgba(66,153,225,0.05)' : 'transparent'">
 <td style="color:#718096;">{{ i + 1 }}</td>
 <td class="fw-bold" [style.color]="item.kumulativ_pct <= 80 ? '#90cdf4' : '#a0aec0'">{{ item.orsak }}</td>

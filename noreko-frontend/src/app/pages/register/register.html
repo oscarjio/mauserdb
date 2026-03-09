@@ -2,20 +2,20 @@
   <div class="register-card">
     <h2><i class="fas fa-user-plus me-2"></i>Registrera konto</h2>
 
-    <div *ngIf="errorMessage" class="alert alert-danger py-2">{{ errorMessage }}</div>
-    <div *ngIf="successMessage" class="alert alert-success py-2">{{ successMessage }}</div>
+    <div *ngIf="errorMessage" class="alert alert-danger py-2" role="alert">{{ errorMessage }}</div>
+    <div *ngIf="successMessage" class="alert alert-success py-2" role="alert">{{ successMessage }}</div>
 
     <form (ngSubmit)="onSubmit()">
       <div class="mb-3">
-        <label class="form-label">Användarnamn</label>
+        <label class="form-label" for="reg-username">Användarnamn</label>
         <input type="text" class="form-control" placeholder="Välj ett användarnamn"
-               [(ngModel)]="user.username" name="username" required minlength="3" maxlength="50" [disabled]="isLoading" />
+               [(ngModel)]="user.username" id="reg-username" name="username" required minlength="3" maxlength="50" [disabled]="isLoading" />
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Lösenord</label>
+        <label class="form-label" for="reg-password">Lösenord</label>
         <input type="password" class="form-control" placeholder="Minst 8 tecken, bokstav + siffra"
-               [(ngModel)]="user.password" name="password" required minlength="8" maxlength="128" [disabled]="isLoading"
+               [(ngModel)]="user.password" id="reg-password" name="password" required minlength="8" maxlength="128" [disabled]="isLoading"
                (ngModelChange)="checkPasswordStrength()" />
         <div class="feedback-row" *ngIf="showFeedback">
           <small *ngIf="!isAcceptable" class="text-danger">
@@ -28,9 +28,9 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Upprepa lösenord</label>
+        <label class="form-label" for="reg-password2">Upprepa lösenord</label>
         <input type="password" class="form-control" placeholder="Skriv lösenordet igen"
-               [(ngModel)]="user.password2" name="password2" required minlength="8" maxlength="128" [disabled]="isLoading"
+               [(ngModel)]="user.password2" id="reg-password2" name="password2" required minlength="8" maxlength="128" [disabled]="isLoading"
                (ngModelChange)="checkPasswordStrength()" />
         <div class="feedback-row" *ngIf="showFeedback && user.password2.length > 0">
           <small *ngIf="!passwordsMatch" class="text-warning">
@@ -43,9 +43,9 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">E-post</label>
+        <label class="form-label" for="reg-email">E-post</label>
         <input type="email" class="form-control" placeholder="din@email.com"
-               [(ngModel)]="user.email" name="email" required maxlength="255" [disabled]="isLoading"
+               [(ngModel)]="user.email" id="reg-email" name="email" required maxlength="255" [disabled]="isLoading"
                (ngModelChange)="checkEmail()" />
         <div class="feedback-row" *ngIf="user.email.length > 0 && !isEmailValid">
           <small class="text-danger"><i class="fas fa-times me-1"></i>Ogiltig e-postadress</small>
@@ -53,15 +53,15 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Telefonnummer</label>
+        <label class="form-label" for="reg-phone">Telefonnummer</label>
         <input type="tel" class="form-control" placeholder="070-123 45 67"
-               [(ngModel)]="user.phone" name="phone" required maxlength="20" [disabled]="isLoading" />
+               [(ngModel)]="user.phone" id="reg-phone" name="phone" required maxlength="20" [disabled]="isLoading" />
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Kontrollkod</label>
+        <label class="form-label" for="reg-code">Kontrollkod</label>
         <input type="text" class="form-control" placeholder="Kod från din arbetsgivare"
-               [(ngModel)]="user.code" name="code" required maxlength="50" [disabled]="isLoading" />
+               [(ngModel)]="user.code" id="reg-code" name="code" required maxlength="50" [disabled]="isLoading" />
       </div>
 
       <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading || !user.username.trim() || !isAcceptable || !passwordsMatch || !isEmailValid || !user.phone.trim() || !user.code.trim()">

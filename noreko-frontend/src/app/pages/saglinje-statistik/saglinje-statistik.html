@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  <div *ngIf="errorMessage" class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
+  <div *ngIf="errorMessage" class="alert alert-danger" role="alert"><i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}</div>
   @if (loading) {
     <div class="text-center py-5">
       <div class="spinner-border text-info" role="status">

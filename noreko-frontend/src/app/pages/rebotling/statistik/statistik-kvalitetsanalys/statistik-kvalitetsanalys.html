@@ -31,7 +31,7 @@
 <div class="row g-3 mb-3"><div class="col-auto"><span class="badge" style="background:#2d3748;color:#ed8936;font-size:0.85rem;padding:0.5rem 0.8rem;">Totalt kasserade: {{ rejectionTotalKassation }}</span></div></div>
 <div style="height:300px;position:relative;"><canvas id="rejectionParetoDeepChart"></canvas></div>
 <div class="table-responsive mt-3" style="max-height:300px; overflow-y:auto;"><table class="stats-table">
-<thead><tr><th>Orsak</th><th class="text-end">Antal</th><th class="text-end">Andel</th><th class="text-end">Kumulativ</th><th class="text-center">Trend</th></tr></thead>
+<thead><tr><th scope="col">Orsak</th><th class="text-end" scope="col">Antal</th><th class="text-end" scope="col">Andel</th><th class="text-end" scope="col">Kumulativ</th><th class="text-center" scope="col">Trend</th></tr></thead>
 <tbody><tr *ngFor="let item of rejectionParetoData">
 <td>{{ item.namn }}</td><td class="text-end fw-bold" style="color:#e2e8f0;">{{ item.antal }}</td><td class="text-end" style="color:#a0aec0;">{{ item.pct | number:'1.1-1' }}%</td><td class="text-end" style="color:#718096;">{{ item.kumulativ_pct | number:'1.1-1' }}%</td>
 <td class="text-center"><span *ngIf="item.trend === 'up'" style="color:#fc8181;"><i class="fas fa-arrow-up"></i></span><span *ngIf="item.trend === 'down'" style="color:#48bb78;"><i class="fas fa-arrow-down"></i></span><span *ngIf="item.trend === 'stable' || !item.trend" style="color:#a0aec0;"><i class="fas fa-minus"></i></span></td></tr></tbody></table></div></ng-container>

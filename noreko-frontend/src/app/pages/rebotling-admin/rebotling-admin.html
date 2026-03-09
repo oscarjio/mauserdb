@@ -23,7 +23,7 @@
       <div class="toast-header bg-success text-white">
         <i class="fas fa-check-circle me-2"></i>
         <strong class="me-auto">Framgång</strong>
-        <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage = false"></button>
+        <button type="button" class="btn-close btn-close-white" aria-label="Stäng" (click)="showSuccessMessage = false"></button>
       </div>
       <div class="toast-body bg-dark text-white">{{ successMessage }}</div>
     </div>
@@ -148,7 +148,7 @@
           </div>
         </div>
         <div class="card-body">
-          <div *ngIf="systemStatusError" class="alert alert-danger mb-3">
+          <div *ngIf="systemStatusError" class="alert alert-danger mb-3" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ systemStatusError }}
           </div>
           <div class="row g-3" *ngIf="systemStatus">
@@ -219,7 +219,7 @@
           <span *ngIf="settingsLoading" class="spinner-border spinner-border-sm" role="status"></span>
         </div>
         <div class="card-body">
-          <div *ngIf="settingsError" class="alert alert-danger mb-3">
+          <div *ngIf="settingsError" class="alert alert-danger mb-3" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ settingsError }}
           </div>
           <div class="row g-3">
@@ -308,7 +308,7 @@
           <p class="text-muted small mb-3">
             Sätt olika produktionsmål per veckodag — t.ex. lägre mål måndag p.g.a. uppstart, noll på helgen.
           </p>
-          <div *ngIf="weekdayError" class="alert alert-danger mb-3">
+          <div *ngIf="weekdayError" class="alert alert-danger mb-3" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ weekdayError }}
           </div>
 
@@ -441,10 +441,10 @@
             <table class="table table-sm table-dark" style="border-color:#4a5568;">
               <thead>
                 <tr style="border-color:#4a5568; color:#a0aec0; font-size:0.85rem;">
-                  <th>Datum</th>
-                  <th>Justerat mål</th>
-                  <th>Orsak</th>
-                  <th></th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Justerat mål</th>
+                  <th scope="col">Orsak</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
               <tbody>
@@ -486,7 +486,7 @@
           <p class="text-muted small mb-3">
             Konfigurera tröskelvärden för automatiska varningar i dashboards. Ändringarna gäller omedelbart när de sparas.
           </p>
-          <div *ngIf="alertThresholdsError" class="alert alert-danger mb-3">
+          <div *ngIf="alertThresholdsError" class="alert alert-danger mb-3" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ alertThresholdsError }}
           </div>
           <div class="row g-3">
@@ -588,7 +588,7 @@
           <p class="text-muted small mb-3">
             Konfigurera start- och sluttid för varje skift. Används för filtrering i skiftrapporten.
           </p>
-          <div *ngIf="shiftTimesError" class="alert alert-danger mb-3">
+          <div *ngIf="shiftTimesError" class="alert alert-danger mb-3" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>{{ shiftTimesError }}
           </div>
           <div class="row g-3" *ngIf="shiftTimes.length > 0">
@@ -722,13 +722,13 @@
           <!-- Produkttabell -->
           <div class="table-responsive">
             <table class="table table-striped table-hover">
-              <thead class="table-dark">
+              <thead class="table-dark" scope="col">
                 <tr>
-                  <th>ID</th>
-                  <th>Produktnamn</th>
-                  <th>Cykeltid (min)</th>
-                  <th>Skapad</th>
-                  <th>Åtgärder</th>
+                  <th scope="col">ID</th>
+                  <th scope="col">Produktnamn</th>
+                  <th scope="col">Cykeltid (min)</th>
+                  <th scope="col">Skapad</th>
+                  <th scope="col">Åtgärder</th>
                 </tr>
               </thead>
               <tbody>
@@ -751,7 +751,7 @@
                   <td>{{ product.created_at | date:'yyyy-MM-dd HH:mm' }}</td>
                   <td>
                     <div class="btn-group btn-group-sm" role="group">
-                      <button *ngIf="!product.editing" class="btn btn-outline-primary" (click)="editProduct(product)" title="Redigera">
+                      <button *ngIf="!product.editing" class="btn btn-outline-primary" (click)="editProduct(product)" title="Redigera" aria-label="Redigera">
                         <i class="fas fa-edit"></i>
                       </button>
                       <button *ngIf="product.editing" class="btn btn-outline-success" (click)="saveProduct(product)" title="Spara">
@@ -760,7 +760,7 @@
                       <button *ngIf="product.editing" class="btn btn-outline-secondary" (click)="cancelEdit(product)" title="Avbryt">
                         <i class="fas fa-times"></i>
                       </button>
-                      <button class="btn btn-outline-danger" (click)="deleteProduct(product)" title="Ta bort" [disabled]="product.editing">
+                      <button class="btn btn-outline-danger" (click)="deleteProduct(product)" title="Ta bort" aria-label="Ta bort" [disabled]="product.editing">
                         <i class="fas fa-trash"></i>
                       </button>
                     </div>
@@ -814,7 +814,7 @@
                 <i class="fas fa-wrench text-warning"></i>
                 <span class="fw-semibold text-warning">Logga underhållsåtgärd</span>
               </div>
-              <div *ngIf="maintenanceLogError" class="alert alert-danger py-2 mb-2 small">{{ maintenanceLogError }}</div>
+              <div *ngIf="maintenanceLogError" class="alert alert-danger py-2 mb-2 small" role="alert">{{ maintenanceLogError }}</div>
               <div *ngIf="maintenanceLogSaved" class="alert alert-success py-2 mb-2 small">
                 <i class="fas fa-check-circle me-1"></i>Åtgärd loggad!
               </div>
@@ -840,7 +840,7 @@
           </div>
 
           <!-- Status-banners -->
-          <div *ngIf="maintenanceStatus === 'danger'" class="alert alert-danger">
+          <div *ngIf="maintenanceStatus === 'danger'" class="alert alert-danger" role="alert">
             <i class="fas fa-exclamation-triangle me-2"></i>
             <strong>Varning:</strong> {{ maintenanceData?.message }}
           </div>
@@ -926,7 +926,7 @@
             Konfigurera vilka notifikationer som ska skickas via e-post och till vilka mottagare.
           </p>
 
-          <div *ngIf="notificationSettingsError" class="alert alert-danger py-2 mb-3">
+          <div *ngIf="notificationSettingsError" class="alert alert-danger py-2 mb-3" role="alert">
             {{ notificationSettingsError }}
           </div>
 
@@ -1056,7 +1056,7 @@
             Rapporten skickas automatiskt vid skiftslut.
           </p>
 
-          <div *ngIf="shiftReportError" class="alert alert-danger py-2 mb-3">
+          <div *ngIf="shiftReportError" class="alert alert-danger py-2 mb-3" role="alert">
             <i class="fas fa-exclamation-triangle me-1"></i>{{ shiftReportError }}
           </div>
 
@@ -1438,11 +1438,11 @@
                 <table class="table table-sm table-striped table-hover">
                   <thead>
                     <tr>
-                      <th>Vecka</th>
-                      <th class="text-end">Underhåll (antal)</th>
-                      <th class="text-end">Underhållstid (min)</th>
-                      <th class="text-end">Stopp (antal)</th>
-                      <th class="text-end">Stopptid (min)</th>
+                      <th scope="col">Vecka</th>
+                      <th class="text-end" scope="col">Underhåll (antal)</th>
+                      <th class="text-end" scope="col">Underhållstid (min)</th>
+                      <th class="text-end" scope="col">Stopp (antal)</th>
+                      <th class="text-end" scope="col">Stopptid (min)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1716,12 +1716,12 @@
             <table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.85rem;">
               <thead>
                 <tr style="border-color:#4a5568; color:#a0aec0;">
-                  <th>Datum</th>
-                  <th>Orsak</th>
-                  <th>Antal</th>
-                  <th>Kommentar</th>
-                  <th>Registrerad av</th>
-                  <th>Tid</th>
+                  <th scope="col">Datum</th>
+                  <th scope="col">Orsak</th>
+                  <th scope="col">Antal</th>
+                  <th scope="col">Kommentar</th>
+                  <th scope="col">Registrerad av</th>
+                  <th scope="col">Tid</th>
                 </tr>
               </thead>
               <tbody>

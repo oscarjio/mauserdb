@@ -201,7 +201,7 @@
             <i class="fas fa-inbox fa-2x mb-2"></i>
             <div>Ingen produktionsdata hittades för perioden</div>
           </div>
-          <div *ngIf="error" class="alert alert-danger mt-3">{{ error }}</div>
+          <div *ngIf="error" class="alert alert-danger mt-3" role="alert">{{ error }}</div>
         </div>
       </div>
     </div>
@@ -550,11 +550,11 @@
               <table class="stats-table">
                 <thead>
                   <tr>
-                    <th>Period</th>
-                    <th class="text-end">Cykler</th>
-                    <th class="text-end">Snitt Cykeltid</th>
-                    <th class="text-end">Effektivitet</th>
-                    <th class="text-end">Körtid (min)</th>
+                    <th scope="col">Period</th>
+                    <th class="text-end" scope="col">Cykler</th>
+                    <th class="text-end" scope="col">Snitt Cykeltid</th>
+                    <th class="text-end" scope="col">Effektivitet</th>
+                    <th class="text-end" scope="col">Körtid (min)</th>
                   </tr>
                 </thead>
                 <tbody>

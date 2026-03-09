@@ -9,64 +9,64 @@
   </div>
 
   <!-- Toast messages -->
-  <div class="alert alert-success alert-dismissible fade show" *ngIf="successMessage">
+  <div class="alert alert-success alert-dismissible fade show" role="alert" *ngIf="successMessage">
     <i class="fas fa-check-circle me-2"></i>{{ successMessage }}
-    <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+    <button type="button" class="btn-close" aria-label="Stäng" (click)="successMessage = ''"></button>
   </div>
-  <div class="alert alert-danger alert-dismissible fade show" *ngIf="errorMessage">
+  <div class="alert alert-danger alert-dismissible fade show" role="alert" *ngIf="errorMessage">
     <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}
-    <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+    <button type="button" class="btn-close" aria-label="Stäng" (click)="errorMessage = ''"></button>
   </div>
 
   <!-- Tabs -->
   <ul class="nav nav-pills mb-4">
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
         <i class="fas fa-chart-bar me-1"></i>Översikt
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'weights'" (click)="setTab('weights')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'weights'" (click)="setTab('weights')">
         <i class="fas fa-balance-scale me-1"></i>Viktningar
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'targets'" (click)="setTab('targets')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'targets'" (click)="setTab('targets')">
         <i class="fas fa-bullseye me-1"></i>Mål
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'forecast'" (click)="setTab('forecast')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'forecast'" (click)="setTab('forecast')">
         <i class="fas fa-calculator me-1"></i>Prognos
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'periods'" (click)="setTab('periods')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'periods'" (click)="setTab('periods')">
         <i class="fas fa-calendar-check me-1"></i>Perioder
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'simulator'" (click)="setTab('simulator')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'simulator'" (click)="setTab('simulator')">
         <i class="fas fa-flask me-1"></i>What-if Simulator
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'amounts'" (click)="setTab('amounts')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'amounts'" (click)="setTab('amounts')">
         <i class="fas fa-coins me-1"></i>Bonusnivåer
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'payouts'" (click)="setTab('payouts')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'payouts'" (click)="setTab('payouts')">
         <i class="fas fa-money-bill-wave me-1"></i>Utbetalningar
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'payout-history'" (click)="setTab('payout-history')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'payout-history'" (click)="setTab('payout-history')">
         <i class="fas fa-history me-1"></i>Utbetalningshistorik
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'fairness'" (click)="setTab('fairness')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'fairness'" (click)="setTab('fairness')">
         <i class="fas fa-gavel me-1"></i>Rättviseaudit
       </a>
     </li>
@@ -144,7 +144,7 @@
         <div class="table-responsive">
           <table class="table table-dark table-sm">
             <thead>
-              <tr><th>Tier</th><th>Tröskel</th><th>Multiplikator</th></tr>
+              <tr><th scope="col">Tier</th><th scope="col">Tröskel</th><th scope="col">Multiplikator</th></tr>
             </thead>
             <tbody>
               <tr *ngFor="let tier of config?.tier_multipliers; trackBy: trackByIndex">
@@ -462,13 +462,13 @@
           <table class="table table-dark table-sm table-hover">
             <thead>
               <tr>
-                <th>Period</th>
-                <th>Cykler</th>
-                <th>Operatörer</th>
-                <th>Snittbonus</th>
-                <th>IBC OK</th>
-                <th>Success Rate</th>
-                <th>Åtgärder</th>
+                <th scope="col">Period</th>
+                <th scope="col">Cykler</th>
+                <th scope="col">Operatörer</th>
+                <th scope="col">Snittbonus</th>
+                <th scope="col">IBC OK</th>
+                <th scope="col">Success Rate</th>
+                <th scope="col">Åtgärder</th>
               </tr>
             </thead>
             <tbody>
@@ -688,12 +688,12 @@
                   <table class="table table-dark table-sm table-hover">
                     <thead>
                       <tr>
-                        <th>Operatör</th>
-                        <th class="text-end">Skift</th>
-                        <th class="text-end">Snitt IBC/h</th>
-                        <th>Tier</th>
-                        <th class="text-end">Bonus/skift</th>
-                        <th class="text-end">Total bonus</th>
+                        <th scope="col">Operatör</th>
+                        <th class="text-end" scope="col">Skift</th>
+                        <th class="text-end" scope="col">Snitt IBC/h</th>
+                        <th scope="col">Tier</th>
+                        <th class="text-end" scope="col">Bonus/skift</th>
+                        <th class="text-end" scope="col">Total bonus</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -909,13 +909,13 @@
                 <table class="table table-dark table-sm table-hover mb-0">
                   <thead>
                     <tr>
-                      <th>Operatör</th>
-                      <th class="text-end">Skift</th>
-                      <th class="text-center">Nuvarande tier</th>
-                      <th class="text-center">Ny tier</th>
-                      <th class="text-end">Nuvarande bonus</th>
-                      <th class="text-end">Ny bonus</th>
-                      <th class="text-end">Diff</th>
+                      <th scope="col">Operatör</th>
+                      <th class="text-end" scope="col">Skift</th>
+                      <th class="text-center" scope="col">Nuvarande tier</th>
+                      <th class="text-center" scope="col">Ny tier</th>
+                      <th class="text-end" scope="col">Nuvarande bonus</th>
+                      <th class="text-end" scope="col">Ny bonus</th>
+                      <th class="text-end" scope="col">Diff</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1161,11 +1161,11 @@
     <!-- Feedback messages -->
     <div class="alert alert-success py-2 px-3 mb-3" *ngIf="payoutMessage">
       <i class="fas fa-check-circle me-2"></i>{{ payoutMessage }}
-      <button type="button" class="btn-close btn-close-white float-end" style="font-size:.75rem;" (click)="payoutMessage=''"></button>
+      <button type="button" class="btn-close btn-close-white float-end" aria-label="Stäng" style="font-size:.75rem;" (click)="payoutMessage=''"></button>
     </div>
     <div class="alert alert-danger py-2 px-3 mb-3" *ngIf="payoutError">
       <i class="fas fa-exclamation-triangle me-2"></i>{{ payoutError }}
-      <button type="button" class="btn-close btn-close-white float-end" style="font-size:.75rem;" (click)="payoutError=''"></button>
+      <button type="button" class="btn-close btn-close-white float-end" aria-label="Stäng" style="font-size:.75rem;" (click)="payoutError=''"></button>
     </div>
 
     <!-- Årsöversikt per operatör -->
@@ -1189,12 +1189,12 @@
           <table class="table table-dark table-hover table-sm mb-0">
             <thead>
               <tr style="color:#a0aec0; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
-                <th style="width:40px;">#</th>
-                <th>Operatör</th>
-                <th class="text-end">Totalt utbetalt</th>
-                <th class="text-end">Antal</th>
-                <th class="text-end">Snitt / utbetalningstillfälle</th>
-                <th>Senaste period</th>
+                <th style="width:40px;" scope="col">#</th>
+                <th scope="col">Operatör</th>
+                <th class="text-end" scope="col">Totalt utbetalt</th>
+                <th class="text-end" scope="col">Antal</th>
+                <th class="text-end" scope="col">Snitt / utbetalningstillfälle</th>
+                <th scope="col">Senaste period</th>
               </tr>
             </thead>
             <tbody>
@@ -1328,15 +1328,15 @@
             <table class="table table-dark table-hover table-sm mb-0">
               <thead>
                 <tr style="color:#a0aec0; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
-                  <th>Operatör</th>
-                  <th>Period</th>
-                  <th class="text-end">Belopp</th>
-                  <th class="text-end">IBC</th>
-                  <th class="text-end">IBC/h</th>
-                  <th class="text-end">Kvalitet</th>
-                  <th>Notering</th>
-                  <th>Registrerat</th>
-                  <th></th>
+                  <th scope="col">Operatör</th>
+                  <th scope="col">Period</th>
+                  <th class="text-end" scope="col">Belopp</th>
+                  <th class="text-end" scope="col">IBC</th>
+                  <th class="text-end" scope="col">IBC/h</th>
+                  <th class="text-end" scope="col">Kvalitet</th>
+                  <th scope="col">Notering</th>
+                  <th scope="col">Registrerat</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
               <tbody>
@@ -1357,7 +1357,7 @@
                   <td class="text-muted small">{{ p.created_at | slice:0:10 }}</td>
                   <td>
                     <button class="btn btn-outline-danger btn-sm py-0 px-1" (click)="deletePayout(p.id)"
-                            title="Ta bort">
+                            title="Ta bort" aria-label="Ta bort">
                       <i class="fas fa-trash-alt" style="font-size:.75rem;"></i>
                     </button>
                   </td>
@@ -1427,13 +1427,13 @@
           <table class="table table-dark table-hover table-sm mb-0">
             <thead>
               <tr style="color:#a0aec0; font-size:.8rem; text-transform:uppercase; letter-spacing:.05em;">
-                <th>Operatör</th>
-                <th>Period</th>
-                <th class="text-end">IBC</th>
-                <th>Bonusnivå</th>
-                <th class="text-end">Belopp (SEK)</th>
-                <th>Status</th>
-                <th>Åtgärd</th>
+                <th scope="col">Operatör</th>
+                <th scope="col">Period</th>
+                <th class="text-end" scope="col">IBC</th>
+                <th scope="col">Bonusnivå</th>
+                <th class="text-end" scope="col">Belopp (SEK)</th>
+                <th scope="col">Status</th>
+                <th scope="col">Åtgärd</th>
               </tr>
             </thead>
             <tbody>
@@ -1518,7 +1518,7 @@
             Analysera
           </button>
         </div>
-        <div *ngIf="auditError" class="alert alert-danger mt-3 mb-0">
+        <div *ngIf="auditError" class="alert alert-danger mt-3 mb-0" role="alert">
           <i class="fas fa-exclamation-triangle me-2"></i>{{ auditError }}
         </div>
       </div>
@@ -1582,14 +1582,14 @@
             <table class="table table-dark table-hover mb-0">
               <thead>
                 <tr>
-                  <th>Operatör</th>
-                  <th class="text-end">Faktisk IBC</th>
-                  <th class="text-end">Simulerad IBC</th>
-                  <th class="text-end">Diff</th>
-                  <th class="text-center">Faktisk tier</th>
-                  <th class="text-center">Simulerad tier</th>
-                  <th class="text-end">Bonus-diff (kr)</th>
-                  <th class="text-end">Förlorad tid</th>
+                  <th scope="col">Operatör</th>
+                  <th class="text-end" scope="col">Faktisk IBC</th>
+                  <th class="text-end" scope="col">Simulerad IBC</th>
+                  <th class="text-end" scope="col">Diff</th>
+                  <th class="text-center" scope="col">Faktisk tier</th>
+                  <th class="text-center" scope="col">Simulerad tier</th>
+                  <th class="text-end" scope="col">Bonus-diff (kr)</th>
+                  <th class="text-end" scope="col">Förlorad tid</th>
                 </tr>
               </thead>
               <tbody>

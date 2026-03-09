@@ -55,7 +55,7 @@
       </div>
 
       <!-- Error Message -->
-      <div class="alert alert-danger" *ngIf="error && !loading">
+      <div class="alert alert-danger" role="alert" *ngIf="error && !loading">
         <i class="fas fa-exclamation-triangle me-2"></i>
         {{ error }}
       </div>
@@ -94,17 +94,17 @@
 
           <div class="table-responsive" *ngIf="!loading && clients.length > 0">
             <table class="table table-striped table-hover">
-              <thead class="table-dark">
+              <thead class="table-dark" scope="col">
                 <tr>
-                  <th>Status</th>
-                  <th>Användarnamn</th>
-                  <th>Common Name</th>
-                  <th>Virtuell IP</th>
-                  <th>Riktig IP</th>
-                  <th>Mottaget</th>
-                  <th>Skickat</th>
-                  <th>Senast ansluten</th>
-                  <th class="text-end">Åtgärder</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Användarnamn</th>
+                  <th scope="col">Common Name</th>
+                  <th scope="col">Virtuell IP</th>
+                  <th scope="col">Riktig IP</th>
+                  <th scope="col">Mottaget</th>
+                  <th scope="col">Skickat</th>
+                  <th scope="col">Senast ansluten</th>
+                  <th class="text-end" scope="col">Åtgärder</th>
                 </tr>
               </thead>
               <tbody>

@@ -476,11 +476,11 @@
           <table class="table table-dark table-hover mb-0 ops-table">
             <thead>
               <tr>
-                <th>Operatör</th>
-                <th>Position</th>
-                <th class="text-end">IBC/h</th>
-                <th class="text-end">Kvalitet%</th>
-                <th class="text-end">Bonus</th>
+                <th scope="col">Operatör</th>
+                <th scope="col">Position</th>
+                <th class="text-end" scope="col">IBC/h</th>
+                <th class="text-end" scope="col">Kvalitet%</th>
+                <th class="text-end" scope="col">Bonus</th>
               </tr>
             </thead>
             <tbody>
@@ -718,7 +718,7 @@
           {{ weeklySendResult.message }}
         </div>
 
-        <div *ngIf="weeklyError" class="alert alert-danger mb-3" style="font-size:0.85rem;">
+        <div *ngIf="weeklyError" class="alert alert-danger mb-3" role="alert" style="font-size:0.85rem;">
           <i class="fas fa-exclamation-triangle me-1"></i>{{ weeklyError }}
         </div>
 
@@ -786,13 +786,13 @@
             <table class="table table-dark table-hover mb-0 ops-table">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Operatör</th>
-                  <th class="text-end">IBC totalt</th>
-                  <th class="text-end">IBC/h</th>
-                  <th class="text-end">Kvalitet</th>
-                  <th class="text-center">Bonus</th>
-                  <th class="text-end">Skift</th>
+                  <th scope="col">#</th>
+                  <th scope="col">Operatör</th>
+                  <th class="text-end" scope="col">IBC totalt</th>
+                  <th class="text-end" scope="col">IBC/h</th>
+                  <th class="text-end" scope="col">Kvalitet</th>
+                  <th class="text-center" scope="col">Bonus</th>
+                  <th class="text-end" scope="col">Skift</th>
                 </tr>
               </thead>
               <tbody>
@@ -818,10 +818,10 @@
             <table class="table table-dark table-hover mb-0 ops-table">
               <thead>
                 <tr>
-                  <th>Orsak</th>
-                  <th>Kategori</th>
-                  <th class="text-end">Antal</th>
-                  <th class="text-end">Total tid</th>
+                  <th scope="col">Orsak</th>
+                  <th scope="col">Kategori</th>
+                  <th class="text-end" scope="col">Antal</th>
+                  <th class="text-end" scope="col">Total tid</th>
                 </tr>
               </thead>
               <tbody>

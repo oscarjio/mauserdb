@@ -19,7 +19,7 @@
 <div *ngIf="!kassationLoading && kassationPareto.length === 0" class="text-center py-5"><i class="fas fa-check-circle fa-3x mb-3" style="color:#48bb78; opacity:0.5;"></i><p style="color:#a0aec0; margin:0;">Inga kassationer registrerade for perioden.</p></div>
 <div *ngIf="!kassationLoading && kassationPareto.length > 0" class="table-responsive mt-4">
 <table class="table table-sm mb-0" style="color:#e2e8f0; font-size:0.83rem;">
-<thead><tr style="border-color:#4a5568; color:#a0aec0;"><th>Orsak</th><th class="text-end">Antal</th><th class="text-end">Andel</th><th class="text-end">Kumulativ %</th><th style="width:160px;">Kumulativ bar</th></tr></thead>
+<thead><tr style="border-color:#4a5568; color:#a0aec0;"><th scope="col">Orsak</th><th class="text-end" scope="col">Antal</th><th class="text-end" scope="col">Andel</th><th class="text-end" scope="col">Kumulativ %</th><th style="width:160px;" scope="col">Kumulativ bar</th></tr></thead>
 <tbody><tr *ngFor="let item of kassationPareto" style="border-color:#4a5568;">
 <td>{{ item.namn }}</td><td class="text-end text-warning fw-bold">{{ item.antal }}</td><td class="text-end" style="color:#a0aec0;">{{ item.pct }}%</td>
 <td class="text-end" [style.color]="item.kumulativ_pct <= 80 ? '#fc8181' : '#a0aec0'">{{ item.kumulativ_pct }}%</td>

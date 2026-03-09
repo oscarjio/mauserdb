@@ -266,8 +266,8 @@
       <table class="matrix-table" *ngIf="matrixData.operators.length > 0">
         <thead>
           <tr>
-            <th class="matrix-th-name">Operatör</th>
-            <th class="matrix-th-line" *ngFor="let line of matrixData.lines">
+            <th class="matrix-th-name" scope="col">Operatör</th>
+            <th class="matrix-th-line" *ngFor="let line of matrixData.lines" scope="col">
               {{ line.label }}
             </th>
           </tr>
@@ -351,7 +351,7 @@
         </div>
       </div>
 
-      <div class="alert alert-danger" *ngIf="addError">
+      <div class="alert alert-danger" role="alert" *ngIf="addError">
         <i class="fas fa-exclamation-circle me-2"></i>{{ addError }}
       </div>
       <div class="alert alert-success" *ngIf="addSuccess">

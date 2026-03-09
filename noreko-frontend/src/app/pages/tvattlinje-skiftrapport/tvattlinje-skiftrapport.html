@@ -5,7 +5,7 @@
       <div class="toast-header bg-primary text-white">
         <i class="fas fa-check-circle me-2"></i>
         <strong class="me-auto">Framgång</strong>
-        <button type="button" class="btn-close btn-close-white" (click)="showSuccessMessage=false"></button>
+        <button type="button" class="btn-close btn-close-white" aria-label="Stäng" (click)="showSuccessMessage=false"></button>
       </div>
       <div class="toast-body bg-dark text-white">{{ successMessage }}</div>
     </div>
@@ -27,9 +27,9 @@
     </button>
   </div>
 
-  <div *ngIf="errorMessage" class="alert alert-danger">
+  <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
     <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}
-    <button type="button" class="btn-close float-end" (click)="errorMessage=''"></button>
+    <button type="button" class="btn-close float-end" aria-label="Stäng" (click)="errorMessage=''"></button>
   </div>
 
   <!-- Sammanfattningskort (6 KPI-kort) -->
@@ -197,22 +197,22 @@
 
       <div class="table-responsive" *ngIf="!loading && filteredReports.length > 0">
         <table class="table table-striped table-hover">
-          <thead class="table-dark">
+          <thead class="table-dark" scope="col">
             <tr>
-              <th width="40" *ngIf="isAdmin">
+              <th width="40" *ngIf="isAdmin" scope="col">
                 <input type="checkbox"
                   [checked]="selectedIds.size === filteredReports.length && filteredReports.length > 0"
                   (change)="toggleSelectAll()" />
               </th>
-              <th>ID</th>
-              <th>Datum</th>
-              <th>Antal OK</th>
-              <th>Antal ej OK</th>
-              <th>Totalt</th>
-              <th>Kvalitet</th>
-              <th>Användare</th>
-              <th>Inlagd</th>
-              <th>Åtgärder</th>
+              <th scope="col">ID</th>
+              <th scope="col">Datum</th>
+              <th scope="col">Antal OK</th>
+              <th scope="col">Antal ej OK</th>
+              <th scope="col">Totalt</th>
+              <th scope="col">Kvalitet</th>
+              <th scope="col">Användare</th>
+              <th scope="col">Inlagd</th>
+              <th scope="col">Åtgärder</th>
             </tr>
           </thead>
           <tbody>

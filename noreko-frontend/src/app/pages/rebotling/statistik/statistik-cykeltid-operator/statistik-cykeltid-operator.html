@@ -13,7 +13,7 @@
 <ng-container *ngIf="cycleByOpLoaded && !cycleByOpLoading && cycleByOpData.length > 0">
 <div [style.height.px]="cycleByOpData.length * 36 + 60" style="position:relative;min-height:120px;max-height:500px;" class="mb-4"><canvas id="cycleByOpChart"></canvas></div>
 <div class="table-responsive"><table class="table table-sm mb-0" style="color:#e2e8f0;font-size:0.85rem;">
-<thead><tr style="background:#1a202c;color:#a0aec0;"><th style="width:40px;">Rang</th><th>Operator</th><th class="text-end">Median (min)</th><th class="text-end">P90 (min)</th><th class="text-end">Antal skift</th><th class="text-end">vs. Teamsnitt</th></tr></thead>
+<thead><tr style="background:#1a202c;color:#a0aec0;"><th style="width:40px;" scope="col">Rang</th><th scope="col">Operator</th><th class="text-end" scope="col">Median (min)</th><th class="text-end" scope="col">P90 (min)</th><th class="text-end" scope="col">Antal skift</th><th class="text-end" scope="col">vs. Teamsnitt</th></tr></thead>
 <tbody><tr *ngFor="let op of cycleByOpData; let i = index" [style.background]="(op.vs_team_snitt ?? 0) <= 0 ? 'rgba(72,187,120,0.06)' : 'rgba(252,129,129,0.06)'">
 <td><span *ngIf="i === 0" style="color:#48bb78;font-weight:700;">1</span><span *ngIf="i !== 0">{{ i + 1 }}</span></td>
 <td><span class="fw-semibold">{{ op.namn }}</span> <span class="text-muted ms-1 small">({{ op.initialer }})</span></td>

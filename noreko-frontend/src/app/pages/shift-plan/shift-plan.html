@@ -52,11 +52,11 @@
 
     <!-- Veckonavigering -->
     <div class="d-flex align-items-center gap-2 mb-4 flex-wrap">
-      <button class="btn btn-sm btn-outline-secondary" (click)="prevWeek(); $event.stopPropagation()">
+      <button class="btn btn-sm btn-outline-secondary" aria-label="Föregående vecka" (click)="prevWeek(); $event.stopPropagation()">
         <i class="fas fa-chevron-left"></i>
       </button>
       <span class="week-label">{{ weekLabel }}</span>
-      <button class="btn btn-sm btn-outline-secondary" (click)="nextWeek(); $event.stopPropagation()">
+      <button class="btn btn-sm btn-outline-secondary" aria-label="Nästa vecka" (click)="nextWeek(); $event.stopPropagation()">
         <i class="fas fa-chevron-right"></i>
       </button>
       <button class="btn btn-sm btn-outline-info ms-2" (click)="goToToday(); $event.stopPropagation()">
@@ -111,7 +111,7 @@
     </div>
 
     <!-- Fel -->
-    <div *ngIf="!loading && error" class="alert alert-warning mb-3">
+    <div *ngIf="!loading && error" class="alert alert-warning mb-3" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
       <button class="btn btn-sm btn-outline-warning ms-3" (click)="loadWeek()">
         <i class="fas fa-sync-alt me-1"></i>Försök igen
@@ -123,7 +123,7 @@
       <table class="sp-table">
         <thead>
           <tr>
-            <th class="th-skift"></th>
+            <th class="th-skift" scope="col"></th>
             <th
               *ngFor="let day of weekDays; let i = index"
               class="th-day"
@@ -186,7 +186,7 @@
               >
                 <div class="op-panel-header">
                   Välj operatör
-                  <button class="btn-close-panel" (click)="closePanel()">
+                  <button class="btn-close-panel" aria-label="Stäng panel" (click)="closePanel()">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
@@ -248,7 +248,7 @@
     </div>
 
     <!-- Fel -->
-    <div *ngIf="!weekViewLoading && weekViewError" class="alert alert-warning mb-3">
+    <div *ngIf="!weekViewLoading && weekViewError" class="alert alert-warning mb-3" role="alert">
       <i class="fas fa-exclamation-circle me-2"></i>{{ weekViewError }}
     </div>
 
@@ -276,8 +276,8 @@
       <table class="wv-table">
         <thead>
           <tr>
-            <th class="wv-th-dag">Dag</th>
-            <th class="wv-th-skift" *ngFor="let s of [1,2,3]">
+            <th class="wv-th-dag" scope="col">Dag</th>
+            <th class="wv-th-skift" *ngFor="let s of [1,2,3]" scope="col">
               <div class="wv-skift-header">
                 <span class="wv-skift-nr">Skift {{ s }}</span>
                 <span class="wv-skift-tid">

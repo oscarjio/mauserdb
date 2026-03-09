@@ -37,7 +37,7 @@
             <div class="search-input-wrap">
               <i class="fas fa-search search-icon"></i>
               <input type="text" class="form-control form-control-sm filter-input"
-                     placeholder="Sök åtgärd, användare, beskrivning..."
+                     placeholder="Sök åtgärd, användare, beskrivning..." aria-label="Sök i revisionslogg"
                      [(ngModel)]="searchText" (input)="onSearchInput()">
             </div>
           </div>
@@ -128,7 +128,7 @@
       </div>
 
       <!-- Felmeddelande -->
-      <div *ngIf="errorMessage" class="alert alert-danger mt-3">{{ errorMessage }}</div>
+      <div *ngIf="errorMessage" class="alert alert-danger mt-3" role="alert">{{ errorMessage }}</div>
 
       <!-- LOG TAB -->
       <div *ngIf="activeTab === 'log'">

@@ -25,48 +25,48 @@
   </div>
 
   <!-- Error -->
-  <div *ngIf="error" class="alert alert-danger">
+  <div *ngIf="error" class="alert alert-danger" role="alert">
     <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
     <button class="btn btn-sm btn-outline-danger ms-3" (click)="error = ''; loadTabData()">
       <i class="fas fa-sync-alt me-1"></i>Försök igen
     </button>
-    <button type="button" class="btn-close float-end" (click)="error = ''"></button>
+    <button type="button" class="btn-close float-end" aria-label="Stäng" (click)="error = ''"></button>
   </div>
 
   <!-- Tabs -->
   <ul class="nav nav-pills mb-4">
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'operators'" (click)="setTab('operators')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'operators'" (click)="setTab('operators')">
         <i class="fas fa-users me-1"></i>Operatörer
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'daily'" (click)="setTab('daily')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'daily'" (click)="setTab('daily')">
         <i class="fas fa-calendar-day me-1"></i>Dagsanalys
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'hourly'" (click)="setTab('hourly')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'hourly'" (click)="setTab('hourly')">
         <i class="fas fa-clock me-1"></i>Timanalys
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'shifts'" (click)="setTab('shifts')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'shifts'" (click)="setTab('shifts')">
         <i class="fas fa-layer-group me-1"></i>Skiftöversikt
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'bestshifts'" (click)="setTab('bestshifts')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'bestshifts'" (click)="setTab('bestshifts')">
         <i class="fas fa-trophy me-1"></i>Bästa skift
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'stopanalysis'" (click)="setTab('stopanalysis')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'stopanalysis'" (click)="setTab('stopanalysis')">
         <i class="fas fa-stop-circle me-1"></i>Stoppanalys
       </a>
     </li>
     <li class="nav-item">
-      <a class="nav-link" [class.active]="activeTab === 'pareto'" (click)="setTab('pareto')">
+      <a class="nav-link" role="button" [class.active]="activeTab === 'pareto'" (click)="setTab('pareto')">
         <i class="fas fa-chart-bar me-1"></i>Pareto-analys
       </a>
     </li>
@@ -140,15 +140,15 @@
           <table class="table table-dark table-sm table-hover" *ngIf="cachedFilteredRanking.length > 0">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Operatör</th>
-                <th>Position</th>
-                <th class="sortable" (click)="toggleSort('total_cycles')">Cykler <i [class]="getSortIcon('total_cycles')"></i></th>
-                <th class="sortable" (click)="toggleSort('total_ibc_ok')">IBC OK <i [class]="getSortIcon('total_ibc_ok')"></i></th>
-                <th class="sortable" (click)="toggleSort('effektivitet')">Eff. <i [class]="getSortIcon('effektivitet')"></i></th>
-                <th class="sortable" (click)="toggleSort('produktivitet')">Prod. <i [class]="getSortIcon('produktivitet')"></i></th>
-                <th class="sortable" (click)="toggleSort('kvalitet')">Kval. <i [class]="getSortIcon('kvalitet')"></i></th>
-                <th class="sortable" (click)="toggleSort('bonus_avg')">Bonus <i [class]="getSortIcon('bonus_avg')"></i></th>
+                <th scope="col">#</th>
+                <th scope="col">Operatör</th>
+                <th scope="col">Position</th>
+                <th class="sortable" (click)="toggleSort('total_cycles')" scope="col">Cykler <i [class]="getSortIcon('total_cycles')"></i></th>
+                <th class="sortable" (click)="toggleSort('total_ibc_ok')" scope="col">IBC OK <i [class]="getSortIcon('total_ibc_ok')"></i></th>
+                <th class="sortable" (click)="toggleSort('effektivitet')" scope="col">Eff. <i [class]="getSortIcon('effektivitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('produktivitet')" scope="col">Prod. <i [class]="getSortIcon('produktivitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('kvalitet')" scope="col">Kval. <i [class]="getSortIcon('kvalitet')"></i></th>
+                <th class="sortable" (click)="toggleSort('bonus_avg')" scope="col">Bonus <i [class]="getSortIcon('bonus_avg')"></i></th>
               </tr>
             </thead>
             <tbody>
@@ -383,17 +383,17 @@
           <table class="table table-dark table-sm table-hover" *ngIf="allShifts.length > 0">
             <thead>
               <tr>
-                <th></th>
-                <th>Skift #</th>
-                <th>Datum</th>
-                <th>Operatörer</th>
-                <th>Cykler</th>
-                <th>IBC OK</th>
-                <th>Timmar</th>
-                <th>Eff.</th>
-                <th>Prod.</th>
-                <th>Kval.</th>
-                <th>Bonus</th>
+                <th scope="col"></th>
+                <th scope="col">Skift #</th>
+                <th scope="col">Datum</th>
+                <th scope="col">Operatörer</th>
+                <th scope="col">Cykler</th>
+                <th scope="col">IBC OK</th>
+                <th scope="col">Timmar</th>
+                <th scope="col">Eff.</th>
+                <th scope="col">Prod.</th>
+                <th scope="col">Kval.</th>
+                <th scope="col">Bonus</th>
               </tr>
             </thead>
             <tbody>
@@ -484,14 +484,14 @@
           <table class="table table-dark table-sm table-hover">
             <thead>
               <tr>
-                <th>Rank</th>
-                <th>Skift #</th>
-                <th>Datum</th>
-                <th>IBC OK</th>
-                <th>IBC Ej OK</th>
-                <th>Kvalitet %</th>
-                <th>Körtid (h)</th>
-                <th>Cykler</th>
+                <th scope="col">Rank</th>
+                <th scope="col">Skift #</th>
+                <th scope="col">Datum</th>
+                <th scope="col">IBC OK</th>
+                <th scope="col">IBC Ej OK</th>
+                <th scope="col">Kvalitet %</th>
+                <th scope="col">Körtid (h)</th>
+                <th scope="col">Cykler</th>
               </tr>
             </thead>
             <tbody>
@@ -682,12 +682,12 @@
             <table class="table table-dark table-sm table-hover mb-0">
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Orsak</th>
-                  <th>Kategori</th>
-                  <th>Antal</th>
-                  <th>Total tid</th>
-                  <th>Snitt per stopp</th>
+                  <th scope="col">#</th>
+                  <th scope="col">Orsak</th>
+                  <th scope="col">Kategori</th>
+                  <th scope="col">Antal</th>
+                  <th scope="col">Total tid</th>
+                  <th scope="col">Snitt per stopp</th>
                 </tr>
               </thead>
               <tbody>
@@ -871,14 +871,14 @@
           <table class="table table-dark table-hover table-sm mb-0">
             <thead>
               <tr>
-                <th>#</th>
-                <th>Orsak</th>
-                <th>Kategori</th>
-                <th class="text-end">Antal stopp</th>
-                <th class="text-end">Total (min)</th>
-                <th class="text-end">Snitt (min)</th>
-                <th class="text-end">% av total</th>
-                <th class="text-end">Kumulativt %</th>
+                <th scope="col">#</th>
+                <th scope="col">Orsak</th>
+                <th scope="col">Kategori</th>
+                <th class="text-end" scope="col">Antal stopp</th>
+                <th class="text-end" scope="col">Total (min)</th>
+                <th class="text-end" scope="col">Snitt (min)</th>
+                <th class="text-end" scope="col">% av total</th>
+                <th class="text-end" scope="col">Kumulativt %</th>
               </tr>
             </thead>
             <tbody>

@@ -14,7 +14,7 @@
     </div>
   </div>
 
-  <div class="alert alert-danger" *ngIf="error">
+  <div class="alert alert-danger" role="alert" *ngIf="error">
     <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
     <button class="btn btn-sm btn-outline-danger ms-3" (click)="loadAttendance()">
       <i class="fas fa-sync-alt me-1"></i>Försök igen
@@ -92,8 +92,8 @@
           <table class="table table-dark table-hover mb-0" *ngIf="!loading">
             <thead>
               <tr>
-                <th>Operatör</th>
-                <th class="text-center">Dagar</th>
+                <th scope="col">Operatör</th>
+                <th class="text-center" scope="col">Dagar</th>
               </tr>
             </thead>
             <tbody>
