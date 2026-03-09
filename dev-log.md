@@ -1,3 +1,17 @@
+## 2026-03-09 Cykeltid per operator — grouped bar chart + ranking-tabell
+
+Uppgraderat statistik-cykeltid-operator-komponenten:
+- **Grouped bar chart** med 3 staplar per operator (min, median, max) istallet for enkel bar
+- **Horisontell referenslinje** som visar genomsnittlig median (custom Chart.js plugin)
+- **Ranking-tabell** sorterad efter median (lagst = bast): Rank, Operator, Median, Min, Max, Antal IBC, Stddev
+- **Basta operator** markeras med gron badge + stjarna
+- **Backend**: nya falt min_min, max_min, stddev_min i cycle-by-operator endpoint
+- Periodselektor 7/14/30/90 dagar (oforandrad)
+- Ny CSS-fil for tabellstyling + responsivt
+- Commit 3327f20
+
+---
+
 ## 2026-03-09 Session #45 — Lead: Pareto bekräftad klar + Bug Hunt #49
 
 Lead-agent session #45. Worker 1 (Pareto stopporsaker): redan fullt implementerat — ingen ändring.
