@@ -1,3 +1,13 @@
+## 2026-03-09 Session #42 — Merge-konflikter (slutgiltigt) + Bug Hunt #47 Null safety
+
+**Worker 1 — Merge-konflikter slutgiltigt losta**: 19 filer med UU-status aterstallda med `git checkout HEAD --`. Filerna matchade redan HEAD — problemet var olost merge-state i git index. `git diff --check` rent, bygge OK. Ingen commit behovdes.
+
+**Worker 2 — Bug Hunt #47 Null safety (`9541cb2`)**: 17 fixar i 11 filer. parseInt utan NaN-guard (3 filer), .toFixed() pa null/undefined (4 filer, 20+ instanser), Array.isArray guard, division by zero, PHP fetch() utan null-check, PHP division med tom array.
+
+**Sammanfattning session #42**: Merge-konflikter definitivt losta efter tre sessioners forsok. 17 null safety-fixar. Bug Hunts #1-#47 genomforda.
+
+---
+
 ## 2026-03-09 Session #41 — Merge-konflikter (igen) + Bug Hunt #46 Accessibility
 
 **Worker 1 — Merge-konflikter losta (`31e45c3`)**: 18 filer med UU-status fran session #40 aterstod. Alla losta — 3 svart korrupterade filer aterstallda fran last commit. Bygge verifierat rent.
