@@ -6,6 +6,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService } from '../../../../services/rebotling.service';
+import { localToday } from '../../../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -48,7 +49,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
-    a.download = 'pareto-stopporsaker-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url);
+    a.download = 'pareto-stopporsaker-'+localToday()+'.csv'; a.click(); URL.revokeObjectURL(url);
   }
 
   private buildParetoChart(): void {

@@ -6,6 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { environment } from '../../../environments/environment';
+import { localToday, localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 Chart.defaults.color = '#e2e8f0';
@@ -979,7 +980,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
   // -------------------------------------------------------------------------
   getPeriodDates(): { from: string; to: string } {
     const today = new Date();
-    const toISO = (d: Date) => d.toISOString().slice(0, 10);
+    const toISO = (d: Date) => localDateStr(d);
 
     const getMondayOf = (d: Date): Date => {
       const copy = new Date(d);

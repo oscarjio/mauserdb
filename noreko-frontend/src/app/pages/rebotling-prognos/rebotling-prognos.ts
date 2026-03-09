@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { localToday, localDateStr } from '../../utils/date-utils';
 
 interface ProductionRate {
   avg_ibc_per_day_7d: number;
@@ -39,7 +40,7 @@ export class RebotlingPrognosPage implements OnInit, OnDestroy {
 
   // Indata
   targetIbc = 500;
-  startDate = new Date().toISOString().slice(0, 10);
+  startDate = localToday();
   selectedPeriod: '7d' | '30d' | '90d' = '30d';
   workdaysPerWeek = 5;
 
@@ -150,7 +151,7 @@ export class RebotlingPrognosPage implements OnInit, OnDestroy {
 
       milestones.push({
         week,
-        date: tempDate.toISOString().slice(0, 10),
+        date: localDateStr(tempDate),
         cumIbc: Math.round(ibcAtWeek),
         pct: Math.round(Math.min(ibcAtWeek / this.targetIbc * 100, 100))
       });
@@ -159,7 +160,7 @@ export class RebotlingPrognosPage implements OnInit, OnDestroy {
     }
 
     this.result = {
-      completionDateStr: currentDate.toISOString().slice(0, 10),
+      completionDateStr: localDateStr(currentDate),
       workdaysNeeded,
       calendarDaysNeeded: calendarDays,
       weeklyMilestones: milestones

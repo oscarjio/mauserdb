@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { ToastService } from '../../services/toast.service';
+import { parseLocalDate } from '../../utils/date-utils';
 
 const API = '/noreko-backend/api.php?action=shift-plan';
 
@@ -249,12 +250,12 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   }
 
   isWeekendDatum(datum: string): boolean {
-    const dow = new Date(datum).getDay();
+    const dow = parseLocalDate(datum).getDay();
     return dow === 0 || dow === 6;
   }
 
   getDayIndex(datum: string): number {
-    const dow = new Date(datum).getDay();
+    const dow = parseLocalDate(datum).getDay();
     return dow === 0 ? 6 : dow - 1;
   }
 
@@ -264,7 +265,7 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
   }
 
   formatDayDate(datum: string): string {
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     return `${d.getDate()}/${d.getMonth() + 1}`;
   }
 

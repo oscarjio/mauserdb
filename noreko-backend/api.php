@@ -1,6 +1,10 @@
 <?php
 // api.php - Tar emot API-anrop och routar till rätt hantering
 
+// Säkerställ konsekvent timezone för alla date()/strtotime()-anrop.
+// Servern ligger i Sverige — all datum-hantering ska använda CET/CEST.
+date_default_timezone_set('Europe/Stockholm');
+
 // CORS-headers - begränsa till tillåtna domäner
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigins = [

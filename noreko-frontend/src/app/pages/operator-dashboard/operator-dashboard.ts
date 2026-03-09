@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../utils/date-utils';
 Chart.register(...registerables);
 
 // ================================================================
@@ -933,7 +934,7 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
 
   private formatDatum(datum: string): string {
     if (!datum) return '';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }

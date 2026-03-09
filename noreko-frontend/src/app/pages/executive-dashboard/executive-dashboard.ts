@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { RebotlingService, ExecDashboardResponse, FeedbackSummaryDayEntry, StaffingWarningDay, WeeklySummaryData } from '../../services/rebotling.service';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -427,7 +428,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
   }
 
   formatDate(dateStr: string): string {
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     const days = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
     return days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
   }
@@ -599,7 +600,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
     // Sort ascending by date
     const sorted = [...this.feedbackPerDag].sort((a, b) => a.datum.localeCompare(b.datum));
     const labels = sorted.map(d => {
-      const dt = new Date(d.datum);
+      const dt = parseLocalDate(d.datum);
       return dt.getDate() + '/' + (dt.getMonth() + 1);
     });
     const data = sorted.map(d => +d.snitt);

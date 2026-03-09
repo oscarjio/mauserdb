@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { OperatorsService } from '../../services/operators.service';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { parseLocalDate } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -488,7 +489,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   formatSenasteAktivitet(datum: string | null): string {
     if (!datum) return 'Aldrig';
-    return new Date(datum).toLocaleDateString('sv-SE');
+    return parseLocalDate(datum).toLocaleDateString('sv-SE');
   }
 
   getSenasteAktivitetClass(datum: string | null): string {

@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { KlassificeringslinjeService } from '../../services/klassificeringslinje.service';
+import { localToday, localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -106,7 +107,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
     const days = parseInt(this.period, 10);
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = localDateStr(cutoff);
     return this.reports.filter(r => (r.datum || '').substring(0, 10) >= cutoffStr);
   }
 
@@ -413,7 +414,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `klassificeringslinje-statistik-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `klassificeringslinje-statistik-${localToday()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -434,7 +435,7 @@ export class KlassificeringslinjeStatistikPage implements OnInit, AfterViewInit,
       const ws = XLSX.utils.json_to_sheet(rows);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Statistik');
-      XLSX.writeFile(wb, `klassificeringslinje-statistik-${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `klassificeringslinje-statistik-${localToday()}.xlsx`);
     });
   }
 }

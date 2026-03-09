@@ -7,6 +7,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { environment } from '../../../../environments/environment';
 import { MaintenanceEntry, EquipmentItem } from '../maintenance-log.models';
 import { getKategoriLabel, SHARED_STYLES } from '../maintenance-log.helpers';
+import { localDateStr } from '../../../utils/date-utils';
 
 @Component({
   selector: 'app-maintenance-form',
@@ -211,7 +212,7 @@ export class MaintenanceFormComponent implements OnDestroy {
       maintenance_type: 'ovrigt',
       title: '',
       description: '',
-      start_time: now.toISOString().slice(0, 16),
+      start_time: localDateStr(now) + 'T' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'),
       duration_minutes: null,
       performed_by: '',
       cost_sek: null,

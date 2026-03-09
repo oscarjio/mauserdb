@@ -6,6 +6,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../services/auth.service';
+import { localToday } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -154,7 +155,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   shiftReportSending = false;
   shiftReportError = '';
   shiftReportSuccess = '';
-  shiftReportTestDate = new Date().toISOString().slice(0, 10);
+  shiftReportTestDate = localToday();
   shiftReportTestShift = 1;
 
   // ---- Live Ranking TV-inställningar ----
@@ -209,7 +210,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   // ---- Anpassade dagsmål (datum-undantag) ----
   goalExceptions: GoalException[] = [];
   goalExceptionsLoading = false;
-  newExceptionDatum: string = new Date().toISOString().slice(0, 10);
+  newExceptionDatum: string = localToday();
   newExceptionMal: number = 0;
   newExceptionOrsak: string = '';
   savingException = false;
@@ -1166,7 +1167,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   kassationForm = {
     orsak_id:    0,
     antal:       1,
-    datum:       new Date().toISOString().slice(0, 10),
+    datum:       localToday(),
     kommentar:   ''
   };
 
@@ -1210,7 +1211,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           this.kassationSaved    = true;
           this.kassationForm.antal     = 1;
           this.kassationForm.kommentar = '';
-          this.kassationForm.datum     = new Date().toISOString().slice(0, 10);
+          this.kassationForm.datum     = localToday();
           this.showSuccess('Kassation registrerad!');
           this.loadKassationSenaste();
           setTimeout(() => { if (!this.destroy$.closed) this.kassationSaved = false; }, 3000);
@@ -1261,7 +1262,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           this.exceptionSaveMsg = 'Undantag sparat!';
           this.newExceptionMal = 0;
           this.newExceptionOrsak = '';
-          this.newExceptionDatum = new Date().toISOString().slice(0, 10);
+          this.newExceptionDatum = localToday();
           this.loadGoalExceptions();
           this.showSuccess('Undantag sparat!');
           setTimeout(() => { if (!this.destroy$.closed) this.exceptionSaveMsg = ''; }, 3000);

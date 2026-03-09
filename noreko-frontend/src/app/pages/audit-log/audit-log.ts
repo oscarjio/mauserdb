@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { AuditService, AuditEntry, AuditStats } from '../../services/audit.service';
+import { localToday } from '../../utils/date-utils';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
@@ -220,7 +221,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href     = url;
-        a.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `audit-log-${localToday()}.csv`;
         a.click();
         URL.revokeObjectURL(url);
       },
@@ -342,7 +343,7 @@ export class AuditLogPage implements OnInit, OnDestroy {
   }
 
   get auditStats(): { total: number; today: number; lastUser: string } {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localToday();
     const todayLogs = (this.logs || []).filter((l: any) => (l.created_at || '').startsWith(today));
     const lastUser = this.logs?.[0]?.user || '—';
     return { total: this.logs?.length || 0, today: todayLogs.length, lastUser };

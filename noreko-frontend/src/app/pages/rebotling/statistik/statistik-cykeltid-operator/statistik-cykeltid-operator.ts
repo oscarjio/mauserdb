@@ -6,6 +6,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, CycleByOperatorEntry, CycleByOperatorResponse } from '../../../../services/rebotling.service';
+import { localDateStr } from '../../../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -43,7 +44,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
     if (this.cycleByOpLoading) return;
     this.cycleByOpLoading = true;
 
-    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    const fmt = (d: Date) => localDateStr(d);
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - (this.cycleByOpDays - 1));

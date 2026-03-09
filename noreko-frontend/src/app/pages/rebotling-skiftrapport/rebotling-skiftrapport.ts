@@ -7,6 +7,7 @@ import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 import { SkiftrapportService } from '../../services/skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
+import { localToday, localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -115,7 +116,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   ) {}
 
   newReport = {
-    datum: new Date().toISOString().split('T')[0],
+    datum: localToday(),
     product_id: null as number | null,
     ibc_ok: 0,
     bur_ej_ok: 0,
@@ -609,7 +610,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         if (res.success) {
           this.fetchReports();
           this.newReport = {
-            datum:      new Date().toISOString().split('T')[0],
+            datum:      localToday(),
             product_id: null,
             ibc_ok:     0,
             bur_ej_ok:  0,
@@ -653,7 +654,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   saveReport(report: any) {
     let datum = report.datum;
     if (datum instanceof Date) {
-      datum = datum.toISOString().split('T')[0];
+      datum = localDateStr(datum);
     } else if (typeof datum === 'string') {
       datum = datum.split(' ')[0];
     }
@@ -778,7 +779,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
     const url  = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href     = url;
-    link.download = `skiftrapport-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `skiftrapport-${localToday()}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -867,7 +868,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, wsSummary, 'Sammanfattning');
       XLSX.utils.book_append_sheet(wb, wsData,    'Skiftrapporter');
-      XLSX.writeFile(wb, `skiftrapporter-rebotling-${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `skiftrapporter-rebotling-${localToday()}.xlsx`);
     });
   }
 
@@ -893,7 +894,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         const vfsFonts = vfsFontsModule.default || vfsFontsModule;
         pdfMake.vfs    = vfsFonts?.pdfMake?.vfs || vfsFonts?.vfs || vfsFonts;
         const docDef   = this.buildHandoverPDFDocDef(reports);
-        const dateStr  = new Date().toISOString().split('T')[0];
+        const dateStr  = localToday();
         pdfMake.createPdf(docDef).download(`skiftoverlamnning-rebotling-${dateStr}.pdf`);
       });
     });

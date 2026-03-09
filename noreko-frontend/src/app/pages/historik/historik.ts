@@ -11,6 +11,7 @@ import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import * as XLSX from 'xlsx';
 import { environment } from '../../../environments/environment';
+import { localToday } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -561,7 +562,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `historik-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `historik-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -597,7 +598,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Historik');
-    XLSX.writeFile(wb, `historik-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `historik-${localToday()}.xlsx`);
   }
 
   // ─── Charts ─────────────────────────────────────────────────────────────────

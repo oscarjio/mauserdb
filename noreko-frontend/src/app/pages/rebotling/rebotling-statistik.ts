@@ -7,6 +7,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { RebotlingService, ChartAnnotation } from '../../services/rebotling.service';
+import { localToday, localDateStr } from '../../utils/date-utils';
 import { StatistikHistogramComponent } from './statistik/statistik-histogram/statistik-histogram';
 import { StatistikSpcComponent } from './statistik/statistik-spc/statistik-spc';
 import { StatistikCykeltidOperatorComponent } from './statistik/statistik-cykeltid-operator/statistik-cykeltid-operator';
@@ -165,7 +166,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   // Custom datumintervall för heatmap
   heatmapCustomFrom: string = '';
   heatmapCustomTo: string = '';
-  todayStr: string = new Date().toISOString().slice(0, 10);
+  todayStr: string = localToday();
   heatmapUseCustomRange: boolean = false;
   heatmapRows: { date: string; label: string; counts: number[]; qualityPct: number[] }[] = [];
   heatmapHours: number[] = Array.from({ length: 18 }, (_, i) => i + 5); // 05–22
@@ -1563,7 +1564,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     for (let i = this.heatmapDays - 1; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateStr(d);
       const dayMap = map.get(dateStr) || new Map();
 
       const counts = this.heatmapHours.map(h => dayMap.get(h)?.count || 0);
@@ -1599,7 +1600,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const weekdays = ['sön', 'mån', 'tis', 'ons', 'tor', 'fre', 'lör'];
 
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = localDateStr(d);
       const dayMap = map.get(dateStr) || new Map();
       const counts = this.heatmapHours.map(h => dayMap.get(h)?.count || 0);
       const qualityPct = this.heatmapHours.map(h => dayMap.get(h)?.quality_pct || 0);
@@ -1790,7 +1791,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `heatmap-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `heatmap-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -4,6 +4,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
+import { localToday, parseLocalDate } from '../../utils/date-utils';
 import {
   RebotlingService,
   BenchmarkingResponse,
@@ -156,7 +157,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `benchmarking-topp10-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `benchmarking-topp10-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -360,7 +361,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
   formatDate(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'long', day: 'numeric' });
   }
 

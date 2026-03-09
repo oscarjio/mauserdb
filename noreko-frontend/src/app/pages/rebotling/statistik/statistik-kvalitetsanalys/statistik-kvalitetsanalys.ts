@@ -6,6 +6,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, RejectionAnalysisResponse, RejectionTrendDay, RejectionParetoItem } from '../../../../services/rebotling.service';
+import { localToday } from '../../../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -56,7 +57,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
-    a.download = 'kvalitetsanalys-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url);
+    a.download = 'kvalitetsanalys-'+localToday()+'.csv'; a.click(); URL.revokeObjectURL(url);
   }
 
   private renderRejectionTrendChart(): void {

@@ -5,6 +5,7 @@ import { Subject, Subscription, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { LineSkiftrapportService, LineName } from '../../services/line-skiftrapport.service';
 import { AuthService } from '../../services/auth.service';
+import { localToday } from '../../utils/date-utils';
 
 /**
  * Konfiguration per linje — skickas in via wrapper-komponenten.
@@ -44,7 +45,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   filterTo = '';
 
   newReport = {
-    datum: new Date().toISOString().split('T')[0],
+    datum: localToday(),
     antal_ok: 0,
     antal_ej_ok: 0,
     kommentar: ''
@@ -182,7 +183,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
           this.loading = false;
           if (res.success) {
             this.fetchReports();
-            this.newReport = { datum: new Date().toISOString().split('T')[0], antal_ok: 0, antal_ej_ok: 0, kommentar: '' };
+            this.newReport = { datum: localToday(), antal_ok: 0, antal_ej_ok: 0, kommentar: '' };
             this.showAddForm = false;
             this.showSuccess('Rapport tillagd');
           } else {
@@ -303,7 +304,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${this.config.line}-skiftrapport-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${this.config.line}-skiftrapport-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -328,7 +329,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       ws['!freeze'] = { xSplit: 0, ySplit: 1 };
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Skiftrapporter');
-      XLSX.writeFile(wb, `${this.config.line}-skiftrapport-${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(wb, `${this.config.line}-skiftrapport-${localToday()}.xlsx`);
     });
   }
 

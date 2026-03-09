@@ -13,6 +13,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Chart, registerables } from 'chart.js';
+import { localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -949,7 +950,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
 
   get weekStart(): string {
     const mon = this.getMondayOfISOWeek(this.currentYear, this.currentWeek);
-    return mon.toISOString().slice(0, 10);
+    return localDateStr(mon);
   }
 
   get isCurrentOrFutureWeek(): boolean {

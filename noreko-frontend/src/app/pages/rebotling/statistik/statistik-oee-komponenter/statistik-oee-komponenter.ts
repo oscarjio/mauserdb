@@ -6,6 +6,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Chart } from 'chart.js';
+import { localToday } from '../../../../utils/date-utils';
 
 interface OeeComponentDay { datum: string; tillganglighet: number | null; kvalitet: number | null; }
 
@@ -65,6 +66,6 @@ export class StatistikOeeKomponenterComponent implements OnInit, OnDestroy {
     const csv = [headers, ...rows].map(r => r.join(';')).join('\n');
     const blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url;
-    a.download = 'oee-komponenter-'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url);
+    a.download = 'oee-komponenter-'+localToday()+'.csv'; a.click(); URL.revokeObjectURL(url);
   }
 }

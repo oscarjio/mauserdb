@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { localToday, parseLocalDate } from '../../utils/date-utils';
 
 interface Certification {
   id: number;
@@ -110,7 +111,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
   addForm = {
     op_number: null as number | null,
     line: '',
-    certified_date: new Date().toISOString().split('T')[0],
+    certified_date: localToday(),
     expires_date: '',
     notes: ''
   };
@@ -520,7 +521,7 @@ export class CertificationsPage implements OnInit, OnDestroy {
         this.addForm = {
           op_number: null,
           line: '',
-          certified_date: new Date().toISOString().split('T')[0],
+          certified_date: localToday(),
           expires_date: '',
           notes: ''
         };
@@ -561,14 +562,14 @@ export class CertificationsPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `certifieringar-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `certifieringar-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
 
   formatDate(dateStr: string | null): string {
     if (!dateStr) return '—';
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.toLocaleDateString('sv-SE');
   }
 }

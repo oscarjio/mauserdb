@@ -8,6 +8,7 @@ import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
 import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService, AuthUser } from '../services/auth.service';
+import { localToday } from '../utils/date-utils';
 
 interface LineSkiftrapportReport {
   id: number;
@@ -195,7 +196,7 @@ export class News implements OnInit, OnDestroy {
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = localToday();
         const reps = res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today);
         this.saglinjeSkiftCount = reps.length;
         this.saglinjeToday = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ok || 0), 0);
@@ -212,7 +213,7 @@ export class News implements OnInit, OnDestroy {
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineReportsResponse | null) => {
       if (res?.success && res.data) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = localToday();
         const reps = res.data.filter((r: LineSkiftrapportReport) => (r.datum || '').substring(0, 10) === today);
         this.klassificeringslinjeSkiftCount = reps.length;
         this.klassificeringslinjeToday = reps.reduce((s: number, r: LineSkiftrapportReport) => s + (r.antal_ok || 0), 0);

@@ -8,6 +8,7 @@ import { BonusService, RankingEntry, ShiftStats, TeamStatsResponse } from '../..
 import { RebotlingService, BestShift, StoppageDayEntry, StoppageCategoryEntry, StoppageReasonEntry, RastStatusResponse, LineStatusResponse, RastEvent } from '../../services/rebotling.service';
 import { catchError, of, timeout } from 'rxjs';
 import { Chart, registerables, TooltipItem } from 'chart.js';
+import { localToday, parseLocalDate } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -426,7 +427,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     const weekdays = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
     const wdMap: { [wd: number]: { bonusSum: number; ibcSum: number; count: number } } = {};
     this.dailyData.forEach(d => {
-      const wd = new Date(d.date).getDay();
+      const wd = parseLocalDate(d.date).getDay();
       if (!wdMap[wd]) wdMap[wd] = { bonusSum: 0, ibcSum: 0, count: 0 };
       wdMap[wd].bonusSum += d.bonus;
       wdMap[wd].ibcSum += d.ibcOk;
@@ -1054,7 +1055,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ranking-${this.selectedPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `ranking-${this.selectedPeriod}-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -1112,7 +1113,7 @@ export class ProductionAnalysisPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `stoppdata-${this.stopDays}dagar-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `stoppdata-${this.stopDays}dagar-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

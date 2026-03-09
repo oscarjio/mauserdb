@@ -5,6 +5,7 @@ import { Subject, forkJoin, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
+import { localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -167,7 +168,7 @@ export class MonthlyReportPage implements OnInit, OnDestroy, AfterViewChecked {
   selectedMonth: string = (() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 7);
+    return localDateStr(d).slice(0, 7);
   })();
 
   isLoading = false;

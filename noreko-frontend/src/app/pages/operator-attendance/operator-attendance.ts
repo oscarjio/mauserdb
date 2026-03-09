@@ -6,6 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
+import { localDateStr } from '../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -17,7 +18,7 @@ import { AuthService } from '../../services/auth.service';
 export class OperatorAttendancePage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
-  selectedMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  selectedMonth = localDateStr(new Date()).slice(0, 7); // YYYY-MM
   loading = false;
   error = '';
 
@@ -93,14 +94,14 @@ export class OperatorAttendancePage implements OnInit, OnDestroy {
   prevMonth() {
     const [y, m] = this.selectedMonth.split('-').map(Number);
     const prev = new Date(y, m - 2, 1);
-    this.selectedMonth = prev.toISOString().slice(0, 7);
+    this.selectedMonth = localDateStr(prev).slice(0, 7);
     this.loadAttendance();
   }
 
   nextMonth() {
     const [y, m] = this.selectedMonth.split('-').map(Number);
     const next = new Date(y, m, 1);
-    this.selectedMonth = next.toISOString().slice(0, 7);
+    this.selectedMonth = localDateStr(next).slice(0, 7);
     this.loadAttendance();
   }
 

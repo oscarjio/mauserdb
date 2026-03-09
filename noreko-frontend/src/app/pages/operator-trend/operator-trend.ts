@@ -8,6 +8,7 @@ import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+import { localToday } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -346,7 +347,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `trend-${operatorName.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `trend-${operatorName.replace(/\s+/g, '-')}-${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
