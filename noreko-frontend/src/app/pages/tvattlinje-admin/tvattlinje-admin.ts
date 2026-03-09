@@ -102,6 +102,8 @@ export class TvattlinjeAdminPage implements OnInit, OnDestroy {
     this.loadNewSettings();
     this.loadWeekdayGoals();
     this.loadSystemStatus();
+    this.loadTodaySnapshot();
+    this.loadAlertThresholds();
     this.startPollingTimers();
   }
 

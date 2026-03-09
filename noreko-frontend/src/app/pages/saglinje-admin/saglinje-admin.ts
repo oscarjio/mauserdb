@@ -79,6 +79,7 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
     this.loadSettings();
     this.loadWeekdayGoals();
     this.loadSystemStatus();
+    this.loadTodaySnapshot();
     this.startPollingTimers();
   }
 

@@ -47,215 +47,60 @@ class WeeklyReportController {
         echo json_encode(['success' => false, 'error' => $msg]);
     }
 
-    // -----------------------------------------------------------------------
-    // Helper: Hämta veckosummering för ett datumintervall
-    // Returnerar array med total_ibc, avg_ibc_per_day, avg_oee_pct,
-    // avg_quality_pct, best_day_ibc, best_day_date, working_days, week_label
-    // -----------------------------------------------------------------------
-    private function fetchWeekStats(string $mondayStr, string $sundayStr): array {
-        $sqlDaily = "
-            SELECT DATE(datum) AS dag,
-                   SUM(delta_ok) AS ibc_ok,
-                   SUM(delta_ej) AS ibc_ej,
-                   SUM(delta_ok + delta_ej) AS ibc_total,
-                   SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS kvalitet_pct,
-                   SUM(runtime_h) AS drifttid_h
-            FROM (
-                SELECT DATE(datum) AS datum, skiftraknare,
-                       MAX(ibc_ok) - MIN(ibc_ok) AS delta_ok,
-                       MAX(ibc_ej_ok) - MIN(ibc_ej_ok) AS delta_ej,
-                       MAX(runtime_plc) / 60.0 AS runtime_h
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN ? AND ?
-                GROUP BY DATE(datum), skiftraknare
-            ) x
-            GROUP BY DATE(datum)
-            ORDER BY dag
-        ";
-        $stmt = $this->pdo->prepare($sqlDaily);
-        $stmt->execute([$mondayStr, $sundayStr]);
-        $daily = $stmt->fetchAll();
-
-        $totalIbc     = 0;
-        $totalIbcEj   = 0;
-        $totalIbcTot  = 0;
-        $totalDrift   = 0.0;
-        $workingDays  = 0;
-        $qualityPcts  = [];
-        $bestDayIbc   = 0;
-        $bestDayDate  = null;
-
-        foreach ($daily as $row) {
-            $ok   = intval($row['ibc_ok'] ?? 0);
-            $ej   = intval($row['ibc_ej'] ?? 0);
-            $tot  = $ok + $ej;
-            $h    = floatval($row['drifttid_h'] ?? 0);
-            $kval = floatval($row['kvalitet_pct'] ?? 0);
-            $dag  = $row['dag'];
-            $dow  = date('N', strtotime($dag));
-
-            $totalIbc    += $ok;
-            $totalIbcEj  += $ej;
-            $totalIbcTot += $tot;
-            $totalDrift  += $h;
-
-            if ($dow <= 5) {
-                $workingDays++;
-                if ($tot > 0) {
-                    $qualityPcts[] = $kval;
-                }
-            }
-
-            if ($ok > $bestDayIbc) {
-                $bestDayIbc  = $ok;
-                $bestDayDate = $dag;
-            }
-        }
-
-        if ($workingDays === 0) $workingDays = 5;
-
-        $avgIbcPerDay = $workingDays > 0 ? round($totalIbc / $workingDays) : 0;
-        $avgQuality   = count($qualityPcts) > 0
-            ? round(array_sum($qualityPcts) / count($qualityPcts), 1)
-            : 0.0;
-
-        // OEE: (runtime / total_possible_h_per_dag) * quality_factor
-        // Simplified: IBC-baserat OEE = (total_ibc / (dagmal * working_days)) * quality
-        $dagmal = 1200;
-        try {
-            $stmtG = $this->pdo->query("SELECT dagmal FROM rebotling_settings LIMIT 1");
-            $gr    = $stmtG->fetch();
-            if ($gr && isset($gr['dagmal'])) $dagmal = intval($gr['dagmal']);
-        } catch (Exception $e) { /* ignore */ }
-
-        $maxIbc   = $dagmal * $workingDays;
-        $oee      = $maxIbc > 0 ? round(($totalIbc / $maxIbc) * 100, 1) : 0.0;
-
-        // Week label: "V08 2026"
-        $mondayDt = new DateTime($mondayStr);
-        $weekNum  = intval($mondayDt->format('W'));
-        $yearNum  = intval($mondayDt->format('o'));
-        $weekLabel = sprintf('V%02d %d', $weekNum, $yearNum);
-
-        return [
-            'total_ibc'       => $totalIbc,
-            'avg_ibc_per_day' => $avgIbcPerDay,
-            'avg_oee_pct'     => $oee,
-            'avg_quality_pct' => $avgQuality,
-            'best_day_ibc'    => $bestDayIbc,
-            'best_day_date'   => $bestDayDate,
-            'working_days'    => $workingDays,
-            'week_label'      => $weekLabel,
-        ];
-    }
-
-    // -----------------------------------------------------------------------
-    // GET ?action=weekly-report&run=week-compare&week_start=YYYY-MM-DD
-    // Returnerar this_week + prev_week + diff + operator_of_week
-    // -----------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // week-compare: returnerar stats för vald vecka + föregående vecka + diff
+    // -------------------------------------------------------------------------
     private function getWeekCompare(): void {
         try {
             $weekStartParam = $_GET['week_start'] ?? '';
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $weekStartParam)) {
-                // Räkna ut förra veckans måndag som default
-                $dt = new DateTime('last monday -1 week');
-                $weekStartParam = $dt->format('Y-m-d');
+                $this->sendError('Ogiltigt week_start-format (YYYY-MM-DD)', 400);
+                return;
             }
 
-            // Denna vecka
-            $thisMon = new DateTime($weekStartParam);
-            $thisSun = clone $thisMon;
-            $thisSun->modify('+6 days');
-            $thisMonStr = $thisMon->format('Y-m-d');
-            $thisSunStr = $thisSun->format('Y-m-d');
+            $thisMonday = new DateTime($weekStartParam);
+            $thisSunday = clone $thisMonday;
+            $thisSunday->modify('+6 days');
 
-            // Föregående vecka
-            $prevMon = clone $thisMon;
-            $prevMon->modify('-7 days');
-            $prevSun = clone $prevMon;
-            $prevSun->modify('+6 days');
-            $prevMonStr = $prevMon->format('Y-m-d');
-            $prevSunStr = $prevSun->format('Y-m-d');
+            $prevMonday = clone $thisMonday;
+            $prevMonday->modify('-7 days');
+            $prevSunday = clone $prevMonday;
+            $prevSunday->modify('+6 days');
 
-            $thisWeek = $this->fetchWeekStats($thisMonStr, $thisSunStr);
-            $prevWeek = $this->fetchWeekStats($prevMonStr, $prevSunStr);
+            $thisMon = $thisMonday->format('Y-m-d');
+            $thisSun = $thisSunday->format('Y-m-d');
+            $prevMon = $prevMonday->format('Y-m-d');
+            $prevSun = $prevSunday->format('Y-m-d');
 
-            // Diff
-            $totalIbcPct = $prevWeek['total_ibc'] > 0
-                ? round(($thisWeek['total_ibc'] - $prevWeek['total_ibc']) / $prevWeek['total_ibc'] * 100, 1)
+            $thisWeekData = $this->aggregateWeekStats($thisMon, $thisSun, $thisMonday);
+            $prevWeekData = $this->aggregateWeekStats($prevMon, $prevSun, $prevMonday);
+
+            // diff
+            $diffTotalIbcPct = $prevWeekData['total_ibc'] > 0
+                ? round(($thisWeekData['total_ibc'] - $prevWeekData['total_ibc']) / $prevWeekData['total_ibc'] * 100, 1)
                 : null;
-            $avgIbcPct   = $prevWeek['avg_ibc_per_day'] > 0
-                ? round(($thisWeek['avg_ibc_per_day'] - $prevWeek['avg_ibc_per_day']) / $prevWeek['avg_ibc_per_day'] * 100, 1)
-                : null;
-            $oeeDiff     = round($thisWeek['avg_oee_pct'] - $prevWeek['avg_oee_pct'], 1);
-            $qualityDiff = round($thisWeek['avg_quality_pct'] - $prevWeek['avg_quality_pct'], 1);
 
-            // Bästa operatör denna vecka
-            $operatorOfWeek = null;
-            $sqlOp = "
-                SELECT op_id, o.name AS namn, o.initialer,
-                       SUM(delta_ok) AS total_ibc,
-                       SUM(delta_ok) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
-                       SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS avg_quality_pct
-                FROM (
-                    SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
-                           MAX(ibc_ok)-MIN(ibc_ok) AS delta_ok,
-                           MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
-                           MAX(runtime_plc)/60.0 AS runtime_h
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare, op1
-                    UNION ALL
-                    SELECT op2, DATE(datum), skiftraknare,
-                           MAX(ibc_ok)-MIN(ibc_ok),
-                           MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/60.0
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare, op2
-                    UNION ALL
-                    SELECT op3, DATE(datum), skiftraknare,
-                           MAX(ibc_ok)-MIN(ibc_ok),
-                           MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
-                           MAX(runtime_plc)/60.0
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
-                    GROUP BY DATE(datum), skiftraknare, op3
-                ) raw
-                JOIN operators o ON o.number = raw.op_id
-                GROUP BY op_id
-                ORDER BY total_ibc DESC
-                LIMIT 1
-            ";
-            $stmtOp = $this->pdo->prepare($sqlOp);
-            $stmtOp->execute([
-                $thisMonStr, $thisSunStr,
-                $thisMonStr, $thisSunStr,
-                $thisMonStr, $thisSunStr,
-            ]);
-            $opRow = $stmtOp->fetch();
-            if ($opRow) {
-                $operatorOfWeek = [
-                    'op_id'           => intval($opRow['op_id']),
-                    'namn'            => $opRow['namn'],
-                    'initialer'       => $opRow['initialer'] ?? strtoupper(substr($opRow['namn'], 0, 2)),
-                    'total_ibc'       => intval($opRow['total_ibc'] ?? 0),
-                    'avg_ibc_per_h'   => round(floatval($opRow['avg_ibc_per_h'] ?? 0), 1),
-                    'avg_quality_pct' => round(floatval($opRow['avg_quality_pct'] ?? 0), 1),
-                ];
-            }
+            $diffAvgIbcDayPct = $prevWeekData['avg_ibc_per_day'] > 0
+                ? round(($thisWeekData['avg_ibc_per_day'] - $prevWeekData['avg_ibc_per_day']) / $prevWeekData['avg_ibc_per_day'] * 100, 1)
+                : null;
+
+            $diffOeePctDiff = round($thisWeekData['avg_oee_pct'] - $prevWeekData['avg_oee_pct'], 1);
+            $diffQualityPctDiff = round($thisWeekData['avg_quality_pct'] - $prevWeekData['avg_quality_pct'], 1);
+
+            // Veckans bästa operatör (för vald vecka)
+            $operatorOfWeek = $this->getOperatorOfWeek($thisMon, $thisSun);
 
             echo json_encode([
-                'success'          => true,
-                'this_week'        => $thisWeek,
-                'prev_week'        => $prevWeek,
-                'diff'             => [
-                    'total_ibc_pct'         => $totalIbcPct,
-                    'avg_ibc_per_day_pct'   => $avgIbcPct,
-                    'avg_oee_pct_diff'      => $oeeDiff,
-                    'avg_quality_pct_diff'  => $qualityDiff,
+                'success'           => true,
+                'this_week'         => $thisWeekData,
+                'prev_week'         => $prevWeekData,
+                'diff'              => [
+                    'total_ibc_pct'        => $diffTotalIbcPct,
+                    'avg_ibc_per_day_pct'  => $diffAvgIbcDayPct,
+                    'avg_oee_pct_diff'     => $diffOeePctDiff,
+                    'avg_quality_pct_diff' => $diffQualityPctDiff,
                 ],
-                'operator_of_week' => $operatorOfWeek,
+                'operator_of_week'  => $operatorOfWeek,
             ]);
 
         } catch (Exception $e) {
@@ -264,9 +109,152 @@ class WeeklyReportController {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // GET ?action=weekly-report&run=summary&week=YYYY-WXX
-    // -----------------------------------------------------------------------
+    /**
+     * Aggregera veckostatistik för en given period.
+     * Returnerar array med total_ibc, avg_ibc_per_day, avg_oee_pct, avg_quality_pct,
+     * best_day_ibc, best_day_date, working_days, week_label.
+     */
+    private function aggregateWeekStats(string $fromDate, string $toDate, DateTime $mondayDt): array {
+        // OEE-definition: total runtime / (antal skift * skiftlängd)
+        // Skiftlängd = 8 h = 28800 sek
+        $shiftSeconds = 28800;
+
+        $sql = "
+            SELECT DATE(datum) AS dag,
+                   SUM(delta_ok)              AS ibc_ok,
+                   SUM(delta_ok + delta_ej)   AS ibc_total,
+                   SUM(runtime_sek)           AS runtime_sek,
+                   COUNT(DISTINCT skiftraknare) AS num_shifts
+            FROM (
+                SELECT DATE(datum) AS datum, skiftraknare,
+                       MAX(ibc_ok)      - MIN(ibc_ok)      AS delta_ok,
+                       MAX(ibc_ej_ok)   - MIN(ibc_ej_ok)   AS delta_ej,
+                       MAX(runtime_plc)                     AS runtime_sek
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ?
+                GROUP BY DATE(datum), skiftraknare
+            ) x
+            GROUP BY DATE(datum)
+            ORDER BY dag
+        ";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$fromDate, $toDate]);
+        $rows = $stmt->fetchAll();
+
+        $totalIbc      = 0;
+        $totalIbcTotal = 0;
+        $totalRuntime  = 0;
+        $totalShifts   = 0;
+        $workingDays   = 0;
+        $bestIbc       = 0;
+        $bestDate      = null;
+
+        foreach ($rows as $r) {
+            $ibcOk  = intval($r['ibc_ok'] ?? 0);
+            $ibcTot = intval($r['ibc_total'] ?? 0);
+            $rt     = intval($r['runtime_sek'] ?? 0);
+            $shifts = intval($r['num_shifts'] ?? 0);
+
+            // Räkna bara vardagar
+            $dow = date('N', strtotime($r['dag']));
+            if ($dow <= 5) {
+                $workingDays++;
+            }
+
+            $totalIbc      += $ibcOk;
+            $totalIbcTotal += $ibcTot;
+            $totalRuntime  += $rt;
+            $totalShifts   += $shifts;
+
+            if ($ibcOk > $bestIbc) {
+                $bestIbc  = $ibcOk;
+                $bestDate = $r['dag'];
+            }
+        }
+
+        $avgIbcPerDay  = $workingDays > 0 ? round($totalIbc / $workingDays) : 0;
+        $avgQuality    = $totalIbcTotal > 0 ? round($totalIbc / $totalIbcTotal * 100, 1) : 0.0;
+        // OEE = runtime / (shifts * shiftSeconds)
+        $maxRuntime    = $totalShifts * $shiftSeconds;
+        $avgOee        = $maxRuntime > 0 ? round($totalRuntime / $maxRuntime * 100, 1) : 0.0;
+
+        // ISO-veckonummer för perioden (använd måndagen)
+        $weekNum = intval($mondayDt->format('W'));
+
+        return [
+            'total_ibc'       => $totalIbc,
+            'avg_ibc_per_day' => $avgIbcPerDay,
+            'avg_oee_pct'     => $avgOee,
+            'avg_quality_pct' => $avgQuality,
+            'best_day_ibc'    => $bestIbc,
+            'best_day_date'   => $bestDate,
+            'working_days'    => $workingDays,
+            'week_label'      => 'v.' . $weekNum,
+        ];
+    }
+
+    /**
+     * Hämtar veckans bästa operatör för en given period.
+     */
+    private function getOperatorOfWeek(string $fromDate, string $toDate): ?array {
+        $sqlOp = "
+            SELECT op_id, o.name, o.initialer,
+                   SUM(delta_ok)                              AS total_ibc,
+                   SUM(delta_ok) / NULLIF(SUM(runtime_h), 0) AS avg_ibc_per_h,
+                   SUM(delta_ok) / NULLIF(SUM(delta_ok + delta_ej), 0) * 100 AS avg_quality_pct
+            FROM (
+                SELECT op1 AS op_id, DATE(datum) AS datum, skiftraknare,
+                       MAX(ibc_ok)-MIN(ibc_ok)     AS delta_ok,
+                       MAX(ibc_ej_ok)-MIN(ibc_ej_ok) AS delta_ej,
+                       MAX(runtime_plc)/3600.0      AS runtime_h
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ? AND op1 IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare, op1
+                UNION ALL
+                SELECT op2, DATE(datum), skiftraknare,
+                       MAX(ibc_ok)-MIN(ibc_ok),
+                       MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
+                       MAX(runtime_plc)/3600.0
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ? AND op2 IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare, op2
+                UNION ALL
+                SELECT op3, DATE(datum), skiftraknare,
+                       MAX(ibc_ok)-MIN(ibc_ok),
+                       MAX(ibc_ej_ok)-MIN(ibc_ej_ok),
+                       MAX(runtime_plc)/3600.0
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN ? AND ? AND op3 IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare, op3
+            ) raw
+            JOIN operators o ON o.id = raw.op_id
+            GROUP BY op_id
+            ORDER BY total_ibc DESC
+            LIMIT 1
+        ";
+        $stmtOp = $this->pdo->prepare($sqlOp);
+        $stmtOp->execute([
+            $fromDate, $toDate,
+            $fromDate, $toDate,
+            $fromDate, $toDate,
+        ]);
+        $op = $stmtOp->fetch();
+
+        if (!$op) return null;
+
+        return [
+            'op_id'           => intval($op['op_id']),
+            'namn'            => $op['name'],
+            'initialer'       => $op['initialer'] ?? '',
+            'total_ibc'       => intval($op['total_ibc'] ?? 0),
+            'avg_ibc_per_h'   => round(floatval($op['avg_ibc_per_h'] ?? 0), 1),
+            'avg_quality_pct' => round(floatval($op['avg_quality_pct'] ?? 0), 1),
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // summary (befintlig)
+    // -------------------------------------------------------------------------
     private function getSummary(): void {
         try {
             // Parsa veckoparameter

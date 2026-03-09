@@ -1,3 +1,20 @@
+## 2026-03-09 Session #40b — Merge-konflikter lösta
+
+**Löste alla kvarvarande merge-konflikter från session #40 worktrees (19 filer)**:
+- **Backend**: `RebotlingController.php` (5 konflikter — behöll delegate-pattern), `SkiftrapportController.php` (1 konflikt), `WeeklyReportController.php` (3 konflikter — behöll refaktoriserade `aggregateWeekStats()`/`getOperatorOfWeek()` metoder)
+- **Frontend routing/meny**: `app.routes.ts` (behöll operator-trend route), `menu.html` (behöll Prestanda-trend menyval)
+- **Admin-sidor**: `klassificeringslinje-admin.ts`, `saglinje-admin.ts`, `tvattlinje-admin.ts` — behöll service-abstraktion + polling-timers + loadTodaySnapshot/loadAlertThresholds
+- **Benchmarking**: `benchmarking.html` + `benchmarking.ts` — behöll Hall of Fame, Personbästa, Team vs Individ rekord
+- **Live ranking**: `live-ranking.html` + `live-ranking.ts` — behöll lrConfig + lrSettings dual conditions + sortRanking
+- **Rebotling admin**: `rebotling-admin.html` + `rebotling-admin.ts` — behöll alla nya features (goal exceptions, service interval, correlation, email shift report)
+- **Skiftrapport**: `rebotling-skiftrapport.html` + `rebotling-skiftrapport.ts` — behöll Number() casting + KPI-kort layout
+- **Weekly report**: `weekly-report.ts` — återskapad från committed version pga svårt korrupt merge (weekLabel getter hade blivit överskriven med loadCompareData-kod)
+- **Service**: `rebotling.service.ts` — behöll alla nya metoder + utökade interfaces
+- **dev-log.md**: Tog bort konfliktmarkeringar
+- Angular build passerar utan fel
+
+---
+
 ## 2026-03-09 Session #40 — Bug Hunt #45 Race conditions och timing edge cases
 
 **Bug Hunt #45 — Race conditions vid snabb navigation + setTimeout-guarder**:

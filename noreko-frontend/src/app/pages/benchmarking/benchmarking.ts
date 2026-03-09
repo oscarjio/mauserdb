@@ -58,6 +58,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
 
   activeTab: 'overview' | 'personbasta' | 'halloffame' = 'overview';
 
+  // Chart
   @ViewChild('monthlyChart') monthlyChartRef!: ElementRef<HTMLCanvasElement>;
   private monthlyChartInstance: Chart | null = null;
 
