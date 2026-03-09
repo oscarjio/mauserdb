@@ -199,7 +199,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     // Ladda ranking (controls loading flag) + previous period for trend arrows
     this.loadDataSub = this.bonusService.getRanking(this.selectedPeriod).pipe(
       timeout(8000),
-      catchError(() => of(null))
+      catchError(() => of(null)),
+      takeUntil(this.destroy$)
     ).subscribe({
       next: (res) => {
         if (res?.success && res.data) {

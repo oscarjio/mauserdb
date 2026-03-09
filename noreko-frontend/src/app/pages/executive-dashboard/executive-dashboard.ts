@@ -138,7 +138,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
     this.dataSub?.unsubscribe();
     this.dataSub = this.rebotlingService.getExecDashboard()
-      .pipe(timeout(8000), catchError(() => of(null)))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
           if (res?.success && res.data) {
