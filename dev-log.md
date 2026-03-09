@@ -1,6 +1,27 @@
 ## 2026-03-09 Session #39 — Bug Hunt #44 Formularvalidering + Error/Loading states
 
-**Plan**: Worker 1 granskar Angular formularvalidering och input-sanering (alla input-falt, datumvaljare, PHP-validering). Worker 2 granskar error states, loading states och empty states pa alla sidor.
+**Worker 1 — Bug Hunt #44 Formularvalidering och input-sanering** (commit `af2e7e2`):
+- ~30 Angular-komponenter + ~8 PHP-controllers granskade
+- 28 fixar totalt:
+  - Register/create-user/login: minlength/maxlength pa anvandardnamn och losenord
+  - Stoppage-log: required pa stopporsak-select, maxlength pa kommentar, dubbelklick-skydd
+  - Certifications: required pa operator/linje/datum-select
+  - Users: minlength/maxlength, dubbelklick-skydd vid sparning
+  - Maintenance-form: max-varden pa varaktighet/kostnad
+  - Shared-skiftrapport + rebotling-skiftrapport: required pa datum, max pa antal, dubbelklick-skydd
+  - Rebotling-admin: required pa kassation-datum/orsak, max pa cykeltid
+  - PHP AdminController: username-langdvalidering (3-50), losenordskrav (8+, bokstav+siffra)
+  - PHP MaintenanceController: max-validering varaktighet/driftstopp/kostnad
+  - PHP StoppageController: sluttid efter starttid, kommentarlangd max 500
+  - PHP CertificationController: utgangsdatum efter certifieringsdatum
+
+**Worker 2 — Bug Hunt #44b Error states och loading states** (commit `af2e7e2`):
+- 25+ komponentfiler granskade
+- 10 retry-knappar tillagda pa sidor som saknade "Forsok igen"-funktion:
+  - benchmarking, rebotling-prognos, production-analysis, historik, operator-attendance, monthly-report, operator-trend, weekly-report, production-calendar, shift-plan
+- Befintliga sidor (executive-dashboard, bonus-dashboard, my-bonus, rebotling-statistik, rebotling-skiftrapport, operator-dashboard) hade redan fullstandig loading/error/empty state-hantering
+
+**Sammanfattning session #39**: 38 fixar (28 formularvalidering + 10 error/retry states). Formularvalidering bade frontend (HTML-attribut + TS-logik + dubbelklick-skydd) och backend (PHP defense in depth). Alla sidor har nu "Forsok igen"-knappar vid felmeddelanden.
 
 ---
 
