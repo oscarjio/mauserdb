@@ -34,7 +34,7 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
     .subscribe((res: any) => {
       this.kassationLoading = false;
       if (res?.success) { this.kassationPareto = res.pareto || []; this.kassationTotalAntal = res.total_kassation ?? 0; this.kassationTotalProduktion = res.total_produktion ?? 0; this.kassationPct = res.kassation_pct ?? 0;
-        setTimeout(() => this.buildKassationParetoChart(), 0); }
+        setTimeout(() => { if (!this.destroy$.closed) this.buildKassationParetoChart(); }, 0); }
     });
   }
   onKassationDaysChange(): void { this.loadKassationPareto(); }

@@ -44,7 +44,7 @@ export class StatistikKvalitetsanalysComponent implements OnInit, OnDestroy {
         this.rejectionKpi = res.kpi ?? { kvalitet_idag: null, kvalitet_vecka: null, kasserade_idag: 0, trend_vs_forra_veckan: 'stable', trend_diff: null };
         this.rejectionTrendData = res.trend ?? []; this.rejectionParetoData = res.pareto ?? [];
         this.rejectionHasParetoData = res.has_pareto_data ?? false; this.rejectionTotalKassation = res.total_kassation ?? 0;
-        setTimeout(() => { this.renderRejectionTrendChart(); this.renderRejectionParetoChart(); }, 100);
+        setTimeout(() => { if (!this.destroy$.closed) { this.renderRejectionTrendChart(); this.renderRejectionParetoChart(); } }, 100);
       }
     });
   }

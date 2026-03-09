@@ -52,7 +52,7 @@ export class StatistikVeckojamforelseComponent implements OnInit, OnDestroy {
         this.weekComparisonThisWeek = res.data.this_week;
         this.weekComparisonPrevWeek = res.data.prev_week;
         this.weekComparisonLoaded = true;
-        setTimeout(() => this.renderWeekComparisonChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderWeekComparisonChart(); }, 100);
       }
     });
   }

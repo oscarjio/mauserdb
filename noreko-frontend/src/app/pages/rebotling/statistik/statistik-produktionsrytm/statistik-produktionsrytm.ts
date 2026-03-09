@@ -26,7 +26,7 @@ export class StatistikProduktionsrytmComponent implements OnInit, OnDestroy {
   loadHourlyRhythm(): void {
     this.hourlyRhythmLoading = true;
     this.rebotlingService.getHourlyRhythm(this.hourlyRhythmDays).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
-    .subscribe(res => { this.hourlyRhythmLoading = false; if (res?.success) { this.hourlyRhythm = res.data; setTimeout(() => this.buildHourlyRhythmChart(), 100); } });
+    .subscribe(res => { this.hourlyRhythmLoading = false; if (res?.success) { this.hourlyRhythm = res.data; setTimeout(() => { if (!this.destroy$.closed) this.buildHourlyRhythmChart(); }, 100); } });
   }
   private buildHourlyRhythmChart(): void {
     try { this.hourlyRhythmChart?.destroy(); } catch (e) {} this.hourlyRhythmChart = null;

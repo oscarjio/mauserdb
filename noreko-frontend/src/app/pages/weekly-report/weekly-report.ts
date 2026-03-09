@@ -910,6 +910,9 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
   private destroy$ = new Subject<void>();
   private apiBase  = environment.apiUrl;
 
+  /** Versionsnummer som ökar vid varje navigering — förhindrar att gamla svar skriver över nya */
+  private loadVersion = 0;
+
   @ViewChild('weekChart') weekChartRef!: ElementRef<HTMLCanvasElement>;
   private chart: Chart | null = null;
   private pendingChart = false;
@@ -989,7 +992,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   load(): void {
-    if (this.isLoading) return;
+    const version = ++this.loadVersion;
     this.isLoading = true;
     this.errorMsg  = '';
     this.data      = null;
@@ -1007,6 +1010,8 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
         takeUntil(this.destroy$)
       )
       .subscribe(res => {
+        // Ignorera svar från inaktuell förfrågan (användaren navigerade vidare)
+        if (version !== this.loadVersion) return;
         this.isLoading = false;
         if (res && res.success) {
           this.data = res;
@@ -1028,6 +1033,7 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   loadCompareData(): void {
+    const version = this.loadVersion;
     this.compareLoading = true;
     this.compareData    = null;
 
@@ -1042,6 +1048,8 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
         takeUntil(this.destroy$)
       )
       .subscribe(res => {
+        // Ignorera svar från inaktuell förfrågan (användaren navigerade vidare)
+        if (version !== this.loadVersion) return;
         this.compareLoading = false;
         if (res && res.success) {
           this.compareData = res;

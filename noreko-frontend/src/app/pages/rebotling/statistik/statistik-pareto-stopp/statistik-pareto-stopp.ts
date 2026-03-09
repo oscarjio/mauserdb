@@ -38,7 +38,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
       this.paretoLoading = false; if (!res) return;
       if (res.success) { this.paretoItems = res.items || []; this.paretoTotalMinuter = res.total_minuter || 0; this.paretoTotalStopp = res.total_stopp || 0;
         this.paretoEmpty = !!res.empty; this.paretoEmptyReason = res.reason || '';
-        if (!this.paretoEmpty && this.paretoItems.length > 0) { setTimeout(() => this.buildParetoChart(), 100); } }
+        if (!this.paretoEmpty && this.paretoItems.length > 0) { setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100); } }
     });
   }
 

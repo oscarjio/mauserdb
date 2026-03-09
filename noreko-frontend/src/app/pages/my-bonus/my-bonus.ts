@@ -128,6 +128,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
   showConfetti = false;
   private confettiTimerId: any = null;
   private feedbackSavedTimerId: any = null;
+  private weeklyChartTimerId: any = null;
 
   // Cachade achievements (undviker funktionsanrop vid varje change detection)
   cachedAchievements: { icon: string; label: string; earned: boolean; desc: string }[] = [];
@@ -184,6 +185,7 @@ export class MyBonusPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     clearTimeout(this.confettiTimerId);
     clearTimeout(this.feedbackSavedTimerId);
+    clearTimeout(this.weeklyChartTimerId);
     try { if (this.kpiChart) this.kpiChart.destroy(); } catch (e) {}
     this.kpiChart = null;
     try { if (this.historyChart) this.historyChart.destroy(); } catch (e) {}
@@ -291,7 +293,8 @@ export class MyBonusPage implements OnInit, OnDestroy {
           this.weeklyData = res.data.weeks || [];
           this.weeklyAvg = res.data.my_avg ?? 0;
           // Bygg grafen när DOM är redo
-          setTimeout(() => {
+          clearTimeout(this.weeklyChartTimerId);
+          this.weeklyChartTimerId = setTimeout(() => {
             if (!this.destroy$.closed) this.buildWeeklyChart();
           }, 150);
         }

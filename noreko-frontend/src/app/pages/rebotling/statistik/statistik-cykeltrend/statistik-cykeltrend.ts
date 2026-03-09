@@ -62,7 +62,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
       if (res?.success && res.data) {
         this.cycleTrendData = res.data.daily;
         this.cycleTrendLoaded = true;
-        setTimeout(() => this.renderCycleTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 100);
       } else {
         this.cycleTrendLoaded = true;
       }
@@ -83,7 +83,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
           label: ann.label
         }));
         if (this.cycleTrendLoaded && this.cycleTrendData.length) {
-          setTimeout(() => this.renderCycleTrendChart(), 0);
+          setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 0);
         }
       }
     });

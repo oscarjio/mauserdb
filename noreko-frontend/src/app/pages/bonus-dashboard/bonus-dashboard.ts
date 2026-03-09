@@ -472,7 +472,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res && res.success && res.data) {
           this.weekTrendData = res.data;
-          setTimeout(() => {
+          clearTimeout(this.shiftChartTimeout);
+          this.shiftChartTimeout = setTimeout(() => {
             if (!this.destroy$.closed) this.buildWeekTrendChart();
           }, 100);
         }

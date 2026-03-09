@@ -40,7 +40,7 @@ export class StatistikWaterfallOeeComponent implements OnInit, OnDestroy {
       if (res?.success) {
         this.oeeWaterfallData = res;
         this.oeeWaterfallLoaded = true;
-        setTimeout(() => this.renderOeeWaterfallChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderOeeWaterfallChart(); }, 100);
       } else { this.oeeWaterfallLoaded = true; }
     });
   }

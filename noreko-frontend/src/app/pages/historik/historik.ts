@@ -405,6 +405,9 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   private chartsBuilt = false;
   private chartBuildTimer: ReturnType<typeof setTimeout> | null = null;
 
+  /** Versionsnummer — förhindrar att gamla HTTP-svar skriver över nya vid snabb periodbyte */
+  private loadVersion = 0;
+
   // API-basURL
   private apiBase = environment.apiUrl;
 
@@ -454,6 +457,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
   }
 
   loadData(): void {
+    const version = ++this.loadVersion;
     let monthlyDone = false;
     let yearlyDone = false;
     let monthlyError = false;
@@ -461,11 +465,14 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
 
     const checkDone = () => {
       if (monthlyDone && yearlyDone) {
+        // Ignorera svar från inaktuell förfrågan (användaren bytte period)
+        if (version !== this.loadVersion) return;
         this.loading = false;
         if (monthlyError && yearlyError) {
           this.error = 'Kunde inte hämta historikdata. Kontrollera anslutningen.';
         } else {
           this.error = '';
+          if (this.chartBuildTimer !== null) clearTimeout(this.chartBuildTimer);
           this.chartBuildTimer = setTimeout(() => this.buildCharts(), 100);
         }
       }
@@ -480,6 +487,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       }),
       takeUntil(this.destroy$)
     ).subscribe(resp => {
+      if (version !== this.loadVersion) return;
       if (resp && resp.success) {
         this.monthlyData    = resp.monthly ?? [];
         this.totalIbcAr     = resp.total_ibc_ar ?? 0;
@@ -501,6 +509,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
       }),
       takeUntil(this.destroy$)
     ).subscribe(resp => {
+      if (version !== this.loadVersion) return;
       if (resp && resp.success) {
         this.yearlyData = resp.yearly ?? {};
         this.arsNyclar  = Object.keys(this.yearlyData).sort();

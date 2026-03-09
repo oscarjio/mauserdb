@@ -303,7 +303,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           this.paretoLoading = false;
           if (res.success) {
             this.paretoData = { orsaker: res.orsaker, total_minuter: res.total_minuter, dagar: res.dagar };
-            setTimeout(() => {
+            clearTimeout(this.chartTimerId);
+            this.chartTimerId = setTimeout(() => {
               if (!this.destroy$.closed) this.buildParetoDetailChart();
             }, 50);
           } else {
@@ -584,7 +585,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       this.loadPatternAnalysis();
     } else if (this.patternOpen && this.patternData) {
       // Rebuild chart when opening
-      setTimeout(() => {
+      clearTimeout(this.chartTimerId);
+      this.chartTimerId = setTimeout(() => {
         if (!this.destroy$.closed) this.buildHourlyChart();
       }, 50);
     }
@@ -603,7 +605,8 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           this.patternLoading = false;
           if (res && res.success) {
             this.patternData = res;
-            setTimeout(() => {
+            clearTimeout(this.chartTimerId);
+            this.chartTimerId = setTimeout(() => {
               if (!this.destroy$.closed) this.buildHourlyChart();
             }, 50);
           }
@@ -772,7 +775,10 @@ export class StoppageLogPage implements OnInit, OnDestroy {
           this.monthlyStopLoading = false;
           if (res.success) {
             this.monthlyStopItems = res.items ?? [];
-            setTimeout(() => this.buildMonthlyStopChart(), 100);
+            clearTimeout(this.chartTimerId);
+            this.chartTimerId = setTimeout(() => {
+              if (!this.destroy$.closed) this.buildMonthlyStopChart();
+            }, 100);
           } else {
             this.monthlyStopError = res.error || 'Kunde inte hämta data';
           }

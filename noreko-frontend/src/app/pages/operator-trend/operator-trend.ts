@@ -69,6 +69,8 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
   private chartTimer: any = null;
   private destroy$ = new Subject<void>();
   private apiBase = environment.apiUrl;
+  /** Versionsnummer — förhindrar att gamla HTTP-svar skriver över nya vid snabb navigering */
+  private loadVersion = 0;
 
   constructor(
     private http: HttpClient,
@@ -134,6 +136,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
 
   loadTrend(): void {
     if (!this.selectedOpId) return;
+    const version = ++this.loadVersion;
     this.loading = true;
     this.errorMsg = '';
 
@@ -151,6 +154,8 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(res => {
+        // Ignorera svar från inaktuell förfrågan (användaren bytte operatör/period)
+        if (version !== this.loadVersion) return;
         this.loading = false;
         if (res?.success) {
           this.trendData  = res.trend || [];

@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-09 (session #39)*
+*Senast uppdaterad: 2026-03-09 (session #40)*
 
 ---
 
@@ -525,6 +525,22 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-09 Session #40
+**Lagesanalys**: Session #39 levererade Bug Hunt #44 formularvalidering (`af2e7e2` — 28 fixar: required/maxlength/min/max pa inputs, dubbelklick-skydd, PHP defense-in-depth) + Bug Hunt #44b error/loading states (10 retry-knappar pa sidor utan "Forsok igen"-funktion). Totalt 38 fixar. Bug Hunts #1-#44 har tackt formularvalidering, error states, subscribe-lackor, responsiv design, timezone, dead code, chart.js, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**KRITISKT PROBLEM**: 18 filer har OLOСТА merge-konflikter fran parallella worktree-agenter. Projektet kan INTE byggas eller committas i detta tillstand. Konfliktfiler inkluderar: RebotlingController.php, SkiftrapportController.php, WeeklyReportController.php, app.routes.ts, menu.html, benchmarking, klassificeringslinje-admin, live-ranking, rebotling-admin, rebotling-skiftrapport, saglinje-admin, tvattlinje-admin, weekly-report, rebotling.service.ts, dev-log.md.
+
+**Nya observationer**:
+- Merge-konflikterna ar sannolikt fran worktree-agenter som jobbade parallellt pa samma filer under session #39.
+- Alla konflikter maste losas INNAN nagot annat arbete kan goras.
+- Efter konfliktlosning: ny Bug Hunt #45 fokuserad pa race conditions vid snabb navigation.
+
+**Beslut denna session**:
+1. Worker 1: LOSA ALLA MERGE-KONFLIKTER — ga igenom alla 18 filer, behall korrekt kod fran bada sidor, saker pa att bygga gar igenom. Commit med "fix: resolve merge conflicts from parallel worktrees".
+2. Worker 2: Bug Hunt #45 — Race conditions vid snabb navigation. Granska Angular-komponenter for: (a) switchMap vs subscribe — kan gammal HTTP-respons overskriva ny data om anvandaren byter filter/datum snabbt? (b) data-tilldelning i subscribe — ar this.data = resp korrekt aven om komponenten redan destruerats? (c) ngOnInit vs AfterViewInit timing — kan chart-rendering triggas innan canvas finns i DOM? Startas EFTER Worker 1 ar klar.
+
+**Motivering**: Merge-konflikter blockerar ALLT — varken build, commit eller deploy fungerar. Prioritet 1. Race conditions ar ett omrade som inte tackts av tidigare bug hunts och kan orsaka subtila UI-buggar i produktion.
 
 ### 2026-03-09 Session #39
 **Lagesanalys**: Session #38 levererade Bug Hunt #43 subscribe-lackor (`baa3e4c` — 2 fixar: bonus-dashboard och executive-dashboard saknade takeUntil pa polling-HTTP) + Bug Hunt #43b responsiv design (`9c2f6cc` — 17 fixar: 4 tabeller utan responsive wrapper, 4 overflow, 8 fasta bredder, 2 flexbox). Totalt 19 fixar. Bug Hunts #1-#43 har tackt subscribe-lackor, responsiv design, timezone, dead code, chart.js, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX, och manga fler. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.

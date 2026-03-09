@@ -67,7 +67,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
         if (trendRes?.success && trendRes.data) {
           this.oeeTrendDays = trendRes.data;
           this.oeeLoaded = true;
-          setTimeout(() => this.renderOEETrendChart(), 100);
+          setTimeout(() => { if (!this.destroy$.closed) this.renderOEETrendChart(); }, 100);
         } else {
           this.oeeLoaded = true;
         }
@@ -89,7 +89,7 @@ export class StatistikOeeDeepdiveComponent implements OnInit, OnDestroy {
           label: ann.label
         }));
         if (this.oeeLoaded && this.oeeTrendDays.length) {
-          setTimeout(() => this.renderOEETrendChart(), 0);
+          setTimeout(() => { if (!this.destroy$.closed) this.renderOEETrendChart(); }, 0);
         }
       }
     });

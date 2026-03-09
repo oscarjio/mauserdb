@@ -48,7 +48,7 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
     ).subscribe((r: any) => {
       this.weekdayData = r.veckodagar || [];
       this.weekdayLoading = false;
-      setTimeout(() => this.buildWeekdayChart(), 50);
+      setTimeout(() => { if (!this.destroy$.closed) this.buildWeekdayChart(); }, 50);
     });
   }
 

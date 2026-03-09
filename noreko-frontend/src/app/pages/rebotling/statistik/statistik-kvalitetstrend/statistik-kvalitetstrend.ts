@@ -45,7 +45,7 @@ export class StatistikKvalitetstrendComponent implements OnInit, OnDestroy {
         this.qualityTrendData = res.days;
         this.qualityTrendKpi = res.kpi ?? { avg: null, min: null, max: null, trend: 'stable' };
         this.qualityTrendLoaded = true;
-        setTimeout(() => this.renderQualityTrendChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderQualityTrendChart(); }, 100);
       } else {
         this.qualityTrendLoaded = true;
       }

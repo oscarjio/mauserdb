@@ -713,7 +713,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
           if (res.success) {
             this.maintenanceData   = res;
             this.maintenanceStatus = res.status as 'ok' | 'warning' | 'danger';
-            setTimeout(() => this.renderMaintenanceChart(), 0);
+            setTimeout(() => { if (!this.destroy$.closed) this.renderMaintenanceChart(); }, 0);
           }
           this.maintenanceLoading = false;
         },
@@ -984,7 +984,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
         this.goalHistoryLoading = false;
         if (res?.success) {
           this.goalHistory = res.data;
-          setTimeout(() => this.buildGoalHistoryChart(), 100);
+          setTimeout(() => { if (!this.destroy$.closed) this.buildGoalHistoryChart(); }, 100);
         }
       });
   }
@@ -1349,7 +1349,7 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
         this.correlationLoading = false;
         if (res?.success) {
           this.correlationData = res;
-          setTimeout(() => this.renderCorrelationChart(), 100);
+          setTimeout(() => { if (!this.destroy$.closed) this.renderCorrelationChart(); }, 100);
         } else {
           this.correlationError = res?.error || 'Kunde inte ladda korrelationsdata';
         }

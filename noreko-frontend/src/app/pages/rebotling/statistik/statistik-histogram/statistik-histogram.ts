@@ -50,7 +50,7 @@ export class StatistikHistogramComponent implements OnInit, OnDestroy {
         this.histogramBuckets = res.data.buckets;
         this.histogramStats = res.data.stats;
         this.histogramLoaded = true;
-        setTimeout(() => this.renderHistogramChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderHistogramChart(); }, 100);
       } else {
         this.histogramLoaded = true;
       }

@@ -1,3 +1,24 @@
+## 2026-03-09 Session #40 — Bug Hunt #45 Race conditions och timing edge cases
+
+**Bug Hunt #45 — Race conditions vid snabb navigation + setTimeout-guarder**:
+- **Race conditions vid snabb navigation (stale data)**: Lade till versionsnummer-monster i 4 komponenter for att forhindra att gamla HTTP-svar skriver over nya nar anvandaren snabbt byter period/vecka/operator:
+  - `weekly-report.ts`: `load()` och `loadCompareData()` — snabb prevWeek/nextWeek kunde visa fel veckas data
+  - `operator-trend.ts`: `loadTrend()` — snabbt byte av operator/veckor kunde visa fel operatorsdata
+  - `historik.ts`: `loadData()` — snabbt periodbyte (12/24/36 manader) kunde visa gammal data
+  - `production-analysis.ts`: Alla 7 tab-laddningsmetoder (`loadOperatorData`, `loadDailyData`, `loadHourlyData`, `loadShiftData`, `loadBestShifts`, `loadStopAnalysis`, `loadParetoData`) — snabbt periodbyte kunde visa stale data
+- **Ospårade setTimeout utan cleanup**: Fixade 6 setTimeout-anrop i `stoppage-log.ts` som inte sparade timer-ID for cleanup i ngOnDestroy (pareto-chart, monthly-stop-chart, pattern-analysis chart)
+- **Ospårad setTimeout i bonus-dashboard.ts**: `loadWeekTrend()` setTimeout fick tracked timer-ID
+- **Ospårad setTimeout i my-bonus.ts**: Lade till `weeklyChartTimerId` med cleanup i ngOnDestroy
+- **setTimeout utan destroy$-guard (chart-rendering efter destroy)**: Fixade 15 setTimeout-anrop i rebotling-admin och 12 rebotling statistik-subkomponenter som saknade `if (!this.destroy$.closed)` check:
+  - `rebotling-admin.ts`: renderMaintenanceChart, buildGoalHistoryChart, renderCorrelationChart
+  - `statistik-histogram.ts`, `statistik-waterfall-oee.ts`, `statistik-cykeltid-operator.ts`, `statistik-pareto-stopp.ts`, `statistik-kassation-pareto.ts`, `statistik-produktionsrytm.ts`, `statistik-veckojamforelse.ts`, `statistik-cykeltrend.ts`, `statistik-veckodag.ts`, `statistik-kvalitetstrend.ts`, `statistik-spc.ts`, `statistik-kvalitetsanalys.ts`, `statistik-oee-deepdive.ts`
+
+**PHP backend**: Granskade TvattlinjeController, SaglinjeController, KlassificeringslinjeController, SkiftrapportController, StoppageController, WeeklyReportController. Alla write-operationer anvander atomara `INSERT ... ON DUPLICATE KEY UPDATE` eller `UPDATE ... WHERE` — inga read-then-write race conditions hittades.
+
+**Sammanfattning session #40**: 25+ fixar. Versionsbaserad stale-data-prevention i 4 huvudkomponenter (7+ HTTP-anrop). 20+ setTimeout-anrop fick destroy$-guard eller tracked timer-ID for korrekt cleanup.
+
+---
+
 ## 2026-03-09 Session #39 — Bug Hunt #44 Formularvalidering + Error/Loading states
 
 **Worker 1 — Bug Hunt #44 Formularvalidering och input-sanering** (commit `af2e7e2`):

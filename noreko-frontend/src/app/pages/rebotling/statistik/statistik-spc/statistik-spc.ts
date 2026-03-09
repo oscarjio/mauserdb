@@ -55,7 +55,7 @@ export class StatistikSpcComponent implements OnInit, OnDestroy {
         this.spcLCL    = res.data.lcl;
         this.spcN      = res.data.n;
         this.spcLoaded = true;
-        setTimeout(() => this.renderSPCChart(res.data!.points), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderSPCChart(res.data!.points); }, 100);
       } else {
         this.spcLoaded = true;
       }

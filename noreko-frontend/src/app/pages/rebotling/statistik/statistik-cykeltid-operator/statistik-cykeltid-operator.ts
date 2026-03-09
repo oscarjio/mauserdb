@@ -67,7 +67,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
           }))
           .sort((a, b) => b.antal_skift - a.antal_skift);
         this.cycleByOpLoaded = true;
-        setTimeout(() => this.renderCycleByOpChart(), 100);
+        setTimeout(() => { if (!this.destroy$.closed) this.renderCycleByOpChart(); }, 100);
       } else {
         this.cycleByOpLoaded = true;
         this.cycleByOpData = [];
