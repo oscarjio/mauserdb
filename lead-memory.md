@@ -59,14 +59,14 @@ formularvalidering, error states, subscribe-läckor, responsiv design, timezone,
 chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX,
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #44: Workers slutförde ej. Session #45: Pareto + Cykeltid klara. Bug Hunt #49 klar (dbc7b1a).
-Session #46: Skiftrapport per operatör + IBC-kvalitets deep-dive (pågår).
+Session #46: Skiftrapport per operatör + IBC-kvalitets deep-dive — båda klara (0a96daa).
 Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik. 25+ filer granskade.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (ägarens prioritet)
-- [PÅGÅR] **Skiftrapport per operatör** — filtrerbar per specifik operatör (session #46)
-- [PÅGÅR] **IBC-kvalitets deep-dive** — ej-godkända per avvisningsorsak (session #46)
+- [x] **Skiftrapport per operatör** — KLAR (0a96daa): filtrerbar per operatör med chart + CSV
+- [x] **IBC-kvalitets deep-dive** — KLAR (0a96daa): donut + Pareto + trend + tabell
 - [ ] **Annotationer i grafer** — markera driftstopp, helgdagar, nya operatörer i tidslinjen
 - [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål
 
@@ -82,10 +82,10 @@ Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-09 — Session #46 (pågår)
-Worker 1: Skiftrapport per operatör — ny komponent + backend endpoint. Filtrerbar per operatör med trendgraf.
-Worker 2: IBC-kvalitets deep-dive — kassationer per avvisningsorsak. Donut + Pareto + trend.
-Backlog: Rensade klara Pareto+Cykeltid. Lade till Produktionsmål-tracker och Stopporsak-drill-down.
+### 2026-03-09 — Session #46 (klar)
+Worker 1 (Skiftrapport): Filtrerbar per operatör med dropdown, periodväljare, KPI-panel, Chart.js combo-graf, tabell, CSV-export. Backend: shift-report-by-operator endpoint. Commit 0a96daa.
+Worker 2 (Kvalitet deep-dive): Donut-chart, horisontellt Pareto, trendlinje topp 5 orsaker, tabell med alla orsaker. Backend: quality-rejection-breakdown + quality-rejection-trend. Commit 0a96daa.
+Båda features klara. 1632 rader ny kod, 12 filer ändrade.
 
 ### 2026-03-09 — Session #45 (slutresultat)
 Worker 1 (Pareto): Horisontellt 80/20-diagram, kumulativ linje, 80%-markering, orange/grå färgdelning, CSV-export. Commit d8c4356.

@@ -5,8 +5,8 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [PÅGÅR] **Skiftrapport per operatör** — filtrerbar skiftrapport per specifik operatör med trendgraf
-- [PÅGÅR] **IBC-kvalitets deep-dive** — bryt ner ej-godkända per avvisningsorsak (donut + Pareto + trend)
+- [x] **Skiftrapport per operatör** — filtrerbar skiftrapport per specifik operatör med trendgraf (0a96daa)
+- [x] **IBC-kvalitets deep-dive** — bryt ner ej-godkända per avvisningsorsak (0a96daa)
 - [ ] **Annotationer i grafer** — markera ut driftstopp, helgdagar i tidslinjen på statistiksidan
 - [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
 
