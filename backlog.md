@@ -5,8 +5,8 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [ ] **Pareto-diagram stopporsaker** — horisontellt 80/20-diagram med kumulativ linje i production-analysis
-- [ ] **Cykeltid per operatör** — breakdown av histogram per operatör, visa vem som har lägst median
+- [PÅGÅR] **Pareto-diagram stopporsaker** — horisontellt 80/20-diagram med kumulativ linje (session #45)
+- [PÅGÅR] **Cykeltid per operatör** — grouped bar chart + ranking-tabell med median (session #45)
 - [ ] **Annotationer i grafer** — markera ut driftstopp, helgdagar i tidslinjen på statistiksidan
 - [ ] **Skiftrapport per operatör** — filtrerbar skiftrapport per specifik operatör
 
