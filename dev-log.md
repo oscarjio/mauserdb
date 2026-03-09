@@ -1,3 +1,23 @@
+## 2026-03-09 Session #38 — Bug Hunt #43 Subscribe-lackor + Responsiv design audit
+
+**Worker 1 — Bug Hunt #43 Angular subscribe-lackor** (commit `baa3e4c`):
+- 57 komponentfiler granskade (exkl. live-sidor)
+- 2 subscribe-lackor fixade: bonus-dashboard.ts och executive-dashboard.ts saknade takeUntil(destroy$) pa HTTP-anrop i polling-metoder
+- Ovriga 55 filer redan korrekta: alla har destroy$ + ngOnDestroy + takeUntil
+- Alla 15 filer med setInterval-polling har matchande clearInterval
+- Inga ActivatedRoute param-subscribes utan cleanup
+
+**Worker 2 — Bug Hunt #43b Responsiv design och CSS-konsistens** (commit via worker):
+- 12 filer andrade, 17 fixar totalt
+- 4 tabeller utan responsive wrapper: operator-attendance, audit-log (2), my-bonus
+- 4 overflow:hidden→overflow-x:auto: rebotling-skiftrapport (2), weekly-report (2)
+- 8 fasta bredder→relativa: skiftrapport-filterinputs i 5 sidor (rebotling, shared, tvattlinje, saglinje, klassificeringslinje)
+- 2 flexbox utan flex-wrap: certifications tab-nav, executive-dashboard oee-row
+
+**Sammanfattning session #38**: 19 fixar (2 subscribe-lackor + 17 responsiv design). Subscribe-lacker i bonus-dashboard och executive-dashboard kunde orsaka minneslakor vid navigation under aktiv polling. Responsiv design nu battre for surfplattor i produktionsmiljon.
+
+---
+
 ## 2026-03-09 Session #37 — Bug Hunt #42 Timezone deep-dive + Dead code audit
 
 **Worker 1 — Bug Hunt #42 Timezone deep-dive** (commit via worker):

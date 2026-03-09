@@ -1,7 +1,7 @@
 # Lead Agent Memory — MauserDB
 
 *Detta är ledaragentens persistenta minne. Uppdateras varje session.*
-*Senast uppdaterad: 2026-03-09 (session #37)*
+*Senast uppdaterad: 2026-03-09 (session #38)*
 
 ---
 
@@ -148,6 +148,19 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 - 9 filer rena: certifications, vpn-admin, andon, tvattlinje-admin/skiftrapport, saglinje-admin/skiftrapport, klassificeringslinje-admin/skiftrapport
 
 **MILSTOLPE: Hela kodbasen (34 PHP-controllers + 50+ Angular-komponenter) har nu genomgatt systematisk bug-hunting i Bug Hunt #1-#30.**
+
+### Atgardat — 2026-03-09 (Session #38: Bug Hunt #43 Subscribe-lackor + Responsiv design)
+
+**Bug Hunt #43 — Angular subscribe-lackor (2 fixar i 2 filer):**
+- `bonus-dashboard.ts`: `bonusService.getRanking()` subscribe i polling-metod saknade `takeUntil(this.destroy$)` — minnesläcka vid navigation under aktiv polling.
+- `executive-dashboard.ts`: `rebotlingService.getExecDashboard()` subscribe i polling-metod saknade `takeUntil(this.destroy$)` — samma riskprofil.
+- 57 filer granskade totalt. 55 redan korrekta med destroy$ + takeUntil. Alla 15 setInterval-filer har matchande clearInterval.
+
+**Bug Hunt #43b — Responsiv design och CSS-konsistens (17 fixar i 12 filer):**
+- 4 tabeller utan responsive wrapper: operator-attendance, audit-log (2 tabeller), my-bonus peer-table
+- 4 overflow:hidden→overflow-x:auto: rebotling-skiftrapport (2 st), weekly-report (2 st)
+- 8 fasta bredder→relativa (max-width+width:100%): filterinputs i rebotling-skiftrapport, shared-skiftrapport, tvattlinje-skiftrapport, saglinje-skiftrapport, klassificeringslinje-skiftrapport
+- 2 flexbox utan flex-wrap: certifications tab-nav, executive-dashboard oee-row
 
 ### Atgardat — 2026-03-09 (Session #37: Bug Hunt #42 Timezone deep-dive + Dead code audit)
 
@@ -512,6 +525,21 @@ Tänk som en **ambitiös teamleader** som vill imponera på kunden och visa vad 
 ---
 
 ## BESLUTSDAGBOK
+
+### 2026-03-09 Session #38
+**Lagesanalys**: Session #37 levererade Bug Hunt #42 timezone deep-dive (`eda28a9` — ~65 fixar: date-utils.ts med localToday/localDateStr/parseLocalDate, ~50 toISOString-ersattningar, PHP timezone_set) + Bug Hunt #42b dead code audit (`81b2123` — 14 fixar: 13 oanvanda imports, 1 npm dependency). Totalt ~79 fixar. Bug Hunts #1-#42 har tackt alla systematiska buggkategorier. Kodbasen verifierad REN. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
+
+**Nya observationer**:
+- Med 42 Bug Hunts bakom oss ar de uppenbara buggkategorierna uttomda. For att hitta kvarstaende problem kravs nu specialiserade granskningar av omraden som inte tackts av tidigare hunts.
+- Omrade som EJ granskats: Accessibility (a11y) — saknas ARIA-labels, keyboard navigation, screen reader-stod? Produktionssystem anvands av operatorer med varierande teknisk kompetens.
+- Omrade som EJ granskats: Responsiv design-konsistens — ar alla sidor (inte bara my-bonus) korrekt responsiva pa surfplatta (1024px) och telefon (375px)? Operatorer kan anvanda systemet pa surfplatta i produktionsmiljon.
+- Omrade som EJ granskats: Edge cases i Angular reaktiva floden — switchMap/mergeMap/concatMap anvandning, unsubscribe-monster i komponenter som INTE anvander polling (engangsladdningar med subscribe utan takeUntil/async pipe).
+
+**Beslut denna session**:
+1. Worker 1: Bug Hunt #43 — Angular subscribe-lackor och reaktiva monster. Granska ALLA komponenter for: (a) `.subscribe()` utan motsvarande unsubscribe i ngOnDestroy — minneslakor vid navigation, (b) saknad `takeUntilDestroyed()` eller `DestroyRef` — modern Angular-monster, (c) multipla subscribe i samma komponent utan cleanup, (d) HTTP-anrop som gor subscribe istallet for async pipe — potentiell lacka om komponenten destroyas innan respons, (e) forkJoin/combineLatest utan error handling — om en request failar, vad hander? Fokus pa: alla sidor i noreko-frontend/src/app/pages/ (UTOM live-sidorna).
+2. Worker 2: Bug Hunt #43b — Responsiv design och CSS-konsistens audit. Granska ALLA sidor (UTOM live-sidorna) for: (a) tabeller utan responsive wrapper (overflow-x: auto) — breder ut sidan pa mobil, (b) fasta bredder (px) som borde vara relativa (%, vw), (c) font-storlekar som ar for sma pa mobil (<14px), (d) knappar/inputs utan tillracklig touch target (min 44px), (e) flexbox/grid som inte wrappas pa smal skarm, (f) modaler/dropdowns som hamnar utanfor viewport pa mobil. Fixa alla problem direkt.
+
+**Motivering**: Subscribe-lackor ar den vanligaste Angular-buggen — en komponent som prenumererar pa en Observable men inte avregistrerar sig vid navigation lacker minne. I ett produktionssystem som kors dygnet runt pa en surfplatta kan detta leda till att fliken kraschar efter nagra timmar. Responsiv design ar viktigt da operatorer kan anvanda surfplattor i produktionsmiljon.
 
 ### 2026-03-09 Session #37
 **Lagesanalys**: Session #36 levererade Bug Hunt #41 Chart.js lifecycle (`76d6392` — 9 tooltip null-guards i 9 filer) + Bug Hunt #41b export/formatering (`aca1844` — 7 fixar: CSV semikolon, UTF-8 BOM, print CSS A4). Totalt 16 fixar. Sedan session #36 har agaren gjort 4 manuella fixar: deploy-scripts (3 commits: `d18d541`, `fc32920`, `5689577`) + KRITISK UTC timezone-bugg i statistik date parsing (`4053cf4` — UTC offset orsakade fel dag efter URL reload). Bug Hunts #1-#41 har tackt alla systematiska buggkategorier. Agarens direktiv kvarstar: INGEN NY FUNKTIONSUTVECKLING.
