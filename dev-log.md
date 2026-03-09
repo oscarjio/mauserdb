@@ -1,3 +1,19 @@
+## 2026-03-09 Session #43 — Rebotling statistik: Produktionsoverblick + buggfix
+
+**Produktionsoverblick (VD-vy)**: Ny panel hogst upp pa statistiksidan som visar:
+- Dagens IBC-produktion mot mal med prognos
+- Aktuell takt (IBC/h) och OEE med trend-pil vs igar
+- Veckans produktion vs forra veckan med procentuell forandring
+- 7-dagars sparkline-trend
+
+Data hamtas fran befintligt exec-dashboard endpoint — inget nytt backend-arbete behovs.
+
+**Buggfix: computeDayMetrics utilization**: Rattade berakning av utnyttjandegrad i dagsvyn. Variabeln `lastMin` anvandes bade for att spara senaste tidpunkten och for att rakna ut kortid, men uppdaterades vid varje event oavsett typ. Nu anvands separat `runStartMin` som bara uppdateras vid maskinstart.
+
+Bygger OK. Inga backend-andringar.
+
+---
+
 ## 2026-03-09 — ÄGARENS NYA DIREKTIV: Utveckling återupptagen
 
 Ägaren har lagt över stabil version i produktion. Utvecklingsstoppet från vecka 10 är upphävt.

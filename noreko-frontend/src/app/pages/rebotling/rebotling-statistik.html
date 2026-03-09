@@ -210,6 +210,92 @@
   <!-- ============ NORMAL VY (år/månad/dag) ============ -->
   <div class="container-fluid py-4" *ngIf="viewMode !== 'heatmap'">
 
+    <!-- ======== PRODUKTIONSOVERBLICK (VD-vy) ======== -->
+    <div class="overview-panel mb-4" *ngIf="overviewData && !overviewLoading">
+      <div class="overview-title">
+        <i class="fas fa-tachometer-alt me-2"></i>Produktionsoverblick
+      </div>
+      <div class="overview-grid">
+        <!-- Idag -->
+        <div class="overview-card">
+          <div class="ov-label">Idag</div>
+          <div class="ov-main">
+            <span class="ov-big">{{ overviewData.todayIbc }}</span>
+            <span class="ov-unit">IBC</span>
+          </div>
+          <div class="ov-sub">
+            av {{ overviewData.todayTarget }} mal
+            <span class="ov-pct" [ngClass]="overviewData.todayPct >= 90 ? 'text-success' : overviewData.todayPct >= 70 ? 'text-warning' : 'text-danger'">
+              ({{ overviewData.todayPct }}%)
+            </span>
+          </div>
+          <div class="ov-sub" *ngIf="overviewData.todayForecast > 0">
+            Prognos: <strong>{{ overviewData.todayForecast }}</strong> IBC
+          </div>
+        </div>
+
+        <!-- Takt -->
+        <div class="overview-card">
+          <div class="ov-label">Aktuell takt</div>
+          <div class="ov-main">
+            <span class="ov-big">{{ overviewData.ratePerH | number:'1.1-1' }}</span>
+            <span class="ov-unit">IBC/h</span>
+          </div>
+          <div class="ov-sub">
+            OEE idag: <strong [ngClass]="overviewData.oeeToday >= 65 ? 'text-success' : overviewData.oeeToday >= 50 ? 'text-warning' : 'text-danger'">{{ overviewData.oeeToday | number:'1.0-0' }}%</strong>
+          </div>
+          <div class="ov-sub">
+            <span class="ov-trend" [ngClass]="getTrendClass(getOeeDiff())">
+              <i class="fas" [ngClass]="getTrendIcon(getOeeDiff())"></i>
+              {{ getOeeDiff() > 0 ? '+' : '' }}{{ getOeeDiff() }}% vs igar
+            </span>
+          </div>
+        </div>
+
+        <!-- Denna vecka -->
+        <div class="overview-card">
+          <div class="ov-label">Denna vecka</div>
+          <div class="ov-main">
+            <span class="ov-big">{{ overviewData.thisWeekIbc }}</span>
+            <span class="ov-unit">IBC</span>
+          </div>
+          <div class="ov-sub">
+            Forr. vecka: {{ overviewData.prevWeekIbc }}
+            <span class="ov-trend" [ngClass]="getTrendClass(overviewData.weekDiffPct)">
+              <i class="fas" [ngClass]="getTrendIcon(overviewData.weekDiffPct)"></i>
+              {{ overviewData.weekDiffPct > 0 ? '+' : '' }}{{ overviewData.weekDiffPct | number:'1.0-0' }}%
+            </span>
+          </div>
+          <div class="ov-sub">
+            Kvalitet: <strong>{{ overviewData.qualityPct | number:'1.1-1' }}%</strong>
+          </div>
+        </div>
+
+        <!-- 7-dagars trend -->
+        <div class="overview-card">
+          <div class="ov-label">Senaste 7 dagar</div>
+          <div class="ov-sparkline">
+            <svg width="120" height="32" viewBox="0 0 120 32">
+              <polyline
+                [attr.points]="getSparklinePoints()"
+                fill="none"
+                stroke="#00d4ff"
+                stroke-width="2"
+                stroke-linejoin="round"
+                stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="ov-sparkline-labels">
+            <span *ngFor="let d of overviewData.days7; let i = index; let last = last"
+                  class="ov-spark-day"
+                  [class.ov-spark-today]="last">
+              {{ d.ibc }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- KPI Cards -->
     <div class="row mb-4">
       <div class="col-lg-3 col-md-6 mb-3">

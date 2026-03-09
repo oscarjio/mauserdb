@@ -75,6 +75,137 @@
 }
 
 /* ============================================
+   Produktionsoverblick (VD-vy)
+   ============================================ */
+
+.overview-panel {
+  background: linear-gradient(135deg, rgba(0, 40, 80, 0.6) 0%, rgba(0, 20, 50, 0.6) 100%);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.overview-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #00d4ff;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 992px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.overview-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.ov-label {
+  font-size: 0.75rem;
+  color: #8899aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+}
+
+.ov-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.ov-big {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.ov-unit {
+  font-size: 0.85rem;
+  color: #8899aa;
+}
+
+.ov-sub {
+  font-size: 0.8rem;
+  color: #8899aa;
+  margin-bottom: 0.15rem;
+}
+
+.ov-pct {
+  font-weight: 600;
+}
+
+.ov-trend {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.ov-trend.trend-up {
+  color: #48bb78;
+}
+
+.ov-trend.trend-down {
+  color: #fc8181;
+}
+
+.ov-trend.trend-flat {
+  color: #a0aec0;
+}
+
+.ov-sparkline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0 0.35rem;
+}
+
+.ov-sparkline svg {
+  width: 100%;
+  max-width: 120px;
+  height: 32px;
+}
+
+.ov-sparkline-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.ov-spark-day {
+  font-size: 0.65rem;
+  color: #667788;
+  text-align: center;
+  flex: 1;
+}
+
+.ov-spark-today {
+  color: #00d4ff;
+  font-weight: 700;
+}
+
+/* ============================================
    KPI Cards
    ============================================ */
 

@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, ChartAnnotation } from '../../services/rebotling.service';
+import { RebotlingService, ChartAnnotation, ExecDashboardResponse } from '../../services/rebotling.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
 import { StatistikHistogramComponent } from './statistik/statistik-histogram/statistik-histogram';
 import { StatistikSpcComponent } from './statistik/statistik-spc/statistik-spc';
@@ -191,6 +191,23 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   isDragging: boolean = false;
 
+  // Produktionsoverblick (VD-vy)
+  overviewLoading: boolean = false;
+  overviewData: {
+    todayIbc: number;
+    todayTarget: number;
+    todayPct: number;
+    todayForecast: number;
+    oeeToday: number;
+    oeeYesterday: number;
+    ratePerH: number;
+    thisWeekIbc: number;
+    prevWeekIbc: number;
+    weekDiffPct: number;
+    qualityPct: number;
+    days7: { date: string; ibc: number; target: number }[];
+  } | null = null;
+
   private destroy$ = new Subject<void>();
   private chartUpdateTimer: any = null;
 
@@ -211,6 +228,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.generatePeriodCells();
     this.syncStateToUrl();
     this.loadStatistics();
+    this.loadOverview();
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -268,6 +286,78 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   }
 
   ngAfterViewInit() {}
+
+  /** Ladda produktionsoverblick (VD-vy) fran exec-dashboard endpoint */
+  loadOverview() {
+    this.overviewLoading = true;
+    this.rebotlingService.getExecDashboard().pipe(
+      timeout(10000),
+      catchError(() => {
+        this.overviewLoading = false;
+        return of(null);
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe((res: ExecDashboardResponse | null) => {
+      this.overviewLoading = false;
+      if (!res?.success || !res.data) return;
+      const d = res.data;
+      this.overviewData = {
+        todayIbc: d.today.ibc,
+        todayTarget: d.today.target,
+        todayPct: d.today.pct,
+        todayForecast: d.today.forecast,
+        oeeToday: d.today.oee_today,
+        oeeYesterday: d.today.oee_yesterday,
+        ratePerH: d.today.rate_per_h,
+        thisWeekIbc: d.week.this_week_ibc,
+        prevWeekIbc: d.week.prev_week_ibc,
+        weekDiffPct: d.week.week_diff_pct,
+        qualityPct: d.week.quality_pct,
+        days7: d.days7 || []
+      };
+    });
+  }
+
+  /** Hjalpmetod: returnera trendpilklass baserad pa procent-differens */
+  getTrendClass(diffPct: number): string {
+    if (diffPct > 5) return 'trend-up';
+    if (diffPct < -5) return 'trend-down';
+    return 'trend-flat';
+  }
+
+  /** Hjalpmetod: returnera trendpil-ikon */
+  getTrendIcon(diffPct: number): string {
+    if (diffPct > 5) return 'fa-arrow-up';
+    if (diffPct < -5) return 'fa-arrow-down';
+    return 'fa-minus';
+  }
+
+  /** Returnera OEE-differens (idag vs igar) */
+  getOeeDiff(): number {
+    if (!this.overviewData) return 0;
+    return Math.round((this.overviewData.oeeToday - this.overviewData.oeeYesterday) * 10) / 10;
+  }
+
+  /** Sparkline: max IBC under senaste 7 dagarna (for att skala SVG) */
+  getSparklineMax(): number {
+    if (!this.overviewData?.days7?.length) return 1;
+    return Math.max(...this.overviewData.days7.map(d => d.ibc), 1);
+  }
+
+  /** Sparkline: generera SVG polyline-punkter */
+  getSparklinePoints(): string {
+    if (!this.overviewData?.days7?.length) return '';
+    const days = this.overviewData.days7;
+    const max = this.getSparklineMax();
+    const w = 120;
+    const h = 32;
+    const step = w / Math.max(days.length - 1, 1);
+    return days.map((d, i) => {
+      const x = Math.round(i * step);
+      const y = Math.round(h - (d.ibc / max) * (h - 4) - 2);
+      return `${x},${y}`;
+    }).join(' ');
+  }
 
   ngOnDestroy() {
     clearTimeout(this.chartUpdateTimer);
@@ -1349,13 +1439,13 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     let totalRunMinutes = 0;
     let longestStop = 0;
     let currentRunning = false;
-    let lastMin = 0;
+    let runStartMin = 0;
     let stopStart: number | null = null;
 
     for (const ev of events) {
       if (currentRunning && !ev.running) {
         // Maskinen stannar
-        totalRunMinutes += ev.min - lastMin;
+        totalRunMinutes += ev.min - runStartMin;
         stopStart = ev.min;
         currentRunning = false;
       } else if (!currentRunning && ev.running) {
@@ -1364,14 +1454,14 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           const stopDur = ev.min - stopStart;
           if (stopDur > longestStop) { longestStop = stopDur; }
         }
+        runStartMin = ev.min;
         currentRunning = true;
       }
-      lastMin = ev.min;
     }
 
     // Om maskinen fortfarande körde vid sista händelse: lägg till tid fram till sista händelse
-    if (currentRunning) {
-      totalRunMinutes += lastMin - (events.find((e: any) => e.running)?.min ?? lastMin);
+    if (currentRunning && lastEventMin !== null) {
+      totalRunMinutes += lastEventMin - runStartMin;
     }
 
     // Utnyttjandegrad = körtid / (sista - första) händelse * 100
