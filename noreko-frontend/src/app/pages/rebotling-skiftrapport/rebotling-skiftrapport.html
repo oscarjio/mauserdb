@@ -193,15 +193,15 @@
       <div class="filter-bar d-flex gap-2 align-items-end mb-3 flex-wrap">
         <div>
           <label class="form-label small mb-1">Från datum</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" style="width:150px;" />
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" style="max-width:150px; width:100%;" />
         </div>
         <div>
           <label class="form-label small mb-1">Till datum</label>
-          <input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="width:150px;" />
+          <input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="max-width:150px; width:100%;" />
         </div>
         <div>
           <label class="form-label small mb-1">Skift</label>
-          <select class="form-control form-control-sm" [(ngModel)]="filterSkift" style="width:160px;">
+          <select class="form-control form-control-sm" [(ngModel)]="filterSkift" style="max-width:160px; width:100%;">
             <option value="">Alla skift</option>
             <option value="förmiddag">Förmiddag (06–14)</option>
             <option value="eftermiddag">Eftermiddag (14–22)</option>
@@ -211,11 +211,11 @@
         <div>
           <label class="form-label small mb-1">Sök</label>
           <input type="text" class="form-control form-control-sm" [(ngModel)]="searchText"
-            (ngModelChange)="onSearchInput()" placeholder="Produkt, användare..." style="width:200px;" />
+            (ngModelChange)="onSearchInput()" placeholder="Produkt, användare..." style="max-width:200px; width:100%;" />
         </div>
         <div>
           <label class="form-label small mb-1">Filtrera på operatör</label>
-          <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
+          <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="max-width:200px; width:100%;">
             <option [ngValue]="null">— Alla operatörer —</option>
             <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
@@ -1115,11 +1115,11 @@
           <div class="d-flex gap-3 align-items-end flex-wrap mb-3">
             <div>
               <label class="form-label small mb-1">Datum A</label>
-              <input type="date" class="form-control form-control-sm" [(ngModel)]="compareDateA" style="width:160px;" />
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="compareDateA" style="max-width:160px; width:100%;" />
             </div>
             <div>
               <label class="form-label small mb-1">Datum B</label>
-              <input type="date" class="form-control form-control-sm" [(ngModel)]="compareDateB" style="width:160px;" />
+              <input type="date" class="form-control form-control-sm" [(ngModel)]="compareDateB" style="max-width:160px; width:100%;" />
             </div>
             <button class="btn btn-info btn-sm" (click)="compareShifts()"
               [disabled]="compareLoading || !compareDateA || !compareDateB">

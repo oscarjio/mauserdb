@@ -438,7 +438,7 @@ interface WeekCompare {
     .daily-table-panel {
       background: #2d3748;
       border-radius: 10px;
-      overflow: hidden;
+      overflow-x: auto;
       margin-bottom: 1.5rem;
     }
     .daily-table-panel h4 {
@@ -488,7 +488,7 @@ interface WeekCompare {
     .operators-table-wrap {
       background: #2d3748;
       border-radius: 10px;
-      overflow: hidden;
+      overflow-x: auto;
       margin-bottom: 1.5rem;
     }
     .operators-table {

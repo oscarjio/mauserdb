@@ -287,6 +287,7 @@
                 <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Per åtgärd</h5>
               </div>
               <div class="card-body p-0">
+                <div style="overflow-x: auto;">
                 <table class="audit-stats-table">
                   <tbody>
                     <tr *ngFor="let item of stats.by_action">
@@ -300,6 +301,7 @@
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           </div>
@@ -311,6 +313,7 @@
                 <h5 class="mb-0"><i class="fas fa-users me-2"></i>Per användare</h5>
               </div>
               <div class="card-body p-0">
+                <div style="overflow-x: auto;">
                 <table class="audit-stats-table">
                   <tbody>
                     <tr *ngFor="let item of stats.by_user">
@@ -319,6 +322,7 @@
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           </div>

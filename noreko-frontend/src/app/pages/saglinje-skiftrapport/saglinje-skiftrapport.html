@@ -102,8 +102,8 @@
   </div>
 
   <div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
-    <div><label class="form-label small mb-1">Från datum</label><input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" style="width:150px;" /></div>
-    <div><label class="form-label small mb-1">Till datum</label><input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="width:150px;" /></div>
+    <div><label class="form-label small mb-1">Från datum</label><input type="date" class="form-control form-control-sm" [(ngModel)]="filterFrom" style="max-width:150px; width:100%;" /></div>
+    <div><label class="form-label small mb-1">Till datum</label><input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="max-width:150px; width:100%;" /></div>
     <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()" *ngIf="filterFrom || filterTo"><i class="fas fa-times me-1"></i>Rensa</button>
     <span class="text-muted small align-self-end pb-1" *ngIf="reports.length > 0">{{ filteredReports.length }} av {{ reports.length }} skift</span>
   </div>

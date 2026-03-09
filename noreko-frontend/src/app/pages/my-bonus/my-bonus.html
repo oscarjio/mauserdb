@@ -594,6 +594,7 @@
         </div>
 
         <!-- Mini-tabell med anonymiserade kollegor -->
+        <div style="overflow-x: auto;">
         <table class="peer-table">
           <thead>
             <tr>
@@ -619,6 +620,7 @@
             </tr>
           </tbody>
         </table>
+        </div>
 
         <!-- Motiverande text -->
         <div class="peer-motivation mt-3 text-center" *ngIf="peerRanking.your_rank > 1 && getPeerDiffFromAbove() !== null">
