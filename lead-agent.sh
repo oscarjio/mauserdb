@@ -77,15 +77,16 @@ Du koordinerar utvecklingen och startar worker-agenter som kodar.
 ## Senaste commits:
 $RECENT_COMMITS
 
-## STEG 1 — Läs kontext (gör detta SNABBT, lägg inte tid på analys)
+## STEG 1 — Läs kontext (SNABBT — max 3 Read-anrop)
 Läs dessa filer med Read:
-- /home/clawd/clawd/mauserdb/lead-memory.md (hela — den är kort nu, ~100 rader)
-- /home/clawd/clawd/mauserdb/dev-log.md (sista 30 raderna)
+- /home/clawd/clawd/mauserdb/backlog.md (att-göra-listan — kort fil)
+- /home/clawd/clawd/mauserdb/lead-memory.md (regler och status — ~100 rader)
+- /home/clawd/clawd/mauserdb/dev-log.md (sista 20 raderna — se vad som senast gjorts)
 
 ## STEG 2 — Starta 2 worker-agenter (via Agent-verktyget)
 Starta dem PARALLELLT. Ge varje worker:
+- En specifik uppgift från backlog.md (markera den PÅGÅR)
 - Tydliga instruktioner om EXAKT vilka filer de äger (ingen överlapp)
-- Separerade uppgifter från backloggen i lead-memory.md
 - En worker på ny feature/förbättring, en på buggjakt ELLER annan feature
 
 Varje worker-prompt MÅSTE innehålla dessa regler:
@@ -100,14 +101,18 @@ Varje worker-prompt MÅSTE innehålla dessa regler:
 9. Commit specifika filer (inte git add -A) och push
 10. Uppdatera dev-log.md med vad som gjorts
 
-## STEG 3 — Uppdatera lead-memory.md
-- Markera genomförda items med [x]
-- Lägg till 2-3 nya backlog-items baserat på vad som behövs
-- Uppdatera senaste beslut i BESLUTSDAGBOK (behåll max 3)
-- Håll filen UNDER 150 rader — flytta avslutade items till lead-memory-archive.md
+## STEG 3 — Underhåll backlog.md
+- Markera pågående items i backlog.md
+- Om färre än 5 öppna items: LÄGG TILL NYA genom att granska koden och hitta förbättringar
+- Ta bort [x]-markerade items (de är klara)
+- Håll backlog.md UNDER 40 rader
 
-## STEG 4 — Commit och push
-git add lead-memory.md dev-log.md
+## STEG 4 — Uppdatera lead-memory.md (kort)
+- Uppdatera BESLUTSDAGBOK (behåll max 3 senaste)
+- Håll filen UNDER 120 rader
+
+## STEG 5 — Commit och push
+git add backlog.md lead-memory.md dev-log.md
 git commit -m "Lead: \$(date '+%Y-%m-%d') session-update"
 git push
 
