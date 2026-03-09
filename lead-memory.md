@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-09 (session #45)*
+*Senast uppdaterad: 2026-03-09 (session #46)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -58,30 +58,34 @@ Bug Hunts #1-#48 genomförda. Kodbasen har genomgått systematisk granskning:
 formularvalidering, error states, subscribe-läckor, responsiv design, timezone, dead code,
 chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX,
 race conditions, accessibility, null safety, HTTP timeout/catchError.
-Session #44: Workers slutförde ej. Session #45: Pareto redan implementerat. Bug Hunt #49 klar (dbc7b1a).
+Session #44: Workers slutförde ej. Session #45: Pareto + Cykeltid klara. Bug Hunt #49 klar (dbc7b1a).
+Session #46: Skiftrapport per operatör + IBC-kvalitets deep-dive (pågår).
 Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik. 25+ filer granskade.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (ägarens prioritet)
-- [x] **Statistiksidan överblick** — KLAR (e708fc3): produktionsöverblick-panel med dagens prod, takt, OEE, veckotrend
-- [x] **Pareto-diagram stopporsaker** — KLAR: redan implementerat (statistik-pareto-stopp komponent + backend)
-- [x] **Cykeltid per operatör** — KLAR (3327f20): grouped bar chart + ranking-tabell + backend stddev
+- [PÅGÅR] **Skiftrapport per operatör** — filtrerbar per specifik operatör (session #46)
+- [PÅGÅR] **IBC-kvalitets deep-dive** — ej-godkända per avvisningsorsak (session #46)
 - [ ] **Annotationer i grafer** — markera driftstopp, helgdagar, nya operatörer i tidslinjen
-- [ ] **Skiftrapport per operatör** — filtrerbar per specifik operatör
+- [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål
 
 ### Förbättringar
 - [ ] **Bonus "What-if"-simulator** — admin justerar parametrar, ser effekt i realtid
 - [ ] **Skiftbyte-PDF automatgenerering** — PDF vid skiftslut, länk i UI
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
-- [ ] **Live-ranking admin-konfig** — konfigurera KPI:er på TV-skärmen
-- [ ] **IBC-kvalitets deep-dive** — bryt ner ej-godkända per avvisningsorsak
+- [ ] **Stopporsak-drill-down** — klicka Pareto-stapel → detaljer
 
 ### Nya sidor
 - [ ] **Månadsrapport** (`/rapporter/manad`) — auto-genererad sammanfattning, PDF-export
 - [ ] **Skiftplaneringsvy** (`/admin/skiftplan`) — kalendervy, operatörer per skift
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-09 — Session #46 (pågår)
+Worker 1: Skiftrapport per operatör — ny komponent + backend endpoint. Filtrerbar per operatör med trendgraf.
+Worker 2: IBC-kvalitets deep-dive — kassationer per avvisningsorsak. Donut + Pareto + trend.
+Backlog: Rensade klara Pareto+Cykeltid. Lade till Produktionsmål-tracker och Stopporsak-drill-down.
 
 ### 2026-03-09 — Session #45 (slutresultat)
 Worker 1 (Pareto): Horisontellt 80/20-diagram, kumulativ linje, 80%-markering, orange/grå färgdelning, CSV-export. Commit d8c4356.
@@ -90,6 +94,3 @@ Båda features klara och pushade.
 
 ### 2026-03-09 — Session #44
 Statistiksidan överblick markerad klar. Workers misslyckades (inga commits).
-
-### 2026-03-09 — Utveckling återupptagen
-Ägaren godkänt stabil version i prod. Utvecklingsstopp upphävt. Fokus: rebotling-statistik + buggjakt.

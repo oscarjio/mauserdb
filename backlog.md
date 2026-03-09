@@ -5,17 +5,17 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [x] **Pareto-diagram stopporsaker** — horisontellt 80/20-diagram med kumulativ linje (d8c4356)
-- [x] **Cykeltid per operatör** — grouped bar chart + ranking-tabell med median (3327f20)
+- [PÅGÅR] **Skiftrapport per operatör** — filtrerbar skiftrapport per specifik operatör med trendgraf
+- [PÅGÅR] **IBC-kvalitets deep-dive** — bryt ner ej-godkända per avvisningsorsak (donut + Pareto + trend)
 - [ ] **Annotationer i grafer** — markera ut driftstopp, helgdagar i tidslinjen på statistiksidan
-- [ ] **Skiftrapport per operatör** — filtrerbar skiftrapport per specifik operatör
+- [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
 
 ## Förbättringar
 
 - [ ] **Bonus "What-if"-simulator** — admin justerar bonusparametrar, ser effekt i realtid
 - [ ] **Skiftbyte-PDF automatgenerering** — PDF vid skiftslut, länk i UI
 - [ ] **Operatörsnärvaro-tracker** — kalendervy baserad på rebotling_ibc-data
-- [ ] **IBC-kvalitets deep-dive** — bryt ner ej-godkända per avvisningsorsak
+- [ ] **Stopporsak-drill-down** — klicka på Pareto-stapel → se detaljer (tid, operatör, kommentar)
 
 ## Nya sidor
 
@@ -24,4 +24,4 @@
 
 ## Buggjakt
 
-- [ ] **Bug Hunt #50** — granska session #45 commits (Pareto + Cykeltid) för nya buggar
+- [ ] **Bug Hunt #50** — granska session #46 commits (Skiftrapport + Kvalitet deep-dive)
