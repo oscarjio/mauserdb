@@ -1,3 +1,20 @@
+## 2026-03-09 Skiftrapport per operator — filtrerbar rapport
+
+Ny komponent `statistik-skiftrapport-operator` under rebotling-statistik:
+- **Dropdown-filter** for att valja operator (hamtar fran befintligt operator-list endpoint)
+- **Periodvaljare**: 7/14/30/90 dagar eller anpassat datumintervall
+- **Sammanfattningspanel**: Totalt IBC, snitt cykeltid, basta/samsta skift
+- **Chart.js combo-graf**: staplar for IBC per skift + linje for cykeltid (dual Y-axlar)
+- **Tabell**: Datum, Skift, IBC, Godkanda, Kasserade, Cykeltid, OEE, Stopptid
+- **CSV-export** av all tabelldata (semicolon-separerad, UTF-8 BOM)
+- Backend: nytt endpoint i SkiftrapportController — `run=shift-report-by-operator`
+  - Filtrar rebotling_skiftrapport pa operator (op1/op2/op3) + datumintervall
+  - Beraknar cykeltid, OEE, stopptid per skift
+- Registrerad som @defer child-komponent i rebotling-statistik
+- Dark theme, svenska, korrekt lifecycle (destroy$ + chart?.destroy())
+
+---
+
 ## 2026-03-09 IBC Kvalitet Deep-dive — avvisningsorsaker
 
 Ny komponent `statistik-kvalitet-deepdive` under rebotling-statistik:
