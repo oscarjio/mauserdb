@@ -777,4 +777,16 @@
     <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
   }
 
+  @defer (on viewport) {
+    <app-statistik-skiftrapport-operator></app-statistik-skiftrapport-operator>
+  } @placeholder {
+    <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+  }
+
+  @defer (on viewport) {
+    <app-statistik-kvalitet-deepdive></app-statistik-kvalitet-deepdive>
+  } @placeholder {
+    <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
+  }
+
 </div>

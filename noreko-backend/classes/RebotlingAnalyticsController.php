@@ -4564,6 +4564,250 @@ HTML;
         }
     }
 
+    // =========================================================================
+    // IBC-kvalitets deep-dive: Kassationsorsaker nedbrytning
+    // GET ?action=rebotling&run=quality-rejection-breakdown&days=30
+    // =========================================================================
+
+    public function getQualityRejectionBreakdown() {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+        $toDate = date('Y-m-d');
+        $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
+        $prevTo = $fromDate;
+
+        try {
+            // 1. Totala IBC (godkända + kasserade) för perioden
+            $stmtTotal = $this->pdo->prepare("
+                SELECT
+                    SUM(ibc_ok) AS total_ok,
+                    SUM(ibc_ej_ok) AS total_ej_ok,
+                    SUM(ibc_ok) + SUM(ibc_ej_ok) AS total_ibc
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_date AND datum <= :to_date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+            ");
+            $stmtTotal->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $totals = $stmtTotal->fetch(PDO::FETCH_ASSOC);
+
+            $totalIbc = (int)($totals['total_ibc'] ?? 0);
+            $totalOk = (int)($totals['total_ok'] ?? 0);
+            $totalEjOk = (int)($totals['total_ej_ok'] ?? 0);
+            $godkandPct = $totalIbc > 0 ? round($totalOk / $totalIbc * 100, 1) : 0;
+            $kasseradPct = $totalIbc > 0 ? round($totalEjOk / $totalIbc * 100, 1) : 0;
+
+            // 2. Föregående period för trend
+            $stmtPrevTotal = $this->pdo->prepare("
+                SELECT
+                    SUM(ibc_ok) AS total_ok,
+                    SUM(ibc_ej_ok) AS total_ej_ok,
+                    SUM(ibc_ok) + SUM(ibc_ej_ok) AS total_ibc
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS ibc_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :prev_from AND datum < :prev_to
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+            ");
+            $stmtPrevTotal->execute([':prev_from' => $prevFrom, ':prev_to' => $prevTo]);
+            $prevTotals = $stmtPrevTotal->fetch(PDO::FETCH_ASSOC);
+            $prevIbc = (int)($prevTotals['total_ibc'] ?? 0);
+            $prevEjOk = (int)($prevTotals['total_ej_ok'] ?? 0);
+            $prevKasseradPct = $prevIbc > 0 ? round($prevEjOk / $prevIbc * 100, 1) : 0;
+            $kassationTrendDiff = round($kasseradPct - $prevKasseradPct, 1);
+            $kassationTrend = 'stable';
+            if ($kassationTrendDiff > 0.5) $kassationTrend = 'up';
+            elseif ($kassationTrendDiff < -0.5) $kassationTrend = 'down';
+
+            // 3. Kassationsorsaker (nedbrytning)
+            $orsaker = [];
+            $totalKassationRegistrerad = 0;
+            $hasParetoData = false;
+            try {
+                $stmtOrsaker = $this->pdo->prepare("
+                    SELECT t.id, t.namn, COALESCE(SUM(r.antal), 0) AS total_antal
+                    FROM kassationsorsak_typer t
+                    LEFT JOIN kassationsregistrering r
+                        ON r.orsak_id = t.id
+                        AND r.datum BETWEEN :from_date AND :to_date
+                    WHERE t.aktiv = 1
+                    GROUP BY t.id, t.namn
+                    ORDER BY total_antal DESC
+                ");
+                $stmtOrsaker->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+                $orsakRows = $stmtOrsaker->fetchAll(PDO::FETCH_ASSOC);
+                $totalKassationRegistrerad = array_sum(array_column($orsakRows, 'total_antal'));
+
+                // Föregående period per orsak
+                $stmtPrevOrsaker = $this->pdo->prepare("
+                    SELECT t.id, COALESCE(SUM(r.antal), 0) AS prev_antal
+                    FROM kassationsorsak_typer t
+                    LEFT JOIN kassationsregistrering r
+                        ON r.orsak_id = t.id
+                        AND r.datum BETWEEN :prev_from AND :prev_to
+                    WHERE t.aktiv = 1
+                    GROUP BY t.id
+                ");
+                $stmtPrevOrsaker->execute([':prev_from' => $prevFrom, ':prev_to' => $prevTo]);
+                $prevOrsakRows = $stmtPrevOrsaker->fetchAll(PDO::FETCH_ASSOC);
+                $prevMap = [];
+                foreach ($prevOrsakRows as $pv) {
+                    $prevMap[(int)$pv['id']] = (int)$pv['prev_antal'];
+                }
+
+                $cumulative = 0;
+                foreach ($orsakRows as $or) {
+                    $antal = (int)$or['total_antal'];
+                    $pct = $totalKassationRegistrerad > 0 ? round($antal / $totalKassationRegistrerad * 100, 1) : 0;
+                    $cumulative += $pct;
+                    $prevAntal = $prevMap[(int)$or['id']] ?? 0;
+                    $trend = $antal > $prevAntal ? 'up' : ($antal < $prevAntal ? 'down' : 'stable');
+                    $orsaker[] = [
+                        'id'            => (int)$or['id'],
+                        'namn'          => $or['namn'],
+                        'antal'         => $antal,
+                        'andel'         => $pct,
+                        'kumulativ_pct' => round($cumulative, 1),
+                        'prev_antal'    => $prevAntal,
+                        'trend'         => $trend,
+                    ];
+                }
+                $hasParetoData = $totalKassationRegistrerad > 0;
+            } catch (\Exception $e) {
+                $hasParetoData = false;
+            }
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days,
+                'summary' => [
+                    'total_ibc'          => $totalIbc,
+                    'godkanda'           => $totalOk,
+                    'godkand_pct'        => $godkandPct,
+                    'kasserade'          => $totalEjOk,
+                    'kasserad_pct'       => $kasseradPct,
+                    'kassation_trend'    => $kassationTrend,
+                    'kassation_trend_diff' => $kassationTrendDiff,
+                    'prev_kasserad_pct'  => $prevKasseradPct,
+                ],
+                'orsaker'          => $orsaker,
+                'has_pareto_data'  => $hasParetoData,
+                'total_kassation_registrerad' => $totalKassationRegistrerad,
+            ]);
+        } catch (\Exception $e) {
+            error_log('getQualityRejectionBreakdown: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kassationsanalys.']);
+        }
+    }
+
+    // =========================================================================
+    // IBC-kvalitets deep-dive: Kassationsorsak-trend per dag
+    // GET ?action=rebotling&run=quality-rejection-trend&days=30
+    // =========================================================================
+
+    public function getQualityRejectionTrend() {
+        $days = max(1, min(365, intval($_GET['days'] ?? 30)));
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+        $toDate = date('Y-m-d');
+
+        try {
+            // Hämta top 5 orsaker för perioden
+            $stmtTop = $this->pdo->prepare("
+                SELECT t.id, t.namn, COALESCE(SUM(r.antal), 0) AS total_antal
+                FROM kassationsorsak_typer t
+                LEFT JOIN kassationsregistrering r
+                    ON r.orsak_id = t.id
+                    AND r.datum BETWEEN :from_date AND :to_date
+                WHERE t.aktiv = 1
+                GROUP BY t.id, t.namn
+                ORDER BY total_antal DESC
+                LIMIT 5
+            ");
+            $stmtTop->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $topOrsaker = $stmtTop->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($topOrsaker)) {
+                echo json_encode(['success' => true, 'days' => $days, 'orsaker' => [], 'trend' => []]);
+                return;
+            }
+
+            $topIds = array_column($topOrsaker, 'id');
+            $orsakNamn = [];
+            foreach ($topOrsaker as $to) {
+                $orsakNamn[(int)$to['id']] = $to['namn'];
+            }
+
+            // Hämta daglig data per orsak
+            $placeholders = implode(',', array_fill(0, count($topIds), '?'));
+            $stmtDaily = $this->pdo->prepare("
+                SELECT r.datum, r.orsak_id, SUM(r.antal) AS antal
+                FROM kassationsregistrering r
+                WHERE r.datum BETWEEN ? AND ?
+                  AND r.orsak_id IN ({$placeholders})
+                GROUP BY r.datum, r.orsak_id
+                ORDER BY r.datum ASC
+            ");
+            $params = array_merge([$fromDate, $toDate], $topIds);
+            $stmtDaily->execute($params);
+            $dailyRows = $stmtDaily->fetchAll(PDO::FETCH_ASSOC);
+
+            // Bygg tidsseriedata
+            $dataByDate = [];
+            foreach ($dailyRows as $row) {
+                $datum = $row['datum'];
+                $orsakId = (int)$row['orsak_id'];
+                if (!isset($dataByDate[$datum])) {
+                    $dataByDate[$datum] = [];
+                }
+                $dataByDate[$datum][$orsakId] = (int)$row['antal'];
+            }
+
+            // Generera alla datum i perioden
+            $trendData = [];
+            $current = new \DateTime($fromDate);
+            $end = new \DateTime($toDate);
+            while ($current <= $end) {
+                $dateStr = $current->format('Y-m-d');
+                $dayEntry = ['datum' => $dateStr];
+                foreach ($topIds as $id) {
+                    $dayEntry['orsak_' . $id] = $dataByDate[$dateStr][(int)$id] ?? 0;
+                }
+                $trendData[] = $dayEntry;
+                $current->modify('+1 day');
+            }
+
+            $orsakerMeta = [];
+            foreach ($topOrsaker as $to) {
+                $orsakerMeta[] = [
+                    'id'   => (int)$to['id'],
+                    'namn' => $to['namn'],
+                    'key'  => 'orsak_' . $to['id'],
+                ];
+            }
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days,
+                'orsaker' => $orsakerMeta,
+                'trend'   => $trendData,
+            ]);
+        } catch (\Exception $e) {
+            error_log('getQualityRejectionTrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av kassationstrend.']);
+        }
+    }
+
     // =========================================================
     // Skiftsammanfattning som utskriftsvanlig HTML (PDF via webblasarens print)
     // GET ?action=rebotling&run=shift-pdf-summary&date=YYYY-MM-DD&shift=1|2|3

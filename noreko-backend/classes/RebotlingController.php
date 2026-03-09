@@ -117,6 +117,10 @@ class RebotlingController {
                 $this->analyticsController->getMaintenanceCorrelation();
             } elseif ($action === 'rejection-analysis') {
                 $this->analyticsController->getRejectionAnalysis();
+            } elseif ($action === 'quality-rejection-breakdown') {
+                $this->analyticsController->getQualityRejectionBreakdown();
+            } elseif ($action === 'quality-rejection-trend') {
+                $this->analyticsController->getQualityRejectionTrend();
             } elseif ($action === 'shift-pdf-summary') {
                 $this->analyticsController->getShiftPdfSummary();
             } elseif ($action === 'weekly-summary-email') {

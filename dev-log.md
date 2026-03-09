@@ -1,3 +1,21 @@
+## 2026-03-09 IBC Kvalitet Deep-dive — avvisningsorsaker
+
+Ny komponent `statistik-kvalitet-deepdive` under rebotling-statistik:
+- **Sammanfattningspanel**: Totalt IBC, Godkanda (%), Kasserade (%), kassationsgrad-trend (upp/ner vs fg period)
+- **Donut-diagram**: kasserade IBC fordelat per avvisningsorsak (Chart.js doughnut)
+- **Horisontellt stapeldiagram**: topp 10 avvisningsorsaker med Pareto-linje (80/20)
+- **Trenddiagram**: linjediagram med daglig utveckling av topp 5 orsaker over tid
+- **Tabell**: alla orsaker med antal, andel %, kumulativ %, trend vs fg period
+- **CSV-export** av tabelldata
+- **Periodselektor**: 7/14/30/90 dagar
+- Backend: tva nya endpoints i RebotlingAnalyticsController:
+  - `quality-rejection-breakdown` — sammanfattning + kassationsorsaker
+  - `quality-rejection-trend` — tidsseriedata per orsak (topp 5)
+- Registrerad som @defer child-komponent i rebotling-statistik
+- Dark theme, svenska, korrekt lifecycle (destroy$ + chart.destroy)
+
+---
+
 ## 2026-03-09 Cykeltid per operator — grouped bar chart + ranking-tabell
 
 Uppgraderat statistik-cykeltid-operator-komponenten:

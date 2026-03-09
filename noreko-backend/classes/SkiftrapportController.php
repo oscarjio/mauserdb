@@ -30,6 +30,10 @@ class SkiftrapportController {
                 $this->getOperatorList();
                 return;
             }
+            if ($run === 'shift-report-by-operator') {
+                $this->getShiftReportByOperator();
+                return;
+            }
             $this->getSkiftrapporter();
         } elseif ($method === 'POST') {
             if (empty($_SESSION['user_id'])) {
@@ -526,6 +530,127 @@ class SkiftrapportController {
             error_log('getOperatorList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte hämta operatörer']);
+        }
+    }
+
+    /**
+     * GET ?action=skiftrapport&run=shift-report-by-operator&operator_id=X&from=YYYY-MM-DD&to=YYYY-MM-DD
+     * Returnerar skiftdata per dag/skift for given operator.
+     */
+    private function getShiftReportByOperator() {
+        $operatorId = isset($_GET['operator_id']) ? intval($_GET['operator_id']) : 0;
+        $from = $_GET['from'] ?? '';
+        $to   = $_GET['to'] ?? '';
+
+        if ($operatorId <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'operator_id saknas']);
+            return;
+        }
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Ogiltigt datumformat (from/to)']);
+            return;
+        }
+
+        try {
+            // Hämta operatörens nummer från operators-tabellen
+            $stmtOp = $this->pdo->prepare("SELECT number, name FROM operators WHERE id = ?");
+            $stmtOp->execute([$operatorId]);
+            $operator = $stmtOp->fetch(PDO::FETCH_ASSOC);
+            if (!$operator) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Operator hittades inte']);
+                return;
+            }
+            $opNumber = intval($operator['number']);
+
+            // Hämta alla skiftrapporter där operatören var op1, op2 eller op3
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    s.id,
+                    s.datum,
+                    s.skiftraknare,
+                    s.ibc_ok,
+                    s.bur_ej_ok,
+                    s.ibc_ej_ok,
+                    s.totalt,
+                    s.drifttid,
+                    s.rasttime,
+                    s.op1, s.op2, s.op3,
+                    o1.name AS op1_name,
+                    o2.name AS op2_name,
+                    o3.name AS op3_name
+                FROM rebotling_skiftrapport s
+                LEFT JOIN operators o1 ON o1.number = s.op1
+                LEFT JOIN operators o2 ON o2.number = s.op2
+                LEFT JOIN operators o3 ON o3.number = s.op3
+                WHERE s.datum >= :from_date AND s.datum <= :to_date
+                  AND (s.op1 = :op1 OR s.op2 = :op2 OR s.op3 = :op3)
+                ORDER BY s.datum DESC, s.skiftraknare DESC
+            ");
+            $stmt->execute([
+                'from_date' => $from,
+                'to_date'   => $to,
+                'op1'       => $opNumber,
+                'op2'       => $opNumber,
+                'op3'       => $opNumber,
+            ]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Bygg resultat med beräknade KPI:er
+            $data = [];
+            foreach ($rows as $r) {
+                $ibcOk     = intval($r['ibc_ok'] ?? 0);
+                $ibcEjOk   = intval($r['ibc_ej_ok'] ?? 0);
+                $burEjOk   = intval($r['bur_ej_ok'] ?? 0);
+                $totalt    = intval($r['totalt'] ?? 0);
+                $drifttid  = intval($r['drifttid'] ?? 0);   // minuter
+                $rasttime  = intval($r['rasttime'] ?? 0);    // minuter
+                $kasserade = $ibcEjOk + $burEjOk;
+
+                // Cykeltid i minuter (drifttid / antal IBC)
+                $cykeltid = ($ibcOk > 0 && $drifttid > 0) ? round($drifttid / $ibcOk, 2) : null;
+
+                // OEE = (ibc_ok / totalt) * 100 (kvalitetsbaserad approx)
+                $oee = ($totalt > 0) ? round($ibcOk / $totalt * 100, 1) : null;
+
+                // Stopptid = total tillgänglig tid - drifttid - rasttime (uppskattning)
+                // Skift = ca 480 min (8h). Om drifttid finns, beräkna stopptid
+                $stopptid = ($drifttid > 0) ? max(0, 480 - $drifttid - $rasttime) : null;
+
+                // Skiftnamn baserat på skifträknare
+                $skiftNr = intval($r['skiftraknare'] ?? 0);
+                $skiftNamn = $skiftNr > 0 ? 'Skift ' . $skiftNr : '-';
+
+                $data[] = [
+                    'id'           => intval($r['id']),
+                    'datum'        => $r['datum'],
+                    'skift'        => $skiftNamn,
+                    'skiftraknare' => $skiftNr,
+                    'ibc_ok'       => $ibcOk,
+                    'kasserade'    => $kasserade,
+                    'totalt'       => $totalt,
+                    'cykeltid'     => $cykeltid,
+                    'oee'          => $oee,
+                    'drifttid'     => $drifttid,
+                    'stopptid'     => $stopptid,
+                    'rasttime'     => $rasttime,
+                    'op1_name'     => $r['op1_name'],
+                    'op2_name'     => $r['op2_name'],
+                    'op3_name'     => $r['op3_name'],
+                ];
+            }
+
+            echo json_encode([
+                'success'       => true,
+                'operator_name' => $operator['name'],
+                'data'          => $data,
+            ]);
+        } catch (PDOException $e) {
+            error_log('getShiftReportByOperator: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta skiftrapport per operatör']);
         }
     }
 

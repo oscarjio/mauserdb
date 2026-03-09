@@ -1,0 +1,162 @@
+<div class="row mt-4 mb-4">
+  <div class="col-12">
+    <div class="dark-card">
+
+      <!-- Rubrik + filter -->
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0" style="color:#e2e8f0;">
+            <i class="fas fa-user-tag me-2" style="color:#63b3ed;"></i>Skiftrapport per operator
+          </h5>
+          <small class="text-muted">Filtrerbar rapport med KPI:er per skift</small>
+        </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <!-- Operator-dropdown -->
+          <label class="text-muted small mb-0">Operator:</label>
+          <select class="form-select form-select-sm filter-select"
+                  [(ngModel)]="selectedOperatorId"
+                  (change)="onOperatorChange()">
+            <option [ngValue]="0" disabled>-- Valj operator --</option>
+            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+          </select>
+
+          <!-- Period -->
+          <label class="text-muted small mb-0 ms-2">Period:</label>
+          <select class="form-select form-select-sm filter-select" style="width:110px;"
+                  [(ngModel)]="periodDays"
+                  (change)="onPeriodChange()">
+            <option [value]="7">7 dagar</option>
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+
+          <!-- Custom range -->
+          <input type="date" class="form-control form-control-sm date-input"
+                 [(ngModel)]="customFrom"
+                 [max]="customTo || todayStr" />
+          <span class="text-muted">-</span>
+          <input type="date" class="form-control form-control-sm date-input"
+                 [(ngModel)]="customTo"
+                 [min]="customFrom"
+                 [max]="todayStr" />
+          <button class="btn btn-sm btn-outline-primary"
+                  (click)="applyCustomRange()"
+                  [disabled]="!customFrom || !customTo || selectedOperatorId <= 0">
+            Visa
+          </button>
+        </div>
+      </div>
+
+      <!-- Laddar -->
+      <div class="text-center py-4" *ngIf="operatorsLoading">
+        <div class="spinner-border" style="color:#63b3ed;" role="status"></div>
+        <div class="text-muted mt-2 small">Laddar operatorer...</div>
+      </div>
+
+      <!-- Ingen operator vald -->
+      <div class="text-center py-4" *ngIf="!operatorsLoading && selectedOperatorId <= 0 && !loading">
+        <i class="fas fa-user-circle fa-2x text-muted mb-2"></i>
+        <p class="text-muted mb-0">Valj en operator ovan for att visa skiftrapport.</p>
+      </div>
+
+      <!-- Laddar data -->
+      <div class="text-center py-4" *ngIf="loading">
+        <div class="spinner-border" style="color:#63b3ed;" role="status"></div>
+        <div class="text-muted mt-2 small">Hamtar skiftrapport for {{ operatorName }}...</div>
+      </div>
+
+      <!-- Resultat -->
+      <ng-container *ngIf="!loading && selectedOperatorId > 0 && data.length > 0">
+
+        <!-- Sammanfattningspanel -->
+        <div class="summary-panel mb-4">
+          <div class="summary-card">
+            <div class="summary-label">Totalt IBC</div>
+            <div class="summary-value text-info">{{ totalIbc }}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Snitt cykeltid</div>
+            <div class="summary-value text-warning">{{ avgCykeltid }} min</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Basta skift</div>
+            <div class="summary-value-sm text-success">{{ bastaSkift }}</div>
+          </div>
+          <div class="summary-card">
+            <div class="summary-label">Samsta skift</div>
+            <div class="summary-value-sm text-danger">{{ samstaSkift }}</div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div style="height:320px;position:relative;min-height:200px;" class="mb-4">
+          <canvas id="skiftrapportOpChart"></canvas>
+        </div>
+
+        <!-- Tabell -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0" style="color:#a0aec0;">
+            <i class="fas fa-table me-1"></i>Detaljerade skift
+          </h6>
+          <button class="btn btn-sm btn-outline-light" (click)="exportCSV()">
+            <i class="fas fa-download me-1"></i>CSV
+          </button>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-sm mb-0 shift-op-table" style="color:#e2e8f0;font-size:0.85rem;">
+            <thead>
+              <tr style="background:#1a202c;color:#a0aec0;">
+                <th scope="col">Datum</th>
+                <th scope="col">Skift</th>
+                <th class="text-end" scope="col">IBC</th>
+                <th class="text-end" scope="col">Godkanda</th>
+                <th class="text-end" scope="col">Kasserade</th>
+                <th class="text-end" scope="col">Cykeltid</th>
+                <th class="text-end" scope="col">OEE</th>
+                <th class="text-end" scope="col">Stopptid</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of data"
+                  [style.background]="row.oee !== null && row.oee >= 90 ? 'rgba(72,187,120,0.08)' : (row.oee !== null && row.oee < 70 ? 'rgba(252,129,129,0.06)' : 'transparent')">
+                <td>{{ row.datum }}</td>
+                <td>{{ row.skift }}</td>
+                <td class="text-end fw-bold">{{ row.totalt }}</td>
+                <td class="text-end" style="color:#48bb78;">{{ row.ibc_ok }}</td>
+                <td class="text-end" style="color:#fc8181;">{{ row.kasserade }}</td>
+                <td class="text-end">
+                  <span *ngIf="row.cykeltid !== null">{{ row.cykeltid | number:'1.1-2' }} min</span>
+                  <span *ngIf="row.cykeltid === null" class="text-muted">-</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="row.oee !== null"
+                        [style.color]="row.oee >= 90 ? '#48bb78' : (row.oee >= 70 ? '#f6ad55' : '#fc8181')">
+                    {{ row.oee | number:'1.0-1' }}%
+                  </span>
+                  <span *ngIf="row.oee === null" class="text-muted">-</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="row.stopptid !== null">{{ row.stopptid }} min</span>
+                  <span *ngIf="row.stopptid === null" class="text-muted">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p class="small text-muted mt-2 mb-0">
+          <i class="fas fa-info-circle me-1" style="color:#63b3ed;"></i>
+          Cykeltid = drifttid / antal IBC. OEE = godkanda / totalt. Stopptid = 480 min - drifttid - rast.
+        </p>
+      </ng-container>
+
+      <!-- Ingen data -->
+      <div class="text-center py-4" *ngIf="!loading && selectedOperatorId > 0 && data.length === 0 && operatorName">
+        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+        <p class="text-muted mb-0">Ingen skiftdata hittades for {{ operatorName }} i vald period.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
