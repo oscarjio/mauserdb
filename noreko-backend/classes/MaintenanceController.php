@@ -177,6 +177,18 @@ class MaintenanceController {
                 $this->sendError('Ogiltig starttid', 400);
                 return;
             }
+            if ($durationMinutes !== null && ($durationMinutes < 0 || $durationMinutes > 14400)) {
+                $this->sendError('Varaktighet måste vara 0–14400 minuter', 400);
+                return;
+            }
+            if ($downtimeMinutes < 0 || $downtimeMinutes > 14400) {
+                $this->sendError('Driftstopp måste vara 0–14400 minuter', 400);
+                return;
+            }
+            if ($costSek !== null && ($costSek < 0 || $costSek > 99999999)) {
+                $this->sendError('Kostnad måste vara 0–99 999 999 kr', 400);
+                return;
+            }
 
             // Normalisera datetime (T → mellanslag)
             $startTime = str_replace('T', ' ', substr($startTime, 0, 16)) . ':00';

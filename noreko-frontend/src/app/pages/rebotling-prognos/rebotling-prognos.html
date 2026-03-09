@@ -48,7 +48,10 @@
     <p class="text-muted mt-2">Laddar produktionstakt...</p>
   </div>
   <div *ngIf="loadError && !loading" class="alert alert-warning">
-    Kunde inte hämta produktionstakt. Kontrollera backend-anslutning.
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte hämta produktionstakt. Kontrollera backend-anslutning.
+    <button class="btn btn-sm btn-outline-warning ms-3" (click)="loadProductionRate()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
   </div>
 
   <!-- Taktinformation -->

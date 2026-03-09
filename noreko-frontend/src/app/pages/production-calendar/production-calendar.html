@@ -47,6 +47,9 @@
   <!-- Fel -->
   <div *ngIf="!loading && error && days.length === 0" class="alert alert-warning">
     <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-warning ms-3" (click)="loadCalendar()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
   </div>
 
   <ng-container *ngIf="!loading">

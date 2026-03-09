@@ -147,7 +147,7 @@
           <div class="row g-3">
             <div class="col-md-4">
               <label class="form-label">Stopporsak</label>
-              <select class="form-select" [(ngModel)]="newEntry.reason_id" name="reason_id">
+              <select class="form-select" [(ngModel)]="newEntry.reason_id" name="reason_id" required>
                 <option [ngValue]="0" disabled>-- Välj orsak --</option>
                 <option *ngFor="let r of reasons" [ngValue]="r.id">
                   {{ r.name }} ({{ r.category === 'planned' ? 'Planerat' : 'Oplanerat' }})
@@ -156,7 +156,7 @@
             </div>
             <div class="col-md-3">
               <label class="form-label">Starttid</label>
-              <input type="datetime-local" class="form-control" [(ngModel)]="newEntry.start_time" name="start_time">
+              <input type="datetime-local" class="form-control" [(ngModel)]="newEntry.start_time" name="start_time" required>
             </div>
             <div class="col-md-3">
               <label class="form-label">Sluttid</label>
@@ -164,13 +164,15 @@
               <small class="text-muted">Lämna tomt om stoppet pågår</small>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="fas fa-save me-1"></i>Spara
+              <button type="submit" class="btn btn-primary w-100" [disabled]="submittingStoppage || !newEntry.reason_id || !newEntry.start_time">
+                <span *ngIf="submittingStoppage"><i class="fas fa-spinner fa-spin me-1"></i></span>
+                <span *ngIf="!submittingStoppage"><i class="fas fa-save me-1"></i></span>
+                {{ submittingStoppage ? 'Sparar...' : 'Spara' }}
               </button>
             </div>
             <div class="col-12">
               <label class="form-label">Kommentar</label>
-              <input type="text" class="form-control" [(ngModel)]="newEntry.comment" name="comment" placeholder="Valfri kommentar...">
+              <input type="text" class="form-control" [(ngModel)]="newEntry.comment" name="comment" placeholder="Valfri kommentar..." maxlength="500">
             </div>
           </div>
         </form>
@@ -466,14 +468,14 @@
                       <div class="inline-edit-field">
                         <label class="inline-edit-label">Varaktighet (min)</label>
                         <input type="number" class="form-control form-control-sm inline-input"
-                               [(ngModel)]="editDuration" min="0" placeholder="min">
+                               [(ngModel)]="editDuration" min="0" max="14400" placeholder="min">
                       </div>
                     </td>
                     <td>
                       <div class="inline-edit-field">
                         <label class="inline-edit-label">Kommentar</label>
                         <input type="text" class="form-control form-control-sm inline-input"
-                               [(ngModel)]="editComment" placeholder="Kommentar...">
+                               [(ngModel)]="editComment" placeholder="Kommentar..." maxlength="500">
                       </div>
                     </td>
                     <td>{{ s.user_name }}</td>

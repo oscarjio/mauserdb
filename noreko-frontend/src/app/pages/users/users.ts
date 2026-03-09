@@ -24,6 +24,8 @@ export class UsersPage implements OnInit, OnDestroy {
   loading = false;
   error = '';
 
+  savingUser = false;
+
   // Sök, sortering, filter
   searchText = '';
   private searchTimer: any = null;
@@ -183,12 +185,19 @@ export class UsersPage implements OnInit, OnDestroy {
   }
 
   saveUser(user: any) {
+    if (this.savingUser) return;
+    if (!user.username?.trim()) {
+      this.toast.error('Användarnamn krävs.');
+      return;
+    }
+    this.savingUser = true;
     this.usersService.updateUser(user).pipe(
       takeUntil(this.destroy$),
       timeout(8000),
       catchError(() => of(null))
     ).subscribe({
       next: (res) => {
+        this.savingUser = false;
         if (!res) { this.toast.error('Kunde inte spara användare.'); return; }
         if (res.success) {
           this.expanded[user.id] = false;

@@ -9,13 +9,13 @@
       <div class="mb-3">
         <label class="form-label">Användarnamn</label>
         <input type="text" class="form-control" placeholder="Välj ett användarnamn"
-               [(ngModel)]="user.username" name="username" required [disabled]="isLoading" />
+               [(ngModel)]="user.username" name="username" required minlength="3" maxlength="50" [disabled]="isLoading" />
       </div>
 
       <div class="mb-3">
         <label class="form-label">Lösenord</label>
         <input type="password" class="form-control" placeholder="Minst 8 tecken, bokstav + siffra"
-               [(ngModel)]="user.password" name="password" required [disabled]="isLoading"
+               [(ngModel)]="user.password" name="password" required minlength="8" maxlength="128" [disabled]="isLoading"
                (ngModelChange)="checkPasswordStrength()" />
         <div class="feedback-row" *ngIf="showFeedback">
           <small *ngIf="!isAcceptable" class="text-danger">
@@ -30,7 +30,7 @@
       <div class="mb-3">
         <label class="form-label">Upprepa lösenord</label>
         <input type="password" class="form-control" placeholder="Skriv lösenordet igen"
-               [(ngModel)]="user.password2" name="password2" required [disabled]="isLoading"
+               [(ngModel)]="user.password2" name="password2" required minlength="8" maxlength="128" [disabled]="isLoading"
                (ngModelChange)="checkPasswordStrength()" />
         <div class="feedback-row" *ngIf="showFeedback && user.password2.length > 0">
           <small *ngIf="!passwordsMatch" class="text-warning">
@@ -45,7 +45,7 @@
       <div class="mb-3">
         <label class="form-label">E-post</label>
         <input type="email" class="form-control" placeholder="din@email.com"
-               [(ngModel)]="user.email" name="email" required [disabled]="isLoading"
+               [(ngModel)]="user.email" name="email" required maxlength="255" [disabled]="isLoading"
                (ngModelChange)="checkEmail()" />
         <div class="feedback-row" *ngIf="user.email.length > 0 && !isEmailValid">
           <small class="text-danger"><i class="fas fa-times me-1"></i>Ogiltig e-postadress</small>
@@ -55,16 +55,16 @@
       <div class="mb-3">
         <label class="form-label">Telefonnummer</label>
         <input type="tel" class="form-control" placeholder="070-123 45 67"
-               [(ngModel)]="user.phone" name="phone" required [disabled]="isLoading" />
+               [(ngModel)]="user.phone" name="phone" required maxlength="20" [disabled]="isLoading" />
       </div>
 
       <div class="mb-3">
         <label class="form-label">Kontrollkod</label>
         <input type="text" class="form-control" placeholder="Kod från din arbetsgivare"
-               [(ngModel)]="user.code" name="code" required [disabled]="isLoading" />
+               [(ngModel)]="user.code" name="code" required maxlength="50" [disabled]="isLoading" />
       </div>
 
-      <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading">
+      <button type="submit" class="btn btn-primary w-100" [disabled]="isLoading || !user.username.trim() || !isAcceptable || !passwordsMatch || !isEmailValid || !user.phone.trim() || !user.code.trim()">
         <span *ngIf="isLoading"><i class="fas fa-spinner fa-spin me-1"></i>Registrerar...</span>
         <span *ngIf="!isLoading">Registrera</span>
       </button>

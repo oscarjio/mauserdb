@@ -25,9 +25,12 @@
   </div>
 
   <!-- Error -->
-  <div *ngIf="error" class="alert alert-danger alert-dismissible fade show">
-    {{ error }}
-    <button type="button" class="btn-close" (click)="error = ''"></button>
+  <div *ngIf="error" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="error = ''; loadTabData()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
+    <button type="button" class="btn-close float-end" (click)="error = ''"></button>
   </div>
 
   <!-- Tabs -->

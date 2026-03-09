@@ -71,6 +71,9 @@
   <!-- Felmeddelande -->
   <div *ngIf="errorMsg" class="ot-error">
     <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMsg }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="loadTrend()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
   </div>
 
   <!-- Laddningsindikator -->

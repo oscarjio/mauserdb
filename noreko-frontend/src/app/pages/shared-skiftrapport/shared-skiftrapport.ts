@@ -40,6 +40,7 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
   user: any = null;
   loggedIn = false;
   showAddForm = false;
+  addingReport = false;
 
   filterFrom = '';
   filterTo = '';
@@ -171,7 +172,9 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
 
   addReport() {
     this.errorMessage = '';
-    if (!this.newReport.datum) { this.errorMessage = 'Datum kravs'; return; }
+    if (!this.newReport.datum) { this.errorMessage = 'Datum krävs'; return; }
+    if (this.addingReport) return;
+    this.addingReport = true;
     this.loading = true;
     this.service.createReport(this.config.line, this.newReport)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => {
@@ -181,13 +184,14 @@ export class SharedSkiftrapportComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (res) => {
           this.loading = false;
+          this.addingReport = false;
           if (res.success) {
             this.fetchReports();
             this.newReport = { datum: localToday(), antal_ok: 0, antal_ej_ok: 0, kommentar: '' };
             this.showAddForm = false;
             this.showSuccess('Rapport tillagd');
           } else {
-            this.errorMessage = res.message || 'Kunde inte lagga till';
+            this.errorMessage = res.message || 'Kunde inte lägga till';
           }
         }
       });

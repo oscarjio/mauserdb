@@ -315,7 +315,7 @@
       <div class="form-grid">
         <div class="form-group">
           <label class="form-label">Operatör</label>
-          <select class="form-control" [(ngModel)]="addForm.op_number">
+          <select class="form-control" [(ngModel)]="addForm.op_number" required>
             <option [ngValue]="null" disabled>Välj operatör...</option>
             <option *ngFor="let op of operatorOptions" [ngValue]="op.number">
               {{ op.name }} (#{{ op.number }})
@@ -325,7 +325,7 @@
 
         <div class="form-group">
           <label class="form-label">Linje</label>
-          <select class="form-control" [(ngModel)]="addForm.line">
+          <select class="form-control" [(ngModel)]="addForm.line" required>
             <option value="" disabled>Välj linje...</option>
             <option value="rebotling">Rebotling</option>
             <option value="tvattlinje">Tvättlinje</option>
@@ -336,7 +336,7 @@
 
         <div class="form-group">
           <label class="form-label">Certifierat datum</label>
-          <input type="date" class="form-control" [(ngModel)]="addForm.certified_date" />
+          <input type="date" class="form-control" [(ngModel)]="addForm.certified_date" required />
         </div>
 
         <div class="form-group">
@@ -358,7 +358,7 @@
         <i class="fas fa-check-circle me-2"></i>{{ addSuccess }}
       </div>
 
-      <button class="btn-submit" (click)="submitAdd()" [disabled]="addLoading">
+      <button class="btn-submit" (click)="submitAdd()" [disabled]="addLoading || !addForm.op_number || !addForm.line || !addForm.certified_date">
         <i class="fas fa-plus me-2" *ngIf="!addLoading"></i>
         <i class="fas fa-spinner fa-spin me-2" *ngIf="addLoading"></i>
         {{ addLoading ? 'Sparar...' : 'Lägg till certifiering' }}

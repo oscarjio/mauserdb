@@ -94,7 +94,7 @@ import { localDateStr } from '../../../utils/date-utils';
                 <label class="form-label form-label-dark">Varaktighet (minuter)</label>
                 <input type="number" class="form-control form-control-dark"
                        [(ngModel)]="form.duration_minutes" name="duration_minutes"
-                       placeholder="Lämna tomt om pågående" min="0" />
+                       placeholder="Lämna tomt om pågående" min="0" max="14400" />
                 <div class="form-text text-muted">Lämna tomt om underhållet pågår</div>
               </div>
 
@@ -103,7 +103,7 @@ import { localDateStr } from '../../../utils/date-utils';
                 <label class="form-label form-label-dark">Driftstopp (min)</label>
                 <input type="number" class="form-control form-control-dark"
                        [(ngModel)]="form.downtime_minutes" name="downtime_minutes"
-                       placeholder="0 om inget driftstopp" min="0" />
+                       placeholder="0 om inget driftstopp" min="0" max="14400" />
                 <div class="form-text text-muted">Hur länge produktionen stod stilla</div>
               </div>
 
@@ -120,7 +120,7 @@ import { localDateStr } from '../../../utils/date-utils';
                 <label class="form-label form-label-dark">Kostnad (kr)</label>
                 <input type="number" class="form-control form-control-dark"
                        [(ngModel)]="form.cost_sek" name="cost_sek"
-                       placeholder="Valfritt — lämna tomt om okänd" min="0" step="0.01" />
+                       placeholder="Valfritt — lämna tomt om okänd" min="0" max="99999999" step="0.01" />
               </div>
 
               <!-- Status -->
@@ -262,16 +262,16 @@ export class MaintenanceFormComponent implements OnDestroy {
       this.formError = 'Starttid krävs';
       return;
     }
-    if (this.form.duration_minutes !== null && this.form.duration_minutes !== undefined && +this.form.duration_minutes < 0) {
-      this.formError = 'Varaktighet kan inte vara negativ';
+    if (this.form.duration_minutes !== null && this.form.duration_minutes !== undefined && (+this.form.duration_minutes < 0 || +this.form.duration_minutes > 14400)) {
+      this.formError = 'Varaktighet måste vara 0–14400 minuter';
       return;
     }
-    if (this.form.downtime_minutes !== null && this.form.downtime_minutes !== undefined && +this.form.downtime_minutes < 0) {
-      this.formError = 'Driftstopp kan inte vara negativt';
+    if (this.form.downtime_minutes !== null && this.form.downtime_minutes !== undefined && (+this.form.downtime_minutes < 0 || +this.form.downtime_minutes > 14400)) {
+      this.formError = 'Driftstopp måste vara 0–14400 minuter';
       return;
     }
-    if (this.form.cost_sek !== null && this.form.cost_sek !== undefined && +this.form.cost_sek < 0) {
-      this.formError = 'Kostnad kan inte vara negativ';
+    if (this.form.cost_sek !== null && this.form.cost_sek !== undefined && (+this.form.cost_sek < 0 || +this.form.cost_sek > 99999999)) {
+      this.formError = 'Kostnad måste vara 0–99 999 999 kr';
       return;
     }
 

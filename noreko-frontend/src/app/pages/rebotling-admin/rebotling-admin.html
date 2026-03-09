@@ -701,7 +701,7 @@
                       <div class="mb-3">
                         <label for="newProductCycleTime" class="form-label">Cykeltid (minuter)</label>
                         <input type="number" class="form-control" id="newProductCycleTime"
-                          [(ngModel)]="newProduct.cycle_time_minutes" min="1" step="1" placeholder="0" required>
+                          [(ngModel)]="newProduct.cycle_time_minutes" min="1" max="1440" step="1" placeholder="0" required>
                       </div>
                     </div>
                     <div class="col-12 col-md-2">
@@ -737,14 +737,14 @@
                   <td>
                     <span *ngIf="!product.editing">{{ product.name }}</span>
                     <input *ngIf="product.editing" type="text" class="form-control form-control-sm"
-                      [(ngModel)]="product.name"
+                      [(ngModel)]="product.name" maxlength="100"
                       (keyup.enter)="saveProduct(product)"
                       (keyup.escape)="cancelEdit(product)">
                   </td>
                   <td>
                     <span *ngIf="!product.editing">{{ product.cycle_time_minutes }}</span>
                     <input *ngIf="product.editing" type="number" class="form-control form-control-sm"
-                      [(ngModel)]="product.cycle_time_minutes" min="1" step="1"
+                      [(ngModel)]="product.cycle_time_minutes" min="1" max="1440" step="1"
                       (keyup.enter)="saveProduct(product)"
                       (keyup.escape)="cancelEdit(product)">
                   </td>
@@ -1674,11 +1674,11 @@
           <div class="row g-3 mb-4">
             <div class="col-12 col-md-3">
               <label class="form-label fw-semibold">Datum</label>
-              <input type="date" class="form-control" [(ngModel)]="kassationForm.datum" />
+              <input type="date" class="form-control" [(ngModel)]="kassationForm.datum" required />
             </div>
             <div class="col-12 col-md-3">
               <label class="form-label fw-semibold">Kassationsorsak</label>
-              <select class="form-select" [(ngModel)]="kassationForm.orsak_id">
+              <select class="form-select" [(ngModel)]="kassationForm.orsak_id" required>
                 <option [value]="0" disabled>Välj orsak...</option>
                 <option *ngFor="let t of kassationTyper" [value]="t.id">{{ t.namn }}</option>
               </select>

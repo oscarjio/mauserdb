@@ -1,3 +1,9 @@
+## 2026-03-09 Session #39 — Bug Hunt #44 Formularvalidering + Error/Loading states
+
+**Plan**: Worker 1 granskar Angular formularvalidering och input-sanering (alla input-falt, datumvaljare, PHP-validering). Worker 2 granskar error states, loading states och empty states pa alla sidor.
+
+---
+
 ## 2026-03-09 Session #38 — Bug Hunt #43 Subscribe-lackor + Responsiv design audit
 
 **Worker 1 — Bug Hunt #43 Angular subscribe-lackor** (commit `baa3e4c`):

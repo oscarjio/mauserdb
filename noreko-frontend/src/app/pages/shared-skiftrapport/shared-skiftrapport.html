@@ -134,19 +134,19 @@
       <div class="row g-3">
         <div class="col-md-2">
           <label class="form-label">Datum</label>
-          <input type="date" class="form-control" [(ngModel)]="newReport.datum" />
+          <input type="date" class="form-control" [(ngModel)]="newReport.datum" required />
         </div>
         <div class="col-md-2">
           <label class="form-label">Antal OK</label>
-          <input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0" />
+          <input type="number" class="form-control" [(ngModel)]="newReport.antal_ok" min="0" max="9999" required />
         </div>
         <div class="col-md-2">
           <label class="form-label">Antal ej OK</label>
-          <input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0" />
+          <input type="number" class="form-control" [(ngModel)]="newReport.antal_ej_ok" min="0" max="9999" required />
         </div>
         <div class="col-md-5">
           <label class="form-label">Kommentar</label>
-          <input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." />
+          <input type="text" class="form-control" [(ngModel)]="newReport.kommentar" placeholder="Valfri kommentar..." maxlength="500" />
         </div>
         <div class="col-md-1 d-flex align-items-end">
           <button class="btn w-100"
@@ -154,8 +154,9 @@
             [class.btn-warning]="config.themeColor === 'warning'"
             [class.btn-success]="config.themeColor === 'success'"
             [class.text-dark]="config.themeColor === 'warning'"
-            (click)="addReport()">
-            <i class="fas fa-plus"></i>
+            (click)="addReport()"
+            [disabled]="addingReport || !newReport.datum">
+            <i class="fas" [class.fa-spinner]="addingReport" [class.fa-spin]="addingReport" [class.fa-plus]="!addingReport"></i>
           </button>
         </div>
       </div>

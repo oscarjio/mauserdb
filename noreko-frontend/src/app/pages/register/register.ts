@@ -64,6 +64,10 @@ export class RegisterPage implements OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
+    if (!this.user.username.trim() || this.user.username.trim().length < 3) {
+      this.errorMessage = 'Användarnamn måste vara minst 3 tecken!';
+      return;
+    }
     if (!this.passwordsMatch) {
       this.errorMessage = 'Lösenorden matchar inte!';
       return;
@@ -74,6 +78,14 @@ export class RegisterPage implements OnDestroy {
     }
     if (!this.isAcceptable) {
       this.errorMessage = 'Lösenordet uppfyller inte kraven!';
+      return;
+    }
+    if (!this.user.phone.trim()) {
+      this.errorMessage = 'Telefonnummer krävs!';
+      return;
+    }
+    if (!this.user.code.trim()) {
+      this.errorMessage = 'Kontrollkod krävs!';
       return;
     }
 

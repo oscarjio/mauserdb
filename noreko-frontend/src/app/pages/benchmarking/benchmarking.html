@@ -10,10 +10,23 @@
 
   <!-- Fel -->
   <div *ngIf="!loading && error" class="alert alert-danger mx-3">
-    {{ error }}
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="load()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
   </div>
 
-  <div *ngIf="!loading && !error">
+  <!-- Ingen data -->
+  <div *ngIf="!loading && !error && !currentWeek && topWeeks.length === 0" class="text-center py-5 text-muted">
+    <i class="fas fa-trophy fa-3x mb-3" style="opacity:0.3;"></i>
+    <h5>Ingen benchmarking-data tillgänglig</h5>
+    <p>Vänta på att produktionsdata samlas in.</p>
+    <button class="btn btn-outline-info btn-sm" (click)="load()">
+      <i class="fas fa-sync-alt me-1"></i>Uppdatera
+    </button>
+  </div>
+
+  <div *ngIf="!loading && !error && (currentWeek || topWeeks.length > 0)">
 
     <!-- ============================================================
          Sidhuvud

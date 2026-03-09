@@ -52,6 +52,8 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   selectedOperatorId: number | null = null;
   operatorsLoading = false;
 
+  addingReport = false;
+
   // Sort
   sortField: SortField = 'datum';
   sortDir: SortDir     = 'desc';
@@ -594,8 +596,11 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.addingReport) return;
+
     const totalt = this.newReport.ibc_ok + this.newReport.bur_ej_ok + this.newReport.ibc_ej_ok;
 
+    this.addingReport = true;
     this.loading = true;
     this.skiftrapportService.createSkiftrapport({
       datum:       this.newReport.datum,
@@ -604,9 +609,10 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
       bur_ej_ok:   this.newReport.bur_ej_ok,
       ibc_ej_ok:   this.newReport.ibc_ej_ok,
       totalt:      totalt
-    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Create skiftrapport failed:', err); this.loading = false; return of({ success: false, message: 'Ett fel uppstod vid skapande av skiftrapport' }); })).subscribe({
+    }).pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Create skiftrapport failed:', err); this.loading = false; this.addingReport = false; return of({ success: false, message: 'Ett fel uppstod vid skapande av skiftrapport' }); })).subscribe({
       next: (res) => {
         this.loading = false;
+        this.addingReport = false;
         if (res.success) {
           this.fetchReports();
           this.newReport = {

@@ -90,7 +90,7 @@
           <div class="row g-3">
             <div class="col-md-2">
               <label class="form-label">Datum</label>
-              <input type="date" class="form-control" [(ngModel)]="newReport.datum" />
+              <input type="date" class="form-control" [(ngModel)]="newReport.datum" required />
             </div>
             <div class="col-md-3">
               <label class="form-label">Produkt</label>
@@ -101,20 +101,21 @@
             </div>
             <div class="col-md-2">
               <label class="form-label">IBC OK</label>
-              <input type="number" class="form-control" [(ngModel)]="newReport.ibc_ok" min="0" />
+              <input type="number" class="form-control" [(ngModel)]="newReport.ibc_ok" min="0" max="9999" required />
             </div>
             <div class="col-md-2">
               <label class="form-label">Bur ej OK</label>
-              <input type="number" class="form-control" [(ngModel)]="newReport.bur_ej_ok" min="0" />
+              <input type="number" class="form-control" [(ngModel)]="newReport.bur_ej_ok" min="0" max="9999" />
             </div>
             <div class="col-md-2">
               <label class="form-label">IBC ej OK</label>
-              <input type="number" class="form-control" [(ngModel)]="newReport.ibc_ej_ok" min="0" />
+              <input type="number" class="form-control" [(ngModel)]="newReport.ibc_ej_ok" min="0" max="9999" />
             </div>
             <div class="col-md-1">
               <label class="form-label">&nbsp;</label>
-              <button class="btn btn-success w-100" (click)="addReport()">
-                <i class="fas fa-plus me-2"></i>Lägg till
+              <button class="btn btn-success w-100" (click)="addReport()" [disabled]="addingReport || !newReport.datum">
+                <i class="fas" [class.fa-spinner]="addingReport" [class.fa-spin]="addingReport" [class.fa-plus]="!addingReport" [class.me-2]="!addingReport"></i>
+                <span *ngIf="!addingReport">Lägg till</span>
               </button>
             </div>
           </div>

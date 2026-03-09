@@ -245,10 +245,24 @@ class AdminController {
             $admin = isset($data['admin']) ? ($data['admin'] ? 1 : 0) : null;
             $operatorId = array_key_exists('operator_id', $data) ? $data['operator_id'] : 'SKIP';
 
+            // Validera username om angiven
+            if ($username !== null && (strlen($username) < 3 || strlen($username) > 50)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Användarnamn måste vara 3–50 tecken']);
+                return;
+            }
+
             // Validera email om angiven
             if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress']);
+                return;
+            }
+
+            // Validera lösenord om angivet
+            if ($password && (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password))) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Lösenord måste vara minst 8 tecken med bokstav och siffra']);
                 return;
             }
 

@@ -61,6 +61,9 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   filterToDate: string = '';
   filterCategory: string = '';
 
+  // Submit guard
+  submittingStoppage = false;
+
   // Inline editing
   editingId: number | null = null;
   editDuration: string = '';
@@ -398,9 +401,12 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       this.errorMessage = 'Starttid krävs';
       return;
     }
+    if (this.submittingStoppage) return;
 
+    this.submittingStoppage = true;
     this.stoppageService.create(this.newEntry).pipe(timeout(8000), catchError((err) => of({ success: false, message: err?.error?.message || 'Ett fel uppstod' })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
+        this.submittingStoppage = false;
         if (res.success) {
           this.showSuccess('Stoppost registrerad');
           this.showForm = false;

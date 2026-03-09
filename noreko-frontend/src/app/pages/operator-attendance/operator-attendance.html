@@ -14,7 +14,12 @@
     </div>
   </div>
 
-  <div class="alert alert-danger" *ngIf="error">{{ error }}</div>
+  <div class="alert alert-danger" *ngIf="error">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+    <button class="btn btn-sm btn-outline-danger ms-3" (click)="loadAttendance()">
+      <i class="fas fa-sync-alt me-1"></i>Försök igen
+    </button>
+  </div>
 
   <div class="row g-4">
     <!-- Kalendervy -->

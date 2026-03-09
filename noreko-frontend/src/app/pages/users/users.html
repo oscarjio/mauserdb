@@ -167,15 +167,15 @@
                             <div class="row g-2 align-items-end">
                               <div class="col-md-2">
                                 <label class="form-label">Användarnamn</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="user.username" name="username-{{user.id}}" placeholder="Användarnamn" required />
+                                <input class="form-control form-control-sm" [(ngModel)]="user.username" name="username-{{user.id}}" placeholder="Användarnamn" required minlength="3" maxlength="50" />
                               </div>
                               <div class="col-md-3">
                                 <label class="form-label">Email</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="user.email" name="email-{{user.id}}" placeholder="Email" type="email" />
+                                <input class="form-control form-control-sm" [(ngModel)]="user.email" name="email-{{user.id}}" placeholder="Email" type="email" maxlength="255" />
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Telefon</label>
-                                <input class="form-control form-control-sm" [(ngModel)]="user.phone" name="phone-{{user.id}}" placeholder="Telefon" />
+                                <input class="form-control form-control-sm" [(ngModel)]="user.phone" name="phone-{{user.id}}" placeholder="Telefon" maxlength="20" />
                               </div>
                               <div class="col-md-2">
                                 <label class="form-label">Op-ID</label>
@@ -191,9 +191,10 @@
                                 <input class="form-control form-control-sm" [(ngModel)]="user.password" name="password-{{user.id}}" placeholder="Lämna tomt för att behålla" type="password" />
                               </div>
                               <div class="col-md-2">
-                                <button class="btn btn-success btn-sm w-100" type="submit">
-                                  <i class="fas fa-save me-1"></i>
-                                  Spara
+                                <button class="btn btn-success btn-sm w-100" type="submit" [disabled]="savingUser || !user.username?.trim()">
+                                  <span *ngIf="savingUser"><i class="fas fa-spinner fa-spin me-1"></i></span>
+                                  <span *ngIf="!savingUser"><i class="fas fa-save me-1"></i></span>
+                                  {{ savingUser ? 'Sparar...' : 'Spara' }}
                                 </button>
                               </div>
                             </div>

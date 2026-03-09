@@ -595,6 +595,9 @@ interface WeekCompare {
     <!-- Error -->
     <div class="error-state" *ngIf="!isLoading && errorMsg">
       <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMsg }}
+      <button class="btn btn-sm btn-outline-danger ms-3" (click)="load()">
+        <i class="fas fa-sync-alt me-1"></i>Försök igen
+      </button>
     </div>
 
     <!-- Content -->

@@ -19,12 +19,12 @@ import { AuthService } from '../../services/auth.service';
           <div class="mb-3">
             <label class="form-label">Användarnamn</label>
             <input type="text" class="form-control" placeholder="Ange användarnamn"
-                   [(ngModel)]="username" name="username" required [disabled]="loading" />
+                   [(ngModel)]="username" name="username" required minlength="3" maxlength="50" [disabled]="loading" />
           </div>
           <div class="mb-3">
             <label class="form-label">Lösenord</label>
             <input type="password" class="form-control" placeholder="Ange lösenord"
-                   [(ngModel)]="password" name="password" required [disabled]="loading" />
+                   [(ngModel)]="password" name="password" required minlength="8" maxlength="128" [disabled]="loading" />
           </div>
           <button type="submit" class="btn btn-primary w-100" [disabled]="loading || !username || !password">
             <span *ngIf="loading"><i class="fas fa-spinner fa-spin me-1"></i>Loggar in...</span>

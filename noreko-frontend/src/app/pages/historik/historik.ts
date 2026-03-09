@@ -84,6 +84,9 @@ interface VeckoData {
       <!-- Fel -->
       <div *ngIf="error && !loading" class="alert alert-danger">
         <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+        <button class="btn btn-sm btn-outline-danger ms-3" (click)="loadData()">
+          <i class="fas fa-sync-alt me-1"></i>Försök igen
+        </button>
       </div>
 
       <div *ngIf="!loading && !error">

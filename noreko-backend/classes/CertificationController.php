@@ -316,6 +316,12 @@ class CertificationController {
             return;
         }
 
+        if ($expiresDate !== null && $expiresDate <= $certDate) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Utgångsdatum måste vara efter certifieringsdatum']);
+            return;
+        }
+
         $certifiedBy = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
 
         try {

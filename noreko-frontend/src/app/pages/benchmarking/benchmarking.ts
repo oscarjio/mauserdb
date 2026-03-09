@@ -162,7 +162,7 @@ export class BenchmarkingPage implements OnInit, OnDestroy {
     URL.revokeObjectURL(url);
   }
 
-  private load(): void {
+  load(): void {
     if (this.isFetching) return;
     this.isFetching = true;
 

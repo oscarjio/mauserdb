@@ -46,11 +46,13 @@
                 <i class="fas fa-user me-2"></i>
                 Användarnamn *
               </label>
-              <input 
-                id="username" 
-                name="username" 
-                class="form-control" 
-                required 
+              <input
+                id="username"
+                name="username"
+                class="form-control"
+                required
+                minlength="3"
+                maxlength="50"
                 [(ngModel)]="user.username"
                 [disabled]="isLoading"
                 placeholder="Ange användarnamn"
@@ -68,6 +70,8 @@
                 type="password"
                 class="form-control"
                 required
+                minlength="8"
+                maxlength="128"
                 [(ngModel)]="user.password"
                 [disabled]="isLoading"
                 placeholder="Minst 8 tecken, bokstav + siffra"
@@ -93,6 +97,7 @@
                 type="email"
                 class="form-control"
                 required
+                maxlength="255"
                 [(ngModel)]="user.email"
                 [disabled]="isLoading"
                 placeholder="Ange e-postadress"
