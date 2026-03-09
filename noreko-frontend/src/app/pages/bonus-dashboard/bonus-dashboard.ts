@@ -82,6 +82,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
   // Subscription tracking
   private pollingInterval: any = null;
   private shiftChartTimeout: any = null;
+  private weekTrendChartTimeout: any = null;
   private loadDataSub: Subscription | null = null;
   private searchSub: Subscription | null = null;
   private teamStatsSub: Subscription | null = null;
@@ -113,6 +114,7 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.pollingInterval) clearInterval(this.pollingInterval);
     clearTimeout(this.shiftChartTimeout);
+    clearTimeout(this.weekTrendChartTimeout);
     this.loadDataSub?.unsubscribe();
     this.searchSub?.unsubscribe();
     this.teamStatsSub?.unsubscribe();
@@ -472,8 +474,8 @@ export class BonusDashboardPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res && res.success && res.data) {
           this.weekTrendData = res.data;
-          clearTimeout(this.shiftChartTimeout);
-          this.shiftChartTimeout = setTimeout(() => {
+          clearTimeout(this.weekTrendChartTimeout);
+          this.weekTrendChartTimeout = setTimeout(() => {
             if (!this.destroy$.closed) this.buildWeekTrendChart();
           }, 100);
         }

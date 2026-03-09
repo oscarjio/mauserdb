@@ -1,3 +1,13 @@
+## 2026-03-09 Bug Hunt #48 — Rebotling-sidor timeout/catchError + bonus-dashboard timer-bugg
+
+**rebotling-admin.ts**: 10 HTTP-anrop saknade `timeout()` och `catchError()` — loadSettings, saveSettings, loadWeekdayGoals, saveWeekdayGoals, loadShiftTimes, saveShiftTimes, loadProducts, addProduct, saveProduct, deleteProduct. Om servern hanger fastnar UI:t i loading-state for evigt. Alla fixade med `timeout(8000), catchError(() => of(null))`. Null-guards (`res?.success` istallet for `res.success`) lagda pa alla tillhorande next-handlers.
+
+**bonus-dashboard.ts**: `loadWeekTrend()` ateranvande `shiftChartTimeout`-timern som ocksa anvands av `reloadTeamStats()`. Om bada anropas nara varandra avbryts den forsta renderingen. Fixat med separat `weekTrendChartTimeout`-timer + cleanup i ngOnDestroy.
+
+Bygger OK. Inga backend-andringar.
+
+---
+
 ## 2026-03-09 Session #43 — Rebotling statistik: Produktionsoverblick + buggfix
 
 **Produktionsoverblick (VD-vy)**: Ny panel hogst upp pa statistiksidan som visar:

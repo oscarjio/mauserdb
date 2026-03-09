@@ -320,10 +320,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.settingsLoading = true;
     this.settingsError   = '';
     this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success && res.data) {
+          if (res?.success && res.data) {
             this.settings.rebotlingTarget = res.data.rebotlingTarget;
             this.settings.hourlyTarget    = res.data.hourlyTarget;
             this.settings.shiftHours      = res.data.shiftHours;
@@ -364,15 +364,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     }
 
     this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=admin-settings', this.settings, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success) {
+          if (res?.success) {
             this.settingsSaved = true;
             this.showSuccess('Inställningar sparade!');
             setTimeout(() => { if (!this.destroy$.closed) this.settingsSaved = false; }, 3000);
           } else {
-            this.settingsError = res.error || 'Kunde inte spara inställningar';
+            this.settingsError = res?.error || 'Kunde inte spara inställningar';
           }
           this.settingsSaving = false;
         },
@@ -388,10 +388,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.weekdayLoading = true;
     this.weekdayError   = '';
     this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=weekday-goals', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success && res.data) {
+          if (res?.success && res.data) {
             this.weekdayGoals = res.data;
           }
           this.weekdayLoading = false;
@@ -409,15 +409,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.weekdaySaved  = false;
     this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=weekday-goals',
       { goals: this.weekdayGoals }, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success) {
+          if (res?.success) {
             this.weekdaySaved = true;
             this.showSuccess('Veckodagsmål sparade!');
             setTimeout(() => { if (!this.destroy$.closed) this.weekdaySaved = false; }, 3000);
           } else {
-            this.weekdayError = res.error || 'Kunde inte spara';
+            this.weekdayError = res?.error || 'Kunde inte spara';
           }
           this.weekdaySaving = false;
         },
@@ -462,10 +462,10 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.shiftTimesLoading = true;
     this.shiftTimesError   = '';
     this.http.get<any>('/noreko-backend/api.php?action=rebotling&run=shift-times', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success && res.data) {
+          if (res?.success && res.data) {
             this.shiftTimes = res.data.map((s: any) => ({
               ...s,
               enabled: s.enabled == 1 || s.enabled === true
@@ -486,15 +486,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.shiftTimesSaved  = false;
     this.http.post<any>('/noreko-backend/api.php?action=rebotling&run=shift-times',
       { shifts: this.shiftTimes }, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          if (res.success) {
+          if (res?.success) {
             this.shiftTimesSaved = true;
             this.showSuccess('Skifttider sparade!');
             setTimeout(() => { if (!this.destroy$.closed) this.shiftTimesSaved = false; }, 3000);
           } else {
-            this.shiftTimesError = res.error || 'Kunde inte spara';
+            this.shiftTimesError = res?.error || 'Kunde inte spara';
           }
           this.shiftTimesSaving = false;
         },
@@ -582,17 +582,17 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
   private loadProducts() {
     this.loading = true;
     this.http.get<any>('/noreko-backend/api.php?action=rebotlingproduct', { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          if (response.success) {
+          if (response?.success) {
             this.products = response.data.map((product: any) => ({
               ...product,
               editing: false,
               originalName: product.name,
               originalCycleTime: product.cycle_time_minutes
             }));
-          } else {
+          } else if (response) {
             console.error('Kunde inte ladda produkter:', response.error);
           }
           this.loading = false;
@@ -608,15 +608,15 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     if (!this.newProduct.name || !this.newProduct.cycle_time_minutes) return;
     this.loading = true;
     this.http.post<any>('/noreko-backend/api.php?action=rebotlingproduct', this.newProduct, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          if (response.success) {
+          if (response?.success) {
             this.loadProducts();
             this.newProduct = { name: '', cycle_time_minutes: null };
             this.showAddProductForm = false;
             this.showSuccess('Produkt tillagd!');
-          } else {
+          } else if (response) {
             console.error('Kunde inte lägga till produkt:', response.error);
           }
           this.loading = false;
@@ -646,16 +646,16 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     this.loading = true;
     const updateData = { id: product.id, name: product.name, cycle_time_minutes: product.cycle_time_minutes };
     this.http.put<any>('/noreko-backend/api.php?action=rebotlingproduct', updateData, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          if (response.success) {
+          if (response?.success) {
             product.editing           = false;
             product.originalName      = product.name;
             product.originalCycleTime = product.cycle_time_minutes;
             this.showSuccess('Produkt uppdaterad!');
           } else {
-            console.error('Kunde inte uppdatera produkt:', response.error);
+            if (response) console.error('Kunde inte uppdatera produkt:', response.error);
           }
           this.loading = false;
         },
@@ -676,14 +676,14 @@ export class RebotlingAdminPage implements OnInit, OnDestroy, AfterViewInit {
     if (!confirm(`Är du säker på att du vill ta bort produkten "${product.name}"?`)) return;
     this.loading = true;
     this.http.post<any>('/noreko-backend/api.php?action=rebotlingproduct&run=delete', { id: product.id }, { withCredentials: true })
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
-          if (response.success) {
+          if (response?.success) {
             this.loadProducts();
             this.showSuccess('Produkt borttagen!');
           } else {
-            console.error('Kunde inte ta bort produkt:', response.error);
+            if (response) console.error('Kunde inte ta bort produkt:', response.error);
           }
           this.loading = false;
         },
