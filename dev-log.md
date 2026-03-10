@@ -92,7 +92,6 @@ Uppgraderat statistik-cykeltid-operator-komponenten:
 
 ---
 
-
 ## 2026-03-09 Horisontellt Pareto-diagram med 80/20 kumulativ linje
 
 Forbattrat statistik-pareto-stopp-komponenten till professionellt horisontellt Pareto-diagram:

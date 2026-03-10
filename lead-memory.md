@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-10 (session #48)*
+*Senast uppdaterad: 2026-03-10 (session #49)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -60,25 +60,30 @@ chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #47: Produktionsmål-tracker + Bug Hunt #50 — startade (ej committat till main).
 Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
+Session #49: Realtids-OEE-gauge + Exportera grafer som bild — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (ägarens prioritet)
 - [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
-- [x] **Stopporsak-drill-down** — klicka Pareto-stapel → detaljer
-- [x] **Annotationer i grafer** — markera driftstopp, helgdagar, händelser
-- [ ] **Realtids-OEE-gauge** — stor gauge på statistiksidan
+- [PÅGÅR] **Realtids-OEE-gauge** — stor gauge på statistiksidan
 
 ### Förbättringar
 - [ ] **Bonus "What-if"-simulator** — admin justerar parametrar, ser effekt i realtid
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
-- [ ] **Exportera grafer som bild** — PNG-export per graf
+- [PÅGÅR] **Exportera grafer som bild** — PNG-export per graf
+- [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 
 ### Nya sidor
 - [ ] **Månadsrapport** (`/rapporter/manad`) — auto-genererad sammanfattning, PDF-export
 - [ ] **Skiftplaneringsvy** (`/admin/skiftplan`) — kalendervy, operatörer per skift
+- [ ] **Underhållslogg** (`/admin/underhall`) — logga planerat underhåll, koppla till stopptid
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-10 — Session #49 (pågår)
+Worker 1 (Realtids-OEE-gauge): Stor cirkulär OEE-gauge överst på statistiksidan. Tillgänglighet × Prestanda × Kvalitet. Auto-refresh 60s. Worktree.
+Worker 2 (Exportera grafer som bild): PNG-exportknapp på alla graf-komponenter. Chart-export utility. Worktree.
 
 ### 2026-03-10 — Session #48 (klar)
 Worker 1 (Stopporsak-drill-down): Klickbar Pareto → overlay-modal med KPI:er, per-operatör, per-dag, enskilda stopp. Backend: stop-cause-drilldown endpoint. Commits 9afb187 + 20fe25f.
@@ -87,7 +92,3 @@ Worker 2 (Annotationer i grafer): Ny tabell rebotling_annotations, CRUD-API (lis
 ### 2026-03-09 — Session #47 (startade, ej committat)
 Worker 1 (Produktionsmål-tracker): Progress-ring dagsmål/veckamål, streak, historik 14 dagar, countdown. Worktree.
 Worker 2 (Bug Hunt #50): Granska session #46 commits. Worktree.
-
-### 2026-03-09 — Session #46 (klar)
-Worker 1 (Skiftrapport): Filtrerbar per operatör, KPI-panel, Chart.js combo-graf, CSV-export. Commit 0a96daa.
-Worker 2 (Kvalitet deep-dive): Donut-chart, Pareto, trendlinje topp 5, tabell. Commit 0a96daa.
