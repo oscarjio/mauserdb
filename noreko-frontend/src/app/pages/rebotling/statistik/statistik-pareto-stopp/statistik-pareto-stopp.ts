@@ -18,6 +18,35 @@ interface ParetoItem {
   kumulativ_pct: number;
 }
 
+interface DrilldownSummary {
+  total_minutes: number;
+  total_hours: number;
+  count: number;
+  avg_minutes: number;
+}
+
+interface DrilldownOperator {
+  operator: string;
+  count: number;
+  total_minutes: number;
+}
+
+interface DrilldownDay {
+  date: string;
+  count: number;
+  minutes: number;
+}
+
+interface DrilldownStop {
+  id: number;
+  date: string;
+  time: string;
+  end_time: string | null;
+  minutes: number;
+  operator: string;
+  comment: string;
+}
+
 @Component({
   standalone: true,
   selector: 'app-statistik-pareto-stopp',
@@ -35,6 +64,15 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
   paretoTotalStopp: number = 0;
   private paretoChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+
+  // Drill-down state
+  drilldownOpen: boolean = false;
+  drilldownLoading: boolean = false;
+  drilldownCause: string = '';
+  drilldownSummary: DrilldownSummary | null = null;
+  drilldownOperators: DrilldownOperator[] = [];
+  drilldownDays: DrilldownDay[] = [];
+  drilldownStops: DrilldownStop[] = [];
 
   @ViewChild('paretoCanvas', { static: false }) paretoCanvasRef!: ElementRef<HTMLCanvasElement>;
 
@@ -91,6 +129,43 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
       });
   }
 
+  /** Open drill-down for a specific stop cause */
+  openDrilldown(cause: string): void {
+    this.drilldownCause = cause;
+    this.drilldownOpen = true;
+    this.drilldownLoading = true;
+    this.drilldownSummary = null;
+    this.drilldownOperators = [];
+    this.drilldownDays = [];
+    this.drilldownStops = [];
+
+    this.rebotlingService.getStopCauseDrilldown(cause, this.paretoDays)
+      .pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.drilldownLoading = false;
+        if (!res || !res.success) return;
+        this.drilldownSummary = res.summary || null;
+        this.drilldownOperators = res.by_operator || [];
+        this.drilldownDays = res.by_day || [];
+        this.drilldownStops = res.stops || [];
+      });
+  }
+
+  /** Close drill-down modal */
+  closeDrilldown(): void {
+    this.drilldownOpen = false;
+    this.drilldownCause = '';
+    this.drilldownSummary = null;
+    this.drilldownOperators = [];
+    this.drilldownDays = [];
+    this.drilldownStops = [];
+  }
+
+  /** Handle click on table row to open drill-down */
+  onTableRowClick(item: ParetoItem): void {
+    this.openDrilldown(item.orsak);
+  }
+
   exportParetoCSV(): void {
     if (!this.paretoItems || this.paretoItems.length === 0) return;
     const headers = ['Stopporsak', 'Kategori', 'Antal stopp', 'Total tid (min)', 'Total tid (h)', 'Snitt (min)', 'Andel %', 'Kumulativ %'];
@@ -137,6 +212,7 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
     );
 
     const items = this.paretoItems;
+    const component = this;
 
     const config: ChartConfiguration = {
       type: 'bar',
@@ -179,6 +255,14 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
         maintainAspectRatio: false,
         layout: {
           padding: { top: 10, right: 16, bottom: 10, left: 8 }
+        },
+        onClick: (_event: any, elements: any[]) => {
+          if (elements.length > 0) {
+            const idx = elements[0].index;
+            if (idx !== undefined && items[idx]) {
+              component.openDrilldown(items[idx].orsak);
+            }
+          }
         },
         plugins: {
           legend: {
@@ -276,6 +360,12 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
               color: '#63b3ed',
               font: { size: 12 }
             }
+          }
+        },
+        onHover: (event: any, elements: any[]) => {
+          const target = event?.native?.target as HTMLElement;
+          if (target) {
+            target.style.cursor = elements.length > 0 ? 'pointer' : 'default';
           }
         }
       },

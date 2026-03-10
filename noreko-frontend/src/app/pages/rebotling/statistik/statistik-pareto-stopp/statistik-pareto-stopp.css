@@ -84,6 +84,164 @@
   color: #718096;
 }
 
+/* Clickable table rows */
+.pareto-clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.pareto-clickable-row:hover {
+  background: rgba(237, 137, 54, 0.12) !important;
+}
+
+/* ================================
+   Drill-down Modal
+   ================================ */
+
+.drilldown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 1050;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-y: auto;
+}
+
+.drilldown-modal {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 960px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: drilldownSlideIn 0.2s ease-out;
+}
+
+@keyframes drilldownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.drilldown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #4a5568;
+  background: #1a202c;
+  border-radius: 12px 12px 0 0;
+}
+
+.drilldown-content {
+  padding: 20px;
+}
+
+/* Drill-down KPIs */
+.drilldown-kpi {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid #4a5568;
+  text-align: center;
+}
+
+.drilldown-kpi-label {
+  color: #a0aec0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.drilldown-kpi-value {
+  color: #e2e8f0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.drilldown-kpi-unit {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.drilldown-kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+}
+
+/* Drill-down sections */
+.drilldown-section {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 14px 16px;
+  border: 1px solid #4a5568;
+}
+
+.drilldown-section-title {
+  color: #e2e8f0;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+/* Drill-down tables */
+.drilldown-table {
+  color: #e2e8f0;
+  font-size: 0.82rem;
+}
+
+.drilldown-table thead tr {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.drilldown-table thead th {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #a0aec0;
+}
+
+.drilldown-table tbody tr {
+  border-color: #4a5568;
+}
+
+.drilldown-table tbody tr:hover {
+  background: rgba(74, 85, 104, 0.2);
+}
+
+/* Scrollable areas */
+.drilldown-day-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.drilldown-stops-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* Comment cell */
+.drilldown-comment-cell {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #a0aec0;
+}
+
 /* Responsive adjustments for TV (1080p) and tablet */
 @media (min-width: 1200px) {
   .pareto-chart-wrapper {
@@ -110,5 +268,21 @@
 
   .pareto-chart-wrapper {
     min-height: 250px;
+  }
+
+  .drilldown-overlay {
+    padding: 16px 8px;
+  }
+
+  .drilldown-modal {
+    max-width: 100%;
+  }
+
+  .drilldown-content {
+    padding: 14px;
+  }
+
+  .drilldown-kpi-value {
+    font-size: 1.1rem;
   }
 }

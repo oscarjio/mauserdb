@@ -95,6 +95,8 @@ class RebotlingController {
                 $this->analyticsController->getMaintenanceIndicator();
             } elseif ($action === 'annotations') {
                 $this->analyticsController->getAnnotations();
+            } elseif ($action === 'annotations-list') {
+                $this->analyticsController->getAnnotationsList();
             } elseif ($action === 'quality-trend') {
                 $this->analyticsController->getQualityTrend();
             } elseif ($action === 'oee-waterfall') {
@@ -107,6 +109,8 @@ class RebotlingController {
                 $this->analyticsController->getShiftTrend();
             } elseif ($action === 'pareto-stoppage') {
                 $this->analyticsController->getParetoStoppage();
+            } elseif ($action === 'stop-cause-drilldown') {
+                $this->analyticsController->getStopCauseDrilldown();
             } elseif ($action === 'skiftrapport-list') {
                 $this->analyticsController->getSkiftrapportList();
             } elseif ($action === 'skiftrapport-operators') {
@@ -262,6 +266,12 @@ class RebotlingController {
                 $this->adminController->resetService();
             } elseif ($action === 'save-service-interval') {
                 $this->adminController->saveServiceInterval();
+
+            // --- Annotation POST endpoints ---
+            } elseif ($action === 'annotation-create') {
+                $this->analyticsController->createAnnotation();
+            } elseif ($action === 'annotation-delete') {
+                $this->analyticsController->deleteAnnotation();
 
             // --- Analytics POST endpoints ---
             } elseif ($action === 'auto-shift-report') {

@@ -215,6 +215,35 @@ export class RebotlingService {
     );
   }
 
+  getManualAnnotations(startDate: string, endDate: string, typ?: string): Observable<ManualAnnotationsResponse> {
+    let url = `/noreko-backend/api.php?action=rebotling&run=annotations-list&start=${startDate}&end=${endDate}`;
+    if (typ) url += `&typ=${typ}`;
+    return this.http.get<ManualAnnotationsResponse>(url, { withCredentials: true });
+  }
+
+  createManualAnnotation(data: { datum: string; typ: string; titel: string; beskrivning: string }): Observable<any> {
+    const body = new URLSearchParams();
+    body.set('datum', data.datum);
+    body.set('typ', data.typ);
+    body.set('titel', data.titel);
+    body.set('beskrivning', data.beskrivning);
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=annotation-create',
+      body.toString(),
+      { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+  }
+
+  deleteManualAnnotation(id: number): Observable<any> {
+    const body = new URLSearchParams();
+    body.set('id', String(id));
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=annotation-delete',
+      body.toString(),
+      { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+  }
+
   getQualityTrend(days: number = 30): Observable<QualityTrendResponse> {
     return this.http.get<QualityTrendResponse>(
       `/noreko-backend/api.php?action=rebotling&run=quality-trend&days=${days}`,
@@ -276,6 +305,13 @@ export class RebotlingService {
   getParetoStoppage(days: number = 30): Observable<any> {
     return this.http.get<any>(
       `/noreko-backend/api.php?action=rebotling&run=pareto-stoppage&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getStopCauseDrilldown(cause: string, days: number = 30): Observable<any> {
+    return this.http.get<any>(
+      `/noreko-backend/api.php?action=rebotling&run=stop-cause-drilldown&cause=${encodeURIComponent(cause)}&days=${days}`,
       { withCredentials: true }
     );
   }
@@ -924,5 +960,20 @@ export interface SendWeeklySummaryResponse {
   success: boolean;
   recipients?: string[];
   week?: string;
+  error?: string;
+}
+
+export interface ManualAnnotation {
+  id: number;
+  datum: string;
+  typ: 'driftstopp' | 'helgdag' | 'handelse' | 'ovrigt';
+  titel: string;
+  beskrivning: string | null;
+  created_at: string;
+}
+
+export interface ManualAnnotationsResponse {
+  success: boolean;
+  annotations?: ManualAnnotation[];
   error?: string;
 }

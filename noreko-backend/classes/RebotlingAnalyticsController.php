@@ -3629,6 +3629,139 @@ class RebotlingAnalyticsController {
             ]);
         }
     }
+
+
+    // GET ?action=rebotling&run=stop-cause-drilldown&cause=...&days=30
+    // Returnerar drill-down-data för en specifik stopporsak.
+
+    public function getStopCauseDrilldown(): void {
+        $cause = trim($_GET['cause'] ?? '');
+        $days  = max(1, min(365, intval($_GET['days'] ?? 30)));
+
+        if ($cause === '') {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Parameter "cause" saknas.']);
+            return;
+        }
+
+        // Kontrollera att tabellerna finns
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name IN ('stoppage_log','stoppage_reasons')"
+            );
+            if ((int)$check->fetchColumn() < 2) {
+                echo json_encode(['success' => false, 'message' => 'Tabellerna finns inte.']);
+                return;
+            }
+        } catch (Exception $e) {
+            error_log('getStopCauseDrilldown check: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Databasfel.']);
+            return;
+        }
+
+        try {
+            // Hämta alla enskilda stopp för denna orsak
+            $stmt = $this->pdo->prepare(
+                "SELECT
+                   s.id,
+                   s.start_time,
+                   s.end_time,
+                   COALESCE(s.duration_minutes, 0) AS duration_minutes,
+                   s.comment,
+                   COALESCE(u.username, 'Okänd') AS operator,
+                   COALESCE(r.name, s.reason_free) AS orsak,
+                   COALESCE(r.category, 'övrigt') AS kategori
+                 FROM stoppage_log s
+                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
+                 LEFT JOIN users u ON s.user_id = u.id
+                 WHERE COALESCE(r.name, s.reason_free) = ?
+                   AND s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                   AND (s.deleted_at IS NULL)
+                 ORDER BY s.start_time DESC"
+            );
+            $stmt->execute([$cause, $days]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Summering
+            $totalMinutes = 0;
+            $count = count($rows);
+            $byOperator = [];
+            $byDay = [];
+            $stops = [];
+
+            foreach ($rows as $row) {
+                $min = (float)$row['duration_minutes'];
+                $totalMinutes += $min;
+                $op = $row['operator'];
+                $day = substr($row['start_time'], 0, 10);
+
+                // Per operatör
+                if (!isset($byOperator[$op])) {
+                    $byOperator[$op] = ['operator' => $op, 'count' => 0, 'total_minutes' => 0];
+                }
+                $byOperator[$op]['count']++;
+                $byOperator[$op]['total_minutes'] += $min;
+
+                // Per dag
+                if (!isset($byDay[$day])) {
+                    $byDay[$day] = ['date' => $day, 'count' => 0, 'minutes' => 0];
+                }
+                $byDay[$day]['count']++;
+                $byDay[$day]['minutes'] += $min;
+
+                // Enskilt stopp
+                $stops[] = [
+                    'id'       => (int)$row['id'],
+                    'date'     => $day,
+                    'time'     => substr($row['start_time'], 11, 5),
+                    'end_time' => $row['end_time'] ? substr($row['end_time'], 11, 5) : null,
+                    'minutes'  => round($min, 1),
+                    'operator' => $op,
+                    'comment'  => $row['comment'] ?? ''
+                ];
+            }
+
+            // Sortera by_operator fallande
+            $byOperatorArr = array_values($byOperator);
+            usort($byOperatorArr, fn($a, $b) => $b['total_minutes'] <=> $a['total_minutes']);
+            foreach ($byOperatorArr as &$o) {
+                $o['total_minutes'] = round($o['total_minutes'], 1);
+            }
+            unset($o);
+
+            // Sortera by_day stigande
+            $byDayArr = array_values($byDay);
+            usort($byDayArr, fn($a, $b) => $a['date'] <=> $b['date']);
+            foreach ($byDayArr as &$d) {
+                $d['minutes'] = round($d['minutes'], 1);
+            }
+            unset($d);
+
+            $avgMinutes = $count > 0 ? round($totalMinutes / $count, 1) : 0;
+
+            echo json_encode([
+                'success' => true,
+                'cause'   => $cause,
+                'summary' => [
+                    'total_minutes' => round($totalMinutes, 1),
+                    'total_hours'   => round($totalMinutes / 60, 2),
+                    'count'         => $count,
+                    'avg_minutes'   => $avgMinutes
+                ],
+                'by_operator' => $byOperatorArr,
+                'by_day'      => $byDayArr,
+                'stops'       => $stops
+            ]);
+        } catch (Exception $e) {
+            error_log('getStopCauseDrilldown: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Databasfel vid drill-down.']);
+        }
+    }
+
     // ============================================================
     // GET ?action=rebotling&run=all-lines-status
     //
@@ -5567,6 +5700,141 @@ HTML;
 </body>
 </html>
 HTML;
+    }
+
+
+    // ================================================================
+    // Manuella annotationer (driftstopp, helgdagar, händelser)
+    // ================================================================
+
+    private function ensureAnnotationsTable(): void {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS `rebotling_annotations` (
+                `id`          INT          NOT NULL AUTO_INCREMENT,
+                `datum`       DATE         NOT NULL,
+                `typ`         ENUM('driftstopp','helgdag','handelse','ovrigt') NOT NULL DEFAULT 'ovrigt',
+                `titel`       VARCHAR(120) NOT NULL,
+                `beskrivning` TEXT         NULL DEFAULT NULL,
+                `created_at`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                INDEX `idx_datum` (`datum`),
+                INDEX `idx_typ`   (`typ`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+    }
+
+    /**
+     * GET ?action=rebotling&run=annotations-list&start=YYYY-MM-DD&end=YYYY-MM-DD[&typ=driftstopp]
+     */
+    public function getAnnotationsList(): void {
+        $start = $_GET['start'] ?? '';
+        $end   = $_GET['end']   ?? '';
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) ||
+            !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltiga datumparametrar (YYYY-MM-DD)']);
+            return;
+        }
+
+        try {
+            $this->ensureAnnotationsTable();
+
+            $sql = "SELECT id, datum, typ, titel, beskrivning, created_at
+                    FROM rebotling_annotations
+                    WHERE datum BETWEEN :start AND :end";
+            $params = [':start' => $start, ':end' => $end];
+
+            $typ = $_GET['typ'] ?? '';
+            if ($typ !== '' && in_array($typ, ['driftstopp', 'helgdag', 'handelse', 'ovrigt'], true)) {
+                $sql .= " AND typ = :typ";
+                $params[':typ'] = $typ;
+            }
+
+            $sql .= " ORDER BY datum ASC, created_at ASC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode(['success' => true, 'annotations' => $rows]);
+        } catch (Exception $e) {
+            error_log('getAnnotationsList: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta annotationer']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=annotation-create
+     * Body: datum, typ, titel, beskrivning (optional)
+     * Kräver admin-session.
+     */
+    public function createAnnotation(): void {
+        $datum       = trim($_POST['datum'] ?? '');
+        $typ         = trim($_POST['typ'] ?? '');
+        $titel       = trim($_POST['titel'] ?? '');
+        $beskrivning = trim($_POST['beskrivning'] ?? '');
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum (YYYY-MM-DD)']);
+            return;
+        }
+        if (!in_array($typ, ['driftstopp', 'helgdag', 'handelse', 'ovrigt'], true)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig typ']);
+            return;
+        }
+        if ($titel === '' || mb_strlen($titel) > 120) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Titel krävs (max 120 tecken)']);
+            return;
+        }
+
+        try {
+            $this->ensureAnnotationsTable();
+            $stmt = $this->pdo->prepare("
+                INSERT INTO rebotling_annotations (datum, typ, titel, beskrivning)
+                VALUES (:datum, :typ, :titel, :beskrivning)
+            ");
+            $stmt->execute([
+                ':datum'       => $datum,
+                ':typ'         => $typ,
+                ':titel'       => $titel,
+                ':beskrivning' => $beskrivning ?: null,
+            ]);
+            $id = (int)$this->pdo->lastInsertId();
+            echo json_encode(['success' => true, 'id' => $id]);
+        } catch (Exception $e) {
+            error_log('createAnnotation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte skapa annotation']);
+        }
+    }
+
+    /**
+     * POST ?action=rebotling&run=annotation-delete
+     * Body: id
+     * Kräver admin-session.
+     */
+    public function deleteAnnotation(): void {
+        $id = intval($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt id']);
+            return;
+        }
+
+        try {
+            $this->ensureAnnotationsTable();
+            $stmt = $this->pdo->prepare("DELETE FROM rebotling_annotations WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            $deleted = $stmt->rowCount();
+            echo json_encode(['success' => true, 'deleted' => $deleted]);
+        } catch (Exception $e) {
+            error_log('deleteAnnotation: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort annotation']);
+        }
     }
 
 }
