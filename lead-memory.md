@@ -60,18 +60,16 @@ chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #47: Produktionsmål-tracker + Bug Hunt #50 — startade (ej committat till main).
 Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
-Session #49: Realtids-OEE-gauge + Exportera grafer som bild — pågår.
+Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (ägarens prioritet)
 - [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
-- [PÅGÅR] **Realtids-OEE-gauge** — stor gauge på statistiksidan
 
 ### Förbättringar
 - [ ] **Bonus "What-if"-simulator** — admin justerar parametrar, ser effekt i realtid
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
-- [PÅGÅR] **Exportera grafer som bild** — PNG-export per graf
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 
 ### Nya sidor
@@ -81,9 +79,9 @@ Session #49: Realtids-OEE-gauge + Exportera grafer som bild — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-10 — Session #49 (pågår)
-Worker 1 (Realtids-OEE-gauge): Stor cirkulär OEE-gauge överst på statistiksidan. Tillgänglighet × Prestanda × Kvalitet. Auto-refresh 60s. Worktree.
-Worker 2 (Exportera grafer som bild): PNG-exportknapp på alla graf-komponenter. Chart-export utility. Worktree.
+### 2026-03-10 — Session #49 (klar)
+Worker 1 (Realtids-OEE-gauge): Stor cirkulär OEE-gauge överst på statistiksidan. Chart.js doughnut, färgkodad (grön/gul/röd), progress bars A/P/Q, KPI-rutor, periodselektor, auto-refresh 60s. Backend: realtime-oee endpoint. Mergad från worktree.
+Worker 2 (Exportera grafer som bild): PNG-exportknapp på alla 6 graf-komponenter (8 exportpunkter). Ny chart-export utility med mörk bakgrund + titel. Pushat direkt till main.
 
 ### 2026-03-10 — Session #48 (klar)
 Worker 1 (Stopporsak-drill-down): Klickbar Pareto → overlay-modal med KPI:er, per-operatör, per-dag, enskilda stopp. Backend: stop-cause-drilldown endpoint. Commits 9afb187 + 20fe25f.
