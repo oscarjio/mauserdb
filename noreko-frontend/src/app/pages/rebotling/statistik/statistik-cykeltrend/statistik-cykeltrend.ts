@@ -5,6 +5,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, ChartAnnotation, ProductionEvent, ManualAnnotation } from '../../../../services/rebotling.service';
+import { exportChartAsPng } from '../../../../shared/chart-export.util';
 
 @Component({
   standalone: true,
@@ -18,6 +19,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
   cycleTrendDays: number = 30;
   cycleTrendData: any[] = [];
   cycleTrendGranularity: 'day' | 'shift' = 'day';
+  exportFeedback: boolean = false;
   private cycleTrendChart: Chart | null = null;
   private chartAnnotations: ChartAnnotation[] = [];
   private manualAnnotations: ManualAnnotation[] = [];
@@ -33,6 +35,23 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
     this.cycleTrendChart = null;
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  exportChart(): void {
+    const canvas = document.getElementById('cycleTrendChart') as HTMLCanvasElement;
+    if (!canvas) return;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (this.cycleTrendDays - 1));
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    exportChartAsPng(canvas, {
+      chartName: 'Cykeltrend - IBC-produktion',
+      startDate: fmt(startDate),
+      endDate: fmt(endDate)
+    });
+    this.exportFeedback = true;
+    setTimeout(() => this.exportFeedback = false, 2000);
   }
 
   setCycleTrendGranularity(g: 'day' | 'shift') {

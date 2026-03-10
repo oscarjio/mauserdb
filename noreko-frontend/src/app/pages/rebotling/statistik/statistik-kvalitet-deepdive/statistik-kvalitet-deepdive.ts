@@ -6,7 +6,8 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { Chart } from 'chart.js';
-import { localToday } from '../../../../utils/date-utils';
+import { localToday, localDateStr } from '../../../../utils/date-utils';
+import { exportChartAsPng } from '../../../../shared/chart-export.util';
 
 interface OrsakItem {
   id: number;
@@ -68,6 +69,9 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
 
   trendOrsaker: OrsakMeta[] = [];
   trendData: any[] = [];
+  exportFeedbackDonut: boolean = false;
+  exportFeedbackBar: boolean = false;
+  exportFeedbackTrend: boolean = false;
 
   private donutChart: Chart | null = null;
   private barChart: Chart | null = null;
@@ -175,6 +179,40 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
     if (this.summary.kassation_trend === 'up') return this.trendArrow + ' Stigande ' + diffStr + ' pp';
     if (this.summary.kassation_trend === 'down') return this.trendArrow + ' Sjunkande ' + diffStr + ' pp';
     return this.trendArrow + ' Stabil';
+  }
+
+  private getDateRange(): { from: string; to: string } {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - (this.days - 1));
+    return { from: localDateStr(from), to: localDateStr(to) };
+  }
+
+  exportChartDonut(): void {
+    const canvas = document.getElementById('kvalitetDeepDiveDonut') as HTMLCanvasElement;
+    if (!canvas) return;
+    const { from, to } = this.getDateRange();
+    exportChartAsPng(canvas, { chartName: 'Kassation per avvisningsorsak - Donut', startDate: from, endDate: to });
+    this.exportFeedbackDonut = true;
+    setTimeout(() => this.exportFeedbackDonut = false, 2000);
+  }
+
+  exportChartBar(): void {
+    const canvas = document.getElementById('kvalitetDeepDiveBar') as HTMLCanvasElement;
+    if (!canvas) return;
+    const { from, to } = this.getDateRange();
+    exportChartAsPng(canvas, { chartName: 'Topp avvisningsorsaker - Pareto', startDate: from, endDate: to });
+    this.exportFeedbackBar = true;
+    setTimeout(() => this.exportFeedbackBar = false, 2000);
+  }
+
+  exportChartTrend(): void {
+    const canvas = document.getElementById('kvalitetDeepDiveTrend') as HTMLCanvasElement;
+    if (!canvas) return;
+    const { from, to } = this.getDateRange();
+    exportChartAsPng(canvas, { chartName: 'Kassationstrend per orsak', startDate: from, endDate: to });
+    this.exportFeedbackTrend = true;
+    setTimeout(() => this.exportFeedbackTrend = false, 2000);
   }
 
   exportCSV(): void {

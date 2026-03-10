@@ -7,6 +7,7 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { localDateStr } from '../../../../utils/date-utils';
+import { exportChartAsPng } from '../../../../shared/chart-export.util';
 
 interface OperatorOption {
   id: number;
@@ -58,6 +59,7 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
   bastaSkift: string = '-';
   samstaSkift: string = '-';
 
+  exportFeedback: boolean = false;
   private chart: Chart | null = null;
   private destroy$ = new Subject<void>();
 
@@ -279,6 +281,19 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
         }
       }
     });
+  }
+
+  exportChart(): void {
+    const canvas = document.getElementById('skiftrapportOpChart') as HTMLCanvasElement;
+    if (!canvas) return;
+    const { from, to } = this.getDateRange();
+    exportChartAsPng(canvas, {
+      chartName: 'Skiftrapport - ' + (this.operatorName || 'operator'),
+      startDate: from,
+      endDate: to
+    });
+    this.exportFeedback = true;
+    setTimeout(() => this.exportFeedback = false, 2000);
   }
 
   exportCSV(): void {

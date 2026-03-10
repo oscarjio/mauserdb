@@ -8,6 +8,7 @@ import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
 import { RebotlingService, ChartAnnotation, ExecDashboardResponse } from '../../services/rebotling.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
+import { exportChartAsPng } from '../../shared/chart-export.util';
 import { StatistikHistogramComponent } from './statistik/statistik-histogram/statistik-histogram';
 import { StatistikSpcComponent } from './statistik/statistik-spc/statistik-spc';
 import { StatistikCykeltidOperatorComponent } from './statistik/statistik-cykeltid-operator/statistik-cykeltid-operator';
@@ -136,6 +137,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   targetCycleTime: number = 0;
 
   productionChart: Chart | null = null;
+  exportChartFeedback: boolean = false;
   tableData: TableRow[] = [];
 
   // Senaste hämtade statistik-data (används för zoom/val i grafen)
@@ -1811,6 +1813,17 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     if (efficiency >= 90) return 'text-success';
     if (efficiency >= 70) return 'text-warning';
     return 'text-danger';
+  }
+
+  exportProductionChart(): void {
+    const canvas = this.productionChartRef?.nativeElement;
+    if (!canvas) return;
+    const periodLabel = this.getViewModeLabel();
+    exportChartAsPng(canvas, {
+      chartName: 'Produktionsanalys - ' + periodLabel
+    });
+    this.exportChartFeedback = true;
+    setTimeout(() => this.exportChartFeedback = false, 2000);
   }
 
   exportCSV() {

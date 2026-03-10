@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 import { Chart } from 'chart.js';
 import { RebotlingService, CycleByOperatorEntry, CycleByOperatorResponse } from '../../../../services/rebotling.service';
 import { localDateStr } from '../../../../utils/date-utils';
+import { exportChartAsPng } from '../../../../shared/chart-export.util';
 
 @Component({
   standalone: true,
@@ -22,6 +23,7 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
   cycleByOpData: CycleByOperatorEntry[] = [];
   rankedData: CycleByOperatorEntry[] = [];
   teamMedianAvg: number = 0;
+  exportFeedback: boolean = false;
   private cycleByOpChart: Chart | null = null;
   private destroy$ = new Subject<void>();
 
@@ -208,5 +210,21 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
       },
       plugins: [refLinePlugin]
     });
+  }
+
+  exportChart(): void {
+    const canvas = document.getElementById('cycleByOpChart') as HTMLCanvasElement;
+    if (!canvas) return;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (this.cycleByOpDays - 1));
+    const fmt = (d: Date) => localDateStr(d);
+    exportChartAsPng(canvas, {
+      chartName: 'Cykeltid per operator',
+      startDate: fmt(startDate),
+      endDate: fmt(endDate)
+    });
+    this.exportFeedback = true;
+    setTimeout(() => this.exportFeedback = false, 2000);
   }
 }

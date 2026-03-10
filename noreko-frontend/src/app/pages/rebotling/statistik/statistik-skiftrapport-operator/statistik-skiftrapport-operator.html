@@ -90,6 +90,11 @@
         </div>
 
         <!-- Chart -->
+        <div class="d-flex justify-content-end mb-2">
+          <button class="btn btn-sm btn-outline-secondary" (click)="exportChart()" title="Exportera graf som PNG">
+            <i class="bi bi-download me-1"></i>{{ exportFeedback ? 'Exporterad!' : 'Exportera PNG' }}
+          </button>
+        </div>
         <div style="height:320px;position:relative;min-height:200px;" class="mb-4">
           <canvas id="skiftrapportOpChart"></canvas>
         </div>

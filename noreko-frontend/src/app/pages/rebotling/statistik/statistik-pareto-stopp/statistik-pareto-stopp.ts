@@ -6,7 +6,8 @@ import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, ChartConfiguration } from 'chart.js';
 import { RebotlingService } from '../../../../services/rebotling.service';
-import { localToday } from '../../../../utils/date-utils';
+import { localToday, localDateStr } from '../../../../utils/date-utils';
+import { exportChartAsPng } from '../../../../shared/chart-export.util';
 
 interface ParetoItem {
   orsak: string;
@@ -64,6 +65,8 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
   paretoTotalStopp: number = 0;
   private paretoChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+
+  exportFeedback: boolean = false;
 
   // Drill-down state
   drilldownOpen: boolean = false;
@@ -398,6 +401,22 @@ export class StatistikParetoStoppComponent implements OnInit, OnDestroy {
     };
 
     this.paretoChart = new Chart(ctx, config);
+  }
+
+  exportChart(): void {
+    const canvas = this.paretoCanvasRef?.nativeElement;
+    if (!canvas) return;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (this.paretoDays - 1));
+    const fmt = (d: Date) => localDateStr(d);
+    exportChartAsPng(canvas, {
+      chartName: 'Stopporsaksanalys - Pareto',
+      startDate: fmt(startDate),
+      endDate: fmt(endDate)
+    });
+    this.exportFeedback = true;
+    setTimeout(() => this.exportFeedback = false, 2000);
   }
 
   private truncateLabel(label: string, maxLen: number): string {

@@ -552,6 +552,9 @@
                 Återställ
               </button>
             </div>
+            <button class="btn btn-sm btn-outline-secondary me-2" (click)="exportProductionChart()" [disabled]="!productionChart" title="Exportera graf som PNG">
+              <i class="bi bi-download me-1"></i>{{ exportChartFeedback ? 'Exporterad!' : 'PNG' }}
+            </button>
             <button
               *ngIf="viewMode !== 'day' && chartHasSelection()"
               class="btn btn-outline-light btn-sm"
