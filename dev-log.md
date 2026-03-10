@@ -1,3 +1,29 @@
+## 2026-03-10 Annotationer i grafer — markera driftstopp och helgdagar
+
+Nytt annotationssystem for statistiksidans tidslinjegrafer:
+- **DB-tabell** `rebotling_annotations` med falt: id, datum, typ (driftstopp/helgdag/handelse/ovrigt), titel, beskrivning, created_at
+- **Migration**: `noreko-backend/migrations/2026-03-10_annotations.sql`
+- **Backend endpoints** i RebotlingAnalyticsController:
+  - `annotations-list` — hamta annotationer inom datumintervall med valfritt typfilter
+  - `annotation-create` — skapa ny annotation (admin only)
+  - `annotation-delete` — ta bort annotation (admin only)
+- **Frontend-komponent** `statistik-annotationer`:
+  - Lista alla annotationer (tabell med datum, typ-badge med fargkod, titel, beskrivning)
+  - Formular for att lagga till ny annotation (datum-picker, typ-dropdown, titel, beskrivning)
+  - Ta bort-knapp med bekraftelsedialog
+  - Filtrera pa typ
+- **Annotationstyper med farger**:
+  - Driftstopp: rod (#e53e3e)
+  - Helgdag: bla (#4299e1)
+  - Handelse: gron (#48bb78)
+  - Ovrigt: gra (#a0aec0)
+- **Integrerat i cykeltrend-graf**: manuella annotationer visas som vertikala linjer med labels
+- **Registrerad som @defer child** i rebotling-statistik
+- Service: nya metoder `getManualAnnotations()`, `createManualAnnotation()`, `deleteManualAnnotation()`
+- Dark theme, svenska, korrekt lifecycle (OnInit/OnDestroy + destroy$ + takeUntil)
+
+---
+
 ## 2026-03-10 Stopporsak drill-down fran Pareto-diagram
 
 Klickbar drill-down fran Pareto-diagrammet (stopporsaksanalys):
