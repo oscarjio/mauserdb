@@ -1,3 +1,24 @@
+## 2026-03-10 Realtids-OEE-gauge pa statistiksidan
+
+Stor cirkular OEE-gauge overst pa rebotling-statistiksidan:
+- **Backend endpoint** `realtime-oee` i RebotlingAnalyticsController — beraknar OEE = Tillganglighet x Prestanda x Kvalitet
+  - Aggregerar kumulativa PLC-varden per skift (MAX per skiftraknare, sedan SUM)
+  - Stopptid fran stoppage_log, ideal cykeltid via median fran senaste 30 dagarna
+  - Perioder: today, 7d, 30d
+- **Frontend-komponent** `statistik-oee-gauge`:
+  - Chart.js doughnut-gauge med stor siffra i mitten
+  - Fargkodad: Gron >=85%, Gul 60-85%, Rod <60%
+  - Tre progress bars for Tillganglighet, Prestanda, Kvalitet
+  - KPI-rutor: IBC totalt, Godkanda, Kasserade, Drifttid
+  - Periodselektor (Idag / 7 dagar / 30 dagar)
+  - Auto-refresh var 60:e sekund med polling
+  - Responsiv layout (md breakpoint)
+- **Registrerad som @defer child** overst i rebotling-statistik (inte on viewport — laddas direkt)
+- Service: ny metod `getRealtimeOee()` + interface `RealtimeOeeResponse`
+- Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text), svenska, korrekt lifecycle
+
+---
+
 ## 2026-03-10 Annotationer i grafer — markera driftstopp och helgdagar
 
 Nytt annotationssystem for statistiksidans tidslinjegrafer:
