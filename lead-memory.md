@@ -59,14 +59,14 @@ formularvalidering, error states, subscribe-läckor, responsiv design, timezone,
 chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX,
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #47: Produktionsmål-tracker + Bug Hunt #50 — startade (ej committat till main).
-Session #48: Stopporsak-drill-down + Annotationer i grafer — pågår.
+Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (ägarens prioritet)
 - [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
-- [PÅGÅR] **Stopporsak-drill-down** — klicka Pareto-stapel → detaljer
-- [PÅGÅR] **Annotationer i grafer** — markera driftstopp, helgdagar, händelser
+- [x] **Stopporsak-drill-down** — klicka Pareto-stapel → detaljer
+- [x] **Annotationer i grafer** — markera driftstopp, helgdagar, händelser
 - [ ] **Realtids-OEE-gauge** — stor gauge på statistiksidan
 
 ### Förbättringar
@@ -80,9 +80,9 @@ Session #48: Stopporsak-drill-down + Annotationer i grafer — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-10 — Session #48 (pågår)
-Worker 1 (Stopporsak-drill-down): Klickbar Pareto → modal med detaljer per stopporsak (operatörer, tidslinje, kommentarer). Worktree.
-Worker 2 (Annotationer i grafer): Ny tabell rebotling_annotations, CRUD-API, komponent för hantering, integration i cykeltrend-graf. Worktree.
+### 2026-03-10 — Session #48 (klar)
+Worker 1 (Stopporsak-drill-down): Klickbar Pareto → overlay-modal med KPI:er, per-operatör, per-dag, enskilda stopp. Backend: stop-cause-drilldown endpoint. Commits 9afb187 + 20fe25f.
+Worker 2 (Annotationer i grafer): Ny tabell rebotling_annotations, CRUD-API (list/create/delete), ny komponent, vertikala annotationslinjer i cykeltrend-graf. Migration + auto-create.
 
 ### 2026-03-09 — Session #47 (startade, ej committat)
 Worker 1 (Produktionsmål-tracker): Progress-ring dagsmål/veckamål, streak, historik 14 dagar, countdown. Worktree.

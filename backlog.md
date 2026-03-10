@@ -6,8 +6,8 @@
 ## Rebotling-fokus (ägarens prioritet)
 
 - [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown, streak
-- [PÅGÅR] **Stopporsak-drill-down** — klicka på Pareto-stapel → se detaljer (tid, operatör, kommentar)
-- [PÅGÅR] **Annotationer i grafer** — markera driftstopp, helgdagar, händelser i tidslinjen
+- [x] **Stopporsak-drill-down** — klicka på Pareto-stapel → se detaljer (tid, operatör, kommentar)
+- [x] **Annotationer i grafer** — markera driftstopp, helgdagar, händelser i tidslinjen
 - [ ] **Realtids-OEE-gauge** — stor, tydlig gauge på statistiksidan som visar aktuell OEE live
 
 ## Förbättringar
