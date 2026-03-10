@@ -26,6 +26,7 @@ import { StatistikOeeDeepdiveComponent } from './statistik/statistik-oee-deepdiv
 import { StatistikCykeltrendComponent } from './statistik/statistik-cykeltrend/statistik-cykeltrend';
 import { StatistikSkiftrapportOperatorComponent } from './statistik/statistik-skiftrapport-operator/statistik-skiftrapport-operator';
 import { StatistikKvalitetDeepdiveComponent } from './statistik/statistik-kvalitet-deepdive/statistik-kvalitet-deepdive';
+import { StatistikAnnotationerComponent } from './statistik/statistik-annotationer/statistik-annotationer';
 
 
 Chart.register(...registerables);
@@ -113,7 +114,8 @@ interface TableRow {
     StatistikProduktionsrytmComponent, StatistikParetoStoppComponent, StatistikKassationParetoComponent,
     StatistikOeeKomponenterComponent, StatistikKvalitetsanalysComponent, StatistikHandelserComponent,
     StatistikVeckojamforelseComponent, StatistikPrediktionComponent, StatistikOeeDeepdiveComponent, StatistikCykeltrendComponent,
-    StatistikSkiftrapportOperatorComponent, StatistikKvalitetDeepdiveComponent]
+    StatistikSkiftrapportOperatorComponent, StatistikKvalitetDeepdiveComponent,
+    StatistikAnnotationerComponent]
 })
 export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;

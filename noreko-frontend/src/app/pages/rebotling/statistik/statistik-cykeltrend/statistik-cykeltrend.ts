@@ -4,7 +4,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart } from 'chart.js';
-import { RebotlingService, ChartAnnotation, ProductionEvent } from '../../../../services/rebotling.service';
+import { RebotlingService, ChartAnnotation, ProductionEvent, ManualAnnotation } from '../../../../services/rebotling.service';
 
 @Component({
   standalone: true,
@@ -20,6 +20,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
   cycleTrendGranularity: 'day' | 'shift' = 'day';
   private cycleTrendChart: Chart | null = null;
   private chartAnnotations: ChartAnnotation[] = [];
+  private manualAnnotations: ManualAnnotation[] = [];
   private productionEvents: ProductionEvent[] = [];
   private destroy$ = new Subject<void>();
 
@@ -51,6 +52,7 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
       const fmt = (d: Date) =>
         `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       this.loadAnnotations(fmt(startDate), fmt(endDate));
+      this.loadManualAnnotations(fmt(startDate), fmt(endDate));
     }
 
     this.rebotlingService.getCycleTrend(this.cycleTrendDays, this.cycleTrendGranularity).pipe(
@@ -89,6 +91,31 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
     });
   }
 
+  private loadManualAnnotations(startDate: string, endDate: string) {
+    this.rebotlingService.getManualAnnotations(startDate, endDate).pipe(
+      timeout(8000),
+      takeUntil(this.destroy$),
+      catchError(() => of(null))
+    ).subscribe((res: any) => {
+      if (res?.success && res.annotations) {
+        this.manualAnnotations = res.annotations;
+        if (this.cycleTrendLoaded && this.cycleTrendData.length) {
+          setTimeout(() => { if (!this.destroy$.closed) this.renderCycleTrendChart(); }, 0);
+        }
+      }
+    });
+  }
+
+  private manualAnnotationColor(typ: string): string {
+    const colors: Record<string, string> = {
+      driftstopp: '#e53e3e',
+      helgdag: '#4299e1',
+      handelse: '#48bb78',
+      ovrigt: '#a0aec0'
+    };
+    return colors[typ] || '#a0aec0';
+  }
+
   private eventColor(type: string): string {
     const colors: Record<string, string> = {
       'underhall': '#f97316', 'ny_operator': '#3b82f6',
@@ -118,7 +145,21 @@ export class StatistikCykeltrendComponent implements OnInit, OnDestroy {
         label: e.title,
         color: this.eventColor(e.event_type)
       } as any));
-    const cycleAnnotations = [...this.chartAnnotations, ...cycleProductionEventAnnotations];
+    // Manuella annotationer (driftstopp, helgdagar etc.)
+    const manualChartAnnotations: ChartAnnotation[] = this.manualAnnotations
+      .filter((m: ManualAnnotation) => {
+        const shortDate = m.datum.substring(5);
+        return labels.some((l: string) => l.includes(shortDate));
+      })
+      .map((m: ManualAnnotation) => ({
+        date: m.datum,
+        dateShort: m.datum.substring(5),
+        type: 'audit' as const,
+        label: m.titel,
+        color: this.manualAnnotationColor(m.typ)
+      } as any));
+
+    const cycleAnnotations = [...this.chartAnnotations, ...cycleProductionEventAnnotations, ...manualChartAnnotations];
 
     this.cycleTrendChart = new Chart(canvas, {
       type: 'bar',

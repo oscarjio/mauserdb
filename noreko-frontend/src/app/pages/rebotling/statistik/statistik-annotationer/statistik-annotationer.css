@@ -1,0 +1,24 @@
+.annotation-form input:focus,
+.annotation-form select:focus {
+  border-color: #4299e1;
+  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.25);
+}
+
+.table-dark th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  border-bottom-color: #4a5568;
+}
+
+.table-dark td {
+  font-size: 0.85rem;
+  border-bottom-color: #2d3748;
+  vertical-align: middle;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.25em 0.6em;
+}
