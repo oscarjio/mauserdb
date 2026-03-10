@@ -1,3 +1,22 @@
+## 2026-03-10 Stopporsak drill-down fran Pareto-diagram
+
+Klickbar drill-down fran Pareto-diagrammet (stopporsaksanalys):
+- **Klick pa Chart.js-stapel** eller **tabellrad** oppnar en modal med detaljvy
+- **Sammanfattning**: total stopptid (min + h), antal stopp, snitt per stopp, antal operatorer
+- **Per operator**: tabell med operator, antal stopp, total minuter
+- **Per dag**: tabell med datum, antal stopp, minuter (scrollbar vid manga dagar)
+- **Alla enskilda stopp**: datum, start/slut-tid, minuter, operator, kommentar
+- **Stang-knapp** for att ga tillbaka till Pareto-vyn
+- Backend: nytt endpoint `stop-cause-drilldown` i RebotlingAnalyticsController
+  - Tar `cause` (stopporsak-namn) och `days` (period)
+  - Queriar stoppage_log + stoppage_reasons + users
+  - Returnerar summary, by_operator, by_day, stops
+- Service: ny metod `getStopCauseDrilldown()` i rebotling.service.ts
+- Dark theme, svenska, korrekt lifecycle
+- Cursor andras till pointer vid hover over staplar
+
+---
+
 ## 2026-03-09 Skiftrapport per operator — filtrerbar rapport
 
 Ny komponent `statistik-skiftrapport-operator` under rebotling-statistik:
