@@ -129,6 +129,8 @@ class RebotlingController {
                 $this->analyticsController->getShiftPdfSummary();
             } elseif ($action === 'weekly-summary-email') {
                 $this->analyticsController->getWeeklySummaryEmail();
+            } elseif ($action === 'realtime-oee') {
+                $this->analyticsController->getRealtimeOee();
 
             // --- Live-data GET endpoints ---
             } elseif ($action === 'status') {

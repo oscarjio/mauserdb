@@ -5837,4 +5837,154 @@ HTML;
         }
     }
 
+
+    // ================================================================
+    //  Realtids-OEE gauge — endpoint: run=realtime-oee&period=today|7d|30d
+    // ================================================================
+
+    public function getRealtimeOee() {
+        $period = $_GET['period'] ?? 'today';
+        $allowed = ['today', '7d', '30d'];
+        if (!in_array($period, $allowed)) $period = 'today';
+
+        try {
+            // Bestäm datumfilter
+            $dateFilter = match($period) {
+                'today' => "DATE(r.datum) = CURDATE()",
+                '7d'    => "r.datum >= DATE_SUB(NOW(), INTERVAL 7 DAY)",
+                '30d'   => "r.datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)",
+                default => "DATE(r.datum) = CURDATE()"
+            };
+
+            $periodLabel = match($period) {
+                'today' => 'Idag',
+                '7d'    => 'Senaste 7 dagar',
+                '30d'   => 'Senaste 30 dagar',
+                default => 'Idag'
+            };
+
+            // Aggregera per skift (kumulativa PLC-värden → MAX per skiftraknare, sedan SUM)
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*)                 AS shifts,
+                    SUM(shift_ibc_ok)        AS total_ibc_ok,
+                    SUM(shift_ibc_ej_ok)     AS total_ibc_ej_ok,
+                    SUM(shift_runtime)       AS total_runtime_min,
+                    SUM(shift_rast)          AS total_rast_min
+                FROM (
+                    SELECT
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok,     0)) AS shift_ibc_ok,
+                        MAX(COALESCE(ibc_ej_ok,  0)) AS shift_ibc_ej_ok,
+                        MAX(COALESCE(runtime_plc,0)) AS shift_runtime,
+                        MAX(COALESCE(rasttime,   0)) AS shift_rast
+                    FROM rebotling_ibc r
+                    WHERE $dateFilter
+                      AND ibc_ok IS NOT NULL
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ");
+            $stmt->execute();
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $ibcOk    = (int)($data['total_ibc_ok']      ?? 0);
+            $ibcEjOk  = (int)($data['total_ibc_ej_ok']   ?? 0);
+            $totalIBC = $ibcOk + $ibcEjOk;
+
+            $runtimeMin = (float)($data['total_runtime_min'] ?? 0);
+            $rastMin    = (float)($data['total_rast_min']    ?? 0);
+
+            // Stopptid från stoppage_log (om tabell finns)
+            $stoppageMin = 0;
+            try {
+                $stmtStop = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, start_time, COALESCE(end_time, NOW()))), 0) AS stop_min
+                    FROM stoppage_log s
+                    WHERE " . str_replace('r.datum', 's.start_time', $dateFilter)
+                );
+                $stmtStop->execute();
+                $stoppageMin = (float)$stmtStop->fetchColumn();
+            } catch (Exception $e) {
+                // stoppage_log finns kanske inte — falla tillbaka till rast som proxy
+                $stoppageMin = $rastMin;
+            }
+
+            // Operativ tid (runtime_plc exkluderar redan rast)
+            $operatingMin = max($runtimeMin, 1);
+            // Planerad tid = driftstid + rasttid
+            $plannedMin = max($runtimeMin + $rastMin, 1);
+
+            // Ideal cykeltid: hämta median från senaste 30 dagarnas data
+            $idealRatePerMin = 15.0 / 60.0; // fallback: 15 IBC/h
+            try {
+                $stmtMedian = $this->pdo->query("
+                    SELECT AVG(ibc_per_min) AS median_rate FROM (
+                        SELECT
+                            shift_ibc / GREATEST(shift_runtime, 1) AS ibc_per_min,
+                            ROW_NUMBER() OVER (ORDER BY ibc_per_min) AS rn,
+                            COUNT(*) OVER () AS cnt
+                        FROM (
+                            SELECT
+                                skiftraknare,
+                                MAX(COALESCE(ibc_ok, 0)) + MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ibc,
+                                MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                            FROM rebotling_ibc
+                            WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                              AND ibc_ok IS NOT NULL
+                              AND skiftraknare IS NOT NULL
+                            GROUP BY skiftraknare
+                            HAVING shift_runtime > 30
+                        ) AS shifts
+                    ) AS ranked
+                    WHERE rn BETWEEN FLOOR((cnt+1)/2) AND CEIL((cnt+1)/2)
+                ");
+                $medianRate = (float)$stmtMedian->fetchColumn();
+                if ($medianRate > 0) {
+                    // Ideal = 120% av median (top-performance benchmark)
+                    $idealRatePerMin = $medianRate * 1.2;
+                }
+            } catch (Exception $e) {
+                // använd fallback
+            }
+
+            // === OEE-beräkning ===
+            // Tillgänglighet = Operativ tid / Planerad tid
+            $availability = min($operatingMin / $plannedMin, 1.0);
+
+            // Prestanda = (Antal IBC / Operativ tid) / Ideal rate
+            $actualRate = $totalIBC / max($operatingMin, 1);
+            $performance = min($actualRate / max($idealRatePerMin, 0.001), 1.5);
+            // Cap vid 150% men visa verkligt värde (>100% = bättre än benchmark)
+
+            // Kvalitet = Godkända / Totalt
+            $quality = $totalIBC > 0 ? $ibcOk / $totalIBC : 0;
+
+            // OEE = A × P × Q (cappa vid 100%)
+            $oee = min($availability * min($performance, 1.0) * $quality, 1.0);
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'period'              => $period,
+                    'period_label'        => $periodLabel,
+                    'oee_percent'         => round($oee * 100, 1),
+                    'availability_percent'=> round($availability * 100, 1),
+                    'performance_percent' => round(min($performance, 1.0) * 100, 1),
+                    'quality_percent'     => round($quality * 100, 1),
+                    'ibc_count'           => $totalIBC,
+                    'ibc_approved'        => $ibcOk,
+                    'ibc_rejected'        => $ibcEjOk,
+                    'stoppage_minutes'    => round($stoppageMin, 0),
+                    'runtime_hours'       => round($runtimeMin / 60, 1),
+                    'planned_hours'       => round($plannedMin / 60, 1),
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getRealtimeOee: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte beräkna realtids-OEE']);
+        }
+    }
+
 }

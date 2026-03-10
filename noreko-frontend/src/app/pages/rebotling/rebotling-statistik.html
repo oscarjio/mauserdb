@@ -1,5 +1,14 @@
 <div class="rebotling-statistik-page">
-  
+
+  <!-- OEE Gauge - overst pa sidan -->
+  <div class="container-fluid">
+    @defer {
+      <app-statistik-oee-gauge></app-statistik-oee-gauge>
+    } @placeholder {
+      <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
+    }
+  </div>
+
   <!-- Header with Breadcrumb -->
   <div class="stats-header">
     <div class="container-fluid">
