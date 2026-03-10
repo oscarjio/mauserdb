@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-09 (session #47)*
+*Senast uppdaterad: 2026-03-10 (session #48)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -54,27 +54,25 @@ IBC-tvätteri (1000L plasttankar i metallbur). Systemet ger VD realtidsöverblic
 
 ## Bug Hunt Status
 
-Bug Hunts #1-#48 genomförda. Kodbasen har genomgått systematisk granskning:
+Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning:
 formularvalidering, error states, subscribe-läckor, responsiv design, timezone, dead code,
 chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX,
 race conditions, accessibility, null safety, HTTP timeout/catchError.
-Session #44: Workers slutförde ej. Session #45: Pareto + Cykeltid klara. Bug Hunt #49 klar (dbc7b1a).
-Session #46: Skiftrapport per operatör + IBC-kvalitets deep-dive — båda klara (0a96daa).
-Bug Hunt #49: 12 console.error borttagna i rebotling-admin + rebotling-statistik. 25+ filer granskade.
-Session #47: Produktionsmål-tracker + Bug Hunt #50 — startade.
+Session #47: Produktionsmål-tracker + Bug Hunt #50 — startade (ej committat till main).
+Session #48: Stopporsak-drill-down + Annotationer i grafer — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (ägarens prioritet)
-- [PÅGÅR] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
-- [PÅGÅR] **Bug Hunt #50** — granska session #46 commits
-- [ ] **Annotationer i grafer** — markera driftstopp, helgdagar i tidslinjen
-- [ ] **Stopporsak-drill-down** — klicka Pareto-stapel → detaljer
+- [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown
+- [PÅGÅR] **Stopporsak-drill-down** — klicka Pareto-stapel → detaljer
+- [PÅGÅR] **Annotationer i grafer** — markera driftstopp, helgdagar, händelser
+- [ ] **Realtids-OEE-gauge** — stor gauge på statistiksidan
 
 ### Förbättringar
 - [ ] **Bonus "What-if"-simulator** — admin justerar parametrar, ser effekt i realtid
-- [ ] **Skiftbyte-PDF automatgenerering** — PDF vid skiftslut, länk i UI
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
+- [ ] **Exportera grafer som bild** — PNG-export per graf
 
 ### Nya sidor
 - [ ] **Månadsrapport** (`/rapporter/manad`) — auto-genererad sammanfattning, PDF-export
@@ -82,14 +80,14 @@ Session #47: Produktionsmål-tracker + Bug Hunt #50 — startade.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-09 — Session #47 (pågår)
+### 2026-03-10 — Session #48 (pågår)
+Worker 1 (Stopporsak-drill-down): Klickbar Pareto → modal med detaljer per stopporsak (operatörer, tidslinje, kommentarer). Worktree.
+Worker 2 (Annotationer i grafer): Ny tabell rebotling_annotations, CRUD-API, komponent för hantering, integration i cykeltrend-graf. Worktree.
+
+### 2026-03-09 — Session #47 (startade, ej committat)
 Worker 1 (Produktionsmål-tracker): Progress-ring dagsmål/veckamål, streak, historik 14 dagar, countdown. Worktree.
-Worker 2 (Bug Hunt #50): Granska session #46 commits — skiftrapport, kvalitet, cykeltid, pareto. Worktree.
+Worker 2 (Bug Hunt #50): Granska session #46 commits. Worktree.
 
 ### 2026-03-09 — Session #46 (klar)
-Worker 1 (Skiftrapport): Filtrerbar per operatör med dropdown, periodväljare, KPI-panel, Chart.js combo-graf, tabell, CSV-export. Backend: shift-report-by-operator endpoint. Commit 0a96daa.
-Worker 2 (Kvalitet deep-dive): Donut-chart, horisontellt Pareto, trendlinje topp 5 orsaker, tabell med alla orsaker. Backend: quality-rejection-breakdown + quality-rejection-trend. Commit 0a96daa.
-
-### 2026-03-09 — Session #45 (klar)
-Worker 1 (Pareto): Horisontellt 80/20-diagram, kumulativ linje, 80%-markering, orange/grå färgdelning. Commit d8c4356.
-Worker 2 (Cykeltid): Grouped bar chart (min/median/max), referenslinje, ranking-tabell. Commits 3327f20 + 3ba6a5a.
+Worker 1 (Skiftrapport): Filtrerbar per operatör, KPI-panel, Chart.js combo-graf, CSV-export. Commit 0a96daa.
+Worker 2 (Kvalitet deep-dive): Donut-chart, Pareto, trendlinje topp 5, tabell. Commit 0a96daa.
