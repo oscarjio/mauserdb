@@ -1,0 +1,166 @@
+<div class="row mt-3 mb-4">
+  <div class="col-12">
+    <div class="dark-card">
+      <!-- Header -->
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="mb-0" style="color:#e2e8f0;">
+          <i class="fas fa-tachometer-alt me-2" style="color:#48bb78;"></i>
+          Realtids-OEE
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <div class="btn-group btn-group-sm" role="group">
+            <button class="btn" [class.btn-success]="selectedPeriod === 'today'" [class.btn-outline-secondary]="selectedPeriod !== 'today'" (click)="selectPeriod('today')">Idag</button>
+            <button class="btn" [class.btn-success]="selectedPeriod === '7d'" [class.btn-outline-secondary]="selectedPeriod !== '7d'" (click)="selectPeriod('7d')">7 dagar</button>
+            <button class="btn" [class.btn-success]="selectedPeriod === '30d'" [class.btn-outline-secondary]="selectedPeriod !== '30d'" (click)="selectPeriod('30d')">30 dagar</button>
+          </div>
+          <span class="small text-muted ms-2" *ngIf="data">
+            <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>Auto-uppdatering
+          </span>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="text-center py-5" *ngIf="loading && !data">
+        <div class="spinner-border text-success" role="status"></div>
+        <div class="text-muted mt-2 small">Beraknar OEE...</div>
+      </div>
+
+      <!-- Error -->
+      <div class="text-center py-5" *ngIf="error && !data">
+        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+        <p class="text-muted">{{ error }}</p>
+        <button class="btn btn-sm btn-outline-success" (click)="loadOee()">Forsok igen</button>
+      </div>
+
+      <!-- OEE Gauge Content -->
+      <div *ngIf="data">
+        <div class="row align-items-center">
+          <!-- Main gauge -->
+          <div class="col-12 col-md-5 text-center">
+            <div style="position:relative;height:280px;max-width:320px;margin:0 auto;">
+              <canvas id="oeeGaugeCanvas"></canvas>
+            </div>
+            <div class="mt-1">
+              <span class="badge fs-6 px-3 py-2"
+                [style.background-color]="getOeeColor(data.oee_percent)"
+                style="color:#1a202c;font-weight:600;">
+                {{ getOeeLabel(data.oee_percent) }}
+              </span>
+              <div class="small text-muted mt-1">{{ data.period_label }}</div>
+            </div>
+          </div>
+
+          <!-- Sub-gauges: A, P, Q -->
+          <div class="col-12 col-md-7">
+            <div class="row g-3 mt-2 mt-md-0">
+              <!-- Tillganglighet -->
+              <div class="col-12">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:120px;" class="small" style="color:#e2e8f0;">
+                    <i class="fas fa-clock me-1" style="color:#63b3ed;"></i>Tillganglighet
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="progress" style="height:22px;background:#2d3748;border-radius:6px;">
+                      <div class="progress-bar" role="progressbar"
+                        [style.width.%]="data.availability_percent"
+                        [style.background-color]="getOeeColor(data.availability_percent)"
+                        style="border-radius:6px;transition:width 0.6s ease;">
+                      </div>
+                    </div>
+                  </div>
+                  <div style="width:55px;text-align:right;" class="fw-bold"
+                    [style.color]="getOeeColor(data.availability_percent)">
+                    {{ data.availability_percent | number:'1.1-1' }}%
+                  </div>
+                </div>
+              </div>
+
+              <!-- Prestanda -->
+              <div class="col-12">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:120px;" class="small" style="color:#e2e8f0;">
+                    <i class="fas fa-bolt me-1" style="color:#ecc94b;"></i>Prestanda
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="progress" style="height:22px;background:#2d3748;border-radius:6px;">
+                      <div class="progress-bar" role="progressbar"
+                        [style.width.%]="data.performance_percent"
+                        [style.background-color]="getOeeColor(data.performance_percent)"
+                        style="border-radius:6px;transition:width 0.6s ease;">
+                      </div>
+                    </div>
+                  </div>
+                  <div style="width:55px;text-align:right;" class="fw-bold"
+                    [style.color]="getOeeColor(data.performance_percent)">
+                    {{ data.performance_percent | number:'1.1-1' }}%
+                  </div>
+                </div>
+              </div>
+
+              <!-- Kvalitet -->
+              <div class="col-12">
+                <div class="d-flex align-items-center gap-3">
+                  <div style="width:120px;" class="small" style="color:#e2e8f0;">
+                    <i class="fas fa-check-circle me-1" style="color:#48bb78;"></i>Kvalitet
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="progress" style="height:22px;background:#2d3748;border-radius:6px;">
+                      <div class="progress-bar" role="progressbar"
+                        [style.width.%]="data.quality_percent"
+                        [style.background-color]="getOeeColor(data.quality_percent)"
+                        style="border-radius:6px;transition:width 0.6s ease;">
+                      </div>
+                    </div>
+                  </div>
+                  <div style="width:55px;text-align:right;" class="fw-bold"
+                    [style.color]="getOeeColor(data.quality_percent)">
+                    {{ data.quality_percent | number:'1.1-1' }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- KPI-rutor -->
+            <div class="row g-2 mt-3">
+              <div class="col-6 col-sm-3">
+                <div class="p-2 rounded text-center" style="background:#2d3748;">
+                  <div class="small text-muted">IBC totalt</div>
+                  <div class="fw-bold" style="font-size:1.1rem;color:#e2e8f0;">{{ data.ibc_count }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="p-2 rounded text-center" style="background:#2d3748;">
+                  <div class="small text-muted">Godkanda</div>
+                  <div class="fw-bold" style="font-size:1.1rem;color:#48bb78;">{{ data.ibc_approved }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="p-2 rounded text-center" style="background:#2d3748;">
+                  <div class="small text-muted">Kasserade</div>
+                  <div class="fw-bold" style="font-size:1.1rem;color:#fc8181;">{{ data.ibc_rejected }}</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="p-2 rounded text-center" style="background:#2d3748;">
+                  <div class="small text-muted">Drifttid</div>
+                  <div class="fw-bold" style="font-size:1.1rem;color:#63b3ed;">{{ data.runtime_hours }}h</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="small text-muted mt-3 mb-0">
+          <i class="fas fa-info-circle me-1" style="color:#48bb78;"></i>
+          OEE = Tillganglighet &times; Prestanda &times; Kvalitet.
+          <span [style.color]="getOeeColor(85)">Gron &ge;85%</span>,
+          <span [style.color]="getOeeColor(70)">Gul 60-85%</span>,
+          <span [style.color]="getOeeColor(50)">Rod &lt;60%</span>.
+          World-class benchmark: 85%.
+          Uppdateras automatiskt var 60:e sekund.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>

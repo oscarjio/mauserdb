@@ -309,6 +309,13 @@ export class RebotlingService {
     );
   }
 
+  getRealtimeOee(period: string = 'today'): Observable<RealtimeOeeResponse> {
+    return this.http.get<RealtimeOeeResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=realtime-oee&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
   getStopCauseDrilldown(cause: string, days: number = 30): Observable<any> {
     return this.http.get<any>(
       `/noreko-backend/api.php?action=rebotling&run=stop-cause-drilldown&cause=${encodeURIComponent(cause)}&days=${days}`,
@@ -975,5 +982,26 @@ export interface ManualAnnotation {
 export interface ManualAnnotationsResponse {
   success: boolean;
   annotations?: ManualAnnotation[];
+  error?: string;
+}
+
+export interface RealtimeOeeData {
+  period: string;
+  period_label: string;
+  oee_percent: number;
+  availability_percent: number;
+  performance_percent: number;
+  quality_percent: number;
+  ibc_count: number;
+  ibc_approved: number;
+  ibc_rejected: number;
+  stoppage_minutes: number;
+  runtime_hours: number;
+  planned_hours: number;
+}
+
+export interface RealtimeOeeResponse {
+  success: boolean;
+  data?: RealtimeOeeData;
   error?: string;
 }
