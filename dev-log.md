@@ -1,3 +1,22 @@
+## 2026-03-10 Exportera grafer som PNG-bild
+
+Ny funktion for att exportera statistikgrafer som PNG-bilder for rapporter och presentationer:
+- **Ny utility** `noreko-frontend/src/app/shared/chart-export.util.ts`:
+  - Tar ett Canvas-element (Chart.js) och exporterar som PNG
+  - Skapar en temporar canvas med mork bakgrund (#1a202c), titel och datumperiod som header
+  - Genererar filnamn: `{graf-namn}_{startdatum}_{slutdatum}.png`
+- **Exportera PNG-knapp tillagd pa alla statistikgrafer**:
+  - Produktionsanalys (rebotling-statistik huvudgraf)
+  - Cykeltid per operator
+  - Stopporsaksanalys - Pareto
+  - Kvalitet deep-dive: donut, Pareto-stapeldiagram och trendgraf (3 knappar)
+  - Skiftrapport per operator
+  - Cykeltrend - IBC-produktion
+- **UX**: btn-sm btn-outline-secondary med Bootstrap-ikon (bi-download), kort "Exporterad!"-feedback (2 sek)
+- Dark theme, svenska, bygger OK
+
+---
+
 ## 2026-03-10 Annotationer i grafer — markera driftstopp och helgdagar
 
 Nytt annotationssystem for statistiksidans tidslinjegrafer:
