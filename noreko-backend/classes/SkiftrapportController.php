@@ -487,7 +487,7 @@ class SkiftrapportController {
             $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
             $nums = array_map('intval', $rows);
             // Filtrera bort 999 (PLC default för ogiltigt) och duplicerade
-            $nums = array_values(array_unique(array_filter($nums, fn($n) => $n !== 999, ARRAY_FILTER_USE_VALUE)));
+            $nums = array_values(array_unique(array_filter($nums, fn($n) => $n !== 999)));
             echo json_encode([
                 'success' => true,
                 'ranges'  => $this->buildRanges($nums),
