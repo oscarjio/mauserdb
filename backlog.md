@@ -5,16 +5,16 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [x] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown, streak
-- [x] **Månadsrapport** (`/rapporter/manad`) — service-metoder tillagda (sidan fanns redan)
+- [PÅGÅR] **Bonus "What-if"-simulator** — admin justerar bonusparametrar, ser effekt i realtid
+- [PÅGÅR] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse, trender per skifttyp
 
 ## Förbättringar
 
-- [ ] **Bonus "What-if"-simulator** — admin justerar bonusparametrar, ser effekt i realtid
 - [ ] **Operatörsnärvaro-tracker** — kalendervy baserad på rebotling_ibc-data
 - [ ] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
-- [ ] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse, trender per skifttyp
 - [ ] **Alerts/notifieringar** — realtidsvarning när OEE sjunker under tröskel eller stopp > X min
+- [ ] **Maskinupptid-heatmap** — veckokalender-rutnät med färgkodad drift/stopp per timme
+- [ ] **Topp-5 operatörer leaderboard** — live-ranking på startsidan med pulsanimation vid ny etta
 
 ## Nya sidor
 

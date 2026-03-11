@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #50)*
+*Senast uppdaterad: 2026-03-11 (session #51)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -61,19 +61,20 @@ race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
 Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
 Session #50: Produktionsmål-tracker + Månadsrapport — klara.
+Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-### Rebotling-fokus (pågår session #50)
-- [x] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål (klar)
-- [x] **Månadsrapport** — service-metoder tillagda (klar)
+### Rebotling-fokus (pågår session #51)
+- [PÅGÅR] **Bonus "What-if"-simulator** — admin justerar bonusparametrar i realtid
+- [PÅGÅR] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse
 
 ### Förbättringar
-- [ ] **Bonus "What-if"-simulator** — admin justerar parametrar, ser effekt i realtid
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
-- [ ] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse
 - [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
+- [ ] **Maskinupptid-heatmap** — veckorutnät med drift/stopp per timme
+- [ ] **Topp-5 operatörer leaderboard** — live-ranking på startsidan
 
 ### Nya sidor
 - [ ] **Skiftplaneringsvy** (`/admin/skiftplan`) — kalendervy, operatörer per skift
@@ -81,14 +82,15 @@ Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #51 (pågår)
+Worker 1 (Bonus "What-if"-simulator): Admin justerar bonusparametrar, ser effekt i realtid. Jämförelsevy nuvarande vs simulerat.
+Worker 2 (Skiftjämförelse-vy): Dag vs nattskift KPI-jämförelse, grouped bar chart, trendlinjer, periodselektor.
+Merge-konflikter i dev-log.md + statistik-cykeltid-operator.ts lösta.
+
 ### 2026-03-11 — Session #50 (klar)
 Worker 1 (Produktionsmål-tracker): Doughnut-gauge dagsmål/veckamål, streak-badge, countdown, admin inline-edit, auto-refresh 60s. Backend: production-goal-progress + set-production-goal. DB: rebotling_production_goals. 964 rader ny kod. Mergad.
-Worker 2 (Månadsrapport): Sidan fanns redan. Lade till service-metoder getMonthlyReport/getMonthCompare + interfaces i rebotling.service.ts. Commit 3e2f299.
+Worker 2 (Månadsrapport): Sidan fanns redan. Lade till service-metoder getMonthlyReport/getMonthCompare + interfaces i rebotling.service.ts.
 
 ### 2026-03-10 — Session #49 (klar)
 Worker 1 (Realtids-OEE-gauge): Stor cirkulär OEE-gauge överst på statistiksidan. Chart.js doughnut, färgkodad, progress bars A/P/Q, KPI-rutor, periodselektor, auto-refresh 60s.
 Worker 2 (Exportera grafer som bild): PNG-exportknapp på alla 6 graf-komponenter. Ny chart-export utility.
-
-### 2026-03-10 — Session #48 (klar)
-Worker 1 (Stopporsak-drill-down): Klickbar Pareto → overlay-modal med KPI:er, per-operatör, per-dag, enskilda stopp.
-Worker 2 (Annotationer i grafer): Ny tabell rebotling_annotations, CRUD-API, vertikala annotationslinjer i cykeltrend-graf.
