@@ -1,3 +1,34 @@
+## 2026-03-11 Topp-5 operatörer leaderboard
+
+Ny statistikkomponent som visar en live-ranking av de 5 bästa operatörerna baserat på bonuspoäng.
+
+- **Backend** — ny metod `getTopOperatorsLeaderboard()` i `RebotlingAnalyticsController.php`:
+  - Aggregerar per skift via UNION ALL av op1/op2/op3 (samma mönster som BonusController)
+  - Kumulativa fält hämtas med MAX(), bonus_poang/kvalitet/effektivitet med sista cykelns värde (SUBSTRING_INDEX + GROUP_CONCAT)
+  - Beräknar ranking för nuvarande period OCH föregående period (för trendpil: 'up'/'down'/'same'/'new')
+  - Returnerar: rank, operator_id, operator_name, score (avg bonus), score_pct (% av ettan), ibc_count, quality_pct, skift_count, avg_eff, trend, previous_rank
+  - Endpoint: `GET ?action=rebotling&run=top-operators-leaderboard&days=30`
+  - Registrerad i `RebotlingController.php`
+- **Service** (`rebotling.service.ts`):
+  - `getTopOperatorsLeaderboard(days)` — Observable<LeaderboardResponse>
+  - Interfaces: `LeaderboardOperator`, `LeaderboardResponse`
+- **Frontend-komponent** `statistik-leaderboard` (standalone, path: `statistik/statistik-leaderboard/`):
+  - Periodselektor: 7/30/90 dagar
+  - Lista med plats 1–5: rank-badge (krona/medalj/stjärna), operatörsnamn, IBC/skift/kvalitet-meta
+  - Progressbar per rad (score_pct relativt ettan) med guld/silver/brons/grå gradient
+  - Trendpil: grön upp, röd ned, grå samma, gul stjärna vid ny i toppen
+  - #1: guld-highlight (gul border + gradient), #2: silver, #3: brons
+  - Pulsanimation (`@keyframes leaderboardPulse`) triggas när etta byter operatör
+  - Blinkande "live-punkt" + text "Uppdateras var 30s"
+  - Auto-refresh var 30s via setInterval (clearInterval i ngOnDestroy)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval
+  - Mörkt tema: #2d3748 kort, guld #d69e2e, silver #a0aec0, brons #c05621
+- Registrerad i `rebotling-statistik.ts` (import + @Component imports-array)
+- Infogad i `rebotling-statistik.html` som `@defer (on viewport)` ovanför huvud-headern
+- Bygg OK (65s, inga fel)
+
+---
+
 ## 2026-03-11 Bonus "What-if"-simulator
 
 Ny statistikkomponent under rebotling-statistiksidan som ger admin ett interaktivt verktyg att simulera hur bonusparametrar påverkar operatörernas utfall.

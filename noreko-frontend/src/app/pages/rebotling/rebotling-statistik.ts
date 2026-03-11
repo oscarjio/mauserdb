@@ -32,6 +32,7 @@ import { StatistikOeeGaugeComponent } from './statistik/statistik-oee-gauge/stat
 import { StatistikProduktionsmalComponent } from './statistik/statistik-produktionsmal/statistik-produktionsmal';
 import { StatistikSkiftjamforelseComponent } from './statistik/statistik-skiftjamforelse/statistik-skiftjamforelse';
 import { StatistikBonusSimulatorComponent } from './statistik/statistik-bonus-simulator/statistik-bonus-simulator';
+import { StatistikLeaderboardComponent } from './statistik/statistik-leaderboard/statistik-leaderboard';
 
 
 Chart.register(...registerables);
@@ -121,7 +122,8 @@ interface TableRow {
     StatistikVeckojamforelseComponent, StatistikPrediktionComponent, StatistikOeeDeepdiveComponent, StatistikCykeltrendComponent,
     StatistikSkiftrapportOperatorComponent, StatistikKvalitetDeepdiveComponent,
     StatistikAnnotationerComponent, StatistikOeeGaugeComponent, StatistikProduktionsmalComponent,
-    StatistikSkiftjamforelseComponent, StatistikBonusSimulatorComponent]
+    StatistikSkiftjamforelseComponent, StatistikBonusSimulatorComponent,
+    StatistikLeaderboardComponent]
 })
 export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;

@@ -135,6 +135,8 @@ class RebotlingController {
                 $this->analyticsController->getProductionGoalProgress();
             } elseif ($action === 'shift-day-night') {
                 $this->analyticsController->getShiftDayNightComparison();
+            } elseif ($action === 'top-operators-leaderboard') {
+                $this->analyticsController->getTopOperatorsLeaderboard();
 
             // --- Live-data GET endpoints ---
             } elseif ($action === 'status') {
