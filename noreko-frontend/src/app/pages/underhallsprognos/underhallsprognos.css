@@ -1,0 +1,281 @@
+/* Underhållsprognos */
+
+.prognos-wrapper {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+}
+
+/* Översiktskort */
+.overview-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  text-align: center;
+  transition: box-shadow 0.2s ease;
+}
+
+.overview-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.overview-card.card-danger {
+  border-color: #fc5c65;
+  box-shadow: 0 0 0 1px rgba(252, 92, 101, 0.3), 0 4px 12px rgba(252, 92, 101, 0.15);
+}
+
+.overview-card.card-warning {
+  border-color: #fed330;
+  box-shadow: 0 0 0 1px rgba(254, 211, 48, 0.3), 0 4px 12px rgba(254, 211, 48, 0.1);
+}
+
+.overview-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.overview-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.overview-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+/* Varningsboxar */
+.alert-box {
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.alert-box-danger {
+  background-color: rgba(252, 92, 101, 0.12);
+  border: 1px solid rgba(252, 92, 101, 0.4);
+  border-left: 4px solid #fc5c65;
+  color: #fc8181;
+}
+
+.alert-box-warning {
+  background-color: rgba(254, 211, 48, 0.1);
+  border: 1px solid rgba(254, 211, 48, 0.35);
+  border-left: 4px solid #fed330;
+  color: #f6e05e;
+}
+
+/* Sektionskort */
+.card-section {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+/* Tabell */
+.prognos-table {
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.prognos-table thead th {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #4a5568;
+  white-space: nowrap;
+}
+
+.prognos-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: background-color 0.12s ease;
+}
+
+.prognos-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.prognos-table tbody td {
+  padding: 0.6rem 0.75rem;
+  vertical-align: middle;
+}
+
+/* Rader med status */
+.prognos-table tr.row-danger {
+  background-color: rgba(252, 92, 101, 0.06);
+}
+
+.prognos-table tr.row-warning {
+  background-color: rgba(254, 211, 48, 0.05);
+}
+
+/* Status-badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-ok {
+  background-color: rgba(38, 222, 129, 0.15);
+  color: #26de81;
+  border: 1px solid rgba(38, 222, 129, 0.3);
+}
+
+.badge-warning {
+  background-color: rgba(254, 211, 48, 0.15);
+  color: #fed330;
+  border: 1px solid rgba(254, 211, 48, 0.3);
+}
+
+.badge-danger {
+  background-color: rgba(252, 92, 101, 0.15);
+  color: #fc5c65;
+  border: 1px solid rgba(252, 92, 101, 0.3);
+}
+
+/* Maskin-badge */
+.maskin-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  background-color: #1a202c;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+}
+
+/* Typ-badge */
+.typ-badge {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+/* Komponent-namn */
+.komponent-namn {
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+/* Progress-bar färger */
+.progress-ok {
+  background-color: #26de81;
+}
+
+.progress-warning {
+  background-color: #fed330;
+}
+
+.progress-danger {
+  background-color: #fc5c65;
+}
+
+/* Tidslinje-diagram */
+.chart-container {
+  position: relative;
+}
+
+/* Legend */
+.legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.8rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+}
+
+.legend-ok {
+  color: #26de81;
+}
+
+.legend-warning {
+  color: #fed330;
+}
+
+.legend-danger {
+  color: #fc5c65;
+}
+
+/* Periodknappar historik */
+.period-btn {
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.period-btn:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.period-btn.active {
+  background-color: #fc5c65;
+  border-color: #fc5c65;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Responsiv */
+@media (max-width: 768px) {
+  .prognos-wrapper {
+    padding: 1rem;
+  }
+
+  .page-title {
+    font-size: 1.3rem;
+  }
+
+  .overview-value {
+    font-size: 1.5rem;
+  }
+
+  .prognos-table {
+    font-size: 0.8rem;
+  }
+
+  .prognos-table thead th,
+  .prognos-table tbody td {
+    padding: 0.5rem 0.5rem;
+  }
+}

@@ -1,0 +1,301 @@
+<div class="prognos-wrapper">
+
+  <!-- Sidhuvud -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-tools me-2" style="color: #fc5c65;"></i>
+          Underhållsprognos
+        </h1>
+        <p class="page-subtitle text-muted">
+          Förutser nästa underhåll — status, intervall och historik för alla maskiner och komponenter
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted" *ngIf="lastRefreshed">
+          <i class="fas fa-sync-alt me-1"></i>
+          Uppdaterad {{ lastRefreshed | date:'HH:mm:ss' }}
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Laddning -->
+  <div class="text-center py-5" *ngIf="isLoading() && !overviewLoaded">
+    <div class="spinner-border text-danger" role="status"></div>
+    <p class="text-muted mt-2">Hämtar underhållsdata...</p>
+  </div>
+
+  <!-- Fel -->
+  <div class="alert alert-danger" *ngIf="hasError && overviewLoaded">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hämta underhållsdata. Kontrollera att du är inloggad och försök igen.
+  </div>
+
+  <!-- Huvudinnehåll -->
+  <ng-container *ngIf="overviewLoaded && !hasError">
+
+    <!-- Översiktskort -->
+    <div class="row g-3 mb-4" *ngIf="overviewData">
+      <!-- Totalt komponenter -->
+      <div class="col-6 col-md-3">
+        <div class="overview-card">
+          <div class="overview-icon" style="color: #63b3ed;">
+            <i class="fas fa-cogs"></i>
+          </div>
+          <div class="overview-value text-light">{{ overviewData.totalt_komponenter }}</div>
+          <div class="overview-label">Komponenter totalt</div>
+        </div>
+      </div>
+
+      <!-- Försenade — röd varning -->
+      <div class="col-6 col-md-3">
+        <div class="overview-card" [class.card-danger]="overviewData.forsenade > 0">
+          <div class="overview-icon" style="color: #fc5c65;">
+            <i class="fas fa-exclamation-circle"></i>
+          </div>
+          <div class="overview-value"
+               [class.text-danger]="overviewData.forsenade > 0"
+               [class.text-muted]="overviewData.forsenade === 0">
+            {{ overviewData.forsenade }}
+          </div>
+          <div class="overview-label">
+            Försenade
+            <span class="badge bg-danger ms-1 small" *ngIf="overviewData.forsenade > 0">!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Snart förfaller — gul varning -->
+      <div class="col-6 col-md-3">
+        <div class="overview-card" [class.card-warning]="overviewData.snart_forfaller > 0">
+          <div class="overview-icon" style="color: #fed330;">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="overview-value"
+               [class.text-warning]="overviewData.snart_forfaller > 0"
+               [class.text-muted]="overviewData.snart_forfaller === 0">
+            {{ overviewData.snart_forfaller }}
+          </div>
+          <div class="overview-label">Snart förfaller (≤7 dagar)</div>
+        </div>
+      </div>
+
+      <!-- Nästa planerade underhåll -->
+      <div class="col-6 col-md-3">
+        <div class="overview-card">
+          <div class="overview-icon" style="color: #26de81;">
+            <i class="fas fa-calendar-check"></i>
+          </div>
+          <div class="overview-value text-success" style="font-size: 1.1rem;" *ngIf="overviewData.nasta_underhall_datum">
+            {{ formatDatum(overviewData.nasta_underhall_datum) }}
+          </div>
+          <div class="overview-value text-muted" style="font-size: 1rem;" *ngIf="!overviewData.nasta_underhall_datum">
+            —
+          </div>
+          <div class="overview-label">Nästa planerade underhåll</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Varningsbox försenade -->
+    <div class="alert-box alert-box-danger mb-4"
+         *ngIf="overviewData && overviewData.forsenade > 0">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      <strong>{{ overviewData.forsenade }} försenat underhåll!</strong>
+      Dessa komponenter har passerat sitt serviceintervall och kräver omedelbar åtgärd.
+    </div>
+
+    <!-- Varningsbox snart -->
+    <div class="alert-box alert-box-warning mb-4"
+         *ngIf="overviewData && overviewData.snart_forfaller > 0 && overviewData.forsenade === 0">
+      <i class="fas fa-clock me-2"></i>
+      <strong>{{ overviewData.snart_forfaller }} komponent{{ overviewData.snart_forfaller !== 1 ? 'er' : '' }}</strong>
+      förfaller inom 7 dagar.
+    </div>
+
+  </ng-container>
+
+  <!-- Underhållsschema-tabell -->
+  <div class="card-section mb-4" *ngIf="scheduleLoaded && scheduleData">
+    <h2 class="section-title">
+      <i class="fas fa-table me-2 text-info"></i>
+      Underhållsschema
+    </h2>
+
+    <!-- Laddning schema -->
+    <div class="text-center py-3" *ngIf="scheduleLoading && !scheduleLoaded">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div>
+      <span class="text-muted">Hämtar schema...</span>
+    </div>
+
+    <div class="table-responsive" *ngIf="scheduleData && (scheduleData.schema?.length ?? 0) > 0">
+      <table class="table prognos-table">
+        <thead>
+          <tr>
+            <th>Komponent</th>
+            <th>Maskin</th>
+            <th>Intervall</th>
+            <th>Senaste underhåll</th>
+            <th>Nästa planerat</th>
+            <th>Dagar kvar</th>
+            <th>Förlopp</th>
+            <th>Status</th>
+            <th>Ansvarig</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let rad of scheduleData.schema" [ngClass]="getRowClass(rad.status)">
+            <td>
+              <div class="komponent-namn">
+                <i class="fas fa-wrench me-1 text-muted small"></i>
+                {{ rad.komponent }}
+              </div>
+              <small class="text-muted" *ngIf="rad.kategori">{{ rad.kategori }}</small>
+            </td>
+            <td>
+              <span class="maskin-badge">{{ getMaskinLabel(rad.maskin) }}</span>
+            </td>
+            <td class="text-muted">{{ formatIntervall(rad.intervall_dagar) }}</td>
+            <td>
+              <span *ngIf="rad.senaste_underhall" class="text-muted">
+                {{ formatDatum(rad.senaste_underhall) }}
+              </span>
+              <span *ngIf="!rad.senaste_underhall" class="text-danger small">
+                <i class="fas fa-exclamation-circle me-1"></i>Aldrig
+              </span>
+            </td>
+            <td>
+              <span [class.text-danger]="rad.status === 'forsenat'"
+                    [class.text-warning]="rad.status === 'snart'"
+                    [class.text-success]="rad.status === 'ok'">
+                {{ formatDatum(rad.nasta_datum) }}
+              </span>
+            </td>
+            <td>
+              <span [ngClass]="getDagarClass(rad)">{{ getDagarText(rad) }}</span>
+            </td>
+            <td style="min-width: 100px;">
+              <div class="d-flex align-items-center gap-1">
+                <div class="progress flex-grow-1" style="height: 8px; background-color: #4a5568;">
+                  <div class="progress-bar"
+                       [ngClass]="getProgressClass(rad.status)"
+                       [style.width.%]="Math.min(rad.progress_pct, 100)"
+                       role="progressbar"></div>
+                </div>
+                <small class="text-muted" style="min-width: 34px;">{{ rad.progress_pct | number:'1.0-0' }}%</small>
+              </div>
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(rad.status)">
+                <i class="fas me-1"
+                   [class.fa-check-circle]="rad.status === 'ok'"
+                   [class.fa-clock]="rad.status === 'snart'"
+                   [class.fa-exclamation-circle]="rad.status === 'forsenat'"></i>
+                {{ getStatusLabel(rad.status) }}
+              </span>
+            </td>
+            <td class="text-muted small">{{ rad.ansvarig ?? '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center text-muted py-3"
+         *ngIf="scheduleData && (scheduleData.schema?.length ?? 0) === 0">
+      <i class="fas fa-info-circle me-1"></i>
+      Inga underhållsscheman hittades.
+    </div>
+  </div>
+
+  <!-- Tidslinje-diagram -->
+  <div class="card-section mb-4" *ngIf="scheduleLoaded && scheduleData && (scheduleData.schema?.length ?? 0) > 0">
+    <h2 class="section-title">
+      <i class="fas fa-chart-bar me-2" style="color: #ed8936;"></i>
+      Underhållstidslinje — kommande 10 punkter
+    </h2>
+    <div class="legend-row mb-2">
+      <span class="legend-item legend-ok"><i class="fas fa-circle me-1"></i>OK</span>
+      <span class="legend-item legend-warning"><i class="fas fa-circle me-1"></i>Snart</span>
+      <span class="legend-item legend-danger"><i class="fas fa-circle me-1"></i>Försenat</span>
+    </div>
+    <div class="chart-container" style="height: 320px;">
+      <canvas id="timelineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Historik -->
+  <div class="card-section mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <h2 class="section-title mb-0">
+        <i class="fas fa-history me-2 text-info"></i>
+        Underhållshistorik
+      </h2>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm period-btn" [class.active]="historyDays === 30"  (click)="setHistoryDays(30)">30 dagar</button>
+        <button class="btn btn-sm period-btn" [class.active]="historyDays === 90"  (click)="setHistoryDays(90)">90 dagar</button>
+        <button class="btn btn-sm period-btn" [class.active]="historyDays === 180" (click)="setHistoryDays(180)">180 dagar</button>
+      </div>
+    </div>
+
+    <!-- Laddning historik -->
+    <div class="text-center py-3" *ngIf="historyLoading && !historyLoaded">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div>
+      <span class="text-muted">Hämtar historik...</span>
+    </div>
+
+    <div *ngIf="historyLoaded && historyData">
+      <div class="table-responsive" *ngIf="(historyData.poster?.length ?? 0) > 0">
+        <table class="table prognos-table">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Titel / Kategori</th>
+              <th>Maskin</th>
+              <th>Typ</th>
+              <th>Varaktighet</th>
+              <th>Utförare</th>
+              <th>Noteringar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let post of historyData.poster">
+              <td class="text-muted small">{{ formatDatum(post.datum) }}</td>
+              <td>
+                <span class="text-light">{{ post.titel }}</span>
+              </td>
+              <td>
+                <span class="maskin-badge">{{ getMaskinLabel(post.maskin) }}</span>
+              </td>
+              <td>
+                <span class="typ-badge">{{ getTypLabel(post.typ) }}</span>
+              </td>
+              <td class="text-muted">{{ formatVaraktighet(post.varaktighet_min) }}</td>
+              <td class="text-muted small">{{ post.utforare ?? '—' }}</td>
+              <td>
+                <span class="text-muted small"
+                      *ngIf="post.noteringar && post.noteringar.length > 0"
+                      [title]="post.noteringar">
+                  {{ post.noteringar.length > 60 ? (post.noteringar | slice:0:60) + '…' : post.noteringar }}
+                </span>
+                <span class="text-muted small" *ngIf="!post.noteringar || post.noteringar.length === 0">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="text-center text-muted py-3"
+           *ngIf="(historyData.poster?.length ?? 0) === 0">
+        <i class="fas fa-info-circle me-1"></i>
+        Ingen underhållshistorik de senaste {{ historyDays }} dagarna.
+      </div>
+
+      <div class="text-muted small text-end mt-1" *ngIf="(historyData.poster?.length ?? 0) > 0">
+        Visar {{ historyData.poster.length }} poster från de senaste {{ historyDays }} dagarna
+      </div>
+    </div>
+  </div>
+
+</div>
