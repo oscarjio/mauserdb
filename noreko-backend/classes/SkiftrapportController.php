@@ -480,14 +480,34 @@ class SkiftrapportController {
             return;
         }
         try {
-            $stmt = $this->pdo->prepare(
-                "SELECT lopnummer FROM rebotling_ibc WHERE skiftraknare = ? ORDER BY lopnummer"
-            );
-            $stmt->execute([$skiftraknare]);
-            $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
-            $nums = array_map('intval', $rows);
-            // Filtrera bort 999 (PLC default för ogiltigt) och duplicerade
-            $nums = array_values(array_unique(array_filter($nums, fn($n) => $n !== 999)));
+            // Försök med exakt skifträknare först
+            $nums = $this->fetchLopnummer($skiftraknare);
+
+            // Fallback: om inga resultat, sök närliggande skifträknare (±2) med samma datum
+            if (empty($nums)) {
+                $datum = isset($_GET['datum']) ? $_GET['datum'] : null;
+                if ($datum && preg_match('/^\d{4}-\d{2}-\d{2}/', $datum)) {
+                    $datumPrefix = substr($datum, 0, 10);
+                    $stmt = $this->pdo->prepare(
+                        "SELECT DISTINCT skiftraknare FROM rebotling_ibc
+                         WHERE skiftraknare BETWEEN ? AND ?
+                         AND datum LIKE ?
+                         ORDER BY ABS(skiftraknare - ?) ASC
+                         LIMIT 1"
+                    );
+                    $stmt->execute([
+                        $skiftraknare - 2,
+                        $skiftraknare + 2,
+                        $datumPrefix . '%',
+                        $skiftraknare
+                    ]);
+                    $fallback = $stmt->fetchColumn();
+                    if ($fallback !== false) {
+                        $nums = $this->fetchLopnummer(intval($fallback));
+                    }
+                }
+            }
+
             echo json_encode([
                 'success' => true,
                 'ranges'  => $this->buildRanges($nums),
@@ -654,6 +674,17 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte hämta skiftrapport per operatör']);
         }
+    }
+
+    private function fetchLopnummer(int $skiftraknare): array {
+        $stmt = $this->pdo->prepare(
+            "SELECT lopnummer FROM rebotling_ibc WHERE skiftraknare = ? ORDER BY lopnummer"
+        );
+        $stmt->execute([$skiftraknare]);
+        $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        $nums = array_map('intval', $rows);
+        // Filtrera bort 998 och 999 (PLC default/ogiltiga) och duplicerade
+        return array_values(array_unique(array_filter($nums, fn($n) => $n < 998)));
     }
 
     private function buildRanges(array $nums): string {

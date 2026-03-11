@@ -647,7 +647,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   private loadLopnummer(report: any) {
     const id = report.id;
     this.lopnummerLoading[id] = true;
-    this.skiftrapportService.getLopnummer(report.skiftraknare)
+    this.skiftrapportService.getLopnummer(report.skiftraknare, report.datum || report.start_datum)
       .pipe(takeUntil(this.destroy$), timeout(8000), catchError(err => { console.error('Load lopnummer failed:', err); return of(null); }))
       .subscribe({
         next: (res) => {

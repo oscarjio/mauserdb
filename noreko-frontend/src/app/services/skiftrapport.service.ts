@@ -59,11 +59,10 @@ export class SkiftrapportService {
     }, { withCredentials: true });
   }
 
-  getLopnummer(skiftraknare: number): Observable<any> {
-    return this.http.get<any>(
-      `/noreko-backend/api.php?action=skiftrapport&run=lopnummer&skiftraknare=${skiftraknare}`,
-      { withCredentials: true }
-    );
+  getLopnummer(skiftraknare: number, datum?: string): Observable<any> {
+    let url = `/noreko-backend/api.php?action=skiftrapport&run=lopnummer&skiftraknare=${skiftraknare}`;
+    if (datum) url += `&datum=${encodeURIComponent(datum)}`;
+    return this.http.get<any>(url, { withCredentials: true });
   }
 }
 
