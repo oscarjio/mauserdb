@@ -61,12 +61,12 @@ race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48-#56: Se lead-memory-archive.md för detaljer.
 Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
 Session #58: OEE-benchmark + Skiftrapport PDF — klara.
-Session #59: Operatörsranking historik + Operatörs-feedback analys — pågår.
+Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Operatörsranking historik** — leaderboard-trender över tid
-- [PÅGÅR] **Operatörs-feedback analys** — operator_feedback-tabell → UI
+- [x] **Operatörsranking historik** — leaderboard-trender över tid
+- [x] **Operatörs-feedback analys** — operator_feedback-tabell → UI
 - [ ] **Daglig sammanfattning auto-generering** — KPI utan navigation
 - [ ] **Produktionskalender förbättring** — volym + kvalitet per dag
 - [ ] **Målhistorik-analys** — rebotling_goal_history → visualisering
@@ -74,10 +74,10 @@ Session #59: Operatörsranking historik + Operatörs-feedback analys — pågår
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #59 (pågår)
-Merge-konflikter lösta (dev-log.md, statistik-cykeltid-operator.ts).
-Worker 1 (Operatörsranking historik): Leaderboard-trender, placeringsändring per vecka, klättrare-badge, head-to-head, Chart.js rankingtrend.
-Worker 2 (Operatörs-feedback analys): operator_feedback-tabell → UI. Stämningstrend, operatörsöversikt, detaljlista med paginering.
+### 2026-03-11 — Session #59 (klar)
+Merge-konflikter lösta. Båda workers klara och pushade.
+Worker 1 (Operatörsranking historik): Leaderboard-trender vecka-för-vecka, placeringsändringstabell, klättrare-badge (fire-ikon), head-to-head, Chart.js rankingtrend (inverterad y-axel), streak-tabell. Backend: RankingHistorikController.
+Worker 2 (Operatörs-feedback analys): operator_feedback → UI. 4 sammanfattningskort, Chart.js stämningstrend per vecka, betygsfördelning (progressbars + emoji), operatörsöversikt med färgkodning, paginerad detaljlista. Backend: FeedbackAnalysController. Buggfix: ranking-historik typo.
 
 ### 2026-03-11 — Session #58 (klar)
 Worker 1 (OEE-benchmark): Gauge (Chart.js doughnut), benchmark-staplar, 3 faktor-kort med trend-pilar, trendgraf med referenslinjer, förbättringsförslag. Backend: OeeBenchmarkController. Commit e60fc16.
