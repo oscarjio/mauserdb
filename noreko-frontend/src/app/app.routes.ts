@@ -57,6 +57,8 @@ export const routes: Routes = [
       { path: 'rebotling/ranking-historik', canActivate: [authGuard], loadComponent: () => import('./pages/ranking-historik/ranking-historik').then(m => m.RankingHistorikComponent) },
       { path: 'rebotling/daglig-sammanfattning', canActivate: [authGuard], loadComponent: () => import('./pages/daglig-sammanfattning/daglig-sammanfattning').then(m => m.DagligSammanfattningComponent) },
       { path: 'rebotling/produktionskalender', canActivate: [authGuard], loadComponent: () => import('./pages/produktionskalender/produktionskalender').then(m => m.ProduktionskalenderComponent) },
+      { path: 'rebotling/skiftjamforelse', canActivate: [authGuard], loadComponent: () => import('./pages/skiftjamforelse/skiftjamforelse').then(m => m.SkiftjamforelseComponent) },
+      { path: 'rebotling/malhistorik', canActivate: [authGuard], loadComponent: () => import('./pages/malhistorik/malhistorik').then(m => m.MalhistorikComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

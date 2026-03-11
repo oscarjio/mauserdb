@@ -1,0 +1,320 @@
+<div class="malhistorik-page">
+  <div class="container-fluid py-3">
+
+    <!-- Rubrik -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <h2 class="page-title">
+          <i class="fas fa-bullseye me-2 text-cyan"></i>
+          Målhistorik
+        </h2>
+        <p class="page-subtitle">Hur produktionsmålen har ändrats över tid — och vilken effekt de haft på prestation</p>
+      </div>
+    </div>
+
+    <!-- Laddningsindikator (global) -->
+    <div class="row mb-3" *ngIf="historyLoading || impactLoading">
+      <div class="col-12 text-center py-4">
+        <div class="spinner-border text-info me-2"></div>
+        <span class="text-muted">Hämtar data…</span>
+      </div>
+    </div>
+
+    <!-- Felmeddelanden -->
+    <div class="row mb-3" *ngIf="historyError || impactError">
+      <div class="col-12">
+        <div class="alert alert-danger" *ngIf="historyError">{{ historyError }}</div>
+        <div class="alert alert-warning" *ngIf="impactError">{{ impactError }}</div>
+      </div>
+    </div>
+
+    <!-- Sammanfattningskort (4 st) -->
+    <div class="row mb-4 g-3" *ngIf="historyLoaded || impactLoaded">
+
+      <!-- Nuvarande mål -->
+      <div class="col-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-cyan">
+            <i class="fas fa-bullseye"></i>
+          </div>
+          <div class="summary-label">Nuvarande mål</div>
+          <div class="summary-value" *ngIf="historyLoaded && historyData?.aktuellt_mal != null">
+            {{ historyData!.aktuellt_mal }} <span class="summary-unit">IBC/h</span>
+          </div>
+          <div class="summary-value text-muted" *ngIf="!historyLoaded || historyData?.aktuellt_mal == null">—</div>
+        </div>
+      </div>
+
+      <!-- Antal ändringar -->
+      <div class="col-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-info">
+            <i class="fas fa-edit"></i>
+          </div>
+          <div class="summary-label">Totalt antal ändringar</div>
+          <div class="summary-value" *ngIf="historyLoaded">
+            {{ historyData?.antal_andringar ?? 0 }}
+          </div>
+          <div class="spinner-border spinner-border-sm text-info" *ngIf="!historyLoaded && historyLoading"></div>
+        </div>
+      </div>
+
+      <!-- Snittimpact -->
+      <div class="col-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon"
+               [class.text-success]="(getSnittImpact() ?? 0) > 0"
+               [class.text-danger]="(getSnittImpact() ?? 0) < 0"
+               [class.text-muted]="getSnittImpact() === null || getSnittImpact() === 0">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="summary-label">Snitteffekt per ändring</div>
+          <div class="summary-value"
+               *ngIf="impactLoaded && getSnittImpact() !== null"
+               [class.text-success]="(getSnittImpact() ?? 0) > 0"
+               [class.text-danger]="(getSnittImpact() ?? 0) < 0">
+            {{ (getSnittImpact() ?? 0) > 0 ? '+' : '' }}{{ getSnittImpact() }}<span class="summary-unit">%</span>
+          </div>
+          <div class="summary-value text-muted" *ngIf="impactLoaded && getSnittImpact() === null">Ingen data</div>
+          <div class="spinner-border spinner-border-sm text-info" *ngIf="!impactLoaded && impactLoading"></div>
+        </div>
+      </div>
+
+      <!-- Senaste ändring -->
+      <div class="col-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-warning">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="summary-label">Senaste ändring</div>
+          <div class="summary-value small" *ngIf="historyLoaded && historyData?.senaste_andring">
+            {{ formatDatum(historyData!.senaste_andring) }}
+          </div>
+          <div class="summary-sub" *ngIf="historyLoaded && historyData?.senaste_andring">
+            {{ formatTid(historyData!.senaste_andring) }}
+          </div>
+          <div class="summary-value text-muted" *ngIf="historyLoaded && !historyData?.senaste_andring">—</div>
+          <div class="spinner-border spinner-border-sm text-warning" *ngIf="!historyLoaded && historyLoading"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tidslinje-graf -->
+    <div class="row mb-4" *ngIf="historyLoaded">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <div class="section-title mb-3">
+            <i class="fas fa-chart-line me-2 text-cyan"></i>
+            Målvärde över tid
+            <span class="text-muted small ms-2">— steg-graf visar när målet ändrades</span>
+          </div>
+          <div class="chart-wrapper" *ngIf="historyData && historyData.andringar.length > 0">
+            <canvas id="tidslinjeChart"></canvas>
+          </div>
+          <div class="text-center text-muted py-4" *ngIf="historyData && historyData.andringar.length === 0">
+            <i class="fas fa-inbox me-2"></i>Inga måländringar registrerade ännu.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ändringslogg-tabell -->
+    <div class="row mb-4" *ngIf="historyLoaded">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <div class="section-title mb-3">
+            <i class="fas fa-list me-2 text-info"></i>
+            Ändringslogg
+          </div>
+
+          <div class="text-center text-muted py-4" *ngIf="historyData?.andringar?.length === 0">
+            <i class="fas fa-inbox me-2"></i>Inga ändringar registrerade.
+          </div>
+
+          <div class="table-responsive" *ngIf="(historyData?.andringar?.length ?? 0) > 0">
+            <table class="table table-dark table-hover table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Tid</th>
+                  <th>Ändrat av</th>
+                  <th>Gammalt mål</th>
+                  <th>Nytt mål</th>
+                  <th>Förändring</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let a of historyData!.andringar">
+                  <td class="text-muted">{{ formatDatum(a.andrad_vid) }}</td>
+                  <td class="text-muted small">{{ formatTid(a.andrad_vid) }}</td>
+                  <td>
+                    <i class="fas fa-user me-1 text-muted small"></i>
+                    {{ a.andrad_av }}
+                  </td>
+                  <td class="text-muted">
+                    <span *ngIf="a.gammalt_mal != null">{{ a.gammalt_mal }} IBC/h</span>
+                    <span *ngIf="a.gammalt_mal == null" class="text-muted fst-italic">Första</span>
+                  </td>
+                  <td>
+                    <strong>{{ a.nytt_mal }} IBC/h</strong>
+                  </td>
+                  <td>
+                    <span *ngIf="a.proc_andring != null" [class]="getRiktningClass(a.riktning)">
+                      <i class="fas me-1" [class]="getRiktningIcon(a.riktning)"></i>
+                      {{ a.proc_andring > 0 ? '+' : '' }}{{ a.proc_andring }}%
+                    </span>
+                    <span *ngIf="a.proc_andring == null" class="badge bg-secondary">Initialt mål</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Impact-kort -->
+    <div class="row mb-4" *ngIf="impactLoaded">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <div class="section-title mb-3">
+            <i class="fas fa-chart-bar me-2 text-cyan"></i>
+            Effektanalys per ändring
+            <span class="text-muted small ms-2">— 7 dagar före och efter varje måländring</span>
+          </div>
+
+          <div class="text-center text-muted py-4" *ngIf="impactData?.impact?.length === 0">
+            <i class="fas fa-inbox me-2"></i>Inga ändringar att analysera.
+          </div>
+
+          <div class="row g-3" *ngIf="(impactData?.impact?.length ?? 0) > 0">
+            <div class="col-12 col-md-6 col-xl-4"
+                 *ngFor="let item of impactData!.impact">
+              <div class="impact-card" [class]="getEffektClass(item.effekt)">
+
+                <!-- Kort-rubrik -->
+                <div class="impact-card-header">
+                  <div>
+                    <span class="impact-date">{{ formatDatum(item.andrad_vid) }}</span>
+                    <span class="impact-by ms-2 text-muted small">av {{ item.andrad_av }}</span>
+                  </div>
+                  <div class="impact-badge" [class]="getEffektClass(item.effekt)">
+                    <i class="fas me-1" [class]="getEffektIcon(item.effekt)"></i>
+                    {{ getEffektLabel(item.effekt) }}
+                  </div>
+                </div>
+
+                <!-- Måländring -->
+                <div class="impact-goal-change">
+                  <span class="text-muted" *ngIf="item.gammalt_mal != null">{{ item.gammalt_mal }} IBC/h</span>
+                  <span class="text-muted" *ngIf="item.gammalt_mal == null">—</span>
+                  <i class="fas fa-arrow-right mx-2 text-muted"></i>
+                  <strong class="text-cyan">{{ item.nytt_mal }} IBC/h</strong>
+                  <span class="ms-2 small"
+                        *ngIf="item.proc_malAndring != null"
+                        [class.text-success]="item.proc_malAndring > 0"
+                        [class.text-danger]="item.proc_malAndring < 0"
+                        [class.text-muted]="item.proc_malAndring === 0">
+                    ({{ item.proc_malAndring > 0 ? '+' : '' }}{{ item.proc_malAndring }}%)
+                  </span>
+                </div>
+
+                <!-- Före / Efter-jämförelse -->
+                <div class="impact-comparison">
+                  <div class="impact-period">
+                    <div class="impact-period-label">Före (7 dgr)</div>
+                    <div class="impact-period-value"
+                         *ngIf="item.fore.antal_dagar > 0">
+                      <span class="ibc-val">{{ item.fore.ibc_per_timme }}</span>
+                      <span class="ibc-unit"> IBC/h</span>
+                    </div>
+                    <div class="impact-period-sub"
+                         *ngIf="item.fore.antal_dagar > 0"
+                         [class]="maluppfyllnadClass(item.fore.malprocent)">
+                      {{ item.fore.malprocent }}% av mål
+                    </div>
+                    <div class="text-muted small" *ngIf="item.fore.antal_dagar === 0">Ingen data</div>
+                  </div>
+
+                  <div class="impact-arrow">
+                    <i class="fas fa-long-arrow-alt-right text-muted"></i>
+                  </div>
+
+                  <div class="impact-period">
+                    <div class="impact-period-label">Efter (7 dgr)</div>
+                    <div class="impact-period-value"
+                         *ngIf="item.efter.antal_dagar > 0">
+                      <span class="ibc-val">{{ item.efter.ibc_per_timme }}</span>
+                      <span class="ibc-unit"> IBC/h</span>
+                    </div>
+                    <div class="impact-period-sub"
+                         *ngIf="item.efter.antal_dagar > 0"
+                         [class]="maluppfyllnadClass(item.efter.malprocent)">
+                      {{ item.efter.malprocent }}% av mål
+                    </div>
+                    <div class="text-muted small" *ngIf="item.efter.antal_dagar === 0">Ingen data</div>
+                  </div>
+                </div>
+
+                <!-- Diff-chip -->
+                <div class="impact-diff"
+                     *ngIf="item.diff_ibc_per_h !== null">
+                  <span [class.text-success]="item.diff_ibc_per_h > 0"
+                        [class.text-danger]="item.diff_ibc_per_h < 0"
+                        [class.text-muted]="item.diff_ibc_per_h === 0">
+                    <i class="fas me-1"
+                       [class.fa-arrow-up]="item.diff_ibc_per_h > 0"
+                       [class.fa-arrow-down]="item.diff_ibc_per_h < 0"
+                       [class.fa-minus]="item.diff_ibc_per_h === 0"></i>
+                    {{ item.diff_ibc_per_h > 0 ? '+' : '' }}{{ item.diff_ibc_per_h }} IBC/h
+                    <span *ngIf="item.diff_proc !== null">
+                      ({{ item.diff_proc > 0 ? '+' : '' }}{{ item.diff_proc }}%)
+                    </span>
+                  </span>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Sammanfattning av impact -->
+          <div class="mt-4 p-3 impact-summary-box"
+               *ngIf="(impactData?.impact?.length ?? 0) > 0">
+            <div class="row text-center g-2">
+              <div class="col-4">
+                <div class="text-success fw-bold fs-5">{{ getAntalForbattringar() }}</div>
+                <div class="text-muted small">Förbättringar</div>
+              </div>
+              <div class="col-4">
+                <div class="text-danger fw-bold fs-5">{{ getAntalForsamringar() }}</div>
+                <div class="text-muted small">Försämringar</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold fs-5"
+                     [class.text-success]="(getSnittImpact() ?? 0) > 0"
+                     [class.text-danger]="(getSnittImpact() ?? 0) < 0"
+                     [class.text-muted]="getSnittImpact() === null">
+                  <ng-container *ngIf="getSnittImpact() !== null">
+                    {{ (getSnittImpact() ?? 0) > 0 ? '+' : '' }}{{ getSnittImpact() }}%
+                  </ng-container>
+                  <ng-container *ngIf="getSnittImpact() === null">—</ng-container>
+                </div>
+                <div class="text-muted small">Snitteffekt</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Tom-vy när inget laddats -->
+    <div class="row" *ngIf="!historyLoading && !impactLoading && !historyLoaded && !impactLoaded && !historyError && !impactError">
+      <div class="col-12 text-center py-5 text-muted">
+        <i class="fas fa-bullseye fa-3x mb-3 text-cyan opacity-50"></i>
+        <p>Inga data att visa.</p>
+      </div>
+    </div>
+
+  </div>
+</div>

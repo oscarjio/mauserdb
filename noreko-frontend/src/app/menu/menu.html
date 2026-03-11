@@ -53,6 +53,8 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/ranking-historik"><i class="fas fa-trophy me-2 text-warning"></i>Ranking-historik</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/daglig-sammanfattning"><i class="fas fa-tachometer-alt me-2 text-info"></i>Daglig sammanfattning</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktionskalender"><i class="fas fa-calendar-alt me-2 text-success"></i>Produktionskalender</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/skiftjamforelse"><i class="fas fa-exchange-alt me-2" style="color: #ed8936;"></i>Skiftjämförelse</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/malhistorik"><i class="fas fa-bullseye me-2" style="color:#4fd1c5"></i>Målhistorik</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>

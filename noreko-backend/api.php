@@ -153,6 +153,8 @@ $classNameMap = [
     'ranking-historik'        => 'RankingHistorikController',
     'produktionskalender'     => 'ProduktionskalenderController',
     'daglig-sammanfattning'   => 'DagligSammanfattningController',
+    'malhistorik'             => 'MalhistorikController',
+    'skiftjamforelse'         => 'SkiftjamforelseController',
 ];
 
 $actionKey = strtolower($action);

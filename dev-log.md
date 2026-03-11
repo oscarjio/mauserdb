@@ -1,3 +1,24 @@
+## 2026-03-11 Malhistorik — visualisering av produktionsmalsandringar over tid
+
+Ny sida `/rebotling/malhistorik` (autentiserad). Visar hur produktionsmalen har andrats over tid och vilken effekt malandringar haft pa faktisk produktion.
+
+- **Backend**: `MalhistorikController.php` — tva endpoints:
+  - `run=goal-history`: Hamtar alla rader fran `rebotling_goal_history` sorterade pa changed_at. Berikar varje rad med gammalt mal, nytt mal, procentuell andring och riktning (upp/ner/oforandrad/foerst).
+  - `run=goal-impact`: For varje malandring beraknar snitt IBC/h och maluppfyllnad 7 dagar fore och 7 dagar efter andringen. Returnerar effekt (forbattring/forsamring/oforandrad/ny-start/ingen-data) med IBC/h-diff.
+  - Auth: session_id kravs (421 om ej inloggad, identiskt med OeeBenchmarkController). Hanterar saknad tabell gracist.
+- **SQL-migrering**: `noreko-backend/migrations/2026-03-11_malhistorik.sql` — index pa changed_at och changed_by i rebotling_goal_history, samt idx_created_at_date pa rebotling_ibc for snabbare 7-dagarsperiod-queries.
+- **api.php**: Registrerat `malhistorik` → `MalhistorikController`
+- **Service**: `src/app/services/malhistorik.service.ts` — getGoalHistory(), getGoalImpact() med fullstandiga TypeScript-interfaces (MalAndring, GoalHistoryData, ImpactPeriod, GoalImpactItem, GoalImpactData), timeout(15000) + catchError.
+- **Komponent**: `src/app/pages/malhistorik/` (ts + html + css) — standalone, OnInit/OnDestroy/AfterViewInit + destroy$ + takeUntil.
+  - 4 sammanfattningskort: Nuvarande mal, Totalt antal andringar, Snitteffekt per andring, Senaste andring
+  - Tidslinje-graf (Chart.js, stepped line): Malvarde over tid som steg-graf med trapp-effekt. Marker vid faktiska andringar.
+  - Andringslogg-tabell: Datum, tid, andrat av, gammalt mal, nytt mal, procentuell andring med fargkodad riktning
+  - Impact-kort (ett per malandring): Fore/efter IBC/h, maluppfyllnad, diff, effekt-badge (gron/rod/neutral/bla) med vansterborderkodning
+  - Impact-sammanfattning: Antal forbattringar/forsamringar + snitteffekt
+- **Route**: `/rebotling/malhistorik` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Malhistorik" (bullseye, teal/cyan #4fd1c5)
+- **Build**: OK — inga nya fel, 4 pre-existing NG8102-varningar (ej vara)
+
 ## 2026-03-11 Daglig sammanfattning — VD-dashboard med daglig KPI-overblick pa en sida
 
 Ny sida `/rebotling/daglig-sammanfattning` (autentiserad). VD far full daglig KPI-overblick utan att navigera runt — allt pa en sida, auto-refresh var 60:e sekund, med datumvaljare.

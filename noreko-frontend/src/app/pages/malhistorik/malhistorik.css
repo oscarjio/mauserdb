@@ -1,0 +1,278 @@
+/* ================================================================
+   Målhistorik — dark theme styles
+   ================================================================ */
+
+.malhistorik-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.card-dark {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Teal/cyan hjälpklass (Bootstrap 5 har inte text-cyan inbyggt) */
+.text-cyan {
+  color: #4fd1c5 !important;
+}
+
+/* --- Sammanfattningskort --- */
+.summary-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.summary-icon {
+  font-size: 1.6rem;
+  opacity: 0.85;
+}
+
+.summary-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.summary-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.summary-unit {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #718096;
+}
+
+.summary-sub {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* --- Chart --- */
+.chart-wrapper {
+  position: relative;
+  height: 280px;
+}
+
+/* --- Tabell --- */
+.table-dark {
+  background: transparent;
+}
+
+.table-dark thead th {
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.table-dark tbody tr {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.table-dark.table-hover tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* --- Impact-kort --- */
+.impact-card {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 14px 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s;
+}
+
+.impact-card.impact-green {
+  border-left: 3px solid #48bb78;
+}
+
+.impact-card.impact-red {
+  border-left: 3px solid #fc8181;
+}
+
+.impact-card.impact-neutral {
+  border-left: 3px solid #718096;
+}
+
+.impact-card.impact-blue {
+  border-left: 3px solid #63b3ed;
+}
+
+.impact-card.impact-none {
+  border-left: 3px solid #4a5568;
+  opacity: 0.7;
+}
+
+.impact-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.impact-date {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.impact-by {
+  font-size: 0.78rem;
+}
+
+.impact-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+.impact-badge.impact-green {
+  background: rgba(72, 187, 120, 0.15);
+  color: #68d391;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  border-left: none;
+}
+
+.impact-badge.impact-red {
+  background: rgba(252, 129, 129, 0.15);
+  color: #fc8181;
+  border: 1px solid rgba(252, 129, 129, 0.3);
+  border-left: none;
+}
+
+.impact-badge.impact-neutral {
+  background: rgba(113, 128, 150, 0.15);
+  color: #a0aec0;
+  border: 1px solid rgba(113, 128, 150, 0.3);
+  border-left: none;
+}
+
+.impact-badge.impact-blue {
+  background: rgba(99, 179, 237, 0.15);
+  color: #63b3ed;
+  border: 1px solid rgba(99, 179, 237, 0.3);
+  border-left: none;
+}
+
+.impact-badge.impact-none {
+  background: rgba(74, 85, 104, 0.15);
+  color: #718096;
+  border: 1px solid rgba(74, 85, 104, 0.3);
+  border-left: none;
+}
+
+.impact-goal-change {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.impact-comparison {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.impact-period {
+  flex: 1;
+  text-align: center;
+}
+
+.impact-period-label {
+  font-size: 0.7rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.impact-period-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.ibc-val {
+  font-size: 1.15rem;
+}
+
+.ibc-unit {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.impact-period-sub {
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.impact-arrow {
+  font-size: 1.2rem;
+  color: #4a5568;
+  flex-shrink: 0;
+}
+
+.impact-diff {
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* --- Impact sammanfattningsruta --- */
+.impact-summary-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+/* --- Spinner --- */
+.spinner-border {
+  width: 1.5rem;
+  height: 1.5rem;
+}
