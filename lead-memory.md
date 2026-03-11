@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #51)*
+*Senast uppdaterad: 2026-03-11 (session #52)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -62,33 +62,30 @@ Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
 Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
 Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
+Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-### Förbättringar (nästa session)
-- [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
 
-### Förbättringar
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 - [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
-- [ ] **Maskinupptid-heatmap** — veckorutnät med drift/stopp per timme
-- [ ] **Topp-5 operatörer leaderboard** — live-ranking på startsidan
+- [ ] **Produktionspuls-ticker** — realtids scrollande ticker med senaste IBC
+- [ ] **Kassationsanalys** — drilldown per stopporsak + kassationstyp
+- [ ] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
 
-### Nya sidor
-- [ ] **Skiftplaneringsvy** (`/admin/skiftplan`) — kalendervy, operatörer per skift
-- [ ] **Underhållslogg** (`/admin/underhall`) — logga planerat underhåll, koppla till stopptid
+OBS: Skiftplaneringsvy och Underhållslogg redan implementerade (shift-plan 717 rader, maintenance-log 389 rader) — borttagna från backlog.
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-11 — Session #52 (klar)
+Worker 1 (Maskinupptid-heatmap): CSS-grid 7×24 med drift/stopp/idle färgkodning (grön/röd/grå), tooltip, sammanfattningskort (drifttid%, körtimmar, längsta stopp, bästa dag), periodselektor 7/14/30d, auto-refresh 60s. Backend: machine-uptime-heatmap. 672 rader ny kod.
+Worker 2 (Topp-5 leaderboard): Live-ranking topp-5 operatörer, guld/silver/brons gradient-borders, pulsanimation (@keyframes), trendpilar (upp/ner/samma/ny), progressbar relativt ettan, periodselektor 7/30/90d, auto-refresh 30s. Backend: top-operators-leaderboard. 672 rader ny kod.
 
 ### 2026-03-11 — Session #51 (klar)
 Worker 1 (Bonus "What-if"-simulator): Range-inputs för viktningar/mål/tier, debounce 400ms, jämförelsetabell nuv. vs sim. bonus, spara-knapp. Backend: bonus-simulator + save-simulator-params i BonusAdminController. Commit 3dc15b1.
 Worker 2 (Skiftjämförelse-vy): Dag vs natt KPI-paneler (orange/lila), diff-kolumn, grouped bar chart, linjediagram med KPI-toggle, periodselektor 7/14/30/90d. Backend: shift-day-night. Commit 75d6508.
 
 ### 2026-03-11 — Session #50 (klar)
-Worker 1 (Produktionsmål-tracker): Doughnut-gauge dagsmål/veckamål, streak-badge, countdown, admin inline-edit, auto-refresh 60s. Backend: production-goal-progress + set-production-goal. DB: rebotling_production_goals. 964 rader ny kod. Mergad.
-Worker 2 (Månadsrapport): Sidan fanns redan. Lade till service-metoder getMonthlyReport/getMonthCompare + interfaces i rebotling.service.ts.
-
-### 2026-03-10 — Session #49 (klar)
-Worker 1 (Realtids-OEE-gauge): Stor cirkulär OEE-gauge överst på statistiksidan. Chart.js doughnut, färgkodad, progress bars A/P/Q, KPI-rutor, periodselektor, auto-refresh 60s.
-Worker 2 (Exportera grafer som bild): PNG-exportknapp på alla 6 graf-komponenter. Ny chart-export utility.
+Worker 1 (Produktionsmål-tracker): Doughnut-gauge dagsmål/veckamål, streak-badge, countdown, admin inline-edit, auto-refresh 60s. Backend: production-goal-progress + set-production-goal. DB: rebotling_production_goals.
+Worker 2 (Månadsrapport): Service-metoder getMonthlyReport/getMonthCompare + interfaces.
