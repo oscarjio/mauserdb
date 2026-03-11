@@ -115,9 +115,9 @@ class SkiftoverlamningController {
                     MAX(bur_ej_ok)     AS bur_ej_ok,
                     MAX(runtime_plc)   AS runtime_plc,
                     MAX(rasttime)      AS rasttime,
-                    MIN(time_of_day)   AS skift_start,
-                    MAX(time_of_day)   AS skift_slut,
-                    DATE(MIN(created_at)) AS skift_datum
+                    MIN(datum)         AS skift_start,
+                    MAX(datum)         AS skift_slut,
+                    DATE(MIN(datum))   AS skift_datum
                  FROM rebotling_ibc
                  WHERE skiftraknare = ?"
             );
@@ -241,11 +241,11 @@ class SkiftoverlamningController {
                     MAX(ibc_ok)      AS ibc_ok,
                     MAX(ibc_ej_ok)   AS ibc_ej_ok,
                     MAX(runtime_plc) AS runtime_plc,
-                    DATE(MIN(created_at)) AS skift_datum,
-                    MIN(time_of_day) AS skift_start,
-                    MAX(time_of_day) AS skift_slut
+                    DATE(MIN(datum)) AS skift_datum,
+                    MIN(datum)       AS skift_start,
+                    MAX(datum)       AS skift_slut
                  FROM rebotling_ibc
-                 WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                 WHERE datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
                  GROUP BY skiftraknare
                  HAVING COUNT(*) > 1
                  ORDER BY skiftraknare DESC

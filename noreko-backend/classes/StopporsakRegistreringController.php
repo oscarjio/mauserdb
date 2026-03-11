@@ -95,6 +95,17 @@ class StopporsakRegistreringController {
                 KEY `idx_start` (`start_time`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+            // Ta bort dubbletter om seed körts flera gånger
+            $dupCount = $this->pdo->query("SELECT COUNT(*) FROM stopporsak_kategorier")->fetchColumn();
+            $distinctCount = $this->pdo->query("SELECT COUNT(DISTINCT namn) FROM stopporsak_kategorier")->fetchColumn();
+            if ((int)$dupCount > (int)$distinctCount && (int)$distinctCount > 0) {
+                $this->pdo->exec(
+                    "DELETE k1 FROM stopporsak_kategorier k1
+                     INNER JOIN stopporsak_kategorier k2
+                     WHERE k1.id > k2.id AND k1.namn = k2.namn"
+                );
+            }
+
             // Seed standardkategorier om tabellen är tom
             $count = $this->pdo->query("SELECT COUNT(*) FROM stopporsak_kategorier")->fetchColumn();
             if ((int)$count === 0) {
@@ -173,9 +184,9 @@ class StopporsakRegistreringController {
                  LEFT JOIN users u ON r.user_id = u.id
                  WHERE r.linje = ?
                  ORDER BY r.start_time DESC
-                 LIMIT ?"
+                 LIMIT " . $limit
             );
-            $stmt->execute([$linje, $limit]);
+            $stmt->execute([$linje]);
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
         } catch (\PDOException $e) {
             error_log('getRecentStops: ' . $e->getMessage());
