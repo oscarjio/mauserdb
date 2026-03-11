@@ -5,10 +5,12 @@
 
 ## Förbättringar
 
-- [ ] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
-- [ ] **Effektivitet per produkttyp** — jämförelse FoodGrade vs NonUN vs Tvättade: cykeltid, kvalitet, IBC/h
+- [PÅGÅR] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
+- [PÅGÅR] **Effektivitet per produkttyp** — jämförelse FoodGrade vs NonUN vs Tvättade: cykeltid, kvalitet, IBC/h
 - [ ] **Stopporsak-snabbregistrering** — operatör loggar stopporsak via mobilvänlig knappmatris direkt vid stopp
 - [ ] **Skiftöverlämningsmall** — automatisk sammanfattning av skiftets KPI:er som visas vid skiftbyte, klickbar checklista
 - [ ] **Underhållslogg** — enkel formulärvy där operatör loggar planerade/oplanerade underhåll med kategori + varaktighet
 - [ ] **Cykeltids-heatmap per timme** — heatmap som visar cykeltid per operatör per timme, identifiera mönster (morgon vs kväll)
 - [ ] **OEE-benchmark jämförelse** — jämför aktuell OEE mot branschsnitt (60-85% för process), visa gap + förbättringsförslag
+- [ ] **Skiftrapport PDF-export** — VD kan generera och ladda ner daglig skiftsammanfattning som PDF (jsPDF), mejla till ledningen
+- [ ] **Operatörsranking historik** — leaderboard-trender över tid, visa placeringsändring per vecka, motiverande "klättrare"-indikator
