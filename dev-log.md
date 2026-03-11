@@ -1,3 +1,27 @@
+## 2026-03-11 Skiftjamforelse-dashboard — jamfor dag/kvall/nattskift
+
+Ny sida `/rebotling/skiftjamforelse` (autentiserad). VD kan jamfora dag-, kvalls- och nattskift for att fardela resurser och identifiera svaga skift.
+
+- **Backend**: `SkiftjamforelseController.php` — tre endpoints:
+  - `run=shift-comparison&period=7|30|90`: Aggregerar data per skift for vald period. Returnerar per skift: IBC OK, IBC/h, kvalitet%, total stopptid, antal pass, OEE, tillganglighet. Markerar basta skiftet och beraknar diff mot genomsnitt. Auto-genererar sammanfattningstext.
+  - `run=shift-trend&period=30`: Veckovis IBC/h per skift for trendgraf (dag/kvall/natt som tre separata dataserier).
+  - `run=shift-operators&shift=dag|kvall|natt&period=30`: Topp-5 operatorer per skift med antal IBC och snitt cykeltid.
+  - Skiftdefinitioner: dag 06-14, kvall 14-22, natt 22-06. Filtrering sker pa HOUR(created_at).
+  - Auth: session_id kravs (401 om ej inloggad).
+- **SQL-migrering**: `noreko-backend/migrations/2026-03-11_skiftjamforelse.sql` — index pa rebotling_ibc(created_at, skiftraknare), rebotling_ibc(created_at, ibc_ok), stopporsak_registreringar(linje, start_time).
+- **api.php**: Registrerat `skiftjamforelse` → `SkiftjamforelseController`
+- **Service**: `src/app/services/skiftjamforelse.service.ts` — getShiftComparison(), getShiftTrend(), getShiftOperators() med fullstandiga TypeScript-interfaces, timeout(15000) + catchError.
+- **Komponent**: `src/app/pages/skiftjamforelse/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval.
+  - Periodvaljare: 7/30/90 dagar (knappar, orange aktiv-klass).
+  - 3 skiftkort (dag=gul, kvall=bla, natt=lila): Stort IBC/h-tal, kvalitet%, OEE%, stopptid, IBC OK, antal pass, tillganglighet-progressbar. Basta skiftet markeras med krona (fa-crown).
+  - Jambforelse-stapeldiagram (Chart.js grouped bar): IBC/h, Kvalitet%, OEE% per skift sida vid sida.
+  - Trendgraf (Chart.js line): Veckovis IBC/h per skift med 3 linjer (dag=gul, kvall=bla, natt=lila), spanGaps=true.
+  - Topp-operatorer per skift: Expanderbar sektion per skift med top 5 operatorer (lazy-load vid expantion).
+  - Sammanfattning: Auto-genererad text om basta skiftet och mojligheter.
+- **Route**: `/rebotling/skiftjamforelse` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Skiftjamforelse" (fa-exchange-alt, orange)
+- **Build**: OK
+
 ## 2026-03-11 Malhistorik — visualisering av produktionsmalsandringar over tid
 
 Ny sida `/rebotling/malhistorik` (autentiserad). Visar hur produktionsmalen har andrats over tid och vilken effekt malandringar haft pa faktisk produktion.
