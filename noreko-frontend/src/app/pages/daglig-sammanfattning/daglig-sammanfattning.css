@@ -1,0 +1,310 @@
+/* ================================================================
+   Daglig sammanfattning — dark theme dashboard
+   ================================================================ */
+
+.daglig-sammanfattning-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 2px;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.88rem;
+  margin-bottom: 0;
+  text-transform: capitalize;
+}
+
+.card-dark {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.section-title {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Datumväljare ---- */
+.date-picker {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+}
+.date-picker:focus {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 0.15rem rgba(66, 153, 225, 0.25);
+}
+
+/* ---- Statusmeddelande ---- */
+.status-card {
+  border-left: 4px solid #4299e1;
+}
+.status-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+.status-text {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-style: italic;
+}
+.status-meta {
+  font-size: 0.72rem;
+}
+
+/* ---- Trendkort ---- */
+.trend-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.trend-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.trend-icon-big {
+  font-size: 2.5rem;
+}
+.trend-value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.trend-sub {
+  font-size: 0.75rem;
+}
+
+/* ---- KPI-kort ---- */
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 110px;
+  justify-content: center;
+}
+.kpi-icon {
+  font-size: 1.4rem;
+  opacity: 0.85;
+}
+.kpi-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.kpi-label {
+  color: #e2e8f0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.kpi-sub {
+  font-size: 0.7rem;
+}
+.kpi-green {
+  border-top: 3px solid #38a169;
+}
+
+/* ---- OEE ---- */
+.oee-big-container {
+  padding: 8px 0;
+}
+.oee-big-number {
+  font-size: 3.5rem;
+  font-weight: 900;
+  line-height: 1;
+}
+.oee-label {
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.oee-faktorer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.oee-faktor-rad {
+  display: grid;
+  grid-template-columns: 130px 1fr 48px;
+  align-items: center;
+  gap: 8px;
+}
+.oee-faktor-namn {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  white-space: nowrap;
+}
+.oee-faktor-bar-wrap {
+  flex: 1;
+}
+.oee-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+.oee-faktor-pct {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* ---- Operatörer ---- */
+.op-rad {
+  padding: 4px 0;
+}
+.op-namn {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.op-stats {
+  font-size: 0.75rem;
+}
+.op-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin-top: 8px;
+}
+
+/* Plats-badges */
+.plats-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.badge-guld {
+  background: linear-gradient(135deg, #d4a017, #ffd700);
+  color: #1a202c;
+}
+.badge-silver {
+  background: linear-gradient(135deg, #9eaab5, #c0c9d0);
+  color: #1a202c;
+}
+.badge-brons {
+  background: linear-gradient(135deg, #c87533, #d4956a);
+  color: #1a202c;
+}
+.badge-rank {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+/* ---- Stopptid ---- */
+.stopp-total-val {
+  font-size: 2rem;
+  font-weight: 800;
+}
+.stopp-total-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+}
+.stopp-orsak {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding-bottom: 6px;
+}
+.stopp-orsak-namn {
+  font-size: 0.82rem;
+  color: #e2e8f0;
+}
+.stopp-orsak-tid {
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.stopp-progress {
+  height: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+}
+
+/* ---- Senaste skiftet ---- */
+.skift-kpi-val {
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+.skift-kpi-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.skift-tid {
+  color: #718096;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 8px;
+}
+
+/* ---- Jämförelsetabell ---- */
+.comp-table {
+  font-size: 0.82rem;
+}
+.comp-table th {
+  color: #718096;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: 4px;
+}
+.comp-row-today td {
+  background: rgba(66, 153, 225, 0.07);
+  font-weight: 600;
+}
+.comp-row-snitt td {
+  background: rgba(56, 178, 172, 0.06);
+}
+.comp-dag-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+.comp-diff-row td {
+  padding: 1px 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* ---- Teal-färg (saknas i Bootstrap) ---- */
+.text-teal   { color: #38b2ac !important; }
+.text-purple { color: #9f7aea !important; }
+.bg-teal     { background-color: #38b2ac !important; }
+
+/* ---- Responsivitet ---- */
+@media (max-width: 767px) {
+  .kpi-value {
+    font-size: 1.8rem;
+  }
+  .oee-big-number {
+    font-size: 2.8rem;
+  }
+  .oee-faktor-rad {
+    grid-template-columns: 110px 1fr 44px;
+  }
+}

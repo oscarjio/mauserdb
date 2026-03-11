@@ -1,0 +1,495 @@
+<div class="daglig-sammanfattning-page">
+  <div class="container-fluid py-3">
+
+    <!-- Rubrik + datumväljare + refresh -->
+    <div class="row mb-3 align-items-center">
+      <div class="col-12 col-md-6">
+        <h2 class="page-title">
+          <i class="fas fa-tachometer-alt me-2 text-info"></i>
+          Daglig sammanfattning
+        </h2>
+        <p class="page-subtitle">
+          <span *ngIf="isToday()">Idag — </span>
+          {{ getFormattedDate() }}
+        </p>
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="d-flex align-items-center gap-2 flex-wrap justify-content-md-end">
+          <input
+            type="date"
+            class="form-control form-control-sm date-picker"
+            [(ngModel)]="selectedDate"
+            (change)="onDateChange()"
+            style="max-width: 160px;" />
+          <button
+            class="btn btn-sm btn-outline-info"
+            (click)="setToday()"
+            [disabled]="isToday()">
+            <i class="fas fa-calendar-day me-1"></i>Idag
+          </button>
+          <span class="text-muted small">
+            <i class="fas fa-sync-alt me-1" [class.fa-spin]="summaryLoading"></i>
+            <span *ngIf="!summaryLoading">Uppdateras om {{ nextRefreshIn }}s</span>
+            <span *ngIf="summaryLoading">Laddar...</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="summaryLoading && !summaryLoaded" class="text-center py-5">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="text-muted mt-2">Hämtar daglig sammanfattning...</p>
+    </div>
+
+    <!-- Fel -->
+    <div *ngIf="summaryError && summaryLoaded" class="alert alert-danger">
+      <i class="fas fa-exclamation-triangle me-2"></i>
+      Kunde inte hämta data. Kontrollera att du är inloggad och försök igen.
+    </div>
+
+    <!-- Ingen data för dagen -->
+    <div *ngIf="summaryLoaded && !summaryError && summary && !summary.produktion.har_data" class="alert alert-secondary">
+      <i class="fas fa-info-circle me-2"></i>
+      Ingen produktionsdata registrerad för {{ selectedDate }}.
+    </div>
+
+    <!-- HUVUDINNEHÅLL -->
+    <ng-container *ngIf="summaryLoaded && !summaryError && summary && summary.produktion.har_data">
+
+      <!-- RAD 1: Statusmeddelande + Trendpil -->
+      <div class="row mb-3 g-3">
+
+        <!-- Statusmeddelande -->
+        <div class="col-12 col-lg-8">
+          <div class="card card-dark p-3 h-100 status-card">
+            <div class="d-flex align-items-start gap-3">
+              <i [class]="getStatusIkon()" style="font-size:2rem; flex-shrink:0; margin-top:2px;"></i>
+              <div>
+                <div class="status-label">Dagsstatus</div>
+                <div class="status-text">{{ summary.status_text }}</div>
+                <div class="status-meta mt-1 text-muted small" *ngIf="lastRefreshed">
+                  Senast uppdaterat: {{ lastRefreshed | date:'HH:mm:ss' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trendpil mot förra veckan -->
+        <div class="col-12 col-lg-4">
+          <div class="card card-dark p-3 h-100 text-center trend-card">
+            <div class="trend-label">Trend vs förra veckan</div>
+            <div class="trend-icon-big mt-1" [ngClass]="getTrendKlass(summary.trend.trend)">
+              <i [class]="getTrendIkon(summary.trend.trend)"></i>
+            </div>
+            <div class="trend-value mt-1" [ngClass]="getTrendKlass(summary.trend.trend)">
+              {{ getTrendText(summary.trend.trend, summary.trend.diff_pct) }}
+            </div>
+            <div class="trend-sub text-muted small mt-1">
+              Idag: {{ summary.trend.ibc_idag }} IBC OK
+              &nbsp;|&nbsp;
+              Förra: {{ summary.trend.ibc_foreg }} IBC OK
+            </div>
+            <div class="trend-sub text-muted small">
+              Veckosnitt: {{ summary.veckosnitt.veckosnitt_ibc }} IBC
+              ({{ summary.veckosnitt.antal_dagar }} dagar)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAD 2: Produktion (4 KPI-kort) -->
+      <div class="row mb-3 g-3">
+
+        <!-- IBC OK -->
+        <div class="col-6 col-md-3">
+          <div class="card card-dark p-3 text-center kpi-card kpi-green">
+            <div class="kpi-icon"><i class="fas fa-check-circle text-success"></i></div>
+            <div class="kpi-value text-success">{{ summary.produktion.ibc_ok }}</div>
+            <div class="kpi-label">IBC OK</div>
+            <div class="kpi-sub text-muted small">Godkända</div>
+          </div>
+        </div>
+
+        <!-- IBC Ej OK -->
+        <div class="col-6 col-md-3">
+          <div class="card card-dark p-3 text-center kpi-card">
+            <div class="kpi-icon"><i class="fas fa-times-circle text-danger"></i></div>
+            <div class="kpi-value text-danger">{{ summary.produktion.ibc_ej_ok }}</div>
+            <div class="kpi-label">IBC Ej OK</div>
+            <div class="kpi-sub text-muted small">Kasserade</div>
+          </div>
+        </div>
+
+        <!-- Kvalitet % -->
+        <div class="col-6 col-md-3">
+          <div class="card card-dark p-3 text-center kpi-card">
+            <div class="kpi-icon"><i class="fas fa-star" [ngClass]="getKvalitetKlass(summary.produktion.kvalitet_pct)"></i></div>
+            <div class="kpi-value" [ngClass]="getKvalitetKlass(summary.produktion.kvalitet_pct)">
+              {{ summary.produktion.kvalitet_pct }}%
+            </div>
+            <div class="kpi-label">Kvalitet</div>
+            <div class="kpi-sub text-muted small">IBC OK / Total</div>
+          </div>
+        </div>
+
+        <!-- IBC/h snitt -->
+        <div class="col-6 col-md-3">
+          <div class="card card-dark p-3 text-center kpi-card">
+            <div class="kpi-icon">
+              <i class="fas fa-tachometer-alt"
+                 [ngClass]="getIbcPerHKlass(summary.produktion.ibc_per_timme, summary.produktion.mal_ibc_per_timme)"></i>
+            </div>
+            <div class="kpi-value"
+                 [ngClass]="getIbcPerHKlass(summary.produktion.ibc_per_timme, summary.produktion.mal_ibc_per_timme)">
+              {{ summary.produktion.ibc_per_timme }}
+            </div>
+            <div class="kpi-label">IBC/h</div>
+            <div class="kpi-sub text-muted small">Mål: {{ summary.produktion.mal_ibc_per_timme }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAD 3: OEE + Top 3 Operatörer + Stopptid -->
+      <div class="row mb-3 g-3">
+
+        <!-- OEE-snapshot -->
+        <div class="col-12 col-md-4">
+          <div class="card card-dark p-3 h-100">
+            <div class="section-title mb-2">
+              <i class="fas fa-chart-pie me-2 text-teal"></i>OEE — Overall Equipment Effectiveness
+            </div>
+
+            <!-- OEE stor siffra -->
+            <div class="oee-big-container text-center mb-3">
+              <div class="oee-big-number" [ngStyle]="{'color': getOeeBgColor()}">
+                {{ summary.oee.oee_pct }}%
+              </div>
+              <div class="oee-label" [ngClass]="'text-' + summary.oee.color">
+                {{ summary.oee.label }}
+              </div>
+            </div>
+
+            <!-- 3 faktorer -->
+            <div class="oee-faktorer">
+              <div class="oee-faktor-rad">
+                <span class="oee-faktor-namn">
+                  <i class="fas fa-power-off me-1 text-info"></i>Tillgänglighet
+                </span>
+                <div class="oee-faktor-bar-wrap">
+                  <div class="progress oee-progress-bar">
+                    <div class="progress-bar bg-info"
+                         [style.width.%]="summary.oee.tillganglighet_pct"></div>
+                  </div>
+                </div>
+                <span class="oee-faktor-pct" [ngClass]="getFaktorKlass(summary.oee.tillganglighet_pct)">
+                  {{ summary.oee.tillganglighet_pct }}%
+                </span>
+              </div>
+              <div class="oee-faktor-rad">
+                <span class="oee-faktor-namn">
+                  <i class="fas fa-bolt me-1 text-warning"></i>Prestanda
+                </span>
+                <div class="oee-faktor-bar-wrap">
+                  <div class="progress oee-progress-bar">
+                    <div class="progress-bar bg-warning"
+                         [style.width.%]="summary.oee.prestanda_pct"></div>
+                  </div>
+                </div>
+                <span class="oee-faktor-pct" [ngClass]="getFaktorKlass(summary.oee.prestanda_pct)">
+                  {{ summary.oee.prestanda_pct }}%
+                </span>
+              </div>
+              <div class="oee-faktor-rad">
+                <span class="oee-faktor-namn">
+                  <i class="fas fa-check-circle me-1 text-success"></i>Kvalitet
+                </span>
+                <div class="oee-faktor-bar-wrap">
+                  <div class="progress oee-progress-bar">
+                    <div class="progress-bar bg-success"
+                         [style.width.%]="summary.oee.kvalitet_pct"></div>
+                  </div>
+                </div>
+                <span class="oee-faktor-pct" [ngClass]="getFaktorKlass(summary.oee.kvalitet_pct)">
+                  {{ summary.oee.kvalitet_pct }}%
+                </span>
+              </div>
+            </div>
+
+            <!-- Drifttid -->
+            <div class="d-flex justify-content-between mt-3 text-muted small">
+              <span><i class="fas fa-play me-1 text-success"></i>Drifttid: {{ summary.oee.drifttid_h }}h</span>
+              <span><i class="fas fa-pause me-1 text-danger"></i>Stopptid: {{ summary.oee.stopptid_h }}h</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 3 operatörer -->
+        <div class="col-12 col-md-4">
+          <div class="card card-dark p-3 h-100">
+            <div class="section-title mb-3">
+              <i class="fas fa-users me-2 text-warning"></i>Topp 3 operatörer idag
+            </div>
+
+            <div *ngIf="summary.top_operatorer.length === 0" class="text-muted small">
+              Ingen operatörsdata tillgänglig för detta datum.
+            </div>
+
+            <div *ngFor="let op of summary.top_operatorer" class="op-rad mb-3">
+              <div class="d-flex align-items-center gap-2">
+                <span class="plats-badge" [ngClass]="getPlatsBadge(op.plats)">
+                  {{ op.plats }}
+                </span>
+                <div class="flex-grow-1">
+                  <div class="op-namn">{{ op.operator_namn }}</div>
+                  <div class="op-stats text-muted small">
+                    <span class="me-3">
+                      <i class="fas fa-box me-1"></i>{{ op.antal_ibc }} IBC
+                    </span>
+                    <span>
+                      <i class="fas fa-stopwatch me-1"></i>
+                      {{ op.avg_cykeltid_min }} min/IBC
+                    </span>
+                  </div>
+                </div>
+                <i [class]="getPlatsIkon(op.plats)"></i>
+              </div>
+              <div *ngIf="op.plats < summary.top_operatorer.length" class="op-divider"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stopptid -->
+        <div class="col-12 col-md-4">
+          <div class="card card-dark p-3 h-100">
+            <div class="section-title mb-3">
+              <i class="fas fa-pause-circle me-2 text-danger"></i>Stopptid idag
+            </div>
+
+            <div *ngIf="!summary.stopptid.har_data" class="text-muted small">
+              Ingen stopptidsdata tillgänglig (modul inte aktiverad).
+            </div>
+
+            <ng-container *ngIf="summary.stopptid.har_data">
+              <!-- Total -->
+              <div class="stopp-total mb-3">
+                <div class="stopp-total-val text-danger">
+                  {{ formatMinuter(summary.stopptid.total_stopp_min) }}
+                </div>
+                <div class="stopp-total-label text-muted small">
+                  Total stopptid — {{ summary.stopptid.antal_stopp }} stopp registrerade
+                </div>
+              </div>
+
+              <!-- Top 3 orsaker -->
+              <div *ngIf="summary.stopptid.top3_orsaker.length === 0" class="text-muted small">
+                Inga stopporsaker registrerade.
+              </div>
+              <div *ngFor="let orsak of summary.stopptid.top3_orsaker; let i = index"
+                   class="stopp-orsak mb-2">
+                <div class="d-flex align-items-center justify-content-between">
+                  <span class="stopp-orsak-namn">
+                    {{ orsak.ikon }} {{ orsak.kategori }}
+                  </span>
+                  <span class="stopp-orsak-tid text-warning">
+                    {{ formatMinuter(orsak.total_min) }}
+                  </span>
+                </div>
+                <div class="progress stopp-progress mt-1">
+                  <div class="progress-bar bg-danger"
+                       [style.width.%]="summary.stopptid.total_stopp_min > 0
+                         ? (orsak.total_min / summary.stopptid.total_stopp_min * 100) : 0">
+                  </div>
+                </div>
+                <div class="text-muted" style="font-size:0.72rem;">{{ orsak.antal }} stopp</div>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <!-- RAD 4: Senaste skiftet + Jämförelsetabell -->
+      <div class="row mb-3 g-3">
+
+        <!-- Senaste skiftet -->
+        <div class="col-12 col-md-5">
+          <div class="card card-dark p-3 h-100">
+            <div class="section-title mb-3">
+              <i class="fas fa-clock me-2 text-info"></i>
+              Senaste skiftet
+              <span class="badge bg-secondary ms-2 small" *ngIf="summary.senaste_skift.har_data">
+                Skift {{ summary.senaste_skift.skiftraknare }}
+              </span>
+            </div>
+
+            <div *ngIf="!summary.senaste_skift.har_data" class="text-muted small">
+              Ingen skiftdata tillgänglig.
+            </div>
+
+            <ng-container *ngIf="summary.senaste_skift.har_data">
+              <div class="row g-3 text-center">
+                <div class="col-4">
+                  <div class="skift-kpi-val text-success">{{ summary.senaste_skift.ibc_ok }}</div>
+                  <div class="skift-kpi-label text-muted small">IBC OK</div>
+                </div>
+                <div class="col-4">
+                  <div class="skift-kpi-val" [ngClass]="getKvalitetKlass(summary.senaste_skift.kvalitet_pct ?? 0)">
+                    {{ summary.senaste_skift.kvalitet_pct }}%
+                  </div>
+                  <div class="skift-kpi-label text-muted small">Kvalitet</div>
+                </div>
+                <div class="col-4">
+                  <div class="skift-kpi-val"
+                       [ngClass]="getIbcPerHKlass(
+                         summary.senaste_skift.ibc_per_timme ?? 0,
+                         summary.produktion.mal_ibc_per_timme)">
+                    {{ summary.senaste_skift.ibc_per_timme }}
+                  </div>
+                  <div class="skift-kpi-label text-muted small">IBC/h</div>
+                </div>
+              </div>
+              <div class="skift-tid mt-3 text-muted small text-center">
+                <i class="fas fa-clock me-1"></i>
+                {{ summary.senaste_skift.skift_start }} — {{ summary.senaste_skift.skift_slut }}
+                &nbsp;&bull;&nbsp;
+                {{ summary.senaste_skift.runtime_min }} min drifttid
+              </div>
+
+              <!-- Alla skiften (kompakt) -->
+              <div *ngIf="summary.produktion.skiften.length > 1" class="mt-3">
+                <div class="text-muted small mb-1">Alla skift idag:</div>
+                <table class="table table-sm table-dark table-borderless mb-0" style="font-size:0.78rem;">
+                  <thead>
+                    <tr class="text-muted">
+                      <th>Skift</th>
+                      <th class="text-end">IBC OK</th>
+                      <th class="text-end">Kval.</th>
+                      <th class="text-end">IBC/h</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let s of summary.produktion.skiften">
+                      <td>{{ s.skiftraknare }}</td>
+                      <td class="text-end text-success">{{ s.ibc_ok }}</td>
+                      <td class="text-end" [ngClass]="getKvalitetKlass(s.kvalitet_pct)">{{ s.kvalitet_pct }}%</td>
+                      <td class="text-end">{{ s.ibc_per_timme }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Jämförelsetabell -->
+        <div class="col-12 col-md-7">
+          <div class="card card-dark p-3 h-100">
+            <div class="section-title mb-3">
+              <i class="fas fa-balance-scale me-2 text-purple"></i>Jämförelse
+            </div>
+
+            <div *ngIf="!compLoaded" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-secondary"></div>
+            </div>
+
+            <ng-container *ngIf="compLoaded && comp">
+              <table class="table table-sm table-dark table-borderless mb-0 comp-table">
+                <thead>
+                  <tr class="text-muted" style="font-size:0.78rem;">
+                    <th></th>
+                    <th class="text-end">IBC OK</th>
+                    <th class="text-end">Kval. %</th>
+                    <th class="text-end">IBC/h</th>
+                    <th class="text-end">OEE %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Idag -->
+                  <tr class="comp-row-today">
+                    <td class="comp-dag-label">
+                      <i class="fas fa-calendar-day me-1 text-info"></i>Idag
+                    </td>
+                    <td class="text-end text-success fw-bold">{{ comp.idag.ibc_ok }}</td>
+                    <td class="text-end" [ngClass]="getKvalitetKlass(comp.idag.kvalitet_pct)">{{ comp.idag.kvalitet_pct }}%</td>
+                    <td class="text-end">{{ comp.idag.ibc_per_timme }}</td>
+                    <td class="text-end" [ngClass]="getFaktorKlass(comp.idag.oee_pct)">{{ comp.idag.oee_pct }}%</td>
+                  </tr>
+                  <!-- Diff mot igår -->
+                  <tr class="comp-diff-row">
+                    <td colspan="5" class="py-0 px-2">
+                      <span class="text-muted small me-2">vs igår:</span>
+                      <i [class]="getDiffIkon(comp.diff_mot_igar.ibc_pct)"></i>
+                      <span [ngClass]="getDiffKlass(comp.diff_mot_igar.ibc_pct)" class="small ms-1">
+                        IBC {{ getDiffText(comp.diff_mot_igar.ibc_pct) }}
+                      </span>
+                      <span class="text-muted small ms-2">OEE</span>
+                      <i [class]="getDiffIkon(comp.diff_mot_igar.oee_pct)" class="ms-1"></i>
+                      <span [ngClass]="getDiffKlass(comp.diff_mot_igar.oee_pct)" class="small ms-1">
+                        {{ getDiffText(comp.diff_mot_igar.oee_pct) }}
+                      </span>
+                    </td>
+                  </tr>
+                  <!-- Igår -->
+                  <tr>
+                    <td class="comp-dag-label text-muted">
+                      <i class="fas fa-calendar-minus me-1"></i>Igår
+                    </td>
+                    <td class="text-end text-muted">{{ comp.igar.ibc_ok }}</td>
+                    <td class="text-end text-muted">{{ comp.igar.kvalitet_pct }}%</td>
+                    <td class="text-end text-muted">{{ comp.igar.ibc_per_timme }}</td>
+                    <td class="text-end text-muted">{{ comp.igar.oee_pct }}%</td>
+                  </tr>
+                  <!-- Diff mot förra veckan -->
+                  <tr class="comp-diff-row">
+                    <td colspan="5" class="py-0 px-2">
+                      <span class="text-muted small me-2">vs förra veckan:</span>
+                      <i [class]="getDiffIkon(comp.diff_mot_foreg_vecka.ibc_pct)"></i>
+                      <span [ngClass]="getDiffKlass(comp.diff_mot_foreg_vecka.ibc_pct)" class="small ms-1">
+                        IBC {{ getDiffText(comp.diff_mot_foreg_vecka.ibc_pct) }}
+                      </span>
+                      <span class="text-muted small ms-2">OEE</span>
+                      <i [class]="getDiffIkon(comp.diff_mot_foreg_vecka.oee_pct)" class="ms-1"></i>
+                      <span [ngClass]="getDiffKlass(comp.diff_mot_foreg_vecka.oee_pct)" class="small ms-1">
+                        {{ getDiffText(comp.diff_mot_foreg_vecka.oee_pct) }}
+                      </span>
+                    </td>
+                  </tr>
+                  <!-- Förra veckan -->
+                  <tr>
+                    <td class="comp-dag-label text-muted">
+                      <i class="fas fa-history me-1"></i>Förra veckan
+                      <span class="text-muted" style="font-size:0.7rem;">({{ comp.foreg_vecka.datum }})</span>
+                    </td>
+                    <td class="text-end text-muted">{{ comp.foreg_vecka.ibc_ok }}</td>
+                    <td class="text-end text-muted">{{ comp.foreg_vecka.kvalitet_pct }}%</td>
+                    <td class="text-end text-muted">{{ comp.foreg_vecka.ibc_per_timme }}</td>
+                    <td class="text-end text-muted">{{ comp.foreg_vecka.oee_pct }}%</td>
+                  </tr>
+                  <!-- Veckosnitt -->
+                  <tr class="comp-row-snitt">
+                    <td class="comp-dag-label">
+                      <i class="fas fa-chart-line me-1 text-info"></i>Veckosnitt
+                      <span class="text-muted" style="font-size:0.7rem;">({{ comp.veckosnitt.antal_dagar }} dagar)</span>
+                    </td>
+                    <td class="text-end text-info">{{ comp.veckosnitt.veckosnitt_ibc }}</td>
+                    <td class="text-end text-muted">—</td>
+                    <td class="text-end text-muted">—</td>
+                    <td class="text-end text-muted">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </ng-container>
+
+            <div *ngIf="compLoaded && !comp" class="text-muted small">
+              Jämförelsedata ej tillgänglig.
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+    <!-- /HUVUDINNEHÅLL -->
+
+  </div>
+</div>

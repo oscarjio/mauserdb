@@ -1,3 +1,29 @@
+## 2026-03-11 Daglig sammanfattning — VD-dashboard med daglig KPI-overblick pa en sida
+
+Ny sida `/rebotling/daglig-sammanfattning` (autentiserad). VD far full daglig KPI-overblick utan att navigera runt — allt pa en sida, auto-refresh var 60:e sekund, med datumvaljare.
+
+- **Backend**: `DagligSammanfattningController.php` — tva endpoints:
+  - `run=daily-summary&date=YYYY-MM-DD`: Hamtar ALL data i ett anrop: produktion (IBC OK/Ej OK, kvalitet, IBC/h), OEE-snapshot (oee_pct + 3 faktorer med progress-bars), topp-3 operatorer (namn, antal IBC, snitt cykeltid), stopptid (total + topp 3 orsaker med tidfordelning), trendpil mot forra veckan, veckosnitt (5 dagar), senaste skiftet, auto-genererat statusmeddelande.
+  - `run=comparison&date=YYYY-MM-DD`: Jambforelsedata mot igar och forra veckan (IBC, kvalitet, IBC/h, OEE — med +/- diff-procent och trendpil).
+  - Auth: session_id kravs (421-check identisk med OeeBenchmarkController). Hanterar saknad stopporsak-tabell graciost.
+- **SQL-migrering**: `noreko-backend/migrations/2026-03-11_daglig_sammanfattning.sql` — index pa rebotling_ibc(created_at), stopporsak_registreringar(linje, start_time), rebotling_onoff(start_time) for snabbare dagliga aggregeringar.
+- **api.php**: Registrerat `daglig-sammanfattning` → `DagligSammanfattningController`
+- **Service**: `src/app/services/daglig-sammanfattning.service.ts` — getDailySummary(date), getComparison(date) med fullstandiga TypeScript-interfaces (Produktion, OeeSnapshot, TopOperator, Stopptid, Trend, Veckosnitt, SenasteSkift, ComparisonData), timeout(20000) + catchError.
+- **Komponent**: `src/app/pages/daglig-sammanfattning/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval for bade refresh och countdown.
+  - Auto-refresh var 60:e sekund med nedrakningsdisplay
+  - Datumvaljare med "Idag"-knapp
+  - Statusmeddelande med auto-genererad text (OEE-niva + trend + kvalitet + veckosnitt)
+  - 4 KPI-kort: IBC OK, IBC Ej OK, Kvalitet %, IBC/h (fargkodade mot mal)
+  - OEE-snapshot: stort tal med farg (gron/bla/gul/rod) + 3 faktorer med progress-bars + drifttid/stopptid
+  - Topp 3 operatorer: guld/silver/brons-badges, namn, antal IBC, snitt cykeltid
+  - Stopptid: totalt formaterat (h + min), topp 3 orsaker med proportionella progress-bars
+  - Senaste skiftet: 3 KPI-siffror + skiftstider + alla skift i kompakt tabell
+  - Jambforelsetabell: Idag / Igar / Forra veckan / Veckosnitt med +/- diff-pilar
+  - Trendkort: stor pil (upp/ner/flat) med text och siffror
+- **Route**: `/rebotling/daglig-sammanfattning` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Daglig sammanfattning" (tachometer-alt, bla)
+- **Build**: OK — inga nya fel, 4 harmlosa pre-existing NG8102-varningar
+
 ## 2026-03-11 Produktionskalender — månadsvy med per-dag KPI:er och färgkodning
 
 Ny sida `/rebotling/produktionskalender` (autentiserad). Visar produktionsvolym och kvalitet per dag i en interaktiv kalendervy med färgkodning.
