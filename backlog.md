@@ -5,11 +5,11 @@
 
 ## Förbättringar
 
-- [x] **Underhållsprognos** — baserat på maintenance_log/service_intervals — förutse nästa underhåll, varna VD innan det är dags
-- [x] **Kvalitetstrend per operatör** — visa kvalitet% trend per operatör över veckor/månader. Identifiera vilka som förbättras/försämras. VD ser utbildningsbehov
-- [ ] **Stopporsak-trendanalys** — visa hur vanligaste stopporsaker utvecklas över tid (veckovis). Avslöjar om åtgärder fungerar eller om problem förvärras
-- [ ] **Energi/effektivitetsvy** — IBC per drifttimme trendartat. Visa om maskinen blir långsammare (slitage) eller snabbare (optimering)
+- [x] **Stopporsak-trendanalys** — veckovis utveckling av stopporsaker, trendpilar, detaljvy per orsak
+- [x] **Energi/effektivitetsvy** — IBC per drifttimme trendartat, skiftjämförelse, glidande medel
 - [ ] **Operatörs-onboarding tracker** — visa nya operatörers lärlingskurva: hur snabbt de når team-genomsnittet i IBC/h de första veckorna
 - [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning, visa luckor/dubbelbokningar, drag-and-drop framöver
 - [ ] **Produktionsmål vs utfall dashboard** — stor tydlig vy: dagsmål, veckomål, månadsmål vs faktisk produktion. Grön/röd statusindikator. VD ser direkt om man ligger i fas
 - [ ] **Maskinutnyttjandegrad** — visa hur stor andel av tillgänglig tid maskinen faktiskt producerar. Identifiera dolda tidstjuvar (uppstart, raster, omställning)
+- [ ] **Kassationsanalys** — detaljerad vy av kasserade IBC: orsaker, trender, kostnad per kassation. Identifiera mönster och förebygg kvalitetsbrister
+- [ ] **Operatörsportal (personlig dashboard)** — varje operatör loggar in och ser sin egen statistik, bonus, trender, jämförelse mot teamsnitt. Motiverande och transparent

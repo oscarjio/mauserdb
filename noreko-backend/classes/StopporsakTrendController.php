@@ -373,9 +373,6 @@ class StopporsakTrendController {
         }
 
         try {
-            $toDate   = date('Y-m-d');
-            $fromDate = date('Y-m-d', strtotime("-{$weeks} weeks"));
-
             $veckonycklar = $this->byggVeckonycklar($weeks);
             $stoppdata    = $this->hämtaStoppdata($weeks);
 

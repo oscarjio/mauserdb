@@ -64,28 +64,29 @@ Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
 Session #60: Daglig sammanfattning + Produktionskalender — klara.
 Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
 Session #62: Underhållsprognos + Kvalitetstrend per operatör — klara.
+Session #63: Stopporsak-trendanalys + Energi/effektivitetsvy — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [ ] **Stopporsak-trendanalys** — veckovis utveckling av stopporsaker
-- [ ] **Energi/effektivitetsvy** — IBC per drifttimme, slitage-trend
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 - [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning
 - [ ] **Produktionsmål vs utfall dashboard** — dagsmål/veckomål/månadsmål vs faktisk
 - [ ] **Maskinutnyttjandegrad** — andel tillgänglig tid i produktion
+- [ ] **Kassationsanalys** — kasserade IBC orsaker, trender, kostnader
+- [ ] **Operatörsportal** — personlig dashboard per operatör
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #63 (klar)
+Worker 1 (Stopporsak-trendanalys): 4 KPI-kort, staplad bar chart (topp-7 orsaker per vecka), trendtabell med sparkline/trendpil/%-förändring, expanderbar detaljvy per orsak med linjegraf+tidslinje. Periodväljare 4/8/12/26v. Backend: StopporsakTrendController (3 endpoints). Kombinerar stoppage_log + stopporsak_registreringar. Index-migration.
+Worker 2 (Energi/effektivitetsvy): 4 KPI-kort (IBC/h idag, snitt 7d/30d, trendindikator), Chart.js linjegraf (daglig + 7d glidande medel + periodssnitt referenslinje), 3 skiftkort (dag/kväll/natt), daglig tabell med avvikelseprocent. Periodväljare 7/14/30/90d. Backend: EffektivitetController (3 endpoints).
+Diagnostikvarning fixad (oanvända variabler i StopporsakTrendController).
+Backlog utökad med: Kassationsanalys, Operatörsportal.
+
 ### 2026-03-11 — Session #62 (klar)
-Worker 1 (Underhållsprognos): 4 översiktskort, schematabell med progress-bar/statusbadge, Chart.js horisontellt stapeldiagram (topp 10 närmaste), historiktabell med periodväljare. Backend: UnderhallsprognosController (3 endpoints). Tabeller: underhall_komponenter + underhall_scheman med 12 seedade standardrader.
-Worker 2 (Kvalitetstrend per operatör): 4 KPI-kort, utbildningslarm-sektion, Chart.js trendlinjer (topp 8 + teamsnitt streckad + 85% gräns), operatörstabell med sparkline/trendpil/sökfilter/larm-toggle, detaljvy med graf+tidslinje-tabell. Backend: KvalitetstrendController (3 endpoints). Index på rebotling_ibc.
-Diagnostikvarningar fixade i båda features (oanvända imports/variabler, null-safety).
-Backlog utökad med: Skiftplaneringsöversikt, Produktionsmål vs utfall, Maskinutnyttjandegrad.
+Worker 1 (Underhållsprognos): 4 översiktskort, schematabell, Chart.js horisontellt stapeldiagram. Backend: UnderhallsprognosController (3 endpoints). Tabeller: underhall_komponenter + underhall_scheman.
+Worker 2 (Kvalitetstrend per operatör): 4 KPI-kort, utbildningslarm, Chart.js trendlinjer, operatörstabell med sparkline. Backend: KvalitetstrendController (3 endpoints).
 
 ### 2026-03-11 — Session #61 (klar)
-Worker 1 (Målhistorik-analys): Steg-graf med mål vs faktisk IBC/h, ändringslogg-tabell, impact-kort (före/efter), sammanfattning. Backend: MalhistorikController (2 endpoints).
-Worker 2 (Skiftjämförelse-dashboard): 3 skiftkort (dag/kväll/natt) med krona på bästa, grupperat stapeldiagram, veckovis trendgraf, topp-5 operatörer per skift. Backend: SkiftjamforelseController (3 endpoints).
-
-### 2026-03-11 — Session #60 (klar)
-Worker 1 (Daglig sammanfattning): Komplett VD-dashboard, 2 endpoints, auto-refresh 60s. Backend: DagligSammanfattningController.
-Worker 2 (Produktionskalender): Månadsvy CSS Grid, färgkodade dagar, klickbar detalj-panel. Backend: ProduktionskalenderController.
+Worker 1 (Målhistorik-analys): Steg-graf med mål vs faktisk IBC/h, ändringslogg-tabell, impact-kort. Backend: MalhistorikController (2 endpoints).
+Worker 2 (Skiftjämförelse-dashboard): 3 skiftkort med krona på bästa, grupperat stapeldiagram, veckovis trendgraf. Backend: SkiftjamforelseController (3 endpoints).
