@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #53)*
+*Senast uppdaterad: 2026-03-11 (session #54)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -64,27 +64,30 @@ Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
 Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
+Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
+- [~] **Operatörs-dashboard "Min dag"** — personlig vy med dagens KPI:er (pågår #54)
+- [~] **Veckotrend sparklines** — inline 7-dagars trendgrafer i KPI-kort (pågår #54)
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 - [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
 - [ ] **Kassationsanalys** — drilldown per stopporsak + kassationstyp
 - [ ] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
-- [ ] **Operatörs-dashboard "Min dag"** — personlig vy med dagens KPI:er
-- [ ] **Veckotrend sparklines** — inline 7-dagars trendgrafer i KPI-kort
 - [ ] **Stopporsak-snabbregistrering** — mobilvänlig knappmatris
+- [ ] **Skiftöverlämningsmall** — auto-sammanfattning vid skiftbyte
+- [ ] **Underhållslogg** — operatör loggar underhåll med kategori + tid
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #54 (pågår)
+Worker 1 (Operatörs-dashboard "Min dag"): Personlig vy för operatör — dagens IBC, cykeltid-trend (Chart.js), kvalitet, bonus, progressbars mot mål, motivationstext. Backend: MinDagController today-summary/cycle-trend/goals-progress.
+Worker 2 (Veckotrend sparklines): Canvas 2D sparklines i KPI-kort, 7-dagars trend (IBC/dag, cykeltid, kvalitet, drifttid), färgkodad trend (grön=upp, röd=ner), animerad linje, integrerad överst på statistiksidan. Backend: VeckotrendController weekly-kpis.
+
 ### 2026-03-11 — Session #53 (klar)
-Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad (grå/ljusgrön/grön/mörkgrön), tooltip, sammanfattningskort (aktiva ops, snitt närvaro, topp-operatör), månadsselektor, expanderbar detaljvy. Backend: NarvaroController monthly-overview via rebotling_skiftrapport+operators. Commit 8166fd2.
-Worker 2 (Produktionspuls-ticker): Horisontell CSS-animerad (@keyframes translateX) realtidsticker med senaste IBC:er (operatör/typ/cykeltid/status), färgkodad (grön=ok/röd=kass/gul=långsam), pausar vid hover, statistikrad IBC/h+trend, auto-refresh 15s, widget inbäddad på startsidan. Backend: ProduktionspulsController latest+hourly-stats. Commit da0cfd2.
+Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad, tooltip, sammanfattningskort. Backend: NarvaroController. Commit 8166fd2.
+Worker 2 (Produktionspuls-ticker): Realtidsticker med senaste IBC:er, färgkodad, pausar vid hover, statistikrad, widget på startsidan. Backend: ProduktionspulsController. Commit da0cfd2.
 
 ### 2026-03-11 — Session #52 (klar)
-Worker 1 (Maskinupptid-heatmap): CSS-grid 7×24 med drift/stopp/idle färgkodning (grön/röd/grå), tooltip, sammanfattningskort (drifttid%, körtimmar, längsta stopp, bästa dag), periodselektor 7/14/30d, auto-refresh 60s. Backend: machine-uptime-heatmap. 672 rader ny kod.
-Worker 2 (Topp-5 leaderboard): Live-ranking topp-5 operatörer, guld/silver/brons gradient-borders, pulsanimation (@keyframes), trendpilar (upp/ner/samma/ny), progressbar relativt ettan, periodselektor 7/30/90d, auto-refresh 30s. Backend: top-operators-leaderboard. 672 rader ny kod.
-
-### 2026-03-11 — Session #51 (klar)
-Worker 1 (Bonus "What-if"-simulator): Range-inputs för viktningar/mål/tier, debounce 400ms, jämförelsetabell nuv. vs sim. bonus, spara-knapp. Backend: bonus-simulator + save-simulator-params i BonusAdminController. Commit 3dc15b1.
-Worker 2 (Skiftjämförelse-vy): Dag vs natt KPI-paneler (orange/lila), diff-kolumn, grouped bar chart, linjediagram med KPI-toggle, periodselektor 7/14/30/90d. Backend: shift-day-night. Commit 75d6508.
+Worker 1 (Maskinupptid-heatmap): CSS-grid 7×24, drift/stopp/idle, tooltip, periodselektor. Backend: machine-uptime-heatmap.
+Worker 2 (Topp-5 leaderboard): Live-ranking topp-5 operatörer, guld/silver/brons, trendpilar, progressbar. Backend: top-operators-leaderboard.
