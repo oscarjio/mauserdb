@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS `stopporsak_kategorier` (
     `id` int NOT NULL AUTO_INCREMENT,
     `namn` varchar(100) NOT NULL,
-    `ikon` varchar(10) NOT NULL DEFAULT '📝',
+    `ikon` varchar(10) NOT NULL,
     `sort_order` int NOT NULL DEFAULT 0,
     `active` tinyint(1) NOT NULL DEFAULT 1,
     `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
