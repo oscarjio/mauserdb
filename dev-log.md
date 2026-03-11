@@ -1,3 +1,25 @@
+## 2026-03-11 Operatörs-dashboard Min dag
+
+Ny personlig dashboard för inloggad operatör som visar dagens prestanda på ett motiverande och tydligt sätt.
+
+- **Backend** — ny `MinDagController.php` (action=min-dag):
+  - `run=today-summary` — dagens IBC-count, snittcykeltid (sek), kvalitetsprocent, bonuspoäng, jämförelse mot teamets 30-dagarssnitt och operatörens 30-dagarssnitt
+  - `run=cycle-trend` — cykeltider per timme idag inkl. mållinje (team-snitt), returneras som array för Chart.js
+  - `run=goals-progress` — progress mot IBC-dagsmål (hämtas från `rebotling_production_goals`) och fast kvalitetsmål 95%
+  - Operatör hämtas från session (`operator_id`) eller `?operator=<id>`-parameter
+  - Korrekt aggregering: kumulativa fält med MAX() per skift, sedan SUM() över skift
+  - Registrerad i `api.php` classNameMap
+- **Service** (`rebotling.service.ts`) — tre nya metoder: `getMinDagSummary()`, `getMinDagCycleTrend()`, `getMinDagGoalsProgress()` med nya TypeScript-interfaces
+- **Frontend-komponent** `MinDagPage` (`/rebotling/min-dag`, authGuard):
+  - Välkomstsektion med operatörens namn och dagens datum
+  - 4 KPI-kort: Dagens IBC (+ vs 30-dagarssnitt), Snittcykeltid (+ vs team), Kvalitet (%), Bonuspoäng
+  - Chart.js linjediagram — cykeltider per timme med grön streckad mållinje
+  - Progressbars mot IBC-mål och kvalitetsmål med färgkodning
+  - Dynamisk motivationstext baserat på prestation (jämför IBC vs snitt, cykeltid vs team, kvalitet)
+  - Auto-refresh var 60:e sekund med OnInit/OnDestroy + destroy$ + clearInterval
+  - Dark theme: #1a202c bg, #2d3748 cards, Bootstrap 5
+- **Navigation** — menyitem "Min dag" under Rebotling (inloggad), route i app.routes.ts
+
 ## 2026-03-11 Produktionspuls-ticker
 
 Ny realtids-scrollande ticker som visar senaste producerade IBC:er — som en börskursticker.
