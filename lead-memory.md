@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #56)*
+*Senast uppdaterad: 2026-03-11 (session #57)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -58,38 +58,31 @@ Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning:
 formularvalidering, error states, subscribe-läckor, responsiv design, timezone, dead code,
 chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX,
 race conditions, accessibility, null safety, HTTP timeout/catchError.
-Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
-Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
-Session #50: Produktionsmål-tracker + Månadsrapport — klara.
-Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
-Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
-Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
-Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — klara.
-Session #55: Kassationsanalys + Alerts/notifieringar — klara.
-Session #56: Dashboard-widget layout + Effektivitet per produkttyp — klara.
+Session #48-#56: Se lead-memory-archive.md för detaljer.
+Session #57: Underhållslogg + Cykeltids-heatmap per timme — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Dashboard-widget layout** — VD väljer widgets på startsidan
-- [x] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
-- [ ] **Stopporsak-snabbregistrering** — mobilvänlig knappmatris
-- [ ] **Skiftöverlämningsmall** — auto-sammanfattning vid skiftbyte
-- [ ] **Underhållslogg** — operatör loggar underhåll med kategori + tid
-- [ ] **Cykeltids-heatmap per timme** — mönster morgon vs kväll
+- [PÅGÅR] **Underhållslogg** — operatör loggar underhåll med kategori + tid
+- [PÅGÅR] **Cykeltids-heatmap per timme** — mönster morgon vs kväll
 - [ ] **OEE-benchmark jämförelse** — aktuell vs branschsnitt
 - [ ] **Skiftrapport PDF-export** — daglig sammanfattning som PDF
 - [ ] **Operatörsranking historik** — leaderboard-trender över tid
+- [ ] **Kvalitetsavvikelse-trend** — drilldown kasserade IBC
+- [ ] **Daglig sammanfattning auto-generering** — KPI-sammanfattning utan navigation
+- [ ] **Produktionskalender förbättring** — volym + kvalitet per dag med färgkodning
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #57 (pågår)
+Merge-konflikter lösta (dev-log.md + statistik-cykeltid-operator.ts). Stopporsak-registrering + Skiftöverlämningsmall redan implementerade men backloggen var inaktuell — rensad.
+Worker 1 (Underhållslogg): CRUD för underhåll med kategori, typ, varaktighet. Sammanfattningskort + filtrerbar historik.
+Worker 2 (Cykeltids-heatmap): Matris operatör×timme med färgskala, dygnsmönster-graf, klickbar drilldown.
+
 ### 2026-03-11 — Session #56 (klar)
 Worker 1 (Dashboard-widget layout): Kugghjulsikon på statistiksidan, 8 widgets med toggle + up/down-ordning, sparar per user i DB. Backend: DashboardLayoutController + DB-migrering (dashboard_layouts). Bygger OK.
-Worker 2 (Effektivitet per produkttyp): Jämförelse per produkttyp — sammanfattningskort, kvalitetsranking, cykeltidstrend (Chart.js), IBC/h horisontell bar, head-to-head jämförelse. Backend: ProduktTypEffektivitetController. Använder rebotling_ibc.produkt + rebotling_products. Bygger OK.
+Worker 2 (Effektivitet per produkttyp): Jämförelse per produkttyp — sammanfattningskort, kvalitetsranking, cykeltidstrend (Chart.js), IBC/h horisontell bar, head-to-head jämförelse. Backend: ProduktTypEffektivitetController. Bygger OK.
 
 ### 2026-03-11 — Session #55 (klar)
-Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf (Chart.js), trendjämförelse, periodselektor 7/14/30/90d, orsaksanalys-tabell med klickbar drilldown. Backend: KassationsanalysController. Commit ca9f0bc.
-Worker 2 (Alerts/notifieringar): Realtidsvarningar vid låg OEE/lång stopptid/hög kassation, kvittering, tröskelvärden, badge i header med polling var 60s, tre flikar (aktiva/historik/inställningar). Backend: AlertsController + DB-migrering (alerts + alert_settings). Commit b72b4e2.
-
-### 2026-03-11 — Session #54 (klar)
-Worker 1 (Operatörs-dashboard "Min dag"): Personlig vy — dagens IBC, cykeltid-trend (Chart.js), kvalitet, bonus, progressbars mot mål, motivationstext. Backend: MinDagController. Commit d264777.
-Worker 2 (Veckotrend sparklines): Canvas 2D sparklines, 7-dagars trend (4 KPI:er), quadratic bezier + gradient fill, animerad 500ms, integrerad överst på statistiksidan. Backend: VeckotrendController. Commit 2384b65.
+Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf, trendjämförelse, periodselektor. Backend: KassationsanalysController.
+Worker 2 (Alerts/notifieringar): Realtidsvarningar vid låg OEE/lång stopptid/hög kassation, kvittering, tröskelvärden, badge i header med polling. Backend: AlertsController + DB-migrering.
