@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #57)*
+*Senast uppdaterad: 2026-03-11 (session #58)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -60,29 +60,30 @@ chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48-#56: Se lead-memory-archive.md för detaljer.
 Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
+Session #58: OEE-benchmark + Skiftrapport PDF — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Underhållslogg** — operatör loggar underhåll med kategori + tid
-- [x] **Cykeltids-heatmap per timme** — mönster morgon vs kväll
-- [ ] **OEE-benchmark jämförelse** — aktuell vs branschsnitt
-- [ ] **Skiftrapport PDF-export** — daglig sammanfattning som PDF
+- [~] **OEE-benchmark jämförelse** — gauge + gap-analys mot branschsnitt
+- [~] **Skiftrapport PDF-export** — daglig sammanfattning som PDF (jsPDF)
 - [ ] **Operatörsranking historik** — leaderboard-trender över tid
-- [ ] **Kvalitetsavvikelse-trend** — drilldown kasserade IBC
-- [ ] **Daglig sammanfattning auto-generering** — KPI-sammanfattning utan navigation
-- [ ] **Produktionskalender förbättring** — volym + kvalitet per dag med färgkodning
+- [ ] **Operatörs-feedback analys** — operator_feedback-tabell → UI
+- [ ] **Daglig sammanfattning auto-generering** — KPI utan navigation
+- [ ] **Produktionskalender förbättring** — volym + kvalitet per dag
+- [ ] **Målhistorik-analys** — rebotling_goal_history → visualisering
+- [ ] **Underhållsprognos** — prediktera underhåll från historik
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #58 (pågår)
+Merge-konflikter lösta (dev-log.md + statistik-cykeltid-operator.ts). Backlog rensad: Underhållslogg + Cykeltids-heatmap klara → borttagna. Nya items tillagda baserat på kodgranskning: Operatörs-feedback analys (operator_feedback-tabell saknar UI), Målhistorik-analys, Underhållsprognos.
+Worker 1 (OEE-benchmark): Gauge + gap-analys mot branschsnitt, 3-faktor-breakdown, trendgraf, förbättringsförslag.
+Worker 2 (Skiftrapport PDF): jsPDF-generering, förhandsgranskning, VD-fokuserad daglig/veckosammanfattning.
+
 ### 2026-03-11 — Session #57 (klar)
-Merge-konflikter lösta. Stopporsak + Skiftöverlämningsmall redan impl. — backlog rensad.
 Worker 1 (Underhållslogg): CRUD med kategori/typ/varaktighet, 4 statistikkort, filtrerbar historik, CSV-export. Backend: UnderhallsloggController + DB-migrering. Commit 406b222.
 Worker 2 (Cykeltids-heatmap): HTML-tabell-heatmap grön→gul→röd, Chart.js dygnsmönster dubbel Y-axel, klickbar drilldown per operatör, sammanfattningskort. Backend: CykeltidHeatmapController. Commit 8b10f12.
 
 ### 2026-03-11 — Session #56 (klar)
-Worker 1 (Dashboard-widget layout): Kugghjulsikon på statistiksidan, 8 widgets med toggle + up/down-ordning, sparar per user i DB. Backend: DashboardLayoutController + DB-migrering (dashboard_layouts). Bygger OK.
-Worker 2 (Effektivitet per produkttyp): Jämförelse per produkttyp — sammanfattningskort, kvalitetsranking, cykeltidstrend (Chart.js), IBC/h horisontell bar, head-to-head jämförelse. Backend: ProduktTypEffektivitetController. Bygger OK.
-
-### 2026-03-11 — Session #55 (klar)
-Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf, trendjämförelse, periodselektor. Backend: KassationsanalysController.
-Worker 2 (Alerts/notifieringar): Realtidsvarningar vid låg OEE/lång stopptid/hög kassation, kvittering, tröskelvärden, badge i header med polling. Backend: AlertsController + DB-migrering.
+Worker 1 (Dashboard-widget layout): Kugghjulsikon på statistiksidan, 8 widgets med toggle + up/down-ordning, sparar per user i DB. Backend: DashboardLayoutController + DB-migrering.
+Worker 2 (Effektivitet per produkttyp): Jämförelse per produkttyp — sammanfattningskort, kvalitetsranking, cykeltidstrend, head-to-head. Backend: ProduktTypEffektivitetController.
