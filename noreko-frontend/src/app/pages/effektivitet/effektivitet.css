@@ -1,0 +1,295 @@
+/* Maskineffektivitet — IBC per drifttimme */
+
+.eff-wrapper {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+/* ---- Header ---- */
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+}
+
+/* ---- Periodväljare ---- */
+.period-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.period-btn {
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.period-btn:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.period-btn.active {
+  background-color: #ecc94b;
+  border-color: #ecc94b;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+/* ---- KPI-kort ---- */
+.kpi-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  height: 100%;
+}
+
+.kpi-card-good {
+  border-color: rgba(72, 187, 120, 0.4);
+}
+
+.kpi-card-bad {
+  border-color: rgba(229, 62, 62, 0.4);
+}
+
+.kpi-icon {
+  font-size: 1.6rem;
+  min-width: 2rem;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.kpi-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.kpi-sub {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Trendpil ---- */
+.trend-up     { color: #48bb78; font-weight: 600; }
+.trend-down   { color: #e53e3e; font-weight: 600; }
+.trend-stable { color: #a0aec0; font-weight: 500; }
+
+/* ---- Trend-badge ---- */
+.trend-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-forbattras {
+  background-color: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid rgba(72, 187, 120, 0.35);
+}
+
+.badge-forsamras {
+  background-color: rgba(229, 62, 62, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.35);
+}
+
+.badge-stable {
+  background-color: rgba(74, 85, 104, 0.4);
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+}
+
+/* ---- Kort ---- */
+.eff-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.eff-card-header {
+  background-color: #1a202c;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* ---- Chart ---- */
+.chart-container {
+  position: relative;
+  height: 360px;
+}
+
+/* ---- Sektion-titel ---- */
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ---- Skift-kort ---- */
+.skift-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  transition: border-color 0.15s ease;
+}
+
+.skift-card-best {
+  border-color: rgba(72, 187, 120, 0.5);
+  background-color: rgba(72, 187, 120, 0.05);
+}
+
+.skift-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.skift-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.best-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #48bb78;
+  background-color: rgba(72, 187, 120, 0.15);
+  border: 1px solid rgba(72, 187, 120, 0.35);
+  border-radius: 0.375rem;
+  padding: 0.15rem 0.5rem;
+}
+
+.skift-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.75rem;
+}
+
+.skift-unit {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #718096;
+  margin-left: 0.25rem;
+}
+
+.skift-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* ---- Legend dots ---- */
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-day { background-color: #4299e1; }
+.legend-avg { background-color: #ecc94b; }
+.legend-ref { background-color: #68d391; }
+
+/* ---- Tabell ---- */
+.eff-table {
+  width: 100%;
+  color: #e2e8f0;
+  font-size: 0.87rem;
+  border-collapse: collapse;
+}
+
+.eff-table thead th {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.77rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #4a5568;
+  padding: 0.6rem 0.875rem;
+  white-space: nowrap;
+}
+
+.eff-table tbody tr {
+  border-bottom: 1px solid rgba(74, 85, 104, 0.35);
+  transition: background-color 0.1s ease;
+}
+
+.eff-table tbody tr:hover {
+  background-color: rgba(66, 153, 225, 0.06);
+}
+
+.eff-table tbody td {
+  padding: 0.5rem 0.875rem;
+  vertical-align: middle;
+}
+
+.fw-600 { font-weight: 600; }
+
+.opacity-60 { opacity: 0.6; }
+.opacity-30 { opacity: 0.3; }
+
+/* ---- Responsivitet ---- */
+@media (max-width: 576px) {
+  .eff-wrapper { padding: 1rem; }
+  .page-title  { font-size: 1.35rem; }
+  .kpi-value   { font-size: 1.25rem; }
+  .chart-container { height: 250px; }
+  .skift-value { font-size: 1.5rem; }
+}

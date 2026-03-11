@@ -1,0 +1,253 @@
+<div class="eff-wrapper">
+
+  <!-- ===== SIDHUVUD ===== -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-bolt me-2" style="color: #ecc94b;"></i>
+          Maskineffektivitet — IBC per drifttimme
+        </h1>
+        <p class="page-subtitle text-muted">
+          Trendanalys av maskinens effektivitet över tid — se slitage eller optimering
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted" *ngIf="lastRefreshed">
+          Uppdaterad {{ lastRefreshed | date:'HH:mm:ss' }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Periodväljare -->
+    <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
+      <div class="period-selector">
+        <button
+          *ngFor="let p of perioder"
+          class="btn btn-sm period-btn"
+          [class.active]="selectedDays === p.val"
+          (click)="setPeriod(p.val)">
+          {{ p.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LADDNING ===== -->
+  <div class="text-center py-4" *ngIf="isLoading() && !summaryLoaded">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="text-muted mt-2">Hämtar effektivitetsdata...</p>
+  </div>
+
+  <!-- ===== FEL ===== -->
+  <div class="alert alert-danger" *ngIf="summaryError && summaryLoaded">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hämta effektivitetsdata. Kontrollera att du är inloggad.
+  </div>
+
+  <!-- ===== INNEHÅLL ===== -->
+  <div *ngIf="summaryLoaded && !summaryError">
+
+    <!-- ===== 4 KPI-KORT ===== -->
+    <div class="row g-3 mb-4">
+
+      <!-- KPI 1: Aktuell IBC/h (idag) -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon text-warning">
+            <i class="fas fa-tachometer-alt"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Aktuell IBC/h (idag)</div>
+            <div class="kpi-value"
+                 [class.text-warning]="summaryData?.current !== null"
+                 [class.text-muted]="summaryData?.current === null">
+              {{ formatIbcH(summaryData?.current ?? null) }}
+            </div>
+            <div class="kpi-sub text-muted">IBC per drifttimme</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 2: Snitt 7 dagar -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon text-info">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Snitt 7 dagar</div>
+            <div class="kpi-value text-info">
+              {{ formatIbcH(summaryData?.avg_7d ?? null) }}
+            </div>
+            <div class="kpi-sub" [class.text-success]="(summaryData?.change_pct ?? 0) > 0"
+                                  [class.text-danger]="(summaryData?.change_pct ?? 0) < 0"
+                                  [class.text-muted]="summaryData?.change_pct === null">
+              {{ getChangeText() || 'Ingen jämförelsedata' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 3: Snitt 30 dagar -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="color: #68d391;">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Snitt 30 dagar</div>
+            <div class="kpi-value" style="color: #68d391;">
+              {{ formatIbcH(summaryData?.avg_30d ?? null) }}
+            </div>
+            <div class="kpi-sub text-muted">Rullande 30-dagarssnitt</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 4: Trendindikator -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card" [class.kpi-card-good]="summaryData?.trend === 'improving'"
+                               [class.kpi-card-bad]="summaryData?.trend === 'declining'">
+          <div class="kpi-icon" [class]="getTrendKlass()">
+            <i class="fas fa-arrow-trend-up" *ngIf="summaryData?.trend === 'improving'"></i>
+            <i class="fas fa-arrow-trend-down" *ngIf="summaryData?.trend === 'declining'"></i>
+            <i class="fas fa-minus" *ngIf="summaryData?.trend === 'stable'"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Trend (7d vs 7d)</div>
+            <div class="kpi-value d-flex align-items-center gap-2">
+              <span [class]="getTrendKlass()">{{ getTrendPil() }}</span>
+              <span class="trend-badge" [class]="getTrendBadgeKlass()">
+                {{ getTrendLabel() }}
+              </span>
+            </div>
+            <div class="kpi-sub text-muted">
+              Bästa dag:
+              <span class="text-success">{{ formatIbcH(summaryData?.best_day?.value ?? null) }} IBC/h</span>
+              ({{ formatDatum(summaryData?.best_day?.date ?? null) }})
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== TRENDGRAF ===== -->
+    <div class="eff-card mb-4" *ngIf="trendLoaded">
+      <div class="eff-card-header">
+        <span>
+          <i class="fas fa-chart-area me-2" style="color: #4299e1;"></i>
+          IBC/h trend — senaste {{ selectedDays }} dagar
+        </span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="legend-dot legend-day"></span>
+          <small class="text-muted">Daglig</small>
+          <span class="legend-dot legend-avg ms-2"></span>
+          <small class="text-muted">7-dagar medel</small>
+          <span class="legend-dot legend-ref ms-2"></span>
+          <small class="text-muted">{{ selectedDays }}-dagarssnitt</small>
+        </div>
+      </div>
+      <div class="card-body p-3">
+        <div class="text-center py-3" *ngIf="trendLoading">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div class="chart-container" *ngIf="!trendLoading && trendData">
+          <canvas id="effektivitetTrendChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4" *ngIf="!trendLoading && !trendData">
+          <i class="fas fa-chart-area fa-2x mb-2 d-block opacity-30"></i>
+          Ingen data tillgänglig
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SKIFTJÄMFÖRELSE ===== -->
+    <div class="mb-4" *ngIf="skiftLoaded && skiftData">
+      <h5 class="section-title mb-3">
+        <i class="fas fa-clock me-2" style="color: #ed8936;"></i>
+        Effektivitet per skift — senaste {{ selectedDays }} dagar
+      </h5>
+      <div class="row g-3">
+        <div class="col-12 col-md-4" *ngFor="let s of skiftData.skift">
+          <div class="skift-card" [class.skift-card-best]="s.ar_bast">
+            <div class="skift-header">
+              <span class="skift-label">{{ s.label }}</span>
+              <span class="best-badge" *ngIf="s.ar_bast">
+                <i class="fas fa-star me-1"></i>Bäst
+              </span>
+            </div>
+            <div class="skift-value" [class.text-success]="s.ar_bast"
+                                      [class.text-info]="!s.ar_bast">
+              {{ formatIbcH(s.ibc_per_hour) }}
+              <small class="skift-unit">IBC/h</small>
+            </div>
+            <div class="skift-meta">
+              <div><i class="fas fa-boxes me-1 opacity-60"></i>{{ s.ibc_count }} IBC totalt</div>
+              <div><i class="fas fa-clock me-1 opacity-60"></i>{{ s.drift_hours.toFixed(1) }} drifttimmar</div>
+              <div><i class="fas fa-calendar-day me-1 opacity-60"></i>{{ s.dagar }} dagar med produktion</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DAGLIG TABELL ===== -->
+    <div class="eff-card" *ngIf="trendLoaded && trendData">
+      <div class="eff-card-header">
+        <span>
+          <i class="fas fa-table me-2" style="color: #a0aec0;"></i>
+          Dagliga värden
+        </span>
+        <small class="text-muted">
+          Snitt ({{ selectedDays }}d):
+          <strong style="color: #68d391;">{{ formatIbcH(trendData.snitt_30d) }} IBC/h</strong>
+        </small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="eff-table">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th class="text-end">IBC producerade</th>
+                <th class="text-end">Drifttimmar</th>
+                <th class="text-end">IBC/h</th>
+                <th class="text-end">7d medel</th>
+                <th class="text-end">Avvikelse från snitt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of dagligaTabelRader">
+                <td class="text-muted">{{ formatDatum(r.date) }}</td>
+                <td class="text-end">{{ r.ibc_count > 0 ? r.ibc_count : '–' }}</td>
+                <td class="text-end">
+                  <span [class.text-muted]="r.drift_hours === 0">
+                    {{ r.drift_hours > 0 ? r.drift_hours.toFixed(2) + ' h' : '–' }}
+                  </span>
+                </td>
+                <td class="text-end fw-600">
+                  <span [class.text-warning]="r.ibc_per_hour !== null"
+                        [class.text-muted]="r.ibc_per_hour === null">
+                    {{ formatIbcH(r.ibc_per_hour) }}
+                  </span>
+                </td>
+                <td class="text-end text-muted">
+                  {{ r.moving_avg_7d !== null ? r.moving_avg_7d.toFixed(1) : '–' }}
+                </td>
+                <td class="text-end" [class]="getAvvikelseKlass(r.ibc_per_hour)">
+                  {{ formatAvvikelse(r.ibc_per_hour) }}
+                </td>
+              </tr>
+              <tr *ngIf="dagligaTabelRader.length === 0">
+                <td colspan="6" class="text-center text-muted py-3">Ingen produktionsdata för perioden</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

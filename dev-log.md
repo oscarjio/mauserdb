@@ -1,3 +1,25 @@
+## 2026-03-11 Maskineffektivitet — IBC per drifttimme trendartat
+
+Ny sida `/rebotling/effektivitet` (authGuard). VD kan se om maskinen blir långsammare (slitage) eller snabbare (optimering) baserat på IBC producerade per drifttimme.
+
+- **Backend**: `EffektivitetController.php` — tre endpoints:
+  - `run=trend&days=N`: Daglig IBC/drifttimme för senaste N dagar. Returnerar trend-array med ibc_count, drift_hours, ibc_per_hour, moving_avg_7d + snitt_30d för referenslinje.
+  - `run=summary`: Nyckeltal — aktuell IBC/h (idag), snitt 7d, snitt 30d, bästa dag, sämsta dag. Trend: improving|declining|stable (jämför snitt senaste 7d vs föregående 7d, tröskel ±2%).
+  - `run=by-shift&days=N`: IBC/h per skift (dag/kväll/natt), bästa skiftet markerat.
+  - Beräkningsmodell: MAX(ibc_ok) + MAX(runtime_plc) per skiftraknare+dag, summerat per dag. runtime_plc i minuter → omvandlas till timmar.
+  - Auth: session krävs (401 om ej inloggad).
+- **api.php**: Registrerat `effektivitet` → `EffektivitetController`.
+- **Service**: `src/app/services/effektivitet.service.ts` — getTrend(), getSummary(), getByShift() med TypeScript-interfaces, timeout(15–20s) + catchError.
+- **Komponent**: `src/app/pages/effektivitet/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearTimeout + chart?.destroy().
+  - Periodväljare: 7d / 14d / 30d / 90d.
+  - 4 KPI-kort: Aktuell IBC/h (idag), Snitt 7d med %-förändring vs föregående 7d, Snitt 30d, Trendindikator (Förbättras/Stabilt/Försämras med pil och färg).
+  - Chart.js line chart: dagliga värden (blå), 7-dagars glidande medel (tjock gul linje), referenslinje för periodsnittet (grön streckad).
+  - Skiftjämförelse: 3 kort (dag/kväll/natt) med IBC/h, drifttimmar, antal dagar. Bästa skiftet markerat med grön ram + stjärna.
+  - Daglig tabell: datum, IBC producerade, drifttimmar, IBC/h, 7d medel, avvikelse från snitt (grön >5%, röd <-5%).
+- **Route**: `/rebotling/effektivitet` (authGuard).
+- **Meny**: Lagt till under Rebotling-dropdown: "Maskineffektivitet" (gul blixt-ikon).
+- **Build**: OK (endast pre-existerande warnings från feedback-analys).
+
 ## 2026-03-11 Stopporsak-trendanalys — veckovis trendanalys av stopporsaker
 
 Ny sida `/admin/stopporsak-trend` (adminGuard). VD kan se hur de vanligaste stopporsakerna utvecklas över tid (veckovis) och bedöma om åtgärder mot specifika orsaker fungerar.
