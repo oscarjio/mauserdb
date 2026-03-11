@@ -6411,4 +6411,147 @@ HTML;
         }
     }
 
+    // ================================================================
+    // TOPP-5 OPERATÖRER LEADERBOARD
+    // ================================================================
+
+    /**
+     * GET /api.php?action=rebotling&run=top-operators-leaderboard&days=30
+     *
+     * Returnerar en rangordnad lista av de 5 bästa operatörerna baserat på
+     * bonuspoäng (genomsnitt per skift) under senaste X dagarna.
+     * Inkluderar trend jämfört med föregående period.
+     */
+    public function getTopOperatorsLeaderboard(): void {
+        $days  = max(1, min(365, (int)($_GET['days'] ?? 30)));
+        $limit = 5;
+
+        try {
+            // Hämta alla operatörsnamn
+            $opRows = $this->pdo->query("SELECT id, name FROM operators WHERE active = 1 OR active IS NULL")
+                               ->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // Hjälpfunktion: perShiftByPosition (liknande BonusController)
+            $makeInner = function(int $pos, string $dateFilter): string {
+                return "
+                    SELECT
+                        op{$pos}          AS operator_id,
+                        skiftraknare,
+                        MAX(ibc_ok)       AS shift_ibc_ok,
+                        MAX(ibc_ej_ok)    AS shift_ibc_ej_ok,
+                        SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang  ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus,
+                        SUBSTRING_INDEX(GROUP_CONCAT(kvalitet     ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_kval,
+                        SUBSTRING_INDEX(GROUP_CONCAT(effektivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_eff
+                    FROM rebotling_ibc
+                    WHERE op{$pos} IS NOT NULL AND op{$pos} > 0
+                      AND skiftraknare IS NOT NULL
+                      AND $dateFilter
+                    GROUP BY op{$pos}, skiftraknare
+                ";
+            };
+
+            $calcRanking = function(string $dateFilter) use ($makeInner, $opRows, $limit): array {
+                $s1 = $makeInner(1, $dateFilter);
+                $s2 = $makeInner(2, $dateFilter);
+                $s3 = $makeInner(3, $dateFilter);
+
+                $stmt = $this->pdo->prepare("
+                    SELECT
+                        operator_id,
+                        COUNT(*)          AS skift_count,
+                        SUM(shift_ibc_ok) AS total_ibc,
+                        SUM(GREATEST(shift_ibc_ok - shift_ibc_ej_ok, 0)) AS total_ibc_ok,
+                        AVG(last_bonus)   AS avg_bonus,
+                        AVG(last_kval)    AS avg_kvalitet,
+                        AVG(last_eff)     AS avg_eff
+                    FROM (
+                        SELECT operator_id, skiftraknare, shift_ibc_ok, shift_ibc_ej_ok, last_bonus, last_kval, last_eff FROM ($s1) AS x1
+                        UNION ALL
+                        SELECT operator_id, skiftraknare, shift_ibc_ok, shift_ibc_ej_ok, last_bonus, last_kval, last_eff FROM ($s2) AS x2
+                        UNION ALL
+                        SELECT operator_id, skiftraknare, shift_ibc_ok, shift_ibc_ej_ok, last_bonus, last_kval, last_eff FROM ($s3) AS x3
+                    ) AS combined
+                    GROUP BY operator_id
+                    HAVING skift_count >= 1
+                    ORDER BY avg_bonus DESC
+                    LIMIT $limit
+                ");
+                $stmt->execute();
+                return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            };
+
+            // Nuvarande period
+            $endDate   = date('Y-m-d');
+            $startDate = date('Y-m-d', strtotime("-{$days} days"));
+            $curFilter = "DATE(datum) BETWEEN '{$startDate}' AND '{$endDate}'";
+            $curRows   = $calcRanking($curFilter);
+
+            // Föregående period (för trendberäkning)
+            $prevEnd   = date('Y-m-d', strtotime("-{$days} days - 1 day"));
+            $prevStart = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
+            $prevFilter = "DATE(datum) BETWEEN '{$prevStart}' AND '{$prevEnd}'";
+            $prevRows   = $calcRanking($prevFilter);
+
+            // Bygg previous-rank-map
+            $prevRankMap = [];
+            foreach ($prevRows as $idx => $row) {
+                $prevRankMap[(int)$row['operator_id']] = $idx + 1;
+            }
+
+            // Bygg svar
+            $maxScore = !empty($curRows) ? (float)($curRows[0]['avg_bonus'] ?? 1) : 1;
+            if ($maxScore <= 0) $maxScore = 1;
+
+            $leaderboard = [];
+            foreach ($curRows as $idx => $row) {
+                $opId    = (int)$row['operator_id'];
+                $rank    = $idx + 1;
+                $prevR   = $prevRankMap[$opId] ?? null;
+
+                if ($prevR === null) {
+                    $trend = 'new';
+                } elseif ($rank < $prevR) {
+                    $trend = 'up';
+                } elseif ($rank > $prevR) {
+                    $trend = 'down';
+                } else {
+                    $trend = 'same';
+                }
+
+                $totalIbc  = (int)($row['total_ibc']    ?? 0);
+                $totalOk   = (int)($row['total_ibc_ok'] ?? 0);
+                $qualPct   = $totalIbc > 0 ? round($totalOk / $totalIbc * 100, 1) : null;
+                $score     = round((float)($row['avg_bonus'] ?? 0), 2);
+                $scorePct  = round($score / $maxScore * 100, 1);
+
+                $leaderboard[] = [
+                    'rank'          => $rank,
+                    'operator_id'   => $opId,
+                    'operator_name' => $opRows[$opId] ?? 'Okänd',
+                    'score'         => $score,
+                    'score_pct'     => $scorePct,
+                    'ibc_count'     => $totalIbc,
+                    'quality_pct'   => $qualPct,
+                    'skift_count'   => (int)($row['skift_count'] ?? 0),
+                    'avg_eff'       => round((float)($row['avg_eff'] ?? 0), 1),
+                    'trend'         => $trend,
+                    'previous_rank' => $prevR,
+                ];
+            }
+
+            echo json_encode([
+                'success'     => true,
+                'days'        => $days,
+                'from'        => $startDate,
+                'to'          => $endDate,
+                'leaderboard' => $leaderboard,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('getTopOperatorsLeaderboard: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta leaderboard']);
+        }
+    }
+
 }

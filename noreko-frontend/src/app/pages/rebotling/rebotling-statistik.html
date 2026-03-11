@@ -18,6 +18,15 @@
     }
   </div>
 
+  <!-- Topp-5 operatörer leaderboard -->
+  <div class="container-fluid">
+    @defer (on viewport) {
+      <app-statistik-leaderboard></app-statistik-leaderboard>
+    } @placeholder {
+      <div class="text-center py-4"><div class="spinner-border" style="color:#d69e2e;" role="status"></div></div>
+    }
+  </div>
+
   <!-- Header with Breadcrumb -->
   <div class="stats-header">
     <div class="container-fluid">

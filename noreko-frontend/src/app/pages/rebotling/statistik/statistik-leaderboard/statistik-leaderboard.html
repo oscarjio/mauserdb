@@ -1,0 +1,109 @@
+<div class="row mt-4 mb-4">
+  <div class="col-12">
+    <div class="dark-card lb-card">
+
+      <!-- Rubrik + kontroller -->
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0 lb-title">
+            <i class="fas fa-crown me-2" style="color:#d69e2e;"></i>Topp-5 operatörer
+          </h5>
+          <small class="text-muted">Rangordning baserad på bonuspoäng (snitt per skift)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <label class="text-muted small mb-0">Period:</label>
+          <select class="form-select form-select-sm lb-filter-select"
+                  [(ngModel)]="days"
+                  (change)="onDaysChange()">
+            <option [value]="7">7 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+          <button class="btn btn-sm lb-refresh-btn" (click)="load()" title="Uppdatera nu">
+            <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Laddning -->
+      <div *ngIf="loading && leaderboard.length === 0" class="text-center py-5">
+        <div class="spinner-border" style="color:#d69e2e;" role="status"></div>
+        <div class="mt-2 text-muted small">Laddar leaderboard...</div>
+      </div>
+
+      <!-- Fel -->
+      <div *ngIf="!loading && error && leaderboard.length === 0" class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+      </div>
+
+      <!-- Leaderboard-lista -->
+      <div *ngIf="leaderboard.length > 0" class="lb-list">
+
+        <div *ngFor="let op of leaderboard"
+             class="lb-row"
+             [class.lb-row-gold]="op.rank === 1"
+             [class.lb-row-silver]="op.rank === 2"
+             [class.lb-row-bronze]="op.rank === 3"
+             [class.lb-pulse]="isFirstAndPulsing(op.rank)">
+
+          <!-- Rank-badge -->
+          <div class="lb-rank-badge" [class]="getRankClass(op.rank)">
+            <i [class]="getRankIcon(op.rank)" class="lb-rank-icon"></i>
+            <span class="lb-rank-num">{{ getRankLabel(op.rank) }}</span>
+          </div>
+
+          <!-- Operatörsnamn + meta -->
+          <div class="lb-operator-info">
+            <div class="lb-operator-name">{{ op.operator_name }}</div>
+            <div class="lb-operator-meta text-muted">
+              <span>{{ op.skift_count }} skift</span>
+              <span class="mx-1">·</span>
+              <span>{{ op.ibc_count }} IBC</span>
+              <span *ngIf="op.quality_pct !== null" class="mx-1">·</span>
+              <span *ngIf="op.quality_pct !== null">{{ op.quality_pct | number:'1.1-1' }}% kval</span>
+            </div>
+          </div>
+
+          <!-- Progressbar + poäng -->
+          <div class="lb-score-section">
+            <div class="lb-score-bar-wrap">
+              <div class="lb-score-bar"
+                   [class.lb-bar-gold]="op.rank === 1"
+                   [class.lb-bar-silver]="op.rank === 2"
+                   [class.lb-bar-bronze]="op.rank === 3"
+                   [class.lb-bar-default]="op.rank > 3"
+                   [style.width.%]="op.score_pct">
+              </div>
+            </div>
+            <div class="lb-score-val" [class]="getRankClass(op.rank)">
+              {{ op.score | number:'1.1-1' }}
+              <span class="lb-score-unit">p</span>
+            </div>
+          </div>
+
+          <!-- Trendpil -->
+          <div class="lb-trend" [title]="getTrendTitle(op)">
+            <i [class]="getTrendIcon(op.trend)"></i>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tom lista -->
+      <div *ngIf="!loading && leaderboard.length === 0 && !error" class="text-center py-4 text-muted">
+        <i class="fas fa-trophy fa-2x mb-2 d-block" style="color:#4a5568;"></i>
+        Ingen data för vald period
+      </div>
+
+      <!-- Footer: datum -->
+      <div *ngIf="fromDate" class="lb-footer text-muted">
+        <i class="fas fa-calendar-alt me-1"></i>
+        {{ fromDate }} – {{ toDate }}
+        <span class="ms-2 lb-autorefresh">
+          <i class="fas fa-circle lb-live-dot"></i> Uppdateras var 30s
+        </span>
+      </div>
+
+    </div>
+  </div>
+</div>

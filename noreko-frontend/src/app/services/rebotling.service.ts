@@ -489,6 +489,35 @@ export class RebotlingService {
     );
   }
 
+  getTopOperatorsLeaderboard(days: number = 30): Observable<LeaderboardResponse> {
+    return this.http.get<LeaderboardResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=top-operators-leaderboard&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+}
+
+export interface LeaderboardOperator {
+  rank: number;
+  operator_id: number;
+  operator_name: string;
+  score: number;
+  score_pct: number;
+  ibc_count: number;
+  quality_pct: number | null;
+  skift_count: number;
+  avg_eff: number;
+  trend: 'up' | 'down' | 'same' | 'new';
+  previous_rank: number | null;
+}
+
+export interface LeaderboardResponse {
+  success: boolean;
+  days: number;
+  from: string;
+  to: string;
+  leaderboard: LeaderboardOperator[];
 }
 
 export interface PersonalBestOperator {
