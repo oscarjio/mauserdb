@@ -139,6 +139,8 @@ $classNameMap = [
     'produktionspuls' => 'ProduktionspulsController',
     'narvaro'         => 'NarvaroController',
     'min-dag'         => 'MinDagController',
+    'alerts'          => 'AlertsController',
+    'kassationsanalys' => 'KassationsanalysController',
 ];
 
 $actionKey = strtolower($action);

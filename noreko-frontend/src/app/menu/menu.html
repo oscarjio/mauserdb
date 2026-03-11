@@ -24,6 +24,7 @@
           <li><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-warning"></i>Live Ranking</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/skiftrapport">Skiftrapport</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/statistik">Statistik</a></li>
+          <li><a class="dropdown-item" routerLink="/rebotling/kassationsanalys"><i class="fas fa-trash-alt me-2 text-danger"></i>Kassationsanalys</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/historik"><i class="fas fa-history me-2"></i>Historisk jämförelse</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/narvarotracker"><i class="fas fa-calendar-check me-2 text-info"></i>Närvarotracker</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/produktionspuls"><i class="fas fa-heartbeat me-2 text-danger"></i>Produktionspuls</a></li>
@@ -100,15 +101,15 @@
            data-bs-toggle="dropdown" aria-expanded="false" title="Notifikationer">
           <i class="fas fa-bell"></i>
           <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notif-badge"
-                *ngIf="(urgentNoteCount + certExpiryCount) > 0">
-            {{ urgentNoteCount + certExpiryCount }}
+                *ngIf="(urgentNoteCount + certExpiryCount + activeAlertsCount) > 0">
+            {{ urgentNoteCount + certExpiryCount + activeAlertsCount }}
           </span>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end notif-dropdown" aria-labelledby="notifDropdown" style="min-width:300px">
           <li class="dropdown-header">
             <i class="fas fa-bell me-1"></i>Notifikationer
           </li>
-          <li *ngIf="urgentNoteCount === 0 && certExpiryCount === 0">
+          <li *ngIf="urgentNoteCount === 0 && certExpiryCount === 0 && activeAlertsCount === 0">
             <span class="dropdown-item-text text-muted small px-3 py-2 d-block">Inga nya notifikationer</span>
           </li>
           <li *ngIf="urgentNoteCount > 0">
@@ -121,6 +122,12 @@
             <a class="dropdown-item" routerLink="/admin/certifiering">
               <i class="fas fa-certificate text-warning me-2"></i>
               {{ certExpiryCount }} certifieringar snart utgångna
+            </a>
+          </li>
+          <li *ngIf="activeAlertsCount > 0 && user?.role === 'admin'">
+            <a class="dropdown-item" routerLink="/rebotling/alerts">
+              <i class="fas fa-bell text-danger me-2"></i>
+              {{ activeAlertsCount }} aktiv{{ activeAlertsCount !== 1 ? 'a' : '' }} varning{{ activeAlertsCount !== 1 ? 'ar' : '' }}
             </a>
           </li>
         </ul>
@@ -215,6 +222,12 @@
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
           <li><a class="dropdown-item text-info" routerLink="/oversikt"><i class="fas fa-tachometer-alt me-2"></i>Översikt</a></li>
+          <li>
+            <a class="dropdown-item" routerLink="/rebotling/alerts">
+              <i class="fas fa-bell me-2 text-warning"></i>Varningar
+              <span class="badge bg-danger ms-1" *ngIf="activeAlertsCount > 0">{{ activeAlertsCount }}</span>
+            </a>
+          </li>
           <li><a class="dropdown-item" routerLink="/stopporsaker"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsaker</a></li>
           <li><hr class="dropdown-divider"></li>
           <li><a class="dropdown-item" routerLink="/admin/users">Användare</a></li>

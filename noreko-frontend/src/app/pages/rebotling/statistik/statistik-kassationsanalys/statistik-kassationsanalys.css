@@ -1,0 +1,183 @@
+/* ============================================================
+   Kassationsanalys — dark theme (MauserDB)
+   ============================================================ */
+
+.kassationsanalys-wrap {
+  padding: 0 4px;
+}
+
+/* Header */
+.ka-header {
+  margin-bottom: 12px;
+}
+
+.ka-icon-trash {
+  color: #fc8181;
+  font-size: 1.15rem;
+}
+
+.ka-title {
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+/* Kort (både summary och drill-kpi) */
+.ka-card {
+  background: #2d3748;
+  border-radius: 10px;
+  border: 1px solid #4a5568;
+  padding: 18px 16px;
+}
+
+.ka-card-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.ka-card-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.ka-card-value-sm {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ka-card-unit {
+  color: #718096;
+  font-size: 0.75rem;
+}
+
+.ka-spinner-wrap {
+  padding: 10px 0;
+}
+
+/* Section-rubrik */
+.ka-section-title {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.ka-hint {
+  color: #4a5568;
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+/* Graf */
+.ka-chart-wrap {
+  position: relative;
+  height: 320px;
+}
+
+/* Tomma / felstatus */
+.ka-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: #718096;
+}
+
+.ka-empty-state p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ka-error-state {
+  color: #fc8181;
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+
+/* Orsaks-tabell */
+.ka-table {
+  color: #e2e8f0;
+  font-size: 0.83rem;
+}
+
+.ka-table thead tr {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.ka-table tbody tr {
+  border-color: #4a5568;
+}
+
+.ka-orsak-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.ka-orsak-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ka-orsak-selected {
+  background: rgba(99, 179, 237, 0.08) !important;
+  border-left: 3px solid #63b3ed;
+}
+
+.ka-orsak-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ka-chevron {
+  color: #4a5568;
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+}
+
+.ka-chevron-open {
+  transform: rotate(90deg);
+  color: #63b3ed;
+}
+
+/* Progress bar */
+.ka-progress-bar-bg {
+  background: #4a5568;
+  border-radius: 4px;
+  height: 7px;
+  overflow: hidden;
+  margin-bottom: 2px;
+}
+
+.ka-progress-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* Drilldown-panel */
+.ka-drilldown-card {
+  border-color: #63b3ed;
+  border-left: 3px solid #63b3ed;
+}
+
+.ka-drill-kpi {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.ka-drill-row {
+  border-color: #4a5568;
+}
+
+.ka-drill-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}

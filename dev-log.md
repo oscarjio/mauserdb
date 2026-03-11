@@ -1,3 +1,33 @@
+## 2026-03-11 Kassationsanalys — drilldown per stopporsak
+
+Komplett kassationsanalys-sida för VD-vy. Stackad Chart.js-graf + trendjämförelse + klickbar drilldown per orsak.
+
+- **Backend** — ny `KassationsanalysController.php` (`noreko-backend/classes/`):
+  - Registrerad i `api.php` under action `kassationsanalys`
+  - `run=summary` — totala kassationer, kassationsrate %, topp-orsak, trend (absolut + rate) vs föregående period
+  - `run=by-cause` — kassationer per orsak med andel %, kumulativ %, föregående period, trend-pil + %
+  - `run=daily-stacked` — daglig data stackad per orsak (upp till 8 orsaker), Chart.js-kompatibelt format med färgpalett
+  - `run=drilldown&cause=X` — detaljrader per orsak: datum, skiftnummer, antal, kommentar, registrerad_av + operatörerna som jobbade på skiftet (join med rebotling_ibc → operators)
+  - Aggregeringslogik: MAX() per skiftraknare för kumulativa PLC-värden (ibc_ej_ok), sedan SUM()
+  - Tabeller: `kassationsregistrering`, `kassationsorsak_typer`, `rebotling_ibc`, `operators`, `users`
+- **Service** (`rebotling.service.ts`): 4 nya metoder + 5 interface-typer
+  - `getKassationsSummary(days)`, `getKassationsByCause(days)`, `getKassationsDailyStacked(days)`, `getKassationsDrilldown(cause, days)`
+  - `KassationsSummaryData`, `KassationOrsak`, `KassationsDailyStackedData`, `KassationsDrilldownData`, `KassationsDrilldownDetalj`
+- **Frontend-komponent** `statistik-kassationsanalys` (standalone, `.ts` + `.html` + `.css`):
+  - 4 sammanfattningskort: Totalt kasserat, Kassationsrate %, Vanligaste orsak, Trend vs föregående
+  - Stackad stapelgraf (Chart.js) med en dataset per orsak, `stack: 'kassationer'`, tooltip visar alla orsaker per datum
+  - Orsaksanalys-tabell: klickbar rad → drilldown expanderas med kumulativ progress bar, trend-pil
+  - Drilldown-panel: snabbkort (total antal, antal registreringar, period, aktiva skift) + registreringstabell med operatörsnamn hämtat från rebotling_ibc
+  - Periodselektor: 7d / 14d / 30d / 90d
+  - Lifecycle: OnInit/OnDestroy, destroy$ + takeUntil, stackedChart?.destroy()
+  - Dark theme: `#1a202c` bg, `#2d3748` cards, `#e2e8f0` text
+- **Route**: `/rebotling/kassationsanalys` (public, ingen authGuard)
+- **Meny**: "Kassationsanalys" med trash-ikon under Rebotling-dropdown i `menu.html`
+- **Integrering**: sist på `rebotling-statistik.html` med `@defer (on viewport)`
+- **Build**: kompilerar utan fel
+
+---
+
 ## 2026-03-11 Veckotrend sparklines i KPI-kort
 
 Fyra inline sparkline-grafer (7-dagars trend) högst upp på statistiksidan — VD ser direkt om trenderna går uppåt eller nedåt.

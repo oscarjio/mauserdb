@@ -35,6 +35,7 @@ import { StatistikBonusSimulatorComponent } from './statistik/statistik-bonus-si
 import { StatistikLeaderboardComponent } from './statistik/statistik-leaderboard/statistik-leaderboard';
 import { StatistikUptidHeatmapComponent } from './statistik/statistik-uptid-heatmap/statistik-uptid-heatmap';
 import { StatistikVeckotrendComponent } from './statistik/statistik-veckotrend/statistik-veckotrend';
+import { StatistikKassationsanalysComponent } from './statistik/statistik-kassationsanalys/statistik-kassationsanalys';
 
 
 Chart.register(...registerables);
@@ -126,7 +127,7 @@ interface TableRow {
     StatistikAnnotationerComponent, StatistikOeeGaugeComponent, StatistikProduktionsmalComponent,
     StatistikSkiftjamforelseComponent, StatistikBonusSimulatorComponent,
     StatistikLeaderboardComponent, StatistikUptidHeatmapComponent,
-    StatistikVeckotrendComponent]
+    StatistikVeckotrendComponent, StatistikKassationsanalysComponent]
 })
 export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;

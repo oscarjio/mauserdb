@@ -536,6 +536,34 @@ export class RebotlingService {
     );
   }
 
+  getKassationsSummary(days: number): Observable<{ success: boolean; data: KassationsSummaryData }> {
+    return this.http.get<{ success: boolean; data: KassationsSummaryData }>(
+      `/noreko-backend/api.php?action=kassationsanalys&run=summary&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getKassationsByCause(days: number): Observable<{ success: boolean; data: { days: number; from: string; to: string; total: number; orsaker: KassationOrsak[] } }> {
+    return this.http.get<{ success: boolean; data: { days: number; from: string; to: string; total: number; orsaker: KassationOrsak[] } }>(
+      `/noreko-backend/api.php?action=kassationsanalys&run=by-cause&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getKassationsDailyStacked(days: number): Observable<{ success: boolean; data: KassationsDailyStackedData }> {
+    return this.http.get<{ success: boolean; data: KassationsDailyStackedData }>(
+      `/noreko-backend/api.php?action=kassationsanalys&run=daily-stacked&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  getKassationsDrilldown(cause: number, days: number): Observable<{ success: boolean; data: KassationsDrilldownData }> {
+    return this.http.get<{ success: boolean; data: KassationsDrilldownData }>(
+      `/noreko-backend/api.php?action=kassationsanalys&run=drilldown&cause=${cause}&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface LeaderboardOperator {
@@ -1470,4 +1498,74 @@ export interface WeeklyKpisResponse {
   to?: string;
   kpis: WeeklyKpiCard[];
   error?: string;
+}
+
+// ---- Kassationsanalys-interfaces ----
+
+export interface KassationsSummaryData {
+  days: number;
+  period_from: string;
+  period_to: string;
+  total_kassationer: number;
+  prev_kassationer: number;
+  trend_riktning: 'up' | 'down' | 'stable';
+  trend_pct: number;
+  topp_orsak: string | null;
+  topp_orsak_antal: number;
+  kasserade_ibc: number;
+  total_ibc_produktion: number;
+  kassations_rate_pct: number;
+  prev_kassations_rate: number;
+  rate_trend: 'up' | 'down' | 'stable';
+  rate_trend_diff: number;
+}
+
+export interface KassationOrsak {
+  id: number;
+  namn: string;
+  antal: number;
+  andel: number;
+  kumulativ_pct: number;
+  prev_antal: number;
+  trend: 'up' | 'down' | 'stable';
+  trend_pct: number;
+}
+
+export interface KassationsDailyStackedData {
+  days: number;
+  from: string;
+  to: string;
+  labels: string[];
+  datasets: {
+    label: string;
+    orsakId: number;
+    data: number[];
+    backgroundColor: string;
+    borderColor: string;
+    borderWidth: number;
+  }[];
+  har_data: boolean;
+}
+
+export interface KassationsDrilldownDetalj {
+  id: number;
+  datum: string;
+  skiftraknare: number | null;
+  antal: number;
+  kommentar: string | null;
+  created_at: string;
+  registrerad_av: string | null;
+}
+
+export interface KassationsDrilldownData {
+  cause_id: number;
+  cause_namn: string;
+  days: number;
+  from: string;
+  to: string;
+  total_antal: number;
+  detaljer: KassationsDrilldownDetalj[];
+  per_dag: { datum: string; dag_antal: number }[];
+  operatorer: { skiftraknare: number; operatorer: string[] }[];
+  har_data: boolean;
 }

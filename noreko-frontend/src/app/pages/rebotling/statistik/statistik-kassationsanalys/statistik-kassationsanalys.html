@@ -1,0 +1,261 @@
+<div class="kassationsanalys-wrap">
+
+  <!-- ====================================================
+       RUBRIK + PERIODSELEKTOR
+  ==================================================== -->
+  <div class="ka-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fas fa-trash-alt ka-icon-trash"></i>
+      <span class="ka-title">Kassationsanalys</span>
+    </div>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Periodselektor">
+      <button *ngFor="let d of dayOptions" type="button" class="btn btn-sm"
+        [class.btn-danger]="days === d"
+        [class.btn-outline-danger]="days !== d"
+        (click)="onDaysChange(d)">{{ d }}d</button>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       SAMMANFATTNINGSKORT
+  ==================================================== -->
+  <div class="row g-3 mb-4">
+
+    <!-- Totala kassationer -->
+    <div class="col-6 col-md-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Totalt kasserat</div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-value text-danger">
+          {{ summary.total_kassationer }}
+        </div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-unit">registrerade enheter</div>
+        <div *ngIf="loadingSummary" class="ka-spinner-wrap"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>
+      </div>
+    </div>
+
+    <!-- Kassationsrate % -->
+    <div class="col-6 col-md-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Kassationsrate</div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-value"
+          [style.color]="rateColor(summary.kassations_rate_pct)">
+          {{ summary.kassations_rate_pct }}%
+        </div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-unit">
+          av {{ summary.total_ibc_produktion }} IBC totalt
+        </div>
+        <div *ngIf="loadingSummary" class="ka-spinner-wrap"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>
+      </div>
+    </div>
+
+    <!-- Topp-orsak -->
+    <div class="col-6 col-md-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Vanligaste orsak</div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-value ka-card-value-sm text-warning">
+          {{ summary.topp_orsak ?? '–' }}
+        </div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-unit">
+          {{ summary.topp_orsak_antal > 0 ? summary.topp_orsak_antal + ' st' : 'Inga data' }}
+        </div>
+        <div *ngIf="loadingSummary" class="ka-spinner-wrap"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>
+      </div>
+    </div>
+
+    <!-- Trend vs föregående period -->
+    <div class="col-6 col-md-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Trend vs föregående</div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-value"
+          [style.color]="trendColor(summary.trend_riktning, true)">
+          <span>{{ trendIcon(summary.trend_riktning) }}</span>
+          <span *ngIf="summary.trend_pct !== 0">&nbsp;{{ summary.trend_pct > 0 ? '+' : '' }}{{ summary.trend_pct }}%</span>
+          <span *ngIf="summary.trend_pct === 0">&nbsp;Oförändrat</span>
+        </div>
+        <div *ngIf="!loadingSummary && summary" class="ka-card-unit">
+          Reg: {{ summary.prev_kassationer }} → {{ summary.total_kassationer }}
+        </div>
+        <div *ngIf="loadingSummary" class="ka-spinner-wrap"><div class="spinner-border spinner-border-sm text-secondary" role="status"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       STACKAD STAPELGRAF
+  ==================================================== -->
+  <div class="ka-card mb-4">
+    <div class="ka-section-title d-flex align-items-center gap-2 mb-3">
+      <i class="fas fa-chart-bar" style="color:#ed8936;"></i>
+      <span>Kassationer per dag</span>
+      <span *ngIf="loadingStacked" class="spinner-border spinner-border-sm text-secondary ms-2" role="status"></span>
+    </div>
+
+    <div *ngIf="!loadingStacked && stackedData?.har_data" class="ka-chart-wrap">
+      <canvas id="kassationsStackedChart"></canvas>
+    </div>
+
+    <div *ngIf="!loadingStacked && !stackedData?.har_data" class="ka-empty-state">
+      <i class="fas fa-check-circle fa-2x mb-2" style="color:#48bb78; opacity:0.5;"></i>
+      <p>Inga kassationer registrerade för perioden.</p>
+    </div>
+
+    <div *ngIf="errorStacked" class="ka-error-state">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda grafdata.
+    </div>
+  </div>
+
+  <!-- ====================================================
+       ORSAKSANALYS — tabell med klickbar drilldown
+  ==================================================== -->
+  <div class="ka-card mb-4">
+    <div class="ka-section-title d-flex align-items-center gap-2 mb-3">
+      <i class="fas fa-list-ul" style="color:#fc8181;"></i>
+      <span>Kassationer per orsak</span>
+      <span *ngIf="loadingByCause" class="spinner-border spinner-border-sm text-secondary ms-2" role="status"></span>
+      <span class="ms-auto ka-hint">Klicka på en rad för detaljer</span>
+    </div>
+
+    <div *ngIf="!loadingByCause && orsaker.length > 0" class="table-responsive">
+      <table class="table table-sm ka-table mb-0">
+        <thead>
+          <tr>
+            <th>Orsak</th>
+            <th class="text-end">Antal</th>
+            <th class="text-end">Andel</th>
+            <th class="text-end">Föreg.</th>
+            <th class="text-end">Trend</th>
+            <th style="width:140px;">Kumulativ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let o of orsaker" class="ka-orsak-row"
+            [class.ka-orsak-selected]="selectedCause?.id === o.id"
+            (click)="selectCause(o)">
+            <td class="ka-orsak-name">
+              <i class="fas fa-chevron-right ka-chevron"
+                [class.ka-chevron-open]="selectedCause?.id === o.id"></i>
+              {{ o.namn }}
+            </td>
+            <td class="text-end fw-bold text-warning">{{ o.antal }}</td>
+            <td class="text-end" style="color:#a0aec0;">{{ o.andel }}%</td>
+            <td class="text-end" style="color:#718096;">{{ o.prev_antal }}</td>
+            <td class="text-end">
+              <span [style.color]="trendColor(o.trend, true)">
+                {{ trendIcon(o.trend) }}
+                <small *ngIf="o.trend !== 'stable'">&nbsp;{{ o.trend_pct > 0 ? '+' : '' }}{{ o.trend_pct }}%</small>
+              </span>
+            </td>
+            <td>
+              <div class="ka-progress-bar-bg">
+                <div class="ka-progress-bar-fill"
+                  [style.width.%]="o.kumulativ_pct"
+                  [style.background]="o.kumulativ_pct <= 80 ? '#fc8181' : '#718096'">
+                </div>
+              </div>
+              <small style="color:#a0aec0;">{{ o.kumulativ_pct }}%</small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loadingByCause && orsaker.length === 0 && !errorByCause" class="ka-empty-state">
+      <i class="fas fa-check-circle fa-2x mb-2" style="color:#48bb78; opacity:0.5;"></i>
+      <p>Inga orsaker hittades för perioden.</p>
+    </div>
+
+    <div *ngIf="errorByCause" class="ka-error-state">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda orsaksdata.
+    </div>
+  </div>
+
+  <!-- ====================================================
+       DRILLDOWN-PANEL
+  ==================================================== -->
+  <div *ngIf="selectedCause" class="ka-card ka-drilldown-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="ka-section-title d-flex align-items-center gap-2">
+        <i class="fas fa-search" style="color:#63b3ed;"></i>
+        <span>Detaljer: <strong style="color:#f6ad55;">{{ selectedCause.namn }}</strong></span>
+        <span *ngIf="loadingDrilldown" class="spinner-border spinner-border-sm text-secondary ms-2" role="status"></span>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary" (click)="closeDrilldown()">
+        <i class="fas fa-times me-1"></i>Stäng
+      </button>
+    </div>
+
+    <!-- Drilldown laddad -->
+    <div *ngIf="!loadingDrilldown && drilldown?.har_data">
+
+      <!-- Snabbinfo -->
+      <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="ka-drill-kpi">
+            <div class="ka-card-label">Totalt antal</div>
+            <div class="ka-card-value text-danger">{{ drilldown!.total_antal }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="ka-drill-kpi">
+            <div class="ka-card-label">Antal registreringar</div>
+            <div class="ka-card-value" style="color:#a0aec0;">{{ drilldown!.detaljer.length }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="ka-drill-kpi">
+            <div class="ka-card-label">Period</div>
+            <div class="ka-card-value-sm" style="color:#e2e8f0; font-size:0.85rem;">
+              {{ formatDatum(drilldown!.from) }} – {{ formatDatum(drilldown!.to) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="ka-drill-kpi">
+            <div class="ka-card-label">Aktiva skift</div>
+            <div class="ka-card-value" style="color:#a0aec0;">{{ drilldown!.operatorer.length }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registreringstabell -->
+      <div class="table-responsive">
+        <table class="table table-sm ka-table mb-0">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th class="text-end">Antal</th>
+              <th>Skiftnr</th>
+              <th>Operatörer</th>
+              <th>Kommentar</th>
+              <th>Registrerad av</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of drilldown!.detaljer" class="ka-drill-row">
+              <td>{{ d.datum }}</td>
+              <td class="text-end fw-bold text-warning">{{ d.antal }}</td>
+              <td style="color:#a0aec0;">{{ d.skiftraknare ?? '–' }}</td>
+              <td style="color:#e2e8f0;">{{ getOperatorerForSkift(d.skiftraknare) }}</td>
+              <td style="color:#718096; font-style:italic; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                {{ d.kommentar ?? '–' }}
+              </td>
+              <td style="color:#718096;">{{ d.registrerad_av ?? '–' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Drilldown — inga data -->
+    <div *ngIf="!loadingDrilldown && drilldown && !drilldown.har_data" class="ka-empty-state">
+      <i class="fas fa-inbox fa-2x mb-2" style="opacity:0.4;"></i>
+      <p>Inga registreringar för denna orsak i perioden.</p>
+    </div>
+
+    <!-- Drilldown — fel -->
+    <div *ngIf="errorDrilldown" class="ka-error-state">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda detaljdata.
+    </div>
+  </div>
+
+</div>
