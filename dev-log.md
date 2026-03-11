@@ -1,3 +1,15 @@
+## 2026-03-11 Manadsrapport-sida (/rapporter/manad)
+
+Fullstandig manadsrapport-sida verifierad och kompletterad:
+
+- **Befintlig implementation verifierad** — `pages/monthly-report/` med monthly-report.ts/.html/.css redan implementerad
+- **Route** `rapporter/manad` pekar till `MonthlyReportPage` (authGuard) — redan i app.routes.ts
+- **Navigationsmenyn** — "Rapporter"-dropdown med Manadsrapport och Veckorapport redan i menu.html
+- **Backend** — `getMonthlyReport()` och `getMonthCompare()` i RebotlingAnalyticsController.php, `monthly-stop-summary` endpoint — alla redan implementerade
+- **rebotling.service.ts** — Lade till `getMonthlyReport(year, month)` + `getMonthCompare(year, month)` metoder
+- **Interfaces** — `MonthlyReportResponse`, `MonthCompareResponse` och alla sub-interfaces exporterade fran rebotling.service.ts
+- Byggt OK — inga fel, monthly-report chunk 56.16 kB
+
 ## 2026-03-10 Realtids-OEE-gauge pa statistiksidan
 
 Stor cirkular OEE-gauge overst pa rebotling-statistiksidan:

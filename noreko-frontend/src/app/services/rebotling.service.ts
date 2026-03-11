@@ -427,6 +427,23 @@ export class RebotlingService {
     );
   }
 
+  // ---- Månadsrapport ----
+  getMonthlyReport(year: number, month: number): Observable<MonthlyReportResponse> {
+    const m = `${year}-${String(month).padStart(2, '0')}`;
+    return this.http.get<MonthlyReportResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${m}`,
+      { withCredentials: true }
+    );
+  }
+
+  getMonthCompare(year: number, month: number): Observable<MonthCompareResponse> {
+    const m = `${year}-${String(month).padStart(2, '0')}`;
+    return this.http.get<MonthCompareResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=month-compare&month=${m}`,
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {
@@ -1003,5 +1020,141 @@ export interface RealtimeOeeData {
 export interface RealtimeOeeResponse {
   success: boolean;
   data?: RealtimeOeeData;
+  error?: string;
+}
+
+// ---- Månadsrapport-interfaces ----
+
+export interface MonthlyReportSummary {
+  ibc_total: number;
+  ibc_goal: number;
+  goal_pct: number;
+  avg_ibc_per_day: number;
+  active_days: number;
+  production_days: number;
+  avg_quality: number;
+  avg_oee: number;
+  total_runtime_hours: number;
+  total_stoppage_hours: number;
+  total_stopp_min: number;
+}
+
+export interface MonthlyReportDayEntry {
+  date: string;
+  ibc: number;
+  quality: number;
+  oee: number;
+  skift_count?: number;
+}
+
+export interface MonthlyReportWeekEntry {
+  week: string;
+  ibc: number;
+  avg_quality: number;
+  avg_oee: number;
+}
+
+export interface MonthlyReportOperatorEntry {
+  name: string;
+  number: number;
+  shifts: number;
+  ibc_ok: number;
+  avg_ibc_per_hour: number | null;
+  avg_quality: number | null;
+}
+
+export interface MonthlyReportTopOperator {
+  namn: string;
+  ibc_total: number;
+}
+
+export interface MonthlyReportOeeTrendEntry {
+  date: string;
+  oee: number;
+}
+
+export interface MonthlyReportBestWorstDay {
+  date: string;
+  ibc: number;
+  quality: number;
+}
+
+export interface MonthlyReportBestWorstWeek {
+  week: string;
+  ibc: number;
+  avg_oee: number;
+}
+
+export interface MonthlyReportResponse {
+  success: boolean;
+  month: string;
+  month_label: string;
+  summary: MonthlyReportSummary;
+  best_day: MonthlyReportBestWorstDay | null;
+  worst_day: MonthlyReportBestWorstDay | null;
+  basta_vecka: MonthlyReportBestWorstWeek | null;
+  samsta_vecka: MonthlyReportBestWorstWeek | null;
+  oee_trend: MonthlyReportOeeTrendEntry[];
+  top_operatorer: MonthlyReportTopOperator[];
+  operator_ranking: MonthlyReportOperatorEntry[];
+  daily_production: MonthlyReportDayEntry[];
+  week_summary: MonthlyReportWeekEntry[];
+  error?: string;
+}
+
+export interface MonthCompareMonthData {
+  total_ibc: number;
+  avg_ibc_per_day: number;
+  avg_oee_pct: number;
+  avg_quality_pct: number;
+  working_days: number;
+  month_goal: number;
+}
+
+export interface MonthCompareDiff {
+  total_ibc_pct: number | null;
+  avg_ibc_per_day_pct: number | null;
+  avg_oee_pct_diff: number;
+  avg_quality_pct_diff: number;
+}
+
+export interface MonthCompareOperatorOfMonth {
+  op_id: number;
+  namn: string;
+  initialer: string;
+  total_ibc: number;
+  avg_ibc_per_h: number;
+  avg_quality_pct: number;
+}
+
+export interface MonthCompareOperatorRank {
+  op_id: number;
+  namn: string;
+  initialer: string;
+  shifts: number;
+  total_ibc: number;
+  avg_ibc_per_h: number;
+  avg_quality_pct: number;
+  score: number;
+}
+
+export interface MonthCompareDay {
+  datum: string;
+  ibc: number;
+  target_pct: number;
+  operator_count?: number;
+}
+
+export interface MonthCompareResponse {
+  success: boolean;
+  month: string;
+  prev_month: string;
+  this_month: MonthCompareMonthData;
+  prev_month_data: MonthCompareMonthData;
+  diff: MonthCompareDiff;
+  operator_of_month: MonthCompareOperatorOfMonth | null;
+  operator_ranking: MonthCompareOperatorRank[];
+  best_day: MonthCompareDay | null;
+  worst_day: MonthCompareDay | null;
   error?: string;
 }
