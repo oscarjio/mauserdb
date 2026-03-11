@@ -147,6 +147,8 @@ $classNameMap = [
     'skiftoverlamning'        => 'SkiftoverlamningController',
     'underhallslogg'          => 'UnderhallsloggController',
     'cykeltid-heatmap'        => 'CykeltidHeatmapController',
+    'oee-benchmark'           => 'OeeBenchmarkController',
+    'skiftrapport-export'     => 'SkiftrapportExportController',
 ];
 
 $actionKey = strtolower($action);

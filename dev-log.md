@@ -1,3 +1,23 @@
+## 2026-03-11 OEE Benchmark — jämförelse mot branschsnitt
+
+Ny statistiksida `/rebotling/oee-benchmark` (autentiserad). Visar OEE (Overall Equipment Effectiveness = Tillgänglighet × Prestanda × Kvalitet) för rebotling och jämför mot branschriktvärden: World Class 85%, Branschsnitt 60%, Lägsta godtagbara 40%.
+
+- **OEE Gauge**: Cirkulär halvmåne-gauge (Chart.js doughnut, halvt) med stort OEE-tal och färgkodning: röd <40%, gul 40-60%, grön 60-85%, blågrön ≥85%. Statusbadge (World Class / Bra / Under branschsnitt / Kritiskt lågt).
+- **Benchmark-jämförelse**: Tre staplar med din OEE markerad mot World Class/Branschsnitt/Lägsta-linjer. Gap-analys (+ / - procentenheter mot varje mål).
+- **3 faktor-kort**: Tillgänglighet, Prestanda, Kvalitet — var med stort procent-tal, progressbar, trend-pil (upp/ner/flat jämfört mot föregående lika lång period) och detaljinfo (drifttid/stopptid, IBC-antal, OK/kasserade).
+- **Trend-graf**: Chart.js linjediagram med OEE per dag + horisontella referenslinjer för World Class (85%) och branschsnitt (60%).
+- **Förbättringsförslag**: Automatiska textmeddelanden baserat på vilken av de 3 faktorerna som är lägst.
+- **Periodselektor**: 7 / 14 / 30 / 90 dagar.
+- **SQL**: `noreko-backend/migrations/2026-03-11_oee_benchmark.sql` — index på rebotling_ibc(datum), rebotling_ibc(datum,ok), rebotling_onoff(start_time)
+- **Backend**: `OeeBenchmarkController.php` — run=current-oee, run=benchmark, run=trend, run=breakdown. Auth: session_id krävs.
+- **api.php**: Registrerat `oee-benchmark` → `OeeBenchmarkController`
+- **Service**: `src/app/services/oee-benchmark.service.ts` — getCurrentOee/getBenchmark/getTrend/getBreakdown, timeout(15000)+catchError
+- **Komponent**: `src/app/pages/oee-benchmark/` (ts + html + css) — standalone, OnInit/OnDestroy/AfterViewInit + destroy$ + chart?.destroy()
+- **Route**: `/rebotling/oee-benchmark` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown (loggedIn): "OEE Benchmark" med chart-pie-ikon
+- **Buggfix**: `skiftrapport-export` — Angular tillåter inte `new Date()` i template; fixat genom att exponera `todayISO: string` som komponent-property
+- **Build**: OK — inga fel (3 warnings för `??` i skiftrapport-export, ej vår kod)
+
 ## 2026-03-11 Underhallslogg — planerat och oplanerat underhall
 
 Ny sida `/rebotling/underhallslogg` (autentiserad). Operatörer loggar underhallstillfällen med kategori (Mekaniskt, Elektriskt, Hydraulik, Pneumatik, Rengöring, Kalibrering, Annat), typ (planerat/oplanerat), varaktighet i minuter och valfri kommentar. Historiklista med filter på period (7/14/30/90 dagar), typ och kategori. Sammanfattningskort: totalt antal, total tid, snitt/vecka, planerat/oplanerat-fördelning (%). Fördelningsvy med progressbar planerat vs oplanerat och stapeldiagram per kategori. Delete-knapp för admin. CSV-export.

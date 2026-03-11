@@ -1,0 +1,304 @@
+<div class="oee-benchmark-page">
+  <div class="container-fluid py-3">
+
+    <!-- Rubrik -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <h2 class="page-title">
+          <i class="fas fa-chart-pie me-2 text-teal"></i>
+          OEE Benchmark
+        </h2>
+        <p class="page-subtitle">Overall Equipment Effectiveness — jämförelse mot branschsnitt</p>
+      </div>
+    </div>
+
+    <!-- Periodselektor -->
+    <div class="row mb-4">
+      <div class="col-12 col-md-auto">
+        <div class="card card-dark p-3">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="text-muted small">Period:</span>
+            <div class="btn-group" role="group">
+              <button
+                *ngFor="let p of periodOptions"
+                class="btn btn-sm"
+                [class.btn-teal]="days === p"
+                [class.btn-outline-secondary]="days !== p"
+                (click)="days = p; onDaysChange()">
+                {{ p }} dagar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OEE Gauge + Benchmark row -->
+    <div class="row mb-4 g-3">
+
+      <!-- OEE Gauge -->
+      <div class="col-12 col-md-5 col-lg-4">
+        <div class="card card-dark p-3 h-100 d-flex flex-column align-items-center justify-content-center">
+          <h5 class="section-title mb-3 w-100">
+            <i class="fas fa-tachometer-alt me-2 text-teal"></i>
+            Aktuellt OEE
+          </h5>
+
+          <!-- Laddning -->
+          <div *ngIf="oeeLoading" class="text-center py-5 w-100">
+            <div class="spinner-border text-teal" role="status"></div>
+            <div class="text-muted mt-2">Beräknar OEE...</div>
+          </div>
+
+          <!-- Ingen data -->
+          <div *ngIf="oeeLoaded && !oeeLoading && !oeeData" class="text-center py-5 text-muted w-100">
+            <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+            <div>Ingen data tillgänglig</div>
+          </div>
+
+          <!-- Gauge -->
+          <div *ngIf="oeeLoaded && oeeData" class="gauge-wrapper w-100">
+            <div class="gauge-container">
+              <canvas id="oeeGaugeChart"></canvas>
+              <div class="gauge-center-text">
+                <div class="gauge-pct" [style.color]="getGaugeColor(oeeData.oee_pct)">
+                  {{ oeeData.oee_pct }}%
+                </div>
+                <div class="gauge-label text-muted">OEE</div>
+              </div>
+            </div>
+
+            <div class="text-center mt-2">
+              <span class="badge oee-status-badge" [ngClass]="getStatusBadgeClass(oeeData.status)">
+                {{ getOeeStatusText(oeeData.status) }}
+              </span>
+            </div>
+
+            <!-- Faktorer minivy -->
+            <div class="factor-mini-row mt-3">
+              <div class="factor-mini-item">
+                <div class="factor-mini-label text-muted">Tillgänglighet</div>
+                <div class="factor-mini-val" [style.color]="getProgressColor(oeeData.tillganglighet_pct)">
+                  {{ oeeData.tillganglighet_pct }}%
+                </div>
+              </div>
+              <div class="factor-mini-sep text-muted">×</div>
+              <div class="factor-mini-item">
+                <div class="factor-mini-label text-muted">Prestanda</div>
+                <div class="factor-mini-val" [style.color]="getProgressColor(oeeData.prestanda_pct)">
+                  {{ oeeData.prestanda_pct }}%
+                </div>
+              </div>
+              <div class="factor-mini-sep text-muted">×</div>
+              <div class="factor-mini-item">
+                <div class="factor-mini-label text-muted">Kvalitet</div>
+                <div class="factor-mini-val" [style.color]="getProgressColor(oeeData.kvalitet_pct)">
+                  {{ oeeData.kvalitet_pct }}%
+                </div>
+              </div>
+            </div>
+
+            <!-- Nyckeltal -->
+            <div class="row mt-3 g-2 text-center">
+              <div class="col-6">
+                <div class="kpi-mini-card">
+                  <div class="kpi-mini-val text-info">{{ oeeData.total_ibc }}</div>
+                  <div class="kpi-mini-label text-muted">Totala IBC</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-mini-card">
+                  <div class="kpi-mini-val text-success">{{ formatH(oeeData.drifttid_h) }}</div>
+                  <div class="kpi-mini-label text-muted">Drifttid</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Benchmark-jämförelse -->
+      <div class="col-12 col-md-7 col-lg-8">
+        <div class="card card-dark p-3 h-100">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-trophy me-2 text-warning"></i>
+            Benchmark-jämförelse
+          </h5>
+
+          <div *ngIf="benchLoading" class="text-center py-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <div class="text-muted mt-2">Hämtar benchmarkdata...</div>
+          </div>
+
+          <div *ngIf="benchLoaded && !benchLoading && !benchData" class="text-center py-5 text-muted">
+            Ingen benchmarkdata tillgänglig
+          </div>
+
+          <div *ngIf="benchLoaded && benchData">
+            <!-- Benchmark-rader -->
+            <div *ngFor="let bm of benchData.benchmarks" class="benchmark-row mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="d-flex align-items-center gap-2">
+                  <i [class]="getGapIcon(bm.over_target)"></i>
+                  <span class="benchmark-namn">{{ bm.namn }}</span>
+                  <span class="benchmark-target text-muted small">Mål: {{ bm.mal_pct }}%</span>
+                </div>
+                <span [class]="getGapClass(bm.gap)">
+                  {{ getGapLabel(bm.gap) }}
+                </span>
+              </div>
+
+              <!-- Stapel med markeringar -->
+              <div class="bench-bar-track">
+                <!-- Din OEE -->
+                <div class="bench-bar-fill"
+                     [style.width.%]="benchData.oee_pct"
+                     [style.background]="getProgressColor(benchData.oee_pct)">
+                </div>
+                <!-- Målmarkering -->
+                <div class="bench-marker" [style.left.%]="bm.mal_pct" title="{{ bm.namn }}: {{ bm.mal_pct }}%">
+                  <div class="bench-marker-line"></div>
+                  <div class="bench-marker-label">{{ bm.mal_pct }}%</div>
+                </div>
+                <!-- Din nivå-label -->
+                <div class="bench-your-label"
+                     [style.left.%]="benchData.oee_pct"
+                     [style.color]="getProgressColor(benchData.oee_pct)">
+                  Du: {{ benchData.oee_pct }}%
+                </div>
+              </div>
+            </div>
+
+            <!-- Förbättringsförslag -->
+            <div class="mt-4" *ngIf="benchData.forbattringsforslag?.length">
+              <h6 class="text-muted small mb-2">
+                <i class="fas fa-lightbulb me-1 text-warning"></i>
+                Förbättringsförslag (svagaste faktor:
+                <span [style.color]="getProgressColor(benchData.lagsta_faktor_pct)">
+                  {{ benchData.lagsta_faktor | titlecase }} {{ benchData.lagsta_faktor_pct }}%
+                </span>)
+              </h6>
+              <ul class="forslag-list">
+                <li *ngFor="let f of benchData.forbattringsforslag">
+                  <i class="fas fa-chevron-right text-teal me-2 small"></i>{{ f }}
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Faktor-kort (Tillgänglighet / Prestanda / Kvalitet) -->
+    <div class="row mb-4 g-3" *ngIf="breakLoaded && breakData">
+      <div class="col-12 col-md-4" *ngFor="let f of breakData.faktorer">
+        <div class="card card-dark p-3 faktor-card">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <i [class]="'fas ' + f.icon + ' fa-lg ' + getFaktorColorClass(f.color)"></i>
+            <h6 class="mb-0">{{ f.visningsnamn }}</h6>
+            <span class="ms-auto">
+              <i [class]="getTrendIcon(f.trend)" title="{{ getTrendText(f.pct, f.prev_pct) }}"></i>
+            </span>
+          </div>
+
+          <!-- Stort tal -->
+          <div class="faktor-pct" [style.color]="getProgressColor(f.pct)">
+            {{ f.pct }}%
+          </div>
+
+          <!-- Progressbar -->
+          <div class="progress faktor-progress mb-2">
+            <div class="progress-bar"
+                 role="progressbar"
+                 [style.width.%]="f.pct"
+                 [style.background]="getProgressColor(f.pct)"
+                 [attr.aria-valuenow]="f.pct"
+                 aria-valuemin="0"
+                 aria-valuemax="100">
+            </div>
+          </div>
+
+          <!-- Trend vs föreg. period -->
+          <div class="text-muted small mb-2">
+            {{ getTrendText(f.pct, f.prev_pct) }}
+          </div>
+
+          <!-- Detaljinfo per faktor -->
+          <div class="faktor-detalj text-muted small">
+            <ng-container *ngIf="f.id === 'tillganglighet'">
+              <span class="text-success">{{ formatH(f.drifttid_h ?? 0) }}</span> drifttid
+              / <span class="text-danger">{{ formatH(f.stopptid_h ?? 0) }}</span> stopptid
+            </ng-container>
+            <ng-container *ngIf="f.id === 'prestanda'">
+              {{ f.total_ibc }} IBC /
+              <span class="text-muted">{{ f.ideal_ibc }} ideal</span>
+            </ng-container>
+            <ng-container *ngIf="f.id === 'kvalitet'">
+              <span class="text-success">{{ f.ok_ibc }} OK</span> /
+              <span class="text-danger">{{ f.kasserade }} kasserade</span>
+            </ng-container>
+          </div>
+
+          <!-- Forklaring -->
+          <div class="faktor-forklaring text-muted" style="font-size:0.72rem; margin-top:6px;">
+            {{ f.forklaring }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laddning faktor-kort -->
+    <div class="row mb-4" *ngIf="breakLoading">
+      <div class="col-12 text-center py-3">
+        <div class="spinner-border text-info" role="status"></div>
+        <div class="text-muted mt-2">Laddar faktordata...</div>
+      </div>
+    </div>
+
+    <!-- Trend-graf -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-chart-line me-2 text-info"></i>
+            OEE-trend per dag
+          </h5>
+
+          <!-- Sammanfattning -->
+          <div *ngIf="trendLoaded && trendData" class="trend-summary-row mb-3">
+            <div class="trend-sum-item">
+              <span class="text-muted small">Snitt OEE:</span>
+              <span class="fw-bold ms-1" [style.color]="getProgressColor(trendData.avg_oee)">
+                {{ trendData.avg_oee }}%
+              </span>
+            </div>
+            <div class="trend-sum-item">
+              <span class="text-muted small">Bäst:</span>
+              <span class="fw-bold ms-1 text-success">{{ trendData.max_oee }}%</span>
+            </div>
+            <div class="trend-sum-item">
+              <span class="text-muted small">Sämst:</span>
+              <span class="fw-bold ms-1 text-danger">{{ trendData.min_oee }}%</span>
+            </div>
+          </div>
+
+          <div *ngIf="trendLoading" class="text-center py-5">
+            <div class="spinner-border text-info" role="status"></div>
+            <div class="text-muted mt-2">Laddar trenddata...</div>
+          </div>
+
+          <div *ngIf="trendLoaded && !trendLoading && (!trendData || trendData.trend.length === 0)"
+               class="text-center py-5 text-muted">
+            Ingen trenddata för vald period
+          </div>
+
+          <div *ngIf="trendLoaded && trendData && trendData.trend.length > 0"
+               class="trend-chart-container">
+            <canvas id="oeeTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

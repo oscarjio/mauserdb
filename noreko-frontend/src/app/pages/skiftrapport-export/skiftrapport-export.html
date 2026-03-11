@@ -1,0 +1,482 @@
+<div class="export-page">
+  <div class="container-fluid py-4">
+
+    <!-- ===== Header ===== -->
+    <div class="page-header mb-4">
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div>
+          <h1 class="page-title mb-0">
+            <i class="fas fa-file-pdf me-2 text-danger"></i>Skiftrapport PDF
+          </h1>
+          <p class="page-subtitle mb-0">Generera och ladda ner daglig eller veckovis produktionsrapport</p>
+        </div>
+        <div class="ms-auto d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-secondary btn-sm" (click)="skrivUt()">
+            <i class="fas fa-print me-1"></i>Skriv ut
+          </button>
+          <button
+            class="btn btn-danger btn-sm"
+            [disabled]="genererarPdf || (lage === 'dag' && (!rapport || !rapport.har_data)) || (lage === 'vecka' && veckoDagar.length === 0)"
+            (click)="laddaNerPdf()">
+            <i class="fas fa-download me-1"></i>
+            {{ genererarPdf ? 'Genererar...' : 'Ladda ner PDF' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Läge-toggle ===== -->
+    <div class="card mb-4">
+      <div class="card-body py-3">
+        <div class="d-flex align-items-center gap-4 flex-wrap">
+          <div class="btn-group" role="group">
+            <button
+              class="btn btn-sm"
+              [class.btn-primary]="lage === 'dag'"
+              [class.btn-outline-secondary]="lage !== 'dag'"
+              (click)="lage = 'dag'; byttLage()">
+              <i class="fas fa-calendar-day me-1"></i>Dagrapport
+            </button>
+            <button
+              class="btn btn-sm"
+              [class.btn-primary]="lage === 'vecka'"
+              [class.btn-outline-secondary]="lage !== 'vecka'"
+              (click)="lage = 'vecka'; byttLage()">
+              <i class="fas fa-calendar-week me-1"></i>Veckorapport
+            </button>
+          </div>
+
+          <!-- Dagläge: datumväljare -->
+          <ng-container *ngIf="lage === 'dag'">
+            <div class="d-flex align-items-center gap-2">
+              <label class="form-label mb-0 text-muted small">Datum:</label>
+              <input
+                type="date"
+                class="form-control form-control-sm datum-input"
+                [(ngModel)]="valtDatum"
+                (change)="hamtaDagrapport()"
+                [max]="todayISO" />
+            </div>
+          </ng-container>
+
+          <!-- Veckläge: datumintervall -->
+          <ng-container *ngIf="lage === 'vecka'">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <label class="form-label mb-0 text-muted small">Från:</label>
+              <input
+                type="date"
+                class="form-control form-control-sm datum-input"
+                [(ngModel)]="valtStartDatum"
+                [max]="valtSlutDatum" />
+              <label class="form-label mb-0 text-muted small">Till:</label>
+              <input
+                type="date"
+                class="form-control form-control-sm datum-input"
+                [(ngModel)]="valtSlutDatum"
+                [min]="valtStartDatum"
+                [max]="todayISO" />
+              <button class="btn btn-sm btn-outline-primary" (click)="hamtaVeckorapport()">
+                <i class="fas fa-sync me-1"></i>Hämta
+              </button>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DAGRAPPORT ===== -->
+    <ng-container *ngIf="lage === 'dag'">
+
+      <!-- Laddar -->
+      <div *ngIf="laddar" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Hämtar skiftdata...</p>
+      </div>
+
+      <!-- Fel -->
+      <div *ngIf="fel && !laddar" class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ fel }}
+      </div>
+
+      <!-- Ingen data -->
+      <div *ngIf="rapport && !rapport.har_data && !laddar" class="alert alert-warning">
+        <i class="fas fa-info-circle me-2"></i>
+        Ingen produktionsdata hittades för <strong>{{ formatDatumSv(valtDatum) }}</strong>.
+      </div>
+
+      <!-- Rapport-förhandsgranskning -->
+      <div *ngIf="rapport && rapport.har_data && !laddar" class="print-area">
+
+        <!-- Rapport-rubrik -->
+        <div class="rapport-header mb-4">
+          <div class="brand-text">MauserDB Produktionsrapport</div>
+          <h2 class="rapport-titel">Skiftrapport — {{ formatDatumSv(valtDatum) }}</h2>
+          <hr class="rapport-divider">
+        </div>
+
+        <!-- KPI-korts (rad 1) -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort kpi-ok">
+              <div class="kpi-ikon"><i class="fas fa-check-circle"></i></div>
+              <div class="kpi-varde">{{ rapport.produktion?.ibc_ok }}</div>
+              <div class="kpi-etikett">IBC OK</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort kpi-ej-ok">
+              <div class="kpi-ikon"><i class="fas fa-times-circle"></i></div>
+              <div class="kpi-varde">{{ rapport.produktion?.ibc_ej_ok }}</div>
+              <div class="kpi-etikett">IBC Ej OK</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort" [style.border-top-color]="kvalitetFarg(rapport.produktion?.kvalitet_pct ?? 0)">
+              <div class="kpi-ikon" [style.color]="kvalitetFarg(rapport.produktion?.kvalitet_pct ?? 0)">
+                <i class="fas fa-percentage"></i>
+              </div>
+              <div class="kpi-varde" [style.color]="kvalitetFarg(rapport.produktion?.kvalitet_pct ?? 0)">
+                {{ rapport.produktion?.kvalitet_pct }} %
+              </div>
+              <div class="kpi-etikett">Kvalitet</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort kpi-tempo">
+              <div class="kpi-ikon"><i class="fas fa-tachometer-alt"></i></div>
+              <div class="kpi-varde">{{ rapport.produktion?.ibc_per_timme }}</div>
+              <div class="kpi-etikett">IBC / timme</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rad 2: Cykeltid + Drifttid -->
+        <div class="row g-3 mb-4">
+          <!-- Cykeltider -->
+          <div class="col-md-6">
+            <div class="sektion-kort">
+              <h3 class="sektion-rubrik"><i class="fas fa-stopwatch me-2 text-info"></i>Cykeltider</h3>
+              <table class="table table-sm kpi-tabell mb-0" *ngIf="rapport.cykeltider">
+                <tbody>
+                  <tr>
+                    <td class="text-muted">Snitt cykeltid</td>
+                    <td class="text-end fw-bold">{{ formatSek(rapport.cykeltider.avg_sek) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Kortaste cykel</td>
+                    <td class="text-end">{{ formatSek(rapport.cykeltider.min_sek) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Längsta cykel</td>
+                    <td class="text-end">{{ formatSek(rapport.cykeltider.max_sek) }}</td>
+                  </tr>
+                  <tr>
+                    <td class="text-muted">Uppmätta cykler</td>
+                    <td class="text-end">{{ rapport.cykeltider.antal_cykler }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Drifttid -->
+          <div class="col-md-6">
+            <div class="sektion-kort">
+              <h3 class="sektion-rubrik"><i class="fas fa-clock me-2 text-warning"></i>Drifttid & Stopptid</h3>
+              <div *ngIf="rapport.drifttid">
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Drifttid</span>
+                    <span>{{ formatMin(rapport.drifttid.drifttid_min) }} ({{ rapport.drifttid.drifttid_pct }} %)</span>
+                  </div>
+                  <div class="progress" style="height:10px;background:#2d3748;">
+                    <div class="progress-bar bg-success"
+                         role="progressbar"
+                         [style.width]="drifttidBredd(rapport.drifttid.drifttid_pct)"></div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Stopptid</span>
+                    <span>{{ formatMin(rapport.drifttid.stopptid_min) }} ({{ rapport.drifttid.stopptid_pct }} %)</span>
+                  </div>
+                  <div class="progress" style="height:10px;background:#2d3748;">
+                    <div class="progress-bar bg-danger"
+                         role="progressbar"
+                         [style.width]="drifttidBredd(rapport.drifttid.stopptid_pct)"></div>
+                  </div>
+                </div>
+                <div class="small text-muted">
+                  Rasttid: {{ formatMin(rapport.drifttid.rast_min) }} &nbsp;|&nbsp;
+                  Planerad: {{ formatMin(rapport.drifttid.planerad_min) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OEE -->
+        <div class="sektion-kort mb-4" *ngIf="rapport.oee">
+          <h3 class="sektion-rubrik"><i class="fas fa-chart-pie me-2 text-primary"></i>OEE-approximation</h3>
+          <div class="row g-3">
+            <div class="col-6 col-md-3">
+              <div class="oee-box">
+                <div class="oee-varde" [style.color]="oeeFarg(rapport.oee.oee_pct)">{{ rapport.oee.oee_pct }} %</div>
+                <div class="oee-etikett">OEE (totalt)</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="oee-box">
+                <div class="oee-varde">{{ rapport.oee.tillganglighet }} %</div>
+                <div class="oee-etikett">Tillgänglighet</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="oee-box">
+                <div class="oee-varde">{{ rapport.oee.prestanda }} %</div>
+                <div class="oee-etikett">Prestanda</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="oee-box">
+                <div class="oee-varde" [style.color]="kvalitetFarg(rapport.oee.kvalitet)">{{ rapport.oee.kvalitet }} %</div>
+                <div class="oee-etikett">Kvalitet</div>
+              </div>
+            </div>
+          </div>
+          <p class="small text-muted mt-2 mb-0">
+            OEE = Tillgänglighet × Prestanda × Kvalitet. Teoretisk max: {{ rapport.oee.teoretisk_max_ibc_per_h }} IBC/h.
+          </p>
+        </div>
+
+        <!-- Operatörer -->
+        <div class="sektion-kort mb-4" *ngIf="rapport.operatorer.length > 0">
+          <h3 class="sektion-rubrik"><i class="fas fa-users me-2 text-success"></i>Top-operatörer</h3>
+          <div class="table-responsive">
+            <table class="table table-sm kpi-tabell mb-0">
+              <thead>
+                <tr>
+                  <th>Operatör</th>
+                  <th class="text-center">Antal IBC</th>
+                  <th class="text-center">Snitt cykeltid</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of rapport.operatorer; let i = index">
+                  <td>
+                    <span class="badge bg-secondary me-2">{{ i + 1 }}</span>{{ op.namn }}
+                  </td>
+                  <td class="text-center fw-bold">{{ op.antal_ibc }}</td>
+                  <td class="text-center">{{ formatSek(op.avg_cykeltid) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Trender -->
+        <div class="sektion-kort mb-4" *ngIf="rapport.trender">
+          <h3 class="sektion-rubrik">
+            <i class="fas fa-chart-line me-2 text-warning"></i>
+            Trender — jmf. {{ formatDatumSv(rapport.trender.prev_datum) }}
+          </h3>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="trend-kort">
+                <div class="trend-etikett">IBC OK</div>
+                <div class="trend-varden">
+                  <span class="text-muted small">Förra: {{ rapport.trender.prev_ibc_ok }}</span>
+                  <span class="fw-bold">Nu: {{ rapport.produktion?.ibc_ok }}</span>
+                </div>
+                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_ibc_ok_pct ?? 0)" *ngIf="rapport.trender.diff_ibc_ok_pct !== null">
+                  {{ trendIkon(rapport.trender.diff_ibc_ok_pct) }}
+                  {{ trendText(rapport.trender.diff_ibc_ok_pct, '%') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="trend-kort">
+                <div class="trend-etikett">Kvalitet</div>
+                <div class="trend-varden">
+                  <span class="text-muted small">Förra: {{ rapport.trender.prev_kvalitet }} %</span>
+                  <span class="fw-bold">Nu: {{ rapport.produktion?.kvalitet_pct }} %</span>
+                </div>
+                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_kvalitet ?? 0)" *ngIf="rapport.trender.diff_kvalitet !== null">
+                  {{ trendIkon(rapport.trender.diff_kvalitet) }}
+                  {{ trendText(rapport.trender.diff_kvalitet, 'pp') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="trend-kort">
+                <div class="trend-etikett">IBC / timme</div>
+                <div class="trend-varden">
+                  <span class="text-muted small">Förra: {{ rapport.trender.prev_ibc_per_h }}</span>
+                  <span class="fw-bold">Nu: {{ rapport.produktion?.ibc_per_timme }}</span>
+                </div>
+                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_ibc_per_h_pct ?? 0)" *ngIf="rapport.trender.diff_ibc_per_h_pct !== null">
+                  {{ trendIkon(rapport.trender.diff_ibc_per_h_pct) }}
+                  {{ trendText(rapport.trender.diff_ibc_per_h_pct, '%') }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skiftlista -->
+        <div class="sektion-kort" *ngIf="rapport.skiften.length > 1">
+          <h3 class="sektion-rubrik"><i class="fas fa-list me-2 text-info"></i>Skift på dygnet</h3>
+          <div class="table-responsive">
+            <table class="table table-sm kpi-tabell mb-0">
+              <thead>
+                <tr>
+                  <th>Skiftr.</th>
+                  <th>Start</th>
+                  <th>Slut</th>
+                  <th class="text-center">IBC OK</th>
+                  <th class="text-center">Ej OK</th>
+                  <th class="text-center">Kvalitet</th>
+                  <th class="text-center">IBC/h</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of rapport.skiften">
+                  <td class="text-muted small">{{ s.skiftraknare }}</td>
+                  <td class="small">{{ s.skift_start }}</td>
+                  <td class="small">{{ s.skift_slut }}</td>
+                  <td class="text-center fw-bold">{{ s.ibc_ok }}</td>
+                  <td class="text-center text-danger">{{ s.ibc_ej_ok }}</td>
+                  <td class="text-center" [style.color]="kvalitetFarg(s.kvalitet_pct)">{{ s.kvalitet_pct }} %</td>
+                  <td class="text-center">{{ s.ibc_per_timme }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Footer-info -->
+        <div class="rapport-footer mt-4 pt-3 border-top text-muted small text-center">
+          Genererad: {{ formatDatumSv(valtDatum) }} &nbsp;|&nbsp; MauserDB Produktionsrapport
+        </div>
+
+      </div><!-- /print-area -->
+    </ng-container>
+
+    <!-- ===== VECKORAPPORT ===== -->
+    <ng-container *ngIf="lage === 'vecka'">
+
+      <div *ngIf="laddarVecka" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Hämtar veckodata...</p>
+      </div>
+
+      <div *ngIf="veckoFel && !laddarVecka" class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ veckoFel }}
+      </div>
+
+      <div *ngIf="!laddarVecka && veckoDagar.length === 0 && !veckoFel" class="alert alert-warning">
+        <i class="fas fa-info-circle me-2"></i>Ingen produktionsdata hittades för valt datumintervall.
+      </div>
+
+      <div *ngIf="!laddarVecka && veckoDagar.length > 0" class="print-area">
+
+        <div class="rapport-header mb-4">
+          <div class="brand-text">MauserDB Produktionsrapport</div>
+          <h2 class="rapport-titel">
+            Veckorapport — {{ formatDatumSv(valtStartDatum) }} – {{ formatDatumSv(valtSlutDatum) }}
+          </h2>
+          <hr class="rapport-divider">
+        </div>
+
+        <!-- Veckosammanfattning -->
+        <div class="row g-3 mb-4" *ngIf="veckoSumma">
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort kpi-ok">
+              <div class="kpi-ikon"><i class="fas fa-check-circle"></i></div>
+              <div class="kpi-varde">{{ veckoSumma.ibc_ok }}</div>
+              <div class="kpi-etikett">Totalt IBC OK</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort" [style.border-top-color]="kvalitetFarg(veckoSumma.kvalitet_pct)">
+              <div class="kpi-ikon" [style.color]="kvalitetFarg(veckoSumma.kvalitet_pct)">
+                <i class="fas fa-percentage"></i>
+              </div>
+              <div class="kpi-varde" [style.color]="kvalitetFarg(veckoSumma.kvalitet_pct)">
+                {{ veckoSumma.kvalitet_pct }} %
+              </div>
+              <div class="kpi-etikett">Snittkvalitet</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort kpi-tempo">
+              <div class="kpi-ikon"><i class="fas fa-tachometer-alt"></i></div>
+              <div class="kpi-varde">{{ veckoSumma.ibc_per_timme }}</div>
+              <div class="kpi-etikett">Snitt IBC/h</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-kort">
+              <div class="kpi-ikon text-info"><i class="fas fa-calendar-day"></i></div>
+              <div class="kpi-varde">{{ veckoSumma.snitt_ibc_per_dag }}</div>
+              <div class="kpi-etikett">Snitt IBC/dag</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dagstabell -->
+        <div class="sektion-kort mb-4">
+          <h3 class="sektion-rubrik"><i class="fas fa-table me-2 text-info"></i>Daglig sammanfattning</h3>
+          <div class="table-responsive">
+            <table class="table table-sm kpi-tabell mb-0">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th class="text-center">IBC OK</th>
+                  <th class="text-center">Ej OK</th>
+                  <th class="text-center">Kvalitet</th>
+                  <th class="text-center">IBC/h</th>
+                  <th class="text-center">Drifttid</th>
+                  <th class="text-center">OEE</th>
+                  <th class="text-center">Skiften</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let dag of veckoDagar">
+                  <td class="small">{{ formatDatumSv(dag.dag) }}</td>
+                  <td class="text-center fw-bold text-success">{{ dag.ibc_ok }}</td>
+                  <td class="text-center text-danger">{{ dag.ibc_ej_ok }}</td>
+                  <td class="text-center" [style.color]="kvalitetFarg(dag.kvalitet_pct)">{{ dag.kvalitet_pct }} %</td>
+                  <td class="text-center">{{ dag.ibc_per_timme }}</td>
+                  <td class="text-center">{{ dag.drifttid_pct }} %</td>
+                  <td class="text-center" [style.color]="oeeFarg(dag.oee_pct)">{{ dag.oee_pct }} %</td>
+                  <td class="text-center text-muted">{{ dag.antal_skiften }}</td>
+                </tr>
+              </tbody>
+              <tfoot *ngIf="veckoSumma">
+                <tr class="summa-rad">
+                  <td class="fw-bold">SUMMA</td>
+                  <td class="text-center fw-bold text-success">{{ veckoSumma.ibc_ok }}</td>
+                  <td class="text-center">{{ veckoSumma.ibc_total - veckoSumma.ibc_ok }}</td>
+                  <td class="text-center fw-bold" [style.color]="kvalitetFarg(veckoSumma.kvalitet_pct)">
+                    {{ veckoSumma.kvalitet_pct }} %
+                  </td>
+                  <td class="text-center">{{ veckoSumma.ibc_per_timme }}</td>
+                  <td class="text-center text-muted">—</td>
+                  <td class="text-center text-muted">—</td>
+                  <td class="text-center text-muted">—</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
+        <div class="rapport-footer mt-4 pt-3 border-top text-muted small text-center">
+          Genererad: {{ formatDatumSv(valtSlutDatum) }} &nbsp;|&nbsp; MauserDB Produktionsrapport
+        </div>
+
+      </div><!-- /print-area vecka -->
+    </ng-container>
+
+  </div><!-- /container -->
+</div>

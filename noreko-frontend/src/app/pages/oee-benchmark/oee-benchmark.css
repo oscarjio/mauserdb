@@ -1,0 +1,269 @@
+/* ================================================================
+   OEE Benchmark — dark theme styles
+   ================================================================ */
+
+.oee-benchmark-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.card-dark {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* --- Period-knappar --- */
+.btn-teal {
+  background: #319795;
+  border-color: #319795;
+  color: #fff;
+}
+
+.btn-teal:hover {
+  background: #2c7a7b;
+  border-color: #2c7a7b;
+  color: #fff;
+}
+
+/* --- Gauge --- */
+.gauge-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gauge-container {
+  position: relative;
+  width: 220px;
+  height: 120px;
+  margin: 0 auto;
+}
+
+.gauge-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.gauge-center-text {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.gauge-pct {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.gauge-label {
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* --- Status badge --- */
+.oee-status-badge {
+  font-size: 0.85rem;
+  padding: 5px 14px;
+  border-radius: 50px;
+}
+
+.badge-teal   { background: rgba(56,178,172,0.2); color: #38b2ac; border: 1px solid #38b2ac; }
+.badge-green  { background: rgba(72,187,120,0.2); color: #48bb78; border: 1px solid #48bb78; }
+.badge-yellow { background: rgba(237,137,54,0.2); color: #ed8936; border: 1px solid #ed8936; }
+.badge-red    { background: rgba(245,101,101,0.2); color: #f56565; border: 1px solid #f56565; }
+
+/* --- Faktor-minivy under gauge --- */
+.factor-mini-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.factor-mini-item {
+  text-align: center;
+}
+
+.factor-mini-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.factor-mini-val {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.factor-mini-sep {
+  font-size: 1rem;
+  font-weight: 300;
+}
+
+/* --- KPI mini-kort --- */
+.kpi-mini-card {
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 8px 4px;
+}
+
+.kpi-mini-val {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.kpi-mini-label {
+  font-size: 0.7rem;
+}
+
+/* --- Benchmark-staplar --- */
+.benchmark-namn {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.benchmark-target {
+  font-size: 0.78rem;
+}
+
+.bench-bar-track {
+  position: relative;
+  height: 18px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  overflow: visible;
+  margin-bottom: 18px;
+}
+
+.bench-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+  max-width: 100%;
+}
+
+.bench-marker {
+  position: absolute;
+  top: -2px;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.bench-marker-line {
+  width: 2px;
+  height: 22px;
+  background: rgba(255,255,255,0.4);
+  margin: 0 auto;
+}
+
+.bench-marker-label {
+  font-size: 0.65rem;
+  color: #a0aec0;
+  text-align: center;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.bench-your-label {
+  position: absolute;
+  top: -20px;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* --- Förbättringsförslag --- */
+.forslag-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.forslag-list li {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  padding: 4px 0;
+}
+
+/* --- Faktor-kort --- */
+.faktor-card {
+  transition: box-shadow 0.2s;
+}
+
+.faktor-card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.faktor-pct {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 6px 0;
+}
+
+.faktor-progress {
+  height: 8px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 4px;
+}
+
+.faktor-progress .progress-bar {
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+
+.faktor-detalj {
+  margin-top: 4px;
+}
+
+/* --- Trend-sammanfattning --- */
+.trend-summary-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.trend-sum-item {
+  font-size: 0.9rem;
+}
+
+/* --- Trend-chart --- */
+.trend-chart-container {
+  height: 320px;
+  position: relative;
+}
+
+/* --- text-teal utility --- */
+.text-teal {
+  color: #38b2ac !important;
+}

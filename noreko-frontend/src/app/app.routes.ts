@@ -51,6 +51,8 @@ export const routes: Routes = [
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
       { path: 'rebotling/stopporsak-registrering', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-registrering/stopporsak-registrering').then(m => m.StopporsakRegistreringPage) },
       { path: 'rebotling/underhallslogg', canActivate: [authGuard], loadComponent: () => import('./pages/underhallslogg/underhallslogg').then(m => m.UnderhallsloggComponent) },
+      { path: 'rebotling/oee-benchmark', canActivate: [authGuard], loadComponent: () => import('./pages/oee-benchmark/oee-benchmark').then(m => m.OeeBenchmarkComponent) },
+      { path: 'rebotling/skiftrapport-export', canActivate: [authGuard], loadComponent: () => import('./pages/skiftrapport-export/skiftrapport-export').then(m => m.SkiftrapportExportComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
