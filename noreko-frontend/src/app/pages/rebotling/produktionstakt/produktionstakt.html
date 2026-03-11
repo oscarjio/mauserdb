@@ -1,0 +1,170 @@
+<div class="produktionstakt-page">
+  <div class="container-fluid">
+    <h2 class="page-title">
+      <i class="fas fa-tachometer-alt me-2" style="color:#4299e1"></i>Produktionstakt
+    </h2>
+    <p class="page-subtitle">Realtidsvy av aktuell IBC-produktion per timme</p>
+
+    <!-- Laddar -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border text-secondary" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="text-muted mt-2">Hamtar produktionstakt...</p>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert-banner" *ngIf="!loading && currentRate?.alert_active && !alertDismissed">
+      <div class="alert-content">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <span>{{ currentRate?.alert_message }}</span>
+      </div>
+      <button class="btn btn-sm btn-outline-light ms-3" (click)="dismissAlert()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <div *ngIf="!loading && currentRate">
+      <!-- Stort centralt KPI-kort -->
+      <div class="row g-3 mb-4">
+        <div class="col-12">
+          <div class="kpi-main-card" [ngClass]="targetStatusClass">
+            <div class="kpi-main-label">Aktuell takt (IBC/h)</div>
+            <div class="kpi-main-value" [class.rate-animating]="rateAnimating">
+              {{ currentRate.current_rate }}
+              <span class="trend-arrow" [ngClass]="trendClass">
+                <i class="fas" [ngClass]="trendIcon"></i>
+                <small *ngIf="currentRate.diff !== 0">
+                  {{ currentRate.diff > 0 ? '+' : '' }}{{ currentRate.diff }}
+                </small>
+              </span>
+            </div>
+            <div class="kpi-main-sub">
+              <span class="badge" [ngClass]="{
+                'bg-success': currentRate.target_status === 'green',
+                'bg-warning text-dark': currentRate.target_status === 'yellow',
+                'bg-danger': currentRate.target_status === 'red'
+              }">
+                {{ currentRate.target_ratio }}% av mal ({{ currentRate.target }} IBC/h)
+              </span>
+              <span class="ms-3 text-muted">
+                <i class="fas fa-box me-1"></i>{{ currentRate.count_today }} IBC idag
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3 referenskort + maltal-kort -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="ref-card">
+            <div class="ref-label">Senaste 4h snitt</div>
+            <div class="ref-value">{{ currentRate.avg_4h }} <small>IBC/h</small></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="ref-card">
+            <div class="ref-label">Dagens snitt</div>
+            <div class="ref-value">{{ currentRate.avg_today }} <small>IBC/h</small></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="ref-card">
+            <div class="ref-label">Veckans snitt</div>
+            <div class="ref-value">{{ currentRate.avg_week }} <small>IBC/h</small></div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="ref-card ref-card-target" [ngClass]="targetStatusClass">
+            <div class="ref-label">
+              Maltal
+              <button class="btn btn-sm btn-link p-0 ms-1" *ngIf="isAdmin"
+                      (click)="toggleTargetForm()" title="Andra maltal">
+                <i class="fas fa-pencil-alt" style="color:#a0aec0;font-size:0.75rem"></i>
+              </button>
+            </div>
+            <div class="ref-value">{{ target }} <small>IBC/h</small></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Maltal-formulare (admin) -->
+      <div class="target-form-card mb-4" *ngIf="showTargetForm && isAdmin">
+        <div class="row align-items-end g-2">
+          <div class="col-auto">
+            <label class="form-label text-muted small">Nytt maltal (IBC/h)</label>
+            <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary"
+                   [(ngModel)]="newTarget" min="1" max="100" step="0.5">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-primary" (click)="saveTarget()" [disabled]="savingTarget">
+              {{ savingTarget ? 'Sparar...' : 'Spara' }}
+            </button>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-sm btn-outline-secondary" (click)="toggleTargetForm()">Avbryt</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart.js linjegraf -->
+      <div class="chart-card mb-4">
+        <h5 class="chart-title">Timvis produktion (senaste 24h)</h5>
+        <div *ngIf="loadingHistory" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        </div>
+        <div class="chart-container" *ngIf="!loadingHistory">
+          <canvas #taktChart></canvas>
+        </div>
+      </div>
+
+      <!-- Timtabell -->
+      <div class="table-card">
+        <h5 class="table-title">Timvis detaljvy</h5>
+        <div class="table-responsive">
+          <table class="table table-dark table-sm table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Timme</th>
+                <th class="text-end">Antal IBC</th>
+                <th class="text-end">Takt (IBC/h)</th>
+                <th class="text-end">Mal</th>
+                <th class="text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of hourlyHistory; let i = index"
+                  [ngClass]="getRowStatusClass(entry)">
+                <td>{{ entry.hour_label }}</td>
+                <td class="text-end">{{ entry.ibc_count }}</td>
+                <td class="text-end">{{ entry.rate }}</td>
+                <td class="text-end text-muted">{{ entry.target }}</td>
+                <td class="text-center">
+                  <span class="badge" [ngClass]="{
+                    'bg-success': entry.status === 'green',
+                    'bg-warning text-dark': entry.status === 'yellow',
+                    'bg-danger': entry.status === 'red'
+                  }">
+                    <span *ngIf="entry.status === 'green'">OK</span>
+                    <span *ngIf="entry.status === 'yellow'">Lag</span>
+                    <span *ngIf="entry.status === 'red'">Kritisk</span>
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="hourlyHistory.length === 0">
+                <td colspan="5" class="text-center text-muted py-3">Ingen data tillganglig</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tom vy -->
+    <div *ngIf="!loading && !currentRate" class="text-center py-5">
+      <i class="fas fa-exclamation-circle fa-3x text-muted mb-3 d-block"></i>
+      <p class="text-muted">Kunde inte hamta produktionstakt.</p>
+    </div>
+  </div>
+</div>

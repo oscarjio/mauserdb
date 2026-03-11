@@ -161,6 +161,7 @@ $classNameMap = [
     'stopporsak-trend'        => 'StopporsakTrendController',
     'produktionsmal'          => 'ProduktionsmalController',
     'utnyttjandegrad'         => 'UtnyttjandegradController',
+    'produktionstakt'         => 'ProduktionsTaktController',
 ];
 
 $actionKey = strtolower($action);
