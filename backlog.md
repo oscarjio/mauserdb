@@ -5,10 +5,10 @@
 
 ## Förbättringar
 
-- [x] **Daglig sammanfattning auto-generering** — backend-endpoint som genererar daglig KPI-sammanfattning som VD kan se utan att navigera flera sidor
-- [x] **Produktionskalender förbättring** — visa produktionsvolym + kvalitet per dag i kalendervy med färgkodning (grön/gul/röd)
-- [ ] **Målhistorik-analys** — rebotling_goal_history finns i DB men saknar visualisering. Visa hur produktionsmål ändrats över tid och effekt på prestation
+- [PÅGÅR] **Målhistorik-analys** — rebotling_goal_history → visualisering: tidslinje-graf, ändringslogg, impact-analys
+- [PÅGÅR] **Skiftjämförelse-dashboard** — jämför dag/kväll/nattskift: IBC/h, kvalitet, stopptid, trendgraf
 - [ ] **Underhållsprognos** — baserat på maintenance_log/service_intervals — förutse nästa underhåll, varna VD innan det är dags
 - [ ] **Kvalitetstrend per operatör** — visa kvalitet% trend per operatör över veckor/månader. Identifiera vilka som förbättras/försämras. VD ser utbildningsbehov
-- [ ] **Skiftjämförelse-dashboard** — jämför dag/kväll/nattskift: IBC/h, kvalitet, stopptid. Hjälper VD fördela resurser och identifiera svaga skift
 - [ ] **Stopporsak-trendanalys** — visa hur vanligaste stopporsaker utvecklas över tid (veckovis). Avslöjar om åtgärder fungerar eller om problem förvärras
+- [ ] **Energi/effektivitetsvy** — IBC per drifttimme trendartat. Visa om maskinen blir långsammare (slitage) eller snabbare (optimering)
+- [ ] **Operatörs-onboarding tracker** — visa nya operatörers lärlingskurva: hur snabbt de når team-genomsnittet i IBC/h de första veckorna

@@ -62,28 +62,30 @@ Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
 Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
 Session #60: Daglig sammanfattning + Produktionskalender — klara.
+Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Daglig sammanfattning auto-generering** — KPI utan navigation
-- [x] **Produktionskalender förbättring** — volym + kvalitet per dag
-- [ ] **Målhistorik-analys** — rebotling_goal_history → visualisering
+- [PÅGÅR] **Målhistorik-analys** — rebotling_goal_history → visualisering
+- [PÅGÅR] **Skiftjämförelse-dashboard** — dag/kväll/natt-prestanda
 - [ ] **Underhållsprognos** — prediktera underhåll från historik
 - [ ] **Kvalitetstrend per operatör** — kvalitet% trend, utbildningsbehov
-- [ ] **Skiftjämförelse-dashboard** — dag/kväll/natt-prestanda
 - [ ] **Stopporsak-trendanalys** — veckovis utveckling av stopporsaker
+- [ ] **Energi/effektivitetsvy** — IBC per drifttimme, slitage-trend
+- [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #61 (pågår)
+Merge-konflikter i dev-log.md + statistik-cykeltid-operator.ts lösta (kvarvarande från session #60).
+Worker 1 (Målhistorik-analys): Visualisering av rebotling_goal_history — tidslinje-steg-graf, ändringslogg, impact-analys före/efter. Backend: MalhistorikController.
+Worker 2 (Skiftjämförelse-dashboard): Jämför dag/kväll/nattskift med KPI-kort, stapeldiagram, trendgraf, topp-operatörer per skift. Backend: SkiftjamforelseController.
+Backlog utökad med 2 nya items: Energi/effektivitetsvy + Operatörs-onboarding tracker.
+
 ### 2026-03-11 — Session #60 (klar)
-Merge-konflikter lösta (dev-log.md + statistik-cykeltid-operator.ts). Git config rensad (26 gamla worktree-grenar borttagna). Båda workers klara och pushade.
-Worker 1 (Daglig sammanfattning): Komplett VD-dashboard på 1 sida. 2 endpoints (daily-summary + comparison). Auto-refresh 60s, statusmeddelande, OEE-snapshot, topp-3 operatörer, stopptid, jämförelsetabell. Backend: DagligSammanfattningController.
-Worker 2 (Produktionskalender): Månadsvy med CSS Grid, färgkodade dagar (grön/gul/röd), klickbar detalj-panel, veckonummer, månadssammanfattning, veckosnitt med trendpilar. Backend: ProduktionskalenderController.
+Worker 1 (Daglig sammanfattning): Komplett VD-dashboard, 2 endpoints, auto-refresh 60s. Backend: DagligSammanfattningController.
+Worker 2 (Produktionskalender): Månadsvy CSS Grid, färgkodade dagar, klickbar detalj-panel. Backend: ProduktionskalenderController.
 
 ### 2026-03-11 — Session #59 (klar)
-Worker 1 (Operatörsranking historik): Leaderboard-trender, placeringsändringar, klättrare-badge, head-to-head, streak-tabell. Backend: RankingHistorikController.
-Worker 2 (Operatörs-feedback analys): Stämningsöversikt, trender, betygsfördelning, operatörsöversikt, paginerad detaljlista. Backend: FeedbackAnalysController.
-
-### 2026-03-11 — Session #58 (klar)
-Worker 1 (OEE-benchmark): Gauge, benchmark-staplar, 3 faktor-kort, trendgraf, förbättringsförslag. Backend: OeeBenchmarkController.
-Worker 2 (Skiftrapport PDF): Datumväljare dag/vecka, förhandsgranskning, PDF via pdfmake, utskriftsknapp. Backend: SkiftrapportExportController.
+Worker 1 (Operatörsranking historik): Leaderboard-trender, placeringsändringar, head-to-head. Backend: RankingHistorikController.
+Worker 2 (Operatörs-feedback analys): Stämningsöversikt, trender, operatörsöversikt. Backend: FeedbackAnalysController.
