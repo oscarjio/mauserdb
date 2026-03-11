@@ -65,12 +65,10 @@ Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
 Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
 Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — klara.
-Session #55: Kassationsanalys + Alerts/notifieringar — pågår.
+Session #55: Kassationsanalys + Alerts/notifieringar — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Kassationsanalys** — drilldown per stopporsak + kassationstyp (session #55)
-- [PÅGÅR] **Alerts/notifieringar** — realtidsvarning vid låg OEE/lång stopptid (session #55)
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 - [ ] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
 - [ ] **Stopporsak-snabbregistrering** — mobilvänlig knappmatris
@@ -81,9 +79,9 @@ Session #55: Kassationsanalys + Alerts/notifieringar — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #55 (pågår)
-Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf, trendjämförelse, periodselektor. Backend: KassationsanalysController.
-Worker 2 (Alerts/notifieringar): Realtidsvarningar vid låg OEE/lång stopptid, kvittering, tröskelvärden, badge i header. Backend: AlertsController + DB-migrering.
+### 2026-03-11 — Session #55 (klar)
+Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf (Chart.js), trendjämförelse, periodselektor 7/14/30/90d, orsaksanalys-tabell med klickbar drilldown. Backend: KassationsanalysController. Commit ca9f0bc.
+Worker 2 (Alerts/notifieringar): Realtidsvarningar vid låg OEE/lång stopptid/hög kassation, kvittering, tröskelvärden, badge i header med polling var 60s, tre flikar (aktiva/historik/inställningar). Backend: AlertsController + DB-migrering (alerts + alert_settings). Commit b72b4e2.
 
 ### 2026-03-11 — Session #54 (klar)
 Worker 1 (Operatörs-dashboard "Min dag"): Personlig vy — dagens IBC, cykeltid-trend (Chart.js), kvalitet, bonus, progressbars mot mål, motivationstext. Backend: MinDagController. Commit d264777.

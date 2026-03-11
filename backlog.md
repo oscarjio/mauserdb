@@ -5,8 +5,6 @@
 
 ## Förbättringar
 
-- [PÅGÅR] **Kassationsanalys** — drilldown per stopporsak + kassationstyp, stackad graf, trendjämförelse (session #55)
-- [PÅGÅR] **Alerts/notifieringar** — realtidsvarning när OEE sjunker under tröskel eller stopp > X min (session #55)
 - [ ] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Effektivitet per produkttyp** — jämförelse FoodGrade vs NonUN vs Tvättade: cykeltid, kvalitet, IBC/h
 - [ ] **Stopporsak-snabbregistrering** — operatör loggar stopporsak via mobilvänlig knappmatris direkt vid stopp
