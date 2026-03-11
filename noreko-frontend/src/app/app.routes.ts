@@ -60,6 +60,7 @@ export const routes: Routes = [
       { path: 'rebotling/skiftjamforelse', canActivate: [authGuard], loadComponent: () => import('./pages/skiftjamforelse/skiftjamforelse').then(m => m.SkiftjamforelseComponent) },
       { path: 'rebotling/malhistorik', canActivate: [authGuard], loadComponent: () => import('./pages/malhistorik/malhistorik').then(m => m.MalhistorikComponent) },
       { path: 'rebotling/underhallsprognos', canActivate: [authGuard], loadComponent: () => import('./pages/underhallsprognos/underhallsprognos').then(m => m.UnderhallsprognosComponent) },
+      { path: 'rebotling/effektivitet', canActivate: [authGuard], loadComponent: () => import('./pages/effektivitet/effektivitet').then(m => m.EffektivitetComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
@@ -85,6 +86,7 @@ export const routes: Routes = [
       { path: 'admin/operator-attendance', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-attendance/operator-attendance').then(m => m.OperatorAttendancePage) },
       { path: 'admin/operator-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-trend/operator-trend').then(m => m.OperatorTrendPage) },
       { path: 'admin/kvalitetstrend', canActivate: [adminGuard], loadComponent: () => import('./pages/kvalitetstrend/kvalitetstrend').then(m => m.KvalitetstrendComponent) },
+      { path: 'admin/stopporsak-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/stopporsak-trend/stopporsak-trend').then(m => m.StopporsakTrendComponent) },
       { path: 'admin/operator/:id', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-detail/operator-detail').then(m => m.OperatorDetailPage) },
       { path: 'admin/underhall', canActivate: [adminGuard], loadComponent: () => import('./pages/maintenance-log/maintenance-log').then(m => m.MaintenanceLogPage) },
 

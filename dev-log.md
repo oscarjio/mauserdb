@@ -1,3 +1,26 @@
+## 2026-03-11 Stopporsak-trendanalys — veckovis trendanalys av stopporsaker
+
+Ny sida `/admin/stopporsak-trend` (adminGuard). VD kan se hur de vanligaste stopporsakerna utvecklas över tid (veckovis) och bedöma om åtgärder mot specifika orsaker fungerar.
+
+- **Backend**: `StopporsakTrendController.php` — tre endpoints via `?action=stopporsak-trend&run=XXX`:
+  - `run=weekly&weeks=N`: Veckovis stopporsaksdata (default 12 veckor). Per vecka + orsak: antal stopp + total stopptid. Kombinerar data från `stoppage_log`+`stoppage_reasons` och `stopporsak_registreringar`+`stopporsak_kategorier`. Returnerar topp-7 orsaker, veckolista, KPI (senaste veckan: totalt stopp + stopptid).
+  - `run=summary&weeks=N`: Top-5 orsaker med trend — jämför senaste vs föregående halvperiod. Beräknar %-förändring och klassar: increasing/decreasing/stable (tröskel ±10%). Returnerar most_improved och vanligaste_orsak.
+  - `run=detail&reason=X&weeks=N`: Detaljerad veckoviss tidsserie för specifik orsak, med totalt antal, stopptid, snitt/vecka, trend.
+- **SQL-migration**: `noreko-backend/migrations/2026-03-11_stopporsak_trend.sql` — index på `stoppage_log(created_at, reason_id)` och `stopporsak_registreringar(start_time, kategori_id)`.
+- **api.php**: Registrerat `stopporsak-trend` → `StopporsakTrendController`.
+- **Service**: `src/app/services/stopporsak-trend.service.ts` — getWeekly(), getSummary(), getDetail() med fullständiga TypeScript-interfaces, timeout(15000) + catchError.
+- **Komponent**: `src/app/pages/stopporsak-trend/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearTimeout + chart?.destroy().
+  - Periodväljare: 4 / 8 / 12 / 26 veckor.
+  - 4 KPI-kort: Stopp senaste veckan, Stopptid (h:mm), Vanligaste orsaken, Mest förbättrad.
+  - Staplad bar chart (Chart.js): X = veckor, Y = antal stopp, en färgad serie per orsak (topp 7). Stacked + tooltip visar alla orsaker per vecka.
+  - Trendtabell: topp-5 orsaker med sparkline-prickar (6v), snitt stopp/vecka nu vs fg., %-förändring med pil, trend-badge (Ökar/Minskar/Stabil). Klickbar rad.
+  - Expanderbar detaljvy: KPI-rad (totalt/stopptid/snitt/trend), linjegraf per orsak, tidslinjetabell.
+  - Trendpil-konvention: ↑ röd (ökar = dåligt), ↓ grön (minskar = bra).
+  - Math = Math. Lifecycle korrekt: destroy$ + clearTimeout + chart?.destroy().
+- **Route**: `/admin/stopporsak-trend` (adminGuard).
+- **Meny**: Lagt till under Admin-dropdown efter Kvalitetstrend: "Stopporsak-trend" (orange ikon).
+- **Build**: OK (inga nya varningar).
+
 ## 2026-03-11 Kvalitetstrend per operatör — identifiera förbättring/nedgång och utbildningsbehov
 
 Ny sida `/admin/kvalitetstrend` (adminGuard). VD kan se kvalitet%-trend per operatör över veckor/månader, identifiera vilka som förbättras och vilka som försämras, samt se utbildningsbehov.

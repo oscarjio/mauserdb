@@ -56,6 +56,7 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/skiftjamforelse"><i class="fas fa-exchange-alt me-2" style="color: #ed8936;"></i>Skiftjämförelse</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/malhistorik"><i class="fas fa-bullseye me-2" style="color:#4fd1c5"></i>Målhistorik</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/underhallsprognos"><i class="fas fa-tools me-2" style="color:#fc5c65"></i>Underhållsprognos</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/effektivitet"><i class="fas fa-bolt me-2" style="color:#ecc94b"></i>Maskineffektivitet</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
@@ -264,6 +265,7 @@
           <li><a class="dropdown-item" routerLink="/admin/operator-attendance"><i class="fas fa-calendar-check me-2"></i>Närvaro</a></li>
           <li><a class="dropdown-item" routerLink="/admin/operator-trend"><i class="fas fa-chart-line me-2"></i>Prestanda-trend</a></li>
           <li><a class="dropdown-item" routerLink="/admin/kvalitetstrend"><i class="fas fa-star-half-alt me-2" style="color:#4299e1;"></i>Kvalitetstrend</a></li>
+          <li><a class="dropdown-item" routerLink="/admin/stopporsak-trend"><i class="fas fa-chart-bar me-2" style="color:#ed8936;"></i>Stopporsak-trend</a></li>
           <li><a class="dropdown-item" routerLink="/admin/underhall"><i class="fas fa-tools me-2"></i>Underhållslogg</a></li>
           <li><a class="dropdown-item" routerLink="/admin/vpn"><i class="fas fa-network-wired me-2"></i>VPN</a></li>
           <li><a class="dropdown-item" routerLink="/admin/audit"><i class="fas fa-history me-2"></i>Aktivitetslogg</a></li>

@@ -1,0 +1,305 @@
+<div class="st-wrapper">
+
+  <!-- ===== SIDHUVUD ===== -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-chart-bar me-2" style="color: #ed8936;"></i>
+          Stopporsak-trendanalys
+        </h1>
+        <p class="page-subtitle text-muted">
+          Veckovis trendanalys av stopporsaker — se om åtgärder fungerar eller om problemen förvärras
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted" *ngIf="lastRefreshed">
+          Uppdaterad {{ lastRefreshed | date:'HH:mm:ss' }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Periodväljare -->
+    <div class="d-flex align-items-center gap-2 flex-wrap mt-3">
+      <div class="period-selector">
+        <button
+          *ngFor="let p of perioder"
+          class="btn btn-sm period-btn"
+          [class.active]="selectedWeeks === p.val"
+          (click)="setPeriod(p.val)">
+          {{ p.label }}
+        </button>
+        <span class="text-muted small ms-2">{{ getPeriodLabel() }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LADDNING ===== -->
+  <div class="text-center py-4" *ngIf="(weeklyLoading || summaryLoading) && !weeklyLoaded">
+    <div class="spinner-border text-warning" role="status"></div>
+    <p class="text-muted mt-2">Hämtar stopporsaksdata...</p>
+  </div>
+
+  <!-- ===== FEL ===== -->
+  <div class="alert alert-danger" *ngIf="weeklyError && weeklyLoaded">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hämta data. Kontrollera att du är inloggad och försök igen.
+  </div>
+
+  <!-- ===== KPI-KORT ===== -->
+  <div class="row g-3 mb-4" *ngIf="weeklyLoaded && weeklyData && summaryLoaded && summaryData">
+
+    <!-- Totalt antal stopp (senaste veckan) -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #ed8936;">
+          <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Stopp senaste veckan</div>
+          <div class="kpi-value" [class.text-danger]="weeklyData.total_stopp_senaste_vecka > 5"
+               [class.text-warning]="weeklyData.total_stopp_senaste_vecka >= 2 && weeklyData.total_stopp_senaste_vecka <= 5"
+               [class.text-success]="weeklyData.total_stopp_senaste_vecka < 2">
+            {{ weeklyData.total_stopp_senaste_vecka }}
+          </div>
+          <div class="kpi-sub">{{ sistaVeckaLabel }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total stopptid (senaste veckan) -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #e53e3e;">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Stopptid senaste veckan</div>
+          <div class="kpi-value text-warning">
+            {{ formatHmm(weeklyData.total_min_senaste_vecka) }}
+          </div>
+          <div class="kpi-sub">h:mm format</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vanligaste orsaken -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #9f7aea;">
+          <i class="fas fa-list-ol"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Vanligaste orsaken</div>
+          <div class="kpi-value kpi-text-sm">
+            {{ summaryData.vanligaste_orsak ?? '–' }}
+          </div>
+          <div class="kpi-sub">Senaste veckan</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mest förbättrad orsak -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card" [class.kpi-card-good]="summaryData.most_improved !== null">
+        <div class="kpi-icon" style="color: #48bb78;">
+          <i class="fas fa-arrow-trend-down"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Mest förbättrad</div>
+          <div class="kpi-value kpi-text-sm text-success">
+            {{ summaryData.most_improved ?? '–' }}
+          </div>
+          <div class="kpi-sub">Störst minskning</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TRENDGRAF ===== -->
+  <div class="st-card mb-4" *ngIf="weeklyLoaded && weeklyData">
+    <div class="st-card-header">
+      <span>
+        <i class="fas fa-chart-bar me-2" style="color: #ed8936;"></i>
+        Veckovis stopporsaksvolym — topp {{ weeklyData.top_reasons.length }} orsaker
+      </span>
+      <span class="text-muted small">{{ getPeriodLabel() }}</span>
+    </div>
+    <div class="card-body p-3">
+      <div class="chart-container">
+        <canvas id="stopporsakTrendChart"></canvas>
+      </div>
+      <div *ngIf="!weeklyData.veckor.length" class="text-center text-muted py-4">
+        <i class="fas fa-database me-2"></i>Ingen stoppdata för perioden
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TRENDTABELL ===== -->
+  <div class="st-card mb-4" *ngIf="summaryLoaded && summaryData && summaryData.summaries.length > 0">
+    <div class="st-card-header">
+      <span>
+        <i class="fas fa-table me-2" style="color: #4299e1;"></i>
+        Topp 5 stopporsaker med trend
+      </span>
+      <span class="text-muted small">Jämför senaste vs föregående period</span>
+    </div>
+    <div class="table-responsive">
+      <table class="st-table">
+        <thead>
+          <tr>
+            <th>Orsak</th>
+            <th class="text-center">Trend (6v)</th>
+            <th class="text-center">Sn. stopp/v (nu)</th>
+            <th class="text-center">Sn. stopp/v (fg.)</th>
+            <th class="text-center">Förändring</th>
+            <th class="text-center">Status</th>
+            <th class="text-end">Åtgärd</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let row of summaryData.summaries; trackBy: trackByReason"
+            [class.selected-row]="selectedReason === row.reason"
+            style="cursor: pointer;"
+            (click)="loadDetail(row.reason)">
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="reason-dot" [style.background-color]="getReasonColor(row.reason)"></span>
+                <span class="reason-namn">{{ row.reason }}</span>
+              </div>
+            </td>
+            <td class="text-center">
+              <!-- Sparkline-prickar -->
+              <div class="sparkline-mini">
+                <ng-container *ngFor="let val of getSparkdata(row); let i = index">
+                  <span class="spark-dot"
+                        [ngClass]="getSparkDotKlass(val, row.current_avg)"
+                        [title]="(val !== null ? val + ' stopp' : 'Ingen data')">
+                  </span>
+                </ng-container>
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="fw-semibold">{{ row.current_avg | number:'1.1-1' }}</span>
+            </td>
+            <td class="text-center text-muted">
+              {{ row.previous_avg | number:'1.1-1' }}
+            </td>
+            <td class="text-center">
+              <span [ngClass]="getTrendKlass(row.trend)" class="fw-semibold">
+                {{ getTrendPil(row.trend) }} {{ formatForandring(row.change_pct) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <span class="trend-badge" [ngClass]="getTrendBadgeKlass(row.trend)">
+                {{ getTrendBadgeLabel(row.trend) }}
+              </span>
+            </td>
+            <td class="text-end">
+              <button
+                class="btn btn-sm btn-outline-info"
+                (click)="$event.stopPropagation(); loadDetail(row.reason)"
+                [class.active]="selectedReason === row.reason">
+                <i class="fas fa-chart-line me-1"></i>Detalj
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== TOM TRENDTABELL ===== -->
+  <div class="st-card mb-4" *ngIf="summaryLoaded && summaryData && summaryData.summaries.length === 0">
+    <div class="card-body text-center text-muted py-5">
+      <i class="fas fa-database fa-2x mb-3 d-block" style="color: #4a5568;"></i>
+      Ingen stoppdata hittades för perioden
+    </div>
+  </div>
+
+  <!-- ===== DETALJVY ===== -->
+  <div class="st-card mb-4" *ngIf="selectedReason">
+    <div class="st-card-header">
+      <span>
+        <i class="fas fa-chart-line me-2" style="color: #48bb78;"></i>
+        Detaljvy: <strong>{{ selectedReason }}</strong>
+      </span>
+      <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
+        <i class="fas fa-times me-1"></i>Stäng
+      </button>
+    </div>
+
+    <!-- Laddning av detaljdata -->
+    <div class="card-body text-center py-4" *ngIf="detailLoading">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <span class="text-muted ms-2">Hämtar detaljdata...</span>
+    </div>
+
+    <!-- Detaljdata laddad -->
+    <div class="card-body p-3" *ngIf="!detailLoading && detailData">
+
+      <!-- KPI-rad -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Totalt antal stopp</div>
+            <div class="detail-kpi-val text-warning">{{ detailData.total_count }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Total stopptid</div>
+            <div class="detail-kpi-val text-danger">{{ formatHmm(detailData.total_minutes) }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Snitt per vecka</div>
+            <div class="detail-kpi-val">{{ detailData.avg_per_week | number:'1.1-1' }}</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Trend</div>
+            <div class="detail-kpi-val" [ngClass]="getTrendKlass(detailData.trend)">
+              {{ getTrendPil(detailData.trend) }} {{ formatForandring(detailData.change_pct) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detaljgraf -->
+      <div class="detail-chart-container mb-3">
+        <canvas id="stopporsakDetailChart"></canvas>
+      </div>
+
+      <!-- Tidslinjetabell -->
+      <div class="table-responsive">
+        <table class="st-table-sm">
+          <thead>
+            <tr>
+              <th>Vecka</th>
+              <th class="text-center">Antal stopp</th>
+              <th class="text-center">Stopptid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rad of detailData.tidslinje">
+              <td class="text-muted">{{ rad.week_label }}</td>
+              <td class="text-center">
+                <span [class.text-warning]="rad.count > 0" [class.text-muted]="rad.count === 0">
+                  {{ rad.count > 0 ? rad.count : '–' }}
+                </span>
+              </td>
+              <td class="text-center text-muted">
+                {{ rad.total_minutes > 0 ? formatMinuter(rad.total_minutes) : '–' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -157,6 +157,8 @@ $classNameMap = [
     'skiftjamforelse'         => 'SkiftjamforelseController',
     'underhallsprognos'       => 'UnderhallsprognosController',
     'kvalitetstrend'          => 'KvalitetstrendController',
+    'effektivitet'            => 'EffektivitetController',
+    'stopporsak-trend'        => 'StopporsakTrendController',
 ];
 
 $actionKey = strtolower($action);
