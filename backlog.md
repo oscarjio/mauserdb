@@ -3,11 +3,6 @@
 *Lead-agenten fyller på. Workers plockar uppgifter härifrån.*
 *Håll 5-10 öppna items. Markera med [x] när klart.*
 
-## Pågår
-
-- [~] **OEE-benchmark jämförelse** — gauge + gap-analys mot branschsnitt (World Class 85%), trend per dag, förbättringsförslag
-- [~] **Skiftrapport PDF-export** — VD genererar daglig/veckovis skiftsammanfattning som PDF (jsPDF), förhandsgranskning + nedladdning
-
 ## Förbättringar
 
 - [ ] **Operatörsranking historik** — leaderboard-trender över tid, visa placeringsändring per vecka, motiverande "klättrare"-indikator

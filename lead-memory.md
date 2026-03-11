@@ -60,12 +60,12 @@ chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48-#56: Se lead-memory-archive.md för detaljer.
 Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
-Session #58: OEE-benchmark + Skiftrapport PDF — pågår.
+Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [~] **OEE-benchmark jämförelse** — gauge + gap-analys mot branschsnitt
-- [~] **Skiftrapport PDF-export** — daglig sammanfattning som PDF (jsPDF)
+- [x] **OEE-benchmark jämförelse** — gauge + gap-analys mot branschsnitt
+- [x] **Skiftrapport PDF-export** — daglig sammanfattning som PDF (pdfmake)
 - [ ] **Operatörsranking historik** — leaderboard-trender över tid
 - [ ] **Operatörs-feedback analys** — operator_feedback-tabell → UI
 - [ ] **Daglig sammanfattning auto-generering** — KPI utan navigation
@@ -75,10 +75,10 @@ Session #58: OEE-benchmark + Skiftrapport PDF — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #58 (pågår)
-Merge-konflikter lösta (dev-log.md + statistik-cykeltid-operator.ts). Backlog rensad: Underhållslogg + Cykeltids-heatmap klara → borttagna. Nya items tillagda baserat på kodgranskning: Operatörs-feedback analys (operator_feedback-tabell saknar UI), Målhistorik-analys, Underhållsprognos.
-Worker 1 (OEE-benchmark): Gauge + gap-analys mot branschsnitt, 3-faktor-breakdown, trendgraf, förbättringsförslag.
-Worker 2 (Skiftrapport PDF): jsPDF-generering, förhandsgranskning, VD-fokuserad daglig/veckosammanfattning.
+### 2026-03-11 — Session #58 (klar)
+Merge-konflikter lösta. Backlog rensad + nya items från kodgranskning.
+Worker 1 (OEE-benchmark): Gauge (Chart.js doughnut), benchmark-staplar, 3 faktor-kort (tillgänglighet/prestanda/kvalitet) med trend-pilar, trendgraf med referenslinjer, förbättringsförslag. Backend: OeeBenchmarkController. Commit e60fc16.
+Worker 2 (Skiftrapport PDF): Datumväljare dag/vecka, förhandsgranskning med KPI-kort, PDF via pdfmake (dag+vecka-rapport), utskriftsknapp, operatörstabell, trender mot förra veckan. Backend: SkiftrapportExportController. Commit bdf30b1.
 
 ### 2026-03-11 — Session #57 (klar)
 Worker 1 (Underhållslogg): CRUD med kategori/typ/varaktighet, 4 statistikkort, filtrerbar historik, CSV-export. Backend: UnderhallsloggController + DB-migrering. Commit 406b222.
