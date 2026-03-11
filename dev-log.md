@@ -1,3 +1,16 @@
+## 2026-03-11 Cykeltids-heatmap — per operatör och timme pa dygnet
+
+Ny analysvy for VD: `/rebotling/cykeltid-heatmap`. Visar cykeltid per operatör per timme som fargsatt heatmap (gron=snabb, gul=medel, rod=langsam). Cykeltid beraknas via LAG(datum) OVER (PARTITION BY skiftraknare) med filter 30-1800 sek. Klickbar drilldown per operatörsrad visar daglig heatmap for den operatören. Dygnsmonstergraf (Chart.js) visar snitttid + antal IBC per timme pa dagen. Sammanfattningskort: snabbaste/langsammaste timme, bast operatör, mest konsekvent operatör.
+
+- **SQL**: `noreko-backend/migrations/2026-03-11_cykeltid_heatmap.sql` — index pa op1/op2/op3+datum (inga nya tabeller behovs)
+- **Backend**: `CykeltidHeatmapController.php` — run=heatmap, run=day-pattern, run=operator-detail. Auth: session_id kravs.
+- **api.php**: Registrerat `cykeltid-heatmap` → `CykeltidHeatmapController`
+- **Service**: `src/app/services/cykeltid-heatmap.service.ts` — timeout(15000)+catchError
+- **Komponent**: `src/app/pages/cykeltid-heatmap/` (ts + html + css) — HTML-tabell heatmap, drilldown, Chart.js dygnsmonstergraf
+- **Route**: `/rebotling/cykeltid-heatmap` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Cykeltids-heatmap" (visas for inloggade)
+- **Build**: OK — inga fel
+
 ## 2026-03-11 Skiftöverlämningsmall — auto-genererad skiftsammanfattning
 
 Ny sida `/rebotling/skiftoverlamning` (publik — ingen inloggning krävs för att läsa). Visar senaste avslutade skiftets nyckeltal direkt från `rebotling_ibc`-data: IBC ok/ej ok, kvalitet %, IBC/timme, cykeltid, drifttid, stopptid med visuell fördelningsbar. Noteringar kan läggas till av inloggade användare och sparas kopplade till PLC-skiftraknaren. Historikvy med senaste N dagars skift i tabell, klicka för att navigera. Utskriftsvy via window.print(). Skiftnavigering (föregående/nästa) via prev_skift/next_skift.
