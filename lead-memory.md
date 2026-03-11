@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #52)*
+*Senast uppdaterad: 2026-03-11 (session #53)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -63,20 +63,22 @@ Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
 Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
+Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-
-- [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
+- [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data [PÅGÅR #53]
+- [ ] **Produktionspuls-ticker** — realtids scrollande ticker [PÅGÅR #53]
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 - [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
-- [ ] **Produktionspuls-ticker** — realtids scrollande ticker med senaste IBC
 - [ ] **Kassationsanalys** — drilldown per stopporsak + kassationstyp
 - [ ] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
 
-OBS: Skiftplaneringsvy och Underhållslogg redan implementerade (shift-plan 717 rader, maintenance-log 389 rader) — borttagna från backlog.
-
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-11 — Session #53 (pågår)
+Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad (grå/ljusgrön/grön/mörkgrön), tooltip, sammanfattningskort, månadsselektor, expanderbar detaljvy. Backend: NarvaroController monthly-overview.
+Worker 2 (Produktionspuls-ticker): Horisontell CSS-animerad realtidsticker med senaste IBC:er (operatör/typ/cykeltid/status), statistikrad IBC/h+trend, auto-refresh 15s, widget för startsidan. Backend: ProduktionspulsController latest+hourly-stats.
 
 ### 2026-03-11 — Session #52 (klar)
 Worker 1 (Maskinupptid-heatmap): CSS-grid 7×24 med drift/stopp/idle färgkodning (grön/röd/grå), tooltip, sammanfattningskort (drifttid%, körtimmar, längsta stopp, bästa dag), periodselektor 7/14/30d, auto-refresh 60s. Backend: machine-uptime-heatmap. 672 rader ny kod.
@@ -85,7 +87,3 @@ Worker 2 (Topp-5 leaderboard): Live-ranking topp-5 operatörer, guld/silver/bron
 ### 2026-03-11 — Session #51 (klar)
 Worker 1 (Bonus "What-if"-simulator): Range-inputs för viktningar/mål/tier, debounce 400ms, jämförelsetabell nuv. vs sim. bonus, spara-knapp. Backend: bonus-simulator + save-simulator-params i BonusAdminController. Commit 3dc15b1.
 Worker 2 (Skiftjämförelse-vy): Dag vs natt KPI-paneler (orange/lila), diff-kolumn, grouped bar chart, linjediagram med KPI-toggle, periodselektor 7/14/30/90d. Backend: shift-day-night. Commit 75d6508.
-
-### 2026-03-11 — Session #50 (klar)
-Worker 1 (Produktionsmål-tracker): Doughnut-gauge dagsmål/veckamål, streak-badge, countdown, admin inline-edit, auto-refresh 60s. Backend: production-goal-progress + set-production-goal. DB: rebotling_production_goals.
-Worker 2 (Månadsrapport): Service-metoder getMonthlyReport/getMonthCompare + interfaces.
