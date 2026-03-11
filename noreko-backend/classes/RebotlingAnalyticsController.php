@@ -19,62 +19,73 @@ class RebotlingAnalyticsController {
             return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
-        // Samla alla skifträknare att söka på (original + fallback nedåt)
-        $searchIds = [];
-        foreach (array_keys($skiftraknareList) as $sk) {
-            $searchIds[] = (int)$sk;
-            $searchIds[] = (int)$sk - 1;
-            $searchIds[] = (int)$sk - 2;
-        }
-        $searchIds = array_unique($searchIds);
-        sort($searchIds);
-
-        // Sök cykler på dessa skifträknare (datum + dagen innan)
+        // Steg 1: Hitta rätt skifträknare i rebotling_ibc (original + fallback nedåt)
         $prevDay = date('Y-m-d', strtotime($date . ' -1 day'));
-        $placeholders = implode(',', array_fill(0, count($searchIds), '?'));
-        $params = $searchIds;
-        $params[] = $date;
-        $params[] = $prevDay;
+        $foundSkiftraknare = null;
 
-        $tidStmt = $this->pdo->prepare("
-            SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle,
-                   GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
-            FROM rebotling_ibc
-            WHERE skiftraknare IN ({$placeholders})
-              AND (DATE(datum) = ? OR DATE(datum) = ?)
-              AND lopnummer > 0 AND lopnummer < 998
-        ");
-        $tidStmt->execute($params);
-        $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
-        $firstCycle = $tidRow['first_cycle'] ?? null;
-        $lastCycle  = $tidRow['last_cycle'] ?? null;
-        $cykelDatum = $tidRow['cykel_datum'] ?? null;
+        foreach (array_keys($skiftraknareList) as $sk) {
+            // Testa original, sedan n-1, n-2
+            foreach ([(int)$sk, (int)$sk - 1, (int)$sk - 2] as $testId) {
+                $chk = $this->pdo->prepare(
+                    "SELECT COUNT(*) as cnt FROM rebotling_ibc
+                     WHERE skiftraknare = ?
+                     AND (DATE(datum) = ? OR DATE(datum) = ?)
+                     AND lopnummer > 0 AND lopnummer < 998"
+                );
+                $chk->execute([$testId, $date, $prevDay]);
+                $cnt = (int)$chk->fetchColumn();
+                if ($cnt > 0) {
+                    $foundSkiftraknare = $testId;
+                    break 2;
+                }
+            }
+        }
 
-        if (!$firstCycle) {
+        if ($foundSkiftraknare === null) {
             return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
-        // Starttid: senaste running=1 i onoff FÖRE eller vid första cykel
-        $skiftStart = $firstCycle;
+        // Steg 2: Hämta cykeldatum från rebotling_ibc med den hittade skifträknaren
+        $ibcStmt = $this->pdo->prepare("
+            SELECT GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
+            FROM rebotling_ibc
+            WHERE skiftraknare = ?
+            AND lopnummer > 0 AND lopnummer < 998
+        ");
+        $ibcStmt->execute([$foundSkiftraknare]);
+        $ibcRow = $ibcStmt->fetch(PDO::FETCH_ASSOC);
+        $cykelDatum = $ibcRow['cykel_datum'] ?? null;
+
+        // Steg 3: Använd SAMMA skifträknare i rebotling_onoff för start/stopp
+        // Första running=1 = linjens starttid, sista running=0 = linjens stopptid
+        $skiftStart = null;
+        $skiftSlut  = null;
         try {
             $onStmt = $this->pdo->prepare(
-                "SELECT datum FROM rebotling_onoff WHERE running = 1 AND datum <= ? ORDER BY datum DESC LIMIT 1"
+                "SELECT MIN(datum) AS first_start, MAX(datum) AS last_stop
+                 FROM rebotling_onoff
+                 WHERE skiftraknare = ?"
             );
-            $onStmt->execute([$firstCycle]);
+            $onStmt->execute([$foundSkiftraknare]);
             $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
-            if ($onRow) $skiftStart = $onRow['datum'];
+            if ($onRow) {
+                $skiftStart = $onRow['first_start'] ?? null;
+                $skiftSlut  = $onRow['last_stop'] ?? null;
+            }
         } catch (Exception $e) {}
 
-        // Stopptid: första running=0 i onoff EFTER sista cykel
-        $skiftSlut = $lastCycle;
-        try {
-            $offStmt = $this->pdo->prepare(
-                "SELECT datum FROM rebotling_onoff WHERE running = 0 AND datum >= ? ORDER BY datum ASC LIMIT 1"
+        // Fallback: om onoff saknar data, använd cykeltider
+        if (!$skiftStart || !$skiftSlut) {
+            $fallStmt = $this->pdo->prepare(
+                "SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
+                 FROM rebotling_ibc WHERE skiftraknare = ?
+                 AND lopnummer > 0 AND lopnummer < 998"
             );
-            $offStmt->execute([$lastCycle]);
-            $offRow = $offStmt->fetch(PDO::FETCH_ASSOC);
-            if ($offRow) $skiftSlut = $offRow['datum'];
-        } catch (Exception $e) {}
+            $fallStmt->execute([$foundSkiftraknare]);
+            $fallRow = $fallStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$skiftStart) $skiftStart = $fallRow['first_cycle'] ?? null;
+            if (!$skiftSlut)  $skiftSlut  = $fallRow['last_cycle'] ?? null;
+        }
 
         return ['start' => $skiftStart, 'slut' => $skiftSlut, 'cykel_datum' => $cykelDatum];
     }

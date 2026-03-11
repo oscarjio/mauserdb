@@ -548,59 +548,64 @@ class SkiftrapportController {
 
     /**
      * Hämta start/stopptid för ett skift.
-     * 1) Tar skifträknare + söker nedåt (n-1, n-2) + dagen innan
-     * 2) Hittar första/sista cykel i rebotling_ibc
-     * 3) Starttid = senaste running=1 i onoff FÖRE första cykel
-     * 4) Stopptid = första running=0 i onoff EFTER sista cykel
+     * 1) Hitta rätt skifträknare i rebotling_ibc (original, n-1, n-2)
+     * 2) Använd SAMMA skifträknare i rebotling_onoff för start/stopp
      */
     private function getSkiftTider(int $skiftraknare): array {
-        // Sök cykler på original + fallback nedåt, båda dagarna
-        $searchIds = [$skiftraknare, $skiftraknare - 1, $skiftraknare - 2];
-        $placeholders = implode(',', array_fill(0, count($searchIds), '?'));
+        // Steg 1: Hitta rätt skifträknare i rebotling_ibc (fallback nedåt)
+        $foundSkiftraknare = null;
+        foreach ([$skiftraknare, $skiftraknare - 1, $skiftraknare - 2] as $testId) {
+            $chk = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM rebotling_ibc
+                 WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998"
+            );
+            $chk->execute([$testId]);
+            if ((int)$chk->fetchColumn() > 0) {
+                $foundSkiftraknare = $testId;
+                break;
+            }
+        }
 
-        $ibcStmt = $this->pdo->prepare(
-            "SELECT MIN(datum) as first_cycle, MAX(datum) as last_cycle,
-                    GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
-             FROM rebotling_ibc
-             WHERE skiftraknare IN ({$placeholders})
-             AND lopnummer > 0 AND lopnummer < 998"
-        );
-        $ibcStmt->execute($searchIds);
-        $ibcRow = $ibcStmt->fetch(PDO::FETCH_ASSOC);
-
-        $firstCycle = $ibcRow && $ibcRow['first_cycle'] ? $ibcRow['first_cycle'] : null;
-        $lastCycle  = $ibcRow && $ibcRow['last_cycle'] ? $ibcRow['last_cycle'] : null;
-        $cykelDatum = $ibcRow['cykel_datum'] ?? null;
-
-        if (!$firstCycle) {
+        if ($foundSkiftraknare === null) {
             return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
-        // Starttid: senaste running=1 i onoff FÖRE första cykel
-        $startTid = $firstCycle;
+        // Steg 2: Hämta cykeldatum
+        $ibcStmt = $this->pdo->prepare(
+            "SELECT GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
+             FROM rebotling_ibc WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998"
+        );
+        $ibcStmt->execute([$foundSkiftraknare]);
+        $cykelDatum = $ibcStmt->fetchColumn() ?: null;
+
+        // Steg 3: Använd samma skifträknare i rebotling_onoff
+        // MIN(datum) = första start, MAX(datum) = sista stopp
+        $startTid = null;
+        $slutTid  = null;
         try {
-            $startStmt = $this->pdo->prepare(
-                "SELECT datum FROM rebotling_onoff
-                 WHERE running = 1 AND datum <= ?
-                 ORDER BY datum DESC LIMIT 1"
+            $onStmt = $this->pdo->prepare(
+                "SELECT MIN(datum) AS first_start, MAX(datum) AS last_stop
+                 FROM rebotling_onoff WHERE skiftraknare = ?"
             );
-            $startStmt->execute([$firstCycle]);
-            $startRow = $startStmt->fetch(PDO::FETCH_ASSOC);
-            if ($startRow) $startTid = $startRow['datum'];
+            $onStmt->execute([$foundSkiftraknare]);
+            $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
+            if ($onRow) {
+                $startTid = $onRow['first_start'] ?? null;
+                $slutTid  = $onRow['last_stop'] ?? null;
+            }
         } catch (Exception $e) {}
 
-        // Stopptid: första running=0 i onoff EFTER sista cykel
-        $slutTid = $lastCycle;
-        try {
-            $slutStmt = $this->pdo->prepare(
-                "SELECT datum FROM rebotling_onoff
-                 WHERE running = 0 AND datum >= ?
-                 ORDER BY datum ASC LIMIT 1"
+        // Fallback: cykeltider om onoff saknas
+        if (!$startTid || !$slutTid) {
+            $fallStmt = $this->pdo->prepare(
+                "SELECT MIN(datum) AS f, MAX(datum) AS l FROM rebotling_ibc
+                 WHERE skiftraknare = ? AND lopnummer > 0 AND lopnummer < 998"
             );
-            $slutStmt->execute([$lastCycle]);
-            $slutRow = $slutStmt->fetch(PDO::FETCH_ASSOC);
-            if ($slutRow) $slutTid = $slutRow['datum'];
-        } catch (Exception $e) {}
+            $fallStmt->execute([$foundSkiftraknare]);
+            $fallRow = $fallStmt->fetch(PDO::FETCH_ASSOC);
+            if (!$startTid) $startTid = $fallRow['f'] ?? null;
+            if (!$slutTid)  $slutTid  = $fallRow['l'] ?? null;
+        }
 
         return [
             'start'       => $startTid,
