@@ -41,7 +41,7 @@ export const routes: Routes = [
 
       // Authenticated routes
       { path: 'rebotling/min-dag', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/min-dag/min-dag').then(m => m.MinDagPage) },
-      { path: 'rebotling/kassationsanalys', loadComponent: () => import('./pages/rebotling/statistik/statistik-kassationsanalys/statistik-kassationsanalys').then(m => m.StatistikKassationsanalysComponent) },
+      { path: 'rebotling/kassationsanalys', loadComponent: () => import('./pages/rebotling/kassationsanalys/kassationsanalys').then(m => m.KassationsanalysPage) },
       { path: 'rebotling/cykeltid-heatmap', canActivate: [authGuard], loadComponent: () => import('./pages/cykeltid-heatmap/cykeltid-heatmap').then(m => m.CykeltidHeatmapComponent) },
       { path: 'rebotling/produkttyp-effektivitet', loadComponent: () => import('./pages/statistik-produkttyp-effektivitet/statistik-produkttyp-effektivitet').then(m => m.StatistikProduktTypEffektivitetComponent) },
       { path: 'rebotling/alerts', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling/alerts/alerts').then(m => m.AlertsPage) },
@@ -63,6 +63,7 @@ export const routes: Routes = [
       { path: 'rebotling/effektivitet', canActivate: [authGuard], loadComponent: () => import('./pages/effektivitet/effektivitet').then(m => m.EffektivitetComponent) },
       { path: 'rebotling/produktionsmal', canActivate: [authGuard], loadComponent: () => import('./pages/produktionsmal/produktionsmal').then(m => m.ProduktionsmalComponent) },
       { path: 'rebotling/utnyttjandegrad', canActivate: [authGuard], loadComponent: () => import('./pages/utnyttjandegrad/utnyttjandegrad').then(m => m.UtnyttjandegradComponent) },
+      { path: 'rebotling/produktionstakt', loadComponent: () => import('./pages/rebotling/produktionstakt/produktionstakt').then(m => m.ProduktionsTaktPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

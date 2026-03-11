@@ -8,6 +8,10 @@
  *   - run=by-cause       → kassationer grupperade per orsak, med antal + andel
  *   - run=daily-stacked  → kassationer per dag, stackad per orsak (för Chart.js)
  *   - run=drilldown      → detaljdata för en specifik orsak (cause=X): operatör, skift, tid
+ *   - run=overview       → KPI-sammanfattning med uppskattad kostnad
+ *   - run=by-period      → kassationer per vecka/månad, grupperade per orsak (topp 5)
+ *   - run=details        → filtrbar detaljlista (orsak, operatör)
+ *   - run=trend-rate     → kassationsgrad (%) per dag/vecka med glidande medelvärde
  *
  * Tabeller:
  *   kassationsregistrering  (id, datum, skiftraknare, orsak_id, antal, kommentar, registrerad_av, created_at)
@@ -39,6 +43,10 @@ class KassationsanalysController {
             case 'by-cause':      $this->getByCause();      break;
             case 'daily-stacked': $this->getDailyStacked(); break;
             case 'drilldown':     $this->getDrilldown();    break;
+            case 'overview':      $this->getOverview();     break;
+            case 'by-period':     $this->getByPeriod();     break;
+            case 'details':       $this->getDetails();      break;
+            case 'trend-rate':    $this->getTrendRate();    break;
             default:              $this->sendError('Ogiltig run: ' . $run); break;
         }
     }
@@ -586,6 +594,456 @@ class KassationsanalysController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsanalysController::getDrilldown: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: overview  (utökad KPI-sammanfattning med kostnad)
+    // ================================================================
+
+    /**
+     * GET ?action=kassationsanalys&run=overview&days=30
+     * Returnerar 4 KPI:er:
+     *   1. total_kasserade — totalt antal kasserade IBC
+     *   2. kassationsgrad_pct — kasserade / total produktion %
+     *   3. vanligaste_orsak — namn + antal
+     *   4. uppskattad_kostnad — antal × enhetskostnad (SEK)
+     */
+    private function getOverview(): void {
+        $days     = $this->getDays();
+        $toDate   = date('Y-m-d');
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+        $prevTo   = $fromDate;
+        $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
+
+        // Uppskattad kostnad per kasserad IBC (SEK) — konfigurerbar, defaultvärde 850 SEK
+        $kostnadPerIbc = 850;
+
+        try {
+            // Kasserade IBC från PLC-data
+            $kassaradeIbc    = $this->getTotalKasserade($fromDate, $toDate);
+            $totalProduktion = $this->getTotalProduktion($fromDate, $toDate);
+            $kassationsGrad  = $totalProduktion > 0
+                ? round($kassaradeIbc / $totalProduktion * 100, 2)
+                : 0.0;
+
+            // Föregående period
+            $prevKasserade   = $this->getTotalKasserade($prevFrom, $prevTo);
+            $prevProduktion  = $this->getTotalProduktion($prevFrom, $prevTo);
+            $prevGrad        = $prevProduktion > 0
+                ? round($prevKasserade / $prevProduktion * 100, 2)
+                : 0.0;
+
+            // Registrerade kassationer (detaljerad)
+            $stmtReg = $this->pdo->prepare("
+                SELECT COALESCE(SUM(antal), 0) AS total
+                FROM kassationsregistrering
+                WHERE datum BETWEEN :from_date AND :to_date
+            ");
+            $stmtReg->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $totalRegistrerade = (int)$stmtReg->fetchColumn();
+
+            // Topp-orsak
+            $stmtTopp = $this->pdo->prepare("
+                SELECT t.namn, COALESCE(SUM(r.antal), 0) AS antal
+                FROM kassationsorsak_typer t
+                LEFT JOIN kassationsregistrering r
+                    ON r.orsak_id = t.id AND r.datum BETWEEN :from_date AND :to_date
+                WHERE t.aktiv = 1
+                GROUP BY t.id, t.namn
+                ORDER BY antal DESC
+                LIMIT 1
+            ");
+            $stmtTopp->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $toppRow = $stmtTopp->fetch(\PDO::FETCH_ASSOC);
+
+            // Uppskattad kostnad
+            $uppskattadKostnad = $kassaradeIbc * $kostnadPerIbc;
+
+            // Trend
+            $gradDiff  = round($kassationsGrad - $prevGrad, 2);
+            $gradTrend = 'stable';
+            if ($gradDiff > 0.5) $gradTrend = 'up';
+            elseif ($gradDiff < -0.5) $gradTrend = 'down';
+
+            $antalDiff  = $kassaradeIbc - $prevKasserade;
+            $antalTrend = 'stable';
+            if ($antalDiff > 2) $antalTrend = 'up';
+            elseif ($antalDiff < -2) $antalTrend = 'down';
+
+            $this->sendSuccess([
+                'days'                => $days,
+                'period_from'         => $fromDate,
+                'period_to'           => $toDate,
+                // KPI 1: Total kasserade
+                'total_kasserade'     => $kassaradeIbc,
+                'total_registrerade'  => $totalRegistrerade,
+                'prev_kasserade'      => $prevKasserade,
+                'antal_trend'         => $antalTrend,
+                'antal_diff'          => $antalDiff,
+                // KPI 2: Kassationsgrad
+                'kassationsgrad_pct'  => $kassationsGrad,
+                'prev_grad_pct'       => $prevGrad,
+                'grad_trend'          => $gradTrend,
+                'grad_diff'           => $gradDiff,
+                // KPI 3: Vanligaste orsak
+                'vanligaste_orsak'    => $toppRow ? $toppRow['namn'] : null,
+                'vanligaste_antal'    => $toppRow ? (int)$toppRow['antal'] : 0,
+                // KPI 4: Kostnad
+                'uppskattad_kostnad'  => $uppskattadKostnad,
+                'kostnad_per_ibc'     => $kostnadPerIbc,
+                // Total produktion
+                'total_produktion'    => $totalProduktion,
+                'prev_produktion'     => $prevProduktion,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('KassationsanalysController::getOverview: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: by-period  (vecka/månad-gruppering per orsak)
+    // ================================================================
+
+    /**
+     * GET ?action=kassationsanalys&run=by-period&days=90&group=week
+     * group: 'week' | 'month'
+     * Returnerar Chart.js-vänlig data med labels + datasets (topp 5 orsaker)
+     */
+    private function getByPeriod(): void {
+        $days     = $this->getDays();
+        $group    = $_GET['group'] ?? 'week';
+        if (!in_array($group, ['week', 'month'])) $group = 'week';
+        $toDate   = date('Y-m-d');
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            // SQL-gruppering beroende på vald period
+            if ($group === 'week') {
+                $groupExpr  = "CONCAT(YEAR(datum), '-V', LPAD(WEEK(datum, 3), 2, '0'))";
+                $orderExpr  = "YEAR(datum), WEEK(datum, 3)";
+            } else {
+                $groupExpr  = "DATE_FORMAT(datum, '%Y-%m')";
+                $orderExpr  = "DATE_FORMAT(datum, '%Y-%m')";
+            }
+
+            // Topp 5 orsaker i perioden
+            $stmtTop = $this->pdo->prepare("
+                SELECT t.id, t.namn, COALESCE(SUM(r.antal), 0) AS total_antal
+                FROM kassationsorsak_typer t
+                LEFT JOIN kassationsregistrering r
+                    ON r.orsak_id = t.id AND r.datum BETWEEN :from_date AND :to_date
+                WHERE t.aktiv = 1
+                GROUP BY t.id, t.namn
+                ORDER BY total_antal DESC
+                LIMIT 5
+            ");
+            $stmtTop->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $topOrsaker = $stmtTop->fetchAll(\PDO::FETCH_ASSOC);
+
+            if (empty($topOrsaker)) {
+                $this->sendSuccess([
+                    'days' => $days, 'group' => $group,
+                    'labels' => [], 'datasets' => [], 'har_data' => false,
+                ]);
+                return;
+            }
+
+            $topIds = array_column($topOrsaker, 'id');
+            $ph = implode(',', array_fill(0, count($topIds), '?'));
+
+            // Grupperad data
+            $sql = "
+                SELECT {$groupExpr} AS period_label, orsak_id, SUM(antal) AS antal
+                FROM kassationsregistrering
+                WHERE datum BETWEEN ? AND ?
+                  AND orsak_id IN ({$ph})
+                GROUP BY period_label, orsak_id
+                ORDER BY {$orderExpr} ASC
+            ";
+            $stmtData = $this->pdo->prepare($sql);
+            $params = array_merge([$fromDate, $toDate], $topIds);
+            $stmtData->execute($params);
+            $rows = $stmtData->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Bygg labels + data-map
+            $periodMap = [];
+            foreach ($rows as $row) {
+                $p   = $row['period_label'];
+                $oid = (int)$row['orsak_id'];
+                if (!isset($periodMap[$p])) $periodMap[$p] = [];
+                $periodMap[$p][$oid] = (int)$row['antal'];
+            }
+            $labels = array_keys($periodMap);
+
+            // Färgpalett
+            $palette = [
+                'rgba(252,129,129,0.85)',
+                'rgba(246,173,85,0.85)',
+                'rgba(104,211,145,0.85)',
+                'rgba(99,179,237,0.85)',
+                'rgba(183,148,246,0.85)',
+            ];
+
+            $datasets = [];
+            foreach ($topOrsaker as $i => $orsak) {
+                $oid  = (int)$orsak['id'];
+                $data = [];
+                foreach ($labels as $lbl) {
+                    $data[] = $periodMap[$lbl][$oid] ?? 0;
+                }
+                $color = $palette[$i % count($palette)];
+                $datasets[] = [
+                    'label'           => $orsak['namn'],
+                    'orsakId'         => $oid,
+                    'data'            => $data,
+                    'backgroundColor' => $color,
+                    'borderColor'     => str_replace('0.85', '1', $color),
+                    'borderWidth'     => 1,
+                ];
+            }
+
+            $this->sendSuccess([
+                'days'     => $days,
+                'group'    => $group,
+                'from'     => $fromDate,
+                'to'       => $toDate,
+                'labels'   => $labels,
+                'datasets' => $datasets,
+                'har_data' => !empty($labels),
+            ]);
+        } catch (\PDOException $e) {
+            error_log('KassationsanalysController::getByPeriod: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: details  (filtrbar detaljlista)
+    // ================================================================
+
+    /**
+     * GET ?action=kassationsanalys&run=details&days=30&orsak=X&operator=Y
+     * Returnerar alla kassationsregistreringar med filtermöjligheter.
+     */
+    private function getDetails(): void {
+        $days      = $this->getDays();
+        $toDate    = date('Y-m-d');
+        $fromDate  = date('Y-m-d', strtotime("-{$days} days"));
+        $orsakId   = isset($_GET['orsak']) && $_GET['orsak'] !== '' ? intval($_GET['orsak']) : null;
+        $operatorNamn = isset($_GET['operator']) && $_GET['operator'] !== '' ? trim($_GET['operator']) : null;
+
+        $kostnadPerIbc = 850;
+
+        try {
+            // Bygg WHERE dynamiskt
+            $where  = "r.datum BETWEEN :from_date AND :to_date";
+            $params = [':from_date' => $fromDate, ':to_date' => $toDate];
+
+            if ($orsakId !== null) {
+                $where .= " AND r.orsak_id = :orsak_id";
+                $params[':orsak_id'] = $orsakId;
+            }
+
+            $sql = "
+                SELECT
+                    r.id,
+                    r.datum,
+                    r.skiftraknare,
+                    r.antal,
+                    r.kommentar,
+                    r.created_at,
+                    t.namn AS orsak_namn,
+                    u.username AS registrerad_av
+                FROM kassationsregistrering r
+                LEFT JOIN kassationsorsak_typer t ON t.id = r.orsak_id
+                LEFT JOIN users u ON u.id = r.registrerad_av
+                WHERE {$where}
+                ORDER BY r.datum DESC, r.created_at DESC
+                LIMIT 500
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Slå upp operatörer via skifträknare
+            $skiftList = array_filter(array_unique(array_column($rows, 'skiftraknare')));
+            $opMap = [];
+            if (!empty($skiftList)) {
+                $ph = implode(',', array_fill(0, count($skiftList), '?'));
+                try {
+                    $stmtOps = $this->pdo->prepare("
+                        SELECT i.skiftraknare, o1.name AS op1, o2.name AS op2, o3.name AS op3
+                        FROM rebotling_ibc i
+                        LEFT JOIN operators o1 ON o1.id = i.op1
+                        LEFT JOIN operators o2 ON o2.id = i.op2
+                        LEFT JOIN operators o3 ON o3.id = i.op3
+                        WHERE i.skiftraknare IN ({$ph})
+                        GROUP BY i.skiftraknare, i.op1, i.op2, i.op3
+                    ");
+                    $stmtOps->execute(array_values($skiftList));
+                    foreach ($stmtOps->fetchAll(\PDO::FETCH_ASSOC) as $op) {
+                        $sk = (int)$op['skiftraknare'];
+                        $names = array_filter([$op['op1'], $op['op2'], $op['op3']]);
+                        if (!isset($opMap[$sk])) $opMap[$sk] = [];
+                        foreach ($names as $n) {
+                            if (!in_array($n, $opMap[$sk])) $opMap[$sk][] = $n;
+                        }
+                    }
+                } catch (\PDOException $e) {
+                    // Kan ignoreras om operators saknas
+                }
+            }
+
+            // Filtrera på operatör (om angivet) — efter uppslagning
+            $result = [];
+            foreach ($rows as &$r) {
+                $sk = $r['skiftraknare'] !== null ? (int)$r['skiftraknare'] : null;
+                $ops = $sk !== null ? ($opMap[$sk] ?? []) : [];
+                $r['operatorer']       = implode(', ', $ops);
+                $r['uppskattad_kostnad'] = (int)$r['antal'] * $kostnadPerIbc;
+                $r['id']              = (int)$r['id'];
+                $r['antal']           = (int)$r['antal'];
+                $r['skiftraknare']    = $sk;
+
+                // Filtrera på operatörsnamn
+                if ($operatorNamn !== null) {
+                    $matchOp = false;
+                    foreach ($ops as $opName) {
+                        if (mb_stripos($opName, $operatorNamn) !== false) {
+                            $matchOp = true;
+                            break;
+                        }
+                    }
+                    if (!$matchOp) continue;
+                }
+                $result[] = $r;
+            }
+            unset($r);
+
+            // Orsaker (för filterdropdown)
+            $stmtOrsaker = $this->pdo->prepare("
+                SELECT id, namn FROM kassationsorsak_typer WHERE aktiv = 1 ORDER BY sortorder, namn
+            ");
+            $stmtOrsaker->execute();
+            $orsakerLista = $stmtOrsaker->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Unika operatörer (för filterdropdown)
+            $allOps = [];
+            foreach ($opMap as $ops) {
+                foreach ($ops as $n) {
+                    if (!in_array($n, $allOps)) $allOps[] = $n;
+                }
+            }
+            sort($allOps);
+
+            $this->sendSuccess([
+                'days'      => $days,
+                'from'      => $fromDate,
+                'to'        => $toDate,
+                'total'     => count($result),
+                'detaljer'  => $result,
+                'orsaker'   => $orsakerLista,
+                'operatorer' => $allOps,
+                'har_data'  => !empty($result),
+            ]);
+        } catch (\PDOException $e) {
+            error_log('KassationsanalysController::getDetails: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    // ================================================================
+    // ENDPOINT: trend-rate  (kassationsgrad % per vecka med trendlinje)
+    // ================================================================
+
+    /**
+     * GET ?action=kassationsanalys&run=trend-rate&days=90
+     * Returnerar kassationsgrad (%) per vecka plus glidande medelvärde.
+     */
+    private function getTrendRate(): void {
+        $days     = $this->getDays();
+        $toDate   = date('Y-m-d');
+        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            // Per vecka: kasserade vs totalt producerade
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    CONCAT(YEAR(sub.datum), '-V', LPAD(WEEK(sub.datum, 3), 2, '0')) AS vecka,
+                    MIN(sub.datum) AS vecka_start,
+                    SUM(sub.shift_ej_ok) AS kasserade,
+                    SUM(sub.shift_ok) + SUM(sub.shift_ej_ok) AS totalt
+                FROM (
+                    SELECT
+                        DATE(datum) AS datum,
+                        skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS sub
+                GROUP BY YEAR(sub.datum), WEEK(sub.datum, 3)
+                ORDER BY MIN(sub.datum) ASC
+            ");
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $veckor = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $labels = [];
+            $rates  = [];
+            foreach ($veckor as $v) {
+                $labels[] = $v['vecka'];
+                $totalt   = (int)$v['totalt'];
+                $kass     = (int)$v['kasserade'];
+                $rates[]  = $totalt > 0 ? round($kass / $totalt * 100, 2) : 0.0;
+            }
+
+            // Glidande medelvärde (4 veckors fönster)
+            $movingAvg = [];
+            $window    = 4;
+            for ($i = 0; $i < count($rates); $i++) {
+                $start = max(0, $i - $window + 1);
+                $slice = array_slice($rates, $start, $i - $start + 1);
+                $movingAvg[] = round(array_sum($slice) / count($slice), 2);
+            }
+
+            // Enkel linjär trendlinje (least squares)
+            $n = count($rates);
+            $trendline = [];
+            if ($n >= 2) {
+                $sumX = 0; $sumY = 0; $sumXY = 0; $sumX2 = 0;
+                for ($i = 0; $i < $n; $i++) {
+                    $sumX  += $i;
+                    $sumY  += $rates[$i];
+                    $sumXY += $i * $rates[$i];
+                    $sumX2 += $i * $i;
+                }
+                $denom = ($n * $sumX2 - $sumX * $sumX);
+                if ($denom != 0) {
+                    $slope     = ($n * $sumXY - $sumX * $sumY) / $denom;
+                    $intercept = ($sumY - $slope * $sumX) / $n;
+                    for ($i = 0; $i < $n; $i++) {
+                        $trendline[] = round($intercept + $slope * $i, 2);
+                    }
+                }
+            }
+
+            $this->sendSuccess([
+                'days'       => $days,
+                'from'       => $fromDate,
+                'to'         => $toDate,
+                'labels'     => $labels,
+                'rates'      => $rates,
+                'moving_avg' => $movingAvg,
+                'trendline'  => $trendline,
+                'har_data'   => !empty($labels),
+            ]);
+        } catch (\PDOException $e) {
+            error_log('KassationsanalysController::getTrendRate: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }

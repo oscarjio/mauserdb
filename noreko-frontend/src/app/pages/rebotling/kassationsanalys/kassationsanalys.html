@@ -1,0 +1,216 @@
+<div class="ka-wrap">
+
+  <!-- ============================================================
+       RUBRIK + PERIODSELEKTOR
+  ============================================================ -->
+  <div class="ka-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fas fa-trash-alt ka-icon-trash"></i>
+      <span class="ka-title">Kassationsanalys</span>
+    </div>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Periodselektor">
+      <button *ngFor="let d of dayOptions" type="button" class="btn btn-sm"
+        [class.btn-danger]="days === d"
+        [class.btn-outline-danger]="days !== d"
+        (click)="onDaysChange(d)">{{ d }}d</button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       4 KPI-KORT
+  ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- KPI 1: Totalt kasserade -->
+    <div class="col-6 col-lg-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Totalt kasserade</div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-value text-danger">
+          {{ overview.total_kasserade }}
+        </div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-sub">
+          <span [style.color]="trendColor(overview.antal_trend, true)">
+            {{ trendIcon(overview.antal_trend) }}
+            <span *ngIf="overview.antal_diff !== 0">{{ overview.antal_diff > 0 ? '+' : '' }}{{ overview.antal_diff }}</span>
+          </span>
+          <span class="ka-card-muted"> vs foreg. period</span>
+        </div>
+        <div *ngIf="loadingOverview" class="ka-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+      </div>
+    </div>
+
+    <!-- KPI 2: Kassationsgrad -->
+    <div class="col-6 col-lg-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Kassationsgrad</div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-value"
+          [style.color]="rateColor(overview.kassationsgrad_pct)">
+          {{ overview.kassationsgrad_pct }}%
+        </div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-sub">
+          av {{ overview.total_produktion }} IBC totalt
+        </div>
+        <div *ngIf="loadingOverview" class="ka-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+      </div>
+    </div>
+
+    <!-- KPI 3: Vanligaste orsak -->
+    <div class="col-6 col-lg-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Vanligaste orsak</div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-value ka-card-value-sm text-warning">
+          {{ overview.vanligaste_orsak ?? 'Inga data' }}
+        </div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-sub">
+          {{ overview.vanligaste_antal > 0 ? overview.vanligaste_antal + ' registrerade' : '' }}
+        </div>
+        <div *ngIf="loadingOverview" class="ka-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+      </div>
+    </div>
+
+    <!-- KPI 4: Uppskattad kostnad -->
+    <div class="col-6 col-lg-3">
+      <div class="ka-card">
+        <div class="ka-card-label">Uppskattad kostnad</div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-value" style="color:#f6ad55;">
+          {{ formatKostnad(overview.uppskattad_kostnad) }}
+        </div>
+        <div *ngIf="!loadingOverview && overview" class="ka-card-sub">
+          {{ overview.kostnad_per_ibc }} kr/IBC
+        </div>
+        <div *ngIf="loadingOverview" class="ka-spin"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="errorOverview" class="ka-error mb-3">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda KPI-data.
+  </div>
+
+  <!-- ============================================================
+       RAD: STAPELDIAGRAM + DOUGHNUT
+  ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Stapeldiagram (vecka/manad) -->
+    <div class="col-12 col-lg-7">
+      <div class="ka-card">
+        <div class="ka-section-title d-flex align-items-center gap-2 mb-3">
+          <i class="fas fa-chart-bar" style="color:#ed8936;"></i>
+          <span>Kassationer per {{ groupMode === 'week' ? 'vecka' : 'manad' }}</span>
+          <div class="btn-group btn-group-sm ms-auto">
+            <button class="btn btn-sm" [class.btn-info]="groupMode==='week'" [class.btn-outline-secondary]="groupMode!=='week'" (click)="onGroupChange('week')">Vecka</button>
+            <button class="btn btn-sm" [class.btn-info]="groupMode==='month'" [class.btn-outline-secondary]="groupMode!=='month'" (click)="onGroupChange('month')">Manad</button>
+          </div>
+          <span *ngIf="loadingByPeriod" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+        </div>
+        <div *ngIf="!loadingByPeriod && byPeriodData?.har_data" class="ka-chart-wrap">
+          <canvas id="kaStackedChart"></canvas>
+        </div>
+        <div *ngIf="!loadingByPeriod && !byPeriodData?.har_data" class="ka-empty">
+          <i class="fas fa-check-circle fa-2x mb-2" style="color:#48bb78;opacity:.5"></i>
+          <p>Inga kassationer registrerade for perioden.</p>
+        </div>
+        <div *ngIf="errorByPeriod" class="ka-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda grafdata.</div>
+      </div>
+    </div>
+
+    <!-- Doughnut (orsaksfordelning) -->
+    <div class="col-12 col-lg-5">
+      <div class="ka-card">
+        <div class="ka-section-title d-flex align-items-center gap-2 mb-3">
+          <i class="fas fa-chart-pie" style="color:#b794f6;"></i>
+          <span>Orsaksfordelning</span>
+          <span *ngIf="loadingByCause" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+        </div>
+        <div *ngIf="!loadingByCause && orsaker.length > 0" class="ka-chart-wrap ka-chart-doughnut">
+          <canvas id="kaDoughnutChart"></canvas>
+        </div>
+        <div *ngIf="!loadingByCause && orsaker.length === 0 && !errorByCause" class="ka-empty">
+          <p>Inga orsaker.</p>
+        </div>
+        <div *ngIf="errorByCause" class="ka-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda orsaksdata.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       TRENDGRAF: Kassationsgrad (%) over tid
+  ============================================================ -->
+  <div class="ka-card mb-4">
+    <div class="ka-section-title d-flex align-items-center gap-2 mb-3">
+      <i class="fas fa-chart-line" style="color:#fc8181;"></i>
+      <span>Kassationsgrad (%) over tid</span>
+      <span *ngIf="loadingTrend" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+    </div>
+    <div *ngIf="!loadingTrend && trendData?.har_data" class="ka-chart-wrap">
+      <canvas id="kaTrendChart"></canvas>
+    </div>
+    <div *ngIf="!loadingTrend && !trendData?.har_data" class="ka-empty">
+      <p>Ingen trenddata for perioden.</p>
+    </div>
+    <div *ngIf="errorTrend" class="ka-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata.</div>
+  </div>
+
+  <!-- ============================================================
+       DETALJERAD TABELL + FILTER
+  ============================================================ -->
+  <div class="ka-card mb-4">
+    <div class="ka-section-title d-flex align-items-center gap-2 mb-3">
+      <i class="fas fa-list" style="color:#63b3ed;"></i>
+      <span>Detaljerad kassationslista</span>
+      <span *ngIf="detailsData" class="badge bg-secondary ms-2">{{ detailsData.total }} rader</span>
+      <span *ngIf="loadingDetails" class="spinner-border spinner-border-sm text-secondary ms-2"></span>
+    </div>
+
+    <!-- Filter -->
+    <div class="row g-2 mb-3">
+      <div class="col-12 col-md-4">
+        <select class="form-select form-select-sm ka-filter-select" [(ngModel)]="filterOrsak" (change)="onFilterChange()">
+          <option [ngValue]="null">Alla orsaker</option>
+          <option *ngFor="let o of orsakLista" [ngValue]="o.id">{{ o.namn }}</option>
+        </select>
+      </div>
+      <div class="col-12 col-md-4">
+        <select class="form-select form-select-sm ka-filter-select" [(ngModel)]="filterOperator" (change)="onFilterChange()">
+          <option value="">Alla operatorer</option>
+          <option *ngFor="let op of operatorLista" [value]="op">{{ op }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabell -->
+    <div *ngIf="!loadingDetails && detailsData?.har_data" class="table-responsive">
+      <table class="table table-sm ka-table mb-0">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Orsak</th>
+            <th class="text-end">Antal</th>
+            <th>Operator</th>
+            <th>Kommentar</th>
+            <th>Registrerad av</th>
+            <th class="text-end">Kostnad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of detailsData!.detaljer" class="ka-detail-row">
+            <td>{{ r.datum }}</td>
+            <td class="text-warning">{{ r.orsak_namn }}</td>
+            <td class="text-end fw-bold text-danger">{{ r.antal }}</td>
+            <td style="color:#e2e8f0">{{ r.operatorer || '\u2013' }}</td>
+            <td class="ka-comment">{{ r.kommentar || '\u2013' }}</td>
+            <td style="color:#718096">{{ r.registrerad_av || '\u2013' }}</td>
+            <td class="text-end" style="color:#f6ad55">{{ r.uppskattad_kostnad }} kr</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loadingDetails && detailsData && !detailsData.har_data" class="ka-empty">
+      <p>Inga kassationer matchar filtret.</p>
+    </div>
+    <div *ngIf="errorDetails" class="ka-error"><i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda detaljdata.</div>
+  </div>
+
+</div>

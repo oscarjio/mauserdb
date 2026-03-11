@@ -1,3 +1,49 @@
+## 2026-03-11 Kassationsanalys — utokad vy med KPI, grafer, trendlinje, filter
+
+Utokad kassationsanalys-sida `/rebotling/kassationsanalys` med detaljerad vy over kasserade IBC:er.
+
+- **Backend**: Fyra nya endpoints i `KassationsanalysController.php` (`overview`, `by-period`, `details`, `trend-rate`):
+  - `overview` — KPI-sammanfattning med totalt kasserade, kassationsgrad, vanligaste orsak, uppskattad kostnad (850 kr/IBC)
+  - `by-period` — kassationer per vecka/manad, staplat per orsak (topp 5), Chart.js-format
+  - `details` — filtrbar detaljlista med orsak- och operatorsfilter, kostnad per rad
+  - `trend-rate` — kassationsgrad (%) per vecka med glidande medel (4v) + linjar trendlinje
+- **Frontend**: Ny komponent `pages/rebotling/kassationsanalys/` med:
+  - 4 KPI-kort (total kasserade, kassationsgrad %, vanligaste orsak, uppskattad kostnad)
+  - Chart.js staplat stapeldiagram per vecka/manad (topp 5 orsaker)
+  - Chart.js doughnut for orsaksfordelning
+  - Trendgraf med kassationsgrad %, glidande medelvarde, och trendlinje
+  - Detaljerad tabell med datum, orsak, antal, operator, kommentar, kostnad
+  - Periodselektor 30d/90d/180d/365d
+  - Filter per orsak och per operator
+- **Route**: Uppdaterad till ny komponent i `app.routes.ts`
+- **Meny**: Befintligt menyval "Kassationsanalys" under Rebotling (redan pa plats)
+- **Proxy-fil**: `noreko-backend/controllers/KassationsanalysController.php` delegerar till `classes/`
+
+## 2026-03-11 Maskinutnyttjandegrad — andel tillganglig tid i produktion
+
+Ny sida `/rebotling/utnyttjandegrad` (authGuard). VD ser hur stor andel av tillganglig tid maskinen faktiskt producerar och kan identifiera dolda tidstjuvar.
+
+- **Backend**: `UtnyttjandegradController.php` — tre endpoints via `?action=utnyttjandegrad&run=XXX`:
+  - `run=summary`: Utnyttjandegrad idag (%) + snitt 7d + snitt 30d med trend (improving/declining/stable). Jamfor senaste 7d vs foregaende 7d.
+  - `run=daily&days=N`: Daglig tidsserie — tillganglig tid, drifttid, stopptid, okand tid, utnyttjandegrad-%, antal stopp per dag.
+  - `run=losses&days=N`: Tidsforlustanalys — kategoriserade forluster: planerade stopp, oplanerade stopp, uppstart/avslut, okant. Topp-10 stopporsaker.
+  - Berakningsmodell: drifttid fran rebotling_ibc (MAX runtime_plc per skiftraknare+dag), stopptid fran stoppage_log med planned/unplanned-kategorier.
+  - Tillganglig tid: 22.5h/dag (3 skift x 7.5h efter rast), 0h pa sondagar.
+  - Auth: session kravs (401 om ej inloggad).
+- **api.php**: Registrerat `utnyttjandegrad` -> `UtnyttjandegradController`.
+- **Service**: `utnyttjandegrad.service.ts` — getSummary(), getDaily(), getLosses() med TypeScript-interfaces, timeout(15s) + catchError.
+- **Komponent**: `src/app/pages/utnyttjandegrad/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearTimeout + chart?.destroy().
+  - Periodvaljare: 7d / 14d / 30d / 90d.
+  - 3 KPI-kort: Cirkular progress (utnyttjandegrad idag), Snitt 7d med %-forandring, Snitt 30d med trend-badge.
+  - Staplad bar chart (Chart.js): daglig fordelning — drifttid (gron) + stopptid (rod) + okand tid (gra).
+  - Doughnut chart: tidsforlustfordelning — planerade stopp, oplanerade stopp, uppstart, okant.
+  - Forlust-tabell med horisontal bar + topp stopporsaker.
+  - Daglig tabell: datum, tillganglig tid, drifttid, stopptid, utnyttjandegrad med fargkodning.
+  - Farg: gron >=80%, gul >=60%, rod <60%.
+- **Route**: `/rebotling/utnyttjandegrad` (authGuard).
+- **Meny**: Lagt till under Rebotling-dropdown: "Utnyttjandegrad" (bla gauge-ikon).
+- **Build**: OK (endast pre-existerande warnings fran feedback-analys).
+
 ## 2026-03-11 Produktionsmal vs utfall — VD-dashboard
 
 Ny sida `/rebotling/produktionsmal` (authGuard). VD ser pa 10 sekunder om produktionen ligger i fas med malen. Stor, tydlig vy med dag/vecka/manad.

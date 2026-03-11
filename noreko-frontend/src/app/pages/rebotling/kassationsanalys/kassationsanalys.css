@@ -1,0 +1,158 @@
+/* ============================================================
+   Kassationsanalys — dark theme (MauserDB)
+   ============================================================ */
+
+.ka-wrap {
+  padding: 0 4px;
+}
+
+/* Header */
+.ka-icon-trash {
+  color: #fc8181;
+  font-size: 1.15rem;
+}
+
+.ka-title {
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+/* Kort */
+.ka-card {
+  background: #2d3748;
+  border-radius: 10px;
+  border: 1px solid #4a5568;
+  padding: 18px 16px;
+}
+
+.ka-card-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.ka-card-value {
+  font-size: 1.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+
+.ka-card-value-sm {
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ka-card-sub {
+  font-size: 0.75rem;
+}
+
+.ka-card-muted {
+  color: #718096;
+}
+
+.ka-spin {
+  padding: 10px 0;
+}
+
+/* Sektioner */
+.ka-section-title {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Grafer */
+.ka-chart-wrap {
+  position: relative;
+  height: 320px;
+}
+
+.ka-chart-doughnut {
+  height: 280px;
+}
+
+/* Tom / fel */
+.ka-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: #718096;
+}
+
+.ka-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.ka-error {
+  color: #fc8181;
+  font-size: 0.85rem;
+  padding: 8px 0;
+}
+
+/* Filter */
+.ka-filter-select {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+}
+
+.ka-filter-select:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.15rem rgba(99,179,237,.25);
+}
+
+.ka-filter-select option {
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
+/* Tabell */
+.ka-table {
+  color: #e2e8f0;
+  font-size: 0.82rem;
+}
+
+.ka-table thead tr {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.ka-table tbody tr {
+  border-color: #4a5568;
+}
+
+.ka-detail-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.ka-comment {
+  color: #718096;
+  font-style: italic;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsiv */
+@media (max-width: 576px) {
+  .ka-card-value {
+    font-size: 1.4rem;
+  }
+  .ka-chart-wrap {
+    height: 250px;
+  }
+  .ka-chart-doughnut {
+    height: 220px;
+  }
+}
