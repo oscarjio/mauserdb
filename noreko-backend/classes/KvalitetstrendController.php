@@ -236,7 +236,6 @@ class KvalitetstrendController {
     private function beraknaForandring(array $veckodata, array $veckonycklar): array {
         // Sortera veckonycklar
         sort($veckonycklar);
-        $n = count($veckonycklar);
 
         // Ta de senaste 4 veckorna med data
         $vals = [];
@@ -632,7 +631,7 @@ class KvalitetstrendController {
             $teamSnitt = [];
             foreach ($veckonycklar as $vKey) {
                 $vals = [];
-                foreach ($allOpData as $num => $vd) {
+                foreach ($allOpData as $vd) {
                     $kval = $vd[$vKey]['kvalitet_pct'] ?? null;
                     if ($kval !== null) $vals[] = $kval;
                 }
@@ -649,7 +648,7 @@ class KvalitetstrendController {
                 $opKval   = $opRow['kvalitet_pct'] ?? null;
 
                 // Veckonummer-label t.ex. "V10"
-                [$ar, $wPart] = explode('-W', $vKey);
+                [, $wPart] = explode('-W', $vKey);
                 $label = 'V' . ltrim($wPart, '0') ?: 'V' . $wPart;
 
                 $tidslinje[] = [

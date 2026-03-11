@@ -10,7 +10,6 @@ import {
   ScheduleData,
   SchemaRad,
   HistoryData,
-  HistorikPost,
 } from '../../services/underhallsprognos.service';
 
 Chart.register(...registerables);
@@ -159,7 +158,6 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
       .sort((a, b) => (a.nasta_datum ?? '').localeCompare(b.nasta_datum ?? ''))
       .slice(0, 10);
 
-    const today = new Date();
     const labels = sorted.map(r => r.komponent);
 
     // Dagar kvar (kan vara negativt)
@@ -200,7 +198,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
           tooltip: {
             callbacks: {
               label: ctx => {
-                const val: number = ctx.parsed.x as number;
+                const val = ctx.parsed.x ?? 0;
                 if (val < 0) return `Försenat med ${Math.abs(val)} dagar`;
                 if (val === 0) return 'Förfaller idag';
                 return `${val} dagar kvar`;

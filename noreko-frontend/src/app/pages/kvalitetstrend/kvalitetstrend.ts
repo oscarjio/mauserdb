@@ -11,7 +11,6 @@ import {
   OperatorsData,
   OperatorRow,
   OperatorDetailData,
-  TidslinjeRow,
 } from '../../services/kvalitetstrend.service';
 
 Chart.register(...registerables);
@@ -214,7 +213,6 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
 
     // Bygg labels baserat på visningsläge
     let labels: string[];
-    let dataKeys: string[];
 
     if (this.visningsLage === 'manad') {
       // Aggregera till månader
@@ -233,13 +231,11 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
         const manadNamn = ['Jan','Feb','Mar','Apr','Maj','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
         return `${manadNamn[parseInt(m, 10) - 1]} ${y}`;
       });
-      dataKeys = Object.keys(manadMap).sort();
     } else {
       labels   = veckonycklar.map(k => {
         const [, wPart] = k.split('-W');
         return 'V' + parseInt(wPart, 10);
       });
-      dataKeys = veckonycklar;
     }
 
     const colors = [
@@ -381,7 +377,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
     return d;
   }
 
-  private aggregeraTillManader(op: OperatorRow, veckonycklar: string[], _team: any): (number | null)[] {
+  private aggregeraTillManader(_op: OperatorRow, _veckonycklar: string[], _team: any): (number | null)[] {
     // Sparkdata är senaste 6 veckors kval. Returnera null för månadsvy.
     return [];
   }
@@ -546,7 +542,7 @@ export class KvalitetstrendComponent implements OnInit, OnDestroy {
     return 'Stabil';
   }
 
-  formatForandring(pct: number | null, pil: string): string {
+  formatForandring(pct: number | null, _pil: string): string {
     if (pct === null) return '–';
     const sign = pct >= 0 ? '+' : '';
     return `${sign}${pct.toFixed(1)}%`;
