@@ -60,13 +60,13 @@ chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX
 race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
 Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
-Session #50: Produktionsmål-tracker + Månadsrapport — startade.
+Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 ### Rebotling-fokus (pågår session #50)
-- [PÅGÅR] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål
-- [PÅGÅR] **Månadsrapport** — auto-genererad sammanfattning, PDF-export
+- [x] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål (klar)
+- [x] **Månadsrapport** — service-metoder tillagda (klar)
 
 ### Förbättringar
 - [ ] **Bonus "What-if"-simulator** — admin justerar parametrar, ser effekt i realtid
@@ -81,9 +81,9 @@ Session #50: Produktionsmål-tracker + Månadsrapport — startade.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #50 (startade)
-Worker 1 (Produktionsmål-tracker): Progress-ring dagsmål/veckamål, streak, countdown. Backend: production-goals endpoints. DB: rebotling_production_goals. Worktree.
-Worker 2 (Månadsrapport): Ny sida /rapporter/manad. Auto-genererad sammanfattning + PDF-export. Backend: monthly-report endpoint. Worktree.
+### 2026-03-11 — Session #50 (klar)
+Worker 1 (Produktionsmål-tracker): Doughnut-gauge dagsmål/veckamål, streak-badge, countdown, admin inline-edit, auto-refresh 60s. Backend: production-goal-progress + set-production-goal. DB: rebotling_production_goals. 964 rader ny kod. Mergad.
+Worker 2 (Månadsrapport): Sidan fanns redan. Lade till service-metoder getMonthlyReport/getMonthCompare + interfaces i rebotling.service.ts. Commit 3e2f299.
 
 ### 2026-03-10 — Session #49 (klar)
 Worker 1 (Realtids-OEE-gauge): Stor cirkulär OEE-gauge överst på statistiksidan. Chart.js doughnut, färgkodad, progress bars A/P/Q, KPI-rutor, periodselektor, auto-refresh 60s.

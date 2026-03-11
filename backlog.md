@@ -5,8 +5,8 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [PÅGÅR] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown, streak
-- [PÅGÅR] **Månadsrapport** (`/rapporter/manad`) — auto-genererad sammanfattning, PDF-export
+- [x] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown, streak
+- [x] **Månadsrapport** (`/rapporter/manad`) — service-metoder tillagda (sidan fanns redan)
 
 ## Förbättringar
 
