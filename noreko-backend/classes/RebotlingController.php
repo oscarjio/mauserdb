@@ -137,6 +137,8 @@ class RebotlingController {
                 $this->analyticsController->getShiftDayNightComparison();
             } elseif ($action === 'top-operators-leaderboard') {
                 $this->analyticsController->getTopOperatorsLeaderboard();
+            } elseif ($action === 'machine-uptime-heatmap') {
+                $this->analyticsController->getMachineUptimeHeatmap();
 
             // --- Live-data GET endpoints ---
             } elseif ($action === 'status') {

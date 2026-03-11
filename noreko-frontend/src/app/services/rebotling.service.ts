@@ -466,6 +466,13 @@ export class RebotlingService {
     );
   }
 
+  getMachineUptimeHeatmap(days: number = 7): Observable<UptimeHeatmapResponse> {
+    return this.http.get<UptimeHeatmapResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=machine-uptime-heatmap&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
   // ---- Bonus-simulator ----
   getBonusSimulator(days: number = 30, params?: BonusSimulatorParams): Observable<BonusSimulatorResponse> {
     let url = `/noreko-backend/api.php?action=bonusadmin&run=bonus-simulator&days=${days}`;
@@ -1340,4 +1347,22 @@ export interface BonusSimulatorSavePayload {
   vikter?: { [key: number]: BonusSimulatorWeights };
   mal?: { [key: number]: number };
   max_bonus?: number;
+}
+
+// ---- Maskinupptid-heatmap interfaces ----
+export interface UptimeHeatmapCell {
+  date: string;
+  hour: number;
+  status: 'running' | 'stopped' | 'idle';
+  ibc_count: number;
+  stop_minutes: number;
+}
+
+export interface UptimeHeatmapResponse {
+  success: boolean;
+  days?: number;
+  from?: string;
+  to?: string;
+  cells?: UptimeHeatmapCell[];
+  error?: string;
 }

@@ -6554,4 +6554,96 @@ HTML;
         }
     }
 
+    public function getMachineUptimeHeatmap() {
+        $days = max(1, min(90, (int)($_GET['days'] ?? 7)));
+        $startDate = date('Y-m-d', strtotime("-{$days} days"));
+        $today = date('Y-m-d');
+
+        try {
+            // Hämta IBC-rader per datum och timme
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum)        AS dag,
+                    HOUR(datum)        AS timme,
+                    COUNT(*)           AS ibc_count
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= ?
+                  AND DATE(datum) <= ?
+                GROUP BY DATE(datum), HOUR(datum)
+                ORDER BY dag, timme
+            ");
+            $stmt->execute([$startDate, $today]);
+            $ibcRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Hämta stopp-data per datum och timme (on/off-events)
+            $stmtOff = $this->pdo->prepare("
+                SELECT
+                    DATE(datum)        AS dag,
+                    HOUR(datum)        AS timme,
+                    COUNT(*)           AS stopp_count
+                FROM rebotling_onoff
+                WHERE running = 0
+                  AND DATE(datum) >= ?
+                  AND DATE(datum) <= ?
+                GROUP BY DATE(datum), HOUR(datum)
+                ORDER BY dag, timme
+            ");
+            $stmtOff->execute([$startDate, $today]);
+            $offRows = $stmtOff->fetchAll(PDO::FETCH_ASSOC);
+
+            // Bygg lookup-map: dag+timme -> ibc_count
+            $ibcMap = [];
+            foreach ($ibcRows as $r) {
+                $ibcMap[$r['dag']][$r['timme']] = (int)$r['ibc_count'];
+            }
+
+            // Bygg lookup-map: dag+timme -> stopp_count
+            $offMap = [];
+            foreach ($offRows as $r) {
+                $offMap[$r['dag']][$r['timme']] = (int)$r['stopp_count'];
+            }
+
+            // Generera alla datum i perioden
+            $result = [];
+            for ($i = $days; $i >= 0; $i--) {
+                $dag = date('Y-m-d', strtotime("-{$i} days"));
+                if ($dag > $today) continue;
+
+                for ($h = 0; $h < 24; $h++) {
+                    $ibc = $ibcMap[$dag][$h] ?? 0;
+                    $stopp = $offMap[$dag][$h] ?? 0;
+
+                    if ($ibc > 0) {
+                        $status = 'running';
+                    } elseif ($stopp > 0) {
+                        $status = 'stopped';
+                    } else {
+                        $status = 'idle';
+                    }
+
+                    $stopMinutes = $stopp > 0 ? min(60, $stopp * 15) : 0;
+
+                    $result[] = [
+                        'date'         => $dag,
+                        'hour'         => $h,
+                        'status'       => $status,
+                        'ibc_count'    => $ibc,
+                        'stop_minutes' => $stopMinutes,
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'success' => true,
+                'days'    => $days,
+                'from'    => $startDate,
+                'to'      => $today,
+                'cells'   => $result,
+            ]);
+        } catch (Exception $e) {
+            error_log('getMachineUptimeHeatmap: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta maskinupptid-heatmap']);
+        }
+    }
 }

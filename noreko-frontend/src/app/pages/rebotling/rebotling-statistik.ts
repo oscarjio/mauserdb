@@ -33,6 +33,7 @@ import { StatistikProduktionsmalComponent } from './statistik/statistik-produkti
 import { StatistikSkiftjamforelseComponent } from './statistik/statistik-skiftjamforelse/statistik-skiftjamforelse';
 import { StatistikBonusSimulatorComponent } from './statistik/statistik-bonus-simulator/statistik-bonus-simulator';
 import { StatistikLeaderboardComponent } from './statistik/statistik-leaderboard/statistik-leaderboard';
+import { StatistikUptidHeatmapComponent } from './statistik/statistik-uptid-heatmap/statistik-uptid-heatmap';
 
 
 Chart.register(...registerables);
@@ -123,7 +124,7 @@ interface TableRow {
     StatistikSkiftrapportOperatorComponent, StatistikKvalitetDeepdiveComponent,
     StatistikAnnotationerComponent, StatistikOeeGaugeComponent, StatistikProduktionsmalComponent,
     StatistikSkiftjamforelseComponent, StatistikBonusSimulatorComponent,
-    StatistikLeaderboardComponent]
+    StatistikLeaderboardComponent, StatistikUptidHeatmapComponent]
 })
 export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productionChart') productionChartRef!: ElementRef<HTMLCanvasElement>;

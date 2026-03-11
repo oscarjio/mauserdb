@@ -1,0 +1,118 @@
+<div class="uptid-heatmap-card">
+  <div class="card-header-row">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fas fa-th text-info me-1"></i>
+      <h5 class="mb-0">Maskinupptid — Timheatmap</h5>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <select class="form-select form-select-sm period-select" [(ngModel)]="days" (change)="onDaysChange()">
+        <option [value]="7">7 dagar</option>
+        <option [value]="14">14 dagar</option>
+        <option [value]="30">30 dagar</option>
+      </select>
+      <button class="btn btn-sm btn-outline-secondary" (click)="load()" title="Uppdatera">
+        <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Sammanfattningskort -->
+  <div class="summary-row" *ngIf="summary && !loading">
+    <div class="summary-card summary-green">
+      <div class="summary-value">{{ summary.uptimePct }}%</div>
+      <div class="summary-label">Total drifttid</div>
+    </div>
+    <div class="summary-card summary-green2">
+      <div class="summary-value">{{ summary.runningHours }}h</div>
+      <div class="summary-label">Timmar i drift</div>
+    </div>
+    <div class="summary-card summary-red">
+      <div class="summary-value">{{ summary.longestStopHours }}h</div>
+      <div class="summary-label">Längsta stopp</div>
+    </div>
+    <div class="summary-card summary-blue">
+      <div class="summary-value">{{ summary.bestDayLabel }}</div>
+      <div class="summary-label">Bästa dag ({{ summary.bestDayPct }}% drift)</div>
+    </div>
+  </div>
+
+  <!-- Laddningsindikator -->
+  <div class="text-center py-4" *ngIf="loading">
+    <div class="spinner-border text-info" role="status"></div>
+    <div class="text-muted mt-2 small">Hämtar data...</div>
+  </div>
+
+  <!-- Felmeddelande -->
+  <div class="alert alert-danger mx-3 mb-3" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+  </div>
+
+  <!-- Heatmap-rutnät -->
+  <div class="heatmap-wrapper" *ngIf="!loading && !error && rows.length > 0">
+    <!-- X-axel: timmar -->
+    <div class="heatmap-grid">
+      <div class="axis-corner"></div>
+      <div class="hour-axis">
+        <div class="hour-label" *ngFor="let h of hours">{{ formatHour(h) }}</div>
+      </div>
+
+      <!-- En rad per dag -->
+      <div class="day-row" *ngFor="let row of rows">
+        <div class="day-label">
+          <span class="day-name">{{ row.dayLabel }}</span>
+          <span class="day-date">{{ row.dateLabel }}</span>
+        </div>
+        <div class="cells-row">
+          <div
+            class="heatmap-cell"
+            [class]="getCellClass(cell)"
+            *ngFor="let cell of row.cells"
+            (mouseenter)="showTooltip($event, cell)"
+            (mouseleave)="hideTooltip()"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="heatmap-legend">
+      <div class="legend-item">
+        <div class="legend-dot cell-running"></div>
+        <span>Drift</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot cell-stopped"></div>
+        <span>Stopp</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot cell-idle"></div>
+        <span>Ingen data</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inga rader -->
+  <div class="text-center py-4 text-muted" *ngIf="!loading && !error && rows.length === 0">
+    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+    Ingen data tillgänglig för perioden.
+  </div>
+
+  <!-- Tooltip (positioneras relativt card) -->
+  <div
+    class="heatmap-tooltip"
+    *ngIf="tooltip.visible && tooltip.cell"
+    [style.left.px]="tooltip.x"
+    [style.top.px]="tooltip.y"
+  >
+    <div class="tt-date">{{ tooltip.cell.date }} — {{ formatHour(tooltip.cell.hour) }}:00</div>
+    <div class="tt-status" [class]="'tt-' + tooltip.cell.status">
+      {{ getStatusLabel(tooltip.cell.status) }}
+    </div>
+    <div class="tt-detail" *ngIf="tooltip.cell.status === 'running'">
+      IBC denna timme: <strong>{{ tooltip.cell.ibc_count }}</strong>
+    </div>
+    <div class="tt-detail" *ngIf="tooltip.cell.status === 'stopped'">
+      Uppskattad stopptid: <strong>~{{ tooltip.cell.stop_minutes }} min</strong>
+    </div>
+  </div>
+</div>
