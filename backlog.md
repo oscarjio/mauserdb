@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [PÅGÅR] **Underhållslogg** — enkel formulärvy där operatör loggar planerade/oplanerade underhåll med kategori + varaktighet
-- [PÅGÅR] **Cykeltids-heatmap per timme** — heatmap som visar cykeltid per operatör per timme, identifiera mönster (morgon vs kväll)
+- [x] **Underhållslogg** — enkel formulärvy där operatör loggar planerade/oplanerade underhåll med kategori + varaktighet
+- [x] **Cykeltids-heatmap per timme** — heatmap som visar cykeltid per operatör per timme, identifiera mönster (morgon vs kväll)
 - [ ] **OEE-benchmark jämförelse** — jämför aktuell OEE mot branschsnitt (60-85% för process), visa gap + förbättringsförslag
 - [ ] **Skiftrapport PDF-export** — VD kan generera och ladda ner daglig skiftsammanfattning som PDF (jsPDF), mejla till ledningen
 - [ ] **Operatörsranking historik** — leaderboard-trender över tid, visa placeringsändring per vecka, motiverande "klättrare"-indikator
