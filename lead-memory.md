@@ -63,21 +63,24 @@ Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
 Session #60: Daglig sammanfattning + Produktionskalender — klara.
 Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
-Session #62: Underhållsprognos + Kvalitetstrend per operatör — pågår.
+Session #62: Underhållsprognos + Kvalitetstrend per operatör — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Underhållsprognos** — prediktera underhåll från historik
-- [PÅGÅR] **Kvalitetstrend per operatör** — kvalitet% trend, utbildningsbehov
 - [ ] **Stopporsak-trendanalys** — veckovis utveckling av stopporsaker
 - [ ] **Energi/effektivitetsvy** — IBC per drifttimme, slitage-trend
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
+- [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning
+- [ ] **Produktionsmål vs utfall dashboard** — dagsmål/veckomål/månadsmål vs faktisk
+- [ ] **Maskinutnyttjandegrad** — andel tillgänglig tid i produktion
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #62 (pågår)
-Worker 1 (Underhållsprognos): Schema-tabell, tidslinje-graf, historik, varningskort för försenat underhåll. Backend: UnderhallsprognosController.
-Worker 2 (Kvalitetstrend per operatör): Trendgraf per operatör, operatörstabell med förbättring/försämring, detaljvy, utbildningslarm. Backend: KvalitetstrendController.
+### 2026-03-11 — Session #62 (klar)
+Worker 1 (Underhållsprognos): 4 översiktskort, schematabell med progress-bar/statusbadge, Chart.js horisontellt stapeldiagram (topp 10 närmaste), historiktabell med periodväljare. Backend: UnderhallsprognosController (3 endpoints). Tabeller: underhall_komponenter + underhall_scheman med 12 seedade standardrader.
+Worker 2 (Kvalitetstrend per operatör): 4 KPI-kort, utbildningslarm-sektion, Chart.js trendlinjer (topp 8 + teamsnitt streckad + 85% gräns), operatörstabell med sparkline/trendpil/sökfilter/larm-toggle, detaljvy med graf+tidslinje-tabell. Backend: KvalitetstrendController (3 endpoints). Index på rebotling_ibc.
+Diagnostikvarningar fixade i båda features (oanvända imports/variabler, null-safety).
+Backlog utökad med: Skiftplaneringsöversikt, Produktionsmål vs utfall, Maskinutnyttjandegrad.
 
 ### 2026-03-11 — Session #61 (klar)
 Worker 1 (Målhistorik-analys): Steg-graf med mål vs faktisk IBC/h, ändringslogg-tabell, impact-kort (före/efter), sammanfattning. Backend: MalhistorikController (2 endpoints).
