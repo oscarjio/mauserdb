@@ -1,0 +1,458 @@
+/* ================================================================
+   Produktionskalender — dark theme styles
+   ================================================================ */
+
+.produktionskalender-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.card-dark {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* ── Månadsnavigering ──────────────────────────────────── */
+
+.nav-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.year-select,
+.month-select {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.15);
+  min-width: 80px;
+}
+
+.year-select:focus,
+.month-select:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.3);
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.manad-rubrik {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ── Kalender-grid ──────────────────────────────────────── */
+
+.kalender-wrapper {
+  background: #2d3748;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.kalender-grid {
+  display: grid;
+  grid-template-columns: 44px repeat(7, 1fr);
+  gap: 0;
+}
+
+/* Rubrikrad med dagnamn */
+.dag-namn-cell {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.helg-rubrik {
+  color: #68d391;
+}
+
+.veckonr-header {
+  background: #1a202c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Veckonummer */
+.veckonr-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: #1e2632;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.veckonr-badge {
+  font-size: 0.65rem;
+  color: #718096;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Vecka-rad */
+.vecka-rad {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Dagcell */
+.dag-cell {
+  min-height: 72px;
+  padding: 6px 5px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  background: #2d3748;
+}
+
+.dag-cell.har-data {
+  cursor: pointer;
+}
+
+.dag-cell.har-data:hover {
+  transform: scale(1.04);
+  z-index: 2;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.dag-cell.tom-cell {
+  background: #242b38;
+  opacity: 0.4;
+}
+
+.dag-cell.helg-cell {
+  background: #263044;
+}
+
+.dag-cell.aktiv-cell {
+  box-shadow: inset 0 0 0 2px #63b3ed;
+  z-index: 3;
+}
+
+/* Färgkodning */
+.dag-cell.dag-gron {
+  background: rgba(72, 187, 120, 0.18);
+  border-color: rgba(72, 187, 120, 0.25);
+}
+
+.dag-cell.dag-gron:hover {
+  background: rgba(72, 187, 120, 0.28);
+}
+
+.dag-cell.dag-gul {
+  background: rgba(246, 173, 85, 0.18);
+  border-color: rgba(246, 173, 85, 0.25);
+}
+
+.dag-cell.dag-gul:hover {
+  background: rgba(246, 173, 85, 0.28);
+}
+
+.dag-cell.dag-rod {
+  background: rgba(245, 101, 101, 0.18);
+  border-color: rgba(245, 101, 101, 0.25);
+}
+
+.dag-cell.dag-rod:hover {
+  background: rgba(245, 101, 101, 0.28);
+}
+
+/* Dagsiffra */
+.dag-nr {
+  font-size: 0.7rem;
+  color: #a0aec0;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* IBC-antal */
+.dag-ibc {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1;
+}
+
+/* Kvalitet */
+.dag-kval {
+  font-size: 0.65rem;
+  color: #a0aec0;
+  line-height: 1;
+}
+
+.dag-ingen-data {
+  font-size: 0.7rem;
+  color: #4a5568;
+  margin-top: 4px;
+}
+
+/* ── Veckosnitt-rad ─────────────────────────────────────── */
+
+.veckosnitt-rad {
+  background: rgba(0, 0, 0, 0.15);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.06);
+}
+
+.veckosnitt-cell {
+  grid-column: 2 / -1;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  color: #718096;
+  display: flex;
+  align-items: center;
+}
+
+.veckosnitt-text {
+  color: #a0aec0;
+}
+
+.trend-text {
+  font-size: 0.68rem;
+}
+
+/* ── Färgförklaring ─────────────────────────────────────── */
+
+.farglegende {
+  font-size: 0.78rem;
+  color: #a0aec0;
+}
+
+.farglegende-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.farg-ruta {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.farg-ruta.dag-gron { background: rgba(72, 187, 120, 0.5); border: 1px solid rgba(72, 187, 120, 0.6); }
+.farg-ruta.dag-gul  { background: rgba(246, 173, 85, 0.5); border: 1px solid rgba(246, 173, 85, 0.6); }
+.farg-ruta.dag-rod  { background: rgba(245, 101, 101, 0.5); border: 1px solid rgba(245, 101, 101, 0.6); }
+.farg-ruta.dag-ingen { background: #2d3748; border: 1px solid rgba(255,255,255,0.1); }
+
+/* ── Detalj-panel ───────────────────────────────────────── */
+
+.detalj-kolumn {
+  animation: slideIn 0.25s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.detalj-panel {
+  position: sticky;
+  top: 16px;
+}
+
+.detalj-rubrik {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.detalj-sektion-rubrik {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a0aec0;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+/* KPI-kort i detalj-panelen */
+.kpi-kort {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 8px;
+}
+
+.kpi-varde {
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.kpi-etikett {
+  font-size: 0.65rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.oee-kort {
+  background: rgba(66, 153, 225, 0.08);
+  border-color: rgba(66, 153, 225, 0.15);
+}
+
+/* Operatörs-tabell */
+.op-tabell {
+  font-size: 0.8rem;
+  background: transparent;
+}
+
+.op-tabell thead th {
+  color: #718096;
+  font-size: 0.7rem;
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+
+.op-tabell tbody tr:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.rank-badge.rank-1 { background: #d69e2e; color: #1a202c; }
+.rank-badge.rank-2 { background: #718096; color: #e2e8f0; }
+.rank-badge.rank-3 { background: #9c6e4a; color: #e2e8f0; }
+
+/* Stopporsaker */
+.stopp-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stopp-rad {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 5px;
+  font-size: 0.78rem;
+}
+
+.stopp-orsak {
+  color: #e2e8f0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.stopp-tid {
+  color: #fc8181;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stopp-antal {
+  font-size: 0.7rem;
+}
+
+/* ── Månadssammanfattning ────────────────────────────────── */
+
+.summary-kpi {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.summary-val {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.summary-label {
+  font-size: 0.65rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Responsivitet ──────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .dag-cell {
+    min-height: 54px;
+    padding: 3px 2px;
+  }
+
+  .dag-ibc {
+    font-size: 0.85rem;
+  }
+
+  .dag-kval {
+    font-size: 0.55rem;
+  }
+
+  .dag-nr {
+    font-size: 0.6rem;
+  }
+
+  .veckonr-cell {
+    width: 28px;
+  }
+
+  .veckonr-badge {
+    font-size: 0.55rem;
+  }
+
+  .kalender-grid {
+    grid-template-columns: 28px repeat(7, 1fr);
+  }
+}

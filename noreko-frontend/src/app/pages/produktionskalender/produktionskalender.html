@@ -1,0 +1,319 @@
+<div class="produktionskalender-page">
+  <div class="container-fluid py-4">
+
+    <!-- Header -->
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-calendar-alt me-2 text-info"></i>Produktionskalender
+        </h1>
+        <p class="page-subtitle">Produktionsvolym och kvalitet per dag</p>
+      </div>
+
+      <!-- Månadsnavigering -->
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="foregaendeManad()" title="Föregående månad">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <select class="form-select form-select-sm year-select" [(ngModel)]="selectedYear" (change)="onManadChange()">
+          <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+        </select>
+
+        <select class="form-select form-select-sm month-select" [(ngModel)]="selectedMonth" (change)="onManadChange()">
+          <option *ngFor="let m of months" [value]="m.nr">{{ m.namn }}</option>
+        </select>
+
+        <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="nastaManad()" title="Nästa månad">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="manadLoading" class="text-center py-5">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar…</span>
+      </div>
+      <p class="text-muted mt-2">Hämtar kalenderdata…</p>
+    </div>
+
+    <!-- Fel -->
+    <div *ngIf="manadFel && !manadLoading" class="alert alert-danger">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte hämta kalenderdata. Försök igen.
+    </div>
+
+    <!-- Kalender + Detalj-panel -->
+    <div *ngIf="manadLoaded && manadData" class="row g-3">
+
+      <!-- Kalender (vänster) -->
+      <div [class]="panelVisible ? 'col-lg-8' : 'col-12'" class="kalender-kolumn">
+
+        <!-- Månadsrubrik -->
+        <h2 class="manad-rubrik mb-3">{{ aktuelltManadNamn }}</h2>
+
+        <!-- Kalender-grid -->
+        <div class="kalender-wrapper">
+          <!-- Dagnamnsrad -->
+          <div class="kalender-grid">
+            <div class="veckonr-header"></div>
+            <div
+              *ngFor="let namn of dagNamn; let i = index"
+              class="dag-namn-cell"
+              [class.helg-rubrik]="i >= 5"
+            >{{ namn }}</div>
+          </div>
+
+          <!-- Veckor -->
+          <div *ngFor="let vecka of kalender">
+            <!-- Dag-rader -->
+            <div class="kalender-grid vecka-rad">
+              <!-- Veckonummer -->
+              <div class="veckonr-cell">
+                <span class="veckonr-badge">v{{ vecka.veckoNr }}</span>
+              </div>
+
+              <!-- Dagceller -->
+              <div
+                *ngFor="let dag of vecka.dagar"
+                class="dag-cell"
+                [class.tom-cell]="!dag.datum"
+                [class.helg-cell]="dag.helg && dag.datum"
+                [class.aktiv-cell]="dag.datum === valdDag"
+                [class]="dag.datum ? fargKlass(dag) : ''"
+                [class.har-data]="dag.dagData?.har_data"
+                (click)="dag.dagData?.har_data ? klickaDag(dag) : null"
+                [title]="dag.datum && dag.dagData?.har_data ? dag.dagData!.ibc_ok + ' IBC OK — ' + dag.dagData!.kvalitet + '% kvalitet' : ''"
+              >
+                <ng-container *ngIf="dag.datum">
+                  <span class="dag-nr">{{ dag.dagNr }}</span>
+                  <ng-container *ngIf="dag.dagData?.har_data">
+                    <span class="dag-ibc">{{ dag.dagData!.ibc_ok }}</span>
+                    <span class="dag-kval">{{ dag.dagData!.kvalitet }}%</span>
+                  </ng-container>
+                  <ng-container *ngIf="!dag.dagData?.har_data">
+                    <span class="dag-ingen-data">—</span>
+                  </ng-container>
+                </ng-container>
+              </div>
+            </div>
+
+            <!-- Veckosnitt-rad -->
+            <div class="kalender-grid veckosnitt-rad">
+              <div class="veckonr-cell"></div>
+              <div class="veckosnitt-cell" [attr.colspan]="7">
+                <ng-container *ngIf="vecka.snittIbc > 0">
+                  <span class="veckosnitt-text">
+                    Snitt: {{ vecka.snittIbc }} IBC/dag · {{ vecka.snittKval }}% kval
+                  </span>
+                  <span *ngIf="vecka.trend" class="trend-pil ms-2">
+                    <i class="fas" [class]="trendIkon(vecka.trend)"></i>
+                    <span class="trend-text ms-1" *ngIf="vecka.foregSnitt !== null">
+                      vs {{ vecka.foregSnitt }} föreg.
+                    </span>
+                  </span>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Färgförklaring -->
+        <div class="farglegende mt-3 d-flex flex-wrap gap-3">
+          <div class="farglegende-item">
+            <span class="farg-ruta dag-gron"></span>
+            <span>&gt;90% kvalitet &amp; mål uppnått</span>
+          </div>
+          <div class="farglegende-item">
+            <span class="farg-ruta dag-gul"></span>
+            <span>70–90% kvalitet</span>
+          </div>
+          <div class="farglegende-item">
+            <span class="farg-ruta dag-rod"></span>
+            <span>&lt;70% kvalitet</span>
+          </div>
+          <div class="farglegende-item">
+            <span class="farg-ruta dag-ingen"></span>
+            <span>Ingen produktion</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Detalj-panel (höger) -->
+      <div class="col-lg-4 detalj-kolumn" *ngIf="panelVisible">
+        <div class="detalj-panel card-dark p-3">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <h4 class="detalj-rubrik">
+              <i class="fas fa-info-circle me-2 text-info"></i>
+              {{ formateraDatum(valdDag) }}
+            </h4>
+            <button class="btn btn-sm btn-outline-secondary" (click)="stangPanel()" title="Stäng">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <!-- Laddning av detaljer -->
+          <div *ngIf="detaljLoading" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+            <p class="text-muted small mt-2">Hämtar dagsinformation…</p>
+          </div>
+
+          <!-- Detaljdata -->
+          <div *ngIf="detaljLoaded && dagDetalj">
+
+            <!-- KPI-kort -->
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <div class="kpi-kort text-center">
+                  <div class="kpi-varde text-success">{{ dagDetalj.ibc_ok }}</div>
+                  <div class="kpi-etikett">IBC OK</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-kort text-center">
+                  <div class="kpi-varde text-danger">{{ dagDetalj.ibc_ej_ok }}</div>
+                  <div class="kpi-etikett">IBC Ej OK</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-kort text-center">
+                  <div class="kpi-varde" [class.text-success]="dagDetalj.kvalitet >= 90" [class.text-warning]="dagDetalj.kvalitet >= 70 && dagDetalj.kvalitet < 90" [class.text-danger]="dagDetalj.kvalitet < 70">
+                    {{ dagDetalj.kvalitet }}%
+                  </div>
+                  <div class="kpi-etikett">Kvalitet</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-kort text-center">
+                  <div class="kpi-varde text-info">{{ dagDetalj.ibc_h !== null ? dagDetalj.ibc_h : '—' }}</div>
+                  <div class="kpi-etikett">IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-kort text-center">
+                  <div class="kpi-varde text-primary">{{ formateraTid(dagDetalj.drifttid) }}</div>
+                  <div class="kpi-etikett">Drifttid</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="kpi-kort text-center">
+                  <div class="kpi-varde text-warning">{{ formateraTid(dagDetalj.stopptid) }}</div>
+                  <div class="kpi-etikett">Stopptid</div>
+                </div>
+              </div>
+              <div class="col-12" *ngIf="dagDetalj.oee !== null">
+                <div class="kpi-kort text-center oee-kort">
+                  <div class="kpi-varde text-info">{{ dagDetalj.oee }}%</div>
+                  <div class="kpi-etikett">OEE</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Top 5 operatörer -->
+            <div *ngIf="dagDetalj.topp5.length > 0" class="mb-3">
+              <h6 class="detalj-sektion-rubrik">
+                <i class="fas fa-trophy me-2 text-warning"></i>Topp 5 operatörer
+              </h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-dark mb-0 op-tabell">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Operatör</th>
+                      <th class="text-end">IBC OK</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let op of dagDetalj.topp5">
+                      <td>
+                        <span class="rank-badge rank-{{ op.rank }}">{{ op.rank }}</span>
+                      </td>
+                      <td>{{ op.namn }}</td>
+                      <td class="text-end fw-bold">{{ op.ibc_ok }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Stopporsaker -->
+            <div *ngIf="dagDetalj.stopporsaker.length > 0" class="mb-2">
+              <h6 class="detalj-sektion-rubrik">
+                <i class="fas fa-stop-circle me-2 text-danger"></i>Stopporsaker
+              </h6>
+              <div class="stopp-lista">
+                <div *ngFor="let stopp of dagDetalj.stopporsaker" class="stopp-rad">
+                  <div class="stopp-orsak">{{ stopp.orsak }}</div>
+                  <div class="stopp-info">
+                    <span class="stopp-tid">{{ stopp.minuter }} min</span>
+                    <span class="stopp-antal ms-2 text-muted">({{ stopp.antal }}×)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div *ngIf="dagDetalj.stopporsaker.length === 0 && dagDetalj.topp5.length === 0" class="text-muted text-center py-2 small">
+              Ingen detaljinformation tillgänglig för denna dag.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Månadssammanfattning -->
+    <div *ngIf="manadLoaded && manadData" class="row g-3 mt-2">
+      <div class="col-12">
+        <div class="card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-chart-bar me-2 text-info"></i>Månadssammanfattning — {{ aktuelltManadNamn }}
+          </h5>
+          <div class="row g-3">
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="summary-kpi">
+                <div class="summary-val">{{ manadData.summary.totalt_ibc | number }}</div>
+                <div class="summary-label">Totalt IBC OK</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="summary-kpi">
+                <div class="summary-val">{{ manadData.summary.snitt_kvalitet }}%</div>
+                <div class="summary-label">Snitt kvalitet</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="summary-kpi">
+                <div class="summary-val text-success">{{ manadData.summary.grona_dagar }}</div>
+                <div class="summary-label">Gröna dagar</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="summary-kpi">
+                <div class="summary-val text-warning">{{ manadData.summary.gula_dagar }}</div>
+                <div class="summary-label">Gula dagar</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2">
+              <div class="summary-kpi">
+                <div class="summary-val text-danger">{{ manadData.summary.roda_dagar }}</div>
+                <div class="summary-label">Röda dagar</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2" *ngIf="manadData.summary.basta_dag">
+              <div class="summary-kpi">
+                <div class="summary-val text-success small">{{ manadData.summary.basta_dag }}</div>
+                <div class="summary-label">Bästa dag</div>
+              </div>
+            </div>
+            <div class="col-6 col-md-3 col-lg-2" *ngIf="manadData.summary.samsta_dag">
+              <div class="summary-kpi">
+                <div class="summary-val text-danger small">{{ manadData.summary.samsta_dag }}</div>
+                <div class="summary-label">Sämsta dag</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

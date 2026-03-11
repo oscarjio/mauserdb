@@ -55,6 +55,8 @@ export const routes: Routes = [
       { path: 'rebotling/skiftrapport-export', canActivate: [authGuard], loadComponent: () => import('./pages/skiftrapport-export/skiftrapport-export').then(m => m.SkiftrapportExportComponent) },
       { path: 'rebotling/feedback-analys', canActivate: [authGuard], loadComponent: () => import('./pages/feedback-analys/feedback-analys').then(m => m.FeedbackAnalysComponent) },
       { path: 'rebotling/ranking-historik', canActivate: [authGuard], loadComponent: () => import('./pages/ranking-historik/ranking-historik').then(m => m.RankingHistorikComponent) },
+      { path: 'rebotling/daglig-sammanfattning', canActivate: [authGuard], loadComponent: () => import('./pages/daglig-sammanfattning/daglig-sammanfattning').then(m => m.DagligSammanfattningComponent) },
+      { path: 'rebotling/produktionskalender', canActivate: [authGuard], loadComponent: () => import('./pages/produktionskalender/produktionskalender').then(m => m.ProduktionskalenderComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

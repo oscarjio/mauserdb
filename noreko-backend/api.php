@@ -151,6 +151,8 @@ $classNameMap = [
     'skiftrapport-export'     => 'SkiftrapportExportController',
     'feedback-analys'         => 'FeedbackAnalysController',
     'ranking-historik'        => 'RankingHistorikController',
+    'produktionskalender'     => 'ProduktionskalenderController',
+    'daglig-sammanfattning'   => 'DagligSammanfattningController',
 ];
 
 $actionKey = strtolower($action);

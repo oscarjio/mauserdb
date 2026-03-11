@@ -1,3 +1,27 @@
+## 2026-03-11 Produktionskalender — månadsvy med per-dag KPI:er och färgkodning
+
+Ny sida `/rebotling/produktionskalender` (autentiserad). Visar produktionsvolym och kvalitet per dag i en interaktiv kalendervy med färgkodning.
+
+- **Backend**: `ProduktionskalenderController.php` — run=month-data (per-dag-data för hela månaden: IBC ok/ej ok, kvalitet %, farg, IBC/h, månadssammanfattning, veckosnitt + trender), run=day-detail (detaljerad dagsinformation: KPI:er, top 5 operatörer, stopporsaker med minuter). Auth: session_id krävs. Hämtar mål från `rebotling_settings` (fallback 1000).
+- **SQL-migrering**: `noreko-backend/migrations/2026-03-11_produktionskalender.sql` — tre index: datum+ok+lopnummer (månadsvy), stopp datum+orsak, onoff datum+running. Markerat med git add -f.
+- **api.php**: Registrerat `produktionskalender` → `ProduktionskalenderController`
+- **Service**: `src/app/services/produktionskalender.service.ts` — getMonthData(year, month), getDayDetail(date), timeout+catchError. Fullständiga TypeScript-interfaces: DagData, VeckoData, MonthlySummary, MonthData, DayDetail, TopOperator, Stopporsak.
+- **Komponent**: `src/app/pages/produktionskalender/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil.
+  - Månadskalender med CSS Grid: 7 kolumner (mån–sön) + veckonummer-kolumn
+  - Dagceller visar IBC OK (stort), kvalitet % (litet), färgkodning: grön (>90% kval + mål uppnått), gul (70–90%), röd (<70%)
+  - Helgdagar (lör/sön) markeras med annorlunda bakgrundsfärg
+  - Hover-effekt med scale-transform på klickbara dagar
+  - Animerad detalj-panel (slide-in från höger med @keyframes) vid klick på dag
+  - Detalj-panel visar: IBC OK/Ej OK, kvalitet %, IBC/h, drifttid, stopptid, OEE, top 5 operatörer med rank-badges, stopporsaker med minuter
+  - Veckosnitt-rad under varje vecka med trend-pil (upp/ner/stabil) vs föregående vecka
+  - Månadssammanfattning: totalt IBC, snitt kvalitet, antal gröna/gula/röda dagar, bästa/sämsta dag
+  - Månadsnavigering med pilar + dropdown för år och månad
+  - Färgförklaring (legend) under kalendern
+  - Responsiv — anpassad för desktop och tablet
+- **Route**: `/rebotling/produktionskalender` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Produktionskalender" (calendar-alt, grön) för inloggade användare
+- **Build**: OK — inga fel (bara befintliga NG8102-varningar från feedback-analys)
+
 ## 2026-03-11 Feedback-analys — VD-insyn i operatörsfeedback och stämning
 
 Ny sida `/rebotling/feedback-analys` (autentiserad). VD och ledning får full insyn i operatörernas feedback och stämning (skalan 1–4: Dålig/Ok/Bra/Utmärkt) ur `operator_feedback`-tabellen.
