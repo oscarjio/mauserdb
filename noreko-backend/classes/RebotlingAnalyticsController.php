@@ -6,6 +6,76 @@ class RebotlingAnalyticsController {
         $this->pdo = $pdo;
     }
 
+    /**
+     * Hämta start/stopptid för ett skift.
+     * 1) Tar skifträknare från rapporten
+     * 2) Fallback nedåt (n-1, n-2) + dagen innan om inga cykler finns
+     * 3) Hittar första/sista cykel i rebotling_ibc
+     * 4) Använder rebotling_onoff: senaste running=1 FÖRE första cykel = starttid,
+     *    första running=0 EFTER sista cykel = stopptid
+     */
+    private function resolveSkiftTider(array $skiftraknareList, string $date): array {
+        if (count($skiftraknareList) === 0) {
+            return ['start' => null, 'slut' => null];
+        }
+
+        // Samla alla skifträknare att söka på (original + fallback nedåt)
+        $searchIds = [];
+        foreach (array_keys($skiftraknareList) as $sk) {
+            $searchIds[] = (int)$sk;
+            $searchIds[] = (int)$sk - 1;
+            $searchIds[] = (int)$sk - 2;
+        }
+        $searchIds = array_unique($searchIds);
+        sort($searchIds);
+
+        // Sök cykler på dessa skifträknare (datum + dagen innan)
+        $prevDay = date('Y-m-d', strtotime($date . ' -1 day'));
+        $placeholders = implode(',', array_fill(0, count($searchIds), '?'));
+        $params = $searchIds;
+        $params[] = $date;
+        $params[] = $prevDay;
+
+        $tidStmt = $this->pdo->prepare("
+            SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
+            FROM rebotling_ibc
+            WHERE skiftraknare IN ({$placeholders})
+              AND (DATE(datum) = ? OR DATE(datum) = ?)
+              AND lopnummer > 0 AND lopnummer < 998
+        ");
+        $tidStmt->execute($params);
+        $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
+        $firstCycle = $tidRow['first_cycle'] ?? null;
+        $lastCycle  = $tidRow['last_cycle'] ?? null;
+
+        if (!$firstCycle) {
+            return ['start' => null, 'slut' => null];
+        }
+
+        // Starttid: senaste running=1 i onoff FÖRE eller vid första cykel
+        $skiftStart = $firstCycle;
+        try {
+            $onStmt = $this->pdo->prepare(
+                "SELECT datum FROM rebotling_onoff WHERE running = 1 AND datum <= ? ORDER BY datum DESC LIMIT 1"
+            );
+            $onStmt->execute([$firstCycle]);
+            $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
+            if ($onRow) $skiftStart = $onRow['datum'];
+        } catch (Exception $e) {}
+
+        // Stopptid: första running=0 i onoff EFTER sista cykel
+        $skiftSlut = $lastCycle;
+        try {
+            $offStmt = $this->pdo->prepare(
+                "SELECT datum FROM rebotling_onoff WHERE running = 0 AND datum >= ? ORDER BY datum ASC LIMIT 1"
+            );
+            $offStmt->execute([$lastCycle]);
+            $offRow = $offStmt->fetch(PDO::FETCH_ASSOC);
+            if ($offRow) $skiftSlut = $offRow['datum'];
+        } catch (Exception $e) {}
+
+        return ['start' => $skiftStart, 'slut' => $skiftSlut];
+    }
 
     private function ensureSettingsTable() {
         $this->pdo->exec("
@@ -4030,45 +4100,10 @@ class RebotlingAnalyticsController {
                 $hourlyData = $hourlyStmt->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // Hämta start/stopptid via rebotling_onoff (maskin start/stopp),
-            // fallback till rebotling_ibc (första/sista cykel)
-            $skiftStart = null;
-            $skiftSlut  = null;
-            if (count($skiftraknareList) > 0) {
-                $skiftIds = array_keys($skiftraknareList);
-                $placeholders = implode(',', array_fill(0, count($skiftIds), '?'));
-                $tidStmt = $this->pdo->prepare("
-                    SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
-                    FROM rebotling_ibc
-                    WHERE skiftraknare IN ({$placeholders})
-                      AND lopnummer > 0 AND lopnummer < 998
-                ");
-                $tidStmt->execute($skiftIds);
-                $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
-                $firstCycle = $tidRow['first_cycle'] ?? null;
-                $lastCycle  = $tidRow['last_cycle'] ?? null;
-
-                if ($firstCycle) {
-                    try {
-                        $onStmt = $this->pdo->prepare(
-                            "SELECT datum FROM rebotling_onoff WHERE running = 1 AND datum <= ? ORDER BY datum DESC LIMIT 1"
-                        );
-                        $onStmt->execute([$firstCycle]);
-                        $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
-                        $skiftStart = $onRow ? $onRow['datum'] : $firstCycle;
-                    } catch (Exception $e) { $skiftStart = $firstCycle; }
-                }
-                if ($lastCycle) {
-                    try {
-                        $offStmt = $this->pdo->prepare(
-                            "SELECT datum FROM rebotling_onoff WHERE running = 0 AND datum >= ? ORDER BY datum ASC LIMIT 1"
-                        );
-                        $offStmt->execute([$lastCycle]);
-                        $offRow = $offStmt->fetch(PDO::FETCH_ASSOC);
-                        $skiftSlut = $offRow ? $offRow['datum'] : $lastCycle;
-                    } catch (Exception $e) { $skiftSlut = $lastCycle; }
-                }
-            }
+            // Hämta start/stopptid: fallback nedåt + onoff (maskin start/stopp)
+            $tider = $this->resolveSkiftTider($skiftraknareList, $date);
+            $skiftStart = $tider['start'];
+            $skiftSlut  = $tider['slut'];
 
             // Skiftkommentar
             $kommentar = '';
@@ -5026,45 +5061,10 @@ HTML;
                 }
             }
 
-            // Hämta start/stopptid via rebotling_onoff (maskin start/stopp),
-            // fallback till rebotling_ibc (första/sista cykel)
-            $skiftStart = null;
-            $skiftSlut  = null;
-            if (count($skiftraknareList) > 0) {
-                $skiftIds = array_keys($skiftraknareList);
-                $placeholders = implode(',', array_fill(0, count($skiftIds), '?'));
-                $tidStmt = $this->pdo->prepare("
-                    SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
-                    FROM rebotling_ibc
-                    WHERE skiftraknare IN ({$placeholders})
-                      AND lopnummer > 0 AND lopnummer < 998
-                ");
-                $tidStmt->execute($skiftIds);
-                $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
-                $firstCycle = $tidRow['first_cycle'] ?? null;
-                $lastCycle  = $tidRow['last_cycle'] ?? null;
-
-                if ($firstCycle) {
-                    try {
-                        $onStmt = $this->pdo->prepare(
-                            "SELECT datum FROM rebotling_onoff WHERE running = 1 AND datum <= ? ORDER BY datum DESC LIMIT 1"
-                        );
-                        $onStmt->execute([$firstCycle]);
-                        $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
-                        $skiftStart = $onRow ? $onRow['datum'] : $firstCycle;
-                    } catch (Exception $e) { $skiftStart = $firstCycle; }
-                }
-                if ($lastCycle) {
-                    try {
-                        $offStmt = $this->pdo->prepare(
-                            "SELECT datum FROM rebotling_onoff WHERE running = 0 AND datum >= ? ORDER BY datum ASC LIMIT 1"
-                        );
-                        $offStmt->execute([$lastCycle]);
-                        $offRow = $offStmt->fetch(PDO::FETCH_ASSOC);
-                        $skiftSlut = $offRow ? $offRow['datum'] : $lastCycle;
-                    } catch (Exception $e) { $skiftSlut = $lastCycle; }
-                }
-            }
+            // Hämta start/stopptid: fallback nedåt + onoff (maskin start/stopp)
+            $tider = $this->resolveSkiftTider($skiftraknareList, $date);
+            $skiftStart = $tider['start'];
+            $skiftSlut  = $tider['slut'];
 
             $kvalitet = $totalTotalt > 0 ? round(($totalIbcOk / $totalTotalt) * 100, 1) : null;
             $planned = $totalDrift + $totalRast;
