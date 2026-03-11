@@ -5,18 +5,18 @@
 
 ## Rebotling-fokus (ägarens prioritet)
 
-- [ ] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown, streak
-- [x] **Realtids-OEE-gauge** — stor, tydlig gauge på statistiksidan som visar aktuell OEE live
+- [PÅGÅR] **Produktionsmål-tracker** — visuell progress mot dagsmål/veckamål med countdown, streak
+- [PÅGÅR] **Månadsrapport** (`/rapporter/manad`) — auto-genererad sammanfattning, PDF-export
 
 ## Förbättringar
 
 - [ ] **Bonus "What-if"-simulator** — admin justerar bonusparametrar, ser effekt i realtid
 - [ ] **Operatörsnärvaro-tracker** — kalendervy baserad på rebotling_ibc-data
-- [x] **Exportera grafer som bild** — knapp på varje graf-komponent för PNG-export
 - [ ] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
+- [ ] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse, trender per skifttyp
+- [ ] **Alerts/notifieringar** — realtidsvarning när OEE sjunker under tröskel eller stopp > X min
 
 ## Nya sidor
 
-- [ ] **Månadsrapport** (`/rapporter/manad`) — auto-genererad sammanfattning, PDF-export
 - [ ] **Skiftplaneringsvy** (`/admin/skiftplan`) — kalendervy, operatörer per skift
 - [ ] **Underhållslogg** (`/admin/underhall`) — logga planerat underhåll, koppla till stopptid
