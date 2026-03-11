@@ -492,23 +492,21 @@ class SkiftrapportController {
                 $datum = isset($_GET['datum']) ? $_GET['datum'] : null;
                 if ($datum && preg_match('/^\d{4}-\d{2}-\d{2}/', $datum)) {
                     $datumPrefix = substr($datum, 0, 10);
-                    // Hitta närliggande skifträknare med FLEST giltiga löpnummer på samma datum
-                    // Föredra lägre skifträknare (bakåt) vid lika antal — PLC räknar upp
+                    // Sök BARA nedåt (lägre skifträknare) — PLC räknar upp,
+                    // så skiftets data ligger under föregående räknarvärde
                     $stmt = $this->pdo->prepare(
                         "SELECT skiftraknare, COUNT(DISTINCT lopnummer) as cnt
                          FROM rebotling_ibc
                          WHERE skiftraknare BETWEEN ? AND ?
-                         AND skiftraknare != ?
                          AND datum LIKE ?
                          AND lopnummer > 0 AND lopnummer < 998
                          GROUP BY skiftraknare
-                         ORDER BY cnt DESC, skiftraknare ASC
+                         ORDER BY cnt DESC
                          LIMIT 1"
                     );
                     $stmt->execute([
                         $skiftraknare - 2,
-                        $skiftraknare + 2,
-                        $skiftraknare,
+                        $skiftraknare - 1,
                         $datumPrefix . '%'
                     ]);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
