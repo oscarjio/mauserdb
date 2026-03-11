@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #54)*
+*Senast uppdaterad: 2026-03-11 (session #55)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -65,20 +65,25 @@ Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
 Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
 Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — klara.
+Session #55: Kassationsanalys + Alerts/notifieringar — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Operatörs-dashboard "Min dag"** — personlig vy med dagens KPI:er (klar #54, d264777)
-- [x] **Veckotrend sparklines** — inline 7-dagars trendgrafer i KPI-kort (klar #54, 2384b65)
+- [PÅGÅR] **Kassationsanalys** — drilldown per stopporsak + kassationstyp (session #55)
+- [PÅGÅR] **Alerts/notifieringar** — realtidsvarning vid låg OEE/lång stopptid (session #55)
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
-- [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
-- [ ] **Kassationsanalys** — drilldown per stopporsak + kassationstyp
 - [ ] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
 - [ ] **Stopporsak-snabbregistrering** — mobilvänlig knappmatris
 - [ ] **Skiftöverlämningsmall** — auto-sammanfattning vid skiftbyte
 - [ ] **Underhållslogg** — operatör loggar underhåll med kategori + tid
+- [ ] **Cykeltids-heatmap per timme** — mönster morgon vs kväll
+- [ ] **OEE-benchmark jämförelse** — aktuell vs branschsnitt
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-11 — Session #55 (pågår)
+Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf, trendjämförelse, periodselektor. Backend: KassationsanalysController.
+Worker 2 (Alerts/notifieringar): Realtidsvarningar vid låg OEE/lång stopptid, kvittering, tröskelvärden, badge i header. Backend: AlertsController + DB-migrering.
 
 ### 2026-03-11 — Session #54 (klar)
 Worker 1 (Operatörs-dashboard "Min dag"): Personlig vy — dagens IBC, cykeltid-trend (Chart.js), kvalitet, bonus, progressbars mot mål, motivationstext. Backend: MinDagController. Commit d264777.
@@ -87,7 +92,3 @@ Worker 2 (Veckotrend sparklines): Canvas 2D sparklines, 7-dagars trend (4 KPI:er
 ### 2026-03-11 — Session #53 (klar)
 Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad, tooltip, sammanfattningskort. Backend: NarvaroController. Commit 8166fd2.
 Worker 2 (Produktionspuls-ticker): Realtidsticker med senaste IBC:er, färgkodad, pausar vid hover, statistikrad, widget på startsidan. Backend: ProduktionspulsController. Commit da0cfd2.
-
-### 2026-03-11 — Session #52 (klar)
-Worker 1 (Maskinupptid-heatmap): CSS-grid 7×24, drift/stopp/idle, tooltip, periodselektor. Backend: machine-uptime-heatmap.
-Worker 2 (Topp-5 leaderboard): Live-ranking topp-5 operatörer, guld/silver/brons, trendpilar, progressbar. Backend: top-operators-leaderboard.
