@@ -1,3 +1,16 @@
+## 2026-03-11 Underhallslogg — planerat och oplanerat underhall
+
+Ny sida `/rebotling/underhallslogg` (autentiserad). Operatörer loggar underhallstillfällen med kategori (Mekaniskt, Elektriskt, Hydraulik, Pneumatik, Rengöring, Kalibrering, Annat), typ (planerat/oplanerat), varaktighet i minuter och valfri kommentar. Historiklista med filter på period (7/14/30/90 dagar), typ och kategori. Sammanfattningskort: totalt antal, total tid, snitt/vecka, planerat/oplanerat-fördelning (%). Fördelningsvy med progressbar planerat vs oplanerat och stapeldiagram per kategori. Delete-knapp för admin. CSV-export.
+
+- **SQL**: `noreko-backend/migrations/2026-03-11_underhallslogg.sql` — tabeller `underhallslogg` + `underhall_kategorier` + 7 standardkategorier
+- **Backend**: `UnderhallsloggController.php` — endpoints: categories (GET), log (POST), list (GET, filtrering på days/type/category), stats (GET), delete (POST, admin-only)
+- **api.php**: Registrerat `underhallslogg` → `UnderhallsloggController`
+- **Service**: `src/app/services/underhallslogg.service.ts` — timeout(10000) + catchError på alla anrop
+- **Component**: `src/app/pages/underhallslogg/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$
+- **Route**: `/rebotling/underhallslogg` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Underhallslogg" (verktygsikon)
+- **Build**: OK — inga fel
+
 ## 2026-03-11 Cykeltids-heatmap — per operatör och timme pa dygnet
 
 Ny analysvy for VD: `/rebotling/cykeltid-heatmap`. Visar cykeltid per operatör per timme som fargsatt heatmap (gron=snabb, gul=medel, rod=langsam). Cykeltid beraknas via LAG(datum) OVER (PARTITION BY skiftraknare) med filter 30-1800 sek. Klickbar drilldown per operatörsrad visar daglig heatmap for den operatören. Dygnsmonstergraf (Chart.js) visar snitttid + antal IBC per timme pa dagen. Sammanfattningskort: snabbaste/langsammaste timme, bast operatör, mest konsekvent operatör.
