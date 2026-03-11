@@ -1,3 +1,20 @@
+## 2026-03-11 Skiftrapport PDF-export — daglig och veckovis produktionsrapport
+
+Ny sida `/rebotling/skiftrapport-export` (autentiserad). VD kan välja datum, se förhandsgranskning av alla KPI:er på skärmen, och ladda ner en färdig PDF — eller skriva ut med window.print(). Stöder dagrapport och veckorapport (datumintervall).
+
+- **Backend**: `SkiftrapportExportController.php` — run=report-data (produktion, cykeltider, drifttid, OEE-approximation, top-10-operatörer, trender mot förra veckan) och run=multi-day (sammanfattning per dag). Auth: session_id krävs.
+- **SQL**: `noreko-backend/migrations/2026-03-11_skiftrapport_export.sql` — index på created_at, created_at+skiftraknare+datum, op1/op2/op3+created_at för snabbare aggregering.
+- **api.php**: Registrerat `skiftrapport-export` → `SkiftrapportExportController`
+- **Service**: `src/app/services/skiftrapport-export.service.ts` — timeout(15000) + catchError, interface-typer för ReportData och MultiDayData.
+- **Komponent**: `src/app/pages/skiftrapport-export/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil.
+  - Datumväljare (default: igår) med lägesselektor dag/vecka
+  - Förhandsgranskning med KPI-kort (IBC OK/Ej OK, Kvalitet, IBC/h), cykeltider, drifttid/stopptid med progressbar, OEE med 3 faktorer, operatörstabell, trendsektion mot förra veckan
+  - PDF-generering via pdfmake (redan installerat): dag-PDF och vecka-PDF (landscape) med branding-header, tabeller, footer
+  - Utskriftsknapp via window.print() med @media print CSS
+- **Route**: `/rebotling/skiftrapport-export` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Skiftrapport PDF" (PDF-ikon, röd, visas för inloggade)
+- **Build**: OK — inga fel, inga varningar
+
 ## 2026-03-11 OEE Benchmark — jämförelse mot branschsnitt
 
 Ny statistiksida `/rebotling/oee-benchmark` (autentiserad). Visar OEE (Overall Equipment Effectiveness = Tillgänglighet × Prestanda × Kvalitet) för rebotling och jämför mot branschriktvärden: World Class 85%, Branschsnitt 60%, Lägsta godtagbara 40%.

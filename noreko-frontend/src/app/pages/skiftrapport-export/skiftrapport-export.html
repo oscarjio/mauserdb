@@ -288,7 +288,7 @@
                   <span class="text-muted small">Förra: {{ rapport.trender.prev_ibc_ok }}</span>
                   <span class="fw-bold">Nu: {{ rapport.produktion?.ibc_ok }}</span>
                 </div>
-                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_ibc_ok_pct ?? 0)" *ngIf="rapport.trender.diff_ibc_ok_pct !== null">
+                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_ibc_ok_pct!)" *ngIf="rapport.trender.diff_ibc_ok_pct !== null">
                   {{ trendIkon(rapport.trender.diff_ibc_ok_pct) }}
                   {{ trendText(rapport.trender.diff_ibc_ok_pct, '%') }}
                 </div>
@@ -301,7 +301,7 @@
                   <span class="text-muted small">Förra: {{ rapport.trender.prev_kvalitet }} %</span>
                   <span class="fw-bold">Nu: {{ rapport.produktion?.kvalitet_pct }} %</span>
                 </div>
-                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_kvalitet ?? 0)" *ngIf="rapport.trender.diff_kvalitet !== null">
+                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_kvalitet!)" *ngIf="rapport.trender.diff_kvalitet !== null">
                   {{ trendIkon(rapport.trender.diff_kvalitet) }}
                   {{ trendText(rapport.trender.diff_kvalitet, 'pp') }}
                 </div>
@@ -314,7 +314,7 @@
                   <span class="text-muted small">Förra: {{ rapport.trender.prev_ibc_per_h }}</span>
                   <span class="fw-bold">Nu: {{ rapport.produktion?.ibc_per_timme }}</span>
                 </div>
-                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_ibc_per_h_pct ?? 0)" *ngIf="rapport.trender.diff_ibc_per_h_pct !== null">
+                <div class="trend-diff" [style.color]="trendFarg(rapport.trender.diff_ibc_per_h_pct!)" *ngIf="rapport.trender.diff_ibc_per_h_pct !== null">
                   {{ trendIkon(rapport.trender.diff_ibc_per_h_pct) }}
                   {{ trendText(rapport.trender.diff_ibc_per_h_pct, '%') }}
                 </div>
