@@ -666,11 +666,11 @@ class SkiftrapportController {
             if ($nums[$i] === $prev + 1) {
                 $prev = $nums[$i];
             } else {
-                $ranges[] = $start === $prev ? (string)$start : "$start–$prev";
+                $ranges[] = $start === $prev ? (string)$start : $start . '–' . $prev;
                 $start = $prev = $nums[$i];
             }
         }
-        $ranges[] = $start === $prev ? (string)$start : "$start–$prev";
+        $ranges[] = $start === $prev ? (string)$start : $start . '–' . $prev;
         return implode(', ', $ranges);
     }
 }
