@@ -149,6 +149,8 @@ $classNameMap = [
     'cykeltid-heatmap'        => 'CykeltidHeatmapController',
     'oee-benchmark'           => 'OeeBenchmarkController',
     'skiftrapport-export'     => 'SkiftrapportExportController',
+    'feedback-analys'         => 'FeedbackAnalysController',
+    'ranking-historik'        => 'RankingHistorikController',
 ];
 
 $actionKey = strtolower($action);

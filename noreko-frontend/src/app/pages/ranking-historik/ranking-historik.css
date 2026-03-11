@@ -1,0 +1,293 @@
+/* ================================================================
+   Ranking-historik — dark theme styles
+   ================================================================ */
+
+.ranking-historik-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.card-dark {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* --- Sammanfattningskort --- */
+.summary-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-icon {
+  font-size: 2rem;
+  opacity: 0.85;
+}
+
+.summary-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.summary-sub {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+/* --- Knappar --- */
+.btn-warning {
+  background: #d69e2e;
+  border-color: #d69e2e;
+  color: #1a202c;
+}
+
+.btn-warning:hover {
+  background: #b7791f;
+  border-color: #b7791f;
+  color: #fff;
+}
+
+/* --- Ranking-tabell --- */
+.ranking-table {
+  font-size: 0.9rem;
+}
+
+.ranking-table thead th {
+  color: #a0aec0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ranking-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ranking-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.row-guld {
+  background: rgba(214, 158, 46, 0.08) !important;
+}
+
+.row-silver {
+  background: rgba(160, 174, 192, 0.08) !important;
+}
+
+.row-brons {
+  background: rgba(180, 120, 60, 0.06) !important;
+}
+
+/* --- Rank-badges --- */
+.rank-badge {
+  display: inline-block;
+  min-width: 38px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.badge-guld {
+  background: linear-gradient(135deg, #d4a017, #f0c040);
+  color: #1a202c;
+}
+
+.badge-silver {
+  background: linear-gradient(135deg, #8e9bb0, #b8c4d0);
+  color: #1a202c;
+}
+
+.badge-brons {
+  background: linear-gradient(135deg, #9a6137, #c07a45);
+  color: #fff;
+}
+
+.badge-rank {
+  background: rgba(255, 255, 255, 0.1);
+  color: #a0aec0;
+}
+
+.badge-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: #718096;
+}
+
+/* --- Operatörsnamn --- */
+.op-namn {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* --- Klättrar-badge --- */
+.klattrar-badge {
+  font-size: 0.75rem;
+  background: rgba(214, 158, 46, 0.15);
+  border: 1px solid rgba(214, 158, 46, 0.3);
+  border-radius: 8px;
+  padding: 1px 6px;
+  color: #d69e2e;
+  font-weight: 600;
+}
+
+/* --- IBC-räknare --- */
+.ibc-count {
+  font-weight: 600;
+  color: #68d391;
+  font-size: 0.95rem;
+}
+
+/* --- Graf-wrappers --- */
+.chart-wrapper {
+  position: relative;
+  height: 380px;
+}
+
+.chart-wrapper-h2h {
+  position: relative;
+  height: 320px;
+}
+
+/* --- Select dark --- */
+.select-dark {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.select-dark:focus {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
+}
+
+.select-dark option {
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
+/* --- Streak-tabell --- */
+.streak-table {
+  font-size: 0.88rem;
+}
+
+.streak-table thead th {
+  color: #a0aec0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* --- Placeringssekvens-prickar --- */
+.seq-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.seq-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: default;
+}
+
+.seq-dot-top {
+  background: linear-gradient(135deg, #d4a017, #f0c040);
+  color: #1a202c;
+}
+
+.seq-dot-high {
+  background: rgba(72, 187, 120, 0.25);
+  color: #68d391;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+.seq-dot-mid {
+  background: rgba(160, 174, 192, 0.12);
+  color: #a0aec0;
+  border: 1px solid rgba(160, 174, 192, 0.18);
+}
+
+.seq-dot-none {
+  background: transparent;
+  color: #4a5568;
+  font-size: 1.1rem;
+}
+
+/* --- Text-teal --- */
+.text-teal {
+  color: #38b2ac !important;
+}
+
+.text-purple {
+  color: #9f7aea !important;
+}
+
+/* --- Responsivitet --- */
+@media (max-width: 767px) {
+  .chart-wrapper {
+    height: 280px;
+  }
+
+  .chart-wrapper-h2h {
+    height: 250px;
+  }
+
+  .summary-value {
+    font-size: 1.2rem;
+  }
+
+  .seq-dot {
+    width: 20px;
+    height: 20px;
+    font-size: 0.68rem;
+  }
+}

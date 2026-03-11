@@ -53,6 +53,8 @@ export const routes: Routes = [
       { path: 'rebotling/underhallslogg', canActivate: [authGuard], loadComponent: () => import('./pages/underhallslogg/underhallslogg').then(m => m.UnderhallsloggComponent) },
       { path: 'rebotling/oee-benchmark', canActivate: [authGuard], loadComponent: () => import('./pages/oee-benchmark/oee-benchmark').then(m => m.OeeBenchmarkComponent) },
       { path: 'rebotling/skiftrapport-export', canActivate: [authGuard], loadComponent: () => import('./pages/skiftrapport-export/skiftrapport-export').then(m => m.SkiftrapportExportComponent) },
+      { path: 'rebotling/feedback-analys', canActivate: [authGuard], loadComponent: () => import('./pages/feedback-analys/feedback-analys').then(m => m.FeedbackAnalysComponent) },
+      { path: 'rebotling/ranking-historik', canActivate: [authGuard], loadComponent: () => import('./pages/ranking-historik/ranking-historik').then(m => m.RankingHistorikComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

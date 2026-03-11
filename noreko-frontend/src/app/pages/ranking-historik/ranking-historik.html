@@ -1,0 +1,343 @@
+<div class="ranking-historik-page">
+  <div class="container-fluid py-3">
+
+    <!-- Rubrik -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <h2 class="page-title">
+          <i class="fas fa-trophy me-2 text-warning"></i>
+          Ranking-historik
+        </h2>
+        <p class="page-subtitle">Operatörsplaceringar vecka för vecka — se vem som klättrar och faller</p>
+      </div>
+    </div>
+
+    <!-- Periodselektor -->
+    <div class="row mb-4">
+      <div class="col-12 col-md-auto">
+        <div class="card card-dark p-3">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="text-muted small">Period:</span>
+            <div class="btn-group" role="group">
+              <button
+                *ngFor="let p of periodOptions"
+                class="btn btn-sm"
+                [class.btn-warning]="weeks === p"
+                [class.btn-outline-secondary]="weeks !== p"
+                (click)="weeks = p; onWeeksChange()">
+                {{ p }} veckor
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sammanfattningskort (4 st) -->
+    <div class="row mb-4 g-3">
+
+      <!-- Veckans #1 -->
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-warning">
+            <i class="fas fa-crown"></i>
+          </div>
+          <div class="summary-label">Veckans #1</div>
+          <div class="summary-value" *ngIf="changesLoaded">{{ getVeckansEtta() }}</div>
+          <div class="summary-sub" *ngIf="changesLoaded">{{ getVeckansEttaIbc() }} IBC OK</div>
+          <div class="spinner-border spinner-border-sm text-warning" *ngIf="changesLoading"></div>
+        </div>
+      </div>
+
+      <!-- Största klättrare -->
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-success">
+            <i class="fas fa-rocket"></i>
+          </div>
+          <div class="summary-label">Största klättrare</div>
+          <div class="summary-value" *ngIf="changesLoaded">{{ getStorstKlattare() }}</div>
+          <div class="summary-sub text-success" *ngIf="changesLoaded && getStorstKlattareAndring() > 0">
+            +{{ getStorstKlattareAndring() }} platser denna vecka
+          </div>
+          <div class="summary-sub text-muted" *ngIf="changesLoaded && getStorstKlattareAndring() === 0">
+            Ingen klättring denna vecka
+          </div>
+          <div class="spinner-border spinner-border-sm text-success" *ngIf="changesLoading"></div>
+        </div>
+      </div>
+
+      <!-- Längsta positiva trend -->
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-info">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="summary-label">Längsta positiva trend</div>
+          <div class="summary-value" *ngIf="streakLoaded">{{ getLangstaPosStreakOp() }}</div>
+          <div class="summary-sub text-info" *ngIf="streakLoaded && getLangstaPosStreak() > 0">
+            {{ getLangstaPosStreak() }} veckor i rad uppåt
+          </div>
+          <div class="summary-sub text-muted" *ngIf="streakLoaded && getLangstaPosStreak() === 0">
+            Ingen pågående uppgång
+          </div>
+          <div class="spinner-border spinner-border-sm text-info" *ngIf="streakLoading"></div>
+        </div>
+      </div>
+
+      <!-- Mest konsekvent -->
+      <div class="col-12 col-sm-6 col-lg-3">
+        <div class="card card-dark p-3 h-100 summary-card">
+          <div class="summary-icon text-teal">
+            <i class="fas fa-medal"></i>
+          </div>
+          <div class="summary-label">Mest konsekvent</div>
+          <div class="summary-value" *ngIf="streakLoaded">{{ getMestKonsekvent() }}</div>
+          <div class="summary-sub text-teal" *ngIf="streakLoaded">Lägst varians i placering</div>
+          <div class="spinner-border spinner-border-sm text-teal" *ngIf="streakLoading"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Placeringsändringstabell -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-exchange-alt me-2 text-info"></i>
+            Placeringsändringar —
+            <span *ngIf="changesLoaded && changesData">{{ getVeckaEtikett() }} vs {{ getForegVeckaEtikett() }}</span>
+          </h5>
+
+          <!-- Laddning -->
+          <div *ngIf="changesLoading" class="text-center py-4">
+            <div class="spinner-border text-info" role="status"></div>
+            <div class="text-muted mt-2 small">Hämtar placeringsändringar...</div>
+          </div>
+
+          <!-- Ingen data -->
+          <div *ngIf="changesLoaded && !changesData" class="text-center py-3 text-muted">
+            Ingen placeringsdata tillgänglig.
+          </div>
+
+          <!-- Tabell -->
+          <div *ngIf="changesLoaded && changesData" class="table-responsive">
+            <table class="table table-dark table-hover ranking-table mb-0">
+              <thead>
+                <tr>
+                  <th class="text-center" style="width:60px">Nu</th>
+                  <th>Operatör</th>
+                  <th class="text-center">Föreg.</th>
+                  <th class="text-center">Ändring</th>
+                  <th class="text-end">IBC denna vecka</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of changesData.andringar"
+                    [class.row-guld]="item.rank_nu === 1"
+                    [class.row-silver]="item.rank_nu === 2"
+                    [class.row-brons]="item.rank_nu === 3">
+                  <td class="text-center">
+                    <span class="rank-badge" [class]="getRankBadgeKlass(item.rank_nu)">
+                      {{ item.rank_nu !== null ? '#' + item.rank_nu : '—' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="op-namn">{{ item.operator_namn }}</span>
+                    <!-- Klättrarbadge: 2+ veckor i rad uppåt -->
+                    <span class="klattrar-badge ms-2"
+                          *ngIf="harKlattrarBadge(item.operator_id)"
+                          title="Klättrar {{ getPosStreak(item.operator_id) }} veckor i rad!">
+                      <i class="fas fa-fire text-warning"></i>
+                      {{ getPosStreak(item.operator_id) }}v
+                    </span>
+                  </td>
+                  <td class="text-center text-muted">
+                    {{ item.rank_foreg !== null ? '#' + item.rank_foreg : '—' }}
+                  </td>
+                  <td class="text-center">
+                    <span [class]="getAndringKlass(item.andring)">
+                      <i [class]="getAndringIkon(item.andring)" class="me-1"></i>
+                      {{ getAndringText(item.andring) }}
+                    </span>
+                  </td>
+                  <td class="text-end ibc-count">
+                    {{ item.ibc_nu | number }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rankingtrend-graf -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-chart-line me-2 text-info"></i>
+            Rankingtrend — senaste {{ weeks }} veckor
+          </h5>
+
+          <!-- Laddning -->
+          <div *ngIf="rankingsLoading" class="text-center py-5">
+            <div class="spinner-border text-info" role="status"></div>
+            <div class="text-muted mt-2 small">Laddar rankningstrend...</div>
+          </div>
+
+          <!-- Ingen data -->
+          <div *ngIf="rankingsLoaded && !rankingsData" class="text-center py-3 text-muted">
+            Ingen data tillgänglig.
+          </div>
+
+          <!-- Graf -->
+          <div *ngIf="rankingsLoaded && rankingsData" class="chart-wrapper">
+            <canvas id="rankingTrendChart"></canvas>
+          </div>
+          <p class="text-muted small mt-2 mb-0" *ngIf="rankingsLoaded && rankingsData">
+            <i class="fas fa-info-circle me-1"></i>
+            Y-axeln är inverterad — placering #1 visas högst upp.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Head-to-head -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-users me-2 text-purple"></i>
+            Head-to-head — jämför två operatörer
+          </h5>
+
+          <!-- Välj operatörer -->
+          <div class="row g-3 mb-3">
+            <div class="col-12 col-md-5">
+              <label class="form-label text-muted small">Operatör 1</label>
+              <select class="form-select form-select-sm select-dark"
+                      [(ngModel)]="h2hOp1Id"
+                      (change)="onH2HChange()">
+                <option [value]="null">Välj operatör...</option>
+                <option *ngFor="let op of getAllaOperatorer()" [value]="op.operator_id">
+                  {{ op.operator_namn }}
+                </option>
+              </select>
+            </div>
+            <div class="col-12 col-md-2 d-flex align-items-end justify-content-center">
+              <span class="text-muted fw-bold">VS</span>
+            </div>
+            <div class="col-12 col-md-5">
+              <label class="form-label text-muted small">Operatör 2</label>
+              <select class="form-select form-select-sm select-dark"
+                      [(ngModel)]="h2hOp2Id"
+                      (change)="onH2HChange()">
+                <option [value]="null">Välj operatör...</option>
+                <option *ngFor="let op of getAllaOperatorer()" [value]="op.operator_id">
+                  {{ op.operator_namn }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- H2H-graf -->
+          <div *ngIf="h2hOp1Id !== null && h2hOp2Id !== null" class="chart-wrapper-h2h">
+            <canvas id="h2hChart"></canvas>
+          </div>
+
+          <!-- Prompt -->
+          <div *ngIf="h2hOp1Id === null || h2hOp2Id === null"
+               class="text-center py-4 text-muted">
+            <i class="fas fa-hand-pointer me-2"></i>
+            Välj två operatörer ovan för att se deras rankningskurvor mot varandra.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Streak-tabell -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-fire me-2 text-warning"></i>
+            Trender &amp; Streaks
+          </h5>
+
+          <!-- Laddning -->
+          <div *ngIf="streakLoading" class="text-center py-4">
+            <div class="spinner-border text-warning" role="status"></div>
+            <div class="text-muted mt-2 small">Beräknar streaks...</div>
+          </div>
+
+          <!-- Ingen data -->
+          <div *ngIf="streakLoaded && !streakData" class="text-center py-3 text-muted">
+            Ingen streak-data tillgänglig.
+          </div>
+
+          <!-- Tabell -->
+          <div *ngIf="streakLoaded && streakData" class="table-responsive">
+            <table class="table table-dark table-hover mb-0 streak-table">
+              <thead>
+                <tr>
+                  <th>Operatör</th>
+                  <th class="text-center">Plats nu</th>
+                  <th class="text-center">
+                    <i class="fas fa-arrow-up text-success me-1"></i>Positiv streak
+                  </th>
+                  <th class="text-center">
+                    <i class="fas fa-arrow-down text-danger me-1"></i>Negativ streak
+                  </th>
+                  <th>Placeringssekvens (senaste {{ weeks }} v)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of streakData.streaks">
+                  <td>
+                    <span class="op-namn">{{ s.operator_namn }}</span>
+                  </td>
+                  <td class="text-center">
+                    <span class="rank-badge" [class]="getRankBadgeKlass(s.rank_nu)">
+                      {{ s.rank_nu !== null ? '#' + s.rank_nu : '—' }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <span *ngIf="s.positiv_streak > 0" class="text-success fw-bold">
+                      <i class="fas fa-fire me-1 text-warning" *ngIf="s.positiv_streak >= 2"></i>
+                      {{ s.positiv_streak }} v
+                    </span>
+                    <span *ngIf="s.positiv_streak === 0" class="text-muted">—</span>
+                  </td>
+                  <td class="text-center">
+                    <span *ngIf="s.negativ_streak > 0" class="text-danger fw-bold">
+                      {{ s.negativ_streak }} v
+                    </span>
+                    <span *ngIf="s.negativ_streak === 0" class="text-muted">—</span>
+                  </td>
+                  <td>
+                    <div class="seq-dots">
+                      <span
+                        *ngFor="let rank of s.rankningssekvens; let i = index"
+                        class="seq-dot"
+                        [class.seq-dot-top]="rank === 1"
+                        [class.seq-dot-high]="rank !== null && rank >= 2 && rank <= 3"
+                        [class.seq-dot-mid]="rank !== null && rank >= 4"
+                        [class.seq-dot-none]="rank === null"
+                        [title]="rank !== null ? 'Plats #' + rank : 'Ingen produktion'">
+                        {{ rank !== null ? rank : '·' }}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -49,6 +49,8 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/underhallslogg"><i class="fas fa-tools me-2 text-warning"></i>Underhallslogg</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/oee-benchmark"><i class="fas fa-chart-pie me-2 text-teal"></i>OEE Benchmark</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/skiftrapport-export"><i class="fas fa-file-pdf me-2 text-danger"></i>Skiftrapport PDF</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/feedback-analys"><i class="fas fa-comment-dots me-2 text-info"></i>Feedback-analys</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/ranking-historik"><i class="fas fa-trophy me-2 text-warning"></i>Ranking-historik</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
