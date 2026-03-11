@@ -1,0 +1,248 @@
+<div class="heatmap-page">
+  <div class="container-fluid py-3">
+
+    <!-- Rubrik -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <h2 class="page-title">
+          <i class="fas fa-th me-2 text-info"></i>
+          Cykeltids-heatmap
+        </h2>
+        <p class="page-subtitle">Visualisering av cykeltid per operatör och timme på dygnet</p>
+      </div>
+    </div>
+
+    <!-- Periodselektor -->
+    <div class="row mb-4">
+      <div class="col-12 col-md-auto">
+        <div class="card card-dark p-3">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="text-muted small">Period:</span>
+            <div class="btn-group" role="group">
+              <button
+                *ngFor="let p of periodOptions"
+                class="btn btn-sm"
+                [class.btn-info]="days === p"
+                [class.btn-outline-secondary]="days !== p"
+                (click)="days = p; onDaysChange()">
+                {{ p }} dagar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sammanfattningskort -->
+    <div class="row mb-4 g-3" *ngIf="patternLoaded && patternSummary">
+      <div class="col-6 col-md-3">
+        <div class="card card-dark summary-card">
+          <div class="summary-icon text-success"><i class="fas fa-bolt"></i></div>
+          <div class="summary-label">Snabbaste timme</div>
+          <div class="summary-value">{{ formatHour(patternSummary.snabbaste_timme) }}</div>
+          <div class="summary-sub text-success">{{ formatSek(patternSummary.snabbaste_sek) }} snitt</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card card-dark summary-card">
+          <div class="summary-icon text-danger"><i class="fas fa-hourglass-half"></i></div>
+          <div class="summary-label">Långsammaste timme</div>
+          <div class="summary-value">{{ formatHour(patternSummary.langsammaste_timme) }}</div>
+          <div class="summary-sub text-danger">{{ formatSek(patternSummary.langsammaste_sek) }} snitt</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card card-dark summary-card">
+          <div class="summary-icon text-warning"><i class="fas fa-trophy"></i></div>
+          <div class="summary-label">Snabbaste operatör</div>
+          <div class="summary-value operator-name">{{ bastOperator ?? '—' }}</div>
+          <div class="summary-sub text-muted">Lägst snittcykeltid</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="card card-dark summary-card">
+          <div class="summary-icon text-info"><i class="fas fa-chart-line"></i></div>
+          <div class="summary-label">Mest konsekvent</div>
+          <div class="summary-value operator-name">{{ mestKonsekvent ?? '—' }}</div>
+          <div class="summary-sub text-muted">Lägst variation</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heatmap -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-th me-2 text-info"></i>
+            Heatmap — cykeltid per operatör och timme
+          </h5>
+
+          <!-- Laddning -->
+          <div *ngIf="heatmapLoading" class="text-center py-5">
+            <div class="spinner-border text-info" role="status"></div>
+            <div class="text-muted mt-2">Laddar heatmap...</div>
+          </div>
+
+          <!-- Ingen data -->
+          <div *ngIf="heatmapLoaded && !heatmapLoading && operators.length === 0"
+               class="text-center py-5 text-muted">
+            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+            <div>Ingen data för vald period</div>
+          </div>
+
+          <!-- Färgskala-legend -->
+          <div *ngIf="heatmapLoaded && operators.length > 0" class="legend-row mb-3">
+            <span class="text-muted small me-2">Cykeltid:</span>
+            <div class="legend-gradient"></div>
+            <span class="text-success small ms-2">
+              <i class="fas fa-circle me-1"></i>Snabb ({{ formatSek(globalMin) }})
+            </span>
+            <span class="text-muted small mx-2">—</span>
+            <span class="small text-white">Snitt ({{ formatSek(globalAvg) }})</span>
+            <span class="text-muted small mx-2">—</span>
+            <span class="text-danger small">
+              Långsam ({{ formatSek(globalMax) }}) <i class="fas fa-circle ms-1"></i>
+            </span>
+          </div>
+
+          <!-- Heatmap-tabell -->
+          <div *ngIf="heatmapLoaded && operators.length > 0" class="heatmap-wrapper">
+            <div class="heatmap-scroll">
+              <table class="heatmap-table">
+                <thead>
+                  <tr>
+                    <th class="op-col">Operatör</th>
+                    <th *ngFor="let h of hours" class="hour-col">{{ formatHour(h) }}</th>
+                    <th class="avg-col">Snitt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <ng-container *ngFor="let op of operators; let i = index">
+                    <!-- Operatörsrad -->
+                    <tr class="heatmap-row"
+                        [class.expanded]="expandedOperatorId === op.id"
+                        (click)="toggleOperatorDetail(op)"
+                        title="Klicka för att visa detaljer för {{ op.namn }}">
+                      <td class="op-cell">
+                        <span class="op-name">{{ op.namn }}</span>
+                        <i class="fas ms-1 small"
+                           [class.fa-chevron-down]="expandedOperatorId !== op.id"
+                           [class.fa-chevron-up]="expandedOperatorId === op.id"></i>
+                      </td>
+                      <td *ngFor="let cell of matrix[i]"
+                          class="heatmap-cell"
+                          [style.background]="getCellColor(cell)"
+                          [title]="cell.avg_sek !== null ? (formatSek(cell.avg_sek) + ' snitt, ' + cell.antal + ' IBC') : 'Ingen data'">
+                        <span *ngIf="cell.avg_sek !== null"
+                              [style.color]="getCellTextColor(cell)">
+                          {{ formatSek(cell.avg_sek) }}
+                        </span>
+                        <span *ngIf="cell.avg_sek === null" class="cell-empty">·</span>
+                      </td>
+                      <td class="avg-cell">{{ formatSek(getRowAvg(matrix[i])) || '—' }}</td>
+                    </tr>
+
+                    <!-- Drilldown-rad -->
+                    <tr *ngIf="expandedOperatorId === op.id" class="detail-row">
+                      <td [attr.colspan]="hours.length + 2" class="detail-cell">
+                        <div class="detail-content">
+
+                          <!-- Laddar detaljer -->
+                          <div *ngIf="detailLoading" class="text-center py-3">
+                            <div class="spinner-border spinner-border-sm text-info"></div>
+                            <span class="text-muted ms-2">Laddar detaljer...</span>
+                          </div>
+
+                          <!-- Detaljinnehåll -->
+                          <div *ngIf="!detailLoading && detailDagMatrix.length > 0">
+                            <h6 class="detail-title">
+                              <i class="fas fa-user-clock me-1 text-info"></i>
+                              {{ detailOperatorNamn }} — daglig heatmap ({{ days }} dagar)
+                            </h6>
+
+                            <!-- Timme-snitt för operatören -->
+                            <div class="hour-avg-row mb-3" *ngIf="detailHourAvg.length > 0">
+                              <span class="text-muted small me-2">Snitt per timme:</span>
+                              <div class="hour-avg-bars">
+                                <div *ngFor="let ha of detailHourAvg"
+                                     class="hour-avg-item"
+                                     [title]="formatHour(ha.hour) + ': ' + formatSek(ha.avg_sek) + ' snitt (' + ha.antal_dagar + ' dagar)'">
+                                  <div class="hour-avg-bar"
+                                       [style.background]="getDetailCellColor(ha.avg_sek)"
+                                       [style.height.px]="30">
+                                  </div>
+                                  <div class="hour-avg-label">{{ ha.hour }}</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Daglig heatmap -->
+                            <div class="detail-scroll">
+                              <table class="detail-table">
+                                <thead>
+                                  <tr>
+                                    <th class="dag-col">Dag</th>
+                                    <th *ngFor="let h of detailHours" class="detail-hour-col">{{ formatHour(h) }}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <tr *ngFor="let dagRow of detailDagMatrix">
+                                    <td class="dag-cell">{{ formatDag(dagRow.dag) }}</td>
+                                    <td *ngFor="let cell of dagRow.celler"
+                                        class="detail-heatmap-cell"
+                                        [style.background]="getDetailCellColor(cell.avg_sek)"
+                                        [title]="cell.avg_sek !== null ? (formatSek(cell.avg_sek) + ', ' + cell.antal + ' IBC') : 'Ingen data'">
+                                      <span *ngIf="cell.avg_sek !== null" class="cell-val">{{ formatSek(cell.avg_sek) }}</span>
+                                      <span *ngIf="cell.avg_sek === null" class="cell-empty">·</span>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          <div *ngIf="!detailLoading && detailDagMatrix.length === 0" class="text-muted py-2 text-center">
+                            Ingen detaljdata tillgänglig
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </ng-container>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dygnsmönster-graf -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card card-dark p-3">
+          <h5 class="section-title mb-3">
+            <i class="fas fa-chart-line me-2 text-success"></i>
+            Dygnsmönster — snittcykeltid per timme (alla operatörer)
+          </h5>
+
+          <div *ngIf="patternLoading" class="text-center py-5">
+            <div class="spinner-border text-success" role="status"></div>
+            <div class="text-muted mt-2">Laddar dygnsmönster...</div>
+          </div>
+
+          <div *ngIf="patternLoaded && !patternLoading && dayPattern.length === 0"
+               class="text-center py-5 text-muted">
+            Ingen data för vald period
+          </div>
+
+          <div *ngIf="patternLoaded && dayPattern.length > 0"
+               class="chart-container">
+            <canvas id="dayPatternChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

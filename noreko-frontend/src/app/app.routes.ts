@@ -42,6 +42,7 @@ export const routes: Routes = [
       // Authenticated routes
       { path: 'rebotling/min-dag', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/min-dag/min-dag').then(m => m.MinDagPage) },
       { path: 'rebotling/kassationsanalys', loadComponent: () => import('./pages/rebotling/statistik/statistik-kassationsanalys/statistik-kassationsanalys').then(m => m.StatistikKassationsanalysComponent) },
+      { path: 'rebotling/cykeltid-heatmap', canActivate: [authGuard], loadComponent: () => import('./pages/cykeltid-heatmap/cykeltid-heatmap').then(m => m.CykeltidHeatmapComponent) },
       { path: 'rebotling/produkttyp-effektivitet', loadComponent: () => import('./pages/statistik-produkttyp-effektivitet/statistik-produkttyp-effektivitet').then(m => m.StatistikProduktTypEffektivitetComponent) },
       { path: 'rebotling/alerts', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling/alerts/alerts').then(m => m.AlertsPage) },
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
@@ -49,6 +50,7 @@ export const routes: Routes = [
       { path: 'rebotling/skiftoverlamning', loadComponent: () => import('./pages/skiftoverlamning/skiftoverlamning').then(m => m.SkiftoverlamningPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
       { path: 'rebotling/stopporsak-registrering', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-registrering/stopporsak-registrering').then(m => m.StopporsakRegistreringPage) },
+      { path: 'rebotling/underhallslogg', canActivate: [authGuard], loadComponent: () => import('./pages/underhallslogg/underhallslogg').then(m => m.UnderhallsloggComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

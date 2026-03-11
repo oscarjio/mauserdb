@@ -145,6 +145,8 @@ $classNameMap = [
     'produkttyp-effektivitet' => 'ProduktTypEffektivitetController',
     'stopporsak-reg'          => 'StopporsakRegistreringController',
     'skiftoverlamning'        => 'SkiftoverlamningController',
+    'underhallslogg'          => 'UnderhallsloggController',
+    'cykeltid-heatmap'        => 'CykeltidHeatmapController',
 ];
 
 $actionKey = strtolower($action);

@@ -1,0 +1,368 @@
+/* ================================================================
+   Cykeltids-heatmap — Dark theme styles
+   ================================================================ */
+
+.heatmap-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+/* ----------------------------------------------------------------
+   Kort / Cards
+   ---------------------------------------------------------------- */
+
+.card-dark {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 10px;
+}
+
+/* ----------------------------------------------------------------
+   Sammanfattningskort
+   ---------------------------------------------------------------- */
+
+.summary-card {
+  padding: 1rem;
+  text-align: center;
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.summary-label {
+  color: #718096;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.summary-value {
+  color: #e2e8f0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.summary-value.operator-name {
+  font-size: 1rem;
+}
+
+.summary-sub {
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0;
+}
+
+/* ----------------------------------------------------------------
+   Färgskala-legend
+   ---------------------------------------------------------------- */
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.legend-gradient {
+  width: 120px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(to right,
+    rgba(72, 187, 120, 0.85),
+    rgba(255, 200, 0, 0.85),
+    rgba(255, 0, 0, 0.85));
+  display: inline-block;
+}
+
+/* ----------------------------------------------------------------
+   Heatmap-tabell
+   ---------------------------------------------------------------- */
+
+.heatmap-wrapper {
+  overflow: hidden;
+}
+
+.heatmap-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.heatmap-table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.heatmap-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  padding: 6px 8px;
+  text-align: center;
+  font-weight: 500;
+  border-bottom: 2px solid #4a5568;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.heatmap-table thead th.op-col {
+  text-align: left;
+  min-width: 150px;
+  position: sticky;
+  left: 0;
+  z-index: 3;
+}
+
+.heatmap-table tbody tr.heatmap-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.heatmap-table tbody tr.heatmap-row:hover {
+  background: rgba(74, 85, 104, 0.3);
+}
+
+.heatmap-table tbody tr.heatmap-row.expanded {
+  background: rgba(66, 153, 225, 0.1);
+}
+
+.op-col,
+.op-cell {
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.op-cell {
+  background: #2d3748;
+  padding: 8px 10px;
+  border-right: 2px solid #4a5568;
+  color: #e2e8f0;
+  font-weight: 500;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.op-name {
+  font-size: 0.82rem;
+}
+
+.hour-col,
+.avg-col {
+  min-width: 55px;
+  text-align: center;
+}
+
+.heatmap-cell {
+  padding: 5px 4px;
+  text-align: center;
+  min-width: 55px;
+  height: 36px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  transition: outline 0.1s;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.heatmap-cell:hover {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  z-index: 1;
+  position: relative;
+}
+
+.cell-empty {
+  color: #4a5568;
+}
+
+.avg-cell {
+  background: #1a202c;
+  color: #a0aec0;
+  padding: 5px 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  border-left: 2px solid #4a5568;
+}
+
+/* ----------------------------------------------------------------
+   Drilldown-rad
+   ---------------------------------------------------------------- */
+
+.detail-row td.detail-cell {
+  background: #1a202c;
+  border-top: none;
+  padding: 0;
+}
+
+.detail-content {
+  padding: 1rem 1.25rem;
+  border-top: 2px solid #4299e1;
+  border-bottom: 2px solid #4a5568;
+}
+
+.detail-title {
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+/* Timme-snitt visualisering */
+.hour-avg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.hour-avg-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.hour-avg-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hour-avg-bar {
+  width: 24px;
+  border-radius: 3px 3px 0 0;
+  min-height: 8px;
+}
+
+.hour-avg-label {
+  color: #718096;
+  font-size: 0.65rem;
+}
+
+/* Daglig heatmap-tabell */
+.detail-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detail-table {
+  border-collapse: collapse;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.detail-table thead th {
+  background: #2d3748;
+  color: #a0aec0;
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid #4a5568;
+}
+
+.dag-col {
+  min-width: 110px;
+  text-align: left;
+}
+
+.detail-hour-col {
+  min-width: 50px;
+  text-align: center;
+}
+
+.dag-cell {
+  background: #2d3748;
+  color: #a0aec0;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  position: sticky;
+  left: 0;
+  border-right: 1px solid #4a5568;
+  white-space: nowrap;
+}
+
+.detail-heatmap-cell {
+  padding: 4px 3px;
+  text-align: center;
+  min-width: 50px;
+  height: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  font-size: 0.68rem;
+  font-weight: 500;
+}
+
+.cell-val {
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* ----------------------------------------------------------------
+   Dygnsmönster Chart
+   ---------------------------------------------------------------- */
+
+.chart-container {
+  position: relative;
+  height: 280px;
+  width: 100%;
+}
+
+/* ----------------------------------------------------------------
+   Responsivt
+   ---------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  .summary-card {
+    min-height: 90px;
+  }
+
+  .summary-value {
+    font-size: 1.1rem;
+  }
+
+  .heatmap-cell {
+    min-width: 44px;
+    font-size: 0.65rem;
+  }
+
+  .op-cell {
+    min-width: 110px;
+    font-size: 0.75rem;
+  }
+
+  .chart-container {
+    height: 220px;
+  }
+}
