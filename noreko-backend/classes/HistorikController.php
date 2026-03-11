@@ -56,15 +56,13 @@ class HistorikController {
                     COUNT(DISTINCT dag) AS antal_dagar,
                     SUM(daglig_ibc) AS total_ibc,
                     ROUND(AVG(daglig_ibc), 1) AS snitt_per_dag,
-                    MAX(daglig_ibc) AS basta_dag_ibc,
-                    ROUND(AVG(daglig_oee), 1) AS snitt_oee
+                    MAX(daglig_ibc) AS basta_dag_ibc
                 FROM (
                     SELECT
                         DATE(datum) AS dag,
                         YEAR(datum) AS ar,
                         MONTH(datum) AS manad,
-                        MAX(ibc_ok) AS daglig_ibc,
-                        AVG(oee_pct) AS daglig_oee
+                        MAX(ibc_ok) AS daglig_ibc
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(NOW(), INTERVAL :manader MONTH)
                       AND ibc_ok > 0
@@ -87,7 +85,6 @@ class HistorikController {
                 $row['total_ibc']    = (int)$row['total_ibc'];
                 $row['snitt_per_dag'] = (float)$row['snitt_per_dag'];
                 $row['basta_dag_ibc'] = (int)$row['basta_dag_ibc'];
-                $row['snitt_oee']    = $row['snitt_oee'] !== null ? (float)$row['snitt_oee'] : null;
             }
             unset($row);
 

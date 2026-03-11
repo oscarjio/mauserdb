@@ -284,14 +284,22 @@ class NewsController {
         try {
             $sql = "
                 SELECT 'hog_oee' AS typ,
-                       DATE(datum) AS event_datum,
-                       DATE_FORMAT(DATE(datum),'%Y-%m-%d 12:00:00') AS event_datetime,
-                       ROUND(MAX(oee_pct), 1) AS value,
-                       CONCAT('Utmärkt dag! ', DATE_FORMAT(DATE(datum),'%d %b'), ': OEE ', ROUND(MAX(oee_pct),1), '% — över 90%!') AS text
-                FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
-                GROUP BY DATE(datum)
-                HAVING MAX(oee_pct) >= 90
+                       dag AS event_datum,
+                       CONCAT(dag, ' 12:00:00') AS event_datetime,
+                       oee_val AS value,
+                       CONCAT('Utmärkt dag! ', DATE_FORMAT(dag,'%d %b'), ': OEE ', oee_val, '% — över 90%!') AS text
+                FROM (
+                    SELECT DATE(datum) AS dag,
+                           ROUND(
+                               CASE WHEN MAX(ibc_ok) + MAX(ibc_ej_ok) > 0
+                                    THEN (MAX(ibc_ok) / (MAX(ibc_ok) + MAX(ibc_ej_ok))) * 100
+                                    ELSE 0 END, 1) AS oee_val
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                      AND ibc_ok > 0
+                    GROUP BY DATE(datum)
+                ) AS dagdata
+                WHERE oee_val >= 90
                 ORDER BY event_datum DESC
                 LIMIT 3
             ";
@@ -458,12 +466,19 @@ class NewsController {
         // 7. OEE-milstolpe — WCM-klass (OEE >= 85%) senaste 14 dagarna
         try {
             $sql = "
-                SELECT DATE(datum) AS event_datum,
-                       ROUND(MAX(oee_pct), 1) AS oee_val
-                FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
-                GROUP BY DATE(datum)
-                HAVING MAX(oee_pct) >= 85 AND MAX(oee_pct) < 90
+                SELECT dag AS event_datum, oee_val
+                FROM (
+                    SELECT DATE(datum) AS dag,
+                           ROUND(
+                               CASE WHEN MAX(ibc_ok) + MAX(ibc_ej_ok) > 0
+                                    THEN (MAX(ibc_ok) / (MAX(ibc_ok) + MAX(ibc_ej_ok))) * 100
+                                    ELSE 0 END, 1) AS oee_val
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                      AND ibc_ok > 0
+                    GROUP BY DATE(datum)
+                ) AS dagdata
+                WHERE oee_val >= 85 AND oee_val < 90
                 ORDER BY event_datum DESC
                 LIMIT 3
             ";
