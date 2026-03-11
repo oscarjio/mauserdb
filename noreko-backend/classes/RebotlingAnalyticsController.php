@@ -4030,23 +4030,43 @@ class RebotlingAnalyticsController {
                 $hourlyData = $hourlyStmt->fetchAll(PDO::FETCH_ASSOC);
             }
 
-            // Hämta start- och stopptid från rebotling_ibc (PLC-data)
+            // Hämta start/stopptid via rebotling_onoff (maskin start/stopp),
+            // fallback till rebotling_ibc (första/sista cykel)
             $skiftStart = null;
             $skiftSlut  = null;
             if (count($skiftraknareList) > 0) {
                 $skiftIds = array_keys($skiftraknareList);
                 $placeholders = implode(',', array_fill(0, count($skiftIds), '?'));
                 $tidStmt = $this->pdo->prepare("
-                    SELECT MIN(datum) AS start_tid, MAX(datum) AS slut_tid
+                    SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
                     FROM rebotling_ibc
                     WHERE skiftraknare IN ({$placeholders})
                       AND lopnummer > 0 AND lopnummer < 998
                 ");
                 $tidStmt->execute($skiftIds);
                 $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
-                if ($tidRow) {
-                    $skiftStart = $tidRow['start_tid'] ?? null;
-                    $skiftSlut  = $tidRow['slut_tid'] ?? null;
+                $firstCycle = $tidRow['first_cycle'] ?? null;
+                $lastCycle  = $tidRow['last_cycle'] ?? null;
+
+                if ($firstCycle) {
+                    try {
+                        $onStmt = $this->pdo->prepare(
+                            "SELECT datum FROM rebotling_onoff WHERE running = 1 AND datum <= ? ORDER BY datum DESC LIMIT 1"
+                        );
+                        $onStmt->execute([$firstCycle]);
+                        $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
+                        $skiftStart = $onRow ? $onRow['datum'] : $firstCycle;
+                    } catch (Exception $e) { $skiftStart = $firstCycle; }
+                }
+                if ($lastCycle) {
+                    try {
+                        $offStmt = $this->pdo->prepare(
+                            "SELECT datum FROM rebotling_onoff WHERE running = 0 AND datum >= ? ORDER BY datum ASC LIMIT 1"
+                        );
+                        $offStmt->execute([$lastCycle]);
+                        $offRow = $offStmt->fetch(PDO::FETCH_ASSOC);
+                        $skiftSlut = $offRow ? $offRow['datum'] : $lastCycle;
+                    } catch (Exception $e) { $skiftSlut = $lastCycle; }
                 }
             }
 
@@ -5006,23 +5026,43 @@ HTML;
                 }
             }
 
-            // Hämta start- och stopptid från rebotling_ibc (PLC-data)
+            // Hämta start/stopptid via rebotling_onoff (maskin start/stopp),
+            // fallback till rebotling_ibc (första/sista cykel)
             $skiftStart = null;
             $skiftSlut  = null;
             if (count($skiftraknareList) > 0) {
                 $skiftIds = array_keys($skiftraknareList);
                 $placeholders = implode(',', array_fill(0, count($skiftIds), '?'));
                 $tidStmt = $this->pdo->prepare("
-                    SELECT MIN(datum) AS start_tid, MAX(datum) AS slut_tid
+                    SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
                     FROM rebotling_ibc
                     WHERE skiftraknare IN ({$placeholders})
                       AND lopnummer > 0 AND lopnummer < 998
                 ");
                 $tidStmt->execute($skiftIds);
                 $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
-                if ($tidRow) {
-                    $skiftStart = $tidRow['start_tid'] ?? null;
-                    $skiftSlut  = $tidRow['slut_tid'] ?? null;
+                $firstCycle = $tidRow['first_cycle'] ?? null;
+                $lastCycle  = $tidRow['last_cycle'] ?? null;
+
+                if ($firstCycle) {
+                    try {
+                        $onStmt = $this->pdo->prepare(
+                            "SELECT datum FROM rebotling_onoff WHERE running = 1 AND datum <= ? ORDER BY datum DESC LIMIT 1"
+                        );
+                        $onStmt->execute([$firstCycle]);
+                        $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
+                        $skiftStart = $onRow ? $onRow['datum'] : $firstCycle;
+                    } catch (Exception $e) { $skiftStart = $firstCycle; }
+                }
+                if ($lastCycle) {
+                    try {
+                        $offStmt = $this->pdo->prepare(
+                            "SELECT datum FROM rebotling_onoff WHERE running = 0 AND datum >= ? ORDER BY datum ASC LIMIT 1"
+                        );
+                        $offStmt->execute([$lastCycle]);
+                        $offRow = $offStmt->fetch(PDO::FETCH_ASSOC);
+                        $skiftSlut = $offRow ? $offRow['datum'] : $lastCycle;
+                    } catch (Exception $e) { $skiftSlut = $lastCycle; }
                 }
             }
 
