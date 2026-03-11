@@ -13,7 +13,7 @@ RATELIMIT_FILE="/tmp/mauserdb-ratelimit.txt"
 BUDGET_FILE="/tmp/mauserdb-budget.txt"
 MAX_LOG_LINES=2000
 BUDGET_WINDOW=18000   # 5 timmar i sekunder
-MAX_RUNS_PER_WINDOW=3 # färre körningar, mer turns per körning
+MAX_RUNS_PER_WINDOW=5 # 5 körningar per 5h-fönster
 
 export PATH="/home/clawd/.local/bin:/home/clawd/.npm-global/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 unset CLAUDECODE
@@ -88,7 +88,7 @@ Starta dem PARALLELLT. Ge STORA, meningsfulla uppgifter — sessions körs bara 
 - En specifik uppgift från backlog.md (markera den PÅGÅR)
 - Tydliga instruktioner om EXAKT vilka filer de äger (ingen överlapp)
 - En worker på ny feature/förbättring, en på buggjakt ELLER annan feature
-- Varje worker ska ha max_turns=80 — de ska hinna bygga klart ordentliga features
+- Varje worker ska ha max_turns=100 — de ska hinna bygga klart ordentliga features
 
 Varje worker-prompt MÅSTE innehålla dessa regler:
 1. Rör ALDRIG: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/
