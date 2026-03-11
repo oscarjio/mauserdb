@@ -66,12 +66,12 @@ Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
 Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
 Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — klara.
 Session #55: Kassationsanalys + Alerts/notifieringar — klara.
-Session #56: Dashboard-widget layout + Effektivitet per produkttyp — pågår.
+Session #56: Dashboard-widget layout + Effektivitet per produkttyp — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Dashboard-widget layout** — VD väljer widgets på startsidan
-- [PÅGÅR] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
+- [x] **Dashboard-widget layout** — VD väljer widgets på startsidan
+- [x] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
 - [ ] **Stopporsak-snabbregistrering** — mobilvänlig knappmatris
 - [ ] **Skiftöverlämningsmall** — auto-sammanfattning vid skiftbyte
 - [ ] **Underhållslogg** — operatör loggar underhåll med kategori + tid
@@ -82,9 +82,9 @@ Session #56: Dashboard-widget layout + Effektivitet per produkttyp — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #56 (pågår)
-Worker 1 (Dashboard-widget layout): VD väljer vilka widgets som visas på startsidan, drag-and-drop/ordning, sparar per user. Backend: DashboardLayoutController + DB-migrering (dashboard_layouts).
-Worker 2 (Effektivitet per produkttyp): Jämförelse FoodGrade vs NonUN vs Tvättade — cykeltid, kvalitet, IBC/h. Backend: ProduktTypEffektivitetController. Ny standalone-komponent.
+### 2026-03-11 — Session #56 (klar)
+Worker 1 (Dashboard-widget layout): Kugghjulsikon på statistiksidan, 8 widgets med toggle + up/down-ordning, sparar per user i DB. Backend: DashboardLayoutController + DB-migrering (dashboard_layouts). Bygger OK.
+Worker 2 (Effektivitet per produkttyp): Jämförelse per produkttyp — sammanfattningskort, kvalitetsranking, cykeltidstrend (Chart.js), IBC/h horisontell bar, head-to-head jämförelse. Backend: ProduktTypEffektivitetController. Använder rebotling_ibc.produkt + rebotling_products. Bygger OK.
 
 ### 2026-03-11 — Session #55 (klar)
 Worker 1 (Kassationsanalys): Drilldown per stopporsak + kassationstyp, stackad stapelgraf (Chart.js), trendjämförelse, periodselektor 7/14/30/90d, orsaksanalys-tabell med klickbar drilldown. Backend: KassationsanalysController. Commit ca9f0bc.

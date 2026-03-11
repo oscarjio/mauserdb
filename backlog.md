@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [PÅGÅR] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
-- [PÅGÅR] **Effektivitet per produkttyp** — jämförelse FoodGrade vs NonUN vs Tvättade: cykeltid, kvalitet, IBC/h
+- [x] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
+- [x] **Effektivitet per produkttyp** — jämförelse FoodGrade vs NonUN vs Tvättade: cykeltid, kvalitet, IBC/h
 - [ ] **Stopporsak-snabbregistrering** — operatör loggar stopporsak via mobilvänlig knappmatris direkt vid stopp
 - [ ] **Skiftöverlämningsmall** — automatisk sammanfattning av skiftets KPI:er som visas vid skiftbyte, klickbar checklista
 - [ ] **Underhållslogg** — enkel formulärvy där operatör loggar planerade/oplanerade underhåll med kategori + varaktighet
