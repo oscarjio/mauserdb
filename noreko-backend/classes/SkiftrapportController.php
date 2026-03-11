@@ -487,18 +487,20 @@ class SkiftrapportController {
             $nums = $this->fetchLopnummer($skiftraknare);
 
             // Fallback: om inga (eller för få) giltiga löpnummer, sök närliggande skifträknare
-            // Exempel: skiftrapport säger 65 men IBC-cykler registrerades under 64
+            // Scenarion: skiftrapport sparad dag efter (datum=10) men PLC-cykler ligger på dag 09
+            // PLC räknar upp → data under föregående räknarvärde (nedåt)
             if (count($nums) <= 1) {
                 $datum = isset($_GET['datum']) ? $_GET['datum'] : null;
                 if ($datum && preg_match('/^\d{4}-\d{2}-\d{2}/', $datum)) {
                     $datumPrefix = substr($datum, 0, 10);
-                    // Sök BARA nedåt (lägre skifträknare) — PLC räknar upp,
-                    // så skiftets data ligger under föregående räknarvärde
+                    $prevDay = date('Y-m-d', strtotime($datumPrefix . ' -1 day'));
+
+                    // Sök nedåt (lägre skifträknare), både aktuellt datum OCH dagen innan
                     $stmt = $this->pdo->prepare(
                         "SELECT skiftraknare, COUNT(DISTINCT lopnummer) as cnt
                          FROM rebotling_ibc
                          WHERE skiftraknare BETWEEN ? AND ?
-                         AND datum LIKE ?
+                         AND (DATE(datum) = ? OR DATE(datum) = ?)
                          AND lopnummer > 0 AND lopnummer < 998
                          GROUP BY skiftraknare
                          ORDER BY cnt DESC
@@ -507,7 +509,8 @@ class SkiftrapportController {
                     $stmt->execute([
                         $skiftraknare - 2,
                         $skiftraknare - 1,
-                        $datumPrefix . '%'
+                        $datumPrefix,
+                        $prevDay
                     ]);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     if ($row && intval($row['cnt']) > count($nums)) {
