@@ -63,22 +63,23 @@ Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
 Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
-Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — pågår.
+Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data [PÅGÅR #53]
-- [ ] **Produktionspuls-ticker** — realtids scrollande ticker [PÅGÅR #53]
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 - [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
 - [ ] **Kassationsanalys** — drilldown per stopporsak + kassationstyp
 - [ ] **Effektivitet per produkttyp** — FoodGrade vs NonUN vs Tvättade
+- [ ] **Operatörs-dashboard "Min dag"** — personlig vy med dagens KPI:er
+- [ ] **Veckotrend sparklines** — inline 7-dagars trendgrafer i KPI-kort
+- [ ] **Stopporsak-snabbregistrering** — mobilvänlig knappmatris
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #53 (pågår)
-Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad (grå/ljusgrön/grön/mörkgrön), tooltip, sammanfattningskort, månadsselektor, expanderbar detaljvy. Backend: NarvaroController monthly-overview.
-Worker 2 (Produktionspuls-ticker): Horisontell CSS-animerad realtidsticker med senaste IBC:er (operatör/typ/cykeltid/status), statistikrad IBC/h+trend, auto-refresh 15s, widget för startsidan. Backend: ProduktionspulsController latest+hourly-stats.
+### 2026-03-11 — Session #53 (klar)
+Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad (grå/ljusgrön/grön/mörkgrön), tooltip, sammanfattningskort (aktiva ops, snitt närvaro, topp-operatör), månadsselektor, expanderbar detaljvy. Backend: NarvaroController monthly-overview via rebotling_skiftrapport+operators. Commit 8166fd2.
+Worker 2 (Produktionspuls-ticker): Horisontell CSS-animerad (@keyframes translateX) realtidsticker med senaste IBC:er (operatör/typ/cykeltid/status), färgkodad (grön=ok/röd=kass/gul=långsam), pausar vid hover, statistikrad IBC/h+trend, auto-refresh 15s, widget inbäddad på startsidan. Backend: ProduktionspulsController latest+hourly-stats. Commit da0cfd2.
 
 ### 2026-03-11 — Session #52 (klar)
 Worker 1 (Maskinupptid-heatmap): CSS-grid 7×24 med drift/stopp/idle färgkodning (grön/röd/grå), tooltip, sammanfattningskort (drifttid%, körtimmar, längsta stopp, bästa dag), periodselektor 7/14/30d, auto-refresh 60s. Backend: machine-uptime-heatmap. 672 rader ny kod.
