@@ -1,3 +1,26 @@
+## 2026-03-11 Alerts/notifieringssystem — realtidsvarning vid låg OEE eller lång stopptid
+
+Komplett alert/notifieringssystem för VD med tre flikar, kvitteringsflöde, konfigurerbara tröskelvärden och polling-badge i headern.
+
+- **Backend** — ny `AlertsController.php` (`noreko-backend/classes/`):
+  - `run=active` — alla aktiva (ej kvitterade) alerts, kritiska först, sedan nyast
+  - `run=history&days=N` — historik senaste N dagar (max 500 poster)
+  - `run=acknowledge` (POST) — kvittera en alert, loggar user_id + timestamp
+  - `run=settings` (GET/POST) — hämta/spara tröskelvärden med UPSERT-logik
+  - `run=check` — kör alertkontroll: OEE-beräkning senaste timmen, aktiva stopporsaker längre än tröskeln, kassationsrate; skapar ej dubbletter (recentActiveAlertExists med tidsfönster)
+  - Registrerad i `api.php` classNameMap (`alerts`)
+- **SQL-migrering** — `noreko-backend/migrations/2026-03-11_alerts.sql`:
+  - `alerts`-tabell: id, type (oee_low/stop_long/scrap_high), message, value, threshold, severity (warning/critical), acknowledged, acknowledged_by, acknowledged_at, created_at
+  - `alert_settings`-tabell: type (UNIQUE), threshold_value, enabled, updated_at, updated_by
+  - Standard-inställningar: OEE < 60%, stopp > 30 min, kassation > 10%
+- **Service** (`alerts.service.ts`): `getActiveAlerts()`, `getAlertHistory(days)`, `acknowledgeAlert(id)`, `getAlertSettings()`, `saveAlertSettings(settings)`, `checkAlerts()`; `activeAlerts$` BehaviorSubject med timer-baserad polling (60 sek)
+- **Frontend-komponent** `AlertsPage` (`/rebotling/alerts`, adminGuard):
+  - Fliken Aktiva: alert-kort med severity-färgkodning (röd=kritisk, gul=varning), kvitteringsknapp med spinner, "Kör kontroll nu"-knapp, auto-refresh var 60 sek
+  - Fliken Historik: filtrering per typ + allvarlighet + dagar, tabell med acknowledged-status och kvitteringsinfo
+  - Fliken Inställningar: toggle + numerisk input per alerttyp med beskrivning, admin-spärrad POST
+- **Menu-badge** (`menu.ts` + `menu.html`): `activeAlertsCount` med `startAlertsPolling()`/`stopAlertsPolling()` (interval 60 sek, OnDestroy cleanup); badge i notifikationsdropdown och i Admin-menyn under "Varningar"; total badge i klockan summerar urgentNoteCount + certExpiryCount + activeAlertsCount
+- **Route**: `/rebotling/alerts` med `adminGuard` i `app.routes.ts`
+
 ## 2026-03-11 Kassationsanalys — drilldown per stopporsak
 
 Komplett kassationsanalys-sida för VD-vy. Stackad Chart.js-graf + trendjämförelse + klickbar drilldown per orsak.

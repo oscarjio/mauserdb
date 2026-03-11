@@ -1,0 +1,384 @@
+<div class="alerts-page" style="background:#1a202c; min-height:100vh; padding:1.5rem;">
+  <!-- Rubrik -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h2 style="color:#e2e8f0; margin:0; font-size:1.6rem;">
+        <i class="fas fa-bell me-2 text-warning"></i>Varningssystem
+      </h2>
+      <p style="color:#718096; margin:0.25rem 0 0;" class="small">
+        Realtidsvarningar för OEE, stopptid och kassationsrate
+      </p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <button class="btn btn-sm btn-outline-info" (click)="runCheck()" [disabled]="checkLoading">
+        <i class="fas fa-sync-alt me-1" [class.fa-spin]="checkLoading"></i>
+        Kör kontroll nu
+      </button>
+      <span *ngIf="checkResult" class="badge"
+        [class.bg-success]="checkResult.includes('Inga')"
+        [class.bg-warning]="!checkResult.includes('Inga') && !checkResult.includes('misslyckades')"
+        [class.bg-danger]="checkResult.includes('misslyckades')"
+        style="font-size:0.8rem;">
+        {{ checkResult }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Flikar -->
+  <ul class="nav nav-tabs mb-4" style="border-color:#4a5568;">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'active'" (click)="setTab('active')"
+        style="background:transparent; border:none; color:#a0aec0; border-bottom:2px solid transparent;"
+        [style.color]="activeTab === 'active' ? '#e2e8f0' : '#718096'"
+        [style.border-bottom-color]="activeTab === 'active' ? '#4299e1' : 'transparent'">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Aktiva
+        <span class="badge ms-1" [class.bg-danger]="activeAlerts.length > 0" [class.bg-secondary]="activeAlerts.length === 0">
+          {{ activeAlerts.length }}
+        </span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'history'" (click)="setTab('history')"
+        style="background:transparent; border:none; color:#a0aec0; border-bottom:2px solid transparent;"
+        [style.color]="activeTab === 'history' ? '#e2e8f0' : '#718096'"
+        [style.border-bottom-color]="activeTab === 'history' ? '#4299e1' : 'transparent'">
+        <i class="fas fa-history me-1"></i>Historik
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab === 'settings'" (click)="setTab('settings')"
+        style="background:transparent; border:none; color:#a0aec0; border-bottom:2px solid transparent;"
+        [style.color]="activeTab === 'settings' ? '#e2e8f0' : '#718096'"
+        [style.border-bottom-color]="activeTab === 'settings' ? '#4299e1' : 'transparent'">
+        <i class="fas fa-sliders-h me-1"></i>Inställningar
+      </button>
+    </li>
+  </ul>
+
+  <!-- ======================== FLIKEN: AKTIVA ======================== -->
+  <div *ngIf="activeTab === 'active'">
+
+    <!-- Laddning -->
+    <div *ngIf="activeLoading" class="text-center py-5">
+      <div class="spinner-border text-info" role="status"></div>
+      <p style="color:#a0aec0;" class="mt-2">Hämtar varningar…</p>
+    </div>
+
+    <!-- Fel -->
+    <div *ngIf="!activeLoading && activeError" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ activeError }}
+    </div>
+
+    <!-- Tomt -->
+    <div *ngIf="!activeLoading && !activeError && activeAlerts.length === 0"
+      style="background:#2d3748; border-radius:12px; padding:3rem; text-align:center;">
+      <i class="fas fa-check-circle fa-3x mb-3" style="color:#48bb78;"></i>
+      <h5 style="color:#e2e8f0;">Inga aktiva varningar</h5>
+      <p style="color:#718096;">Allt verkar fungera som det ska.</p>
+    </div>
+
+    <!-- Alert-lista -->
+    <div *ngIf="!activeLoading && !activeError && activeAlerts.length > 0">
+      <div *ngFor="let alert of activeAlerts"
+        class="alert-card mb-3"
+        style="background:#2d3748; border-radius:12px; padding:1.25rem 1.5rem; border-left:4px solid;"
+        [style.border-left-color]="alert.severity === 'critical' ? '#fc8181' : '#ecc94b'">
+
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+          <!-- Vänster: ikon + info -->
+          <div class="d-flex align-items-start gap-3">
+            <div style="padding-top:2px;">
+              <i [class]="typeIcon(alert.type)"
+                [style.color]="alert.severity === 'critical' ? '#fc8181' : '#ecc94b'"
+                style="font-size:1.4rem;"></i>
+            </div>
+            <div>
+              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                <span class="badge" [class.bg-danger]="alert.severity === 'critical'" [class.bg-warning]="alert.severity === 'warning'">
+                  {{ severityLabel(alert.severity) }}
+                </span>
+                <span style="color:#a0aec0; font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em;">
+                  {{ typeLabel(alert.type) }}
+                </span>
+              </div>
+              <p style="color:#e2e8f0; margin:0 0 0.5rem; font-size:1rem; line-height:1.4;">
+                {{ alert.message }}
+              </p>
+              <div class="d-flex gap-3 flex-wrap" style="color:#718096; font-size:0.8rem;">
+                <span *ngIf="alert.value !== null">
+                  <i class="fas fa-tachometer-alt me-1"></i>Värde: <strong style="color:#a0aec0;">{{ alert.value | number:'1.1-1' }}</strong>
+                </span>
+                <span *ngIf="alert.threshold !== null">
+                  <i class="fas fa-sliders-h me-1"></i>Tröskel: <strong style="color:#a0aec0;">{{ alert.threshold | number:'1.0-0' }}</strong>
+                </span>
+                <span>
+                  <i class="fas fa-clock me-1"></i>{{ timeAgo(alert.created_at) }}
+                </span>
+                <span style="color:#4a5568;">{{ formatDate(alert.created_at) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Höger: kvitteringsknapp -->
+          <button class="btn btn-sm"
+            [class.btn-outline-success]="alert.severity !== 'critical'"
+            [class.btn-outline-danger]="alert.severity === 'critical'"
+            (click)="acknowledge(alert)"
+            [disabled]="isAcknowledging(alert.id)"
+            style="white-space:nowrap; align-self:flex-start;">
+            <i class="fas me-1"
+              [class.fa-spinner]="isAcknowledging(alert.id)"
+              [class.fa-spin]="isAcknowledging(alert.id)"
+              [class.fa-check]="!isAcknowledging(alert.id)"></i>
+            {{ isAcknowledging(alert.id) ? 'Kvitterar…' : 'Kvittera' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== FLIKEN: HISTORIK ======================== -->
+  <div *ngIf="activeTab === 'history'">
+
+    <!-- Filterkontroller -->
+    <div style="background:#2d3748; border-radius:10px; padding:1rem 1.25rem; margin-bottom:1.5rem;"
+      class="d-flex align-items-end gap-3 flex-wrap">
+      <div>
+        <label class="form-label small" style="color:#a0aec0;">Dagar bakåt</label>
+        <select class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568; width:100px;"
+          [(ngModel)]="historyDays" (change)="loadHistory()">
+          <option [value]="7">7 dagar</option>
+          <option [value]="14">14 dagar</option>
+          <option [value]="30">30 dagar</option>
+          <option [value]="90">90 dagar</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label small" style="color:#a0aec0;">Typ</label>
+        <select class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568; width:160px;"
+          [(ngModel)]="historyFilterType">
+          <option value="">Alla typer</option>
+          <option value="oee_low">Låg OEE</option>
+          <option value="stop_long">Lång stopptid</option>
+          <option value="scrap_high">Hög kassationsrate</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label small" style="color:#a0aec0;">Allvarlighet</label>
+        <select class="form-select form-select-sm" style="background:#1a202c; color:#e2e8f0; border-color:#4a5568; width:130px;"
+          [(ngModel)]="historyFilterSeverity">
+          <option value="">Alla</option>
+          <option value="warning">Varning</option>
+          <option value="critical">Kritisk</option>
+        </select>
+      </div>
+      <div class="ms-auto" style="color:#718096; font-size:0.85rem; padding-bottom:2px;">
+        Visar {{ filteredHistory.length }} av {{ historyAlerts.length }} poster
+      </div>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="historyLoading" class="text-center py-5">
+      <div class="spinner-border text-info" role="status"></div>
+      <p style="color:#a0aec0;" class="mt-2">Hämtar historik…</p>
+    </div>
+
+    <!-- Fel -->
+    <div *ngIf="!historyLoading && historyError" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>{{ historyError }}
+    </div>
+
+    <!-- Tomt -->
+    <div *ngIf="!historyLoading && !historyError && filteredHistory.length === 0"
+      style="background:#2d3748; border-radius:12px; padding:2.5rem; text-align:center;">
+      <i class="fas fa-inbox fa-2x mb-2" style="color:#4a5568;"></i>
+      <p style="color:#718096;">Ingen historik matchade valda filter.</p>
+    </div>
+
+    <!-- Tabell -->
+    <div *ngIf="!historyLoading && !historyError && filteredHistory.length > 0"
+      style="background:#2d3748; border-radius:12px; overflow:hidden;">
+      <div style="overflow-x:auto;">
+        <table class="table table-dark table-hover mb-0" style="--bs-table-bg:#2d3748; --bs-table-hover-bg:#3a4a5c;">
+          <thead>
+            <tr style="border-color:#4a5568; color:#a0aec0; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em;">
+              <th style="padding:0.75rem 1rem; font-weight:600;">Tid</th>
+              <th style="padding:0.75rem 1rem; font-weight:600;">Typ</th>
+              <th style="padding:0.75rem 1rem; font-weight:600;">Allvarlighet</th>
+              <th style="padding:0.75rem 1rem; font-weight:600;">Meddelande</th>
+              <th style="padding:0.75rem 1rem; font-weight:600;">Värde</th>
+              <th style="padding:0.75rem 1rem; font-weight:600;">Status</th>
+              <th style="padding:0.75rem 1rem; font-weight:600;">Kvitterad av</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of filteredHistory" style="border-color:#4a5568;">
+              <td style="padding:0.65rem 1rem; color:#a0aec0; font-size:0.85rem; white-space:nowrap;">
+                {{ formatDate(a.created_at) }}
+              </td>
+              <td style="padding:0.65rem 1rem;">
+                <span style="color:#e2e8f0; font-size:0.85rem;">
+                  <i [class]="typeIcon(a.type)" class="me-1" style="color:#718096;"></i>
+                  {{ typeLabel(a.type) }}
+                </span>
+              </td>
+              <td style="padding:0.65rem 1rem;">
+                <span class="badge" [class.bg-danger]="a.severity === 'critical'" [class.bg-warning]="a.severity === 'warning'"
+                  style="font-size:0.75rem;">
+                  {{ severityLabel(a.severity) }}
+                </span>
+              </td>
+              <td style="padding:0.65rem 1rem; color:#e2e8f0; font-size:0.85rem; max-width:350px;">
+                {{ a.message }}
+              </td>
+              <td style="padding:0.65rem 1rem; color:#a0aec0; font-size:0.85rem; white-space:nowrap;">
+                {{ a.value !== null ? (a.value | number:'1.1-1') : '—' }}
+              </td>
+              <td style="padding:0.65rem 1rem;">
+                <span class="badge" [class.bg-success]="a.acknowledged" [class.bg-secondary]="!a.acknowledged"
+                  style="font-size:0.75rem;">
+                  {{ a.acknowledged ? 'Kvitterad' : 'Aktiv' }}
+                </span>
+              </td>
+              <td style="padding:0.65rem 1rem; color:#718096; font-size:0.8rem;">
+                <span *ngIf="a.acknowledged && a.acknowledged_by_name">{{ a.acknowledged_by_name }}</span>
+                <span *ngIf="!a.acknowledged">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== FLIKEN: INSTÄLLNINGAR ======================== -->
+  <div *ngIf="activeTab === 'settings'">
+
+    <!-- Laddning -->
+    <div *ngIf="settingsLoading" class="text-center py-5">
+      <div class="spinner-border text-info" role="status"></div>
+      <p style="color:#a0aec0;" class="mt-2">Hämtar inställningar…</p>
+    </div>
+
+    <div *ngIf="!settingsLoading" style="max-width:640px;">
+      <p style="color:#718096; margin-bottom:1.5rem; font-size:0.9rem;">
+        Konfigurera tröskelvärden för automatiska varningar. Varningar skapas när uppmätta värden
+        överstiger eller understiger dessa gränsvärden.
+      </p>
+
+      <!-- OEE -->
+      <div style="background:#2d3748; border-radius:12px; padding:1.5rem; margin-bottom:1rem;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <h6 style="color:#e2e8f0; margin:0;">
+              <i class="fas fa-chart-line me-2 text-info"></i>Låg OEE
+            </h6>
+            <p style="color:#718096; margin:0.25rem 0 0; font-size:0.82rem;">
+              {{ thresholdDescription('oee_low') }}
+            </p>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="oeeEnabled"
+              [(ngModel)]="settings.oee_low.enabled" style="cursor:pointer;">
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <label class="form-label mb-0" style="color:#a0aec0; white-space:nowrap; font-size:0.9rem;">
+            Tröskel (%)
+          </label>
+          <input type="number" class="form-control form-control-sm" min="1" max="100" step="1"
+            style="background:#1a202c; color:#e2e8f0; border-color:#4a5568; max-width:100px;"
+            [(ngModel)]="settings.oee_low.threshold_value"
+            [disabled]="!settings.oee_low.enabled">
+          <span style="color:#718096; font-size:0.85rem;">
+            Varna om OEE &lt; {{ settings.oee_low.threshold_value }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- Stopptid -->
+      <div style="background:#2d3748; border-radius:12px; padding:1.5rem; margin-bottom:1rem;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <h6 style="color:#e2e8f0; margin:0;">
+              <i class="fas fa-pause-circle me-2 text-warning"></i>Lång stopptid
+            </h6>
+            <p style="color:#718096; margin:0.25rem 0 0; font-size:0.82rem;">
+              {{ thresholdDescription('stop_long') }}
+            </p>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="stopEnabled"
+              [(ngModel)]="settings.stop_long.enabled" style="cursor:pointer;">
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <label class="form-label mb-0" style="color:#a0aec0; white-space:nowrap; font-size:0.9rem;">
+            Tröskel (min)
+          </label>
+          <input type="number" class="form-control form-control-sm" min="1" max="480" step="5"
+            style="background:#1a202c; color:#e2e8f0; border-color:#4a5568; max-width:100px;"
+            [(ngModel)]="settings.stop_long.threshold_value"
+            [disabled]="!settings.stop_long.enabled">
+          <span style="color:#718096; font-size:0.85rem;">
+            Varna om stopp &gt; {{ settings.stop_long.threshold_value }} min
+          </span>
+        </div>
+      </div>
+
+      <!-- Kassation -->
+      <div style="background:#2d3748; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <h6 style="color:#e2e8f0; margin:0;">
+              <i class="fas fa-trash-alt me-2 text-danger"></i>Hög kassationsrate
+            </h6>
+            <p style="color:#718096; margin:0.25rem 0 0; font-size:0.82rem;">
+              {{ thresholdDescription('scrap_high') }}
+            </p>
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" id="scrapEnabled"
+              [(ngModel)]="settings.scrap_high.enabled" style="cursor:pointer;">
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <label class="form-label mb-0" style="color:#a0aec0; white-space:nowrap; font-size:0.9rem;">
+            Tröskel (%)
+          </label>
+          <input type="number" class="form-control form-control-sm" min="0.1" max="100" step="0.5"
+            style="background:#1a202c; color:#e2e8f0; border-color:#4a5568; max-width:100px;"
+            [(ngModel)]="settings.scrap_high.threshold_value"
+            [disabled]="!settings.scrap_high.enabled">
+          <span style="color:#718096; font-size:0.85rem;">
+            Varna om kassation &gt; {{ settings.scrap_high.threshold_value }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- Spara -->
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-primary" (click)="saveSettings()" [disabled]="savingSettings">
+          <i class="fas me-2" [class.fa-save]="!savingSettings" [class.fa-spinner]="savingSettings" [class.fa-spin]="savingSettings"></i>
+          {{ savingSettings ? 'Sparar…' : 'Spara inställningar' }}
+        </button>
+        <span *ngIf="settingsSaved" class="text-success small">
+          <i class="fas fa-check me-1"></i>Sparat!
+        </span>
+        <span *ngIf="settingsError" class="text-danger small">
+          <i class="fas fa-exclamation-circle me-1"></i>{{ settingsError }}
+        </span>
+      </div>
+
+      <div class="mt-4 p-3" style="background:#1a202c; border-radius:8px; border:1px solid #4a5568;">
+        <p style="color:#718096; font-size:0.8rem; margin:0; line-height:1.6;">
+          <i class="fas fa-info-circle me-1 text-info"></i>
+          <strong style="color:#a0aec0;">Obs:</strong> Alertkontroll körs manuellt via "Kör kontroll nu"-knappen.
+          Knappen kan integreras med en cron-job för automatisk körning.
+          Var 60:e sekund uppdateras listan med aktiva varningar automatiskt.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

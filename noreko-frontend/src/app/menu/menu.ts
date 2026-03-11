@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, AuthUser } from '../services/auth.service';
+import { AlertsService } from '../services/alerts.service';
 import { forkJoin, catchError, of, timeout, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -39,6 +40,7 @@ export class Menu implements OnInit, OnDestroy {
   tvattlinjeRunning = false;
   urgentNoteCount = 0;
   certExpiryCount = 0;
+  activeAlertsCount = 0;
   profileForm = {
     email: '',
     operatorId: '',
@@ -54,11 +56,13 @@ export class Menu implements OnInit, OnDestroy {
   private lineStatusInterval: ReturnType<typeof setInterval> | null = null;
   private notifTimer: ReturnType<typeof setInterval> | null = null;
   private certExpiryInterval: ReturnType<typeof setInterval> | null = null;
+  private alertsInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(
-    private router: Router, 
+    private router: Router,
     public auth: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private alertsService: AlertsService
   ) {
     const saved = localStorage.getItem('selectedMenu');
     if (saved) this.selectedMenu = saved;
@@ -67,11 +71,13 @@ export class Menu implements OnInit, OnDestroy {
       if (val && this.user?.role === 'admin') {
         this.loadVpnStatus();
         this.loadCertExpiryCount();
+        this.startAlertsPolling();
       } else {
         this.vpnConnectedCount = 0;
         this.certExpiryCount = 0;
         this.clearRefreshInterval();
         this.clearCertExpiryInterval();
+        this.stopAlertsPolling();
       }
       if (val) {
         this.loadUrgentCount();
@@ -97,11 +103,13 @@ export class Menu implements OnInit, OnDestroy {
       if (val?.role === 'admin' && this.loggedIn) {
         this.loadVpnStatus();
         this.loadCertExpiryCount();
+        this.startAlertsPolling();
       } else {
         this.vpnConnectedCount = 0;
         this.certExpiryCount = 0;
         this.clearRefreshInterval();
         this.clearCertExpiryInterval();
+        this.stopAlertsPolling();
       }
     });
   }
@@ -122,6 +130,7 @@ export class Menu implements OnInit, OnDestroy {
     this.destroy$.complete();
     this.clearRefreshInterval();
     this.clearCertExpiryInterval();
+    this.stopAlertsPolling();
     if (this.lineStatusInterval) {
       clearInterval(this.lineStatusInterval);
       this.lineStatusInterval = null;
@@ -144,6 +153,31 @@ export class Menu implements OnInit, OnDestroy {
       clearInterval(this.certExpiryInterval);
       this.certExpiryInterval = null;
     }
+  }
+
+  private startAlertsPolling(): void {
+    if (this.alertsInterval) return;
+    this.loadAlertsCount();
+    this.alertsInterval = setInterval(() => this.loadAlertsCount(), 60_000);
+  }
+
+  private stopAlertsPolling(): void {
+    if (this.alertsInterval) {
+      clearInterval(this.alertsInterval);
+      this.alertsInterval = null;
+    }
+    this.activeAlertsCount = 0;
+  }
+
+  private loadAlertsCount(): void {
+    if (!this.loggedIn || this.user?.role !== 'admin') return;
+    this.http.get<any>('/noreko-backend/api.php?action=alerts&run=active', { withCredentials: true })
+      .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
+      .subscribe(res => {
+        if (res?.success) {
+          this.activeAlertsCount = res.data?.count ?? 0;
+        }
+      });
   }
 
   loadLineStatus() {
