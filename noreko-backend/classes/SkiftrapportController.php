@@ -486,12 +486,13 @@ class SkiftrapportController {
             $stmt->execute([$skiftraknare]);
             $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
             $nums = array_map('intval', $rows);
-            // Filtrera bort ogiltiga värden (0, 999 = PLC default) och duplicerade
-            $nums = array_values(array_unique(array_filter($nums, fn($n) => $n > 0 && $n < 999)));
+            // Filtrera bort 999 (PLC default för ogiltigt) och duplicerade
+            $nums = array_values(array_unique(array_filter($nums, fn($n) => $n !== 999)));
             echo json_encode([
                 'success' => true,
                 'ranges'  => $this->buildRanges($nums),
-                'count'   => count($nums)
+                'count'   => count($nums),
+                'raw'     => array_map('intval', $rows)
             ]);
         } catch (PDOException $e) {
             error_log('getLopnummerForSkift: ' . $e->getMessage());
