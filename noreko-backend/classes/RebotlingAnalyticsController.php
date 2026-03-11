@@ -5987,4 +5987,242 @@ HTML;
         }
     }
 
+    // =========================================================
+    // PRODUKTIONSMÅL – GET progress
+    // =========================================================
+
+    private function ensureProductionGoalsTable(): void {
+        $this->pdo->exec("
+            CREATE TABLE IF NOT EXISTS `rebotling_production_goals` (
+                `id`           INT          NOT NULL AUTO_INCREMENT,
+                `period_type`  ENUM('daily','weekly') NOT NULL DEFAULT 'daily',
+                `target_count` INT          NOT NULL DEFAULT 0,
+                `created_by`   INT          NULL DEFAULT NULL,
+                `created_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                `updated_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                PRIMARY KEY (`id`),
+                KEY `idx_period_type` (`period_type`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        ");
+        // Standardvärden om tabellen precis skapades
+        $this->pdo->exec("
+            INSERT IGNORE INTO `rebotling_production_goals` (`id`, `period_type`, `target_count`)
+            VALUES (1, 'daily', 200), (2, 'weekly', 1000)
+        ");
+    }
+
+    public function getProductionGoalProgress(): void {
+        try {
+            $this->ensureProductionGoalsTable();
+
+            $period = $_GET['period'] ?? 'today';
+            $now    = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
+
+            if ($period === 'week') {
+                // Veckamål
+                $goalRow = $this->pdo->query(
+                    "SELECT target_count FROM rebotling_production_goals WHERE period_type='weekly' ORDER BY id DESC LIMIT 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                $target = (int)($goalRow['target_count'] ?? 1000);
+
+                // Veckostart (måndag)
+                $monday = clone $now;
+                $dow = (int)$monday->format('N'); // 1=mån, 7=sön
+                $monday->modify('-' . ($dow - 1) . ' days');
+                $monday->setTime(0, 0, 0);
+                $sunday = clone $monday;
+                $sunday->modify('+6 days');
+                $sunday->setTime(23, 59, 59);
+
+                $weekStart = $monday->format('Y-m-d 00:00:00');
+                $weekEnd   = $sunday->format('Y-m-d 23:59:59');
+
+                $stmt = $this->pdo->prepare(
+                    "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0"
+                );
+                $stmt->execute([$weekStart, $weekEnd]);
+                $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+
+                // Tid kvar i veckan
+                $endOfWeek = $sunday;
+                $secRemaining = max(0, $endOfWeek->getTimestamp() - $now->getTimestamp());
+
+                // Streak: antal veckor i rad som veckamålet nåtts
+                $streak = $this->calcWeeklyStreak($target);
+
+                echo json_encode([
+                    'success'          => true,
+                    'period'           => 'week',
+                    'target'           => $target,
+                    'actual'           => $actual,
+                    'percentage'       => $target > 0 ? round($actual / $target * 100, 1) : 0,
+                    'remaining'        => max(0, $target - $actual),
+                    'time_remaining_seconds' => $secRemaining,
+                    'streak'           => $streak,
+                    'period_label'     => 'Denna vecka',
+                ]);
+
+            } else {
+                // Dagsmål (today)
+                $goalRow = $this->pdo->query(
+                    "SELECT target_count FROM rebotling_production_goals WHERE period_type='daily' ORDER BY id DESC LIMIT 1"
+                )->fetch(PDO::FETCH_ASSOC);
+                $target = (int)($goalRow['target_count'] ?? 200);
+
+                $today = $now->format('Y-m-d');
+
+                $stmt = $this->pdo->prepare(
+                    "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ? AND produktion_procent > 0"
+                );
+                $stmt->execute([$today]);
+                $actual = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+
+                // Tid kvar av "skiftet" — vi räknar till midnatt
+                $endOfDay = clone $now;
+                $endOfDay->setTime(23, 59, 59);
+                $secRemaining = max(0, $endOfDay->getTimestamp() - $now->getTimestamp());
+
+                // Streak: antal dagar i rad som dagsmålet nåtts (exklusive idag)
+                $streak = $this->calcDailyStreak($target, $today);
+
+                echo json_encode([
+                    'success'          => true,
+                    'period'           => 'today',
+                    'target'           => $target,
+                    'actual'           => $actual,
+                    'percentage'       => $target > 0 ? round($actual / $target * 100, 1) : 0,
+                    'remaining'        => max(0, $target - $actual),
+                    'time_remaining_seconds' => $secRemaining,
+                    'streak'           => $streak,
+                    'period_label'     => 'Idag',
+                ]);
+            }
+        } catch (Exception $e) {
+            error_log('getProductionGoalProgress: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta produktionsmål']);
+        }
+    }
+
+    private function calcDailyStreak(int $target, string $today): int {
+        $streak = 0;
+        $date   = new DateTime($today, new DateTimeZone('Europe/Stockholm'));
+        $date->modify('-1 day'); // Börja med igår
+        for ($i = 0; $i < 365; $i++) {
+            $d = $date->format('Y-m-d');
+            $stmt = $this->pdo->prepare(
+                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = ? AND produktion_procent > 0"
+            );
+            $stmt->execute([$d]);
+            $cnt = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+            if ($cnt >= $target) {
+                $streak++;
+                $date->modify('-1 day');
+            } else {
+                break;
+            }
+        }
+        return $streak;
+    }
+
+    private function calcWeeklyStreak(int $target): int {
+        $streak = 0;
+        $now    = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
+        $dow    = (int)$now->format('N');
+        $monday = clone $now;
+        $monday->modify('-' . ($dow - 1 + 7) . ' days'); // Föregående veckas måndag
+        $monday->setTime(0, 0, 0);
+
+        for ($i = 0; $i < 52; $i++) {
+            $weekStart = $monday->format('Y-m-d 00:00:00');
+            $sunday    = clone $monday;
+            $sunday->modify('+6 days');
+            $weekEnd   = $sunday->format('Y-m-d 23:59:59');
+
+            $stmt = $this->pdo->prepare(
+                "SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE datum BETWEEN ? AND ? AND produktion_procent > 0"
+            );
+            $stmt->execute([$weekStart, $weekEnd]);
+            $cnt = (int)($stmt->fetch(PDO::FETCH_ASSOC)['cnt'] ?? 0);
+
+            if ($cnt >= $target) {
+                $streak++;
+                $monday->modify('-7 days');
+            } else {
+                break;
+            }
+        }
+        return $streak;
+    }
+
+    // =========================================================
+    // PRODUKTIONSMÅL – POST set goal (admin)
+    // =========================================================
+
+    public function setProductionGoal(): void {
+        if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
+        if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs']);
+            return;
+        }
+
+        try {
+            $this->ensureProductionGoalsTable();
+
+            $input = json_decode(file_get_contents('php://input'), true) ?: [];
+            // Stöd även form-encoded
+            if (empty($input)) {
+                parse_str(file_get_contents('php://input'), $input);
+            }
+
+            $periodType  = trim($input['period_type'] ?? '');
+            $targetCount = (int)($input['target_count'] ?? 0);
+
+            if (!in_array($periodType, ['daily', 'weekly'], true)) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig period_type. Tillåtna värden: daily, weekly']);
+                return;
+            }
+            if ($targetCount <= 0 || $targetCount > 100000) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'target_count måste vara mellan 1 och 100 000']);
+                return;
+            }
+
+            $userId = (int)$_SESSION['user_id'];
+
+            // Uppdatera befintlig rad eller infoga ny
+            $existing = $this->pdo->prepare(
+                "SELECT id FROM rebotling_production_goals WHERE period_type = ? ORDER BY id DESC LIMIT 1"
+            );
+            $existing->execute([$periodType]);
+            $row = $existing->fetch(PDO::FETCH_ASSOC);
+
+            if ($row) {
+                $stmt = $this->pdo->prepare(
+                    "UPDATE rebotling_production_goals SET target_count = ?, created_by = ?, updated_at = NOW() WHERE id = ?"
+                );
+                $stmt->execute([$targetCount, $userId, $row['id']]);
+            } else {
+                $stmt = $this->pdo->prepare(
+                    "INSERT INTO rebotling_production_goals (period_type, target_count, created_by) VALUES (?, ?, ?)"
+                );
+                $stmt->execute([$periodType, $targetCount, $userId]);
+            }
+
+            $label = $periodType === 'daily' ? 'Dagsmål' : 'Veckamål';
+            echo json_encode([
+                'success' => true,
+                'message' => "{$label} sparat: {$targetCount} IBC",
+                'period_type'  => $periodType,
+                'target_count' => $targetCount,
+            ]);
+        } catch (Exception $e) {
+            error_log('setProductionGoal: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara produktionsmål']);
+        }
+    }
+
 }

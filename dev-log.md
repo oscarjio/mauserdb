@@ -10,6 +10,44 @@ Fullstandig manadsrapport-sida verifierad och kompletterad:
 - **Interfaces** — `MonthlyReportResponse`, `MonthCompareResponse` och alla sub-interfaces exporterade fran rebotling.service.ts
 - Byggt OK — inga fel, monthly-report chunk 56.16 kB
 
+---
+
+## 2026-03-11 Produktionsmål-tracker
+
+Visuell produktionsmål-tracker med progress-ringar, countdown och streak pa rebotling-statistiksidan:
+
+- **DB-migration** `noreko-backend/migrations/2026-03-11_production-goals.sql`:
+  - Ny tabell `rebotling_production_goals`: id, period_type (daily/weekly), target_count, created_by, created_at, updated_at
+  - Standardvarden: dagsmål 200 IBC, veckamål 1000 IBC
+- **Backend** (metoder i RebotlingAnalyticsController):
+  - `getProductionGoalProgress()` — GET, param `period=today|week`
+    - Hamtar faktisk produktion fran rebotling_ibc (produktion_procent > 0)
+    - Beraknar streak (dagar/veckor i rad dar malet nåtts)
+    - Returnerar: target, actual, percentage, remaining, time_remaining_seconds, streak
+  - `setProductionGoal()` — POST, admin-skyddad
+    - Uppdaterar eller infogar ny rad i rebotling_production_goals
+  - `ensureProductionGoalsTable()` — skapar tabell automatiskt vid forsta anropet
+  - Routning registrerad i RebotlingController: GET `production-goal-progress`, POST `set-production-goal`
+- **Service** (`rebotling.service.ts`):
+  - `getProductionGoalProgress(period)` — Observable<ProductionGoalProgressResponse>
+  - `setProductionGoal(periodType, targetCount)` — Observable<any>
+  - Interface `ProductionGoalProgressResponse` tillagd
+- **Frontend-komponent** `statistik-produktionsmal`:
+  - Dagsmål och veckamål bredvid varandra (col-12/col-lg-6)
+  - Chart.js doughnut-gauge per mål med stor procentsiffra och "actual / target" i mitten
+  - Fargkodning: Gron >=100%, Gul >=75%, Orange >=50%, Rod <50%
+  - Statistik-rad under gaugen: Producerade IBC / Mal / Kvar
+  - Countdown: "X tim Y min kvar" (dagsmal → till midnatt, veckomal → till sondagens slut)
+  - Streak-badge: "N dagar i rad!" / "N veckor i rad!" med fire-ikon
+  - Banner nar malet ar uppnatt: "Dagsmål uppnatt!" / "Veckamål uppnatt!" med pulsanimation
+  - Admin: inline redigera mål (knapp → input + spara/avbryt)
+  - Auto-refresh var 60:e sekund via RxJS interval + startWith
+  - Korrekt lifecycle: OnInit/OnDestroy, destroy$, takeUntil
+- **Registrerad** som `@defer (on viewport)` child direkt under OEE-gaugen i rebotling-statistik
+- Dark theme, svenska, bygger utan fel
+
+---
+
 ## 2026-03-10 Realtids-OEE-gauge pa statistiksidan
 
 Stor cirkular OEE-gauge overst pa rebotling-statistiksidan:

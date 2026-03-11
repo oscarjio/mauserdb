@@ -1,0 +1,224 @@
+<div class="row mt-3 mb-4">
+  <div class="col-12">
+    <div class="dark-card">
+
+      <!-- Header -->
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h5 class="mb-0 pm-title">
+          <i class="fas fa-bullseye me-2" style="color:#ed8936;"></i>
+          Produktionsmal-tracker
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+          <span class="small text-muted" *ngIf="todayData || weekData">
+            <i class="fas fa-sync-alt me-1" [class.fa-spin]="loadingToday || loadingWeek"></i>
+            Auto-uppdateras var 60:e sekund
+          </span>
+        </div>
+      </div>
+
+      <!-- Loading initialt -->
+      <div class="text-center py-5" *ngIf="loadingToday && !todayData && !weekData">
+        <div class="spinner-border" style="color:#ed8936;" role="status"></div>
+        <div class="text-muted mt-2 small">Hamtar produktionsmal...</div>
+      </div>
+
+      <!-- Felmeddelande -->
+      <div class="text-center py-4" *ngIf="error && !todayData && !weekData">
+        <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
+        <p class="text-muted">{{ error }}</p>
+        <button class="btn btn-sm btn-outline-warning" (click)="loadToday(); loadWeek()">Forsok igen</button>
+      </div>
+
+      <!-- Sparmeddelande -->
+      <div class="alert alert-info py-2 px-3 mb-3" *ngIf="saveMsg">
+        <i class="fas fa-info-circle me-2"></i>{{ saveMsg }}
+      </div>
+
+      <!-- Dagsmål och Veckamål bredvid varandra -->
+      <div class="row g-3" *ngIf="todayData || weekData">
+
+        <!-- === DAGSMÅL === -->
+        <div class="col-12 col-lg-6">
+          <div class="pm-card">
+
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="pm-card-title">
+                <i class="fas fa-sun me-1" style="color:#ecc94b;"></i>
+                Dagsmal
+              </span>
+              <div class="d-flex align-items-center gap-2">
+                <!-- Streak-badge -->
+                <span class="pm-streak-badge" *ngIf="todayData && todayData.streak > 0">
+                  <i class="fas fa-fire me-1"></i>{{ getStreakLabel(todayData.streak, 'day') }}
+                </span>
+                <!-- Admin: redigera-knapp -->
+                <button
+                  *ngIf="isAdmin && !editingDaily"
+                  class="btn btn-sm btn-outline-secondary"
+                  (click)="startEditDaily()"
+                  title="Andra dagsmal">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Donut-graf med siffra i mitten -->
+            <div *ngIf="todayData">
+              <div class="pm-gauge-wrap">
+                <canvas id="malDayCanvas" style="max-height:200px;"></canvas>
+              </div>
+
+              <!-- Statistik under gaugen -->
+              <div class="pm-stats-row">
+                <div class="pm-stat">
+                  <div class="pm-stat-val" [style.color]="getProgressColor(todayData.percentage)">
+                    {{ todayData.actual }}
+                  </div>
+                  <div class="pm-stat-lbl">Producerade IBC</div>
+                </div>
+                <div class="pm-stat">
+                  <div class="pm-stat-val" style="color:#e2e8f0;">{{ todayData.target }}</div>
+                  <div class="pm-stat-lbl">Mal</div>
+                </div>
+                <div class="pm-stat">
+                  <div class="pm-stat-val"
+                    [style.color]="todayData.remaining === 0 ? '#48bb78' : '#fc8181'">
+                    {{ todayData.remaining }}
+                  </div>
+                  <div class="pm-stat-lbl">Kvar</div>
+                </div>
+              </div>
+
+              <!-- Countdown -->
+              <div class="pm-countdown">
+                <i class="fas fa-clock me-1" style="color:#63b3ed;"></i>
+                {{ formatTimeRemaining(todayData.time_remaining_seconds) }}
+              </div>
+
+              <!-- Mal natt-banner -->
+              <div class="pm-goal-achieved" *ngIf="todayData.percentage >= 100">
+                <i class="fas fa-trophy me-2" style="color:#ecc94b;"></i>
+                Dagsmal uppnatt!
+              </div>
+            </div>
+
+            <!-- Admin: redigera dagsmål -->
+            <div class="pm-edit-form mt-3" *ngIf="isAdmin && editingDaily">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <label class="text-muted small mb-0">Nytt dagsmal (IBC):</label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  style="width:100px;"
+                  [(ngModel)]="newDailyTarget"
+                  min="1"
+                  max="10000" />
+                <button
+                  class="btn btn-sm btn-success"
+                  (click)="saveGoal('daily')"
+                  [disabled]="saving">
+                  <span *ngIf="!saving"><i class="fas fa-save me-1"></i>Spara</span>
+                  <span *ngIf="saving"><i class="fas fa-spinner fa-spin me-1"></i>Sparar...</span>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">Avbryt</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- === VECKAMÅL === -->
+        <div class="col-12 col-lg-6">
+          <div class="pm-card">
+
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <span class="pm-card-title">
+                <i class="fas fa-calendar-week me-1" style="color:#63b3ed;"></i>
+                Veckomal
+              </span>
+              <div class="d-flex align-items-center gap-2">
+                <!-- Streak-badge -->
+                <span class="pm-streak-badge pm-streak-week" *ngIf="weekData && weekData.streak > 0">
+                  <i class="fas fa-fire me-1"></i>{{ getStreakLabel(weekData.streak, 'week') }}
+                </span>
+                <!-- Admin: redigera-knapp -->
+                <button
+                  *ngIf="isAdmin && !editingWeekly"
+                  class="btn btn-sm btn-outline-secondary"
+                  (click)="startEditWeekly()"
+                  title="Andra veckomal">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Donut-graf med siffra i mitten -->
+            <div *ngIf="weekData">
+              <div class="pm-gauge-wrap">
+                <canvas id="malWeekCanvas" style="max-height:200px;"></canvas>
+              </div>
+
+              <!-- Statistik under gaugen -->
+              <div class="pm-stats-row">
+                <div class="pm-stat">
+                  <div class="pm-stat-val" [style.color]="getProgressColor(weekData.percentage)">
+                    {{ weekData.actual }}
+                  </div>
+                  <div class="pm-stat-lbl">Producerade IBC</div>
+                </div>
+                <div class="pm-stat">
+                  <div class="pm-stat-val" style="color:#e2e8f0;">{{ weekData.target }}</div>
+                  <div class="pm-stat-lbl">Mal</div>
+                </div>
+                <div class="pm-stat">
+                  <div class="pm-stat-val"
+                    [style.color]="weekData.remaining === 0 ? '#48bb78' : '#fc8181'">
+                    {{ weekData.remaining }}
+                  </div>
+                  <div class="pm-stat-lbl">Kvar</div>
+                </div>
+              </div>
+
+              <!-- Countdown -->
+              <div class="pm-countdown">
+                <i class="fas fa-calendar-alt me-1" style="color:#9f7aea;"></i>
+                {{ formatTimeRemaining(weekData.time_remaining_seconds) }}
+              </div>
+
+              <!-- Mal uppnatt-banner -->
+              <div class="pm-goal-achieved" *ngIf="weekData.percentage >= 100">
+                <i class="fas fa-trophy me-2" style="color:#ecc94b;"></i>
+                Veckomal uppnatt!
+              </div>
+            </div>
+
+            <!-- Admin: redigera veckamål -->
+            <div class="pm-edit-form mt-3" *ngIf="isAdmin && editingWeekly">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <label class="text-muted small mb-0">Nytt veckomal (IBC):</label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  style="width:100px;"
+                  [(ngModel)]="newWeeklyTarget"
+                  min="1"
+                  max="100000" />
+                <button
+                  class="btn btn-sm btn-success"
+                  (click)="saveGoal('weekly')"
+                  [disabled]="saving">
+                  <span *ngIf="!saving"><i class="fas fa-save me-1"></i>Spara</span>
+                  <span *ngIf="saving"><i class="fas fa-spinner fa-spin me-1"></i>Sparar...</span>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="cancelEdit()">Avbryt</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /row -->
+
+    </div>
+  </div>
+</div>

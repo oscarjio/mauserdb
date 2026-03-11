@@ -9,6 +9,15 @@
     }
   </div>
 
+  <!-- Produktionsmål-tracker -->
+  <div class="container-fluid">
+    @defer (on viewport) {
+      <app-statistik-produktionsmal></app-statistik-produktionsmal>
+    } @placeholder {
+      <div class="text-center py-4"><div class="spinner-border" style="color:#ed8936;" role="status"></div></div>
+    }
+  </div>
+
   <!-- Header with Breadcrumb -->
   <div class="stats-header">
     <div class="container-fluid">

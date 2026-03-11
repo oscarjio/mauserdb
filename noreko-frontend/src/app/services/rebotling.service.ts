@@ -444,6 +444,21 @@ export class RebotlingService {
     );
   }
 
+  getProductionGoalProgress(period: string = 'today'): Observable<ProductionGoalProgressResponse> {
+    return this.http.get<ProductionGoalProgressResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=production-goal-progress&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
+  setProductionGoal(periodType: string, targetCount: number): Observable<any> {
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=rebotling&run=set-production-goal',
+      JSON.stringify({ period_type: periodType, target_count: targetCount }),
+      { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {
@@ -1156,5 +1171,18 @@ export interface MonthCompareResponse {
   operator_ranking: MonthCompareOperatorRank[];
   best_day: MonthCompareDay | null;
   worst_day: MonthCompareDay | null;
+  error?: string;
+}
+
+export interface ProductionGoalProgressResponse {
+  success: boolean;
+  period?: string;
+  target?: number;
+  actual?: number;
+  percentage?: number;
+  remaining?: number;
+  time_remaining_seconds?: number;
+  streak?: number;
+  period_label?: string;
   error?: string;
 }

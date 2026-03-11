@@ -131,6 +131,8 @@ class RebotlingController {
                 $this->analyticsController->getWeeklySummaryEmail();
             } elseif ($action === 'realtime-oee') {
                 $this->analyticsController->getRealtimeOee();
+            } elseif ($action === 'production-goal-progress') {
+                $this->analyticsController->getProductionGoalProgress();
 
             // --- Live-data GET endpoints ---
             } elseif ($action === 'status') {
@@ -280,6 +282,8 @@ class RebotlingController {
                 $this->analyticsController->sendAutoShiftReport();
             } elseif ($action === 'send-weekly-summary') {
                 $this->analyticsController->sendWeeklySummaryEmail();
+            } elseif ($action === 'set-production-goal') {
+                $this->analyticsController->setProductionGoal();
             } else {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
