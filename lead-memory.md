@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #61)*
+*Senast uppdaterad: 2026-03-11 (session #62)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -63,29 +63,26 @@ Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
 Session #60: Daglig sammanfattning + Produktionskalender — klara.
 Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
+Session #62: Underhållsprognos + Kvalitetstrend per operatör — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Målhistorik-analys** — rebotling_goal_history → visualisering
-- [x] **Skiftjämförelse-dashboard** — dag/kväll/natt-prestanda
-- [ ] **Underhållsprognos** — prediktera underhåll från historik
-- [ ] **Kvalitetstrend per operatör** — kvalitet% trend, utbildningsbehov
+- [PÅGÅR] **Underhållsprognos** — prediktera underhåll från historik
+- [PÅGÅR] **Kvalitetstrend per operatör** — kvalitet% trend, utbildningsbehov
 - [ ] **Stopporsak-trendanalys** — veckovis utveckling av stopporsaker
 - [ ] **Energi/effektivitetsvy** — IBC per drifttimme, slitage-trend
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #62 (pågår)
+Worker 1 (Underhållsprognos): Schema-tabell, tidslinje-graf, historik, varningskort för försenat underhåll. Backend: UnderhallsprognosController.
+Worker 2 (Kvalitetstrend per operatör): Trendgraf per operatör, operatörstabell med förbättring/försämring, detaljvy, utbildningslarm. Backend: KvalitetstrendController.
+
 ### 2026-03-11 — Session #61 (klar)
-Merge-konflikter lösta. Diagnostik-varningar fixade (unused imports, deprecated HttpClientModule, unused vars i PHP).
 Worker 1 (Målhistorik-analys): Steg-graf med mål vs faktisk IBC/h, ändringslogg-tabell, impact-kort (före/efter), sammanfattning. Backend: MalhistorikController (2 endpoints).
 Worker 2 (Skiftjämförelse-dashboard): 3 skiftkort (dag/kväll/natt) med krona på bästa, grupperat stapeldiagram, veckovis trendgraf, topp-5 operatörer per skift. Backend: SkiftjamforelseController (3 endpoints).
-Backlog utökad med: Energi/effektivitetsvy + Operatörs-onboarding tracker.
 
 ### 2026-03-11 — Session #60 (klar)
 Worker 1 (Daglig sammanfattning): Komplett VD-dashboard, 2 endpoints, auto-refresh 60s. Backend: DagligSammanfattningController.
 Worker 2 (Produktionskalender): Månadsvy CSS Grid, färgkodade dagar, klickbar detalj-panel. Backend: ProduktionskalenderController.
-
-### 2026-03-11 — Session #59 (klar)
-Worker 1 (Operatörsranking historik): Leaderboard-trender, placeringsändringar, head-to-head. Backend: RankingHistorikController.
-Worker 2 (Operatörs-feedback analys): Stämningsöversikt, trender, operatörsöversikt. Backend: FeedbackAnalysController.
