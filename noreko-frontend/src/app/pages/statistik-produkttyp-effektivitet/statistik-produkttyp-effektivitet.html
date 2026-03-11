@@ -1,0 +1,209 @@
+<div class="pte-wrap">
+
+  <!-- ====================================================
+       RUBRIK + PERIODSELEKTOR
+  ==================================================== -->
+  <div class="pte-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fas fa-boxes pte-icon"></i>
+      <span class="pte-title">Effektivitet per produkttyp</span>
+    </div>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Periodselektor">
+      <button *ngFor="let d of dayOptions" type="button" class="btn btn-sm"
+        [class.btn-info]="days === d"
+        [class.btn-outline-info]="days !== d"
+        (click)="onDaysChange(d)">{{ d }}d</button>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       SAMMANFATTNINGSKORT PER PRODUKTTYP
+  ==================================================== -->
+  <div *ngIf="loadingSummary" class="pte-spinner-wrap">
+    <div class="spinner-border text-info" role="status"></div>
+  </div>
+
+  <div *ngIf="!loadingSummary && !errorSummary && produkter.length === 0" class="pte-no-data">
+    Ingen produktdata hittades for den valda perioden.
+  </div>
+
+  <div *ngIf="!loadingSummary && produkter.length > 0" class="row g-3 mb-4">
+    <div *ngFor="let p of produkter" class="col-12 col-sm-6 col-lg-4 col-xl-3">
+      <div class="pte-produkt-card">
+        <div class="pte-produkt-name">
+          <i class="fas fa-cube me-1" style="color: #63b3ed;"></i>
+          {{ p.produkt_namn }}
+        </div>
+        <div class="pte-produkt-metric">
+          <span class="pte-metric-label">Antal IBC</span>
+          <span class="pte-metric-value">{{ p.antal_ibc | number }}</span>
+        </div>
+        <div class="pte-produkt-metric">
+          <span class="pte-metric-label">Cykeltid (sek)</span>
+          <span class="pte-metric-value">{{ p.snitt_cykeltid_sek !== null ? (p.snitt_cykeltid_sek | number:'1.0-1') : '-' }}</span>
+        </div>
+        <div class="pte-produkt-metric">
+          <span class="pte-metric-label">IBC/timme</span>
+          <span class="pte-metric-value" [style.color]="ibcPerTimmeColor(p.ibc_per_timme)">
+            {{ p.ibc_per_timme !== null ? (p.ibc_per_timme | number:'1.0-1') : '-' }}
+          </span>
+        </div>
+        <div class="pte-produkt-metric">
+          <span class="pte-metric-label">Kvalitet</span>
+          <span class="pte-metric-value" [style.color]="kvalitetColor(p.kvalitet_pct)">
+            {{ p.kvalitet_pct !== null ? (p.kvalitet_pct | number:'1.0-1') + '%' : '-' }}
+          </span>
+        </div>
+        <div class="pte-produkt-metric">
+          <span class="pte-metric-label">Snitt bonus</span>
+          <span class="pte-metric-value" style="color: #ecc94b;">{{ p.snitt_bonus | number:'1.0-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       KVALITETSRANKING (PROGRESSBARS)
+  ==================================================== -->
+  <div *ngIf="!loadingSummary && produkter.length > 0" class="mb-4">
+    <div class="pte-section-title">
+      <i class="fas fa-medal me-2" style="color: #ecc94b;"></i>Kvalitetsranking
+    </div>
+    <div class="pte-chart-wrap">
+      <div *ngFor="let p of kvalitetRanking" class="pte-ranking-row">
+        <span class="pte-ranking-name">{{ p.produkt_namn }}</span>
+        <div class="pte-ranking-bar-wrap">
+          <div class="pte-ranking-bar"
+               [style.width.%]="p.kvalitet_pct ?? 0"
+               [style.background]="kvalitetBarColor(p.kvalitet_pct)">
+            <span class="pte-ranking-bar-text" *ngIf="(p.kvalitet_pct ?? 0) > 12">
+              {{ p.kvalitet_pct !== null ? (p.kvalitet_pct | number:'1.0-1') + '%' : '-' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       CHART: CYKELTID PER PRODUKTTYP (grupperad bar)
+  ==================================================== -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+      <div class="pte-chart-wrap">
+        <div class="pte-chart-title">
+          <i class="fas fa-clock me-1"></i>Cykeltid per produkttyp (sek)
+        </div>
+        <div *ngIf="loadingTrend" class="pte-spinner-wrap">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        </div>
+        <canvas #cykeltidChart class="pte-chart-canvas" *ngIf="!loadingTrend"></canvas>
+        <div *ngIf="!loadingTrend && !trendHarData" class="pte-no-data">Ingen trenddata tillganglig.</div>
+      </div>
+    </div>
+
+    <!-- CHART: IBC/TIMME JÄMFÖRELSE (horisontell bar) -->
+    <div class="col-12 col-lg-6">
+      <div class="pte-chart-wrap">
+        <div class="pte-chart-title">
+          <i class="fas fa-tachometer-alt me-1"></i>IBC/timme per produkttyp
+        </div>
+        <div *ngIf="loadingSummary" class="pte-spinner-wrap">
+          <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        </div>
+        <canvas #ibcPerTimmeChart class="pte-chart-canvas" *ngIf="!loadingSummary"></canvas>
+        <div *ngIf="!loadingSummary && produkter.length === 0" class="pte-no-data">Ingen data.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       CHART: DAGLIG IBC TREND PER PRODUKTTYP
+  ==================================================== -->
+  <div *ngIf="!loadingTrend && trendHarData" class="mb-4">
+    <div class="pte-chart-wrap">
+      <div class="pte-chart-title">
+        <i class="fas fa-chart-bar me-1"></i>Daglig IBC-produktion per produkttyp
+      </div>
+      <canvas #ibcTrendChart class="pte-chart-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- ====================================================
+       HEAD-TO-HEAD JÄMFÖRELSE
+  ==================================================== -->
+  <div *ngIf="produkter.length >= 2" class="mb-4">
+    <div class="pte-section-title">
+      <i class="fas fa-exchange-alt me-2" style="color: #b794f6;"></i>Head-to-head jamforelse
+    </div>
+    <div class="pte-chart-wrap">
+      <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+        <select class="pte-comp-select" [(ngModel)]="compA" (ngModelChange)="loadComparison()">
+          <option *ngFor="let p of produkter" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
+        </select>
+        <span class="pte-comp-vs">vs</span>
+        <select class="pte-comp-select" [(ngModel)]="compB" (ngModelChange)="loadComparison()">
+          <option *ngFor="let p of produkter" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
+        </select>
+      </div>
+
+      <div *ngIf="loadingComparison" class="pte-spinner-wrap">
+        <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+      </div>
+
+      <div *ngIf="!loadingComparison && comparison">
+        <div class="pte-comp-row">
+          <span class="pte-comp-metric-label">Antal IBC</span>
+          <span class="pte-comp-val">{{ comparison.a.antal_ibc | number }}</span>
+          <span class="pte-comp-val">{{ comparison.b.antal_ibc | number }}</span>
+          <span class="pte-comp-diff pte-diff-neutral">-</span>
+        </div>
+        <div class="pte-comp-row">
+          <span class="pte-comp-metric-label">Cykeltid (sek)</span>
+          <span class="pte-comp-val">{{ comparison.a.snitt_cykeltid_sek !== null ? (comparison.a.snitt_cykeltid_sek | number:'1.0-1') : '-' }}</span>
+          <span class="pte-comp-val">{{ comparison.b.snitt_cykeltid_sek !== null ? (comparison.b.snitt_cykeltid_sek | number:'1.0-1') : '-' }}</span>
+          <span class="pte-comp-diff"
+                [class.pte-diff-negative]="(comparison.diff_pct.snitt_cykeltid_sek ?? 0) > 0"
+                [class.pte-diff-positive]="(comparison.diff_pct.snitt_cykeltid_sek ?? 0) < 0"
+                [class.pte-diff-neutral]="comparison.diff_pct.snitt_cykeltid_sek === null">
+            {{ comparison.diff_pct.snitt_cykeltid_sek !== null ? (comparison.diff_pct.snitt_cykeltid_sek > 0 ? '+' : '') + (comparison.diff_pct.snitt_cykeltid_sek | number:'1.0-1') + '%' : '-' }}
+          </span>
+        </div>
+        <div class="pte-comp-row">
+          <span class="pte-comp-metric-label">IBC/timme</span>
+          <span class="pte-comp-val">{{ comparison.a.ibc_per_timme !== null ? (comparison.a.ibc_per_timme | number:'1.0-1') : '-' }}</span>
+          <span class="pte-comp-val">{{ comparison.b.ibc_per_timme !== null ? (comparison.b.ibc_per_timme | number:'1.0-1') : '-' }}</span>
+          <span class="pte-comp-diff"
+                [class.pte-diff-positive]="(comparison.diff_pct.ibc_per_timme ?? 0) > 0"
+                [class.pte-diff-negative]="(comparison.diff_pct.ibc_per_timme ?? 0) < 0"
+                [class.pte-diff-neutral]="comparison.diff_pct.ibc_per_timme === null">
+            {{ comparison.diff_pct.ibc_per_timme !== null ? (comparison.diff_pct.ibc_per_timme > 0 ? '+' : '') + (comparison.diff_pct.ibc_per_timme | number:'1.0-1') + '%' : '-' }}
+          </span>
+        </div>
+        <div class="pte-comp-row">
+          <span class="pte-comp-metric-label">Kvalitet</span>
+          <span class="pte-comp-val">{{ comparison.a.kvalitet_pct !== null ? (comparison.a.kvalitet_pct | number:'1.0-1') + '%' : '-' }}</span>
+          <span class="pte-comp-val">{{ comparison.b.kvalitet_pct !== null ? (comparison.b.kvalitet_pct | number:'1.0-1') + '%' : '-' }}</span>
+          <span class="pte-comp-diff"
+                [class.pte-diff-positive]="(comparison.diff_pct.kvalitet_pct ?? 0) > 0"
+                [class.pte-diff-negative]="(comparison.diff_pct.kvalitet_pct ?? 0) < 0"
+                [class.pte-diff-neutral]="comparison.diff_pct.kvalitet_pct === null">
+            {{ comparison.diff_pct.kvalitet_pct !== null ? (comparison.diff_pct.kvalitet_pct > 0 ? '+' : '') + (comparison.diff_pct.kvalitet_pct | number:'1.0-1') + '%' : '-' }}
+          </span>
+        </div>
+        <div class="pte-comp-row">
+          <span class="pte-comp-metric-label">Snitt bonus</span>
+          <span class="pte-comp-val" style="color: #ecc94b;">{{ comparison.a.snitt_bonus | number:'1.0-2' }}</span>
+          <span class="pte-comp-val" style="color: #ecc94b;">{{ comparison.b.snitt_bonus | number:'1.0-2' }}</span>
+          <span class="pte-comp-diff"
+                [class.pte-diff-positive]="(comparison.diff_pct.snitt_bonus ?? 0) > 0"
+                [class.pte-diff-negative]="(comparison.diff_pct.snitt_bonus ?? 0) < 0"
+                [class.pte-diff-neutral]="comparison.diff_pct.snitt_bonus === null">
+            {{ comparison.diff_pct.snitt_bonus !== null ? (comparison.diff_pct.snitt_bonus > 0 ? '+' : '') + (comparison.diff_pct.snitt_bonus | number:'1.0-1') + '%' : '-' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

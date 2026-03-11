@@ -1,3 +1,27 @@
+## 2026-03-11 Effektivitet per produkttyp — jamforelse mellan IBC-produkttyper
+
+Analysvy som jamfor produktionseffektivitet mellan olika IBC-produkttyper (FoodGrade, NonUN, etc.). VD ser vilka produkttyper som tar langst tid, har bast kvalitet och ger hogst throughput.
+
+- **Backend** — ny `ProduktTypEffektivitetController.php` (`noreko-backend/classes/`):
+  - `run=summary` — sammanfattning per produkttyp: antal IBC, snittcykeltid (sek), kvalitet%, IBC/timme, snittbonus. Perioder: 7d/14d/30d/90d. Aggregerar kumulativa PLC-varden korrekt (MAX per skift, sedan SUM/AVG).
+  - `run=trend` — daglig trend per produkttyp (IBC-antal + cykeltid) for Chart.js stacked/grouped bar. Top 6 produkttyper.
+  - `run=comparison` — head-to-head jamforelse av 2 valda produkttyper med procentuella skillnader.
+  - Registrerad i `api.php` classNameMap (`produkttyp-effektivitet`)
+  - Tabeller: `rebotling_ibc.produkt` -> `rebotling_products.id`
+- **Service** (`produkttyp-effektivitet.service.ts`): `getSummary(days)`, `getTrend(days)`, `getComparison(a, b, days)` med timeout 15s
+- **Frontend-komponent** `StatistikProduktTypEffektivitetComponent` (`/rebotling/produkttyp-effektivitet`):
+  - Sammanfattningskort per produkttyp (styled cards): antal IBC, cykeltid, IBC/h, kvalitet, bonus
+  - Kvalitetsranking med progressbars (fargkodade: gron >= 98%, gul >= 95%, rod < 95%)
+  - Grupperad stapelgraf (Chart.js line) — cykeltid per produkttyp over tid
+  - IBC/timme-jamforelse (horisontell bar chart)
+  - Daglig IBC-produktion per produkttyp (stacked bar chart)
+  - Head-to-head jamforelse: dropdowns for att valja 2 produkttyper, procentuella skillnader per nyckeltal
+  - Periodselektor: 7d / 14d / 30d / 90d
+  - Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+  - OnInit/OnDestroy + destroy$ + takeUntil + chart cleanup
+- **Meny**: nytt item "Produkttyp-effektivitet" under Rebotling-dropdown i menu.html
+- **Route**: `/rebotling/produkttyp-effektivitet` i app.routes.ts
+
 ## 2026-03-11 Dashboard-widget layout — VD kan anpassa sin startsida
 
 VD kan valja vilka widgets som visas pa dashboard-sidan, andra ordning, och spara sina preferenser per user.
