@@ -1,3 +1,23 @@
+## 2026-03-11 Feedback-analys — VD-insyn i operatörsfeedback och stämning
+
+Ny sida `/rebotling/feedback-analys` (autentiserad). VD och ledning får full insyn i operatörernas feedback och stämning (skalan 1–4: Dålig/Ok/Bra/Utmärkt) ur `operator_feedback`-tabellen.
+
+- **Backend**: `FeedbackAnalysController.php` — fyra endpoints: run=feedback-list (paginerad med filter per operatör och period), run=feedback-stats (totalt, snitt, trend, fördelning, mest aktiv), run=feedback-trend (snitt per vecka för Chart.js), run=operator-sentiment (per operatör: snitt, antal, senaste datum/kommentar, sentiment-färg). Auth: session_id krävs.
+- **SQL-migrering**: `noreko-backend/migrations/2026-03-11_feedback_analys.sql` — sammansatt index (datum, operator_id) + index (skapad_at)
+- **api.php**: Registrerat `feedback-analys` → `FeedbackAnalysController`
+- **Service**: `src/app/services/feedback-analys.service.ts` — getFeedbackList/getFeedbackStats/getFeedbackTrend/getOperatorSentiment, timeout(15000) + catchError
+- **Komponent**: `src/app/pages/feedback-analys/` — standalone, OnInit/OnDestroy/AfterViewInit + destroy$ + takeUntil + chart?.destroy()
+  - 4 sammanfattningskort (total, snitt, trend-pil, senaste datum)
+  - Chart.js linjediagram — snitt per vecka med färgkodade punkter och genomsnitts-referenslinje
+  - Betygsfördelning med progressbars och emoji (1–4)
+  - Operatörsöversikt-tabell med färgkodad snitt-stämning (grön/gul/röd), filter-knapp
+  - Detaljlista med paginering, stämning-badges (emoji + text + färg), filter per operatör
+  - Periodselektor 7 / 14 / 30 / 90 dagar
+- **Route**: `/rebotling/feedback-analys` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Feedback-analys" (comment-dots, blå)
+- **Buggfix**: `ranking-historik.html` — `getVeckansEtikett()` → `getVeckaEtikett()` (typo som bröt build)
+- **Build**: OK — inga fel, 4 harmlösa NG8102-varningar
+
 ## 2026-03-11 Ranking-historik — leaderboard-trender vecka för vecka
 
 Ny sida `/rebotling/ranking-historik` (autentiserad). VD och operatörer kan se hur placeringar förändras vecka för vecka, identifiera klättrare och se pågående trender.
