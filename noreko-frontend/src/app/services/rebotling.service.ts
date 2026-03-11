@@ -503,6 +503,39 @@ export class RebotlingService {
     );
   }
 
+  // ---- Min Dag-metoder ----
+
+  getMinDagSummary(operatorId?: number): Observable<MinDagSummaryResponse> {
+    const opParam = operatorId ? `&operator=${operatorId}` : '';
+    return this.http.get<MinDagSummaryResponse>(
+      `/noreko-backend/api.php?action=min-dag&run=today-summary${opParam}`,
+      { withCredentials: true }
+    );
+  }
+
+  getMinDagCycleTrend(operatorId?: number): Observable<MinDagCycleTrendResponse> {
+    const opParam = operatorId ? `&operator=${operatorId}` : '';
+    return this.http.get<MinDagCycleTrendResponse>(
+      `/noreko-backend/api.php?action=min-dag&run=cycle-trend${opParam}`,
+      { withCredentials: true }
+    );
+  }
+
+  getMinDagGoalsProgress(operatorId?: number): Observable<MinDagGoalsProgressResponse> {
+    const opParam = operatorId ? `&operator=${operatorId}` : '';
+    return this.http.get<MinDagGoalsProgressResponse>(
+      `/noreko-backend/api.php?action=min-dag&run=goals-progress${opParam}`,
+      { withCredentials: true }
+    );
+  }
+
+  getWeeklyKpis(): Observable<WeeklyKpisResponse> {
+    return this.http.get<WeeklyKpisResponse>(
+      '/noreko-backend/api.php?action=rebotling&run=weekly-kpis',
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface LeaderboardOperator {
@@ -991,6 +1024,57 @@ export interface StaffingWarningResponse {
   error?: string;
 }
 
+// ---- Min Dag-interfaces ----
+
+export interface MinDagSummaryResponse {
+  success: boolean;
+  data?: {
+    operator_id: number;
+    operator_name: string;
+    initialer: string;
+    datum: string;
+    ibc_today: number;
+    snitt_cykel_sek: number;
+    kvalitet_pct: number;
+    bonus_poang: number;
+    vs_team_cykel: number;
+    team_snitt_sek: number;
+    snitt_ibc_30d: number;
+    antal_skift: number;
+    har_data: boolean;
+  };
+  error?: string;
+}
+
+export interface MinDagCycleTrendPoint {
+  timme: number;
+  label: string;
+  cykel_sek: number;
+  ibc: number;
+}
+
+export interface MinDagCycleTrendResponse {
+  success: boolean;
+  data?: {
+    trend: MinDagCycleTrendPoint[];
+    mal_sek: number;
+    datum: string;
+    har_data: boolean;
+  };
+  error?: string;
+}
+
+export interface MinDagGoalsProgressResponse {
+  success: boolean;
+  data?: {
+    ibc: { actual: number; mal: number; progress: number; kvar: number };
+    kvalitet: { actual: number; mal: number; progress: number };
+    datum: string;
+    har_data: boolean;
+  };
+  error?: string;
+}
+
 export interface MonthlyStopSummaryItem {
   orsak: string;
   total_min: number;
@@ -1364,5 +1448,26 @@ export interface UptimeHeatmapResponse {
   from?: string;
   to?: string;
   cells?: UptimeHeatmapCell[];
+  error?: string;
+}
+
+export interface WeeklyKpiCard {
+  kpi: string;
+  label: string;
+  unit: string;
+  values: (number | null)[];
+  dates: string[];
+  trend: 'up' | 'down' | 'stable';
+  latest: number | null;
+  min: number | null;
+  max: number | null;
+  change_pct: number | null;
+}
+
+export interface WeeklyKpisResponse {
+  success: boolean;
+  from?: string;
+  to?: string;
+  kpis: WeeklyKpiCard[];
   error?: string;
 }

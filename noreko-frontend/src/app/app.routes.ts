@@ -40,6 +40,7 @@ export const routes: Routes = [
       { path: 'rapporter/vecka', canActivate: [authGuard], loadComponent: () => import('./pages/weekly-report/weekly-report').then(m => m.WeeklyReportPage) },
 
       // Authenticated routes
+      { path: 'rebotling/min-dag', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/min-dag/min-dag').then(m => m.MinDagPage) },
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'rebotling/overlamning', canActivate: [authGuard], loadComponent: () => import('./pages/shift-handover/shift-handover').then(m => m.ShiftHandoverPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },

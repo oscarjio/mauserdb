@@ -1,0 +1,224 @@
+<div style="background:#1a202c; min-height:100vh; padding:1.5rem;">
+  <div class="container-fluid" style="max-width:1200px; margin:0 auto;">
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border" style="color:#4299e1;" role="status"></div>
+      <div style="color:#a0aec0; margin-top:1rem;">Hämtar dagens data...</div>
+    </div>
+
+    <!-- Inget operatör-ID -->
+    <div *ngIf="!loading && error" class="text-center py-5">
+      <i class="fas fa-user-slash fa-3x mb-3" style="color:#fc8181;"></i>
+      <p style="color:#e2e8f0; font-size:1.1rem;">{{ error }}</p>
+      <a routerLink="/" class="btn btn-outline-secondary btn-sm mt-2">Tillbaka</a>
+    </div>
+
+    <div *ngIf="!loading && !error">
+
+      <!-- ===== VÄLKOMSTSEKTION ===== -->
+      <div style="background:#2d3748; border-radius:12px; padding:1.5rem 2rem; margin-bottom:1.5rem; border-left:4px solid #4299e1;">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div>
+            <h2 style="color:#e2e8f0; margin:0; font-size:1.8rem; font-weight:700;">
+              Hej {{ summary?.operator_name ?? 'Operatör' }}!
+            </h2>
+            <div style="color:#a0aec0; margin-top:0.25rem; font-size:1rem;">
+              <i class="fas fa-calendar-day me-2" style="color:#4299e1;"></i>
+              Din dag — {{ todayDateStr | titlecase }}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="background:#1a202c; border-radius:8px; padding:0.5rem 1rem; color:#a0aec0; font-size:0.85rem; display:inline-block;">
+              <i class="fas fa-sync-alt me-1"></i>Uppdateras var 60:e sekund
+            </span>
+          </div>
+        </div>
+
+        <!-- Motivationstext -->
+        <div style="margin-top:1rem; padding:0.75rem 1rem; background:rgba(0,0,0,0.2); border-radius:8px;">
+          <i class="fas fa-star me-2" [style.color]="motivationsFarg"></i>
+          <span [style.color]="motivationsFarg" style="font-weight:600;">{{ motivationstext }}</span>
+        </div>
+      </div>
+
+      <!-- ===== KPI-KORT RAD ===== -->
+      <div class="row g-3 mb-4">
+
+        <!-- IBC idag -->
+        <div class="col-6 col-lg-3">
+          <div style="background:#2d3748; border-radius:10px; padding:1.25rem; height:100%;">
+            <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.5rem;">
+              <i class="fas fa-cube me-1" style="color:#4299e1;"></i>Dagens IBC
+            </div>
+            <div style="font-size:2.5rem; font-weight:700; color:#e2e8f0; line-height:1;">
+              {{ summary?.ibc_today ?? 0 }}
+            </div>
+            <div style="font-size:0.82rem; margin-top:0.4rem;"
+                 *ngIf="summary && summary.snitt_ibc_30d > 0"
+                 [style.color]="ibcVsSnittFarg(summary.ibc_today, summary.snitt_ibc_30d)">
+              {{ ibcVsSnittText(summary.ibc_today, summary.snitt_ibc_30d) }}
+            </div>
+            <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;"
+                 *ngIf="summary && summary.snitt_ibc_30d > 0">
+              Snitt 30 dagar: {{ summary.snitt_ibc_30d | number:'1.0-0' }} IBC
+            </div>
+          </div>
+        </div>
+
+        <!-- Snittcykeltid -->
+        <div class="col-6 col-lg-3">
+          <div style="background:#2d3748; border-radius:10px; padding:1.25rem; height:100%;">
+            <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.5rem;">
+              <i class="fas fa-stopwatch me-1" style="color:#9f7aea;"></i>Snitt cykeltid
+            </div>
+            <div style="font-size:2rem; font-weight:700; color:#e2e8f0; line-height:1.1;">
+              {{ summary ? formatSek(summary.snitt_cykel_sek) : '—' }}
+            </div>
+            <div style="font-size:0.82rem; margin-top:0.4rem;"
+                 *ngIf="summary && summary.team_snitt_sek > 0"
+                 [style.color]="cykelTrendFarg(summary.vs_team_cykel)">
+              {{ cykelTrendText(summary.vs_team_cykel) }}
+            </div>
+            <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;"
+                 *ngIf="summary && summary.team_snitt_sek > 0">
+              Team-snitt: {{ formatSek(summary.team_snitt_sek) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Kvalitet -->
+        <div class="col-6 col-lg-3">
+          <div style="background:#2d3748; border-radius:10px; padding:1.25rem; height:100%;">
+            <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.5rem;">
+              <i class="fas fa-check-circle me-1" style="color:#48bb78;"></i>Kvalitet
+            </div>
+            <div style="font-size:2.5rem; font-weight:700; line-height:1;"
+                 [style.color]="progressFarg(summary?.kvalitet_pct ?? 0)">
+              {{ summary?.kvalitet_pct ?? 0 | number:'1.1-1' }}%
+            </div>
+            <div style="font-size:0.82rem; margin-top:0.4rem;"
+                 [style.color]="(summary?.kvalitet_pct ?? 0) >= 95 ? '#48bb78' : '#fc8181'">
+              {{ (summary?.kvalitet_pct ?? 0) >= 95 ? 'Over kvalitetsmalet 95%' : 'Under kvalitetsmalet 95%' }}
+            </div>
+            <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;">
+              Mal: 95%
+            </div>
+          </div>
+        </div>
+
+        <!-- Bonuspoäng -->
+        <div class="col-6 col-lg-3">
+          <div style="background:#2d3748; border-radius:10px; padding:1.25rem; height:100%;">
+            <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; margin-bottom:0.5rem;">
+              <i class="fas fa-trophy me-1" style="color:#ecc94b;"></i>Bonuspoäng
+            </div>
+            <div style="font-size:2.5rem; font-weight:700; color:#ecc94b; line-height:1;">
+              {{ summary?.bonus_poang ?? 0 | number:'1.0-0' }}
+            </div>
+            <div style="color:#718096; font-size:0.78rem; margin-top:0.5rem;">
+              Senaste skiftet idag
+            </div>
+            <div style="color:#718096; font-size:0.78rem; margin-top:0.15rem;"
+                 *ngIf="summary && summary.antal_skift > 0">
+              {{ summary.antal_skift }} {{ summary.antal_skift === 1 ? 'skift' : 'skift' }} idag
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /KPI-kort rad -->
+
+      <!-- ===== CYKELTIDSGRAF ===== -->
+      <div style="background:#2d3748; border-radius:10px; padding:1.5rem; margin-bottom:1.5rem;">
+        <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <h5 style="color:#e2e8f0; margin:0;">
+            <i class="fas fa-chart-line me-2" style="color:#4299e1;"></i>Cykeltider per timme — idag
+          </h5>
+          <span style="color:#a0aec0; font-size:0.82rem;" *ngIf="malSek > 0">
+            <span style="display:inline-block; width:20px; border-top:2px dashed #48bb78; vertical-align:middle; margin-right:6px;"></span>
+            Mal: {{ formatSek(malSek) }}
+          </span>
+        </div>
+
+        <div *ngIf="trendData.length === 0 && !loading" class="text-center py-4">
+          <i class="fas fa-chart-area fa-2x mb-2" style="color:#4a5568;"></i>
+          <div style="color:#718096;">Ingen cykeltidsdata registrerad idag.</div>
+        </div>
+
+        <div *ngIf="trendData.length > 0" style="height:260px; position:relative;">
+          <canvas id="cycleTrendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- ===== PROGRESSBARS MOT MÅL ===== -->
+      <div *ngIf="goals" style="background:#2d3748; border-radius:10px; padding:1.5rem; margin-bottom:1.5rem;">
+        <h5 style="color:#e2e8f0; margin:0 0 1.25rem 0;">
+          <i class="fas fa-bullseye me-2" style="color:#ed8936;"></i>Progress mot dagsmål
+        </h5>
+
+        <div class="row g-4">
+
+          <!-- IBC-mål -->
+          <div class="col-12 col-md-6">
+            <div class="d-flex justify-content-between align-items-baseline mb-1">
+              <span style="color:#e2e8f0; font-weight:600;">IBC-mal</span>
+              <span style="color:#a0aec0; font-size:0.88rem;">
+                {{ goals.ibc.actual }} / {{ goals.ibc.mal }} IBC
+              </span>
+            </div>
+            <div style="background:#1a202c; border-radius:6px; height:18px; overflow:hidden;">
+              <div style="height:100%; border-radius:6px; transition:width .5s ease;"
+                   [style.width]="goals.ibc.progress + '%'"
+                   [style.background]="progressFarg(goals.ibc.progress)">
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span style="font-size:0.8rem;" [style.color]="progressFarg(goals.ibc.progress)">
+                {{ goals.ibc.progress | number:'1.0-0' }}%
+              </span>
+              <span style="color:#718096; font-size:0.8rem;" *ngIf="goals.ibc.kvar > 0">
+                {{ goals.ibc.kvar }} kvar
+              </span>
+              <span style="color:#48bb78; font-size:0.8rem;" *ngIf="goals.ibc.kvar === 0">
+                <i class="fas fa-trophy me-1"></i>Mal uppnatt!
+              </span>
+            </div>
+          </div>
+
+          <!-- Kvalitetsmål -->
+          <div class="col-12 col-md-6">
+            <div class="d-flex justify-content-between align-items-baseline mb-1">
+              <span style="color:#e2e8f0; font-weight:600;">Kvalitetsmål</span>
+              <span style="color:#a0aec0; font-size:0.88rem;">
+                {{ goals.kvalitet.actual | number:'1.1-1' }}% / {{ goals.kvalitet.mal }}%
+              </span>
+            </div>
+            <div style="background:#1a202c; border-radius:6px; height:18px; overflow:hidden;">
+              <div style="height:100%; border-radius:6px; transition:width .5s ease;"
+                   [style.width]="goals.kvalitet.progress + '%'"
+                   [style.background]="progressFarg(goals.kvalitet.progress)">
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <span style="font-size:0.8rem;" [style.color]="progressFarg(goals.kvalitet.progress)">
+                {{ goals.kvalitet.progress | number:'1.0-0' }}%
+              </span>
+              <span style="color:#48bb78; font-size:0.8rem;" *ngIf="goals.kvalitet.actual >= goals.kvalitet.mal">
+                <i class="fas fa-check-circle me-1"></i>Over malet!
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div><!-- /progressbars -->
+
+      <!-- Ingen data-banner (om ingen produktion idag) -->
+      <div *ngIf="summary && !summary.har_data"
+           style="background:#2d3748; border-radius:10px; padding:1.5rem; text-align:center; color:#718096;">
+        <i class="fas fa-coffee fa-2x mb-2" style="color:#4a5568;"></i>
+        <div>Inga IBC registrerade idag for dig. Dags att kora igang!</div>
+      </div>
+
+    </div><!-- /!loading && !error -->
+  </div>
+</div>

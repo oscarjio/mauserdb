@@ -35,6 +35,7 @@
               <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
             </a>
           </li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/min-dag"><i class="fas fa-user-clock me-2 text-success"></i>Min dag</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/min-bonus"><i class="fas fa-star me-2 text-info"></i>Min Bonus</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
