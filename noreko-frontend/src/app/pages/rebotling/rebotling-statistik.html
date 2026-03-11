@@ -1,5 +1,14 @@
 <div class="rebotling-statistik-page">
 
+  <!-- Veckotrend sparklines - ÖVERST -->
+  <div class="container-fluid">
+    @defer (on viewport) {
+      <app-statistik-veckotrend></app-statistik-veckotrend>
+    } @placeholder {
+      <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+    }
+  </div>
+
   <!-- OEE Gauge - overst pa sidan -->
   <div class="container-fluid">
     @defer {

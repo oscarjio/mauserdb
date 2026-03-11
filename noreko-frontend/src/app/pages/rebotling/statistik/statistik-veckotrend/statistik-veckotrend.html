@@ -1,0 +1,64 @@
+<div class="veckotrend-wrapper">
+  <div class="veckotrend-header">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fas fa-chart-line text-info me-1"></i>
+      <h5 class="mb-0">7-dagars veckotrend</h5>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" (click)="load()" [disabled]="loading" title="Uppdatera">
+      <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i>
+    </button>
+  </div>
+
+  <!-- Laddningsindikator -->
+  <div class="text-center py-4" *ngIf="loading && kpis.length === 0">
+    <div class="spinner-border text-info" role="status"></div>
+    <div class="text-muted mt-2 small">Hämtar veckotrend...</div>
+  </div>
+
+  <!-- Felmeddelande -->
+  <div class="alert alert-danger mx-0 mb-3" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+  </div>
+
+  <!-- KPI-kort rad -->
+  <div class="kpi-row" *ngIf="kpis.length > 0">
+    <div class="kpi-card" *ngFor="let kpi of kpis; let i = index">
+
+      <!-- Titel -->
+      <div class="kpi-label">{{ kpi.label }}</div>
+
+      <!-- Stort värde -->
+      <div class="kpi-value" [class]="trendClass(kpi.trend)">
+        {{ formatValue(kpi.latest, kpi.unit) }}
+      </div>
+
+      <!-- Sparkline canvas -->
+      <div class="sparkline-container">
+        <canvas
+          #sparklineCanvas
+          class="sparkline-canvas"
+          [attr.data-kpi]="kpi.kpi"
+          aria-hidden="true"
+        ></canvas>
+      </div>
+
+      <!-- Trendindikator + procentförändring -->
+      <div class="kpi-trend" [class]="trendClass(kpi.trend)">
+        <i class="fas" [class]="trendIcon(kpi.trend)"></i>
+        <span class="trend-pct" *ngIf="kpi.change_pct !== null">
+          {{ formatChangePct(kpi.change_pct) }}
+        </span>
+        <span class="trend-pct" *ngIf="kpi.change_pct === null">–</span>
+      </div>
+
+      <!-- 7-dagars min/max -->
+      <div class="kpi-minmax">
+        <span class="minmax-label">min</span>
+        <span class="minmax-val">{{ formatValue(kpi.min, kpi.unit) }}</span>
+        <span class="minmax-sep">·</span>
+        <span class="minmax-label">max</span>
+        <span class="minmax-val">{{ formatValue(kpi.max, kpi.unit) }}</span>
+      </div>
+    </div>
+  </div>
+</div>

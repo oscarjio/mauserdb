@@ -1,17 +1,20 @@
 <?php
 require_once __DIR__ . '/RebotlingAdminController.php';
 require_once __DIR__ . '/RebotlingAnalyticsController.php';
+require_once __DIR__ . '/VeckotrendController.php';
 
 class RebotlingController {
     private $pdo;
     private $adminController;
     private $analyticsController;
+    private $veckotrendController;
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
         $this->adminController = new RebotlingAdminController($pdo);
         $this->analyticsController = new RebotlingAnalyticsController($pdo);
+        $this->veckotrendController = new VeckotrendController($pdo);
     }
 
     public function handle() {
@@ -207,6 +210,8 @@ class RebotlingController {
                 $this->getOeeComponents();
             } elseif ($action === 'production-rate') {
                 $this->getProductionRate();
+            } elseif ($action === 'weekly-kpis') {
+                $this->veckotrendController->handle();
             } else {
                 $this->getLiveStats();
             }

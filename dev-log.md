@@ -1,3 +1,23 @@
+## 2026-03-11 Veckotrend sparklines i KPI-kort
+
+Fyra inline sparkline-grafer (7-dagars trend) högst upp på statistiksidan — VD ser direkt om trenderna går uppåt eller nedåt.
+
+- **Backend** — ny `VeckotrendController.php` (`noreko-backend/classes/`):
+  - Endpoint: `GET ?action=rebotling&run=weekly-kpis`
+  - Returnerar 7 dagars data för 4 KPI:er: IBC/dag, snitt cykeltid, kvalitetsprocent, drifttidsprocent
+  - Beräknar trend (`up`/`down`/`stable`) via snitt senaste halva vs första halva av perioden
+  - Cykeltid-trend inverteras (kortare = bättre)
+  - Inkluderar `change_pct`, `latest`, `min`, `max`
+  - Fallback-logik för drifttid (drifttid_pct-kolumn eller korttid_min/planerad_tid_min)
+  - Registrerad i `RebotlingController.php` (dispatch `weekly-kpis`)
+- **Service** (`rebotling.service.ts`): ny metod `getWeeklyKpis()` + interfaces `WeeklyKpiCard`, `WeeklyKpisResponse`
+- **Frontend-komponent** `statistik-veckotrend` (standalone, canvas-baserad):
+  - 4 KPI-kort: titel, stort senaste värde, sparkline canvas, trendpil + %, min/max
+  - Canvas 2D — quadratic bezier + gradient fill, animeras vänster→höger vid laddning (500ms)
+  - Grön=up, röd=down, grå=stable
+  - Auto-refresh var 5:e minut, destroy$ + takeUntil
+- **Integrering**: ÖVERST på rebotling-statistiksidan med `@defer (on viewport)`
+
 ## 2026-03-11 Operatörs-dashboard Min dag
 
 Ny personlig dashboard för inloggad operatör som visar dagens prestanda på ett motiverande och tydligt sätt.
