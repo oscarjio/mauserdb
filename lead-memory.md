@@ -61,12 +61,12 @@ race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
 Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
-Session #60: Daglig sammanfattning + Produktionskalender — pågår.
+Session #60: Daglig sammanfattning + Produktionskalender — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Daglig sammanfattning auto-generering** — KPI utan navigation
-- [PÅGÅR] **Produktionskalender förbättring** — volym + kvalitet per dag
+- [x] **Daglig sammanfattning auto-generering** — KPI utan navigation
+- [x] **Produktionskalender förbättring** — volym + kvalitet per dag
 - [ ] **Målhistorik-analys** — rebotling_goal_history → visualisering
 - [ ] **Underhållsprognos** — prediktera underhåll från historik
 - [ ] **Kvalitetstrend per operatör** — kvalitet% trend, utbildningsbehov
@@ -75,16 +75,14 @@ Session #60: Daglig sammanfattning + Produktionskalender — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #60 (pågår)
-Merge-konflikter lösta (dev-log.md + statistik-cykeltid-operator.ts). Git config rensad (26 gamla worktree-grenar borttagna). 2 workers startade:
-Worker 1: Daglig sammanfattning — komplett dashboard på 1 sida, auto-refresh, statusmeddelande.
-Worker 2: Produktionskalender — månadsvy med färgkodning, klickbar detalj-panel, veckonummer.
-Backlog fylld med 3 nya items: kvalitetstrend/operatör, skiftjämförelse, stopporsak-trend.
+### 2026-03-11 — Session #60 (klar)
+Merge-konflikter lösta (dev-log.md + statistik-cykeltid-operator.ts). Git config rensad (26 gamla worktree-grenar borttagna). Båda workers klara och pushade.
+Worker 1 (Daglig sammanfattning): Komplett VD-dashboard på 1 sida. 2 endpoints (daily-summary + comparison). Auto-refresh 60s, statusmeddelande, OEE-snapshot, topp-3 operatörer, stopptid, jämförelsetabell. Backend: DagligSammanfattningController.
+Worker 2 (Produktionskalender): Månadsvy med CSS Grid, färgkodade dagar (grön/gul/röd), klickbar detalj-panel, veckonummer, månadssammanfattning, veckosnitt med trendpilar. Backend: ProduktionskalenderController.
 
 ### 2026-03-11 — Session #59 (klar)
-Merge-konflikter lösta. Båda workers klara och pushade.
-Worker 1 (Operatörsranking historik): Leaderboard-trender vecka-för-vecka, placeringsändringstabell, klättrare-badge (fire-ikon), head-to-head, Chart.js rankingtrend (inverterad y-axel), streak-tabell. Backend: RankingHistorikController.
-Worker 2 (Operatörs-feedback analys): operator_feedback → UI. 4 sammanfattningskort, Chart.js stämningstrend per vecka, betygsfördelning (progressbars + emoji), operatörsöversikt med färgkodning, paginerad detaljlista. Backend: FeedbackAnalysController.
+Worker 1 (Operatörsranking historik): Leaderboard-trender, placeringsändringar, klättrare-badge, head-to-head, streak-tabell. Backend: RankingHistorikController.
+Worker 2 (Operatörs-feedback analys): Stämningsöversikt, trender, betygsfördelning, operatörsöversikt, paginerad detaljlista. Backend: FeedbackAnalysController.
 
 ### 2026-03-11 — Session #58 (klar)
 Worker 1 (OEE-benchmark): Gauge, benchmark-staplar, 3 faktor-kort, trendgraf, förbättringsförslag. Backend: OeeBenchmarkController.
