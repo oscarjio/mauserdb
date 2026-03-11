@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #64)*
+*Senast uppdaterad: 2026-03-11 (session #65)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -66,29 +66,30 @@ Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
 Session #62: Underhållsprognos + Kvalitetstrend per operatör — klara.
 Session #63: Stopporsak-trendanalys + Energi/effektivitetsvy — klara.
 Session #64: Produktionsmål vs utfall + Maskinutnyttjandegrad — klara.
+Session #65: Realtids-produktionstakt + Kassationsanalys — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Produktionsmål vs utfall dashboard** — dagsmål/veckomål/månadsmål vs faktisk
-- [x] **Maskinutnyttjandegrad** — andel tillgänglig tid i produktion
+- [x] **Realtids-produktionstakt** — live IBC/h vs måltal med alert
+- [x] **Kassationsanalys** — kasserade IBC orsaker, trender, kostnader
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 - [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning
-- [ ] **Kassationsanalys** — kasserade IBC orsaker, trender, kostnader
 - [ ] **Operatörsportal** — personlig dashboard per operatör
-- [ ] **Realtids-produktionstakt** — live IBC/h vs måltal med alert
 - [ ] **Veckorapport-generator** — automatisk vecko-KPI-sammanställning
+- [ ] **Andon-board / fabriksskärm** — stor skärm med realtidsdata
+- [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-11 — Session #65 (klar)
+Worker 1 (Realtids-produktionstakt): Live IBC/h med trendpil, måltal-indikator (grön/gul/röd), alert vid låg takt, 24h linjegraf, timtabell. Backend: ProduktionsTaktController. Auto-poll 30s.
+Worker 2 (Kassationsanalys): 4 KPI-kort, staplat stapeldiagram per orsak, doughnut, trendgraf, detaljerad tabell med filter. Backend: KassationsanalysController.
+Backlog utökad med: Andon-board/fabriksskärm, Skiftöverlämningslogg.
 
 ### 2026-03-11 — Session #64 (klar)
 Worker 1 (Produktionsmål vs utfall): 3 stora statuskort (dag/vecka/månad) med progress bars och färgkodning (grön/gul/röd). Kumulativ Chart.js linjegraf (mål vs faktiskt). Daglig tabell. Backend: ProduktionsmalController (3 endpoints). VD-prioriterad feature.
 Worker 2 (Maskinutnyttjandegrad): 3 KPI-kort med cirkulär progress, staplad bar chart (drifttid/stopptid/okänd), doughnut för tidsförlustfördelning. Backend: UtnyttjandegradController (3 endpoints).
-Backlog utökad med: Realtids-produktionstakt, Veckorapport-generator.
 
 ### 2026-03-11 — Session #63 (klar)
 Worker 1 (Stopporsak-trendanalys): 4 KPI-kort, staplad bar chart (topp-7 orsaker per vecka), trendtabell med sparkline/trendpil/%-förändring, expanderbar detaljvy per orsak med linjegraf+tidslinje. Periodväljare 4/8/12/26v. Backend: StopporsakTrendController (3 endpoints).
 Worker 2 (Energi/effektivitetsvy): 4 KPI-kort (IBC/h idag, snitt 7d/30d, trendindikator), Chart.js linjegraf (daglig + 7d glidande medel), 3 skiftkort. Backend: EffektivitetController (3 endpoints).
-
-### 2026-03-11 — Session #62 (klar)
-Worker 1 (Underhållsprognos): 4 översiktskort, schematabell, Chart.js horisontellt stapeldiagram. Backend: UnderhallsprognosController (3 endpoints).
-Worker 2 (Kvalitetstrend per operatör): 4 KPI-kort, utbildningslarm, Chart.js trendlinjer, operatörstabell med sparkline. Backend: KvalitetstrendController (3 endpoints).

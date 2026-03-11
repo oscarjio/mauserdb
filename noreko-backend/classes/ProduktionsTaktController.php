@@ -79,7 +79,7 @@ class ProduktionsTaktController {
             );
             $val = $stmt->fetchColumn();
             return $val !== false ? (float)$val : 12.0;
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // Tabellen kanske inte finns ännu — returnera default
             return 12.0;
         }
@@ -145,9 +145,9 @@ class ProduktionsTaktController {
 
             // Alert: kolla om takten har varit under 70% av mål i >15 min
             // Vi kollar senaste 15 min
-            $fifteenMinAgo = date('Y-m-d H:i:s', strtotime('-15 minutes'));
+            $fifteenMinAgo = date('Y-m-d H:i:s', strtotime('-' . self::ALERT_THRESHOLD_MINUTES . ' minutes'));
             $count15m = $this->countIbcBetween($fifteenMinAgo, $now);
-            $rate15m = $count15m * 4; // Extrapolera till per timme
+            $rate15m = $count15m * (60 / self::ALERT_THRESHOLD_MINUTES); // Extrapolera till per timme
             $alertActive = ($target > 0 && $rate15m < ($target * 0.7));
 
             $this->sendSuccess([
@@ -165,7 +165,7 @@ class ProduktionsTaktController {
                 'target_ratio'    => round($ratio * 100, 1),
                 'alert_active'    => $alertActive,
                 'alert_message'   => $alertActive
-                    ? 'Takten har legat under 70% av maltal i mer an 15 minuter'
+                    ? 'Takten har legat under 70% av maltal i mer an ' . self::ALERT_THRESHOLD_MINUTES . ' minuter'
                     : null,
             ]);
 
@@ -247,7 +247,7 @@ class ProduktionsTaktController {
         try {
             $target = $this->getTargetValue();
             $this->sendSuccess(['target' => $target]);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             $this->sendError('Kunde inte hamta maltal', 500);
         }
     }

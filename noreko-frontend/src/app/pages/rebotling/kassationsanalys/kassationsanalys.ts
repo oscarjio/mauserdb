@@ -10,7 +10,6 @@ import {
   KassationOrsak,
   KassationsByPeriodData,
   KassationsDetailsData,
-  KassationsDetailRow,
   KassationsTrendRateData,
 } from '../../../services/rebotling.service';
 
