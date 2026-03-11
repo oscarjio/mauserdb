@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #62)*
+*Senast uppdaterad: 2026-03-11 (session #64)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -65,28 +65,30 @@ Session #60: Daglig sammanfattning + Produktionskalender — klara.
 Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
 Session #62: Underhållsprognos + Kvalitetstrend per operatör — klara.
 Session #63: Stopporsak-trendanalys + Energi/effektivitetsvy — klara.
+Session #64: Produktionsmål vs utfall + Maskinutnyttjandegrad — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
+- [x] **Produktionsmål vs utfall dashboard** — dagsmål/veckomål/månadsmål vs faktisk
+- [x] **Maskinutnyttjandegrad** — andel tillgänglig tid i produktion
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 - [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning
-- [ ] **Produktionsmål vs utfall dashboard** — dagsmål/veckomål/månadsmål vs faktisk
-- [ ] **Maskinutnyttjandegrad** — andel tillgänglig tid i produktion
 - [ ] **Kassationsanalys** — kasserade IBC orsaker, trender, kostnader
 - [ ] **Operatörsportal** — personlig dashboard per operatör
+- [ ] **Realtids-produktionstakt** — live IBC/h vs måltal med alert
+- [ ] **Veckorapport-generator** — automatisk vecko-KPI-sammanställning
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #64 (klar)
+Worker 1 (Produktionsmål vs utfall): 3 stora statuskort (dag/vecka/månad) med progress bars och färgkodning (grön/gul/röd). Kumulativ Chart.js linjegraf (mål vs faktiskt). Daglig tabell. Backend: ProduktionsmalController (3 endpoints). VD-prioriterad feature.
+Worker 2 (Maskinutnyttjandegrad): 3 KPI-kort med cirkulär progress, staplad bar chart (drifttid/stopptid/okänd), doughnut för tidsförlustfördelning. Backend: UtnyttjandegradController (3 endpoints).
+Backlog utökad med: Realtids-produktionstakt, Veckorapport-generator.
+
 ### 2026-03-11 — Session #63 (klar)
-Worker 1 (Stopporsak-trendanalys): 4 KPI-kort, staplad bar chart (topp-7 orsaker per vecka), trendtabell med sparkline/trendpil/%-förändring, expanderbar detaljvy per orsak med linjegraf+tidslinje. Periodväljare 4/8/12/26v. Backend: StopporsakTrendController (3 endpoints). Kombinerar stoppage_log + stopporsak_registreringar. Index-migration.
-Worker 2 (Energi/effektivitetsvy): 4 KPI-kort (IBC/h idag, snitt 7d/30d, trendindikator), Chart.js linjegraf (daglig + 7d glidande medel + periodssnitt referenslinje), 3 skiftkort (dag/kväll/natt), daglig tabell med avvikelseprocent. Periodväljare 7/14/30/90d. Backend: EffektivitetController (3 endpoints).
-Diagnostikvarning fixad (oanvända variabler i StopporsakTrendController).
-Backlog utökad med: Kassationsanalys, Operatörsportal.
+Worker 1 (Stopporsak-trendanalys): 4 KPI-kort, staplad bar chart (topp-7 orsaker per vecka), trendtabell med sparkline/trendpil/%-förändring, expanderbar detaljvy per orsak med linjegraf+tidslinje. Periodväljare 4/8/12/26v. Backend: StopporsakTrendController (3 endpoints).
+Worker 2 (Energi/effektivitetsvy): 4 KPI-kort (IBC/h idag, snitt 7d/30d, trendindikator), Chart.js linjegraf (daglig + 7d glidande medel), 3 skiftkort. Backend: EffektivitetController (3 endpoints).
 
 ### 2026-03-11 — Session #62 (klar)
-Worker 1 (Underhållsprognos): 4 översiktskort, schematabell, Chart.js horisontellt stapeldiagram. Backend: UnderhallsprognosController (3 endpoints). Tabeller: underhall_komponenter + underhall_scheman.
+Worker 1 (Underhållsprognos): 4 översiktskort, schematabell, Chart.js horisontellt stapeldiagram. Backend: UnderhallsprognosController (3 endpoints).
 Worker 2 (Kvalitetstrend per operatör): 4 KPI-kort, utbildningslarm, Chart.js trendlinjer, operatörstabell med sparkline. Backend: KvalitetstrendController (3 endpoints).
-
-### 2026-03-11 — Session #61 (klar)
-Worker 1 (Målhistorik-analys): Steg-graf med mål vs faktisk IBC/h, ändringslogg-tabell, impact-kort. Backend: MalhistorikController (2 endpoints).
-Worker 2 (Skiftjämförelse-dashboard): 3 skiftkort med krona på bästa, grupperat stapeldiagram, veckovis trendgraf. Backend: SkiftjamforelseController (3 endpoints).

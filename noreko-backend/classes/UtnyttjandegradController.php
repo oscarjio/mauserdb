@@ -340,7 +340,7 @@ class UtnyttjandegradController {
             $stopp = $this->getDagligStopp($fromDate, $toDate);
             $totalPlanerad  = 0;
             $totalOplanerad = 0;
-            foreach ($stopp as $dag => $data) {
+            foreach ($stopp as $data) {
                 $totalPlanerad  += $data['planerad_h'];
                 $totalOplanerad += $data['oplanerad_h'];
             }
