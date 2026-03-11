@@ -480,44 +480,85 @@ class SkiftrapportController {
             return;
         }
         try {
+            $usedSkiftraknare = $skiftraknare;
+            $fallbackUsed = false;
+
             // Försök med exakt skifträknare först
             $nums = $this->fetchLopnummer($skiftraknare);
 
-            // Fallback: om inga resultat, sök närliggande skifträknare (±2) med samma datum
-            if (empty($nums)) {
+            // Fallback: om inga (eller för få) giltiga löpnummer, sök närliggande skifträknare
+            // Exempel: skiftrapport säger 65 men IBC-cykler registrerades under 64
+            if (count($nums) <= 1) {
                 $datum = isset($_GET['datum']) ? $_GET['datum'] : null;
                 if ($datum && preg_match('/^\d{4}-\d{2}-\d{2}/', $datum)) {
                     $datumPrefix = substr($datum, 0, 10);
+                    // Hitta närliggande skifträknare med FLEST giltiga löpnummer på samma datum
                     $stmt = $this->pdo->prepare(
-                        "SELECT DISTINCT skiftraknare FROM rebotling_ibc
+                        "SELECT skiftraknare, COUNT(DISTINCT lopnummer) as cnt
+                         FROM rebotling_ibc
                          WHERE skiftraknare BETWEEN ? AND ?
+                         AND skiftraknare != ?
                          AND datum LIKE ?
-                         ORDER BY ABS(skiftraknare - ?) ASC
+                         AND lopnummer > 0 AND lopnummer < 998
+                         GROUP BY skiftraknare
+                         ORDER BY cnt DESC
                          LIMIT 1"
                     );
                     $stmt->execute([
                         $skiftraknare - 2,
                         $skiftraknare + 2,
-                        $datumPrefix . '%',
-                        $skiftraknare
+                        $skiftraknare,
+                        $datumPrefix . '%'
                     ]);
-                    $fallback = $stmt->fetchColumn();
-                    if ($fallback !== false) {
-                        $nums = $this->fetchLopnummer(intval($fallback));
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($row && intval($row['cnt']) > count($nums)) {
+                        $usedSkiftraknare = intval($row['skiftraknare']);
+                        $nums = $this->fetchLopnummer($usedSkiftraknare);
+                        $fallbackUsed = true;
                     }
                 }
             }
 
-            echo json_encode([
+            // Hämta start- och stopptid för skiftet från rebotling_ibc
+            $skiftTider = $this->getSkiftTider($usedSkiftraknare);
+
+            $response = [
                 'success' => true,
                 'ranges'  => $this->buildRanges($nums),
-                'count'   => count($nums)
-            ]);
+                'count'   => count($nums),
+                'skift_start' => $skiftTider['start'],
+                'skift_slut'  => $skiftTider['slut'],
+            ];
+
+            if ($fallbackUsed) {
+                $response['fallback_skiftraknare'] = $usedSkiftraknare;
+                $response['original_skiftraknare'] = $skiftraknare;
+            }
+
+            echo json_encode($response);
         } catch (PDOException $e) {
             error_log('getLopnummerForSkift: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte hämta löpnummer']);
         }
+    }
+
+    /**
+     * Hämta start- och stopptid för ett skift baserat på rebotling_ibc-poster.
+     */
+    private function getSkiftTider(int $skiftraknare): array {
+        $stmt = $this->pdo->prepare(
+            "SELECT MIN(datum) as start_tid, MAX(datum) as slut_tid
+             FROM rebotling_ibc
+             WHERE skiftraknare = ?
+             AND lopnummer > 0 AND lopnummer < 998"
+        );
+        $stmt->execute([$skiftraknare]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return [
+            'start' => $row && $row['start_tid'] ? $row['start_tid'] : null,
+            'slut'  => $row && $row['slut_tid'] ? $row['slut_tid'] : null,
+        ];
     }
 
 
@@ -683,8 +724,8 @@ class SkiftrapportController {
         $stmt->execute([$skiftraknare]);
         $rows = $stmt->fetchAll(PDO::FETCH_COLUMN);
         $nums = array_map('intval', $rows);
-        // Filtrera bort 998 och 999 (PLC default/ogiltiga) och duplicerade
-        return array_values(array_unique(array_filter($nums, fn($n) => $n < 998)));
+        // Filtrera bort 0 (PLC start-default), 998 och 999 (PLC reset/ogiltiga) och duplicerade
+        return array_values(array_unique(array_filter($nums, fn($n) => $n > 0 && $n < 998)));
     }
 
     private function buildRanges(array $nums): string {

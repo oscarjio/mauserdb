@@ -61,6 +61,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // Löpnummer lazy-load
   lopnummerMap: { [reportId: number]: string } = {};
   lopnummerLoading: { [reportId: number]: boolean } = {};
+  skiftTiderMap: { [reportId: number]: { start: string | null; slut: string | null; fallback?: number } } = {};
 
   // Settings for bonus estimate
   private settings: any = { rebotlingTarget: 1000, shiftHours: 8.0 };
@@ -653,6 +654,13 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         next: (res) => {
           this.lopnummerLoading[id] = false;
           this.lopnummerMap[id] = res?.success ? res.ranges : '–';
+          if (res?.success) {
+            this.skiftTiderMap[id] = {
+              start: res.skift_start || null,
+              slut: res.skift_slut || null,
+              fallback: res.fallback_skiftraknare || undefined
+            };
+          }
         }
       });
   }
