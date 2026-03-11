@@ -1,0 +1,136 @@
+<div class="container-fluid py-4 narvarotracker-page">
+  <h2 class="page-title mb-4">
+    <i class="fas fa-calendar-check me-2"></i>Narvarotracker
+  </h2>
+
+  <!-- Manadsselektor -->
+  <div class="d-flex align-items-center justify-content-center mb-4 month-nav">
+    <button class="btn btn-outline-light btn-sm me-3" (click)="prevMonth()">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <h4 class="mb-0 month-label">{{ monthLabel }}</h4>
+    <button class="btn btn-outline-light btn-sm ms-3" (click)="nextMonth()">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- Laddar -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Laddar narvarodata...</p>
+  </div>
+
+  <!-- Sammanfattningskort -->
+  <div *ngIf="loaded && summary" class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+      <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-users"></i></div>
+        <div class="summary-body">
+          <div class="summary-value">{{ summary.total_operators }}</div>
+          <div class="summary-label">Aktiva operatorer</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="summary-card">
+        <div class="summary-icon"><i class="fas fa-calendar-day"></i></div>
+        <div class="summary-body">
+          <div class="summary-value">{{ summary.avg_days_per_op }}</div>
+          <div class="summary-label">Snitt narvodagar</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="summary-card">
+        <div class="summary-icon text-warning"><i class="fas fa-trophy"></i></div>
+        <div class="summary-body">
+          <div class="summary-value">{{ summary.top_days_operator || '-' }}</div>
+          <div class="summary-label">Flest arbetsdagar ({{ summary.top_days_count }})</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="summary-card">
+        <div class="summary-icon text-success"><i class="fas fa-box"></i></div>
+        <div class="summary-body">
+          <div class="summary-value">{{ summary.top_ibc_operator || '-' }}</div>
+          <div class="summary-label">Flest IBC totalt ({{ summary.top_ibc_count }})</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kalendervy -->
+  <div *ngIf="loaded && operators.length > 0" class="calendar-wrapper">
+    <div class="table-responsive">
+      <table class="table table-dark table-sm calendar-table">
+        <thead>
+          <tr>
+            <th class="op-header">Operator</th>
+            <th class="day-header" *ngFor="let d of dayNumbers">{{ d }}</th>
+            <th class="total-header">Totalt</th>
+            <th class="total-header">Dagar</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let op of operators">
+            <tr class="op-row" [class.expanded]="isExpanded(op.operator_id)" (click)="toggleExpand(op.operator_id)">
+              <td class="op-name">
+                <i class="fas fa-chevron-right expand-icon me-1" [class.rotated]="isExpanded(op.operator_id)"></i>
+                {{ op.operator_name }}
+              </td>
+              <td *ngFor="let d of dayNumbers"
+                  class="day-cell"
+                  [ngClass]="getCellClass(op.operator_id, d)"
+                  (mouseenter)="showTooltip($event, op.operator_id, d, op.operator_name)"
+                  (mouseleave)="hideTooltip()">
+                <span class="cell-value" *ngIf="getCellIbc(op.operator_id, d) > 0">
+                  {{ getCellIbc(op.operator_id, d) }}
+                </span>
+              </td>
+              <td class="total-cell">{{ op.total_ibc }}</td>
+              <td class="total-cell">{{ op.active_days }}</td>
+            </tr>
+            <!-- Expanderad detaljrad -->
+            <tr *ngIf="isExpanded(op.operator_id)" class="detail-row">
+              <td [attr.colspan]="dayNumbers.length + 3">
+                <div class="detail-content">
+                  <h6 class="mb-2">Detaljer for {{ op.operator_name }}</h6>
+                  <div class="detail-grid" *ngIf="getExpandedDays(op.operator_id).length > 0">
+                    <div class="detail-item" *ngFor="let entry of getExpandedDays(op.operator_id)">
+                      <div class="detail-date">{{ entry.dag }}</div>
+                      <div class="detail-info">
+                        <span class="detail-badge badge-ibc">{{ entry.ibc }} IBC</span>
+                        <span class="detail-badge badge-cycle" *ngIf="entry.snitt_cykel > 0">{{ entry.snitt_cykel }}s cykel</span>
+                        <span class="detail-badge badge-shift">{{ formatSkift(entry.skift) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p *ngIf="getExpandedDays(op.operator_id).length === 0" class="text-muted mb-0">Ingen data.</p>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Ingen data -->
+  <div *ngIf="loaded && operators.length === 0" class="text-center py-5">
+    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+    <p class="text-muted">Ingen narvarodata for denna manad.</p>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="narvaro-tooltip"
+       *ngIf="tooltipVisible && tooltipData"
+       [style.left.px]="tooltipX"
+       [style.top.px]="tooltipY">
+    <strong>{{ tooltipData.operator }}</strong><br>
+    <span class="text-muted">{{ tooltipData.dag }}</span><br>
+    <span>{{ tooltipData.ibc }} IBC</span><br>
+    <span *ngIf="tooltipData.snittCykel > 0">Snitt cykeltid: {{ tooltipData.snittCykel }}s</span><br *ngIf="tooltipData.snittCykel > 0">
+    <span>{{ formatSkift(tooltipData.skift) }}</span>
+  </div>
+</div>

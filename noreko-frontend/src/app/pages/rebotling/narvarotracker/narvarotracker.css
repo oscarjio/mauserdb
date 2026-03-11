@@ -1,0 +1,287 @@
+.narvarotracker-page {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.month-nav {
+  user-select: none;
+}
+
+.month-label {
+  color: #e2e8f0;
+  min-width: 200px;
+  text-align: center;
+}
+
+/* Sammanfattningskort */
+.summary-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #4a5568;
+  transition: transform 0.15s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+}
+
+.summary-icon {
+  font-size: 1.8rem;
+  color: #63b3ed;
+  width: 48px;
+  text-align: center;
+}
+
+.summary-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.summary-label {
+  font-size: 0.82rem;
+  color: #a0aec0;
+}
+
+/* Kalender */
+.calendar-wrapper {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid #4a5568;
+  overflow-x: auto;
+}
+
+.calendar-table {
+  background: transparent !important;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.calendar-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  border-bottom: 2px solid #4a5568;
+  padding: 0.5rem 0.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.op-header {
+  min-width: 140px;
+  text-align: left !important;
+  position: sticky;
+  left: 0;
+  z-index: 3 !important;
+  background: #1a202c !important;
+}
+
+.day-header {
+  min-width: 36px;
+  max-width: 40px;
+}
+
+.total-header {
+  min-width: 50px;
+}
+
+.op-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.op-row:hover {
+  background-color: rgba(99, 179, 237, 0.08) !important;
+}
+
+.op-row.expanded {
+  background-color: rgba(99, 179, 237, 0.12) !important;
+}
+
+.op-name {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: #2d3748;
+  z-index: 1;
+  padding-left: 0.5rem;
+}
+
+.op-row:hover .op-name {
+  background: rgba(45, 55, 72, 0.95);
+}
+
+.expand-icon {
+  font-size: 0.65rem;
+  transition: transform 0.2s ease;
+  color: #a0aec0;
+}
+
+.expand-icon.rotated {
+  transform: rotate(90deg);
+}
+
+.day-cell {
+  text-align: center;
+  padding: 0.25rem 0.15rem !important;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid #1a202c;
+  min-width: 36px;
+  cursor: default;
+}
+
+.cell-empty {
+  background: #2d3748;
+  color: transparent;
+}
+
+.cell-low {
+  background: #276749;
+  color: #c6f6d5;
+}
+
+.cell-mid {
+  background: #38a169;
+  color: #f0fff4;
+}
+
+.cell-high {
+  background: #22543d;
+  color: #9ae6b4;
+  background: linear-gradient(135deg, #276749, #22543d);
+}
+
+.cell-value {
+  display: inline-block;
+  line-height: 1;
+}
+
+.total-cell {
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #63b3ed;
+  background: #1a202c;
+}
+
+/* Expanderad detalj */
+.detail-row {
+  background: #1a202c !important;
+}
+
+.detail-row td {
+  padding: 0 !important;
+  border-top: none !important;
+}
+
+.detail-content {
+  padding: 1rem;
+  background: #1a202c;
+  border-left: 3px solid #63b3ed;
+  margin: 0.25rem 0;
+}
+
+.detail-content h6 {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.detail-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.detail-item {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #4a5568;
+  min-width: 180px;
+}
+
+.detail-date {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.detail-info {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.detail-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.badge-ibc {
+  background: rgba(72, 187, 120, 0.2);
+  color: #68d391;
+}
+
+.badge-cycle {
+  background: rgba(66, 153, 225, 0.2);
+  color: #63b3ed;
+}
+
+.badge-shift {
+  background: rgba(159, 122, 234, 0.2);
+  color: #b794f4;
+}
+
+/* Tooltip */
+.narvaro-tooltip {
+  position: fixed;
+  background: rgba(15, 17, 23, 0.96);
+  color: #e2e8f0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  z-index: 9999;
+  pointer-events: none;
+  border: 1px solid #4299e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  max-width: 240px;
+}
+
+/* Responsivt */
+@media (max-width: 768px) {
+  .calendar-wrapper {
+    padding: 0.5rem;
+  }
+
+  .day-cell {
+    min-width: 28px;
+    font-size: 0.6rem;
+  }
+
+  .op-name {
+    font-size: 0.72rem;
+    min-width: 100px;
+  }
+}

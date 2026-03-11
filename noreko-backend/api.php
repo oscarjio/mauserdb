@@ -136,6 +136,8 @@ $classNameMap = [
     'weekly-report' => 'WeeklyReportController',
     'feedback'     => 'FeedbackController',
     'runtime'      => 'RuntimeController',
+    'produktionspuls' => 'ProduktionspulsController',
+    'narvaro'         => 'NarvaroController',
 ];
 
 $actionKey = strtolower($action);

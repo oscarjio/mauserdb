@@ -3140,3 +3140,4 @@ Granskade 10 filer (5 PHP controllers, 5 Angular komponenter) som ej granskats i
 - 0 SQL injection-risker hittade (alla anvander prepared statements)
 - 0 auth-brister hittade (alla admin-endpoints har korrekt rollkontroll)
 [2026-03-05] Lead session #26: Worker 1 — rensa mockData-fallbacks i rebotling-statistik+tvattlinje-statistik, ta bort tom ProductController.php. Worker 2 — Bug Hunt #31 logikbuggar i rebotling-statistik/production-analysis/bonus-dashboard.
+[2026-03-11] feat: Operatorsnarvarotracker — kalendervy som visar vilka operatorer som jobbat vilka dagar, baserat pa rebotling_skiftrapport. Backend: NarvaroController.php (monthly-overview endpoint). Frontend: narvarotracker-komponent med manadsvy, sammanfattningskort, fargkodade celler, tooltip, expanderbara operatorsrader. Route: /rebotling/narvarotracker. Menyval tillagt under Rebotling.
