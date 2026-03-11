@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #58)*
+*Senast uppdaterad: 2026-03-11 (session #59)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -61,13 +61,12 @@ race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48-#56: Se lead-memory-archive.md för detaljer.
 Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
 Session #58: OEE-benchmark + Skiftrapport PDF — klara.
+Session #59: Operatörsranking historik + Operatörs-feedback analys — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **OEE-benchmark jämförelse** — gauge + gap-analys mot branschsnitt
-- [x] **Skiftrapport PDF-export** — daglig sammanfattning som PDF (pdfmake)
-- [ ] **Operatörsranking historik** — leaderboard-trender över tid
-- [ ] **Operatörs-feedback analys** — operator_feedback-tabell → UI
+- [PÅGÅR] **Operatörsranking historik** — leaderboard-trender över tid
+- [PÅGÅR] **Operatörs-feedback analys** — operator_feedback-tabell → UI
 - [ ] **Daglig sammanfattning auto-generering** — KPI utan navigation
 - [ ] **Produktionskalender förbättring** — volym + kvalitet per dag
 - [ ] **Målhistorik-analys** — rebotling_goal_history → visualisering
@@ -75,15 +74,15 @@ Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-11 — Session #59 (pågår)
+Merge-konflikter lösta (dev-log.md, statistik-cykeltid-operator.ts).
+Worker 1 (Operatörsranking historik): Leaderboard-trender, placeringsändring per vecka, klättrare-badge, head-to-head, Chart.js rankingtrend.
+Worker 2 (Operatörs-feedback analys): operator_feedback-tabell → UI. Stämningstrend, operatörsöversikt, detaljlista med paginering.
+
 ### 2026-03-11 — Session #58 (klar)
-Merge-konflikter lösta. Backlog rensad + nya items från kodgranskning.
-Worker 1 (OEE-benchmark): Gauge (Chart.js doughnut), benchmark-staplar, 3 faktor-kort (tillgänglighet/prestanda/kvalitet) med trend-pilar, trendgraf med referenslinjer, förbättringsförslag. Backend: OeeBenchmarkController. Commit e60fc16.
-Worker 2 (Skiftrapport PDF): Datumväljare dag/vecka, förhandsgranskning med KPI-kort, PDF via pdfmake (dag+vecka-rapport), utskriftsknapp, operatörstabell, trender mot förra veckan. Backend: SkiftrapportExportController. Commit bdf30b1.
+Worker 1 (OEE-benchmark): Gauge (Chart.js doughnut), benchmark-staplar, 3 faktor-kort med trend-pilar, trendgraf med referenslinjer, förbättringsförslag. Backend: OeeBenchmarkController. Commit e60fc16.
+Worker 2 (Skiftrapport PDF): Datumväljare dag/vecka, förhandsgranskning med KPI-kort, PDF via pdfmake (dag+vecka-rapport), utskriftsknapp, operatörstabell. Backend: SkiftrapportExportController. Commit bdf30b1.
 
 ### 2026-03-11 — Session #57 (klar)
 Worker 1 (Underhållslogg): CRUD med kategori/typ/varaktighet, 4 statistikkort, filtrerbar historik, CSV-export. Backend: UnderhallsloggController + DB-migrering. Commit 406b222.
-Worker 2 (Cykeltids-heatmap): HTML-tabell-heatmap grön→gul→röd, Chart.js dygnsmönster dubbel Y-axel, klickbar drilldown per operatör, sammanfattningskort. Backend: CykeltidHeatmapController. Commit 8b10f12.
-
-### 2026-03-11 — Session #56 (klar)
-Worker 1 (Dashboard-widget layout): Kugghjulsikon på statistiksidan, 8 widgets med toggle + up/down-ordning, sparar per user i DB. Backend: DashboardLayoutController + DB-migrering.
-Worker 2 (Effektivitet per produkttyp): Jämförelse per produkttyp — sammanfattningskort, kvalitetsranking, cykeltidstrend, head-to-head. Backend: ProduktTypEffektivitetController.
+Worker 2 (Cykeltids-heatmap): HTML-tabell-heatmap grön→gul→röd, Chart.js dygnsmönster, klickbar drilldown per operatör. Backend: CykeltidHeatmapController. Commit 8b10f12.
