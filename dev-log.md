@@ -1,3 +1,25 @@
+## 2026-03-11 Underhallsprognos — prediktivt underhall med schema, tidslinje och historik
+
+Ny sida `/rebotling/underhallsprognos` (autentiserad). VD kan se vilka maskiner/komponenter som snart behover underhall, varningar for forsenat underhall, tidslinje och historik.
+
+- **Backend**: `UnderhallsprognosController.php` — tre endpoints:
+  - `run=overview`: Oversiktskort (totalt komponenter, forsenade, snart, nasta datum)
+  - `run=schedule`: Fullstandigt underhallsschema med status (ok/snart/forsenat), dagar kvar, progress %
+  - `run=history`: Kombinerad historik fran maintenance_log + underhallslogg
+- **Migration**: `2026-03-11_underhallsprognos.sql` — tabeller `underhall_komponenter` + `underhall_scheman`, 12 standardkomponenter (Rebotling, Tvattlinje, Saglinje, Klassificeringslinje)
+- **Status-logik**: ok (>7 dagar kvar), snart (0-7 dagar), forsenat (<0 dagar), fargkodad rod/gul/gron
+- **Frontend**: `underhallsprognos`-komponent
+  - 4 oversiktskort (totalt/forsenade/snart/nasta datum)
+  - Varningsbox rod/gul vid forsenat/snart
+  - Schematabell med progress-bar och statusbadge per komponent
+  - Chart.js horisontellt stapeldiagram (tidslinje) — top 10 narmaste underhall
+  - Historiktabell med periodvaljare (30/90/180 dagar)
+- **Service**: `underhallsprognos.service.ts` med `timeout(8000)` + `catchError` pa alla anrop
+- **Route**: `/rebotling/underhallsprognos` (authGuard)
+- **Nav**: Menyval under Rebotling-dropdown: "Underhallsprognos"
+- **Lifecycle**: OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy() + clearTimeout
+- Commit: c8f1080
+
 ## 2026-03-11 Skiftjamforelse-dashboard — jamfor dag/kvall/nattskift
 
 Ny sida `/rebotling/skiftjamforelse` (autentiserad). VD kan jamfora dag-, kvalls- och nattskift for att fardela resurser och identifiera svaga skift.
