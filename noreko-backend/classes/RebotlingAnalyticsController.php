@@ -6308,18 +6308,29 @@ HTML;
                 $isDag = ($startHour >= 6 && $startHour < 22);
                 $dag = $r['dag'];
 
-                $agg = &($isDag ? $dagAgg : $nattAgg);
-                $agg['ibc_ok']       += $ibcOk;
-                $agg['ibc_ej_ok']    += $ibcEjOk;
-                $agg['bur_ej_ok']    += $burEjOk;
-                $agg['runtime_min']  += $rtMin;
-                $agg['rast_min']     += $rastMin;
-                $agg['skift_count']  += 1;
-                if ($avgCykel > 0) {
-                    $agg['cykeltid_sum']   += $avgCykel;
-                    $agg['cykeltid_count'] += 1;
+                if ($isDag) {
+                    $dagAgg['ibc_ok']       += $ibcOk;
+                    $dagAgg['ibc_ej_ok']    += $ibcEjOk;
+                    $dagAgg['bur_ej_ok']    += $burEjOk;
+                    $dagAgg['runtime_min']  += $rtMin;
+                    $dagAgg['rast_min']     += $rastMin;
+                    $dagAgg['skift_count']  += 1;
+                    if ($avgCykel > 0) {
+                        $dagAgg['cykeltid_sum']   += $avgCykel;
+                        $dagAgg['cykeltid_count'] += 1;
+                    }
+                } else {
+                    $nattAgg['ibc_ok']       += $ibcOk;
+                    $nattAgg['ibc_ej_ok']    += $ibcEjOk;
+                    $nattAgg['bur_ej_ok']    += $burEjOk;
+                    $nattAgg['runtime_min']  += $rtMin;
+                    $nattAgg['rast_min']     += $rastMin;
+                    $nattAgg['skift_count']  += 1;
+                    if ($avgCykel > 0) {
+                        $nattAgg['cykeltid_sum']   += $avgCykel;
+                        $nattAgg['cykeltid_count'] += 1;
+                    }
                 }
-                unset($agg);
 
                 // Daglig tidsserie
                 if ($isDag) {
