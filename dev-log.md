@@ -1,3 +1,21 @@
+## 2026-03-11 Ranking-historik — leaderboard-trender vecka för vecka
+
+Ny sida `/rebotling/ranking-historik` (autentiserad). VD och operatörer kan se hur placeringar förändras vecka för vecka, identifiera klättrare och se pågående trender.
+
+- **Backend**: `RankingHistorikController.php` — run=weekly-rankings (IBC ok per operatör per vecka, rankordnat, senaste N veckor), run=ranking-changes (placeringsändring senaste vecka vs veckan innan), run=streak-data (pågående positiva/negativa trender per operatör, mest konsekvent). Auth: session_id krävs.
+- **SQL**: `noreko-backend/migrations/2026-03-11_ranking_historik.sql` — sammansatta index på rebotling_ibc(op1/op2/op3, datum, ok) för snabba aggregeringar.
+- **api.php**: Registrerat `ranking-historik` → `RankingHistorikController`
+- **Service**: `src/app/services/ranking-historik.service.ts` — getWeeklyRankings(weeks), getRankingChanges(), getStreakData(weeks), timeout(15000)+catchError.
+- **Komponent**: `src/app/pages/ranking-historik/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy().
+  - 4 sammanfattningskort: Veckans #1, Största klättrare, Längsta positiva trend, Mest konsekvent
+  - Placeringsändringstabell: namn, nuv. placering, föreg. placering, ändring (grön pil/röd pil/streck), IBC denna vecka + klättrar-badge (fire-ikon) för 2+ veckor i rad uppåt
+  - Rankingtrend-graf: Chart.js linjediagram, inverterad y-axel (#1 = topp), en linje per operatör, periodselektor 4/8/12 veckor
+  - Head-to-head: Välj 2 operatörer → separat linjediagram med deras rankningskurvor mot varandra
+  - Streak-tabell: positiv/negativ streak per operatör + visuell placeringssekvens (färgkodade siffror)
+- **Route**: `/rebotling/ranking-historik` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown (loggedIn): "Ranking-historik" med trophy-ikon
+- **Build**: OK — inga fel (4 pre-existing warnings i feedback-analys, ej vår kod)
+
 ## 2026-03-11 Skiftrapport PDF-export — daglig och veckovis produktionsrapport
 
 Ny sida `/rebotling/skiftrapport-export` (autentiserad). VD kan välja datum, se förhandsgranskning av alla KPI:er på skärmen, och ladda ner en färdig PDF — eller skriva ut med window.print(). Stöder dagrapport och veckorapport (datumintervall).
