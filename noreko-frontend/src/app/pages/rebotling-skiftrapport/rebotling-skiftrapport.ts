@@ -61,7 +61,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
   // Löpnummer lazy-load
   lopnummerMap: { [reportId: number]: string } = {};
   lopnummerLoading: { [reportId: number]: boolean } = {};
-  skiftTiderMap: { [reportId: number]: { start: string | null; slut: string | null; fallback?: number } } = {};
+  skiftTiderMap: { [reportId: number]: { start: string | null; slut: string | null; cykel_datum?: string | null; fallback?: number } } = {};
 
   // Settings for bonus estimate
   private settings: any = { rebotlingTarget: 1000, shiftHours: 8.0 };
@@ -658,6 +658,7 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
             this.skiftTiderMap[id] = {
               start: res.skift_start || null,
               slut: res.skift_slut || null,
+              cykel_datum: res.cykel_datum || null,
               fallback: res.fallback_skiftraknare || undefined
             };
           }
@@ -1358,17 +1359,19 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
         { text: 'Tider', style: 'sectionHeader' },
         {
           table: {
-            widths: ['*', '*', '*', '*'],
+            widths: ['*', '*', '*', '*', '*'],
             body: [
               [
-                { text: 'Starttid',  bold: true, fillColor: '#eeeeee' },
-                { text: 'Stopptid',  bold: true, fillColor: '#eeeeee' },
-                { text: 'Drifttid',  bold: true, fillColor: '#eeeeee' },
-                { text: 'Rasttid',   bold: true, fillColor: '#eeeeee' }
+                { text: 'Cykeldatum', bold: true, fillColor: '#eeeeee' },
+                { text: 'Starttid',   bold: true, fillColor: '#eeeeee' },
+                { text: 'Stopptid',   bold: true, fillColor: '#eeeeee' },
+                { text: 'Drifttid',   bold: true, fillColor: '#eeeeee' },
+                { text: 'Rasttid',    bold: true, fillColor: '#eeeeee' }
               ],
               [
-                { text: this.skiftTiderMap[r.id]?.start ? this.skiftTiderMap[r.id].start!.substring(11, 16) : '–', alignment: 'center' },
-                { text: this.skiftTiderMap[r.id]?.slut ? this.skiftTiderMap[r.id].slut!.substring(11, 16) : '–', alignment: 'center' },
+                { text: this.skiftTiderMap[r.id]?.cykel_datum || '–', alignment: 'center' },
+                { text: this.skiftTiderMap[r.id]?.start ? this.skiftTiderMap[r.id].start!.substring(0, 16).replace('T', ' ') : '–', alignment: 'center' },
+                { text: this.skiftTiderMap[r.id]?.slut ? this.skiftTiderMap[r.id].slut!.substring(0, 16).replace('T', ' ') : '–', alignment: 'center' },
                 { text: r.drifttid != null ? r.drifttid + ' min' : '–', alignment: 'center' },
                 { text: r.rasttime != null ? r.rasttime + ' min' : '–', alignment: 'center' }
               ]

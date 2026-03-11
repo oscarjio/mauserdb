@@ -1,0 +1,390 @@
+/* Underhallslogg — dark theme */
+
+.underhall-page {
+  background-color: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+/* Kort */
+.card-dark {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.card-dark-header {
+  background-color: #1a202c;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  border-bottom: 1px solid #4a5568;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.card-dark-body {
+  padding: 1.25rem;
+}
+
+/* Formular */
+.form-label-dark {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  display: block;
+}
+
+.form-control-dark {
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+}
+
+.form-control-dark:focus {
+  outline: none;
+  border-color: #63b3ed;
+}
+
+.form-control-dark option {
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Radio group */
+.radio-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #4a5568;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+  user-select: none;
+}
+
+.radio-option input[type="radio"] {
+  display: none;
+}
+
+.radio-option.selected {
+  border-color: #63b3ed;
+  color: #e2e8f0;
+  background-color: rgba(99, 179, 237, 0.1);
+}
+
+/* Spara-knapp */
+.btn-spara {
+  background-color: #3182ce;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-spara:hover:not(:disabled) {
+  background-color: #2b6cb0;
+}
+
+.btn-spara:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Statistikkort */
+.stat-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.stat-sep {
+  color: #a0aec0;
+  margin: 0 0.2rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  margin-top: 0.25rem;
+}
+
+.stat-period {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.text-purple {
+  color: #b794f4;
+}
+
+/* Fordelning */
+.fordelning-title {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.progress-bar-outer {
+  display: flex;
+  height: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #1a202c;
+}
+
+.progress-bar-inner {
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.fordelning-labels {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+/* Per kategori */
+.kategori-bar-label {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+}
+
+.kategori-bar-value {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.progress-thin {
+  height: 8px;
+  background-color: #1a202c;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-thin-inner {
+  height: 100%;
+  background: linear-gradient(90deg, #3182ce, #63b3ed);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* Filter */
+.filter-select {
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  border-radius: 5px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.filter-select option {
+  background-color: #2d3748;
+}
+
+/* Export-knapp */
+.btn-export {
+  background-color: #276749;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-export:hover:not(:disabled) {
+  background-color: #2f855a;
+}
+
+.btn-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tabell */
+.underhall-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.underhall-table th {
+  background-color: #1a202c;
+  color: #a0aec0;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  border-bottom: 1px solid #4a5568;
+  white-space: nowrap;
+}
+
+.underhall-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #2d3748;
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.underhall-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.td-datum { white-space: nowrap; color: #a0aec0; font-size: 0.8rem; }
+.td-operator { font-weight: 500; }
+.td-kategori { }
+.td-tid { white-space: nowrap; }
+.td-maskin { color: #a0aec0; font-size: 0.85rem; }
+.td-kommentar { max-width: 250px; color: #a0aec0; font-size: 0.82rem; }
+.td-actions { text-align: center; width: 50px; }
+
+/* Badges */
+.badge-typ {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-planerat {
+  background-color: rgba(72, 187, 120, 0.2);
+  color: #68d391;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+}
+
+.badge-oplanerat {
+  background-color: rgba(245, 101, 101, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(245, 101, 101, 0.3);
+}
+
+/* Delete-knapp */
+.btn-delete {
+  background: transparent;
+  border: 1px solid #c53030;
+  color: #fc8181;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background-color 0.2s;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background-color: rgba(197, 48, 48, 0.2);
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Meddelanden */
+.alert-success-msg {
+  background-color: rgba(72, 187, 120, 0.15);
+  color: #68d391;
+  border: 1px solid rgba(72, 187, 120, 0.3);
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.alert-error-msg {
+  background-color: rgba(245, 101, 101, 0.15);
+  color: #fc8181;
+  border: 1px solid rgba(245, 101, 101, 0.3);
+  border-radius: 6px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+/* Tom lista */
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #718096;
+}
+
+.empty-state i {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+/* Summering */
+.historik-summering {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  text-align: right;
+  border-top: 1px solid #4a5568;
+  padding-top: 0.5rem;
+}
+
+/* Responsiv */
+@media (max-width: 768px) {
+  .td-kommentar { display: none; }
+  .td-maskin { display: none; }
+  .underhall-table th:nth-child(7),
+  .underhall-table td:nth-child(7) { display: none; }
+  .radio-group { flex-direction: column; }
+}

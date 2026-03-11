@@ -16,7 +16,7 @@ class RebotlingAnalyticsController {
      */
     private function resolveSkiftTider(array $skiftraknareList, string $date): array {
         if (count($skiftraknareList) === 0) {
-            return ['start' => null, 'slut' => null];
+            return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
         // Samla alla skifträknare att söka på (original + fallback nedåt)
@@ -37,7 +37,8 @@ class RebotlingAnalyticsController {
         $params[] = $prevDay;
 
         $tidStmt = $this->pdo->prepare("
-            SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle
+            SELECT MIN(datum) AS first_cycle, MAX(datum) AS last_cycle,
+                   GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
             FROM rebotling_ibc
             WHERE skiftraknare IN ({$placeholders})
               AND (DATE(datum) = ? OR DATE(datum) = ?)
@@ -47,9 +48,10 @@ class RebotlingAnalyticsController {
         $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
         $firstCycle = $tidRow['first_cycle'] ?? null;
         $lastCycle  = $tidRow['last_cycle'] ?? null;
+        $cykelDatum = $tidRow['cykel_datum'] ?? null;
 
         if (!$firstCycle) {
-            return ['start' => null, 'slut' => null];
+            return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
         // Starttid: senaste running=1 i onoff FÖRE eller vid första cykel
@@ -74,7 +76,7 @@ class RebotlingAnalyticsController {
             if ($offRow) $skiftSlut = $offRow['datum'];
         } catch (Exception $e) {}
 
-        return ['start' => $skiftStart, 'slut' => $skiftSlut];
+        return ['start' => $skiftStart, 'slut' => $skiftSlut, 'cykel_datum' => $cykelDatum];
     }
 
     private function ensureSettingsTable() {
@@ -4137,8 +4139,9 @@ class RebotlingAnalyticsController {
                     'ibc_per_h'  => $ibcPerH,
                     'drifttid'   => $totalDrift,
                     'rasttime'   => $totalRast,
-                    'skift_start' => $skiftStart,
-                    'skift_slut'  => $skiftSlut,
+                    'skift_start'  => $skiftStart,
+                    'skift_slut'   => $skiftSlut,
+                    'cykel_datum'  => $tider['cykel_datum'],
                     'delta_vs_prev' => $delta,
                     'operators'  => array_keys($operatorNames),
                     'products'   => array_keys($products),
@@ -5094,11 +5097,15 @@ HTML;
             // Formatera start/stopp-tid
             $startTidStr = '-';
             $slutTidStr  = '-';
+            $cykelDatumStr = '-';
             if ($skiftStart) {
-                $startTidStr = date('H:i', strtotime($skiftStart));
+                $startTidStr = date('Y-m-d H:i', strtotime($skiftStart));
             }
             if ($skiftSlut) {
-                $slutTidStr = date('H:i', strtotime($skiftSlut));
+                $slutTidStr = date('Y-m-d H:i', strtotime($skiftSlut));
+            }
+            if (!empty($tider['cykel_datum'])) {
+                $cykelDatumStr = $tider['cykel_datum'];
             }
 
             $kvalitetFarg = '#333';
@@ -5172,13 +5179,16 @@ HTML;
             $html .= '<button class="print-btn no-print" onclick="window.print()">Skriv ut / Spara PDF</button>';
             $html .= '<div class="header"><div><h1>Skiftsammanfattning</h1><h2>Rebotling - IBC-tvatt</h2></div><div class="right"><h3>NOREKO</h3><p>' . $dateEsc . '</p><p>' . $shiftNameEsc . '</p></div></div><hr>';
 
-            // Start- och stopptid
+            // Start- och stopptid + cykeldatum
             $html .= '<div class="time-row">';
             $html .= '<div class="time-item"><div class="label">Starttid</div><div class="value">' . htmlspecialchars($startTidStr, ENT_QUOTES, 'UTF-8') . '</div></div>';
             $html .= '<div class="time-item"><div class="label">Stopptid</div><div class="value">' . htmlspecialchars($slutTidStr, ENT_QUOTES, 'UTF-8') . '</div></div>';
             $html .= '<div class="time-item"><div class="label">Drifttid</div><div class="value">' . $drifttidStr . '</div></div>';
             $html .= '<div class="time-item"><div class="label">Rasttid</div><div class="value">' . $rasttidStr . '</div></div>';
             $html .= '</div>';
+            if ($cykelDatumStr !== '-' && $cykelDatumStr !== $date) {
+                $html .= '<div style="margin-bottom:12px;padding:6px 14px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;font-size:0.85rem;color:#6d4c00;">OBS: Cyklerna är registrerade <strong>' . htmlspecialchars($cykelDatumStr, ENT_QUOTES, 'UTF-8') . '</strong> (skiftrapport daterad ' . $dateEsc . ')</div>';
+            }
 
             $html .= '<div class="kpi-grid">';
             $html .= '<div class="kpi-card"><div class="kpi-label">IBC OK</div><div class="kpi-value" style="color:#0066cc;">' . $totalIbcOk . '</div></div>';

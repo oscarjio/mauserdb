@@ -1,0 +1,294 @@
+<div class="underhall-page">
+  <div class="container-fluid py-4">
+
+    <!-- Rubrik -->
+    <div class="row mb-4">
+      <div class="col">
+        <h2 class="page-title">
+          <i class="fas fa-tools me-2 text-warning"></i>Underhallslogg
+        </h2>
+        <p class="page-subtitle">Logga planerat och oplanerat underhall for maskiner</p>
+      </div>
+    </div>
+
+    <!-- Registreringsformular -->
+    <div class="row mb-4">
+      <div class="col-12 col-lg-6">
+        <div class="card-dark">
+          <div class="card-dark-header">
+            <i class="fas fa-plus-circle me-2 text-success"></i>Registrera underhall
+          </div>
+          <div class="card-dark-body">
+
+            <div class="alert-success-msg" *ngIf="successMessage">
+              <i class="fas fa-check-circle me-2"></i>{{ successMessage }}
+            </div>
+            <div class="alert-error-msg" *ngIf="errorMessage">
+              <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+            </div>
+
+            <!-- Kategori -->
+            <div class="form-group mb-3">
+              <label class="form-label-dark">Kategori</label>
+              <select class="form-control-dark" [(ngModel)]="formKategori">
+                <option value="">-- Valj kategori --</option>
+                <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+              </select>
+            </div>
+
+            <!-- Typ -->
+            <div class="form-group mb-3">
+              <label class="form-label-dark">Typ av underhall</label>
+              <div class="radio-group">
+                <label class="radio-option" [class.selected]="formTyp === 'planerat'">
+                  <input type="radio" name="typ" value="planerat" [(ngModel)]="formTyp">
+                  <i class="fas fa-calendar-check me-1 text-success"></i>Planerat
+                </label>
+                <label class="radio-option" [class.selected]="formTyp === 'oplanerat'">
+                  <input type="radio" name="typ" value="oplanerat" [(ngModel)]="formTyp">
+                  <i class="fas fa-exclamation-triangle me-1 text-danger"></i>Oplanerat
+                </label>
+              </div>
+            </div>
+
+            <!-- Varaktighet -->
+            <div class="form-group mb-3">
+              <label class="form-label-dark">Varaktighet (minuter)</label>
+              <input
+                type="number"
+                class="form-control-dark"
+                [(ngModel)]="formVaraktighet"
+                placeholder="T.ex. 30"
+                min="1"
+                max="9999"
+              >
+            </div>
+
+            <!-- Maskin -->
+            <div class="form-group mb-3">
+              <label class="form-label-dark">Maskin</label>
+              <input
+                type="text"
+                class="form-control-dark"
+                [(ngModel)]="formMaskin"
+                placeholder="Rebotling"
+                maxlength="100"
+              >
+            </div>
+
+            <!-- Kommentar -->
+            <div class="form-group mb-3">
+              <label class="form-label-dark">Kommentar <span class="text-muted">(valfritt)</span></label>
+              <textarea
+                class="form-control-dark"
+                [(ngModel)]="formKommentar"
+                rows="3"
+                placeholder="Beskriv vad som gjordes..."
+                maxlength="2000"
+              ></textarea>
+            </div>
+
+            <!-- Spara-knapp -->
+            <button
+              class="btn-spara"
+              (click)="spara()"
+              [disabled]="submitting"
+            >
+              <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2" role="status"></span>
+              <i *ngIf="!submitting" class="fas fa-save me-2"></i>
+              {{ submitting ? 'Sparar...' : 'Spara underhall' }}
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Sammanfattningskort -->
+      <div class="col-12 col-lg-6">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="stat-icon text-info"><i class="fas fa-clipboard-list"></i></div>
+              <div class="stat-value">{{ stats?.totalt_antal ?? 0 }}</div>
+              <div class="stat-label">Totalt underhall</div>
+              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="stat-icon text-warning"><i class="fas fa-clock"></i></div>
+              <div class="stat-value">{{ stats ? formatTidmar(stats.total_tid_min) : '0 min' }}</div>
+              <div class="stat-label">Total tid</div>
+              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="stat-icon text-success"><i class="fas fa-chart-bar"></i></div>
+              <div class="stat-value">{{ stats?.snitt_per_vecka ?? 0 }}</div>
+              <div class="stat-label">Snitt per vecka</div>
+              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card">
+              <div class="stat-icon text-purple"><i class="fas fa-balance-scale"></i></div>
+              <div class="stat-value">
+                <span class="text-success">{{ stats?.planerat_pct ?? 0 }}%</span>
+                <span class="stat-sep">/</span>
+                <span class="text-danger">{{ stats?.oplanerat_pct ?? 0 }}%</span>
+              </div>
+              <div class="stat-label">Planerat / Oplanerat</div>
+              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fordelningsvy -->
+    <div class="row mb-4" *ngIf="stats && stats.totalt_antal > 0">
+      <div class="col-12">
+        <div class="card-dark">
+          <div class="card-dark-header">
+            <i class="fas fa-chart-pie me-2 text-info"></i>Fordelning
+            <select class="filter-select ms-3" [(ngModel)]="statsDays" (change)="onStatsDaysChange()">
+              <option [value]="7">7 dagar</option>
+              <option [value]="14">14 dagar</option>
+              <option [value]="30">30 dagar</option>
+              <option [value]="90">90 dagar</option>
+            </select>
+          </div>
+          <div class="card-dark-body">
+            <div class="row">
+              <!-- Planerat vs Oplanerat -->
+              <div class="col-12 col-md-5 mb-3 mb-md-0">
+                <h6 class="fordelning-title">Planerat vs Oplanerat</h6>
+                <div class="progress-bar-outer mb-2">
+                  <div class="progress-bar-inner bg-success" [style.width.%]="stats.planerat_pct"></div>
+                  <div class="progress-bar-inner bg-danger" [style.width.%]="stats.oplanerat_pct"></div>
+                </div>
+                <div class="d-flex justify-content-between fordelning-labels">
+                  <span><i class="fas fa-circle text-success me-1"></i>Planerat: {{ stats.planerat_antal }} ({{ stats.planerat_pct }}%)</span>
+                  <span><i class="fas fa-circle text-danger me-1"></i>Oplanerat: {{ stats.oplanerat_antal }} ({{ stats.oplanerat_pct }}%)</span>
+                </div>
+              </div>
+
+              <!-- Per kategori -->
+              <div class="col-12 col-md-7">
+                <h6 class="fordelning-title">Per kategori (antal)</h6>
+                <div *ngFor="let kat of stats.top_kategorier" class="kategori-bar mb-2">
+                  <div class="d-flex justify-content-between mb-1">
+                    <span class="kategori-bar-label">{{ kat.kategori }}</span>
+                    <span class="kategori-bar-value">{{ kat.antal }} st &middot; {{ formatTid(kat.total_min) }}</span>
+                  </div>
+                  <div class="progress-thin">
+                    <div class="progress-thin-inner" [style.width.%]="(kat.antal / maxKategoriAntal()) * 100"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historiklista -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card-dark">
+          <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
+            <span><i class="fas fa-history me-2"></i>Historik</span>
+
+            <!-- Filter -->
+            <select class="filter-select" [(ngModel)]="filterDays" (change)="onFilterChange()">
+              <option [value]="7">7 dagar</option>
+              <option [value]="14">14 dagar</option>
+              <option [value]="30">30 dagar</option>
+              <option [value]="90">90 dagar</option>
+            </select>
+
+            <select class="filter-select" [(ngModel)]="filterType" (change)="onFilterChange()">
+              <option value="all">Alla typer</option>
+              <option value="planerat">Planerat</option>
+              <option value="oplanerat">Oplanerat</option>
+            </select>
+
+            <select class="filter-select" [(ngModel)]="filterCategory" (change)="onFilterChange()">
+              <option value="all">Alla kategorier</option>
+              <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+            </select>
+
+            <button class="btn-export ms-auto" (click)="exportCSV()" [disabled]="historik.length === 0">
+              <i class="fas fa-file-csv me-1"></i>Exportera CSV
+            </button>
+          </div>
+
+          <div class="card-dark-body">
+            <!-- Laddningsspinner -->
+            <div *ngIf="loadingHistorik" class="text-center py-4">
+              <span class="spinner-border spinner-border-sm text-info me-2"></span>Laddar historik...
+            </div>
+
+            <!-- Tom lista -->
+            <div *ngIf="!loadingHistorik && historik.length === 0" class="empty-state">
+              <i class="fas fa-clipboard text-muted"></i>
+              <p>Inga underhallsposter hittades for valt filter.</p>
+            </div>
+
+            <!-- Tabell -->
+            <div *ngIf="!loadingHistorik && historik.length > 0" class="table-responsive">
+              <table class="underhall-table">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Operatör</th>
+                    <th>Kategori</th>
+                    <th>Typ</th>
+                    <th>Varaktighet</th>
+                    <th>Maskin</th>
+                    <th>Kommentar</th>
+                    <th *ngIf="loggedIn && user?.role === 'admin'"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let post of historik">
+                    <td class="td-datum">{{ formatDatum(post.created_at) }}</td>
+                    <td class="td-operator">{{ post.operator_namn || 'Okand' }}</td>
+                    <td class="td-kategori">{{ post.kategori }}</td>
+                    <td class="td-typ">
+                      <span class="badge-typ" [class.badge-planerat]="post.typ === 'planerat'" [class.badge-oplanerat]="post.typ === 'oplanerat'">
+                        {{ post.typ === 'planerat' ? 'Planerat' : 'Oplanerat' }}
+                      </span>
+                    </td>
+                    <td class="td-tid">{{ formatTid(post.varaktighet_min) }}</td>
+                    <td class="td-maskin">{{ post.maskin }}</td>
+                    <td class="td-kommentar">{{ post.kommentar || '' }}</td>
+                    <td *ngIf="loggedIn && user?.role === 'admin'" class="td-actions">
+                      <button
+                        class="btn-delete"
+                        (click)="deletePost(post)"
+                        [disabled]="deletingId === post.id"
+                        title="Ta bort"
+                      >
+                        <span *ngIf="deletingId === post.id" class="spinner-border spinner-border-sm"></span>
+                        <i *ngIf="deletingId !== post.id" class="fas fa-trash-alt"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Summering -->
+            <div *ngIf="!loadingHistorik && historik.length > 0" class="historik-summering mt-3">
+              {{ historik.length }} poster &middot; Total tid: {{ formatTidmar(totalTidHistorik) }}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

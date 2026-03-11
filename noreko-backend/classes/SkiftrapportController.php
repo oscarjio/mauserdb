@@ -525,11 +525,12 @@ class SkiftrapportController {
             $skiftTider = $this->getSkiftTider($usedSkiftraknare);
 
             $response = [
-                'success' => true,
-                'ranges'  => $this->buildRanges($nums),
-                'count'   => count($nums),
-                'skift_start' => $skiftTider['start'],
-                'skift_slut'  => $skiftTider['slut'],
+                'success'      => true,
+                'ranges'       => $this->buildRanges($nums),
+                'count'        => count($nums),
+                'skift_start'  => $skiftTider['start'],
+                'skift_slut'   => $skiftTider['slut'],
+                'cykel_datum'  => $skiftTider['cykel_datum'],
             ];
 
             if ($fallbackUsed) {
@@ -558,7 +559,8 @@ class SkiftrapportController {
         $placeholders = implode(',', array_fill(0, count($searchIds), '?'));
 
         $ibcStmt = $this->pdo->prepare(
-            "SELECT MIN(datum) as first_cycle, MAX(datum) as last_cycle
+            "SELECT MIN(datum) as first_cycle, MAX(datum) as last_cycle,
+                    GROUP_CONCAT(DISTINCT DATE(datum) ORDER BY DATE(datum) ASC) AS cykel_datum
              FROM rebotling_ibc
              WHERE skiftraknare IN ({$placeholders})
              AND lopnummer > 0 AND lopnummer < 998"
@@ -568,9 +570,10 @@ class SkiftrapportController {
 
         $firstCycle = $ibcRow && $ibcRow['first_cycle'] ? $ibcRow['first_cycle'] : null;
         $lastCycle  = $ibcRow && $ibcRow['last_cycle'] ? $ibcRow['last_cycle'] : null;
+        $cykelDatum = $ibcRow['cykel_datum'] ?? null;
 
         if (!$firstCycle) {
-            return ['start' => null, 'slut' => null];
+            return ['start' => null, 'slut' => null, 'cykel_datum' => null];
         }
 
         // Starttid: senaste running=1 i onoff FÖRE första cykel
@@ -600,8 +603,9 @@ class SkiftrapportController {
         } catch (Exception $e) {}
 
         return [
-            'start' => $startTid,
-            'slut'  => $slutTid,
+            'start'       => $startTid,
+            'slut'        => $slutTid,
+            'cykel_datum' => $cykelDatum,
         ];
     }
 
