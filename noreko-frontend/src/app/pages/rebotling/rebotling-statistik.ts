@@ -6,7 +6,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
-import { RebotlingService, ChartAnnotation, ExecDashboardResponse } from '../../services/rebotling.service';
+import { RebotlingService, ChartAnnotation, ExecDashboardResponse, DashboardWidgetEntry, DashboardAvailableWidget } from '../../services/rebotling.service';
 import { localToday, localDateStr } from '../../utils/date-utils';
 import { exportChartAsPng } from '../../shared/chart-export.util';
 import { StatistikHistogramComponent } from './statistik/statistik-histogram/statistik-histogram';
@@ -247,6 +247,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.syncStateToUrl();
     this.loadStatistics();
     this.loadOverview();
+    this.loadDashboardLayout();
   }
 
   /** Läs vy, år, månad och valda datum från URL query params. */
@@ -1885,6 +1886,122 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   showPrediktion: boolean = false;
   showOeeDeepDive: boolean = false;
   showCycleTrend: boolean = false;
+
+  // ---- Dashboard Layout ----
+  dashboardLayout: DashboardWidgetEntry[] = [];
+  availableWidgets: DashboardAvailableWidget[] = [];
+  showLayoutConfig: boolean = false;
+  layoutSaving: boolean = false;
+  layoutLoaded: boolean = false;
+
+  /** Ladda sparad dashboard-layout vid init */
+  loadDashboardLayout(): void {
+    this.rebotlingService.getDashboardLayout().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res.success && res.layout) {
+          this.dashboardLayout = res.layout;
+        } else {
+          this.dashboardLayout = this.getDefaultLayout();
+        }
+        this.layoutLoaded = true;
+      },
+      error: () => {
+        this.dashboardLayout = this.getDefaultLayout();
+        this.layoutLoaded = true;
+      }
+    });
+
+    this.rebotlingService.getAvailableWidgets().pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        if (res.success && res.widgets) {
+          this.availableWidgets = res.widgets;
+        }
+      }
+    });
+  }
+
+  private getDefaultLayout(): DashboardWidgetEntry[] {
+    const ids = ['produktionspuls', 'veckotrend', 'oee-gauge', 'bonus-simulator',
+                 'leaderboard', 'kassationsanalys-sammanfattning', 'alerts-sammanfattning', 'produktionsmal'];
+    return ids.map((id, i) => ({ id, visible: true, order: i }));
+  }
+
+  isWidgetVisible(widgetId: string): boolean {
+    if (!this.layoutLoaded) return true; // Visa allt tills layout laddats
+    const entry = this.dashboardLayout.find(w => w.id === widgetId);
+    return entry ? entry.visible : true;
+  }
+
+  getWidgetName(widgetId: string): string {
+    const w = this.availableWidgets.find(aw => aw.id === widgetId);
+    return w ? w.namn : widgetId;
+  }
+
+  getWidgetDescription(widgetId: string): string {
+    const w = this.availableWidgets.find(aw => aw.id === widgetId);
+    return w ? w.beskrivning : '';
+  }
+
+  toggleWidgetVisibility(widgetId: string): void {
+    const entry = this.dashboardLayout.find(w => w.id === widgetId);
+    if (entry) {
+      entry.visible = !entry.visible;
+    }
+  }
+
+  moveWidgetUp(index: number): void {
+    if (index <= 0) return;
+    const temp = this.dashboardLayout[index];
+    this.dashboardLayout[index] = this.dashboardLayout[index - 1];
+    this.dashboardLayout[index - 1] = temp;
+    this.reorderWidgets();
+  }
+
+  moveWidgetDown(index: number): void {
+    if (index >= this.dashboardLayout.length - 1) return;
+    const temp = this.dashboardLayout[index];
+    this.dashboardLayout[index] = this.dashboardLayout[index + 1];
+    this.dashboardLayout[index + 1] = temp;
+    this.reorderWidgets();
+  }
+
+  private reorderWidgets(): void {
+    this.dashboardLayout.forEach((w, i) => w.order = i);
+  }
+
+  saveDashboardLayout(): void {
+    this.layoutSaving = true;
+    this.rebotlingService.saveDashboardLayout(this.dashboardLayout).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (res) => {
+        this.layoutSaving = false;
+        if (res.success) {
+          this.showLayoutConfig = false;
+        }
+      },
+      error: () => {
+        this.layoutSaving = false;
+      }
+    });
+  }
+
+  resetDashboardLayout(): void {
+    this.dashboardLayout = this.getDefaultLayout();
+  }
+
+  toggleLayoutConfig(): void {
+    this.showLayoutConfig = !this.showLayoutConfig;
+  }
+
+  /** Sorterad lista av widgets baserat på order */
+  get sortedLayout(): DashboardWidgetEntry[] {
+    return [...this.dashboardLayout].sort((a, b) => a.order - b.order);
+  }
 
   exportHeatmapCSV(): void {
     if (!this.heatmapRows || this.heatmapRows.length === 0) return;

@@ -1,3 +1,22 @@
+## 2026-03-11 Dashboard-widget layout — VD kan anpassa sin startsida
+
+VD kan valja vilka widgets som visas pa dashboard-sidan, andra ordning, och spara sina preferenser per user.
+
+- **Backend** — ny `DashboardLayoutController.php` (`noreko-backend/classes/`):
+  - `run=get-layout` — hamta sparad widgetlayout for inloggad user (UPSERT-logik)
+  - `run=save-layout` (POST) — spara widgetordning + synlighet per user med validering
+  - `run=available-widgets` — lista alla 8 tillgangliga widgets med id, namn, beskrivning
+  - Registrerad i `api.php` classNameMap (`dashboard-layout`)
+- **SQL-migrering** — `noreko-backend/migrations/2026-03-11_dashboard_layouts.sql`:
+  - `dashboard_layouts`-tabell: id, user_id (UNIQUE), layout_json (TEXT), updated_at
+- **Service** (`rebotling.service.ts`): `getDashboardLayout()`, `saveDashboardLayout(widgets)`, `getAvailableWidgets()` + interfaces
+- **Frontend** — modifierad `rebotling-statistik`:
+  - Kugghjulsikon ("Anpassa dashboard") overst pa sidan
+  - Konfigureringsvy: lista med toggle-switch for varje widget + upp/ner-knappar for ordning (utan CDK)
+  - Spara-knapp som persisterar till backend, Aterstall standard-knapp
+  - Widgets (veckotrend, OEE-gauge, produktionsmal, leaderboard, bonus-simulator, kassationsanalys, produktionspuls) styrs av `*ngIf="isWidgetVisible('...')"`
+  - Default layout: alla widgets synliga i standardordning
+
 ## 2026-03-11 Alerts/notifieringssystem — realtidsvarning vid låg OEE eller lång stopptid
 
 Komplett alert/notifieringssystem för VD med tre flikar, kvitteringsflöde, konfigurerbara tröskelvärden och polling-badge i headern.

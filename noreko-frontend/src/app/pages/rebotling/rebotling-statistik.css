@@ -1069,3 +1069,86 @@
     font-size: 1rem;
   }
 }
+
+/* ============================================
+   Dashboard Layout-konfigurering
+   ============================================ */
+
+.dashboard-config-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #a0aec0;
+  transition: all 0.2s ease;
+}
+
+.dashboard-config-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 212, 255, 0.5);
+  color: #e2e8f0;
+}
+
+.layout-config-panel {
+  border-color: rgba(0, 212, 255, 0.3) !important;
+}
+
+.layout-config-panel .card-header {
+  background: rgba(0, 40, 80, 0.4);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.layout-widget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.layout-widget-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  transition: all 0.2s ease;
+}
+
+.layout-widget-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 212, 255, 0.25);
+}
+
+.layout-widget-name {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.layout-order-btn {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #a0aec0;
+}
+
+.layout-order-btn:hover:not(:disabled) {
+  background: rgba(0, 212, 255, 0.15);
+  border-color: rgba(0, 212, 255, 0.4);
+  color: #e2e8f0;
+}
+
+.layout-order-btn:disabled {
+  opacity: 0.25;
+}
+
+.form-check-input:checked {
+  background-color: #4299e1;
+  border-color: #4299e1;
+}
+
+.form-check-input {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  cursor: pointer;
+}

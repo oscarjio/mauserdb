@@ -141,6 +141,8 @@ $classNameMap = [
     'min-dag'         => 'MinDagController',
     'alerts'          => 'AlertsController',
     'kassationsanalys' => 'KassationsanalysController',
+    'dashboard-layout' => 'DashboardLayoutController',
+    'produkttyp-effektivitet' => 'ProduktTypEffektivitetController',
 ];
 
 $actionKey = strtolower($action);

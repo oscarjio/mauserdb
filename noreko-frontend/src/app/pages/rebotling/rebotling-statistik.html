@@ -1,7 +1,86 @@
 <div class="rebotling-statistik-page">
 
+  <!-- Kugghjulsikon - Dashboard Layout-konfigurering -->
+  <div class="container-fluid pt-3 pb-1 d-flex justify-content-end">
+    <button class="btn btn-sm btn-outline-secondary dashboard-config-btn"
+            (click)="toggleLayoutConfig()"
+            title="Anpassa dashboard-widgets">
+      <i class="fas fa-cog me-1"></i>Anpassa dashboard
+    </button>
+  </div>
+
+  <!-- Dashboard Layout-konfigureringspanel -->
+  <div class="container-fluid mb-3" *ngIf="showLayoutConfig">
+    <div class="dark-card layout-config-panel">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="fas fa-cog me-2"></i>
+          Anpassa Dashboard
+        </h5>
+        <button class="btn btn-sm btn-outline-secondary" (click)="toggleLayoutConfig()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-3">Valj vilka widgets som ska visas och andra ordning med pilknapparna.</p>
+
+        <div class="layout-widget-list">
+          <div class="layout-widget-item" *ngFor="let w of dashboardLayout; let i = index; let first = first; let last = last">
+            <div class="d-flex align-items-center gap-3">
+              <!-- Synlighets-toggle -->
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox"
+                       [id]="'widget-toggle-' + w.id"
+                       [checked]="w.visible"
+                       (change)="toggleWidgetVisibility(w.id)">
+              </div>
+
+              <!-- Widget-info -->
+              <div class="flex-grow-1">
+                <div class="layout-widget-name" [class.text-muted]="!w.visible">
+                  {{ getWidgetName(w.id) }}
+                </div>
+                <small class="text-muted">{{ getWidgetDescription(w.id) }}</small>
+              </div>
+
+              <!-- Ordningsknappar -->
+              <div class="d-flex flex-column gap-1">
+                <button class="btn btn-sm btn-outline-secondary layout-order-btn"
+                        [disabled]="first"
+                        (click)="moveWidgetUp(i)"
+                        title="Flytta upp">
+                  <i class="fas fa-chevron-up"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary layout-order-btn"
+                        [disabled]="last"
+                        (click)="moveWidgetDown(i)"
+                        title="Flytta ner">
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <button class="btn btn-primary" (click)="saveDashboardLayout()" [disabled]="layoutSaving">
+            <i class="fas fa-save me-1" *ngIf="!layoutSaving"></i>
+            <i class="fas fa-spinner fa-spin me-1" *ngIf="layoutSaving"></i>
+            Spara layout
+          </button>
+          <button class="btn btn-outline-secondary" (click)="resetDashboardLayout()">
+            <i class="fas fa-undo me-1"></i>Aterstall standard
+          </button>
+          <button class="btn btn-outline-secondary ms-auto" (click)="toggleLayoutConfig()">
+            Avbryt
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Veckotrend sparklines - ÖVERST -->
-  <div class="container-fluid">
+  <div class="container-fluid" *ngIf="isWidgetVisible('veckotrend')">
     @defer (on viewport) {
       <app-statistik-veckotrend></app-statistik-veckotrend>
     } @placeholder {
@@ -10,7 +89,7 @@
   </div>
 
   <!-- OEE Gauge - overst pa sidan -->
-  <div class="container-fluid">
+  <div class="container-fluid" *ngIf="isWidgetVisible('oee-gauge')">
     @defer {
       <app-statistik-oee-gauge></app-statistik-oee-gauge>
     } @placeholder {
@@ -19,7 +98,7 @@
   </div>
 
   <!-- Produktionsmål-tracker -->
-  <div class="container-fluid">
+  <div class="container-fluid" *ngIf="isWidgetVisible('produktionsmal')">
     @defer (on viewport) {
       <app-statistik-produktionsmal></app-statistik-produktionsmal>
     } @placeholder {
@@ -28,7 +107,7 @@
   </div>
 
   <!-- Topp-5 operatörer leaderboard -->
-  <div class="container-fluid">
+  <div class="container-fluid" *ngIf="isWidgetVisible('leaderboard')">
     @defer (on viewport) {
       <app-statistik-leaderboard></app-statistik-leaderboard>
     } @placeholder {
@@ -247,7 +326,7 @@
   <div class="container-fluid py-4" *ngIf="viewMode !== 'heatmap'">
 
     <!-- ======== PRODUKTIONSOVERBLICK (VD-vy) ======== -->
-    <div class="overview-panel mb-4" *ngIf="overviewData && !overviewLoading">
+    <div class="overview-panel mb-4" *ngIf="overviewData && !overviewLoading && isWidgetVisible('produktionspuls')">
       <div class="overview-title">
         <i class="fas fa-tachometer-alt me-2"></i>Produktionsoverblick
       </div>
@@ -841,7 +920,7 @@
   }
 
   <!-- Bonus "What-if"-simulator -->
-  <div class="container-fluid mt-3">
+  <div class="container-fluid mt-3" *ngIf="isWidgetVisible('bonus-simulator')">
     @defer (on viewport) {
       <app-statistik-bonus-simulator></app-statistik-bonus-simulator>
     } @placeholder {
@@ -859,7 +938,7 @@
   </div>
 
   <!-- Kassationsanalys -->
-  <div class="container-fluid mt-3">
+  <div class="container-fluid mt-3" *ngIf="isWidgetVisible('kassationsanalys-sammanfattning')">
     @defer (on viewport) {
       <app-statistik-kassationsanalys></app-statistik-kassationsanalys>
     } @placeholder {

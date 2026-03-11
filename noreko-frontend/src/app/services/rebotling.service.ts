@@ -564,6 +564,30 @@ export class RebotlingService {
     );
   }
 
+  // ---- Dashboard Layout ----
+
+  getDashboardLayout(): Observable<DashboardLayoutResponse> {
+    return this.http.get<DashboardLayoutResponse>(
+      `/noreko-backend/api.php?action=dashboard-layout&run=get-layout`,
+      { withCredentials: true }
+    );
+  }
+
+  saveDashboardLayout(widgets: DashboardWidgetEntry[]): Observable<DashboardLayoutSaveResponse> {
+    return this.http.post<DashboardLayoutSaveResponse>(
+      `/noreko-backend/api.php?action=dashboard-layout&run=save-layout`,
+      { widgets },
+      { withCredentials: true }
+    );
+  }
+
+  getAvailableWidgets(): Observable<DashboardAvailableWidgetsResponse> {
+    return this.http.get<DashboardAvailableWidgetsResponse>(
+      `/noreko-backend/api.php?action=dashboard-layout&run=available-widgets`,
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface LeaderboardOperator {
@@ -1568,4 +1592,38 @@ export interface KassationsDrilldownData {
   per_dag: { datum: string; dag_antal: number }[];
   operatorer: { skiftraknare: number; operatorer: string[] }[];
   har_data: boolean;
+}
+
+// ---- Dashboard Layout interfaces ----
+
+export interface DashboardWidgetEntry {
+  id: string;
+  visible: boolean;
+  order: number;
+}
+
+export interface DashboardAvailableWidget {
+  id: string;
+  namn: string;
+  beskrivning: string;
+}
+
+export interface DashboardLayoutResponse {
+  success: boolean;
+  layout?: DashboardWidgetEntry[];
+  updated_at?: string | null;
+  error?: string;
+}
+
+export interface DashboardLayoutSaveResponse {
+  success: boolean;
+  saved?: boolean;
+  layout?: DashboardWidgetEntry[];
+  error?: string;
+}
+
+export interface DashboardAvailableWidgetsResponse {
+  success: boolean;
+  widgets?: DashboardAvailableWidget[];
+  error?: string;
 }
