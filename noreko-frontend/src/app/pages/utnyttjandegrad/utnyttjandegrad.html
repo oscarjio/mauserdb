@@ -1,0 +1,302 @@
+<div class="utn-wrapper">
+
+  <!-- ===== SIDHUVUD ===== -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-gauge-high me-2" style="color: #4299e1;"></i>
+          Maskinutnyttjandegrad
+        </h1>
+        <p class="page-subtitle text-muted">
+          Hur stor andel av tillganglig tid maskinen faktiskt producerar — identifiera dolda tidstjuvar
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted" *ngIf="lastRefreshed">
+          Uppdaterad {{ lastRefreshed | date:'HH:mm:ss' }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Periodvaljare -->
+    <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
+      <div class="period-selector">
+        <button
+          *ngFor="let p of perioder"
+          class="btn btn-sm period-btn"
+          [class.active]="selectedDays === p.val"
+          (click)="setPeriod(p.val)">
+          {{ p.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LADDNING ===== -->
+  <div class="text-center py-4" *ngIf="isLoading() && !summaryLoaded">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="text-muted mt-2">Hamtar utnyttjandegrad...</p>
+  </div>
+
+  <!-- ===== FEL ===== -->
+  <div class="alert alert-danger" *ngIf="summaryError && summaryLoaded">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hamta utnyttjandegrad. Kontrollera att du ar inloggad.
+  </div>
+
+  <!-- ===== INNEHALL ===== -->
+  <div *ngIf="summaryLoaded && !summaryError">
+
+    <!-- ===== 3 KPI-KORT ===== -->
+    <div class="row g-3 mb-4">
+
+      <!-- KPI 1: Utnyttjandegrad idag (cirkulär progress) -->
+      <div class="col-12 col-md-4">
+        <div class="kpi-card kpi-card-main">
+          <div class="kpi-circle-wrap">
+            <svg class="kpi-circle" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="54" class="circle-bg"/>
+              <circle cx="60" cy="60" r="54" class="circle-fg"
+                [attr.stroke]="getProgressColor(summaryData?.idag_pct ?? null)"
+                [attr.stroke-dasharray]="getProgressDash(summaryData?.idag_pct ?? null)"
+                stroke-dashoffset="0"
+                transform="rotate(-90 60 60)"/>
+              <text x="60" y="55" text-anchor="middle" class="circle-text"
+                [attr.fill]="getProgressColor(summaryData?.idag_pct ?? null)">
+                {{ summaryData?.idag_pct !== null ? (summaryData?.idag_pct | number:'1.0-0') : '-' }}
+              </text>
+              <text x="60" y="72" text-anchor="middle" class="circle-unit">%</text>
+            </svg>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Utnyttjandegrad idag</div>
+            <div class="kpi-sub text-muted">
+              {{ formatTimmar(summaryData?.idag_drifttid_h ?? null) }} av
+              {{ formatTimmar(summaryData?.idag_tillganglig_h ?? null) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 2: Snitt 7 dagar -->
+      <div class="col-12 col-md-4">
+        <div class="kpi-card">
+          <div class="kpi-icon text-info">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Snitt 7 dagar</div>
+            <div class="kpi-value" [class]="getUtnyttjandegradKlass(summaryData?.snitt_7d ?? null)">
+              {{ formatPct(summaryData?.snitt_7d ?? null) }}
+            </div>
+            <div class="kpi-sub" [class.text-success]="(summaryData?.change_pct ?? 0) > 0"
+                                  [class.text-danger]="(summaryData?.change_pct ?? 0) < 0"
+                                  [class.text-muted]="summaryData?.change_pct === null">
+              {{ getChangeText() || 'Ingen jamforelsedata' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI 3: Snitt 30 dagar med trend -->
+      <div class="col-12 col-md-4">
+        <div class="kpi-card" [class.kpi-card-good]="summaryData?.trend === 'improving'"
+                               [class.kpi-card-bad]="summaryData?.trend === 'declining'">
+          <div class="kpi-icon" style="color: #68d391;">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="kpi-body">
+            <div class="kpi-label">Snitt 30 dagar</div>
+            <div class="kpi-value" [class]="getUtnyttjandegradKlass(summaryData?.snitt_30d ?? null)">
+              {{ formatPct(summaryData?.snitt_30d ?? null) }}
+            </div>
+            <div class="kpi-sub">
+              <span class="trend-badge" [class]="getTrendBadgeKlass()">
+                <i class="fas fa-arrow-up" *ngIf="summaryData?.trend === 'improving'"></i>
+                <i class="fas fa-arrow-down" *ngIf="summaryData?.trend === 'declining'"></i>
+                <i class="fas fa-minus" *ngIf="summaryData?.trend === 'stable' || !summaryData"></i>
+                {{ getTrendLabel() }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== STAPLAD BAR CHART ===== -->
+    <div class="utn-card mb-4" *ngIf="dailyLoaded">
+      <div class="utn-card-header">
+        <span>
+          <i class="fas fa-chart-bar me-2" style="color: #4299e1;"></i>
+          Tidsfordelning per dag — senaste {{ selectedDays }} dagar
+        </span>
+        <div class="d-flex align-items-center gap-2">
+          <span class="legend-dot legend-drift"></span>
+          <small class="text-muted">Drifttid</small>
+          <span class="legend-dot legend-stopp ms-2"></span>
+          <small class="text-muted">Stopptid</small>
+          <span class="legend-dot legend-okand ms-2"></span>
+          <small class="text-muted">Okand tid</small>
+        </div>
+      </div>
+      <div class="card-body p-3">
+        <div class="text-center py-3" *ngIf="dailyLoading">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div class="chart-container" *ngIf="!dailyLoading && dailyData">
+          <canvas id="utnyttjandegradBarChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4" *ngIf="!dailyLoading && !dailyData">
+          <i class="fas fa-chart-bar fa-2x mb-2 d-block opacity-30"></i>
+          Ingen data tillganglig
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TIDSFORLUST + DOUGHNUT ===== -->
+    <div class="row g-3 mb-4" *ngIf="lossesLoaded && lossesData">
+
+      <!-- Doughnut chart -->
+      <div class="col-12 col-lg-5">
+        <div class="utn-card h-100">
+          <div class="utn-card-header">
+            <span>
+              <i class="fas fa-chart-pie me-2" style="color: #ed8936;"></i>
+              Tidsforlustfordelning
+            </span>
+          </div>
+          <div class="card-body p-3 d-flex align-items-center justify-content-center">
+            <div class="text-center py-3" *ngIf="lossesLoading">
+              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+            </div>
+            <div class="doughnut-container" *ngIf="!lossesLoading && lossesData">
+              <canvas id="utnyttjandegradDoughnutChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Forlustlista -->
+      <div class="col-12 col-lg-7">
+        <div class="utn-card h-100">
+          <div class="utn-card-header">
+            <span>
+              <i class="fas fa-list me-2" style="color: #a0aec0;"></i>
+              Tidsforluster — senaste {{ selectedDays }} dagar
+            </span>
+            <small class="text-muted">
+              Totalt: <strong style="color: #e2e8f0;">{{ formatTimmar(lossesData.total_tillganglig_h) }}</strong> tillganglig
+            </small>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="utn-table">
+                <thead>
+                  <tr>
+                    <th>Kategori</th>
+                    <th class="text-end">Timmar</th>
+                    <th class="text-end">Andel</th>
+                    <th style="width: 30%;">Fordelning</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let l of lossesData.losses">
+                    <td>
+                      <span class="loss-dot" [style.background-color]="l.farg"></span>
+                      {{ l.kategori }}
+                    </td>
+                    <td class="text-end fw-600">{{ l.timmar.toFixed(1) }} h</td>
+                    <td class="text-end">{{ l.procent.toFixed(1) }}%</td>
+                    <td>
+                      <div class="loss-bar-wrap">
+                        <div class="loss-bar" [style.width.%]="l.procent" [style.background-color]="l.farg"></div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Topp stopporsaker -->
+            <div class="p-3" *ngIf="lossesData.topp_orsaker && lossesData.topp_orsaker.length > 0">
+              <h6 class="section-title mb-2">
+                <i class="fas fa-exclamation-circle me-2" style="color: #e53e3e;"></i>
+                Storsta tidstjuvar
+              </h6>
+              <div class="topp-orsak" *ngFor="let o of lossesData.topp_orsaker; let i = index">
+                <span class="topp-rank">{{ i + 1 }}.</span>
+                <span class="topp-namn">{{ o.orsak }}</span>
+                <span class="topp-badge" [class.badge-planerad]="o.category === 'planned'"
+                                          [class.badge-oplanerad]="o.category === 'unplanned'">
+                  {{ o.category === 'planned' ? 'Planerat' : 'Oplanerat' }}
+                </span>
+                <span class="topp-tid">{{ o.total_h.toFixed(1) }} h</span>
+                <span class="topp-antal text-muted">({{ o.antal }} stopp)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== DAGLIG TABELL ===== -->
+    <div class="utn-card" *ngIf="dailyLoaded && dailyData">
+      <div class="utn-card-header">
+        <span>
+          <i class="fas fa-table me-2" style="color: #a0aec0;"></i>
+          Dagliga varden
+        </span>
+        <small class="text-muted">
+          Tillganglig tid: {{ (22.5).toFixed(1) }} h/dag (3 skift)
+        </small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="utn-table">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th class="text-end">Tillganglig tid</th>
+                <th class="text-end">Drifttid</th>
+                <th class="text-end">Stopptid</th>
+                <th class="text-end">Utnyttjandegrad</th>
+                <th class="text-end">Stopp</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of dagligaTabelRader">
+                <td class="text-muted">{{ formatDatum(r.date) }}</td>
+                <td class="text-end text-muted">{{ r.tillganglig_h.toFixed(1) }} h</td>
+                <td class="text-end">
+                  <span [class.text-success]="r.drifttid_h > 0" [class.text-muted]="r.drifttid_h === 0">
+                    {{ r.drifttid_h > 0 ? r.drifttid_h.toFixed(1) + ' h' : '-' }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <span [class.text-danger]="r.stopptid_h > 0" [class.text-muted]="r.stopptid_h === 0">
+                    {{ r.stopptid_h > 0 ? r.stopptid_h.toFixed(1) + ' h' : '-' }}
+                  </span>
+                </td>
+                <td class="text-end fw-600">
+                  <span [class]="getUtnyttjandegradKlass(r.utnyttjandegrad)">
+                    {{ formatPct(r.utnyttjandegrad) }}
+                  </span>
+                </td>
+                <td class="text-end text-muted">
+                  {{ r.antal_stopp > 0 ? r.antal_stopp : '-' }}
+                </td>
+              </tr>
+              <tr *ngIf="dagligaTabelRader.length === 0">
+                <td colspan="6" class="text-center text-muted py-3">Ingen produktionsdata for perioden</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

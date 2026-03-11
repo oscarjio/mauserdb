@@ -1,0 +1,363 @@
+/* Maskinutnyttjandegrad */
+
+.utn-wrapper {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+/* ---- Header ---- */
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+}
+
+/* ---- Periodvaljare ---- */
+.period-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.period-btn {
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.period-btn:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.period-btn.active {
+  background-color: #4299e1;
+  border-color: #4299e1;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---- KPI-kort ---- */
+.kpi-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  height: 100%;
+}
+
+.kpi-card-main {
+  padding: 1.25rem;
+}
+
+.kpi-card-good {
+  border-color: rgba(72, 187, 120, 0.4);
+}
+
+.kpi-card-bad {
+  border-color: rgba(229, 62, 62, 0.4);
+}
+
+.kpi-icon {
+  font-size: 1.6rem;
+  min-width: 2rem;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.kpi-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.kpi-sub {
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Cirkulär progress ---- */
+.kpi-circle-wrap {
+  flex-shrink: 0;
+}
+
+.kpi-circle {
+  width: 100px;
+  height: 100px;
+}
+
+.circle-bg {
+  fill: none;
+  stroke: #4a5568;
+  stroke-width: 8;
+}
+
+.circle-fg {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+
+.circle-text {
+  font-size: 1.75rem;
+  font-weight: 700;
+  fill: #e2e8f0;
+}
+
+.circle-unit {
+  font-size: 0.85rem;
+  fill: #718096;
+}
+
+/* ---- Utnyttjandegrad farg ---- */
+.utn-god   { color: #48bb78; font-weight: 700; }
+.utn-medel { color: #ecc94b; font-weight: 700; }
+.utn-lag   { color: #e53e3e; font-weight: 700; }
+
+/* ---- Trendpil ---- */
+.trend-up     { color: #48bb78; font-weight: 600; }
+.trend-down   { color: #e53e3e; font-weight: 600; }
+.trend-stable { color: #a0aec0; font-weight: 500; }
+
+/* ---- Trend-badge ---- */
+.trend-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-forbattras {
+  background-color: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid rgba(72, 187, 120, 0.35);
+}
+
+.badge-forsamras {
+  background-color: rgba(229, 62, 62, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.35);
+}
+
+.badge-stable {
+  background-color: rgba(74, 85, 104, 0.4);
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+}
+
+/* ---- Kort ---- */
+.utn-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.utn-card-header {
+  background-color: #1a202c;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* ---- Chart ---- */
+.chart-container {
+  position: relative;
+  height: 360px;
+}
+
+.doughnut-container {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 320px;
+}
+
+/* ---- Sektion-titel ---- */
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ---- Legend dots ---- */
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-drift { background-color: #48bb78; }
+.legend-stopp { background-color: #e53e3e; }
+.legend-okand { background-color: #718096; }
+
+/* ---- Tabell ---- */
+.utn-table {
+  width: 100%;
+  color: #e2e8f0;
+  font-size: 0.87rem;
+  border-collapse: collapse;
+}
+
+.utn-table thead th {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.77rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #4a5568;
+  padding: 0.6rem 0.875rem;
+  white-space: nowrap;
+}
+
+.utn-table tbody tr {
+  border-bottom: 1px solid rgba(74, 85, 104, 0.35);
+  transition: background-color 0.1s ease;
+}
+
+.utn-table tbody tr:hover {
+  background-color: rgba(66, 153, 225, 0.06);
+}
+
+.utn-table tbody td {
+  padding: 0.5rem 0.875rem;
+  vertical-align: middle;
+}
+
+.fw-600 { font-weight: 600; }
+
+.opacity-30 { opacity: 0.3; }
+
+/* ---- Loss bar ---- */
+.loss-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+}
+
+.loss-bar-wrap {
+  width: 100%;
+  height: 8px;
+  background-color: #4a5568;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.loss-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ---- Topp orsaker ---- */
+.topp-orsak {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(74, 85, 104, 0.25);
+}
+
+.topp-orsak:last-child {
+  border-bottom: none;
+}
+
+.topp-rank {
+  color: #718096;
+  font-weight: 600;
+  min-width: 1.5rem;
+}
+
+.topp-namn {
+  flex: 1;
+  color: #e2e8f0;
+}
+
+.topp-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.badge-planerad {
+  background-color: rgba(66, 153, 225, 0.2);
+  color: #63b3ed;
+  border: 1px solid rgba(66, 153, 225, 0.35);
+}
+
+.badge-oplanerad {
+  background-color: rgba(229, 62, 62, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(229, 62, 62, 0.35);
+}
+
+.topp-tid {
+  font-weight: 600;
+  color: #e2e8f0;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.topp-antal {
+  font-size: 0.78rem;
+  min-width: 4rem;
+}
+
+/* ---- Responsivitet ---- */
+@media (max-width: 576px) {
+  .utn-wrapper { padding: 1rem; }
+  .page-title  { font-size: 1.35rem; }
+  .kpi-value   { font-size: 1.25rem; }
+  .chart-container { height: 250px; }
+  .doughnut-container { height: 250px; max-width: 250px; }
+  .kpi-circle  { width: 80px; height: 80px; }
+}

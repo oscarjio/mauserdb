@@ -1,0 +1,251 @@
+/* Produktionsmal vs utfall — VD-dashboard */
+
+.pm-wrapper {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+/* ---- Header ---- */
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+}
+
+/* ---- Periodvaljare ---- */
+.period-selector {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.period-btn {
+  background-color: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+.period-btn:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.period-btn.active {
+  background-color: #48bb78;
+  border-color: #48bb78;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+/* ---- Statuskort ---- */
+.status-card {
+  background-color: #2d3748;
+  border: 2px solid #4a5568;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: border-color 0.2s ease;
+  height: 100%;
+}
+
+.status-card.status-ahead {
+  border-color: #48bb78;
+}
+
+.status-card.status-on-track {
+  border-color: #ecc94b;
+}
+
+.status-card.status-behind {
+  border-color: #fc5c65;
+}
+
+.status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.status-icon-wrap {
+  font-size: 1.5rem;
+}
+
+.status-ahead .status-icon-wrap { color: #48bb78; }
+.status-on-track .status-icon-wrap { color: #ecc94b; }
+.status-behind .status-icon-wrap { color: #fc5c65; }
+
+.status-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  flex: 1;
+}
+
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-badge.status-ahead {
+  background-color: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+}
+
+.status-badge.status-on-track {
+  background-color: rgba(236, 201, 75, 0.2);
+  color: #ecc94b;
+}
+
+.status-badge.status-behind {
+  background-color: rgba(252, 92, 101, 0.2);
+  color: #fc5c65;
+}
+
+.status-big-number {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.status-ahead .status-big-number { color: #48bb78; }
+.status-on-track .status-big-number { color: #ecc94b; }
+.status-behind .status-big-number { color: #fc5c65; }
+
+.status-sub {
+  font-size: 0.85rem;
+}
+
+/* Detaljer */
+.status-details {
+  border-top: 1px solid #4a5568;
+  padding-top: 0.75rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.detail-label {
+  color: #a0aec0;
+}
+
+.detail-value {
+  color: #e2e8f0;
+}
+
+/* Progress bar */
+.progress-bar-wrap {
+  padding-top: 0.25rem;
+}
+
+.progress-bar-bg {
+  background-color: #4a5568;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+/* ---- Kort ---- */
+.card-dark {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+/* ---- Chart ---- */
+.chart-container {
+  position: relative;
+  height: 350px;
+}
+
+/* ---- Tabell ---- */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-color: #e2e8f0;
+  --bs-table-border-color: #4a5568;
+  --bs-table-hover-bg: #374151;
+  --bs-table-hover-color: #e2e8f0;
+}
+
+.table-dark thead th {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #4a5568;
+}
+
+.row-green td:first-child {
+  border-left: 3px solid #48bb78;
+}
+
+.row-yellow td:first-child {
+  border-left: 3px solid #ecc94b;
+}
+
+.row-red td:first-child {
+  border-left: 3px solid #fc5c65;
+}
+
+/* Mini progress in table */
+.mini-progress-bg {
+  background-color: #4a5568;
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .pm-wrapper {
+    padding: 1rem;
+  }
+
+  .status-big-number {
+    font-size: 2.5rem;
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+}

@@ -159,6 +159,8 @@ $classNameMap = [
     'kvalitetstrend'          => 'KvalitetstrendController',
     'effektivitet'            => 'EffektivitetController',
     'stopporsak-trend'        => 'StopporsakTrendController',
+    'produktionsmal'          => 'ProduktionsmalController',
+    'utnyttjandegrad'         => 'UtnyttjandegradController',
 ];
 
 $actionKey = strtolower($action);

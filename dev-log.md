@@ -1,3 +1,24 @@
+## 2026-03-11 Produktionsmal vs utfall — VD-dashboard
+
+Ny sida `/rebotling/produktionsmal` (authGuard). VD ser pa 10 sekunder om produktionen ligger i fas med malen. Stor, tydlig vy med dag/vecka/manad.
+
+- **Backend**: `ProduktionsmalController.php` — tre endpoints:
+  - `run=summary`: Aktuell dag/vecka/manad — mal vs faktisk IBC, %-uppfyllnad, status (ahead/on_track/behind). Dagsprognos baserat pa forbrukad tid. Hittills-mal + fullt mal for vecka/manad.
+  - `run=daily&days=N`: Daglig tidsserie med mal, faktiskt, uppfyllnad-%, kumulativt mal vs faktiskt.
+  - `run=weekly&weeks=N`: Veckovis — veckonummer, mal, faktiskt, uppfyllnad, status.
+  - Mal hamtas fran `rebotling_weekday_goals` (per veckodag). Faktisk produktion fran `rebotling_ibc`.
+  - Auth: session kravs (401 om ej inloggad). PDO prepared statements.
+- **api.php**: Registrerat `produktionsmal` -> `ProduktionsmalController`.
+- **Service**: `produktionsmal.service.ts` — getSummary(), getDaily(days), getWeekly(weeks) med TypeScript-interfaces, timeout(15s) + catchError.
+- **Komponent**: `src/app/pages/produktionsmal/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + clearTimeout + chart?.destroy().
+  - 3 stora statuskort (dag/vecka/manad): Mal vs faktiskt, progress bar (gron >=90%, gul 70-89%, rod <70%), stor %-siffra, statusindikator.
+  - Kumulativ Chart.js linjegraf: mal-linje (streckad gra) vs faktisk-linje (gron), skuggat gap.
+  - Daglig tabell med fargkodning per rad.
+  - Periodvaljare: 7d / 14d / 30d / 90d.
+  - Auto-refresh var 5:e minut.
+- **Route**: `/rebotling/produktionsmal` (authGuard).
+- **Meny**: Lagt till under Rebotling-dropdown: "Produktionsmal" (gron bullseye-ikon).
+
 ## 2026-03-11 Maskineffektivitet — IBC per drifttimme trendartat
 
 Ny sida `/rebotling/effektivitet` (authGuard). VD kan se om maskinen blir långsammare (slitage) eller snabbare (optimering) baserat på IBC producerade per drifttimme.

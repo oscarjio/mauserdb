@@ -1,0 +1,266 @@
+<div class="pm-wrapper">
+
+  <!-- ===== SIDHUVUD ===== -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-bullseye me-2" style="color: #48bb78;"></i>
+          Produktionsmal vs utfall
+        </h1>
+        <p class="page-subtitle text-muted">
+          Oversikt over dagens, veckans och manadens produktion mot uppsatta mal
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted" *ngIf="lastRefreshed">
+          Uppdaterad {{ lastRefreshed | date:'HH:mm:ss' }}
+        </small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LADDNING ===== -->
+  <div class="text-center py-5" *ngIf="isLoading() && !summaryLoaded">
+    <div class="spinner-border text-success" role="status"></div>
+    <p class="text-muted mt-2">Hamtar produktionsdata...</p>
+  </div>
+
+  <!-- ===== FEL ===== -->
+  <div class="alert alert-danger" *ngIf="summaryError && summaryLoaded">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hamta produktionsdata. Kontrollera att du ar inloggad.
+  </div>
+
+  <!-- ===== 3 STORA STATUSKORT ===== -->
+  <div *ngIf="summaryLoaded && !summaryError && summaryData">
+
+    <div class="row g-4 mb-4">
+
+      <!-- DAG -->
+      <div class="col-12 col-lg-4">
+        <div class="status-card" [ngClass]="getStatusKlass(summaryData.dag.status)">
+          <div class="status-card-header">
+            <div class="status-icon-wrap">
+              <i class="fas" [ngClass]="getStatusIcon(summaryData.dag.status)"></i>
+            </div>
+            <div class="status-label">Idag</div>
+            <div class="status-badge" [ngClass]="getStatusKlass(summaryData.dag.status)">
+              {{ getStatusText(summaryData.dag.status) }}
+            </div>
+          </div>
+
+          <div class="status-big-number">
+            {{ summaryData.dag.uppfyllnad }}%
+          </div>
+          <div class="status-sub text-muted">
+            av dagsmalet (prognos {{ summaryData.dag.prognos_pct }}%)
+          </div>
+
+          <div class="status-details mt-3">
+            <div class="detail-row">
+              <span class="detail-label">Mal</span>
+              <span class="detail-value">{{ formatNumber(summaryData.dag.mal) }} IBC</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Producerat</span>
+              <span class="detail-value fw-bold">{{ formatNumber(summaryData.dag.faktiskt) }} IBC</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Prognos</span>
+              <span class="detail-value">{{ formatNumber(summaryData.dag.prognos_ibc) }} IBC</span>
+            </div>
+            <div class="detail-row text-muted small">
+              <span class="detail-label">Tid</span>
+              <span class="detail-value">{{ summaryData.dag.elapsed_h }}h av {{ summaryData.dag.total_h }}h</span>
+            </div>
+          </div>
+
+          <div class="progress-bar-wrap mt-3">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill"
+                   [style.width.%]="Math.min(100, summaryData.dag.uppfyllnad)"
+                   [style.backgroundColor]="getProgressBarColor(summaryData.dag.prognos_pct)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VECKA -->
+      <div class="col-12 col-lg-4">
+        <div class="status-card" [ngClass]="getStatusKlass(summaryData.vecka.status)">
+          <div class="status-card-header">
+            <div class="status-icon-wrap">
+              <i class="fas" [ngClass]="getStatusIcon(summaryData.vecka.status)"></i>
+            </div>
+            <div class="status-label">Vecka {{ summaryData.vecka.veckonr }}</div>
+            <div class="status-badge" [ngClass]="getStatusKlass(summaryData.vecka.status)">
+              {{ getStatusText(summaryData.vecka.status) }}
+            </div>
+          </div>
+
+          <div class="status-big-number">
+            {{ summaryData.vecka.uppfyllnad }}%
+          </div>
+          <div class="status-sub text-muted">
+            av veckans mal hittills
+          </div>
+
+          <div class="status-details mt-3">
+            <div class="detail-row">
+              <span class="detail-label">Mal (hittills)</span>
+              <span class="detail-value">{{ formatNumber(summaryData.vecka.mal) }} IBC</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Producerat</span>
+              <span class="detail-value fw-bold">{{ formatNumber(summaryData.vecka.faktiskt) }} IBC</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Fullt veckomal</span>
+              <span class="detail-value">{{ formatNumber(summaryData.vecka.full_mal) }} IBC</span>
+            </div>
+          </div>
+
+          <div class="progress-bar-wrap mt-3">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill"
+                   [style.width.%]="Math.min(100, summaryData.vecka.uppfyllnad)"
+                   [style.backgroundColor]="getProgressBarColor(summaryData.vecka.uppfyllnad)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MANAD -->
+      <div class="col-12 col-lg-4">
+        <div class="status-card" [ngClass]="getStatusKlass(summaryData.manad.status)">
+          <div class="status-card-header">
+            <div class="status-icon-wrap">
+              <i class="fas" [ngClass]="getStatusIcon(summaryData.manad.status)"></i>
+            </div>
+            <div class="status-label">{{ summaryData.manad.manad }}</div>
+            <div class="status-badge" [ngClass]="getStatusKlass(summaryData.manad.status)">
+              {{ getStatusText(summaryData.manad.status) }}
+            </div>
+          </div>
+
+          <div class="status-big-number">
+            {{ summaryData.manad.uppfyllnad }}%
+          </div>
+          <div class="status-sub text-muted">
+            av manadens mal hittills
+          </div>
+
+          <div class="status-details mt-3">
+            <div class="detail-row">
+              <span class="detail-label">Mal (hittills)</span>
+              <span class="detail-value">{{ formatNumber(summaryData.manad.mal) }} IBC</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Producerat</span>
+              <span class="detail-value fw-bold">{{ formatNumber(summaryData.manad.faktiskt) }} IBC</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Fullt manadsmal</span>
+              <span class="detail-value">{{ formatNumber(summaryData.manad.full_mal) }} IBC</span>
+            </div>
+          </div>
+
+          <div class="progress-bar-wrap mt-3">
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill"
+                   [style.width.%]="Math.min(100, summaryData.manad.uppfyllnad)"
+                   [style.backgroundColor]="getProgressBarColor(summaryData.manad.uppfyllnad)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ===== KUMULATIV CHART ===== -->
+    <div class="card card-dark mb-4">
+      <div class="card-body">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2" style="color: #48bb78;"></i>
+            Kumulativ maluppfyllnad
+          </h5>
+          <div class="period-selector">
+            <button
+              *ngFor="let p of perioder"
+              class="btn btn-sm period-btn"
+              [class.active]="selectedDays === p.val"
+              (click)="setPeriod(p.val)">
+              {{ p.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="text-center py-3" *ngIf="dailyLoading && !dailyLoaded">
+          <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+        </div>
+
+        <div class="chart-container" *ngIf="dailyLoaded && !dailyError">
+          <canvas id="kumMalChart"></canvas>
+        </div>
+
+        <div class="alert alert-warning mt-2" *ngIf="dailyError && dailyLoaded">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Kunde inte hamta daglig data.
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DAGLIG TABELL ===== -->
+    <div class="card card-dark" *ngIf="dailyLoaded && !dailyError && dagligaRader.length > 0">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-table me-2" style="color: #4299e1;"></i>
+          Daglig uppfyllnad
+        </h5>
+
+        <div class="table-responsive">
+          <table class="table table-dark table-sm table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th>Dag</th>
+                <th class="text-end">Mal</th>
+                <th class="text-end">Faktiskt</th>
+                <th class="text-end">Uppfyllnad</th>
+                <th style="width:120px">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of dagligaRader" [ngClass]="getRowColorClass(r.uppfyllnad)">
+                <td>{{ formatDatum(r.datum) }}</td>
+                <td>{{ r.veckodag }}</td>
+                <td class="text-end">{{ formatNumber(r.mal) }}</td>
+                <td class="text-end fw-bold">{{ formatNumber(r.faktiskt) }}</td>
+                <td class="text-end">
+                  <span class="fw-bold"
+                        [style.color]="getProgressBarColor(r.uppfyllnad)">
+                    {{ r.uppfyllnad }}%
+                  </span>
+                </td>
+                <td>
+                  <div class="mini-progress-bg">
+                    <div class="mini-progress-fill"
+                         [style.width.%]="Math.min(100, r.uppfyllnad)"
+                         [style.backgroundColor]="getProgressBarColor(r.uppfyllnad)">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

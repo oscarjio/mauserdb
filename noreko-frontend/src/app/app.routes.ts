@@ -61,6 +61,8 @@ export const routes: Routes = [
       { path: 'rebotling/malhistorik', canActivate: [authGuard], loadComponent: () => import('./pages/malhistorik/malhistorik').then(m => m.MalhistorikComponent) },
       { path: 'rebotling/underhallsprognos', canActivate: [authGuard], loadComponent: () => import('./pages/underhallsprognos/underhallsprognos').then(m => m.UnderhallsprognosComponent) },
       { path: 'rebotling/effektivitet', canActivate: [authGuard], loadComponent: () => import('./pages/effektivitet/effektivitet').then(m => m.EffektivitetComponent) },
+      { path: 'rebotling/produktionsmal', canActivate: [authGuard], loadComponent: () => import('./pages/produktionsmal/produktionsmal').then(m => m.ProduktionsmalComponent) },
+      { path: 'rebotling/utnyttjandegrad', canActivate: [authGuard], loadComponent: () => import('./pages/utnyttjandegrad/utnyttjandegrad').then(m => m.UtnyttjandegradComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
