@@ -493,6 +493,7 @@ class SkiftrapportController {
                 if ($datum && preg_match('/^\d{4}-\d{2}-\d{2}/', $datum)) {
                     $datumPrefix = substr($datum, 0, 10);
                     // Hitta närliggande skifträknare med FLEST giltiga löpnummer på samma datum
+                    // Föredra lägre skifträknare (bakåt) vid lika antal — PLC räknar upp
                     $stmt = $this->pdo->prepare(
                         "SELECT skiftraknare, COUNT(DISTINCT lopnummer) as cnt
                          FROM rebotling_ibc
@@ -501,7 +502,7 @@ class SkiftrapportController {
                          AND datum LIKE ?
                          AND lopnummer > 0 AND lopnummer < 998
                          GROUP BY skiftraknare
-                         ORDER BY cnt DESC
+                         ORDER BY cnt DESC, skiftraknare ASC
                          LIMIT 1"
                     );
                     $stmt->execute([

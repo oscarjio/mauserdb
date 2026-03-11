@@ -143,6 +143,8 @@ $classNameMap = [
     'kassationsanalys' => 'KassationsanalysController',
     'dashboard-layout' => 'DashboardLayoutController',
     'produkttyp-effektivitet' => 'ProduktTypEffektivitetController',
+    'stopporsak-reg'          => 'StopporsakRegistreringController',
+    'skiftoverlamning'        => 'SkiftoverlamningController',
 ];
 
 $actionKey = strtolower($action);

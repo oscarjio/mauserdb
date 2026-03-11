@@ -1,3 +1,28 @@
+## 2026-03-11 Skiftöverlämningsmall — auto-genererad skiftsammanfattning
+
+Ny sida `/rebotling/skiftoverlamning` (publik — ingen inloggning krävs för att läsa). Visar senaste avslutade skiftets nyckeltal direkt från `rebotling_ibc`-data: IBC ok/ej ok, kvalitet %, IBC/timme, cykeltid, drifttid, stopptid med visuell fördelningsbar. Noteringar kan läggas till av inloggade användare och sparas kopplade till PLC-skiftraknaren. Historikvy med senaste N dagars skift i tabell, klicka för att navigera. Utskriftsvy via window.print(). Skiftnavigering (föregående/nästa) via prev_skift/next_skift.
+
+- **SQL**: `noreko-backend/migrations/2026-03-11_skiftoverlamning.sql` — tabell `skiftoverlamning_notes`
+- **Backend**: `SkiftoverlamningController.php` — endpoints: summary, notes, add-note (POST), history
+- **api.php**: Registrerat `skiftoverlamning` → `SkiftoverlamningController`
+- **Service**: `src/app/services/skiftoverlamning.service.ts`
+- **Component**: `src/app/pages/skiftoverlamning/` (ts + html + css)
+- **Route**: `/rebotling/skiftoverlamning` (ingen authGuard — publik vy)
+- **Meny**: Lagt till under Rebotling-dropdown: "Skiftöverlämningsmall"
+- **Buggfix**: `stopporsak-registrering.html` — ändrat `'Okänd operatör'` (non-ASCII i template-expression) till `'Okänd'` för att kompilatorn inte ska krascha
+
+## 2026-03-11 Stopporsak-snabbregistrering — mobilvänlig knappmatris för operatörer
+
+Ny sida `/rebotling/stopporsak-registrering` (autentiserad). Operatörer trycker en kategoriknapp, skriver valfri kommentar och bekräftar. Aktiva stopp visas med live-timer. Avsluta-knapp avslutar stoppet och beräknar varaktighet. Historik visar senaste 20 stopp.
+
+- **SQL**: `noreko-backend/migrations/2026-03-11_stopporsak_registrering.sql` — tabeller `stopporsak_kategorier` + `stopporsak_registreringar` + 8 standardkategorier
+- **Backend**: `StopporsakRegistreringController.php` — endpoints: categories, register (POST), active, end-stop (POST), recent
+- **Service**: `src/app/services/stopporsak-registrering.service.ts`
+- **Component**: `src/app/pages/stopporsak-registrering/` (ts + html + css)
+- **Route**: `/rebotling/stopporsak-registrering` (authGuard)
+- **Meny**: Lagt till under Rebotling-dropdown: "Registrera stopp"
+- **Build**: OK — inga fel
+
 ## 2026-03-11 Effektivitet per produkttyp — jamforelse mellan IBC-produkttyper
 
 Analysvy som jamfor produktionseffektivitet mellan olika IBC-produkttyper (FoodGrade, NonUN, etc.). VD ser vilka produkttyper som tar langst tid, har bast kvalitet och ger hogst throughput.

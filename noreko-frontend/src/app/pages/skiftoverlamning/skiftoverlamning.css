@@ -1,0 +1,223 @@
+/* ============================================================
+   Skiftöverlämningsmall — mörkt tema
+   ============================================================ */
+
+.page-container {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* ---- Sammanfattningskort ---- */
+.summary-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.5rem;
+  color: #e2e8f0;
+}
+
+.summary-card .card-header {
+  background: #374151;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+  padding: 0.75rem 1.25rem;
+}
+
+.summary-card .card-body {
+  padding: 1.25rem;
+}
+
+/* ---- KPI-kort ---- */
+.kpi-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  text-align: center;
+  height: 100%;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a0aec0;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+}
+
+.kpi-sub {
+  font-size: 0.78rem;
+  color: #718096;
+}
+
+/* ---- Tidfördelnings-bar ---- */
+.time-bar-container {
+  display: flex;
+  height: 36px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #4a5568;
+  width: 100%;
+}
+
+.time-bar-segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  transition: width 0.4s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0 6px;
+  min-width: 0;
+}
+
+.time-bar-segment.drift {
+  background: #38a169;
+}
+
+.time-bar-segment.stopp {
+  background: #c53030;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+
+.legend-dot.drift { background: #38a169; }
+.legend-dot.stopp { background: #c53030; }
+
+/* ---- Noteringar ---- */
+.notes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.note-item {
+  background: #1a202c;
+  border-left: 3px solid #4299e1;
+  border-radius: 4px;
+  padding: 0.6rem 1rem;
+}
+
+.note-text {
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.note-meta {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+}
+
+.note-input {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  resize: vertical;
+  flex: 1;
+}
+
+.note-input:focus {
+  background: #1a202c;
+  border-color: #4299e1;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
+}
+
+/* ---- Historiktabell ---- */
+.days-select {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+  width: auto;
+}
+
+.table-dark {
+  --bs-table-bg: #1a202c;
+  --bs-table-hover-bg: #2d3748;
+}
+
+.table-dark th {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a0aec0;
+  padding: 0.5rem 0.75rem;
+  border-bottom-color: #4a5568;
+}
+
+.table-dark td {
+  font-size: 0.85rem;
+  padding: 0.45rem 0.75rem;
+  border-bottom-color: #2d3748;
+  vertical-align: middle;
+}
+
+/* ---- Utskrift ---- */
+@media print {
+  .no-print,
+  .nav-btns,
+  .print-btn {
+    display: none !important;
+  }
+
+  .page-container {
+    padding: 0;
+    max-width: 100%;
+  }
+
+  .summary-card,
+  .kpi-card {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .kpi-label,
+  .kpi-sub,
+  .text-muted,
+  .note-meta {
+    color: #555 !important;
+  }
+
+  .kpi-value,
+  .note-text,
+  .page-title {
+    color: #000 !important;
+  }
+
+  .note-item {
+    background: #f9f9f9 !important;
+    border-left-color: #000 !important;
+  }
+
+  .time-bar-segment.drift { background: #555 !important; }
+  .time-bar-segment.stopp { background: #999 !important; }
+
+  .summary-card .card-header {
+    background: #eee !important;
+    color: #000 !important;
+  }
+}

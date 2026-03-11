@@ -3918,6 +3918,7 @@ class RebotlingAnalyticsController {
 
         try {
             // Hämta alla skiftrapporter för detta datum
+            // Använd DATE() för att hantera både DATE och DATETIME-kolumner
             $stmt = $this->pdo->prepare("
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
@@ -3935,34 +3936,11 @@ class RebotlingAnalyticsController {
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE s.datum = :date
+                WHERE DATE(s.datum) = :date
                 ORDER BY s.id
             ");
             $stmt->execute(['date' => $date]);
-            $allRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Filtrera rader som tillhör det angivna skiftet baserat på timestamp
-            // Skift 1 = förmiddag (06-14), skift 2 = eftermiddag (14-22), skift 3 = natt (22-06)
-            $rows = [];
-            foreach ($allRows as $row) {
-                $timeStr = substr($row['datum'] ?? '', 11, 5);
-                $rowShift = 1;
-                if ($timeStr) {
-                    $parts = explode(':', $timeStr);
-                    $minutes = ((int)$parts[0]) * 60 + ((int)($parts[1] ?? 0));
-                    if ($minutes >= 360 && $minutes < 840) $rowShift = 1;      // 06-14
-                    elseif ($minutes >= 840 && $minutes < 1320) $rowShift = 2;  // 14-22
-                    else $rowShift = 3;                                          // 22-06
-                }
-                if ($rowShift === $shift) {
-                    $rows[] = $row;
-                }
-            }
-
-            // Om vi inte matchade med timestamp, ta alla för datumet (fallback)
-            if (count($rows) === 0 && count($allRows) > 0) {
-                $rows = $allRows;
-            }
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Aggregera KPI:er
             $totalIbcOk  = 0;
@@ -4028,13 +4006,13 @@ class RebotlingAnalyticsController {
 
             // Timvis produktion från PLC-data (om tillgänglig)
             $hourlyData = [];
-            $skiftraknare = null;
+            $skiftraknareList = [];
             foreach ($rows as $r) {
                 if (!empty($r['skiftraknare'])) {
-                    $skiftraknare = (int)$r['skiftraknare'];
-                    break;
+                    $skiftraknareList[(int)$r['skiftraknare']] = true;
                 }
             }
+            $skiftraknare = count($skiftraknareList) > 0 ? array_key_first($skiftraknareList) : null;
 
             if ($skiftraknare) {
                 $hourlyStmt = $this->pdo->prepare("
@@ -4050,6 +4028,26 @@ class RebotlingAnalyticsController {
                 ");
                 $hourlyStmt->execute(['date' => $date, 'skift' => $skiftraknare]);
                 $hourlyData = $hourlyStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            // Hämta start- och stopptid från rebotling_ibc (PLC-data)
+            $skiftStart = null;
+            $skiftSlut  = null;
+            if (count($skiftraknareList) > 0) {
+                $skiftIds = array_keys($skiftraknareList);
+                $placeholders = implode(',', array_fill(0, count($skiftIds), '?'));
+                $tidStmt = $this->pdo->prepare("
+                    SELECT MIN(datum) AS start_tid, MAX(datum) AS slut_tid
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IN ({$placeholders})
+                      AND lopnummer > 0 AND lopnummer < 998
+                ");
+                $tidStmt->execute($skiftIds);
+                $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
+                if ($tidRow) {
+                    $skiftStart = $tidRow['start_tid'] ?? null;
+                    $skiftSlut  = $tidRow['slut_tid'] ?? null;
+                }
             }
 
             // Skiftkommentar
@@ -4084,6 +4082,8 @@ class RebotlingAnalyticsController {
                     'ibc_per_h'  => $ibcPerH,
                     'drifttid'   => $totalDrift,
                     'rasttime'   => $totalRast,
+                    'skift_start' => $skiftStart,
+                    'skift_slut'  => $skiftSlut,
                     'delta_vs_prev' => $delta,
                     'operators'  => array_keys($operatorNames),
                     'products'   => array_keys($products),
@@ -4947,6 +4947,9 @@ HTML;
     // =========================================================
 
     public function getShiftPdfSummary() {
+        // Sätt HTML content-type direkt — api.php sätter application/json som default
+        header('Content-Type: text/html; charset=utf-8');
+
         $date  = $_GET['date']  ?? '';
         $shift = (int)($_GET['shift'] ?? 0);
 
@@ -4957,6 +4960,7 @@ HTML;
         }
 
         try {
+            // Använd DATE() för att hantera både DATE och DATETIME-kolumner
             $stmt = $this->pdo->prepare("
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
@@ -4974,32 +4978,14 @@ HTML;
                 LEFT JOIN operators o1 ON o1.number = s.op1
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
-                WHERE s.datum = :date
+                WHERE DATE(s.datum) = :date
                 ORDER BY s.id
             ");
             $stmt->execute(['date' => $date]);
-            $allRows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $rows = [];
-            foreach ($allRows as $row) {
-                $timeStr = substr($row['datum'] ?? '', 11, 5);
-                $rowShift = 1;
-                if ($timeStr) {
-                    $parts = explode(':', $timeStr);
-                    $minutes = ((int)$parts[0]) * 60 + ((int)($parts[1] ?? 0));
-                    if ($minutes >= 360 && $minutes < 840) $rowShift = 1;
-                    elseif ($minutes >= 840 && $minutes < 1320) $rowShift = 2;
-                    else $rowShift = 3;
-                }
-                if ($rowShift === $shift) {
-                    $rows[] = $row;
-                }
-            }
-
-            if (count($rows) === 0 && count($allRows) > 0) {
-                $rows = $allRows;
-            }
-
+            // Samla skifträknare för start/stopp-tid
+            $skiftraknareList = [];
             $totalIbcOk = 0; $totalBurEj = 0; $totalIbcEj = 0;
             $totalTotalt = 0; $totalDrift = 0; $totalRast = 0;
             $operatorNames = []; $products = [];
@@ -5015,6 +5001,29 @@ HTML;
                     if (!empty($r[$opField])) $operatorNames[$r[$opField]] = true;
                 }
                 if (!empty($r['product_name'])) $products[$r['product_name']] = true;
+                if (!empty($r['skiftraknare'])) {
+                    $skiftraknareList[(int)$r['skiftraknare']] = true;
+                }
+            }
+
+            // Hämta start- och stopptid från rebotling_ibc (PLC-data)
+            $skiftStart = null;
+            $skiftSlut  = null;
+            if (count($skiftraknareList) > 0) {
+                $skiftIds = array_keys($skiftraknareList);
+                $placeholders = implode(',', array_fill(0, count($skiftIds), '?'));
+                $tidStmt = $this->pdo->prepare("
+                    SELECT MIN(datum) AS start_tid, MAX(datum) AS slut_tid
+                    FROM rebotling_ibc
+                    WHERE skiftraknare IN ({$placeholders})
+                      AND lopnummer > 0 AND lopnummer < 998
+                ");
+                $tidStmt->execute($skiftIds);
+                $tidRow = $tidStmt->fetch(PDO::FETCH_ASSOC);
+                if ($tidRow) {
+                    $skiftStart = $tidRow['start_tid'] ?? null;
+                    $skiftSlut  = $tidRow['slut_tid'] ?? null;
+                }
             }
 
             $kvalitet = $totalTotalt > 0 ? round(($totalIbcOk / $totalTotalt) * 100, 1) : null;
@@ -5041,6 +5050,16 @@ HTML;
                 $drifttidStr = $h > 0 ? "{$h}h {$m}min" : "{$m}min";
             }
             $rasttidStr = $totalRast > 0 ? "{$totalRast} min" : '-';
+
+            // Formatera start/stopp-tid
+            $startTidStr = '-';
+            $slutTidStr  = '-';
+            if ($skiftStart) {
+                $startTidStr = date('H:i', strtotime($skiftStart));
+            }
+            if ($skiftSlut) {
+                $slutTidStr = date('H:i', strtotime($skiftSlut));
+            }
 
             $kvalitetFarg = '#333';
             if ($kvalitet !== null) {
@@ -5085,9 +5104,8 @@ HTML;
 
             $opTableHtml = '';
             if (count($rows) > 0) {
-                $opTableHtml = "<table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:0.85rem;'><thead><tr style='background:#f0f0f0;'><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Tid</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Bur ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Totalt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Operatorer</th></tr></thead><tbody>";
+                $opTableHtml = "<table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:0.85rem;'><thead><tr style='background:#f0f0f0;'><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Bur ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Totalt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Operatorer</th></tr></thead><tbody>";
                 foreach ($rows as $r) {
-                    $tid = htmlspecialchars(substr($r['datum'] ?? '', 11, 5) ?: '-', ENT_QUOTES, 'UTF-8');
                     $prod = htmlspecialchars($r['product_name'] ?? '-', ENT_QUOTES, 'UTF-8');
                     $ibcOk = (int)($r['ibc_ok'] ?? 0);
                     $burEj = (int)($r['bur_ej_ok'] ?? 0);
@@ -5095,7 +5113,7 @@ HTML;
                     $totalt = (int)($r['totalt'] ?? 0);
                     $ops = array_filter([$r['op1_name'] ?? null, $r['op2_name'] ?? null, $r['op3_name'] ?? null]);
                     $opsStr = htmlspecialchars(implode(', ', $ops) ?: '-', ENT_QUOTES, 'UTF-8');
-                    $opTableHtml .= "<tr><td style='padding:5px 10px;border:1px solid #ddd;'>{$tid}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$prod}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#006600;font-weight:600;'>{$ibcOk}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#996600;'>{$burEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#cc0000;'>{$ibcEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$totalt}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$opsStr}</td></tr>";
+                    $opTableHtml .= "<tr><td style='padding:5px 10px;border:1px solid #ddd;'>{$prod}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#006600;font-weight:600;'>{$ibcOk}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#996600;'>{$burEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#cc0000;'>{$ibcEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$totalt}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$opsStr}</td></tr>";
                 }
                 $opTableHtml .= "</tbody></table>";
             }
@@ -5108,19 +5126,24 @@ HTML;
             $antalRap = count($rows);
             $genererad = date('Y-m-d H:i');
 
-            header('Content-Type: text/html; charset=utf-8');
-
             $html = '<!DOCTYPE html><html lang="sv"><head><meta charset="UTF-8"><title>Skiftsammanfattning - ' . $dateEsc . ' ' . $shiftNameEsc . '</title>';
-            $html .= '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#333;background:#fff;padding:20mm;font-size:14px;line-height:1.4}@page{size:A4;margin:15mm}@media print{body{padding:0}.no-print{display:none!important}}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.header h1{font-size:1.4rem;color:#1a202c;margin-bottom:2px}.header h2{font-size:1.1rem;color:#555;font-weight:500}.header .right{text-align:right}.header .right h3{font-size:1.2rem;color:#2d3748;margin-bottom:2px}.header .right p{font-size:0.9rem;color:#666}hr{border:none;border-top:2px solid #e2e8f0;margin:12px 0}.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}.kpi-card{background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:10px 8px;text-align:center}.kpi-label{font-size:0.7rem;color:#555;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}.kpi-value{font-size:1.4rem;font-weight:700;line-height:1.2}.section-title{font-size:0.9rem;font-weight:600;color:#2d3748;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0}.ops-box{margin-bottom:10px}.footer{margin-top:20px;border-top:1px solid #ddd;padding-top:8px;display:flex;justify-content:space-between;font-size:0.8rem;color:#666}.print-btn{position:fixed;bottom:20px;right:20px;padding:10px 24px;background:#198754;color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2)}.print-btn:hover{background:#157347}</style>';
+            $html .= '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#333;background:#fff;padding:20mm;font-size:14px;line-height:1.4}@page{size:A4;margin:15mm}@media print{body{padding:0}.no-print{display:none!important}}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}.header h1{font-size:1.4rem;color:#1a202c;margin-bottom:2px}.header h2{font-size:1.1rem;color:#555;font-weight:500}.header .right{text-align:right}.header .right h3{font-size:1.2rem;color:#2d3748;margin-bottom:2px}.header .right p{font-size:0.9rem;color:#666}hr{border:none;border-top:2px solid #e2e8f0;margin:12px 0}.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}.kpi-card{background:#f8f8f8;border:1px solid #ddd;border-radius:6px;padding:10px 8px;text-align:center}.kpi-label{font-size:0.7rem;color:#555;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}.kpi-value{font-size:1.4rem;font-weight:700;line-height:1.2}.time-row{display:flex;gap:16px;margin-bottom:16px;padding:10px 14px;background:#f0f7ff;border:1px solid #b3d4fc;border-radius:6px}.time-item{flex:1}.time-item .label{font-size:0.75rem;color:#555;text-transform:uppercase;letter-spacing:0.03em}.time-item .value{font-size:1.1rem;font-weight:600;color:#1a202c}.section-title{font-size:0.9rem;font-weight:600;color:#2d3748;margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid #e2e8f0}.ops-box{margin-bottom:10px}.footer{margin-top:20px;border-top:1px solid #ddd;padding-top:8px;display:flex;justify-content:space-between;font-size:0.8rem;color:#666}.print-btn{position:fixed;bottom:20px;right:20px;padding:10px 24px;background:#198754;color:#fff;border:none;border-radius:6px;font-size:1rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.2)}.print-btn:hover{background:#157347}</style>';
             $html .= '</head><body>';
             $html .= '<button class="print-btn no-print" onclick="window.print()">Skriv ut / Spara PDF</button>';
             $html .= '<div class="header"><div><h1>Skiftsammanfattning</h1><h2>Rebotling - IBC-tvatt</h2></div><div class="right"><h3>NOREKO</h3><p>' . $dateEsc . '</p><p>' . $shiftNameEsc . '</p></div></div><hr>';
+
+            // Start- och stopptid
+            $html .= '<div class="time-row">';
+            $html .= '<div class="time-item"><div class="label">Starttid</div><div class="value">' . htmlspecialchars($startTidStr, ENT_QUOTES, 'UTF-8') . '</div></div>';
+            $html .= '<div class="time-item"><div class="label">Stopptid</div><div class="value">' . htmlspecialchars($slutTidStr, ENT_QUOTES, 'UTF-8') . '</div></div>';
+            $html .= '<div class="time-item"><div class="label">Drifttid</div><div class="value">' . $drifttidStr . '</div></div>';
+            $html .= '<div class="time-item"><div class="label">Rasttid</div><div class="value">' . $rasttidStr . '</div></div>';
+            $html .= '</div>';
+
             $html .= '<div class="kpi-grid">';
             $html .= '<div class="kpi-card"><div class="kpi-label">IBC OK</div><div class="kpi-value" style="color:#0066cc;">' . $totalIbcOk . '</div></div>';
             $html .= '<div class="kpi-card"><div class="kpi-label">Kvalitet</div><div class="kpi-value" style="color:' . $kvalitetFarg . ';">' . $kvalitetStr . '</div></div>';
             $html .= '<div class="kpi-card"><div class="kpi-label">OEE</div><div class="kpi-value" style="color:' . $oeeFarg . ';">' . $oeeStr . '</div></div>';
-            $html .= '<div class="kpi-card"><div class="kpi-label">Drifttid</div><div class="kpi-value" style="color:#006600;">' . $drifttidStr . '</div></div>';
-            $html .= '<div class="kpi-card"><div class="kpi-label">Rasttid</div><div class="kpi-value" style="color:#666;">' . $rasttidStr . '</div></div>';
             $html .= '<div class="kpi-card"><div class="kpi-label">IBC / timme</div><div class="kpi-value" style="color:#996600;">' . $ibcPerHStr . '</div></div>';
             $html .= '</div>';
             $html .= '<div class="section-title">Operatorer &amp; produkter</div><div class="ops-box">' . $operatorHtml . $productHtml . '</div>';

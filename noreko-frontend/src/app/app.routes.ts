@@ -46,7 +46,9 @@ export const routes: Routes = [
       { path: 'rebotling/alerts', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling/alerts/alerts').then(m => m.AlertsPage) },
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'rebotling/overlamning', canActivate: [authGuard], loadComponent: () => import('./pages/shift-handover/shift-handover').then(m => m.ShiftHandoverPage) },
+      { path: 'rebotling/skiftoverlamning', loadComponent: () => import('./pages/skiftoverlamning/skiftoverlamning').then(m => m.SkiftoverlamningPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
+      { path: 'rebotling/stopporsak-registrering', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-registrering/stopporsak-registrering').then(m => m.StopporsakRegistreringPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

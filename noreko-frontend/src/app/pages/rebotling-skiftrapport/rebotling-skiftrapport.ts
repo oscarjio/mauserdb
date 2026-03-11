@@ -1354,26 +1354,45 @@ export class RebotlingSkiftrapportPage implements OnInit, OnDestroy {
           layout: 'lightHorizontalLines'
         },
         { text: '\n' },
+        // --- Tider ---
+        { text: 'Tider', style: 'sectionHeader' },
+        {
+          table: {
+            widths: ['*', '*', '*', '*'],
+            body: [
+              [
+                { text: 'Starttid',  bold: true, fillColor: '#eeeeee' },
+                { text: 'Stopptid',  bold: true, fillColor: '#eeeeee' },
+                { text: 'Drifttid',  bold: true, fillColor: '#eeeeee' },
+                { text: 'Rasttid',   bold: true, fillColor: '#eeeeee' }
+              ],
+              [
+                { text: this.skiftTiderMap[r.id]?.start ? this.skiftTiderMap[r.id].start!.substring(11, 16) : '–', alignment: 'center' },
+                { text: this.skiftTiderMap[r.id]?.slut ? this.skiftTiderMap[r.id].slut!.substring(11, 16) : '–', alignment: 'center' },
+                { text: r.drifttid != null ? r.drifttid + ' min' : '–', alignment: 'center' },
+                { text: r.rasttime != null ? r.rasttime + ' min' : '–', alignment: 'center' }
+              ]
+            ]
+          },
+          layout: 'lightHorizontalLines'
+        },
+        { text: '\n' },
         // --- PLC-data ---
         { text: 'PLC-data', style: 'sectionHeader' },
         {
           table: {
-            widths: ['*', '*', '*', '*', '*', '*'],
+            widths: ['*', '*', '*', '*'],
             body: [
               [
-                { text: 'Tvättplats',    bold: true, fillColor: '#eeeeee' },
-                { text: 'Kontrollstation', bold: true, fillColor: '#eeeeee' },
-                { text: 'Truckförare',   bold: true, fillColor: '#eeeeee' },
-                { text: 'Drifttid',      bold: true, fillColor: '#eeeeee' },
-                { text: 'Rasttid',       bold: true, fillColor: '#eeeeee' },
-                { text: 'Löpnr (sista)', bold: true, fillColor: '#eeeeee' }
+                { text: 'Tvättplats',      bold: true, fillColor: '#eeeeee' },
+                { text: 'Kontrollstation',  bold: true, fillColor: '#eeeeee' },
+                { text: 'Truckförare',     bold: true, fillColor: '#eeeeee' },
+                { text: 'Löpnr (sista)',   bold: true, fillColor: '#eeeeee' }
               ],
               [
                 { text: this.getOpLabel(r, 'op1'), alignment: 'center' },
                 { text: this.getOpLabel(r, 'op2'), alignment: 'center' },
                 { text: this.getOpLabel(r, 'op3'), alignment: 'center' },
-                { text: r.drifttid != null ? r.drifttid + ' min' : '–', alignment: 'center' },
-                { text: r.rasttime != null ? r.rasttime + ' min' : '–', alignment: 'center' },
                 { text: String(r.lopnummer ?? '–'), alignment: 'center' }
               ]
             ]
