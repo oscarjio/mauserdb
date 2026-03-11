@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-11 (session #60)*
+*Senast uppdaterad: 2026-03-11 (session #61)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -62,12 +62,12 @@ Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
 Session #58: OEE-benchmark + Skiftrapport PDF — klara.
 Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
 Session #60: Daglig sammanfattning + Produktionskalender — klara.
-Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — pågår.
+Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Målhistorik-analys** — rebotling_goal_history → visualisering
-- [PÅGÅR] **Skiftjämförelse-dashboard** — dag/kväll/natt-prestanda
+- [x] **Målhistorik-analys** — rebotling_goal_history → visualisering
+- [x] **Skiftjämförelse-dashboard** — dag/kväll/natt-prestanda
 - [ ] **Underhållsprognos** — prediktera underhåll från historik
 - [ ] **Kvalitetstrend per operatör** — kvalitet% trend, utbildningsbehov
 - [ ] **Stopporsak-trendanalys** — veckovis utveckling av stopporsaker
@@ -76,11 +76,11 @@ Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #61 (pågår)
-Merge-konflikter i dev-log.md + statistik-cykeltid-operator.ts lösta (kvarvarande från session #60).
-Worker 1 (Målhistorik-analys): Visualisering av rebotling_goal_history — tidslinje-steg-graf, ändringslogg, impact-analys före/efter. Backend: MalhistorikController.
-Worker 2 (Skiftjämförelse-dashboard): Jämför dag/kväll/nattskift med KPI-kort, stapeldiagram, trendgraf, topp-operatörer per skift. Backend: SkiftjamforelseController.
-Backlog utökad med 2 nya items: Energi/effektivitetsvy + Operatörs-onboarding tracker.
+### 2026-03-11 — Session #61 (klar)
+Merge-konflikter lösta. Diagnostik-varningar fixade (unused imports, deprecated HttpClientModule, unused vars i PHP).
+Worker 1 (Målhistorik-analys): Steg-graf med mål vs faktisk IBC/h, ändringslogg-tabell, impact-kort (före/efter), sammanfattning. Backend: MalhistorikController (2 endpoints).
+Worker 2 (Skiftjämförelse-dashboard): 3 skiftkort (dag/kväll/natt) med krona på bästa, grupperat stapeldiagram, veckovis trendgraf, topp-5 operatörer per skift. Backend: SkiftjamforelseController (3 endpoints).
+Backlog utökad med: Energi/effektivitetsvy + Operatörs-onboarding tracker.
 
 ### 2026-03-11 — Session #60 (klar)
 Worker 1 (Daglig sammanfattning): Komplett VD-dashboard, 2 endpoints, auto-refresh 60s. Backend: DagligSammanfattningController.

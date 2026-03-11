@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [PÅGÅR] **Målhistorik-analys** — rebotling_goal_history → visualisering: tidslinje-graf, ändringslogg, impact-analys
-- [PÅGÅR] **Skiftjämförelse-dashboard** — jämför dag/kväll/nattskift: IBC/h, kvalitet, stopptid, trendgraf
+- [x] **Målhistorik-analys** — rebotling_goal_history → visualisering: tidslinje-graf, ändringslogg, impact-analys
+- [x] **Skiftjämförelse-dashboard** — jämför dag/kväll/nattskift: IBC/h, kvalitet, stopptid, trendgraf
 - [ ] **Underhållsprognos** — baserat på maintenance_log/service_intervals — förutse nästa underhåll, varna VD innan det är dags
 - [ ] **Kvalitetstrend per operatör** — visa kvalitet% trend per operatör över veckor/månader. Identifiera vilka som förbättras/försämras. VD ser utbildningsbehov
 - [ ] **Stopporsak-trendanalys** — visa hur vanligaste stopporsaker utvecklas över tid (veckovis). Avslöjar om åtgärder fungerar eller om problem förvärras

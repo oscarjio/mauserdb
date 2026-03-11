@@ -161,7 +161,7 @@ class MalhistorikController {
             $andringar = [];
             $prevValue = null;
 
-            foreach ($rows as $i => $r) {
+            foreach ($rows as $r) {
                 $nytt  = (int)$r['value'];
                 $gammalt = $prevValue;
 

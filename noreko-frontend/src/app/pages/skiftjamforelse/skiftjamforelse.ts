@@ -1,14 +1,12 @@
-import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
   SkiftjamforelseService,
-  SkiftData,
   ShiftComparisonData,
   ShiftTrendData,
   ShiftOperatorsData,
@@ -22,7 +20,7 @@ Chart.register(...registerables);
   selector: 'app-skiftjamforelse',
   templateUrl: './skiftjamforelse.html',
   styleUrls: ['./skiftjamforelse.css'],
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
 })
 export class SkiftjamforelseComponent implements OnInit, OnDestroy {
 

@@ -191,7 +191,7 @@ class SkiftjamforelseController {
             if (!$check || $check->rowCount() === 0) {
                 return ['dag' => 0, 'kvall' => 0, 'natt' => 0];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return ['dag' => 0, 'kvall' => 0, 'natt' => 0];
         }
 
@@ -368,7 +368,6 @@ class SkiftjamforelseController {
             foreach ($veckor as $vKey => &$vData) {
                 // Extrahera vecka+år
                 [$vAr, $vW] = explode('-W', $vKey);
-                $vNum = (int)$vW;
                 $vArNum = (int)$vAr;
 
                 // Datum-intervall för veckan
