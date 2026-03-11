@@ -459,6 +459,36 @@ export class RebotlingService {
     );
   }
 
+  getShiftDayNightComparison(days: number = 30): Observable<ShiftDayNightResponse> {
+    return this.http.get<ShiftDayNightResponse>(
+      `/noreko-backend/api.php?action=rebotling&run=shift-day-night&days=${days}`,
+      { withCredentials: true }
+    );
+  }
+
+  // ---- Bonus-simulator ----
+  getBonusSimulator(days: number = 30, params?: BonusSimulatorParams): Observable<BonusSimulatorResponse> {
+    let url = `/noreko-backend/api.php?action=bonusadmin&run=bonus-simulator&days=${days}`;
+    if (params) {
+      const p = params;
+      url += `&eff_w_1=${p.eff_w_1}&prod_w_1=${p.prod_w_1}&qual_w_1=${p.qual_w_1}`;
+      url += `&eff_w_4=${p.eff_w_4}&prod_w_4=${p.prod_w_4}&qual_w_4=${p.qual_w_4}`;
+      url += `&eff_w_5=${p.eff_w_5}&prod_w_5=${p.prod_w_5}&qual_w_5=${p.qual_w_5}`;
+      url += `&target_1=${p.target_1}&target_4=${p.target_4}&target_5=${p.target_5}`;
+      url += `&max_bonus=${p.max_bonus}`;
+      url += `&tier_95=${p.tier_95}&tier_90=${p.tier_90}&tier_80=${p.tier_80}&tier_70=${p.tier_70}&tier_0=${p.tier_0}`;
+    }
+    return this.http.get<BonusSimulatorResponse>(url, { withCredentials: true });
+  }
+
+  saveBonusSimulatorParams(payload: BonusSimulatorSavePayload): Observable<any> {
+    return this.http.post<any>(
+      '/noreko-backend/api.php?action=bonusadmin&run=save-simulator-params',
+      JSON.stringify(payload),
+      { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
 }
 
 export interface PersonalBestOperator {
@@ -1185,4 +1215,100 @@ export interface ProductionGoalProgressResponse {
   streak?: number;
   period_label?: string;
   error?: string;
+}
+
+export interface ShiftKpi {
+  ibc_ok: number;
+  ibc_ej_ok: number;
+  bur_ej_ok: number;
+  totalt: number;
+  skift_count: number;
+  avg_ibc_per_skift: number;
+  kvalitet_pct: number | null;
+  oee_pct: number | null;
+  avg_cykeltid: number | null;
+  ibc_per_h: number | null;
+  runtime_min: number;
+  stopptid_min: number | null;
+}
+
+export interface ShiftTrendPoint {
+  datum: string;
+  dag_ibc: number | null;
+  natt_ibc: number | null;
+  dag_cykeltid: number | null;
+  natt_cykeltid: number | null;
+  dag_kvalitet: number | null;
+  natt_kvalitet: number | null;
+}
+
+export interface ShiftDayNightResponse {
+  success: boolean;
+  days: number;
+  from: string;
+  dag: ShiftKpi;
+  natt: ShiftKpi;
+  trend: ShiftTrendPoint[];
+  error?: string;
+}
+
+// ---- Bonus-simulator interfaces ----
+export interface BonusSimulatorParams {
+  eff_w_1: number; prod_w_1: number; qual_w_1: number;
+  eff_w_4: number; prod_w_4: number; qual_w_4: number;
+  eff_w_5: number; prod_w_5: number; qual_w_5: number;
+  target_1: number; target_4: number; target_5: number;
+  max_bonus: number;
+  tier_95: number; tier_90: number; tier_80: number; tier_70: number; tier_0: number;
+}
+
+export interface BonusSimulatorOperator {
+  operator_id: number;
+  operator_namn: string;
+  antal_skift: number;
+  total_ibc_ok: number;
+  snitt_effektivitet: number;
+  snitt_produktivitet: number;
+  snitt_kvalitet: number;
+  aktuell_bonus: number;
+  simulerad_bonus: number;
+  bonus_diff: number;
+  aktuell_tier: string;
+  simulerad_tier: string;
+  produkt: number;
+}
+
+export interface BonusSimulatorWeights {
+  eff: number;
+  prod: number;
+  qual: number;
+}
+
+export interface BonusSimulatorResponse {
+  success: boolean;
+  data?: {
+    period_from: string;
+    period_to: string;
+    days: number;
+    operatorer: BonusSimulatorOperator[];
+    aktuella_parametrar: {
+      vikter: { [key: number]: BonusSimulatorWeights };
+      mal: { [key: number]: number };
+      tiers: { [key: number]: number };
+      max_bonus: number;
+    };
+    simulerade_parametrar: {
+      vikter: { [key: number]: BonusSimulatorWeights };
+      mal: { [key: number]: number };
+      tiers: { [key: number]: number };
+      max_bonus: number;
+    };
+  };
+  error?: string;
+}
+
+export interface BonusSimulatorSavePayload {
+  vikter?: { [key: number]: BonusSimulatorWeights };
+  mal?: { [key: number]: number };
+  max_bonus?: number;
 }

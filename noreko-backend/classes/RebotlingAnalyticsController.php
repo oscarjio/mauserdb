@@ -6225,4 +6225,190 @@ HTML;
         }
     }
 
+    /**
+     * GET ?action=rebotling&run=shift-day-night&days=30
+     * Jämför dagskift (06:00–22:00) vs nattskift (22:00–06:00).
+     * Returnerar KPI:er per skifttyp samt daglig tidsserie med båda skiftens värden.
+     */
+    public function getShiftDayNightComparison() {
+        $days = isset($_GET['days']) ? max(1, min(365, intval($_GET['days']))) : 30;
+        $startDate = date('Y-m-d', strtotime("-{$days} days"));
+
+        try {
+            /*
+             * Aggregera rebotling_ibc per dag + skiftraknare (ett skift = en skiftraknare).
+             * Klassificera skifttyp utifrån starttimmen för skiftets första rad:
+             *   dagskift  = HOUR(MIN(datum)) BETWEEN 6 AND 21   (06:00–21:59)
+             *   nattskift = HOUR(MIN(datum)) NOT BETWEEN 6 AND 21
+             *
+             * Kumulativa värden per skift: MAX(ibc_ok), MAX(ibc_ej_ok), MAX(bur_ej_ok), MAX(runtime_plc).
+             */
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    DATE(datum)                   AS dag,
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok,    0))   AS ibc_ok,
+                    MAX(COALESCE(ibc_ej_ok, 0))   AS ibc_ej_ok,
+                    MAX(COALESCE(bur_ej_ok, 0))   AS bur_ej_ok,
+                    MAX(COALESCE(runtime_plc, 0)) AS runtime_min,
+                    MAX(COALESCE(rasttime, 0))    AS rast_min,
+                    AVG(COALESCE(runtime_plc, 0)) AS avg_cykeltid,
+                    HOUR(MIN(datum))              AS start_hour
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= ?
+                  AND skiftraknare IS NOT NULL
+                GROUP BY DATE(datum), skiftraknare
+                ORDER BY dag ASC, skiftraknare ASC
+            ");
+            $stmt->execute([$startDate]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Aggregerat per skifttyp (dag/natt)
+            $dagAgg  = ['ibc_ok' => 0, 'ibc_ej_ok' => 0, 'bur_ej_ok' => 0, 'runtime_min' => 0, 'rast_min' => 0, 'cykeltid_sum' => 0.0, 'cykeltid_count' => 0, 'skift_count' => 0];
+            $nattAgg = ['ibc_ok' => 0, 'ibc_ej_ok' => 0, 'bur_ej_ok' => 0, 'runtime_min' => 0, 'rast_min' => 0, 'cykeltid_sum' => 0.0, 'cykeltid_count' => 0, 'skift_count' => 0];
+
+            // Daglig tidsserie indexerad på datum
+            $dagByDate  = [];
+            $nattByDate = [];
+
+            foreach ($rows as $r) {
+                $ibcOk   = (int)$r['ibc_ok'];
+                $ibcEjOk = (int)$r['ibc_ej_ok'];
+                $burEjOk = (int)$r['bur_ej_ok'];
+                $totalt  = $ibcOk + $ibcEjOk + $burEjOk;
+                $rtMin   = (float)$r['runtime_min'];
+                $rastMin = (float)$r['rast_min'];
+                $avgCykel = ($ibcOk > 0 && $rtMin > 0) ? round($rtMin / $ibcOk, 2) : 0.0;
+
+                // Klassificera: 06 <= hour < 22 → dag, annars natt
+                $startHour = (int)$r['start_hour'];
+                $isDag = ($startHour >= 6 && $startHour < 22);
+                $dag = $r['dag'];
+
+                $agg = &($isDag ? $dagAgg : $nattAgg);
+                $agg['ibc_ok']       += $ibcOk;
+                $agg['ibc_ej_ok']    += $ibcEjOk;
+                $agg['bur_ej_ok']    += $burEjOk;
+                $agg['runtime_min']  += $rtMin;
+                $agg['rast_min']     += $rastMin;
+                $agg['skift_count']  += 1;
+                if ($avgCykel > 0) {
+                    $agg['cykeltid_sum']   += $avgCykel;
+                    $agg['cykeltid_count'] += 1;
+                }
+                unset($agg);
+
+                // Daglig tidsserie
+                if ($isDag) {
+                    if (!isset($dagByDate[$dag])) {
+                        $dagByDate[$dag] = ['ibc_ok' => 0, 'totalt' => 0, 'cykeltid_sum' => 0.0, 'cykeltid_count' => 0, 'runtime_min' => 0];
+                    }
+                    $dagByDate[$dag]['ibc_ok']       += $ibcOk;
+                    $dagByDate[$dag]['totalt']        += $totalt;
+                    $dagByDate[$dag]['runtime_min']   += $rtMin;
+                    if ($avgCykel > 0) {
+                        $dagByDate[$dag]['cykeltid_sum']   += $avgCykel;
+                        $dagByDate[$dag]['cykeltid_count'] += 1;
+                    }
+                } else {
+                    if (!isset($nattByDate[$dag])) {
+                        $nattByDate[$dag] = ['ibc_ok' => 0, 'totalt' => 0, 'cykeltid_sum' => 0.0, 'cykeltid_count' => 0, 'runtime_min' => 0];
+                    }
+                    $nattByDate[$dag]['ibc_ok']       += $ibcOk;
+                    $nattByDate[$dag]['totalt']        += $totalt;
+                    $nattByDate[$dag]['runtime_min']   += $rtMin;
+                    if ($avgCykel > 0) {
+                        $nattByDate[$dag]['cykeltid_sum']   += $avgCykel;
+                        $nattByDate[$dag]['cykeltid_count'] += 1;
+                    }
+                }
+            }
+
+            // Hjälp-funktion: beräkna KPI-sammanfattning
+            $calcKpi = function(array $agg): array {
+                $ibcOk   = $agg['ibc_ok'];
+                $totalt  = $ibcOk + $agg['ibc_ej_ok'] + $agg['bur_ej_ok'];
+                $rtMin   = $agg['runtime_min'];
+                $rastMin = $agg['rast_min'];
+                $nSkift  = max($agg['skift_count'], 1);
+
+                $kvalitet = ($totalt > 0) ? round($ibcOk / $totalt * 100, 1) : null;
+                $ibcPerH  = ($rtMin > 0) ? round($ibcOk / ($rtMin / 60), 1) : null;
+
+                // OEE-approximation (avail * perf * qual)
+                $planned   = $rtMin + $rastMin;
+                $avail     = ($planned > 0) ? min($rtMin / $planned, 1.0) : null;
+                $idealRate = 15.0 / 60.0; // IBC/min
+                $perf      = ($rtMin > 0 && $totalt > 0) ? min(($totalt / $rtMin) / $idealRate, 1.0) : null;
+                $qual      = ($totalt > 0) ? $ibcOk / $totalt : null;
+                $oee = ($avail !== null && $perf !== null && $qual !== null)
+                    ? round($avail * $perf * $qual * 100, 1)
+                    : null;
+
+                $avgCykel = ($agg['cykeltid_count'] > 0)
+                    ? round($agg['cykeltid_sum'] / $agg['cykeltid_count'], 2)
+                    : null;
+                $stopptid = ($rtMin > 0) ? max(0, round(($nSkift * 480) - $rtMin - $rastMin, 0)) : null;
+
+                return [
+                    'ibc_ok'       => $ibcOk,
+                    'ibc_ej_ok'    => $agg['ibc_ej_ok'],
+                    'bur_ej_ok'    => $agg['bur_ej_ok'],
+                    'totalt'       => $totalt,
+                    'skift_count'  => $agg['skift_count'],
+                    'avg_ibc_per_skift' => $agg['skift_count'] > 0 ? round($ibcOk / $agg['skift_count'], 1) : 0,
+                    'kvalitet_pct' => $kvalitet,
+                    'oee_pct'      => $oee,
+                    'avg_cykeltid' => $avgCykel,
+                    'ibc_per_h'    => $ibcPerH,
+                    'runtime_min'  => (int)round($rtMin),
+                    'stopptid_min' => $stopptid,
+                ];
+            };
+
+            $dagKpi  = $calcKpi($dagAgg);
+            $nattKpi = $calcKpi($nattAgg);
+
+            // Bygg daglig tidsserie (alla datum i perioden)
+            $allDates = array_unique(array_merge(array_keys($dagByDate), array_keys($nattByDate)));
+            sort($allDates);
+
+            $trend = [];
+            foreach ($allDates as $d) {
+                $dagEntry  = $dagByDate[$d]  ?? null;
+                $nattEntry = $nattByDate[$d] ?? null;
+                $trend[] = [
+                    'datum'       => $d,
+                    'dag_ibc'     => $dagEntry  ? $dagEntry['ibc_ok']  : null,
+                    'natt_ibc'    => $nattEntry ? $nattEntry['ibc_ok'] : null,
+                    'dag_cykeltid'  => ($dagEntry && $dagEntry['cykeltid_count'] > 0)
+                        ? round($dagEntry['cykeltid_sum'] / $dagEntry['cykeltid_count'], 2)
+                        : null,
+                    'natt_cykeltid' => ($nattEntry && $nattEntry['cykeltid_count'] > 0)
+                        ? round($nattEntry['cykeltid_sum'] / $nattEntry['cykeltid_count'], 2)
+                        : null,
+                    'dag_kvalitet'  => ($dagEntry && $dagEntry['totalt'] > 0)
+                        ? round($dagEntry['ibc_ok'] / $dagEntry['totalt'] * 100, 1)
+                        : null,
+                    'natt_kvalitet' => ($nattEntry && $nattEntry['totalt'] > 0)
+                        ? round($nattEntry['ibc_ok'] / $nattEntry['totalt'] * 100, 1)
+                        : null,
+                ];
+            }
+
+            echo json_encode([
+                'success'  => true,
+                'days'     => $days,
+                'from'     => $startDate,
+                'dag'      => $dagKpi,
+                'natt'     => $nattKpi,
+                'trend'    => $trend,
+            ]);
+        } catch (Exception $e) {
+            error_log('getShiftDayNightComparison: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftjämförelse']);
+        }
+    }
+
 }

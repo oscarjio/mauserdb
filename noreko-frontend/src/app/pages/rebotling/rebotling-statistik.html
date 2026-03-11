@@ -811,9 +811,24 @@
   }
 
   @defer (on viewport) {
+    <app-statistik-skiftjamforelse></app-statistik-skiftjamforelse>
+  } @placeholder {
+    <div class="text-center py-4"><div class="spinner-border" style="color:#ed8936;" role="status"></div></div>
+  }
+
+  @defer (on viewport) {
     <app-statistik-annotationer></app-statistik-annotationer>
   } @placeholder {
     <div class="text-center py-4"><div class="spinner-border text-secondary" role="status"></div></div>
   }
+
+  <!-- Bonus "What-if"-simulator -->
+  <div class="container-fluid mt-3">
+    @defer (on viewport) {
+      <app-statistik-bonus-simulator></app-statistik-bonus-simulator>
+    } @placeholder {
+      <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+    }
+  </div>
 
 </div>

@@ -133,6 +133,8 @@ class RebotlingController {
                 $this->analyticsController->getRealtimeOee();
             } elseif ($action === 'production-goal-progress') {
                 $this->analyticsController->getProductionGoalProgress();
+            } elseif ($action === 'shift-day-night') {
+                $this->analyticsController->getShiftDayNightComparison();
 
             // --- Live-data GET endpoints ---
             } elseif ($action === 'status') {

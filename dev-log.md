@@ -1,3 +1,30 @@
+## 2026-03-11 Skiftjämförelse-vy (dag vs natt)
+
+Ny statistikkomponent som jämför dagskift (06:00–22:00) vs nattskift (22:00–06:00):
+
+- **Backend** — ny metod `getShiftDayNightComparison()` i `RebotlingAnalyticsController.php`:
+  - Klassificerar skift baserat på starttimmen för första raden i `rebotling_ibc` per skiftraknare
+  - Dagskift = starttimme 06–21, nattskift = 22–05
+  - Returnerar KPI:er per skifttyp: IBC OK, snitt IBC/skift, kvalitet %, OEE %, avg cykeltid, IBC/h, körtid, kasserade
+  - Returnerar daglig tidsserie (trend) med dag/natt-värden per datum
+  - Endpoint: GET `?action=rebotling&run=shift-day-night&days=30`
+  - Registrerad i `RebotlingController.php`
+- **Service** (`rebotling.service.ts`):
+  - `getShiftDayNightComparison(days)` — Observable<ShiftDayNightResponse>
+  - Interfaces: `ShiftKpi`, `ShiftTrendPoint`, `ShiftDayNightResponse`
+- **Frontend-komponent** `statistik-skiftjamforelse` (standalone):
+  - Periodselektor: 7/14/30/90 dagar
+  - Två KPI-paneler: "Dagskift" (orange/gult) och "Nattskift" (blått/lila), 8 KPI-kort vardera
+  - Diff-kolumn i mitten: absolut skillnad dag vs natt per KPI
+  - Grouped bar chart (Chart.js) — jämför IBC totalt, snitt IBC/skift, Kvalitet %, OEE %, IBC/h
+  - Linjediagram med KPI-toggle (IBC / Cykeltid / Kvalitet %) — 2 linjer (dag vs natt) över tid
+  - Fargkodning: dagskift orange (#ed8936), nattskift lila/blå (#818cf8)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil
+- Registrerad som `@defer (on viewport)` i `rebotling-statistik.html`
+- Bygg OK (59s, inga fel)
+
+---
+
 ## 2026-03-11 Manadsrapport-sida (/rapporter/manad)
 
 Fullstandig manadsrapport-sida verifierad och kompletterad:

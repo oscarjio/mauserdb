@@ -1,0 +1,282 @@
+<div class="row mt-4 mb-4">
+  <div class="col-12">
+    <div class="dark-card">
+
+      <!-- Rubrik + kontroller -->
+      <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div>
+          <h5 class="mb-0" style="color:#e2e8f0;">
+            <i class="fas fa-exchange-alt me-2" style="color:#ed8936;"></i>Skiftjämförelse: Dag vs Natt
+          </h5>
+          <small class="text-muted">KPI:er och trender uppdelade per skifttyp (dag 06–22, natt 22–06)</small>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <label class="text-muted small mb-0">Period:</label>
+          <select class="form-select form-select-sm sj-filter-select"
+                  [(ngModel)]="days"
+                  (change)="onDaysChange()">
+            <option [value]="7">7 dagar</option>
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Laddning -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border" style="color:#ed8936;" role="status"></div>
+        <div class="mt-2 text-muted small">Laddar skiftjämförelse...</div>
+      </div>
+
+      <!-- Fel -->
+      <div *ngIf="!loading && error" class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+      </div>
+
+      <!-- KPI-kolumner -->
+      <div *ngIf="!loading && dag && natt" class="row g-3 mb-4">
+
+        <!-- ===== DAGSKIFT ===== -->
+        <div class="col-md-5">
+          <div class="sj-shift-panel sj-dag">
+            <div class="sj-shift-header">
+              <i class="fas fa-sun me-2"></i>Dagskift
+              <span class="sj-badge-shift">06:00 – 22:00</span>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">IBC godkända</div>
+                  <div class="sj-kpi-val sj-dag-text">{{ dag.ibc_ok }}</div>
+                  <div class="sj-kpi-sub">{{ dag.skift_count }} skift</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Snitt IBC/skift</div>
+                  <div class="sj-kpi-val sj-dag-text">{{ dag.avg_ibc_per_skift | number:'1.0-1' }}</div>
+                  <div class="sj-kpi-sub">per skift</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Kvalitet</div>
+                  <div class="sj-kpi-val"
+                       [ngClass]="dag.kvalitet_pct !== null ? (dag.kvalitet_pct >= 95 ? 'text-success' : dag.kvalitet_pct >= 85 ? 'text-warning' : 'text-danger') : 'text-muted'">
+                    {{ dag.kvalitet_pct !== null ? (dag.kvalitet_pct | number:'1.1-1') + '%' : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">godkänt</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">OEE</div>
+                  <div class="sj-kpi-val"
+                       [ngClass]="dag.oee_pct !== null ? (dag.oee_pct >= 65 ? 'text-success' : dag.oee_pct >= 50 ? 'text-warning' : 'text-danger') : 'text-muted'">
+                    {{ dag.oee_pct !== null ? (dag.oee_pct | number:'1.1-1') + '%' : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">effektivitet</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Cykeltid (snitt)</div>
+                  <div class="sj-kpi-val sj-dag-text">
+                    {{ dag.avg_cykeltid !== null ? (dag.avg_cykeltid | number:'1.1-1') + ' min' : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">per IBC</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Takt</div>
+                  <div class="sj-kpi-val sj-dag-text">
+                    {{ dag.ibc_per_h !== null ? (dag.ibc_per_h | number:'1.1-1') : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Körtid</div>
+                  <div class="sj-kpi-val" style="color:#a0aec0;">{{ formatMin(dag.runtime_min) }}</div>
+                  <div class="sj-kpi-sub">totalt</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Kasserade</div>
+                  <div class="sj-kpi-val text-danger">{{ dag.ibc_ej_ok + dag.bur_ej_ok }}</div>
+                  <div class="sj-kpi-sub">IBC</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== DIFF-KOLUMN ===== -->
+        <div class="col-md-2 d-flex flex-column align-items-center justify-content-center">
+          <div class="sj-diff-panel">
+            <div class="sj-diff-title">Skillnad Dag vs Natt</div>
+
+            <div class="sj-diff-row">
+              <span class="sj-diff-label">IBC OK</span>
+              <span class="sj-diff-val" [ngClass]="getDiffClass(getDiff(dag.ibc_ok, natt.ibc_ok))">
+                {{ getDiff(dag.ibc_ok, natt.ibc_ok) !== null ? (getDiff(dag.ibc_ok, natt.ibc_ok)! > 0 ? '+' : '') + getDiff(dag.ibc_ok, natt.ibc_ok) : '-' }}
+              </span>
+            </div>
+
+            <div class="sj-diff-row">
+              <span class="sj-diff-label">Sn. IBC/sk.</span>
+              <span class="sj-diff-val" [ngClass]="getDiffClass(getDiff(dag.avg_ibc_per_skift, natt.avg_ibc_per_skift))">
+                {{ getDiff(dag.avg_ibc_per_skift, natt.avg_ibc_per_skift) !== null ? (getDiff(dag.avg_ibc_per_skift, natt.avg_ibc_per_skift)! > 0 ? '+' : '') + (getDiff(dag.avg_ibc_per_skift, natt.avg_ibc_per_skift) | number:'1.0-1') : '-' }}
+              </span>
+            </div>
+
+            <div class="sj-diff-row">
+              <span class="sj-diff-label">Kvalitet</span>
+              <span class="sj-diff-val" [ngClass]="getDiffClass(getDiff(dag.kvalitet_pct, natt.kvalitet_pct))">
+                {{ getDiff(dag.kvalitet_pct, natt.kvalitet_pct) !== null ? (getDiff(dag.kvalitet_pct, natt.kvalitet_pct)! > 0 ? '+' : '') + (getDiff(dag.kvalitet_pct, natt.kvalitet_pct) | number:'1.1-1') + '%' : '-' }}
+              </span>
+            </div>
+
+            <div class="sj-diff-row">
+              <span class="sj-diff-label">OEE</span>
+              <span class="sj-diff-val" [ngClass]="getDiffClass(getDiff(dag.oee_pct, natt.oee_pct))">
+                {{ getDiff(dag.oee_pct, natt.oee_pct) !== null ? (getDiff(dag.oee_pct, natt.oee_pct)! > 0 ? '+' : '') + (getDiff(dag.oee_pct, natt.oee_pct) | number:'1.1-1') + '%' : '-' }}
+              </span>
+            </div>
+
+            <div class="sj-diff-row">
+              <span class="sj-diff-label">Cykeltid</span>
+              <span class="sj-diff-val" [ngClass]="getDiffClass(getDiff(natt.avg_cykeltid, dag.avg_cykeltid))">
+                {{ getDiff(dag.avg_cykeltid, natt.avg_cykeltid) !== null ? (getDiff(dag.avg_cykeltid, natt.avg_cykeltid)! > 0 ? '+' : '') + (getDiff(dag.avg_cykeltid, natt.avg_cykeltid) | number:'1.1-1') + ' min' : '-' }}
+              </span>
+            </div>
+
+            <div class="sj-diff-row">
+              <span class="sj-diff-label">IBC/h</span>
+              <span class="sj-diff-val" [ngClass]="getDiffClass(getDiff(dag.ibc_per_h, natt.ibc_per_h))">
+                {{ getDiff(dag.ibc_per_h, natt.ibc_per_h) !== null ? (getDiff(dag.ibc_per_h, natt.ibc_per_h)! > 0 ? '+' : '') + (getDiff(dag.ibc_per_h, natt.ibc_per_h) | number:'1.1-1') : '-' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== NATTSKIFT ===== -->
+        <div class="col-md-5">
+          <div class="sj-shift-panel sj-natt">
+            <div class="sj-shift-header">
+              <i class="fas fa-moon me-2"></i>Nattskift
+              <span class="sj-badge-shift">22:00 – 06:00</span>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">IBC godkända</div>
+                  <div class="sj-kpi-val sj-natt-text">{{ natt.ibc_ok }}</div>
+                  <div class="sj-kpi-sub">{{ natt.skift_count }} skift</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Snitt IBC/skift</div>
+                  <div class="sj-kpi-val sj-natt-text">{{ natt.avg_ibc_per_skift | number:'1.0-1' }}</div>
+                  <div class="sj-kpi-sub">per skift</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Kvalitet</div>
+                  <div class="sj-kpi-val"
+                       [ngClass]="natt.kvalitet_pct !== null ? (natt.kvalitet_pct >= 95 ? 'text-success' : natt.kvalitet_pct >= 85 ? 'text-warning' : 'text-danger') : 'text-muted'">
+                    {{ natt.kvalitet_pct !== null ? (natt.kvalitet_pct | number:'1.1-1') + '%' : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">godkänt</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">OEE</div>
+                  <div class="sj-kpi-val"
+                       [ngClass]="natt.oee_pct !== null ? (natt.oee_pct >= 65 ? 'text-success' : natt.oee_pct >= 50 ? 'text-warning' : 'text-danger') : 'text-muted'">
+                    {{ natt.oee_pct !== null ? (natt.oee_pct | number:'1.1-1') + '%' : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">effektivitet</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Cykeltid (snitt)</div>
+                  <div class="sj-kpi-val sj-natt-text">
+                    {{ natt.avg_cykeltid !== null ? (natt.avg_cykeltid | number:'1.1-1') + ' min' : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">per IBC</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Takt</div>
+                  <div class="sj-kpi-val sj-natt-text">
+                    {{ natt.ibc_per_h !== null ? (natt.ibc_per_h | number:'1.1-1') : '-' }}
+                  </div>
+                  <div class="sj-kpi-sub">IBC/h</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Körtid</div>
+                  <div class="sj-kpi-val" style="color:#a0aec0;">{{ formatMin(natt.runtime_min) }}</div>
+                  <div class="sj-kpi-sub">totalt</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="sj-kpi-card">
+                  <div class="sj-kpi-label">Kasserade</div>
+                  <div class="sj-kpi-val text-danger">{{ natt.ibc_ej_ok + natt.bur_ej_ok }}</div>
+                  <div class="sj-kpi-sub">IBC</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /KPI-kolumner -->
+
+      <!-- Stapeldiagram (grouped bar) -->
+      <div *ngIf="!loading && dag && natt" class="mb-4">
+        <h6 class="text-muted mb-2">
+          <i class="fas fa-chart-bar me-2"></i>KPI-jämförelse (stapeldiagram)
+        </h6>
+        <div style="height: 260px; position: relative;">
+          <canvas id="skiftJamforelseBarChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Trendlinje -->
+      <div *ngIf="!loading && trend.length > 0" class="mb-2">
+        <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+          <h6 class="text-muted mb-0">
+            <i class="fas fa-chart-line me-2"></i>Trend per dag
+          </h6>
+          <!-- KPI-väljare -->
+          <div class="sj-kpi-toggle">
+            <button class="sj-kpi-btn" [class.active]="activeChart === 'ibc'" (click)="setActiveChart('ibc')">IBC</button>
+            <button class="sj-kpi-btn" [class.active]="activeChart === 'cykeltid'" (click)="setActiveChart('cykeltid')">Cykeltid</button>
+            <button class="sj-kpi-btn" [class.active]="activeChart === 'kvalitet'" (click)="setActiveChart('kvalitet')">Kvalitet %</button>
+          </div>
+        </div>
+        <div style="height: 260px; position: relative;">
+          <canvas id="skiftJamfLinjediagram"></canvas>
+        </div>
+      </div>
+
+      <!-- Ingen data -->
+      <div *ngIf="!loading && !error && (!dag || (dag.skift_count === 0 && natt && natt.skift_count === 0))" class="text-center py-4 text-muted">
+        <i class="fas fa-inbox fa-2x mb-2"></i>
+        <div>Ingen skiftdata hittades för perioden</div>
+      </div>
+
+    </div>
+  </div>
+</div>
