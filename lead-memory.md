@@ -64,12 +64,12 @@ Session #50: Produktionsmål-tracker + Månadsrapport — klara.
 Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 Session #52: Maskinupptid-heatmap + Topp-5 leaderboard — klara.
 Session #53: Operatörsnärvaro-tracker + Produktionspuls-ticker — klara.
-Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — pågår.
+Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [~] **Operatörs-dashboard "Min dag"** — personlig vy med dagens KPI:er (pågår #54)
-- [~] **Veckotrend sparklines** — inline 7-dagars trendgrafer i KPI-kort (pågår #54)
+- [x] **Operatörs-dashboard "Min dag"** — personlig vy med dagens KPI:er (klar #54, d264777)
+- [x] **Veckotrend sparklines** — inline 7-dagars trendgrafer i KPI-kort (klar #54, 2384b65)
 - [ ] **Dashboard-widget layout** — VD väljer widgets på startsidan
 - [ ] **Alerts/notifieringar** — varning vid låg OEE eller lång stopptid
 - [ ] **Kassationsanalys** — drilldown per stopporsak + kassationstyp
@@ -80,9 +80,9 @@ Session #54: Operatörs-dashboard "Min dag" + Veckotrend sparklines — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #54 (pågår)
-Worker 1 (Operatörs-dashboard "Min dag"): Personlig vy för operatör — dagens IBC, cykeltid-trend (Chart.js), kvalitet, bonus, progressbars mot mål, motivationstext. Backend: MinDagController today-summary/cycle-trend/goals-progress.
-Worker 2 (Veckotrend sparklines): Canvas 2D sparklines i KPI-kort, 7-dagars trend (IBC/dag, cykeltid, kvalitet, drifttid), färgkodad trend (grön=upp, röd=ner), animerad linje, integrerad överst på statistiksidan. Backend: VeckotrendController weekly-kpis.
+### 2026-03-11 — Session #54 (klar)
+Worker 1 (Operatörs-dashboard "Min dag"): Personlig vy — dagens IBC, cykeltid-trend (Chart.js), kvalitet, bonus, progressbars mot mål, motivationstext. Backend: MinDagController. Commit d264777.
+Worker 2 (Veckotrend sparklines): Canvas 2D sparklines, 7-dagars trend (4 KPI:er), quadratic bezier + gradient fill, animerad 500ms, integrerad överst på statistiksidan. Backend: VeckotrendController. Commit 2384b65.
 
 ### 2026-03-11 — Session #53 (klar)
 Worker 1 (Operatörsnärvaro-tracker): Kalendervy månadsrutnät operatör×dag, färgkodad, tooltip, sammanfattningskort. Backend: NarvaroController. Commit 8166fd2.

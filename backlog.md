@@ -3,11 +3,6 @@
 *Lead-agenten fyller på. Workers plockar uppgifter härifrån.*
 *Håll 5-10 öppna items. Markera med [x] när klart.*
 
-## Pågår
-
-- [ ] **Operatörs-dashboard "Min dag"** — personlig vy med dagens IBC, cykeltid-trend, bonus-progress, nästa mål *(session #54, worker 1)*
-- [ ] **Veckotrend sparklines** — små inline-grafer i KPI-kort som visar 7-dagars trend utan klick *(session #54, worker 2)*
-
 ## Förbättringar
 
 - [ ] **Dashboard-widget layout** — VD väljer vilka widgets som visas på startsidan, drag-and-drop ordning
