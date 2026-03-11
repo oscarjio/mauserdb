@@ -1,3 +1,30 @@
+## 2026-03-11 Maskinupptid-heatmap
+
+Ny statistikkomponent som visar maskinupptid som ett veckokalender-rutnät (heatmap). Varje cell representerar en timme och är färgkodad: grön = drift, röd = stopp, grå = ingen data.
+
+- **Backend** — ny metod `getMachineUptimeHeatmap()` i `RebotlingAnalyticsController.php`:
+  - Endpoint: `GET ?action=rebotling&run=machine-uptime-heatmap&days=7`
+  - Frågar `rebotling_ibc`-tabellen (ibc per datum+timme) och `rebotling_onoff` (stopp-events)
+  - Returnerar array av celler: `{ date, hour, status ('running'|'stopped'|'idle'), ibc_count, stop_minutes }`
+  - Validerar `days`-parameter (1–90 dagar)
+  - Registrerad i `RebotlingController.php` under analytics GET-endpoints
+- **Service** (`rebotling.service.ts`):
+  - Ny metod `getMachineUptimeHeatmap(days: number)`
+  - Nya interfaces: `UptimeHeatmapCell`, `UptimeHeatmapResponse`
+- **Frontend-komponent** `statistik-uptid-heatmap` (standalone, path: `statistik/statistik-uptid-heatmap/`):
+  - Y-axel: dagar (t.ex. Mån 10 mar) — X-axel: timmar 00–23
+  - Cells färgkodade: grön (#48bb78) = drift, röd (#fc8181) = stopp, grå = idle
+  - Hover-tooltip med datum, timme, status, antal IBC eller uppskattad stopptid
+  - Periodselektor: 7/14/30 dagar
+  - Sammanfattningskort: total drifttid %, timmar i drift, längsta stopp, bästa dag
+  - Auto-refresh var 60 sekund
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval
+  - Mörkt tema: #1a202c bakgrund, #2d3748 card
+- Registrerad i `rebotling-statistik.ts` (import + @Component imports-array) och `rebotling-statistik.html` (`@defer on viewport` längst ned efter bonus-simulator)
+- Bygg OK (65s, inga fel)
+
+---
+
 ## 2026-03-11 Topp-5 operatörer leaderboard
 
 Ny statistikkomponent som visar en live-ranking av de 5 bästa operatörerna baserat på bonuspoäng.
@@ -25,7 +52,6 @@ Ny statistikkomponent som visar en live-ranking av de 5 bästa operatörerna bas
   - Mörkt tema: #2d3748 kort, guld #d69e2e, silver #a0aec0, brons #c05621
 - Registrerad i `rebotling-statistik.ts` (import + @Component imports-array)
 - Infogad i `rebotling-statistik.html` som `@defer (on viewport)` ovanför huvud-headern
-- Bygg OK (65s, inga fel)
 
 ---
 
