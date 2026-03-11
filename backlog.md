@@ -3,11 +3,6 @@
 *Lead-agenten fyller på. Workers plockar uppgifter härifrån.*
 *Håll 5-10 öppna items. Markera med [x] när klart.*
 
-## Rebotling-fokus (ägarens prioritet)
-
-- [PÅGÅR] **Bonus "What-if"-simulator** — admin justerar bonusparametrar, ser effekt i realtid
-- [PÅGÅR] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse, trender per skifttyp
-
 ## Förbättringar
 
 - [ ] **Operatörsnärvaro-tracker** — kalendervy baserad på rebotling_ibc-data

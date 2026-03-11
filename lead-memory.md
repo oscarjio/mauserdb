@@ -61,13 +61,12 @@ race conditions, accessibility, null safety, HTTP timeout/catchError.
 Session #48: Stopporsak-drill-down + Annotationer i grafer — klara.
 Session #49: Realtids-OEE-gauge + Exportera grafer som bild — klara.
 Session #50: Produktionsmål-tracker + Månadsrapport — klara.
-Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — pågår.
+Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-### Rebotling-fokus (pågår session #51)
-- [PÅGÅR] **Bonus "What-if"-simulator** — admin justerar bonusparametrar i realtid
-- [PÅGÅR] **Skiftjämförelse-vy** — dag vs nattskift prestandajämförelse
+### Förbättringar (nästa session)
+- [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
 
 ### Förbättringar
 - [ ] **Operatörsnärvaro-tracker** — kalendervy från rebotling_ibc-data
@@ -82,10 +81,9 @@ Session #51: Bonus "What-if"-simulator + Skiftjämförelse-vy — pågår.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-11 — Session #51 (pågår)
-Worker 1 (Bonus "What-if"-simulator): Admin justerar bonusparametrar, ser effekt i realtid. Jämförelsevy nuvarande vs simulerat.
-Worker 2 (Skiftjämförelse-vy): Dag vs nattskift KPI-jämförelse, grouped bar chart, trendlinjer, periodselektor.
-Merge-konflikter i dev-log.md + statistik-cykeltid-operator.ts lösta.
+### 2026-03-11 — Session #51 (klar)
+Worker 1 (Bonus "What-if"-simulator): Range-inputs för viktningar/mål/tier, debounce 400ms, jämförelsetabell nuv. vs sim. bonus, spara-knapp. Backend: bonus-simulator + save-simulator-params i BonusAdminController. Commit 3dc15b1.
+Worker 2 (Skiftjämförelse-vy): Dag vs natt KPI-paneler (orange/lila), diff-kolumn, grouped bar chart, linjediagram med KPI-toggle, periodselektor 7/14/30/90d. Backend: shift-day-night. Commit 75d6508.
 
 ### 2026-03-11 — Session #50 (klar)
 Worker 1 (Produktionsmål-tracker): Doughnut-gauge dagsmål/veckamål, streak-badge, countdown, admin inline-edit, auto-refresh 60s. Backend: production-goal-progress + set-production-goal. DB: rebotling_production_goals. 964 rader ny kod. Mergad.
