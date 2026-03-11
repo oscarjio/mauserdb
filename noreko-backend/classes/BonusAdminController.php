@@ -127,6 +127,16 @@ class BonusAdminController {
             case 'fairness':
                 $this->getFairnessAudit();
                 break;
+            case 'bonus-simulator':
+                $this->getBonusSimulator();
+                break;
+            case 'save-simulator-params':
+                if ($method !== 'POST') {
+                    $this->sendError('POST required');
+                    return;
+                }
+                $this->saveSimulatorParams();
+                break;
             default:
                 $this->sendError('Invalid action: ' . $run);
         }
@@ -1429,6 +1439,351 @@ class BonusAdminController {
             error_log('BonusAdmin getFairnessAudit error: ' . $e->getMessage());
             $this->sendError('Databasfel vid rättviseaudit', 500);
         }
+    }
+
+    /**
+     * GET ?action=bonusadmin&run=bonus-simulator
+     *
+     * Hämtar aktuell bonusdata per operatör (senaste 30 dagarna) samt konfiguration.
+     * Kan ta query-parametrar för simulering:
+     *   - eff_w_1, prod_w_1, qual_w_1  (viktningar FoodGrade, summerar till 1.0)
+     *   - eff_w_4, prod_w_4, qual_w_4  (viktningar NonUN)
+     *   - eff_w_5, prod_w_5, qual_w_5  (viktningar Tvättade)
+     *   - target_1, target_4, target_5 (produktivitetsmål IBC/h)
+     *   - max_bonus                     (maxtak, standard 200)
+     *   - tier_95, tier_90, tier_80, tier_70 (tier-multiplikatorer)
+     */
+    private function getBonusSimulator(): void {
+        try {
+            $days = max(1, min(90, (int)($_GET['days'] ?? 30)));
+            $dateFrom = date('Y-m-d', strtotime("-{$days} days"));
+            $dateTo   = date('Y-m-d');
+
+            // --- Läs simulerings-parametrar från query-string ---
+            $simWeights = [
+                1 => [
+                    'eff'  => $this->clampWeight((float)($_GET['eff_w_1']  ?? 0.30)),
+                    'prod' => $this->clampWeight((float)($_GET['prod_w_1'] ?? 0.30)),
+                    'qual' => $this->clampWeight((float)($_GET['qual_w_1'] ?? 0.40)),
+                ],
+                4 => [
+                    'eff'  => $this->clampWeight((float)($_GET['eff_w_4']  ?? 0.35)),
+                    'prod' => $this->clampWeight((float)($_GET['prod_w_4'] ?? 0.45)),
+                    'qual' => $this->clampWeight((float)($_GET['qual_w_4'] ?? 0.20)),
+                ],
+                5 => [
+                    'eff'  => $this->clampWeight((float)($_GET['eff_w_5']  ?? 0.40)),
+                    'prod' => $this->clampWeight((float)($_GET['prod_w_5'] ?? 0.35)),
+                    'qual' => $this->clampWeight((float)($_GET['qual_w_5'] ?? 0.25)),
+                ],
+            ];
+
+            $simTargets = [
+                1 => max(1.0, min(100.0, (float)($_GET['target_1'] ?? 12.0))),
+                4 => max(1.0, min(100.0, (float)($_GET['target_4'] ?? 20.0))),
+                5 => max(1.0, min(100.0, (float)($_GET['target_5'] ?? 15.0))),
+            ];
+
+            $simMaxBonus = max(100, min(500, (int)($_GET['max_bonus'] ?? 200)));
+
+            $simTiers = [
+                95 => max(1.0, min(5.0, (float)($_GET['tier_95'] ?? 2.00))),
+                90 => max(1.0, min(5.0, (float)($_GET['tier_90'] ?? 1.50))),
+                80 => max(1.0, min(5.0, (float)($_GET['tier_80'] ?? 1.25))),
+                70 => max(0.5, min(5.0, (float)($_GET['tier_70'] ?? 1.00))),
+                0  => max(0.0, min(2.0, (float)($_GET['tier_0']  ?? 0.75))),
+            ];
+
+            // --- Standardkonfiguration (från DB eller defaults) ---
+            $defaultWeights = [
+                1 => ['eff' => 0.30, 'prod' => 0.30, 'qual' => 0.40],
+                4 => ['eff' => 0.35, 'prod' => 0.45, 'qual' => 0.20],
+                5 => ['eff' => 0.40, 'prod' => 0.35, 'qual' => 0.25],
+            ];
+            $defaultTargets = [1 => 12.0, 4 => 20.0, 5 => 15.0];
+            $defaultTiers   = [95 => 2.00, 90 => 1.50, 80 => 1.25, 70 => 1.00, 0 => 0.75];
+            $defaultMaxBonus = 200;
+
+            // Hämta från DB om finns
+            try {
+                $cfgStmt = $this->pdo->query("SELECT * FROM bonus_config WHERE id = 1");
+                $cfg = $cfgStmt ? $cfgStmt->fetch(PDO::FETCH_ASSOC) : false;
+                if ($cfg) {
+                    $wfg = json_decode($cfg['weights_foodgrade'] ?? '{}', true);
+                    $wnu = json_decode($cfg['weights_nonun'] ?? '{}', true);
+                    $wtv = json_decode($cfg['weights_tvattade'] ?? '{}', true);
+                    if (!empty($wfg)) $defaultWeights[1] = $wfg;
+                    if (!empty($wnu)) $defaultWeights[4] = $wnu;
+                    if (!empty($wtv)) $defaultWeights[5] = $wtv;
+                    if (!empty($cfg['productivity_target_foodgrade'])) $defaultTargets[1] = (float)$cfg['productivity_target_foodgrade'];
+                    if (!empty($cfg['productivity_target_nonun']))     $defaultTargets[4] = (float)$cfg['productivity_target_nonun'];
+                    if (!empty($cfg['productivity_target_tvattade']))  $defaultTargets[5] = (float)$cfg['productivity_target_tvattade'];
+                    if (!empty($cfg['max_bonus'])) $defaultMaxBonus = (int)$cfg['max_bonus'];
+                }
+            } catch (PDOException $e) {
+                // Fortsätt med defaults
+            }
+
+            // --- Hämta rådata per operatör (senaste $days dagar, per skift) ---
+            $stmt = $this->pdo->query("
+                SELECT
+                    op_id,
+                    skiftraknare,
+                    MAX(ibc_ok)     AS shift_ibc_ok,
+                    MAX(ibc_ej_ok)  AS shift_ibc_ej_ok,
+                    MAX(bur_ej_ok)  AS shift_bur_ej_ok,
+                    MAX(runtime_plc) AS shift_runtime,
+                    SUBSTRING_INDEX(GROUP_CONCAT(produkt ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS produkt,
+                    SUBSTRING_INDEX(GROUP_CONCAT(effektivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_eff,
+                    SUBSTRING_INDEX(GROUP_CONCAT(produktivitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_prod,
+                    SUBSTRING_INDEX(GROUP_CONCAT(kvalitet ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_qual,
+                    SUBSTRING_INDEX(GROUP_CONCAT(bonus_poang ORDER BY datum DESC SEPARATOR '|'),'|',1)+0 AS last_bonus
+                FROM (
+                    SELECT op1 AS op_id, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN '$dateFrom' AND '$dateTo'
+                      AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
+                    UNION ALL
+                    SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN '$dateFrom' AND '$dateTo'
+                      AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
+                    UNION ALL
+                    SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN '$dateFrom' AND '$dateTo'
+                      AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
+                ) AS all_ops
+                GROUP BY op_id, skiftraknare
+            ");
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Hämta operatörsnamn
+            $opNames = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+
+            // --- Aggregera per operatör: beräkna nuvarande och simulerad bonus ---
+            $operatorer = [];
+            foreach ($rows as $row) {
+                $opId = (int)$row['op_id'];
+                $produkt = (int)($row['produkt'] ?: 1);
+                if (!in_array($produkt, [1, 4, 5])) $produkt = 1;
+
+                $ibcOk    = (int)$row['shift_ibc_ok'];
+                $ibcEjOk  = (int)$row['shift_ibc_ej_ok'];
+                $burEjOk  = (int)$row['shift_bur_ej_ok'];
+                $runtime  = max(1, (int)$row['shift_runtime']);
+
+                // Beräkna KPI:er
+                $total    = $ibcOk + $ibcEjOk;
+                $eff      = $total > 0 ? ($ibcOk / $total) * 100 : 0;
+                $prodActual = ($ibcOk * 60.0) / $runtime;
+                $qual     = $ibcOk > 0 ? (($ibcOk - min($burEjOk, $ibcOk)) / $ibcOk) * 100 : 0;
+
+                // --- Aktuell bonus (med standardvikter) ---
+                $curW      = $defaultWeights[$produkt] ?? ['eff'=>0.40,'prod'=>0.40,'qual'=>0.20];
+                $curTarget = $defaultTargets[$produkt] ?? 15.0;
+                $curProdNorm = min(($prodActual / $curTarget) * 100, 120);
+                $curBase   = ($eff * $curW['eff']) + ($curProdNorm * $curW['prod']) + ($qual * $curW['qual']);
+                $curTierM  = $this->getTierMultiplierValue($curBase, $defaultTiers);
+                $curFinal  = min(round($curBase * $curTierM, 2), $defaultMaxBonus);
+                $curTierName = $this->getTierName($curBase, $defaultTiers);
+
+                // --- Simulerad bonus (med justerade parametrar) ---
+                $simW      = $simWeights[$produkt] ?? $simWeights[1];
+                $simTarget = $simTargets[$produkt] ?? 15.0;
+                $simProdNorm = min(($prodActual / $simTarget) * 100, 120);
+                $simBase   = ($eff * $simW['eff']) + ($simProdNorm * $simW['prod']) + ($qual * $simW['qual']);
+                $simTierM  = $this->getTierMultiplierValue($simBase, $simTiers);
+                $simFinal  = min(round($simBase * $simTierM, 2), $simMaxBonus);
+                $simTierName = $this->getTierName($simBase, $simTiers);
+
+                if (!isset($operatorer[$opId])) {
+                    $operatorer[$opId] = [
+                        'operator_id'      => $opId,
+                        'operator_namn'    => $opNames[$opId] ?? ('Operatör ' . $opId),
+                        'antal_skift'      => 0,
+                        'total_ibc_ok'     => 0,
+                        'aktuell_eff_sum'  => 0.0,
+                        'aktuell_prod_sum' => 0.0,
+                        'aktuell_qual_sum' => 0.0,
+                        'aktuell_bonus_sum'  => 0.0,
+                        'simulerad_bonus_sum'=> 0.0,
+                        'produkt'          => $produkt,
+                    ];
+                }
+
+                $operatorer[$opId]['antal_skift']++;
+                $operatorer[$opId]['total_ibc_ok']      += $ibcOk;
+                $operatorer[$opId]['aktuell_eff_sum']   += $eff;
+                $operatorer[$opId]['aktuell_prod_sum']  += $prodActual;
+                $operatorer[$opId]['aktuell_qual_sum']  += $qual;
+                $operatorer[$opId]['aktuell_bonus_sum'] += $curFinal;
+                $operatorer[$opId]['simulerad_bonus_sum'] += $simFinal;
+                $operatorer[$opId]['aktuell_tier'] = $curTierName;
+                $operatorer[$opId]['simulerad_tier'] = $simTierName;
+            }
+
+            // Beräkna snitt och diff
+            $result = [];
+            foreach ($operatorer as $opId => $op) {
+                $n = max(1, $op['antal_skift']);
+                $curAvg = round($op['aktuell_bonus_sum'] / $n, 1);
+                $simAvg = round($op['simulerad_bonus_sum'] / $n, 1);
+                $result[] = [
+                    'operator_id'         => $op['operator_id'],
+                    'operator_namn'       => $op['operator_namn'],
+                    'antal_skift'         => $op['antal_skift'],
+                    'total_ibc_ok'        => $op['total_ibc_ok'],
+                    'snitt_effektivitet'  => round($op['aktuell_eff_sum'] / $n, 1),
+                    'snitt_produktivitet' => round($op['aktuell_prod_sum'] / $n, 1),
+                    'snitt_kvalitet'      => round($op['aktuell_qual_sum'] / $n, 1),
+                    'aktuell_bonus'       => $curAvg,
+                    'simulerad_bonus'     => $simAvg,
+                    'bonus_diff'          => round($simAvg - $curAvg, 1),
+                    'aktuell_tier'        => $op['aktuell_tier'] ?? '—',
+                    'simulerad_tier'      => $op['simulerad_tier'] ?? '—',
+                    'produkt'             => $op['produkt'],
+                ];
+            }
+
+            // Sortera: flest skift först
+            usort($result, fn($a, $b) => $b['antal_skift'] <=> $a['antal_skift']);
+
+            $this->sendSuccess([
+                'period_from'  => $dateFrom,
+                'period_to'    => $dateTo,
+                'days'         => $days,
+                'operatorer'   => $result,
+                'aktuella_parametrar' => [
+                    'vikter'  => $defaultWeights,
+                    'mal'     => $defaultTargets,
+                    'tiers'   => $defaultTiers,
+                    'max_bonus' => $defaultMaxBonus,
+                ],
+                'simulerade_parametrar' => [
+                    'vikter'  => $simWeights,
+                    'mal'     => $simTargets,
+                    'tiers'   => $simTiers,
+                    'max_bonus' => $simMaxBonus,
+                ],
+            ]);
+
+        } catch (PDOException $e) {
+            error_log('BonusAdmin getBonusSimulator error: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    /**
+     * POST ?action=bonusadmin&run=save-simulator-params
+     * Sparar simulerade parametrar som nya bonus_config-värden.
+     */
+    private function saveSimulatorParams(): void {
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $this->sendError('Ogiltigt JSON-format');
+                return;
+            }
+
+            $vikter  = $input['vikter']    ?? null;
+            $mal     = $input['mal']       ?? null;
+            $maxBonus = isset($input['max_bonus']) ? (int)$input['max_bonus'] : null;
+
+            if (!$vikter && !$mal && !$maxBonus) {
+                $this->sendError('Inga parametrar att spara');
+                return;
+            }
+
+            $updates = [];
+            $params  = ['id' => 1];
+
+            if ($vikter) {
+                $map = [1 => 'weights_foodgrade', 4 => 'weights_nonun', 5 => 'weights_tvattade'];
+                foreach ($map as $prodId => $col) {
+                    if (isset($vikter[$prodId])) {
+                        $w = $vikter[$prodId];
+                        $eff  = (float)($w['eff']  ?? 0);
+                        $prod = (float)($w['prod'] ?? 0);
+                        $qual = (float)($w['qual'] ?? 0);
+                        $sum  = $eff + $prod + $qual;
+                        if (abs($sum - 1.0) > 0.01) {
+                            $this->sendError("Viktarna för produkt $prodId summerar inte till 1.0 (summa: $sum)");
+                            return;
+                        }
+                        $updates[] = "$col = :$col";
+                        $params[$col] = json_encode(['eff' => round($eff,3), 'prod' => round($prod,3), 'qual' => round($qual,3)]);
+                    }
+                }
+            }
+
+            if ($mal) {
+                $malMap = [1 => 'productivity_target_foodgrade', 4 => 'productivity_target_nonun', 5 => 'productivity_target_tvattade'];
+                foreach ($malMap as $prodId => $col) {
+                    if (isset($mal[$prodId])) {
+                        $v = max(1.0, min(100.0, (float)$mal[$prodId]));
+                        $updates[] = "$col = :$col";
+                        $params[$col] = round($v, 2);
+                    }
+                }
+            }
+
+            if ($maxBonus) {
+                $maxBonus = max(100, min(500, $maxBonus));
+                $updates[] = 'max_bonus = :max_bonus';
+                $params['max_bonus'] = $maxBonus;
+            }
+
+            if (empty($updates)) {
+                $this->sendError('Inga giltiga parametrar att spara');
+                return;
+            }
+
+            $updates[] = 'updated_by = :updated_by';
+            $params['updated_by'] = $_SESSION['username'] ?? 'admin';
+
+            $setClause = implode(', ', $updates);
+            $stmt = $this->pdo->prepare("
+                INSERT INTO bonus_config (id, $setClause)
+                VALUES (:id, " . implode(', ', array_map(fn($k) => ":$k", array_keys(array_diff_key($params, ['id' => null])))) . ")
+                ON DUPLICATE KEY UPDATE $setClause
+            ");
+            // Enklare approach: UPDATE, INSERT om 0 rader
+            $this->pdo->prepare("INSERT IGNORE INTO bonus_config (id) VALUES (1)")->execute();
+            $updateKeys = array_map(fn($k) => "$k = :$k", array_keys(array_diff_key($params, ['id' => null])));
+            $updateClause = implode(', ', $updateKeys);
+            $stmt = $this->pdo->prepare("UPDATE bonus_config SET $updateClause WHERE id = 1");
+            $stmt->execute(array_diff_key($params, ['id' => null]));
+
+            $this->logAudit('save_simulator_params', 'config', 1, null, $input);
+
+            $this->sendSuccess(['message' => 'Parametrar sparade', 'uppdaterat' => count($updates) - 1]);
+
+        } catch (PDOException $e) {
+            error_log('BonusAdmin saveSimulatorParams error: ' . $e->getMessage());
+            $this->sendError('Databasfel', 500);
+        }
+    }
+
+    private function clampWeight(float $v): float {
+        return max(0.0, min(1.0, round($v, 3)));
+    }
+
+    private function getTierMultiplierValue(float $base, array $tiers): float {
+        krsort($tiers);
+        foreach ($tiers as $threshold => $multiplier) {
+            if ($base >= $threshold) return (float)$multiplier;
+        }
+        return 0.75;
+    }
+
+    private function getTierName(float $base, array $tiers): string {
+        $names = [95 => 'Outstanding', 90 => 'Excellent', 80 => 'God prestanda', 70 => 'Basbonus', 0 => 'Under förväntan'];
+        krsort($tiers);
+        foreach ($tiers as $threshold => $multiplier) {
+            if ($base >= $threshold) return $names[$threshold] ?? 'Tier ' . $threshold;
+        }
+        return 'Under förväntan';
     }
 
     private function isAdmin(): bool {

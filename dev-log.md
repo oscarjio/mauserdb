@@ -1,3 +1,27 @@
+## 2026-03-11 Bonus "What-if"-simulator
+
+Ny statistikkomponent under rebotling-statistiksidan som ger admin ett interaktivt verktyg att simulera hur bonusparametrar påverkar operatörernas utfall.
+
+- **Backend** — två nya endpoints i `BonusAdminController.php`:
+  - `GET ?action=bonusadmin&run=bonus-simulator` — hämtar rådata per operatör (senaste N dagar), beräknar nuvarande bonus (från DB-config) OCH simulerad bonus (med query-parametrar) och returnerar jämförelsedata per operatör. Query-params: `eff_w_1/prod_w_1/qual_w_1` (FoodGrade), `eff_w_4/prod_w_4/qual_w_4` (NonUN), `eff_w_5/prod_w_5/qual_w_5` (Tvättade), `target_1/target_4/target_5` (IBC/h-mål), `max_bonus`, `tier_95/90/80/70/0` (multiplikatorer)
+  - `POST ?action=bonusadmin&run=save-simulator-params` — sparar justerade viktningar, produktivitetsmål och bonustak till `bonus_config`
+  - Hjälpmetoder: `clampWeight()`, `getTierMultiplierValue()`, `getTierName()`
+- **Service** (`rebotling.service.ts`):
+  - `getBonusSimulator(days, params?)` — bygger URL med alla simuleringsparametrar
+  - `saveBonusSimulatorParams(payload)` — POST till save-endpoint
+  - Interfaces: `BonusSimulatorParams`, `BonusSimulatorOperator`, `BonusSimulatorResponse`, `BonusSimulatorSavePayload`, `BonusSimulatorWeights`
+- **Frontend-komponent** `statistik-bonus-simulator` (standalone, path: `statistik/statistik-bonus-simulator/`):
+  - Vänsterkolumn med tre sektioner: (1) Viktningar per produkt med range-inputs (summeras till 100%, live-validering), (2) Produktivitetsmål (IBC/h) per produkt, (3) Tier-multiplikatorer (Outstanding/Excellent/God/Bas/Under) + bonustak
+  - Högerkolumn: sammanfattningskort (antal operatörer, snittförändring, plus/minus), jämförelsetabell med nuv. vs. sim. bonuspoäng + tier-namn + diff-badge (grön/röd/grå)
+  - Debounce 400ms — slider-drag uppdaterar beräkningen utan att spamma API
+  - Spara-knapp sparar nya parametrar till bonus_config (POST), med success/fel-feedback
+  - Lifecycle: OnInit/OnDestroy + destroy$ + simulate$ (Subject) + takeUntil
+  - Mörkt tema: #2d3748 cards, tier-badges med produktspecifika färger
+- Registrerad i `rebotling-statistik.ts` (import + @Component imports-array) och `rebotling-statistik.html` (`@defer on viewport` längst ned)
+- Bygg OK (56s, inga fel)
+
+---
+
 ## 2026-03-11 Skiftjämförelse-vy (dag vs natt)
 
 Ny statistikkomponent som jämför dagskift (06:00–22:00) vs nattskift (22:00–06:00):

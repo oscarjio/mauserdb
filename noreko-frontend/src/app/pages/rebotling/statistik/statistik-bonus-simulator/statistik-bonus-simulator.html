@@ -1,0 +1,276 @@
+<div class="bonus-simulator">
+
+  <!-- Rubrik -->
+  <div class="sim-header">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div>
+        <h4 class="mb-0">Bonus "What-if"-simulator</h4>
+        <small class="text-muted">Justera parametrarna och se hur bonusen paverkas per operatör</small>
+      </div>
+      <div class="ms-auto d-flex align-items-center gap-2 flex-wrap">
+        <label class="text-muted small mb-0">Period (dagar):</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:90px"
+          [(ngModel)]="days" (change)="onDaysChange()">
+          <option [value]="7">7 d</option>
+          <option [value]="14">14 d</option>
+          <option [value]="30">30 d</option>
+          <option [value]="60">60 d</option>
+          <option [value]="90">90 d</option>
+        </select>
+        <span class="text-muted small" *ngIf="periodFrom">{{ periodFrom }} — {{ periodTo }}</span>
+        <div class="spinner-border spinner-border-sm text-success" role="status" *ngIf="loading"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fel -->
+  <div class="alert alert-danger py-2" *ngIf="error">{{ error }}</div>
+
+  <div class="row g-3 mt-1">
+
+    <!-- Vänsterkolumn: reglage -->
+    <div class="col-lg-5">
+
+      <!-- Viktningar per produkt -->
+      <div class="sim-card mb-3">
+        <div class="sim-card-title">Viktningar per produkt</div>
+        <p class="text-muted small mb-3">Summa per produkt maste vara 100%. Reglage = procent.</p>
+
+        <!-- FoodGrade -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge-produkt bg-info text-dark">FoodGrade (prod 1)</span>
+            <span [class]="sum1 === 100 ? 'sum-ok' : 'sum-err'">Summa: {{ sum1 }}%</span>
+          </div>
+          <div class="slider-row">
+            <label>Effektivitet <strong>{{ eff1 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="eff1" (input)="onSliderChange()" class="form-range">
+          </div>
+          <div class="slider-row">
+            <label>Produktivitet <strong>{{ prod1 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="prod1" (input)="onSliderChange()" class="form-range">
+          </div>
+          <div class="slider-row">
+            <label>Kvalitet <strong>{{ qual1 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="qual1" (input)="onSliderChange()" class="form-range">
+          </div>
+        </div>
+
+        <!-- NonUN -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge-produkt bg-warning text-dark">NonUN (prod 4)</span>
+            <span [class]="sum4 === 100 ? 'sum-ok' : 'sum-err'">Summa: {{ sum4 }}%</span>
+          </div>
+          <div class="slider-row">
+            <label>Effektivitet <strong>{{ eff4 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="eff4" (input)="onSliderChange()" class="form-range">
+          </div>
+          <div class="slider-row">
+            <label>Produktivitet <strong>{{ prod4 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="prod4" (input)="onSliderChange()" class="form-range">
+          </div>
+          <div class="slider-row">
+            <label>Kvalitet <strong>{{ qual4 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="qual4" (input)="onSliderChange()" class="form-range">
+          </div>
+        </div>
+
+        <!-- Tvattade -->
+        <div class="mb-1">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="badge-produkt bg-success text-white">Tvattade (prod 5)</span>
+            <span [class]="sum5 === 100 ? 'sum-ok' : 'sum-err'">Summa: {{ sum5 }}%</span>
+          </div>
+          <div class="slider-row">
+            <label>Effektivitet <strong>{{ eff5 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="eff5" (input)="onSliderChange()" class="form-range">
+          </div>
+          <div class="slider-row">
+            <label>Produktivitet <strong>{{ prod5 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="prod5" (input)="onSliderChange()" class="form-range">
+          </div>
+          <div class="slider-row">
+            <label>Kvalitet <strong>{{ qual5 }}%</strong></label>
+            <input type="range" min="0" max="100" step="1" [(ngModel)]="qual5" (input)="onSliderChange()" class="form-range">
+          </div>
+        </div>
+      </div>
+
+      <!-- Produktivitetsmål -->
+      <div class="sim-card mb-3">
+        <div class="sim-card-title">Produktivitetsmål (IBC/h)</div>
+        <div class="slider-row">
+          <label>FoodGrade <strong>{{ target1 }} IBC/h</strong></label>
+          <input type="range" min="1" max="50" step="0.5" [(ngModel)]="target1" (input)="onSliderChange()" class="form-range">
+        </div>
+        <div class="slider-row">
+          <label>NonUN <strong>{{ target4 }} IBC/h</strong></label>
+          <input type="range" min="1" max="50" step="0.5" [(ngModel)]="target4" (input)="onSliderChange()" class="form-range">
+        </div>
+        <div class="slider-row">
+          <label>Tvattade <strong>{{ target5 }} IBC/h</strong></label>
+          <input type="range" min="1" max="50" step="0.5" [(ngModel)]="target5" (input)="onSliderChange()" class="form-range">
+        </div>
+      </div>
+
+      <!-- Tier-multiplikatorer & Bonustak -->
+      <div class="sim-card mb-3">
+        <div class="sim-card-title">Tier-multiplikatorer</div>
+        <div class="slider-row">
+          <label>Outstanding (&ge;95p) <strong>&times;{{ (tier95/100).toFixed(2) }}</strong></label>
+          <input type="range" min="100" max="300" step="5" [(ngModel)]="tier95" (input)="onSliderChange()" class="form-range range-outstanding">
+        </div>
+        <div class="slider-row">
+          <label>Excellent (&ge;90p) <strong>&times;{{ (tier90/100).toFixed(2) }}</strong></label>
+          <input type="range" min="100" max="300" step="5" [(ngModel)]="tier90" (input)="onSliderChange()" class="form-range range-excellent">
+        </div>
+        <div class="slider-row">
+          <label>God prestanda (&ge;80p) <strong>&times;{{ (tier80/100).toFixed(2) }}</strong></label>
+          <input type="range" min="100" max="300" step="5" [(ngModel)]="tier80" (input)="onSliderChange()" class="form-range range-god">
+        </div>
+        <div class="slider-row">
+          <label>Basbonus (&ge;70p) <strong>&times;{{ (tier70/100).toFixed(2) }}</strong></label>
+          <input type="range" min="50" max="200" step="5" [(ngModel)]="tier70" (input)="onSliderChange()" class="form-range range-bas">
+        </div>
+        <div class="slider-row">
+          <label>Under förväntan (&lt;70p) <strong>&times;{{ (tier0/100).toFixed(2) }}</strong></label>
+          <input type="range" min="0" max="100" step="5" [(ngModel)]="tier0" (input)="onSliderChange()" class="form-range range-under">
+        </div>
+        <hr class="border-secondary">
+        <div class="slider-row">
+          <label>Bonustak (max poang) <strong>{{ maxBonus }}</strong></label>
+          <input type="range" min="100" max="400" step="10" [(ngModel)]="maxBonus" (input)="onSliderChange()" class="form-range">
+        </div>
+      </div>
+
+      <!-- Spara-knapp -->
+      <div class="sim-card">
+        <div class="sim-card-title">Spara parametrar</div>
+        <p class="text-muted small mb-2">Sparar vikter, produktivitetsmål och bonustak som ny bonuskonfiguration.</p>
+        <div class="alert alert-warning py-1 small mb-2" *ngIf="!vikterGiltiga">
+          Viktningarna maste summera till 100% for varje produkt innan du kan spara.
+        </div>
+        <div class="alert alert-success py-1 small mb-2" *ngIf="saveSuccess">
+          Parametrar sparade!
+        </div>
+        <div class="alert alert-danger py-1 small mb-2" *ngIf="saveError">
+          {{ saveError }}
+        </div>
+        <button class="btn btn-success w-100" [disabled]="!vikterGiltiga || saving || loading"
+          (click)="sparaParametrar()">
+          <span class="spinner-border spinner-border-sm me-1" *ngIf="saving"></span>
+          Spara som ny konfiguration
+        </button>
+      </div>
+    </div>
+
+    <!-- Högerkolumn: resultat -->
+    <div class="col-lg-7">
+
+      <!-- Sammanfattning -->
+      <div class="row g-2 mb-3" *ngIf="operatorer.length">
+        <div class="col-4">
+          <div class="summary-card">
+            <div class="summary-label">Operatörer i period</div>
+            <div class="summary-value">{{ operatorer.length }}</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="summary-card" [class.pos]="snitBonusDiff > 0" [class.neg]="snitBonusDiff < 0">
+            <div class="summary-label">Snitt bonusändring</div>
+            <div class="summary-value">{{ diffPrefix(snitBonusDiff) }}{{ snitBonusDiff }} p</div>
+          </div>
+        </div>
+        <div class="col-4">
+          <div class="summary-card">
+            <div class="summary-label">Fler / Färre poang</div>
+            <div class="summary-value text-success">+{{ totalPositivaDiff }}</div>
+            <div class="summary-sub text-danger">-{{ totalNegativaDiff }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Jämförelsetabell -->
+      <div class="sim-card" *ngIf="operatorer.length">
+        <div class="sim-card-title">Nuvarande vs Simulerad bonus per operatör</div>
+        <div class="table-responsive">
+          <table class="sim-table">
+            <thead>
+              <tr>
+                <th>Operatör</th>
+                <th>Prod.</th>
+                <th>Skift</th>
+                <th>Eff%</th>
+                <th>Kval%</th>
+                <th class="text-center">Nuv. bonus</th>
+                <th class="text-center">Sim. bonus</th>
+                <th class="text-center">Diff</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let op of operatorer">
+                <td>
+                  <strong>{{ op.operator_namn }}</strong>
+                </td>
+                <td>
+                  <span class="badge-produkt-sm"
+                    [class.bg-info]="op.produkt === 1"
+                    [class.text-dark]="op.produkt === 1"
+                    [class.bg-warning]="op.produkt === 4"
+                    [class.bg-success]="op.produkt === 5">
+                    {{ produktNamn(op.produkt) }}
+                  </span>
+                </td>
+                <td>{{ op.antal_skift }}</td>
+                <td>{{ op.snitt_effektivitet }}%</td>
+                <td>{{ op.snitt_kvalitet }}%</td>
+                <td class="text-center">
+                  <span class="tier-badge" [class]="tierClass(op.aktuell_tier)">
+                    {{ op.aktuell_bonus | number:'1.1-1' }}p
+                  </span>
+                  <div class="tier-name-small">{{ op.aktuell_tier }}</div>
+                </td>
+                <td class="text-center">
+                  <span class="tier-badge" [class]="tierClass(op.simulerad_tier)">
+                    {{ op.simulerad_bonus | number:'1.1-1' }}p
+                  </span>
+                  <div class="tier-name-small">{{ op.simulerad_tier }}</div>
+                </td>
+                <td class="text-center">
+                  <span class="diff-badge" [class]="diffClass(op.bonus_diff)">
+                    {{ diffPrefix(op.bonus_diff) }}{{ op.bonus_diff | number:'1.1-1' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tom-state -->
+      <div class="empty-state" *ngIf="!loading && !error && operatorer.length === 0">
+        <div class="text-muted">Ingen bonusdata hittades för vald period.</div>
+      </div>
+
+      <!-- Laddning -->
+      <div class="text-center py-5" *ngIf="loading && operatorer.length === 0">
+        <div class="spinner-border text-success" role="status"></div>
+        <div class="text-muted mt-2">Beraknar...</div>
+      </div>
+
+      <!-- Forklaringstext -->
+      <div class="sim-card mt-3" *ngIf="operatorer.length">
+        <div class="sim-card-title">Hur fungerar berakningen?</div>
+        <ul class="small text-muted mb-0">
+          <li>Bonuspoang = (Effektivitet × eff-vikt) + (Produktivitet normaliserad × prod-vikt) + (Kvalitet × kval-vikt)</li>
+          <li>Produktivitet normaliseras mot malet (max 120% av malet)</li>
+          <li>Baspoangen multipliceras med tier-multiplikatorn (Outstanding/Excellent/etc.)</li>
+          <li>Slutpoangen begransas av bonustaken</li>
+          <li>"Nuv. bonus" = medelvarde per skift med aktuella parametrar</li>
+          <li>"Sim. bonus" = medelvarde per skift med dina justerade parametrar</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
