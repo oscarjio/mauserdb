@@ -1,3 +1,18 @@
+## 2026-03-11 Produktionspuls-ticker
+
+Ny realtids-scrollande ticker som visar senaste producerade IBC:er — som en börskursticker.
+
+- **Backend** — ny `ProduktionspulsController.php`:
+  - `?action=produktionspuls&run=latest&limit=50` — senaste IBC:er med operatör, produkt, cykeltid, status
+  - `?action=produktionspuls&run=hourly-stats` — IBC/h, snittcykeltid, godkända/kasserade + föregående timme för trendpilar
+- **Frontend** — fullscreen-vy `ProduktionspulsPage` på `/rebotling/produktionspuls`:
+  - Horisontell CSS-animerad ticker med IBC-brickor (grön=OK, röd=kasserad, gul=lång cykel)
+  - Pausar vid hover, auto-refresh var 15:e sekund
+  - Statistikrad: IBC/h, snittcykeltid, godkända/kasserade, kvalitetsprocent med trendpilar
+- **Widget** — `ProduktionspulsWidget` inbäddad på startsidan (news.html), kompakt ticker
+- **Navigation** — tillagd i Rebotling-menyn och route i app.routes.ts
+- **Service** — `produktionspuls.service.ts`
+
 ## 2026-03-11 Maskinupptid-heatmap
 
 Ny statistikkomponent som visar maskinupptid som ett veckokalender-rutnät (heatmap). Varje cell representerar en timme och är färgkodad: grön = drift, röd = stopp, grå = ingen data.

@@ -9,6 +9,7 @@ import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvat
 import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService, AuthUser } from '../services/auth.service';
 import { localToday } from '../utils/date-utils';
+import { ProduktionspulsWidget } from '../pages/rebotling/produktionspuls/produktionspuls-widget';
 
 interface LineSkiftrapportReport {
   id: number;
@@ -44,7 +45,7 @@ export type NewsCategory = 'alla' | 'produktion' | 'bonus' | 'system' | 'info' |
 @Component({
   selector: 'app-news',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, ProduktionspulsWidget],
   templateUrl: './news.html',
   styleUrl: './news.css'
 })
