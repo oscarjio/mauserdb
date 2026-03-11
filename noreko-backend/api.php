@@ -155,6 +155,8 @@ $classNameMap = [
     'daglig-sammanfattning'   => 'DagligSammanfattningController',
     'malhistorik'             => 'MalhistorikController',
     'skiftjamforelse'         => 'SkiftjamforelseController',
+    'underhallsprognos'       => 'UnderhallsprognosController',
+    'kvalitetstrend'          => 'KvalitetstrendController',
 ];
 
 $actionKey = strtolower($action);

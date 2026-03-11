@@ -1,0 +1,441 @@
+<div class="kt-wrapper">
+
+  <!-- ===== SIDHUVUD ===== -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div>
+        <h1 class="page-title">
+          <i class="fas fa-chart-line me-2" style="color: #4299e1;"></i>
+          Kvalitetstrend per operatör
+        </h1>
+        <p class="page-subtitle text-muted">
+          Identifiera vilka operatörer som förbättras, vilka som försämras och var utbildning behövs
+        </p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <small class="text-muted" *ngIf="lastRefreshed">
+          Uppdaterad {{ lastRefreshed | date:'HH:mm:ss' }}
+        </small>
+      </div>
+    </div>
+
+    <!-- Periodväljare + visningsläge -->
+    <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
+      <div class="period-selector">
+        <button
+          *ngFor="let p of perioder"
+          class="btn btn-sm period-btn"
+          [class.active]="selectedPeriod === p.val"
+          (click)="setPeriod(p.val)">
+          {{ p.label }}
+        </button>
+        <span class="text-muted small ms-2">{{ getPeriodLabel() }}</span>
+      </div>
+
+      <div class="toggle-group ms-auto">
+        <button
+          class="btn btn-sm toggle-btn"
+          [class.active]="visningsLage === 'vecka'"
+          (click)="setVisningsLage('vecka')">
+          <i class="fas fa-calendar-week me-1"></i>Veckovis
+        </button>
+        <button
+          class="btn btn-sm toggle-btn"
+          [class.active]="visningsLage === 'manad'"
+          (click)="setVisningsLage('manad')">
+          <i class="fas fa-calendar-alt me-1"></i>Månadsvis
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== LADDNING (overview) ===== -->
+  <div class="text-center py-4" *ngIf="overviewLoading && !overviewLoaded">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="text-muted mt-2">Hämtar kvalitetsdata...</p>
+  </div>
+
+  <!-- ===== FEL ===== -->
+  <div class="alert alert-danger" *ngIf="overviewError && overviewLoaded">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hämta data. Försök igen senare.
+  </div>
+
+  <!-- ===== ÖVERSIKTSKORT ===== -->
+  <div class="row g-3 mb-4" *ngIf="overviewLoaded && overviewData">
+
+    <!-- Teamsnitt -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #4299e1;">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Teamsnitt kvalitet</div>
+          <div class="kpi-value" [ngClass]="getKvalitetKlass(overviewData.snitt_kvalitet_pct)">
+            {{ overviewData.snitt_kvalitet_pct !== null ? (overviewData.snitt_kvalitet_pct | number:'1.1-1') + '%' : '–' }}
+          </div>
+          <div class="kpi-sub">{{ overviewData.antal_operatorer }} operatörer</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bästa operatör -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card kpi-card-good" *ngIf="overviewData.basta_operator; else ingenBast">
+        <div class="kpi-icon" style="color: #48bb78;">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Bästa operatör</div>
+          <div class="kpi-value text-success">
+            {{ overviewData.basta_operator.kvalitet_pct | number:'1.1-1' }}%
+          </div>
+          <div class="kpi-sub">{{ overviewData.basta_operator.namn }}</div>
+        </div>
+      </div>
+      <ng-template #ingenBast>
+        <div class="kpi-card">
+          <div class="kpi-icon text-muted"><i class="fas fa-trophy"></i></div>
+          <div class="kpi-body">
+            <div class="kpi-label">Bästa operatör</div>
+            <div class="kpi-value text-muted">–</div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Störst förbättring -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card kpi-card-good" *ngIf="overviewData.storst_forbattring; else ingenForb">
+        <div class="kpi-icon" style="color: #48bb78;">
+          <i class="fas fa-arrow-up"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Störst förbättring</div>
+          <div class="kpi-value text-success">
+            +{{ overviewData.storst_forbattring['forändring_pct'] | number:'1.1-1' }}%
+          </div>
+          <div class="kpi-sub">{{ overviewData.storst_forbattring.namn }}</div>
+        </div>
+      </div>
+      <ng-template #ingenForb>
+        <div class="kpi-card">
+          <div class="kpi-icon text-muted"><i class="fas fa-arrow-up"></i></div>
+          <div class="kpi-body">
+            <div class="kpi-label">Störst förbättring</div>
+            <div class="kpi-value text-muted">–</div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+
+    <!-- Störst nedgång -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card kpi-card-bad" *ngIf="overviewData.storst_nedgang; else ingenNed">
+        <div class="kpi-icon" style="color: #e53e3e;">
+          <i class="fas fa-arrow-down"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Störst nedgång</div>
+          <div class="kpi-value text-danger">
+            {{ overviewData.storst_nedgang['forändring_pct'] | number:'1.1-1' }}%
+          </div>
+          <div class="kpi-sub">{{ overviewData.storst_nedgang.namn }}</div>
+        </div>
+      </div>
+      <ng-template #ingenNed>
+        <div class="kpi-card">
+          <div class="kpi-icon text-muted"><i class="fas fa-arrow-down"></i></div>
+          <div class="kpi-body">
+            <div class="kpi-label">Störst nedgång</div>
+            <div class="kpi-value text-muted">–</div>
+          </div>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- ===== UTBILDNINGSLARM ===== -->
+  <div class="larm-sektion mb-4"
+       *ngIf="overviewLoaded && overviewData && overviewData.utbildningslarm.length > 0">
+    <div class="larm-header">
+      <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+      <strong>Utbildningslarm</strong>
+      <span class="badge bg-danger ms-2">{{ overviewData.utbildningslarm.length }}</span>
+      <small class="text-muted ms-2">— operatörer som kräver extra uppmärksamhet</small>
+    </div>
+    <div class="larm-lista">
+      <div class="larm-rad" *ngFor="let larm of overviewData.utbildningslarm">
+        <div class="larm-namn">
+          <i class="fas fa-user-alt me-1 text-muted"></i>
+          {{ larm.namn }}
+        </div>
+        <div class="larm-kval" *ngIf="larm.senast_kval !== null">
+          <span [ngClass]="getKvalitetKlass(larm.senast_kval)">
+            {{ larm.senast_kval | number:'1.1-1' }}%
+          </span>
+        </div>
+        <div class="larm-orsak">
+          <i class="fas fa-flag text-warning me-1"></i>
+          {{ larm.orsak }}
+        </div>
+        <button
+          class="btn btn-sm btn-outline-info larm-detalj-btn"
+          (click)="loadOperatorDetail(larm.nummer)">
+          Detaljer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TRENDGRAF ===== -->
+  <div class="card kt-card mb-4" *ngIf="operatorsLoaded">
+    <div class="card-header kt-card-header">
+      <span><i class="fas fa-chart-line me-2" style="color:#4299e1;"></i>Kvalitet%-trend per operatör</span>
+      <small class="text-muted">Topp 8 operatörer efter antal IBC + teamsnitt (streckad)</small>
+    </div>
+    <div class="card-body p-3">
+      <div class="text-center py-4" *ngIf="operatorsLoading">
+        <div class="spinner-border spinner-border-sm text-info"></div>
+      </div>
+      <div *ngIf="!operatorsLoading && operatorsData">
+        <div class="chart-container">
+          <canvas id="kvalitetTrendChart"></canvas>
+        </div>
+      </div>
+      <div class="text-muted text-center py-3" *ngIf="!operatorsLoading && !operatorsData">
+        Ingen trenddata tillgänglig.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== OPERATÖRSTABELL ===== -->
+  <div class="card kt-card mb-4" *ngIf="operatorsLoaded">
+    <div class="card-header kt-card-header">
+      <span>
+        <i class="fas fa-users me-2" style="color:#48bb78;"></i>
+        Operatörer
+        <span class="badge bg-secondary ms-2" *ngIf="operatorsData">
+          {{ filtradeOperatorer.length }} / {{ operatorsData.operatorer.length }}
+        </span>
+        <span class="badge bg-danger ms-1" *ngIf="antalLarm > 0">
+          {{ antalLarm }} larm
+        </span>
+      </span>
+      <div class="d-flex gap-2 align-items-center">
+        <div class="form-check form-switch mb-0">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="filterLarm"
+            [(ngModel)]="visaBaraLarm">
+          <label class="form-check-label text-muted small" for="filterLarm">
+            Bara larm
+          </label>
+        </div>
+        <input
+          type="text"
+          class="form-control form-control-sm kt-filter"
+          placeholder="Sök operatör..."
+          [(ngModel)]="filterText">
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="text-center py-4" *ngIf="operatorsLoading">
+        <div class="spinner-border spinner-border-sm text-info"></div>
+      </div>
+
+      <div class="table-responsive" *ngIf="!operatorsLoading && operatorsData">
+        <table class="table kt-table mb-0">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="text-center">Senaste kval %</th>
+              <th class="text-center">Förändring</th>
+              <th class="text-center">Trend</th>
+              <th class="text-center">Status</th>
+              <th class="text-center">IBC totalt</th>
+              <th class="text-center">Larm</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of filtradeOperatorer; trackBy: trackByNummer"
+                [class.larm-row]="op.utbildningslarm"
+                [class.selected-row]="selectedOpId === op.nummer">
+              <td>
+                <div class="op-namn">
+                  <i class="fas fa-user-circle me-2 text-muted"></i>
+                  {{ op.namn }}
+                </div>
+              </td>
+              <td class="text-center">
+                <span class="kval-badge" [ngClass]="getKvalitetKlass(op.senast_kval_pct)">
+                  {{ op.senast_kval_pct !== null ? (op.senast_kval_pct | number:'1.1-1') + '%' : '–' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span [ngClass]="getPilKlass(op.forandring_pil)">
+                  {{ getPilSymbol(op.forandring_pil) }}
+                  {{ formatForandring(op.forandring_pct, op.forandring_pil) }}
+                </span>
+              </td>
+              <td class="text-center">
+                <!-- Sparkline-mini som färgade prickar -->
+                <div class="sparkline-mini">
+                  <span
+                    *ngFor="let v of op.sparkdata"
+                    class="spark-dot"
+                    [class.spark-good]="v !== null && v >= 95"
+                    [class.spark-warn]="v !== null && v >= 85 && v < 95"
+                    [class.spark-bad]="v !== null && v < 85"
+                    [class.spark-null]="v === null"
+                    [title]="v !== null ? (v | number:'1.1-1') + '%' : 'Ingen data'">
+                  </span>
+                </div>
+              </td>
+              <td class="text-center">
+                <span class="trend-badge" [ngClass]="getTrendBadgeKlass(op.trend_status)">
+                  {{ getTrendBadgeLabel(op.trend_status) }}
+                </span>
+              </td>
+              <td class="text-center text-muted small">
+                {{ op.ibc_totalt | number }}
+              </td>
+              <td class="text-center">
+                <span class="larm-ikon" *ngIf="op.utbildningslarm" [title]="getLarmOrsak(op)">
+                  <i class="fas fa-exclamation-triangle text-danger"></i>
+                </span>
+              </td>
+              <td class="text-end">
+                <button
+                  class="btn btn-sm btn-outline-info"
+                  (click)="loadOperatorDetail(op.nummer)">
+                  <i class="fas fa-chart-bar me-1"></i>Detaljer
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="filtradeOperatorer.length === 0">
+              <td colspan="8" class="text-center text-muted py-3">
+                Inga operatörer matchade filtret.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DETALJVY ===== -->
+  <div class="card kt-card mb-4" *ngIf="selectedOpId !== null">
+    <div class="card-header kt-card-header">
+      <span>
+        <i class="fas fa-user me-2" style="color:#4299e1;"></i>
+        Detaljvy:
+        <strong *ngIf="detailData">{{ detailData.op_namn }}</strong>
+        <span class="spinner-border spinner-border-sm ms-2 text-muted" *ngIf="detailLoading"></span>
+      </span>
+      <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
+        <i class="fas fa-times me-1"></i>Stäng
+      </button>
+    </div>
+    <div class="card-body" *ngIf="detailData && !detailLoading">
+
+      <!-- KPI-rad för operatören -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Senaste kvalitet</div>
+            <div class="detail-kpi-val" [ngClass]="getKvalitetKlass(detailData.senast_kval_pct)">
+              {{ detailData.senast_kval_pct !== null ? (detailData.senast_kval_pct | number:'1.1-1') + '%' : '–' }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Snitt kvalitet</div>
+            <div class="detail-kpi-val" [ngClass]="getKvalitetKlass(detailData.snitt_kval_pct)">
+              {{ detailData.snitt_kval_pct !== null ? (detailData.snitt_kval_pct | number:'1.1-1') + '%' : '–' }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Förändring</div>
+            <div class="detail-kpi-val" [ngClass]="getPilKlass(detailData.forandring_pil)">
+              {{ getPilSymbol(detailData.forandring_pil) }}
+              {{ formatForandring(detailData.forandring_pct, detailData.forandring_pil) }}
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">IBC totalt</div>
+            <div class="detail-kpi-val text-muted">
+              {{ detailData.ibc_totalt | number }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Utbildningslarm för denna operatör -->
+      <div class="alert alert-danger py-2 mb-3" *ngIf="detailData.utbildningslarm">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Utbildningslarm:</strong>
+        <span *ngIf="detailData.lag_kvalitet"> Kvalitet under 85%.</span>
+        <span *ngIf="detailData.konsekvent_nedgang"> Nedgångstrend 3+ veckor i rad.</span>
+      </div>
+
+      <!-- Detaljgraf -->
+      <div class="detail-chart-container mb-3">
+        <canvas id="kvalitetDetailChart"></canvas>
+      </div>
+
+      <!-- Tidslinje-tabell -->
+      <div class="table-responsive">
+        <table class="table kt-table-sm mb-0">
+          <thead>
+            <tr>
+              <th>Vecka</th>
+              <th class="text-center">IBC OK</th>
+              <th class="text-center">IBC ej OK</th>
+              <th class="text-center">Totalt</th>
+              <th class="text-center">Kvalitet %</th>
+              <th class="text-center">Teamsnitt %</th>
+              <th class="text-center">Vs team</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of detailData.tidslinje">
+              <td class="text-muted small">{{ row.vecka_label }}</td>
+              <td class="text-center text-success small">{{ row.ibc_ok || '–' }}</td>
+              <td class="text-center text-danger small">{{ row.ibc_ej_ok || '–' }}</td>
+              <td class="text-center small">{{ row.ibc_total || '–' }}</td>
+              <td class="text-center">
+                <span *ngIf="row.kvalitet_pct !== null" [ngClass]="getKvalitetKlass(row.kvalitet_pct)">
+                  {{ row.kvalitet_pct | number:'1.1-1' }}%
+                </span>
+                <span *ngIf="row.kvalitet_pct === null" class="text-muted">–</span>
+              </td>
+              <td class="text-center text-muted small">
+                {{ row.team_kvalitet !== null ? (row.team_kvalitet | number:'1.1-1') + '%' : '–' }}
+              </td>
+              <td class="text-center">
+                <span *ngIf="row.vs_team !== null" [ngClass]="getVsTeamKlass(row.vs_team)">
+                  {{ getVsTeamText(row.vs_team) }}
+                </span>
+                <span *ngIf="row.vs_team === null" class="text-muted">–</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-body text-center py-4" *ngIf="detailLoading">
+      <div class="spinner-border text-info"></div>
+      <p class="text-muted mt-2">Hämtar detaljdata...</p>
+    </div>
+  </div>
+
+</div>
