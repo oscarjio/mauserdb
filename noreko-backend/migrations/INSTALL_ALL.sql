@@ -513,7 +513,222 @@ INSERT IGNORE INTO tvattlinje_weekday_goals (weekday, mal) VALUES
 ALTER TABLE `users` MODIFY COLUMN `password` VARCHAR(255) NOT NULL;
 
 -- ============================================================
+-- 2026-03-10_annotations.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `rebotling_annotations` (
+    `id`          INT          NOT NULL AUTO_INCREMENT,
+    `datum`       DATE         NOT NULL,
+    `typ`         ENUM('driftstopp','helgdag','handelse','ovrigt') NOT NULL DEFAULT 'ovrigt',
+    `titel`       VARCHAR(120) NOT NULL,
+    `beskrivning` TEXT         NULL DEFAULT NULL,
+    `created_at`  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_datum` (`datum`),
+    INDEX `idx_typ`   (`typ`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 2026-03-11_alerts.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `alerts` (
+    `id`               INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `type`             ENUM('oee_low','stop_long','scrap_high') NOT NULL,
+    `message`          VARCHAR(500) NOT NULL,
+    `value`            DECIMAL(10,2) DEFAULT NULL,
+    `threshold`        DECIMAL(10,2) DEFAULT NULL,
+    `severity`         ENUM('warning','critical') NOT NULL DEFAULT 'warning',
+    `acknowledged`     TINYINT(1) NOT NULL DEFAULT 0,
+    `acknowledged_by`  INT UNSIGNED DEFAULT NULL,
+    `acknowledged_at`  DATETIME DEFAULT NULL,
+    `created_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    INDEX `idx_acknowledged` (`acknowledged`),
+    INDEX `idx_type` (`type`),
+    INDEX `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `alert_settings` (
+    `id`              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `type`            ENUM('oee_low','stop_long','scrap_high') NOT NULL,
+    `threshold_value` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    `enabled`         TINYINT(1) NOT NULL DEFAULT 1,
+    `updated_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `updated_by`      INT UNSIGNED DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uq_type` (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `alert_settings` (`type`, `threshold_value`, `enabled`) VALUES
+    ('oee_low',    60.00, 1),
+    ('stop_long',  30.00, 1),
+    ('scrap_high', 10.00, 1);
+
+-- ============================================================
+-- 2026-03-11_production-goals.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `rebotling_production_goals` (
+    `id`           INT          NOT NULL AUTO_INCREMENT,
+    `period_type`  ENUM('daily','weekly') NOT NULL DEFAULT 'daily',
+    `target_count` INT          NOT NULL DEFAULT 0,
+    `created_by`   INT          NULL DEFAULT NULL,
+    `created_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_period_type` (`period_type`),
+    KEY `idx_created_at`  (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `rebotling_production_goals` (`id`, `period_type`, `target_count`)
+VALUES (1, 'daily', 200), (2, 'weekly', 1000);
+
+-- ============================================================
+-- 2026-03-11_dashboard_layouts.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS dashboard_layouts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    layout_json TEXT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- 2026-03-11_skiftoverlamning.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS skiftoverlamning_notes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    skiftraknare INT NOT NULL,
+    linje VARCHAR(50) NOT NULL DEFAULT 'rebotling',
+    note_text TEXT NOT NULL,
+    user_id INT DEFAULT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_skift_linje (skiftraknare, linje),
+    INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- 2026-03-11_stopporsak_registrering.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `stopporsak_kategorier` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `namn` varchar(100) NOT NULL,
+    `ikon` varchar(10) NOT NULL,
+    `sort_order` int NOT NULL DEFAULT 0,
+    `active` tinyint(1) NOT NULL DEFAULT 1,
+    `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `stopporsak_registreringar` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `kategori_id` int NOT NULL,
+    `linje` varchar(50) NOT NULL DEFAULT 'rebotling',
+    `kommentar` text,
+    `user_id` int DEFAULT NULL,
+    `start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `end_time` datetime DEFAULT NULL,
+    `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_kategori` (`kategori_id`),
+    KEY `idx_linje` (`linje`),
+    KEY `idx_user` (`user_id`),
+    KEY `idx_start` (`start_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed standardkategorier (bara om tabellen är tom)
+INSERT IGNORE INTO `stopporsak_kategorier` (`id`, `namn`, `ikon`, `sort_order`) VALUES
+(1, 'Underhåll', '🔧', 1),
+(2, 'Materialbrist', '📦', 2),
+(3, 'Kvalitetskontroll', '🔍', 3),
+(4, 'Rast', '☕', 4),
+(5, 'Rengöring', '🧹', 5),
+(6, 'Maskinhaveri', '⚠️', 6),
+(7, 'Verktygsbyte', '🔄', 7),
+(8, 'Övrigt', '📝', 8);
+
+-- ============================================================
+-- 2026-03-11_underhallslogg.sql
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `underhallslogg` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `user_id` INT NOT NULL,
+    `kategori` VARCHAR(50) NOT NULL,
+    `typ` ENUM('planerat','oplanerat') NOT NULL,
+    `varaktighet_min` INT NOT NULL,
+    `kommentar` TEXT,
+    `maskin` VARCHAR(100) NOT NULL DEFAULT 'Rebotling',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_kategori` (`kategori`),
+    KEY `idx_typ` (`typ`),
+    KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `underhall_kategorier` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `namn` VARCHAR(50) NOT NULL,
+    `aktiv` TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO `underhall_kategorier` (`id`, `namn`, `aktiv`) VALUES
+    (1, 'Mekaniskt', 1),
+    (2, 'Elektriskt', 1),
+    (3, 'Hydraulik', 1),
+    (4, 'Pneumatik', 1),
+    (5, 'Rengöring', 1),
+    (6, 'Kalibrering', 1),
+    (7, 'Annat', 1);
+
+-- ============================================================
+-- 2026-03-11_feedback_analys.sql
+-- ============================================================
+ALTER TABLE operator_feedback
+    ADD INDEX IF NOT EXISTS idx_datum_operator (datum, operator_id),
+    ADD INDEX IF NOT EXISTS idx_skapad_at (skapad_at);
+
+-- ============================================================
+-- 2026-03-11_malhistorik.sql
+-- ============================================================
+ALTER TABLE rebotling_goal_history
+    ADD INDEX IF NOT EXISTS idx_changed_at (changed_at),
+    ADD INDEX IF NOT EXISTS idx_changed_by (changed_by);
+
+-- ============================================================
+-- 2026-03-11_skiftrapport_export.sql (index-optimering)
+-- ============================================================
+-- OBS: Dessa index läggs till med IF NOT EXISTS / felhantering.
+-- Om kolumnen inte finns i er version av rebotling_ibc, ignorera felet.
+
+-- ============================================================
+-- 2026-03-11_cykeltid_heatmap.sql (index-optimering)
+-- ============================================================
+-- Index för heatmap-frågor (op1/op2/op3 + datum)
+-- Kräver att rebotling_ibc har kolumnerna op1, op2, op3, datum
+
+-- ============================================================
+-- 2026-03-11_ranking_historik.sql (index-optimering)
+-- ============================================================
+-- Index för ranking per operatör + ok-status
+-- Kräver att rebotling_ibc har kolumnerna op1, op2, op3, datum, ok
+
+-- ============================================================
+-- OBS: Index-migrationer för cykeltid_heatmap, ranking_historik,
+-- oee_benchmark, produktionskalender, daglig_sammanfattning,
+-- skiftjamforelse och skiftrapport_export lägger till
+-- prestanda-index på PLC-tabeller (rebotling_ibc, rebotling_onoff).
+-- Kör dessa enskilda filer manuellt om ni vill ha index-optimeringen:
+--   2026-03-11_cykeltid_heatmap.sql
+--   2026-03-11_ranking_historik.sql
+--   2026-03-11_oee_benchmark.sql
+--   2026-03-11_produktionskalender.sql
+--   2026-03-11_daglig_sammanfattning.sql
+--   2026-03-11_skiftjamforelse.sql
+--   2026-03-11_skiftrapport_export.sql
+-- ============================================================
+
 SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================================
--- KLAR — alla migreringar körda
+-- KLAR — alla migreringar körda (uppdaterad 2026-03-11)
 -- ============================================================
