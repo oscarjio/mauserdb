@@ -1,3 +1,29 @@
+## 2026-03-11 Kvalitetstrend per operatör — identifiera förbättring/nedgång och utbildningsbehov
+
+Ny sida `/admin/kvalitetstrend` (adminGuard). VD kan se kvalitet%-trend per operatör över veckor/månader, identifiera vilka som förbättras och vilka som försämras, samt se utbildningsbehov.
+
+- **Backend**: `KvalitetstrendController.php` — tre endpoints:
+  - `run=overview&period=4|12|26`: Teamsnitt kvalitet%, bästa operatör, störst förbättring, störst nedgång, utbildningslarm-lista.
+  - `run=operators&period=4|12|26`: Alla operatörer med senaste kvalitet%, förändring (pil+procent), trend-status, sparkdata (6 veckor), IBC totalt, utbildningslarm-flagga.
+  - `run=operator-detail&op_id=N&period=4|12|26`: Veckovis tidslinje: kvalitet%, teamsnitt, vs-team-diff, IBC-antal.
+  - Utbildningslarm: kvalitet under 85% ELLER nedgångstrend 3+ veckor i rad.
+  - Beräkning: MAX(ibc_ok/ibc_ej_ok) per skiftraknare+dag, aggregerat per vecka via WEEK(datum,3).
+  - Auth: session_id krävs (401 om ej inloggad).
+- **SQL-migration**: `noreko-backend/migrations/2026-03-11_kvalitetstrend.sql` — index på rebotling_ibc(datum,op1/op2/op3,skiftraknare) + operators(active,number).
+- **api.php**: Registrerat `kvalitetstrend` → `KvalitetstrendController`.
+- **Service**: `src/app/services/kvalitetstrend.service.ts` — getOverview(), getOperators(), getOperatorDetail() med fullständiga TypeScript-interfaces, timeout(15000) + catchError.
+- **Komponent**: `src/app/pages/kvalitetstrend/` (ts + html + css) — standalone, OnInit/OnDestroy + destroy$ + takeUntil + clearTimeout.
+  - Periodväljare: 4/12/26 veckor. Toggle: Veckovis/Månadsvis.
+  - 4 KPI-kort: Teamsnitt, Bästa operatör, Störst förbättring, Störst nedgång.
+  - Utbildningslarm-sektion: röd ram med lista och larmorsak.
+  - Trendgraf (Chart.js): Topp 8 operatörer som färgade linjer + teamsnitt (streckad) + gräns 85% (röd prickad).
+  - Operatörstabell: senaste kval%, förändring-pil, sparkline-prickar (grön/gul/röd), trend-badge, larmikon. Sökfilter + larm-toggle.
+  - Detaljvy per operatör: KPI-rad, detaljgraf (operatör + teamsnitt + gräns), tidslinje-tabell.
+  - Math = Math. Lifecycle korrekt: destroy$ + clearTimeout + chart?.destroy().
+- **Route**: `/admin/kvalitetstrend` (adminGuard).
+- **Meny**: Lagt till under Admin-dropdown: "Kvalitetstrend" (blå ikon).
+- **Build**: OK.
+
 ## 2026-03-11 Underhallsprognos — prediktivt underhall med schema, tidslinje och historik
 
 Ny sida `/rebotling/underhallsprognos` (autentiserad). VD kan se vilka maskiner/komponenter som snart behover underhall, varningar for forsenat underhall, tidslinje och historik.
