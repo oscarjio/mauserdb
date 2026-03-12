@@ -1,3 +1,31 @@
+## 2026-03-12 Kassationsorsak per station — drill-down sida
+
+Ny sida `/rebotling/kassationsorsak` — visar vilka stationer i rebotling-linjen som kasserar mest och varfor, med trendgraf och top-5-orsaker.
+
+- **Backend**: `classes/KassationsorsakPerStationController.php` (action=`kassationsorsak-per-station`)
+  - `run=overview` — KPI:er: total kassation idag, kassation%, varsta station, trend vs igar
+  - `run=per-station` — kassation per station med genomsnittslinje (for stapeldiagram)
+  - `run=top-orsaker` — top-5 orsaker fran `kassationsregistrering`, filtrerbart per station (?station=XXX)
+  - `run=trend` — kassation% per dag per station senaste N dagar (?dagar=30)
+  - `run=detaljer` — tabell med alla stationer: kassation%, top-orsak, trend vs foregaende period
+  - Stationer ar logiska processsteg (Inspektion, Tvatt, Fyllning, Etikettering, Slutkontroll) distribuerade proportionellt fran `rebotling_ibc` — inga nya DB-tabeller
+  - Registrerad i `api.php` med nyckel `kassationsorsak-per-station`
+
+- **Frontend**: `pages/rebotling/kassationsorsak/`
+  - Angular standalone-komponent `KassationsorsakPage`
+  - Service `kassationsorsak-per-station.service.ts` med fullstandiga TypeScript-interfaces
+  - 4 KPI-kort: total kassation idag, kassation%, varsta station, trend vs igar
+  - Stapeldiagram (Chart.js): kassation per station + genomsnittslinje
+  - Horisontellt stapeldiagram: top-5 kassationsorsaker, filtrerbart per station via dropdown
+  - Linjediagram: kassation% per dag per station senaste N dagar, en linje per station
+  - Detaljerad tabell: station, totalt, kasserade, kassation%, top-orsak, trend
+  - Periodselektor: Idag/7/30/90 dagar
+  - Lazy-loaded route med authGuard: `/rebotling/kassationsorsak`
+  - Menypost under Rebotling med ikon `fas fa-times-circle`
+  - OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy()
+
+---
+
 ## 2026-03-12 Rebotling Sammanfattning — VD:ns landing page
 
 Ny sida `/rebotling/sammanfattning` — VD:ns "landing page" med de viktigaste KPI:erna fran alla rebotling-sidor. Forsta laget pa 10 sekunder.
