@@ -1,3 +1,14 @@
+## 2026-03-12 Automatiska avvikelselarm — larmsystem for produktionsavvikelser
+
+Ny sida `/rebotling/avvikelselarm` — automatiskt larmsystem som varnar VD vid avvikelser i produktionen. VD:n ska forsta laget pa 10 sekunder.
+
+- **Migration**: `2026-03-12_avvikelselarm.sql` — nya tabeller `avvikelselarm` (typ ENUM oee/kassation/produktionstakt/maskinstopp/produktionsmal, allvarlighetsgrad ENUM kritisk/varning/info, meddelande, varde_aktuellt, varde_grans, tidsstampel, kvitterad, kvitterad_av/datum/kommentar) och `larmregler` (typ, allvarlighetsgrad, grans_varde, aktiv, beskrivning). Seed: 5 standardregler + 20 exempellarm.
+- **Backend**: `AvvikelselarmController.php` — 7 endpoints: overview (KPI:er), aktiva (ej kvitterade larm sorterade kritisk forst), historik (filter typ/grad/period), kvittera (POST med namn+kommentar), regler, uppdatera-regel (POST, admin-krav), trend (larm per dag per allvarlighetsgrad).
+- **Frontend**: Angular standalone-komponent med 3 flikar (Dashboard/Historik/Regler). Dashboard: 4 KPI-kort (aktiva/kritiska/idag/snitt losningstid), aktiva larm-panel med fargkodade kort och kvittera-knapp, staplat Chart.js trenddiagram. Historik: filtrerbar tabell med all larmdata. Regler: admin-vy for att justera troeskelvarden och aktivera/inaktivera regler. Kvittera-dialog med namn och kommentar.
+- **Route**: `/rebotling/avvikelselarm`, authGuard, lazy-loaded.
+- **Meny**: Under Rebotling med ikon `fas fa-exclamation-triangle`.
+- Dark theme, destroy$/takeUntil, chart?.destroy(), clearInterval, auto-refresh var 60:e sekund.
+
 ## 2026-03-12 Historisk produktionsoversikt — statistik over tid for VD
 
 Ny sida `/rebotling/historisk-produktion` — ger VD:n en enkel oversikt av produktionen over tid med adaptiv granularitet, periodjamforelse och trendindikatorer.
