@@ -1,0 +1,282 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Automatiska avvikelselarm
+    </h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-muted small me-1">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let p of periodOptions"
+                class="btn"
+                [class.btn-info]="period === p.key"
+                [class.btn-outline-secondary]="period !== p.key"
+                (click)="setPeriod(p.key)">
+          {{ p.label }}
+        </button>
+      </div>
+      <!-- Flik-valjare -->
+      <div class="btn-group btn-group-sm ms-2">
+        <button class="btn"
+                [class.btn-light]="activeTab === 'dashboard'"
+                [class.btn-outline-secondary]="activeTab !== 'dashboard'"
+                (click)="activeTab = 'dashboard'">
+          <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+        </button>
+        <button class="btn"
+                [class.btn-light]="activeTab === 'historik'"
+                [class.btn-outline-secondary]="activeTab !== 'historik'"
+                (click)="activeTab = 'historik'">
+          <i class="fas fa-history me-1"></i>Historik
+        </button>
+        <button class="btn"
+                [class.btn-light]="activeTab === 'regler'"
+                [class.btn-outline-secondary]="activeTab !== 'regler'"
+                (click)="activeTab = 'regler'">
+          <i class="fas fa-cogs me-1"></i>Regler
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loadingOverview" class="text-center py-5">
+    <div class="spinner-border text-info spinner-border-sm" role="status"></div>
+    <span class="ms-2 text-muted">Laddar larmdata...</span>
+  </div>
+
+  <!-- ===== DASHBOARD TAB ===== -->
+  <ng-container *ngIf="activeTab === 'dashboard' && !loadingOverview">
+
+    <!-- KPI-KORT -->
+    <div class="row g-3 mb-4" *ngIf="overview">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fas fa-bell" style="color:#f6ad55"></i></div>
+          <div class="kpi-label">Aktiva larm</div>
+          <div class="kpi-value" style="color:#f6ad55">{{ overview.aktiva_totalt }}</div>
+          <div class="kpi-sub">Ej kvitterade</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fas fa-exclamation-circle" [class.pulse-critical]="overview.aktiva_kritiska > 0" style="color:#fc8181"></i></div>
+          <div class="kpi-label">Kritiska larm</div>
+          <div class="kpi-value" style="color:#fc8181">{{ overview.aktiva_kritiska }}</div>
+          <div class="kpi-sub">Kraver omedelbar atgard</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fas fa-calendar-day" style="color:#63b3ed"></i></div>
+          <div class="kpi-label">Larm idag</div>
+          <div class="kpi-value" style="color:#63b3ed">{{ overview.larm_idag }}</div>
+          <div class="kpi-sub">Triggade idag</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-icon"><i class="fas fa-clock" style="color:#68d391"></i></div>
+          <div class="kpi-label">Snitt losningstid</div>
+          <div class="kpi-value" style="color:#68d391">{{ formatMinutes(overview.snitt_losningstid) }}</div>
+          <div class="kpi-sub">Tid till kvittering</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AKTIVA LARM-PANEL -->
+    <div class="alarm-panel mb-4" *ngIf="aktivaLarm.length > 0">
+      <h5 class="card-title mb-3">
+        <i class="fas fa-bell me-2" style="color:#fc8181"></i>Aktiva larm ({{ aktivaLarm.length }})
+      </h5>
+      <div *ngFor="let larm of aktivaLarm"
+           class="alarm-item"
+           [ngClass]="larm.allvarlighetsgrad">
+        <div class="d-flex justify-content-between align-items-start">
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge" [ngClass]="getBadgeClass(larm.allvarlighetsgrad)">
+                {{ larm.allvarlighetsgrad | uppercase }}
+              </span>
+              <span class="badge bg-secondary">{{ getTypLabel(larm.typ) }}</span>
+              <span class="alarm-time">{{ larm.tidsstampel }}</span>
+            </div>
+            <div class="alarm-message">{{ larm.meddelande }}</div>
+            <div class="alarm-values" *ngIf="larm.varde_aktuellt !== null">
+              Aktuellt: <strong>{{ larm.varde_aktuellt }}</strong> | Grans: <strong>{{ larm.varde_grans }}</strong>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-success ms-2"
+                  (click)="openKvittera(larm)"
+                  title="Kvittera larm">
+            <i class="fas fa-check"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="aktivaLarm.length === 0 && !loadingAktiva" class="alarm-panel mb-4 text-center py-4">
+      <i class="fas fa-check-circle fa-3x mb-3" style="color:#68d391"></i>
+      <h5 style="color:#68d391">Inga aktiva larm</h5>
+      <p class="text-muted">Alla system gar normalt</p>
+    </div>
+
+    <!-- LARMTREND (Chart.js) -->
+    <div class="chart-card mb-4">
+      <h5 class="card-title mb-3">
+        <i class="fas fa-chart-bar me-2" style="color:#63b3ed"></i>Larmtrend
+      </h5>
+      <div *ngIf="loadingTrend" class="text-center py-4">
+        <div class="spinner-border text-info spinner-border-sm"></div>
+      </div>
+      <div class="chart-wrapper" *ngIf="!loadingTrend">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- ===== HISTORIK TAB ===== -->
+  <ng-container *ngIf="activeTab === 'historik'">
+
+    <!-- Filter -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <select class="form-select form-select-sm" style="max-width:180px" [(ngModel)]="filterTyp" (ngModelChange)="loadHistorik()">
+        <option value="">Alla typer</option>
+        <option value="oee">OEE</option>
+        <option value="kassation">Kassation</option>
+        <option value="produktionstakt">Produktionstakt</option>
+        <option value="maskinstopp">Maskinstopp</option>
+        <option value="produktionsmal">Produktionsmal</option>
+      </select>
+      <select class="form-select form-select-sm" style="max-width:180px" [(ngModel)]="filterGrad" (ngModelChange)="loadHistorik()">
+        <option value="">Alla grader</option>
+        <option value="kritisk">Kritisk</option>
+        <option value="varning">Varning</option>
+        <option value="info">Info</option>
+      </select>
+    </div>
+
+    <div *ngIf="loadingHistorik" class="text-center py-4">
+      <div class="spinner-border text-info spinner-border-sm"></div>
+    </div>
+
+    <div class="chart-card" *ngIf="!loadingHistorik && historikData">
+      <div class="table-responsive">
+        <table class="table table-dark table-striped table-hover mb-0">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="sortBy('tidsstampel')">Tidpunkt <i [class]="getSortIcon('tidsstampel')"></i></th>
+              <th>Grad</th>
+              <th>Typ</th>
+              <th>Meddelande</th>
+              <th>Varde</th>
+              <th>Grans</th>
+              <th>Status</th>
+              <th>Kvitterad av</th>
+              <th>Kommentar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let larm of sortedHistorik">
+              <td class="small">{{ larm.tidsstampel }}</td>
+              <td>
+                <span class="badge" [ngClass]="getBadgeClass(larm.allvarlighetsgrad)">
+                  {{ larm.allvarlighetsgrad }}
+                </span>
+              </td>
+              <td><span class="badge bg-secondary">{{ getTypLabel(larm.typ) }}</span></td>
+              <td class="small">{{ larm.meddelande }}</td>
+              <td>{{ larm.varde_aktuellt ?? '-' }}</td>
+              <td>{{ larm.varde_grans ?? '-' }}</td>
+              <td>
+                <span *ngIf="larm.kvitterad" class="badge bg-success">Kvitterad</span>
+                <span *ngIf="!larm.kvitterad" class="badge bg-warning text-dark">Aktiv</span>
+              </td>
+              <td class="small">{{ larm.kvitterad_av || '-' }}</td>
+              <td class="small">{{ larm.kvitterings_kommentar || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="text-muted small mt-2">Visar {{ historikData.larm.length }} av {{ historikData.total }} larm</div>
+    </div>
+
+  </ng-container>
+
+  <!-- ===== REGLER TAB ===== -->
+  <ng-container *ngIf="activeTab === 'regler'">
+
+    <div *ngIf="loadingRegler" class="text-center py-4">
+      <div class="spinner-border text-info spinner-border-sm"></div>
+    </div>
+
+    <div class="alarm-panel" *ngIf="!loadingRegler">
+      <h5 class="card-title mb-3">
+        <i class="fas fa-sliders-h me-2" style="color:#63b3ed"></i>Larmregler — Troeskelvarden
+      </h5>
+      <div class="row g-3">
+        <div class="col-12 col-md-6" *ngFor="let regel of regler">
+          <div class="regel-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <span class="badge" [ngClass]="getBadgeClass(regel.allvarlighetsgrad)">{{ regel.allvarlighetsgrad }}</span>
+                <span class="badge bg-secondary ms-1">{{ getTypLabel(regel.typ) }}</span>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox"
+                       [checked]="regel.aktiv"
+                       (change)="toggleRegel(regel)">
+                <label class="form-check-label small text-muted">{{ regel.aktiv ? 'Aktiv' : 'Inaktiv' }}</label>
+              </div>
+            </div>
+            <div class="small text-muted mb-2">{{ regel.beskrivning }}</div>
+            <div class="d-flex align-items-center gap-2">
+              <label class="small text-muted text-nowrap">Gransvarde:</label>
+              <input type="number" class="form-control form-control-sm"
+                     style="max-width:120px"
+                     [value]="regel.grans_varde"
+                     step="0.5"
+                     (change)="updateGrans(regel, $event)">
+              <span class="small text-muted">{{ getEnhet(regel.typ) }}</span>
+            </div>
+            <div class="small text-muted mt-1" *ngIf="regel.updated_at">
+              Senast uppdaterad: {{ regel.updated_at }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- KVITTERA DIALOG -->
+  <div class="kvittera-overlay" *ngIf="kvitteraLarm" (click)="closeKvittera()">
+    <div class="kvittera-dialog" (click)="$event.stopPropagation()">
+      <h5 class="mb-3"><i class="fas fa-check-circle me-2" style="color:#68d391"></i>Kvittera larm</h5>
+      <div class="mb-2">
+        <span class="badge" [ngClass]="getBadgeClass(kvitteraLarm.allvarlighetsgrad)">
+          {{ kvitteraLarm.allvarlighetsgrad }}
+        </span>
+        <span class="ms-2 small">{{ kvitteraLarm.meddelande }}</span>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small text-muted">Ditt namn</label>
+        <input type="text" class="form-control form-control-sm" [(ngModel)]="kvitteraNamn" placeholder="Fornamn Efternamn">
+      </div>
+      <div class="mb-3">
+        <label class="form-label small text-muted">Kommentar (valfritt)</label>
+        <textarea class="form-control form-control-sm" rows="3" [(ngModel)]="kvitteraKommentar" placeholder="Beskriv vidtagen atgard..."></textarea>
+      </div>
+      <div class="d-flex justify-content-end gap-2">
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeKvittera()">Avbryt</button>
+        <button class="btn btn-sm btn-success" [disabled]="!kvitteraNamn.trim() || savingKvittera" (click)="submitKvittera()">
+          <span *ngIf="savingKvittera" class="spinner-border spinner-border-sm me-1"></span>
+          Kvittera
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

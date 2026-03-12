@@ -1,0 +1,281 @@
+/* ===================================================
+   Automatiska avvikelselarm — Dark theme styles
+   =================================================== */
+
+:host {
+  display: block;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  border: 1px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: #63b3ed;
+}
+
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Aktiva larm-panel */
+.alarm-panel {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.alarm-item {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  border-left: 4px solid #4a5568;
+  margin-bottom: 0.5rem;
+  transition: background 0.15s;
+}
+
+.alarm-item:hover {
+  background: #374151;
+}
+
+.alarm-item.kritisk {
+  border-left-color: #fc8181;
+}
+
+.alarm-item.varning {
+  border-left-color: #f6ad55;
+}
+
+.alarm-item.info {
+  border-left-color: #63b3ed;
+}
+
+.alarm-time {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.alarm-message {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+}
+
+.alarm-values {
+  font-size: 0.78rem;
+  color: #a0aec0;
+}
+
+/* Badges */
+.badge-kritisk {
+  background: rgba(252, 129, 129, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(252, 129, 129, 0.4);
+}
+
+.badge-varning {
+  background: rgba(246, 173, 85, 0.2);
+  color: #f6ad55;
+  border: 1px solid rgba(246, 173, 85, 0.4);
+}
+
+.badge-info {
+  background: rgba(99, 179, 237, 0.2);
+  color: #63b3ed;
+  border: 1px solid rgba(99, 179, 237, 0.4);
+}
+
+/* Chart cards */
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+/* Table overrides */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-striped-bg: #374151;
+  --bs-table-hover-bg: #374151;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.table-dark thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: #4a5568;
+  white-space: nowrap;
+}
+
+.table-dark td,
+.table-dark th {
+  border-color: #4a5568;
+  vertical-align: middle;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background: #374151;
+  color: #63b3ed;
+}
+
+/* Regel-kort */
+.regel-card {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid #4a5568;
+  transition: border-color 0.2s;
+}
+
+.regel-card:hover {
+  border-color: #63b3ed;
+}
+
+.regel-card .form-control,
+.regel-card .form-check-input {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.regel-card .form-control:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.15rem rgba(99, 179, 237, 0.25);
+}
+
+/* Form elements */
+.form-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+.form-control {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-control:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.15rem rgba(99, 179, 237, 0.25);
+  background-color: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Kvittera modal overlay */
+.kvittera-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.kvittera-dialog {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 480px;
+  border: 1px solid #4a5568;
+}
+
+/* Badge overrides */
+.badge {
+  font-size: 0.72rem;
+}
+
+/* Spinner */
+.spinner-border-sm {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* Pulsing animation for critical alarms */
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse-critical {
+  animation: pulse-red 2s infinite;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 240px;
+  }
+}
