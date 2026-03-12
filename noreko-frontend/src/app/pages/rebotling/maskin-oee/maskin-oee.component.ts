@@ -251,8 +251,6 @@ export class MaskinOeePage implements OnInit, OnDestroy {
     const tData  = items.map(m => m.avg_t);
     const pData  = items.map(m => m.avg_p);
     const kData  = items.map(m => m.avg_k);
-    const malValue = items[0]?.oee_mal || this.oeeMal;
-
     this.barChart = new Chart(canvas, {
       type: 'bar',
       data: {

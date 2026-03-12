@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #80)*
+*Senast uppdaterad: 2026-03-12 (session #81)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -82,18 +82,21 @@ Session #77: Statistik-dashboard sammanfattning + Maskinunderhåll serviceinterv
 Session #78: Batch-spårning + Kassationsorsak-statistik — klara.
 Session #79: Skiftplanering + Produktions-SLA/måluppfyllnad — klara.
 Session #80: Stopptidsanalys per maskin + Produktionskostnad per IBC — klara.
+Session #81: Rebotling maskin-OEE per station + Operatörsbonus-kalkylator — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Rebotling stopptidsanalys per maskin** — drill-down stopptider, flaskhalsar
-- [x] **Produktionskostnad per IBC** — uppskattad kostnad per producerad IBC
-- [ ] **Operatörsbonus-kalkylator** — transparent individuell bonusmodell
+- [x] **Rebotling maskin-OEE per station** — OEE nedbruten per maskin/station
+- [x] **Operatörsbonus-kalkylator** — transparent individuell bonusmodell
 - [ ] **Leveransplanering — kundorder vs kapacitet** — matcha kundordrar mot produktionskapacitet
 - [ ] **Kvalitetscertifikat per batch** — kvalitetsintyg för avslutade batchar
-- [ ] **Rebotling maskin-OEE per station** — OEE nedbruten per maskin/station
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #81 (klar)
+Worker 1 (Rebotling maskin-OEE per station): OEE nedbruten per maskin — Tillgänglighet × Prestanda × Kvalitet. Gauge/progress bars, stacked bars, trend, benchmark mot mål. Backend: MaskinOeeController.
+Worker 2 (Operatörsbonus-kalkylator): Transparent individuell bonusmodell — IBC/h, kvalitet, närvaro, team-bonus. Konfigurationspanel, simulator, radardiagram. NYA DB-tabeller: bonus_konfiguration + bonus_utbetalning. Backend: OperatorsbonusController.
 
 ### 2026-03-12 — Session #80 (klar)
 Worker 1 (Stopptidsanalys per maskin): Drill-down stopptider per maskin, flaskhalsar, jämförelse. Backend: StopptidsanalysController. Chart.js horisontella staplar + trendlinje + doughnut.
@@ -102,8 +105,4 @@ Worker 2 (Produktionskostnad per IBC): Kostnad per IBC baserat på energi, beman
 ### 2026-03-12 — Session #79 (klar)
 Worker 1 (Skiftplanering — bemanningsöversikt): Veckoschema med operatörstilldelning per skift/dag, kapacitetsplanering, underbemanningsvarning. NYA DB-tabeller: skift_schema + skift_konfiguration. Backend: SkiftplaneringController (6 endpoints).
 Worker 2 (Produktions-SLA/måluppfyllnad): Dagliga/veckovisa produktionsmål med uppfyllnadsgrad, streak-räknare, progress bars. NY DB-tabell: produktions_mal. Backend: ProduktionsSlaController (6 endpoints).
-
-### 2026-03-12 — Session #78 (klar)
-Worker 1 (Batch-spårning): Ny sida för att följa batchar/ordrar med progress, detalj, skapa/avsluta. NYA DB-tabeller: batch_order + batch_ibc. Backend: BatchSparningController (6 endpoints).
-Worker 2 (Kassationsorsak-statistik): Pareto-diagram, trendanalys per orsak/operatör/skift. NYA DB-tabeller: kassationsorsak_register + kassation_logg. Backend: KassationsorsakController (6 endpoints).
 
