@@ -1,3 +1,28 @@
+## 2026-03-12 Skiftoverlamninslogg — Digital overlamning mellan skift
+
+Ombyggd sida `/rebotling/skiftoverlamning` — komplett digital skiftoverlamning med strukturerat formular, auto-KPI:er, historik och detaljvy.
+
+- **DB-migrering**: `migrations/2026-03-12_skiftoverlamning.sql` — ny tabell `skiftoverlamning_logg` med operator_id, skift_typ (dag/kvall/natt), datum, auto-KPI-falt (ibc_totalt, ibc_per_h, stopptid_min, kassationer), fritextfalt (problem_text, pagaende_arbete, instruktioner, kommentar), har_pagaende_problem-flagga
+- **Backend**: `SkiftoverlamningController.php` i `classes/` och `controllers/` (proxy)
+  - `run=list` med filtrering (skift_typ, operator_id, from, to) + paginering
+  - `run=detail&id=N` — fullstandig vy av en overlamning
+  - `run=shift-kpis` — automatiskt hamta KPI:er fran rebotling_ibc (senaste skiftet)
+  - `run=summary` — sammanfattnings-KPI:er: senaste overlamning, antal denna vecka, snittproduktion (senaste 10), pagaende problem
+  - `run=operators` — operatorslista for filter-dropdown
+  - `run=create (POST)` — skapa ny overlamning med validering + textlangdsbegransning
+  - Registrerad i `api.php` som `'skiftoverlamning' => 'SkiftoverlamningController'`
+- **Frontend Service**: `skiftoverlamning.service.ts` — interfaces SkiftoverlamningItem, ShiftKpis, SenastOverlamning, PagaendeProblem, CreatePayload + alla responses
+- **Frontend Komponent**: `pages/skiftoverlamning/` (standalone, OnInit/OnDestroy, destroy$, takeUntil)
+  - KPI-kort: Senaste overlamningens tid, antal denna vecka, snitt IBC (senaste 10), pagaende problem
+  - Pagaende-problem-varning med detaljer + klickbar for fullstandig vy
+  - Historiklista med tabell: datum, skifttyp (badge), operator, IBC, IBC/h, stopptid, sammanfattning
+  - Filtrering: skifttyp, operator, datumintervall
+  - Detaljvy: fullstandig vy med auto-KPI:er + alla fritextfalt (problem, pagaende arbete, instruktioner, kommentar)
+  - Formular: Auto-hamtar KPI:er fran PLC, operator fyller i fritextfalt, flagga pagaende problem
+  - Paginering, dark theme, responsive
+- **Route**: `rebotling/skiftoverlamning` i `app.routes.ts` (redan registrerad)
+- **Meny**: Under Rebotling, ikon `fas fa-clipboard-list`, text "Skiftoverlamningmall" (redan registrerad)
+
 ## 2026-03-12 Operator-onboarding — Larlingskurva & nya operatorers utveckling
 
 Ny sida `/rebotling/operator-onboarding` — VD ser hur snabbt nya operatorer nar teamgenomsnitt i IBC/h under sina forsta veckor.

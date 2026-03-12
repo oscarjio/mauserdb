@@ -1,115 +1,192 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
 
 const API = '/noreko-backend/api.php?action=skiftoverlamning';
 
-export interface SkiftNote {
+// --- Interfaces ---
+
+export interface SkiftoverlamningItem {
   id: number;
-  skiftraknare: number;
-  linje: string;
-  note_text: string;
-  user_id: number | null;
-  username: string | null;
-  created_at: string;
-}
-
-export interface SkiftSummary {
-  success: boolean;
-  error?: string;
-  skiftraknare: number;
-  skift_datum: string;
-  skift_start: string;
-  skift_slut: string;
-  ibc_ok: number;
-  ibc_ej_ok: number;
-  bur_ej_ok: number;
-  ibc_total: number;
-  kvalitet_pct: number;
-  ibc_per_timme: number;
-  cykeltid_sek: number;
-  drifttid_min: number;
+  operator_id: number;
+  operator_namn: string;
+  skift_typ: 'dag' | 'kvall' | 'natt';
+  skift_typ_label: string;
+  datum: string;
+  ibc_totalt: number;
+  ibc_per_h: number;
   stopptid_min: number;
-  stopptid_pct: number;
-  rast_min: number;
-  notes: SkiftNote[];
-  prev_skift: number | null;
-  next_skift: number | null;
+  kassationer: number;
+  problem_text: string | null;
+  pagaende_arbete: string | null;
+  instruktioner: string | null;
+  kommentar: string | null;
+  har_pagaende_problem: boolean;
+  skapad: string;
 }
 
-export interface SkiftHistoryItem {
+export interface ListResponse {
+  success: boolean;
+  error?: string;
+  items: SkiftoverlamningItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface DetailResponse {
+  success: boolean;
+  error?: string;
+  item: SkiftoverlamningItem;
+}
+
+export interface ShiftKpis {
   skiftraknare: number;
   skift_datum: string;
   skift_start: string;
   skift_slut: string;
+  skift_typ: string;
+  ibc_totalt: number;
   ibc_ok: number;
-  ibc_ej_ok: number;
-  ibc_total: number;
-  kvalitet_pct: number;
-  ibc_per_timme: number;
+  ibc_per_h: number;
+  stopptid_min: number;
+  kassationer: number;
   drifttid_min: number;
 }
 
-export interface SkiftHistoryResponse {
+export interface ShiftKpisResponse {
   success: boolean;
   error?: string;
-  history: SkiftHistoryItem[];
+  kpis: ShiftKpis | null;
+  message?: string;
 }
 
-export interface AddNoteResponse {
-  success: boolean;
-  error?: string;
-  note?: SkiftNote;
+export interface SenastOverlamning {
+  id: number;
+  skapad: string;
+  operator_namn: string;
+  skift_typ: string;
+  datum: string;
 }
 
-export interface NotesResponse {
+export interface PagaendeProblem {
+  id: number;
+  datum: string;
+  skift_typ: string;
+  skift_typ_label: string;
+  operator_namn: string;
+  problem_text: string;
+  pagaende_arbete: string;
+}
+
+export interface SummaryResponse {
   success: boolean;
   error?: string;
-  notes: SkiftNote[];
+  senaste_overlamning: SenastOverlamning | null;
+  antal_denna_vecka: number;
+  snitt_produktion_10: number;
+  pagaende_problem_antal: number;
+  pagaende_problem_lista: PagaendeProblem[];
 }
+
+export interface OperatorOption {
+  id: number;
+  namn: string;
+}
+
+export interface OperatorsResponse {
+  success: boolean;
+  error?: string;
+  operators: OperatorOption[];
+}
+
+export interface CreateResponse {
+  success: boolean;
+  error?: string;
+  id?: number;
+  message?: string;
+}
+
+export interface CreatePayload {
+  skift_typ: string;
+  datum: string;
+  ibc_totalt: number;
+  ibc_per_h: number;
+  stopptid_min: number;
+  kassationer: number;
+  problem_text: string;
+  pagaende_arbete: string;
+  instruktioner: string;
+  kommentar: string;
+  har_pagaende_problem: boolean;
+}
+
+// --- Service ---
 
 @Injectable({ providedIn: 'root' })
 export class SkiftoverlamningService {
   constructor(private http: HttpClient) {}
 
-  getSummary(skiftraknare?: number): Observable<SkiftSummary> {
-    const params = skiftraknare ? `&skiftraknare=${skiftraknare}` : '';
-    return this.http.get<SkiftSummary>(`${API}&run=summary${params}`, { withCredentials: true }).pipe(
-      timeout(10000),
-      catchError(() => of({ success: false, error: 'Nätverksfel' } as SkiftSummary))
+  getList(filters: {
+    skift_typ?: string;
+    operator_id?: number;
+    from?: string;
+    to?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Observable<ListResponse> {
+    let params = new HttpParams();
+    if (filters.skift_typ) params = params.set('skift_typ', filters.skift_typ);
+    if (filters.operator_id) params = params.set('operator_id', String(filters.operator_id));
+    if (filters.from) params = params.set('from', filters.from);
+    if (filters.to) params = params.set('to', filters.to);
+    if (filters.limit) params = params.set('limit', String(filters.limit));
+    if (filters.offset) params = params.set('offset', String(filters.offset));
+
+    return this.http.get<ListResponse>(`${API}&run=list`, { params, withCredentials: true }).pipe(
+      timeout(15000),
+      catchError(() => of({ success: false, error: 'Natverksfel', items: [], total: 0, limit: 50, offset: 0 } as ListResponse))
     );
   }
 
-  getNotes(skiftraknare: number, linje = 'rebotling'): Observable<NotesResponse> {
-    return this.http.get<NotesResponse>(
-      `${API}&run=notes&skiftraknare=${skiftraknare}&linje=${linje}`,
-      { withCredentials: true }
-    ).pipe(
+  getDetail(id: number): Observable<DetailResponse> {
+    return this.http.get<DetailResponse>(`${API}&run=detail&id=${id}`, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, error: 'Nätverksfel', notes: [] } as NotesResponse))
+      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
     );
   }
 
-  addNote(skiftraknare: number, noteText: string, linje = 'rebotling'): Observable<AddNoteResponse> {
-    return this.http.post<AddNoteResponse>(
-      `${API}&run=add-note`,
-      { skiftraknare, note_text: noteText, linje },
-      { withCredentials: true }
-    ).pipe(
+  getShiftKpis(): Observable<ShiftKpisResponse> {
+    return this.http.get<ShiftKpisResponse>(`${API}&run=shift-kpis`, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, error: 'Nätverksfel' } as AddNoteResponse))
+      catchError(() => of({ success: false, error: 'Natverksfel', kpis: null } as ShiftKpisResponse))
     );
   }
 
-  getHistory(days = 7): Observable<SkiftHistoryResponse> {
-    return this.http.get<SkiftHistoryResponse>(
-      `${API}&run=history&days=${days}`,
-      { withCredentials: true }
-    ).pipe(
+  getSummary(): Observable<SummaryResponse> {
+    return this.http.get<SummaryResponse>(`${API}&run=summary`, { withCredentials: true }).pipe(
       timeout(10000),
-      catchError(() => of({ success: false, error: 'Nätverksfel', history: [] } as SkiftHistoryResponse))
+      catchError(() => of({
+        success: false, error: 'Natverksfel',
+        senaste_overlamning: null, antal_denna_vecka: 0,
+        snitt_produktion_10: 0, pagaende_problem_antal: 0,
+        pagaende_problem_lista: []
+      } as SummaryResponse))
+    );
+  }
+
+  getOperators(): Observable<OperatorsResponse> {
+    return this.http.get<OperatorsResponse>(`${API}&run=operators`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, error: 'Natverksfel', operators: [] } as OperatorsResponse))
+    );
+  }
+
+  create(payload: CreatePayload): Observable<CreateResponse> {
+    return this.http.post<CreateResponse>(`${API}&run=create`, payload, { withCredentials: true }).pipe(
+      timeout(15000),
+      catchError(() => of({ success: false, error: 'Natverksfel' } as CreateResponse))
     );
   }
 }
