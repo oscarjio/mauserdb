@@ -634,7 +634,6 @@ class AndonController {
             $ibcIdag    = (int)($rad['ibc_idag']         ?? 0);
             $ibcEjOk    = (int)($rad['ibc_ej_ok']        ?? 0);
             $senasteTid = $rad['senaste_ibc_tid']           ?? null;
-            $totalMin   = max(1, (int)($rad['total_min']    ?? 1));
 
             // Mål-procent
             $malPct = $malIdag > 0 ? round(($ibcIdag / $malIdag) * 100, 1) : 0.0;

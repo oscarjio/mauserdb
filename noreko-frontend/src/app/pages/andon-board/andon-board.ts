@@ -4,7 +4,6 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import {
   AndonBoardService,
-  AndonBoardStatus,
   TodayProduction,
   CurrentRate,
   MachineStatus,

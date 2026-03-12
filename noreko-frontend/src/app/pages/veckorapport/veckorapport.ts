@@ -5,8 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import {
   VeckorapportService,
-  VeckorapportData,
-  StopReason
+  VeckorapportData
 } from '../../services/veckorapport.service';
 
 @Component({
