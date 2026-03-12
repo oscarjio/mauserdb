@@ -1,3 +1,30 @@
+## 2026-03-12 Leveransplanering — kundorder vs produktionskapacitet
+
+Ny sida `/rebotling/leveransplanering` — matchar kundordrar mot produktionskapacitet i rebotling-linjen med leveransprognos och forseningsvarningar.
+
+- **Migration**: `2026-03-12_leveransplanering.sql` — nya tabeller `kundordrar` (kundnamn, antal_ibc, bestallningsdatum, onskat/beraknat leveransdatum, status ENUM planerad/i_produktion/levererad/forsenad, prioritet, notering) och `produktionskapacitet_config` (kapacitet_per_dag, planerade_underhallsdagar JSON, buffer_procent). Seed-data: 10 exempelordrar + kapacitet 80 IBC/dag.
+- **Backend**: `classes/LeveransplaneringController.php`
+  - `run=overview` — KPI:er: aktiva ordrar, leveransgrad%, forsenade ordrar, kapacitetsutnyttjande%
+  - `run=ordrar` — lista ordrar med filter (status, period)
+  - `run=kapacitet` — kapacitetsdata per dag (tillganglig vs planerad) + Gantt-data
+  - `run=prognos` — leveransprognos baserat pa kapacitet och orderko
+  - `run=konfiguration` — hamta/uppdatera kapacitetskonfiguration
+  - `run=skapa-order` (POST) — skapa ny order med automatisk leveransdatumberakning
+  - `run=uppdatera-order` (POST) — uppdatera orderstatus
+  - `ensureTables()` med automatisk seed-data
+  - Registrerad i `api.php` med nyckel `leveransplanering`
+- **Service**: `leveransplanering.service.ts` — interfaces KundorderItem, GanttItem, KapacitetData, PrognosItem m.fl.
+- **Komponent**: `pages/rebotling/leveransplanering/`
+  - KPI-kort (4 st): Aktiva ordrar, Leveransgrad%, Forsenade ordrar, Kapacitetsutnyttjande%
+  - Ordertabell med sortering, statusbadges (planerad/i_produktion/levererad/forsenad), prioritetsindikatorer, atgardsknappar
+  - Gantt-liknande kapacitetsvy (Chart.js horisontella staplar) — beraknad leverans vs deadline per order
+  - Kapacitetsprognos (linjediagram) — tillganglig kapacitet vs planerad produktion per dag
+  - Filterbar: status (alla/aktiva/forsenade/levererade) + period (alla/vecka/manad)
+  - Ny order-modal med automatisk leveransdatumberakning
+  - Dark theme, OnInit/OnDestroy, destroy$ + takeUntil, chart?.destroy(), refreshTimer
+- **Route**: `rebotling/leveransplanering`, authGuard, lazy-loaded
+- **Meny**: Under Rebotling med ikon `fas fa-truck-loading`
+
 ## 2026-03-12 Kvalitetscertifikat — certifikat per batch med kvalitetsbedomning
 
 Ny sida `/rebotling/kvalitetscertifikat` — genererar kvalitetsintyg for avslutade batchar med nyckeltal (kassation%, cykeltid, operatorer, godkand/underkand).
