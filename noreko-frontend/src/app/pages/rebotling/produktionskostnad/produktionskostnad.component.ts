@@ -345,7 +345,7 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     const skift  = this.shiftComp.skift;
     const labels = skift.map(s => s.label);
     const values = skift.map(s => s.kostnad_per_ibc);
-    const colors = values.map((v, i) => {
+    const colors = values.map((_, i) => {
       const palette = ['#4299e1', '#48bb78', '#ecc94b', '#e53e3e', '#a0aec0', '#9f7aea'];
       return palette[i % palette.length];
     });

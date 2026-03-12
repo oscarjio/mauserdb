@@ -243,26 +243,6 @@ class ProduktionskostnadController {
     }
 
     /**
-     * Hämta produktionsdata per skift för ett datum.
-     * Returnerar skift-info baserat på skiftraknare i rebotling_ibc.
-     */
-    private function getProductionPerShift(string $date): array {
-        $stmt = $this->pdo->prepare("
-            SELECT
-                skiftraknare,
-                MAX(COALESCE(ibc_ok, 0))    AS ibc_ok,
-                MAX(COALESCE(ibc_ej_ok, 0)) AS ibc_ej_ok
-            FROM rebotling_ibc
-            WHERE DATE(datum) = :date
-              AND skiftraknare IS NOT NULL
-            GROUP BY skiftraknare
-            ORDER BY skiftraknare ASC
-        ");
-        $stmt->execute([':date' => $date]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-    }
-
-    /**
      * Beräkna kostnader för ett datumintervall baserat på produktion + konfiguration.
      * Antal dagar används för att skala bemannings-/overhead-kostnad.
      */

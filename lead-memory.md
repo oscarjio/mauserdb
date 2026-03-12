@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #79)*
+*Senast uppdaterad: 2026-03-12 (session #80)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -81,28 +81,29 @@ Session #76: Snabbkommandon/favoritvy + Kvalitetsanalys trendbrott-detektion —
 Session #77: Statistik-dashboard sammanfattning + Maskinunderhåll serviceintervall — klara.
 Session #78: Batch-spårning + Kassationsorsak-statistik — klara.
 Session #79: Skiftplanering + Produktions-SLA/måluppfyllnad — klara.
+Session #80: Stopptidsanalys per maskin + Produktionskostnad per IBC — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Skiftplanering — bemanningsöversikt** — kapacitetsplanering per skift
-- [x] **Produktions-SLA/måluppfyllnad** — dagliga/veckovisa mål + uppfyllnadsgrad
-- [ ] **Produktionskostnad per IBC** — uppskattad kostnad per producerad IBC
+- [x] **Rebotling stopptidsanalys per maskin** — drill-down stopptider, flaskhalsar
+- [x] **Produktionskostnad per IBC** — uppskattad kostnad per producerad IBC
 - [ ] **Operatörsbonus-kalkylator** — transparent individuell bonusmodell
 - [ ] **Leveransplanering — kundorder vs kapacitet** — matcha kundordrar mot produktionskapacitet
 - [ ] **Kvalitetscertifikat per batch** — kvalitetsintyg för avslutade batchar
-- [ ] **Rebotling stopptidsanalys per maskin** — drill-down stopptider, flaskhalsar
+- [ ] **Rebotling maskin-OEE per station** — OEE nedbruten per maskin/station
+- [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 
 ## BESLUTSDAGBOK (senaste 3)
 
+### 2026-03-12 — Session #80 (klar)
+Worker 1 (Stopptidsanalys per maskin): Drill-down stopptider per maskin, flaskhalsar, jämförelse. Backend: StopptidsanalysController. Chart.js horisontella staplar + trendlinje + doughnut.
+Worker 2 (Produktionskostnad per IBC): Kostnad per IBC baserat på energi, bemanning, material, kassation, overhead. NY DB-tabell: produktionskostnad_config. Backend: ProduktionskostnadController. Chart.js kostnadsuppdelning + trend.
+
 ### 2026-03-12 — Session #79 (klar)
-Worker 1 (Skiftplanering — bemanningsöversikt): Veckoschema med operatörstilldelning per skift/dag, kapacitetsplanering, underbemanningsvarning. NYA DB-tabeller: skift_schema + skift_konfiguration. Seed: 3 skifttyper (FM/EM/NATT). Backend: SkiftplaneringController (6 endpoints). Chart.js bemanningsgrad per dag.
-Worker 2 (Produktions-SLA/måluppfyllnad): Dagliga/veckovisa produktionsmål med uppfyllnadsgrad, streak-räknare, progress bars. NY DB-tabell: produktions_mal. Seed: standardmål 80 IBC/dag. Backend: ProduktionsSlaController (6 endpoints). Chart.js gauge + stapeldiagram.
+Worker 1 (Skiftplanering — bemanningsöversikt): Veckoschema med operatörstilldelning per skift/dag, kapacitetsplanering, underbemanningsvarning. NYA DB-tabeller: skift_schema + skift_konfiguration. Backend: SkiftplaneringController (6 endpoints).
+Worker 2 (Produktions-SLA/måluppfyllnad): Dagliga/veckovisa produktionsmål med uppfyllnadsgrad, streak-räknare, progress bars. NY DB-tabell: produktions_mal. Backend: ProduktionsSlaController (6 endpoints).
 
 ### 2026-03-12 — Session #78 (klar)
-Worker 1 (Batch-spårning): Ny sida för att följa batchar/ordrar. Aktiva batchar med progress, batch-detalj med operatörer/cykeltider/kassation, skapa/avsluta batch. NYA DB-tabeller: batch_order + batch_ibc. Chart.js progress-diagram. Backend: BatchSparningController (6 endpoints).
-Worker 2 (Kassationsorsak-statistik): Pareto-diagram (stapel + kumulativ linje, 80/20-gräns), trenddiagram per orsak, per operatör, per skift, drilldown. NYA DB-tabeller: kassationsorsak_register + kassation_logg. Backend: KassationsorsakController (6 endpoints).
-
-### 2026-03-12 — Session #77 (klar)
-Worker 1 (Statistik-dashboard sammanfattning): VD:s 10-sek överblick. 6 KPI-kort. Chart.js dual Y-axel. Statusindikator. Backend: StatistikDashboardController (4 endpoints).
-Worker 2 (Maskinunderhåll — serviceintervall-vy): Maskinlista, servicestatus, servicehistorik. NYA DB-tabeller: maskin_register + maskin_service_logg. Backend: MaskinunderhallController (6 endpoints).
+Worker 1 (Batch-spårning): Ny sida för att följa batchar/ordrar med progress, detalj, skapa/avsluta. NYA DB-tabeller: batch_order + batch_ibc. Backend: BatchSparningController (6 endpoints).
+Worker 2 (Kassationsorsak-statistik): Pareto-diagram, trendanalys per orsak/operatör/skift. NYA DB-tabeller: kassationsorsak_register + kassation_logg. Backend: KassationsorsakController (6 endpoints).
 

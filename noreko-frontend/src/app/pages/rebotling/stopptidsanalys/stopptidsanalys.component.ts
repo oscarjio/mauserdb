@@ -8,7 +8,6 @@ import {
   StopptidsanalysService,
   OverviewData,
   PerMaskinData,
-  MaskinItem,
   TrendData,
   FordelningData,
   DetaljData,
