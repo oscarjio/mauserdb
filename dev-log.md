@@ -1,3 +1,23 @@
+## 2026-03-12 Stopporsak per operatör — Utbildningsbehov & drill-down
+
+Ny sida `/rebotling/stopporsak-operator` — identifiera vilka operatörer som har mest stopp och kartlägg utbildningsbehov.
+
+- **Backend**: `StopporsakOperatorController.php` i `classes/` och `controllers/` (proxy)
+  - `run=overview&period=7|30|90`: Alla operatörer med total stopptid (min), antal stopp, % av teamsnitt, flagga "hog_stopptid" om >150% av teamsnitt. Slår ihop data från `stopporsak_registreringar` + `stoppage_log`
+  - `run=operator-detail&operator_id=X&period=7|30|90`: En operatörs alla stopporsaker (antal, total_min, senaste) — underlag för drill-down + donut-chart
+  - `run=reasons-summary&period=7|30|90`: Aggregerade stopporsaker för alla operatörer (pie/donut-chart), med `andel_pct`
+  - Registrerad i `api.php` som `'stopporsak-operator' => 'StopporsakOperatorController'`
+- **Frontend Service**: `stopporsak-operator.service.ts` — interfaces OperatorRow, OverviewData, OrsakDetail, OperatorDetailData, OrsakSummary, ReasonsSummaryData + timeout(15000) + catchError
+- **Frontend Komponent**: `pages/stopporsak-operator/` (standalone, OnInit/OnDestroy, destroy$, takeUntil)
+  - KPI-rad: Total stopptid, antal stopp, teamsnitt per operatör, antal med hög stopptid
+  - Chart.js horisontell stapel: stopptid per operatör (röd = hög, blå = normal) med teamsnittslinje (gul streckad)
+  - Operatörstabell: sorterad efter total stopptid, röd vänsterkant + badge "Hög" för >150% av snitt
+  - Drill-down: klicka operatör → detaljvy med donut-chart + orsakstabell (antal, stopptid, andel, senaste)
+  - Donut-chart (alla operatörer): top-10 stopporsaker med andel av total stopptid
+  - Periodväljare: 7d / 30d / 90d
+- **Route**: `rebotling/stopporsak-operator` (authGuard) i `app.routes.ts`
+- **Meny**: Under Rebotling, ikon `fas fa-exclamation-triangle`, text "Stopporsak per operatör", visas för inloggade
+
 ## 2026-03-12 Produktionsprognos — Skiftbaserad realtidsprognos
 
 Ny sida `/rebotling/produktionsprognos` — VD ser på 10 sekunder: producerat X IBC, takt Y IBC/h, prognos Z IBC vid skiftslut.
