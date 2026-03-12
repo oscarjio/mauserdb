@@ -317,8 +317,6 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
     if (!canvas) return;
 
     const labels = this.timelineItems.map(i => i.namn);
-    const dagarSedan = this.timelineItems.map(i => i.dagar_sedan ?? 0);
-    const intervall  = this.timelineItems.map(i => i.intervall);
     // Överskridna dagar (rött del): max(0, dagar_sedan - intervall)
     const overskirdet = this.timelineItems.map(i => Math.max(0, (i.dagar_sedan ?? 0) - i.intervall));
     // Normal del (grön): min(dagar_sedan, intervall)
