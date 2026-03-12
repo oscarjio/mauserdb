@@ -1,3 +1,24 @@
+## 2026-03-12 Kassationsorsak-drilldown — Hierarkisk kassationsanalys
+
+Ny sida `/rebotling/kassationsorsak-drilldown` — hierarkisk drill-down-vy for kassationsorsaker.
+
+- **Backend**: `KassationsDrilldownController.php` i `classes/` och `controllers/` (proxy-monster)
+  - `run=overview&days=N`: totalt kasserade, kassationsgrad (%), trend vs foregaende period, per-orsak-aggregering med andel
+  - `run=reason-detail&reason=X&days=N`: enskilda kassationshandelser for en viss orsak (datum, tid, operator, antal, kommentar)
+  - `run=trend&days=N`: daglig kassationstrend (kasserade, producerade, kassationsgrad per dag)
+  - Auth: session kravs (401 om ej inloggad)
+- **Route** i `api.php`: `kassations-drilldown` -> `KassationsDrilldownController`
+- **Frontend Service**: `kassations-drilldown.service.ts` med TypeScript-interfaces, `timeout(15000)` + `catchError`
+- **Frontend Komponent**: `pages/kassations-drilldown/` (standalone, OnInit/OnDestroy, destroy$/takeUntil)
+  - 4 KPI-kort: Total kasserade, Kassationsgrad %, Vanligaste orsaken, Trend vs foregaende period (trendpil)
+  - Horisontella staplar (Chart.js) for kassationsorsaker
+  - Klickbar tabell: klicka pa orsak -> expanderbar detalj med enskilda handelser
+  - Linjediagram + staplar for daglig kassationstrend
+  - Periodvaljare: 7d / 30d / 90d
+  - Dark theme, responsiv design
+- **Route**: `/rebotling/kassationsorsak-drilldown` med `authGuard` i `app.routes.ts`
+- **Meny**: "Kassationsanalys+" tillagd under Rebotling-dropdown (loggedIn), ikon fas fa-search-plus
+
 ## 2026-03-12 Drifttids-timeline — Visuell tidslinje per dag (session #70)
 
 Ny sida `/rebotling/drifttids-timeline` — horisontell tidslinje som visar körning, stopp och ej planerad tid per dag.
