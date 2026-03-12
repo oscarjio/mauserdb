@@ -10,7 +10,6 @@ import {
   OnboardingOperator,
   OverviewData,
   OperatorCurveData,
-  WeekData,
 } from '../../services/operator-onboarding.service';
 
 Chart.register(...registerables);
@@ -52,12 +51,6 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
   // ---- Charts ----
   private curveChart: Chart | null = null;
   private destroy$ = new Subject<void>();
-
-  private readonly COLORS = [
-    '#4299e1', '#48bb78', '#ecc94b', '#ed8936', '#e53e3e',
-    '#9f7aea', '#38b2ac', '#f687b3', '#68d391', '#fc8181',
-    '#667eea', '#f6ad55', '#76e4f7', '#b794f4', '#fbb6ce',
-  ];
 
   constructor(private svc: OperatorOnboardingService) {}
 

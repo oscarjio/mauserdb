@@ -5,10 +5,9 @@
 
 ## Förbättringar
 
-- [x] **Produktionsprognos** — baserat på nuvarande takt och tid kvar på skiftet, visa prognos: "beräknat X IBC till skiftslut". VD ser om målet nås
-- [x] **Stopporsak per operatör** — vilka operatörer har mest stopp? Vilka stopporsaker? Identifiera utbildningsbehov
-- [ ] **Operatörs-onboarding tracker** — visa nya operatörers lärlingskurva: hur snabbt de når team-genomsnittet i IBC/h de första veckorna
-- [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift: vad gjordes, pågående problem, specialinstruktioner
 - [ ] **Snabbkommandon/favoritvy** — VD kan bokmärka sina mest använda sidor för snabb åtkomst från startsidan
 - [ ] **Maskinunderhåll — serviceintervall-vy** — visa kommande planerade underhåll, tid sedan senaste service, varningslampa vid försenat underhåll
 - [ ] **Batch-spårning** — följ en batch/order IBC:er, se hur många klara, uppskattad tid kvar, status
+- [ ] **Produktionseffektivitet per timme** — heatmap/tabell som visar vilka timmar på dygnet som är mest/minst produktiva, identifiera mönster
+- [ ] **Kvalitetsanalys — trendbrott-detektion** — automatiskt flagga när kassationsgraden avviker markant från historiskt snitt, varning till VD
+- [ ] **Operatörsjämförelse sida-vid-sida** — VD väljer 2-3 operatörer och ser deras KPI:er jämförda i samma graf/tabell

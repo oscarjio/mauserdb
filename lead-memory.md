@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #73)*
+*Senast uppdaterad: 2026-03-12 (session #74)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -75,18 +75,24 @@ Session #70: Drifttids-timeline + Skiftvis produktionsjämförelse — klara.
 Session #71: Kassationsorsak-drill-down + Produktionspuls realtids-ticker — klara.
 Session #72: Första-timme-analys + Operatörs-personligt dashboard — klara.
 Session #73: Produktionsprognos + Stopporsak per operatör — klara.
+Session #74: Operatörs-onboarding tracker + Skiftöverlämningslogg — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Produktionsprognos** — beräknat antal IBC till skiftslut
-- [x] **Stopporsak per operatör** — identifiera utbildningsbehov
-- [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
-- [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift
+- [x] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
+- [x] **Skiftöverlämningslogg** — digital överlämning mellan skift
 - [ ] **Snabbkommandon/favoritvy** — VD:s bokmärken
 - [ ] **Maskinunderhåll — serviceintervall-vy** — planerade underhåll + varningar
 - [ ] **Batch-spårning** — följ en batch/order genom linjen
+- [ ] **Produktionseffektivitet per timme** — heatmap vilka timmar är mest produktiva
+- [ ] **Kvalitetsanalys — trendbrott-detektion** — flagga avvikande kassationsgrad
+- [ ] **Operatörsjämförelse sida-vid-sida** — jämför 2-3 operatörer i samma graf
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #74 (klar)
+Worker 1 (Operatörs-onboarding tracker): Visa nya operatörers lärlingskurva — veckovis IBC/h de första 12 veckorna vs teamsnitt. Chart.js linjediagram, KPI-kort, statusfärger (grön/gul/röd). Backend: OperatorOnboardingController (3 endpoints: onboarding-overview, operator-curve, team-stats).
+Worker 2 (Skiftöverlämningslogg): Digital överlämning mellan skift. Formulär för avgående operatör + automatisk KPI-data. Historik-lista, detaljvy, filtrering. NY DB-tabell. Backend: SkiftoverlamningController (4 endpoints: list, detail, create, shift-kpis).
 
 ### 2026-03-12 — Session #73 (klar)
 Worker 1 (Produktionsprognos): VD ser beräknat antal IBC till skiftslut. Stor tydlig siffra, progressbar, trendindikator. Skifttider dag/kväll/natt. Auto-refresh 60s. Backend: ProduktionsPrognosController (2 endpoints: forecast, shift-history).
@@ -95,7 +101,3 @@ Worker 2 (Stopporsak per operatör): Vilka operatörer har mest stopp, vilka ors
 ### 2026-03-12 — Session #72 (klar)
 Worker 1 (Första-timme-analys): Analyserar första timmen efter skiftstart — tid till första IBC, ramp-up-kurva (10-min-intervaller), jämförelse mot snitt. Identifierar långsamma starter. Backend: ForstaTimmeAnalysController (2 endpoints: analysis, trend).
 Worker 2 (Operatörs-personligt dashboard): Varje operatör ser sin egen statistik — IBC, IBC/h, kvalitet, ranking, trender vs teamsnitt. Motiverande prestationer/milstolpar. Backend: OperatorDashboardController (3 endpoints: my-stats, my-trend, my-achievements).
-
-### 2026-03-12 — Session #71 (klar)
-Worker 1 (Kassationsorsak-drill-down): Hierarkisk vy — klicka från kassationsgrad → orsaker → enskilda händelser. Chart.js horisontella staplar + trendlinje. Backend: KassationsDrilldownController (3 endpoints: overview, reason-detail, trend).
-Worker 2 (Produktionspuls realtids-ticker): Scrollande börsticker med senaste händelser (IBC, stopp, driftstatus). CSS marquee-animation. 4 KPI-snabbkort. Auto-refresh 30s. Backend: ProduktionspulsController (2 endpoints: pulse, live-kpi).
