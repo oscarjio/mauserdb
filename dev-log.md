@@ -1,3 +1,32 @@
+## 2026-03-12 Produktions-SLA/Maluppfyllnad — dagliga/veckovisa produktionsmal med uppfyllnadsgrad
+
+Ny sida `/rebotling/produktions-sla` -- VD kan satta dagliga/veckovisa produktionsmal och se uppfyllnadsgrad i procent med progress bars, gauge-diagram och historik.
+
+- **Migration**: `2026-03-12_produktions_sla.sql` -- tabell `produktions_mal` (id, mal_typ ENUM dagligt/veckovist, target_ibc, target_kassation_pct, giltig_from, giltig_tom, created_by, created_at) med seed-data (dagligt: 80 IBC / max 5% kassation, veckovist: 400 IBC / max 4% kassation)
+- **Backend**: `ProduktionsSlaController.php` i `classes/`
+  - `run=overview` -- KPI:er: dagens maluppfyllnad% (producerat vs mal), veckans maluppfyllnad%, streak (dagar i rad over mal), basta vecka senaste manaden
+  - `run=daily-progress` (?date=YYYY-MM-DD) -- dagens mal vs faktisk produktion per timme (kumulativt, 06-22), takt per timme
+  - `run=weekly-progress` (?week=YYYY-Wxx) -- veckans mal vs faktisk dag for dag med uppfyllnad% och over_mal-flagga
+  - `run=history` (?period=30/90) -- historik over maluppfyllnad per dag med trend (uppat/nedat/stabil), snitt uppfyllnad%, dagar over mal
+  - `run=goals` -- lista aktiva och historiska mal med aktiv-flagga
+  - `run=set-goal` (POST) -- satt nytt mal (dagligt/veckovist), avslutar automatiskt tidigare aktivt mal av samma typ
+  - `ensureTables()` kor migration automatiskt vid forsta anrop
+  - Produktionsdata hamtas fran `rebotling_ibc` med MAX(ibc_ok) per (datum, skiftraknare) -- samma monster som StatistikDashboardController
+  - Registrerad i `api.php` med nyckel `produktionssla`
+- **Service**: `produktions-sla.service.ts` -- interfaces SlaOverview, DailyProgress, WeeklyProgress, HistoryData, SlaGoal, SetGoalData
+- **Komponent**: `pages/rebotling/produktions-sla/`
+  - KPI-kort (4 st) -- Dagens mal (% med animerad progress bar, fargkodad gron/gul/rod), Veckans mal (%), Streak (dagar i rad, eldikon), Basta vecka
+  - Dagens progress -- halvdoughnut gauge (Chart.js) med IBC klara / mal, kassation%, takt/timme
+  - Veckoversikt -- stapeldiagram med dagliga staplar (gron=over mal, rod=under), mal-linje overlagd (streckad gul)
+  - Historik -- linjediagram med maluppfyllnad% over tid (30/90 dagar), 7-dagars glidande medelvarde, 100%-linje
+  - Daglig tabell -- denna vecka dag for dag med progress bars, kassation%, check/cross-ikoner
+  - Malkonfiguration -- expanderbar sektion dar VD sattar nya mal (typ, IBC/dag, max kassation%, giltigt fran), malhistorik-tabell
+  - Auto-refresh var 60 sekunder, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + destroyCharts
+- **Route**: `/rebotling/produktions-sla` (authGuard)
+- **Meny**: "Maluppfyllnad" med ikon `fas fa-bullseye` under Rebotling
+
+---
+
 ## 2026-03-12 Skiftplanering — bemanningsöversikt
 
 Ny sida `/rebotling/skiftplanering` — VD/admin ser vilka operatörer som jobbar vilket skift, planerar kapacitet och får varning vid underbemanning.

@@ -1,0 +1,292 @@
+<div class="container-fluid py-4">
+
+  <!-- Rubrik -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-bullseye me-2" style="color:#48bb78"></i>Maluppfyllnad
+    </h2>
+    <button class="btn btn-sm btn-outline-light" (click)="toggleGoalForm()">
+      <i class="fas fa-cog me-1"></i>{{ showGoalForm ? 'Stang' : 'Satt mal' }}
+    </button>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Dagens mal</div>
+        <div class="kpi-value" [class.text-success]="overview.dag_pct >= 100"
+             [class.text-warning]="overview.dag_pct >= 80 && overview.dag_pct < 100"
+             [class.text-danger]="overview.dag_pct < 80">
+          {{ overview.dag_pct }}%
+        </div>
+        <div class="progress mt-2" style="height: 8px; background: #4a5568;">
+          <div class="progress-bar progress-bar-animated"
+               [ngClass]="progressBarClass(overview.dag_pct)"
+               [style.width.%]="progressBarWidth(overview.dag_pct)">
+          </div>
+        </div>
+        <div class="kpi-sub mt-1">{{ overview.dag_producerat }} / {{ overview.dag_target }} IBC</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Veckans mal</div>
+        <div class="kpi-value" [class.text-success]="overview.vecka_pct >= 100"
+             [class.text-warning]="overview.vecka_pct >= 80 && overview.vecka_pct < 100"
+             [class.text-danger]="overview.vecka_pct < 80">
+          {{ overview.vecka_pct }}%
+        </div>
+        <div class="progress mt-2" style="height: 8px; background: #4a5568;">
+          <div class="progress-bar progress-bar-animated"
+               [ngClass]="progressBarClass(overview.vecka_pct)"
+               [style.width.%]="progressBarWidth(overview.vecka_pct)">
+          </div>
+        </div>
+        <div class="kpi-sub mt-1">{{ overview.vecka_producerat }} / {{ overview.vecka_target }} IBC</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Streak</div>
+        <div class="kpi-value">
+          <i class="fas fa-fire me-1" style="color:#f6ad55" *ngIf="overview.streak > 0"></i>
+          {{ overview.streak }}
+        </div>
+        <div class="kpi-sub">dagar i rad over mal</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Basta vecka</div>
+        <div class="kpi-value">{{ overview.basta_vecka_pct }}%</div>
+        <div class="kpi-sub">{{ overview.basta_vecka_label }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div class="text-center py-5" *ngIf="loadingOverview">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Laddar...</p>
+  </div>
+
+  <!-- Mal-konfiguration (expanderbar) -->
+  <div class="card bg-dark border-secondary mb-4" *ngIf="showGoalForm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fas fa-cog me-2"></i>Satt produktionsmal</span>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Maltyp</label>
+          <select class="form-select form-select-sm bg-dark text-light border-secondary"
+                  [(ngModel)]="goalForm.mal_typ">
+            <option value="dagligt">Dagligt</option>
+            <option value="veckovist">Veckovist</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">IBC-mal</label>
+          <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary"
+                 [(ngModel)]="goalForm.target_ibc" min="1">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Max kassation %</label>
+          <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary"
+                 [(ngModel)]="goalForm.target_kassation_pct" min="0" max="100" step="0.5">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Giltigt fran</label>
+          <input type="date" class="form-control form-control-sm bg-dark text-light border-secondary"
+                 [(ngModel)]="goalForm.giltig_from">
+        </div>
+      </div>
+      <div class="mt-3 d-flex align-items-center gap-2">
+        <button class="btn btn-success btn-sm" (click)="submitGoal()" [disabled]="savingGoal">
+          <i class="fas fa-save me-1"></i>{{ savingGoal ? 'Sparar...' : 'Spara mal' }}
+        </button>
+        <span class="text-success small" *ngIf="goalMessage">{{ goalMessage }}</span>
+        <span class="text-danger small" *ngIf="goalError">{{ goalError }}</span>
+      </div>
+
+      <!-- Historiska mal -->
+      <div class="mt-4" *ngIf="goals.length > 0">
+        <h6 class="text-muted mb-2">Malhistorik</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-dark table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Typ</th>
+                <th>IBC</th>
+                <th>Max kass.</th>
+                <th>Fran</th>
+                <th>Till</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let g of goals">
+                <td>{{ g.mal_typ_label }}</td>
+                <td>{{ g.target_ibc }}</td>
+                <td>{{ g.target_kassation_pct }}%</td>
+                <td>{{ g.giltig_from }}</td>
+                <td>{{ g.giltig_tom || '-' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="g.active ? 'bg-success' : 'bg-secondary'">
+                    {{ g.active ? 'Aktivt' : 'Avslutat' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dagens progress — Gauge -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-5">
+      <div class="card bg-dark border-secondary h-100">
+        <div class="card-header">
+          <i class="fas fa-tachometer-alt me-2 text-info"></i>Dagens progress
+        </div>
+        <div class="card-body text-center" *ngIf="daily && !loadingDaily">
+          <div class="gauge-container">
+            <canvas id="slaGaugeChart"></canvas>
+            <div class="gauge-label">
+              <div class="gauge-value" [class.text-success]="daily.uppfyllnad_pct >= 100"
+                   [class.text-warning]="daily.uppfyllnad_pct >= 80 && daily.uppfyllnad_pct < 100"
+                   [class.text-danger]="daily.uppfyllnad_pct < 80">
+                {{ daily.uppfyllnad_pct }}%
+              </div>
+              <div class="gauge-sub">{{ daily.producerat }} / {{ daily.target }} IBC</div>
+            </div>
+          </div>
+          <div class="row mt-3 text-center">
+            <div class="col-4">
+              <div class="kpi-mini-label">Kassation</div>
+              <div class="kpi-mini-value" [class.text-danger]="daily.kassation_pct > 5">
+                {{ daily.kassation_pct }}%
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="kpi-mini-label">Takt/timme</div>
+              <div class="kpi-mini-value">{{ daily.target_per_hour }}</div>
+            </div>
+            <div class="col-4">
+              <div class="kpi-mini-label">Datum</div>
+              <div class="kpi-mini-value">{{ daily.date }}</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body text-center" *ngIf="loadingDaily">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Veckoöversikt — stapeldiagram -->
+    <div class="col-lg-7">
+      <div class="card bg-dark border-secondary h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="fas fa-calendar-week me-2 text-info"></i>Veckoöversikt</span>
+          <span class="badge bg-info" *ngIf="weekly">{{ weekly.week_label }} — {{ weekly.uppfyllnad_pct }}%</span>
+        </div>
+        <div class="card-body" *ngIf="weekly && !loadingWeekly">
+          <div class="chart-container" style="height: 260px;">
+            <canvas id="slaWeeklyChart"></canvas>
+          </div>
+          <div class="d-flex justify-content-between mt-2 small text-muted">
+            <span>Totalt: {{ weekly.total_producerat }} / {{ weekly.vecko_target }} IBC</span>
+            <span>Dagligt mal: {{ weekly.dagligt_target }} IBC</span>
+          </div>
+        </div>
+        <div class="card-body text-center" *ngIf="loadingWeekly">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historik — linjediagram -->
+  <div class="card bg-dark border-secondary mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span><i class="fas fa-chart-line me-2 text-info"></i>Historik</span>
+      <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-1" *ngIf="historyData">
+          <span class="small text-muted">Snitt:</span>
+          <span class="badge bg-info">{{ historyData.snitt_uppfyllnad }}%</span>
+          <span class="small text-muted ms-2">Trend:</span>
+          <i [ngClass]="trendIcon(historyData.trend)"></i>
+          <span class="small">{{ trendLabel(historyData.trend) }}</span>
+          <span class="small text-muted ms-2">Over mal:</span>
+          <span class="badge bg-success">{{ historyData.dagar_over_mal }}/{{ historyData.total_dagar }}</span>
+        </div>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width: auto;"
+                [(ngModel)]="historyPeriod" (ngModelChange)="onPeriodChange()">
+          <option [ngValue]="30">30 dagar</option>
+          <option [ngValue]="90">90 dagar</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body" *ngIf="historyData && !loadingHistory">
+      <div class="chart-container" style="height: 300px;">
+        <canvas id="slaHistoryChart"></canvas>
+      </div>
+    </div>
+    <div class="card-body text-center" *ngIf="loadingHistory">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+  </div>
+
+  <!-- Daglig tabell (weekly days) -->
+  <div class="card bg-dark border-secondary mb-4" *ngIf="weekly && weekly.days.length > 0">
+    <div class="card-header">
+      <i class="fas fa-table me-2 text-info"></i>Denna vecka dag for dag
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-dark table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Dag</th>
+              <th>Datum</th>
+              <th>Producerat</th>
+              <th>Mal</th>
+              <th>Uppfyllnad</th>
+              <th>Kassation</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of weekly.days">
+              <td>{{ d.dag_namn }}</td>
+              <td>{{ d.date }}</td>
+              <td>{{ d.ibc_ok }}</td>
+              <td>{{ weekly.dagligt_target }}</td>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="progress flex-grow-1" style="height: 6px; background: #4a5568;">
+                    <div class="progress-bar"
+                         [ngClass]="progressBarClass(d.uppfyllnad_pct)"
+                         [style.width.%]="progressBarWidth(d.uppfyllnad_pct)">
+                    </div>
+                  </div>
+                  <span class="small" style="min-width: 45px;">{{ d.uppfyllnad_pct }}%</span>
+                </div>
+              </td>
+              <td [class.text-danger]="d.kassation_pct > 5">{{ d.kassation_pct }}%</td>
+              <td>
+                <i class="fas fa-check-circle text-success" *ngIf="d.over_mal && d.ibc_ok > 0"></i>
+                <i class="fas fa-times-circle text-danger" *ngIf="!d.over_mal && d.ibc_ok > 0"></i>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>

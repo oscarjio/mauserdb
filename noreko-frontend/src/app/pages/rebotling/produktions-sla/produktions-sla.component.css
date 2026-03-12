@@ -1,0 +1,163 @@
+:host {
+  display: block;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  color: #e2e8f0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-top: 0.15rem;
+}
+
+/* Progress bars */
+.progress-bar-animated {
+  transition: width 0.8s ease-in-out;
+}
+
+/* Card dark theme */
+.card {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.card-header {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-bottom: 1px solid #4a5568;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.card-body {
+  color: #e2e8f0;
+}
+
+/* Gauge */
+.gauge-container {
+  position: relative;
+  max-width: 280px;
+  margin: 0 auto;
+  height: 180px;
+}
+
+.gauge-label {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.gauge-value {
+  font-size: 2.2rem;
+  font-weight: 700;
+}
+
+.gauge-sub {
+  font-size: 0.85rem;
+  color: #a0aec0;
+}
+
+/* Mini KPI under gauge */
+.kpi-mini-label {
+  color: #718096;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+}
+
+.kpi-mini-value {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Chart container */
+.chart-container {
+  position: relative;
+  width: 100%;
+}
+
+/* Table */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-striped-bg: #1a202c;
+  --bs-table-hover-bg: #4a5568;
+  color: #e2e8f0;
+}
+
+.table-dark th {
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  border-color: #4a5568;
+}
+
+.table-dark td {
+  border-color: #4a5568;
+  vertical-align: middle;
+}
+
+/* Form elements dark */
+.form-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.form-control,
+.form-select {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
+}
+
+/* Responsive */
+@media (max-width: 767px) {
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+  .gauge-value {
+    font-size: 1.6rem;
+  }
+  .gauge-container {
+    height: 140px;
+    max-width: 220px;
+  }
+}
