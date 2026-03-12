@@ -1,3 +1,26 @@
+## 2026-03-12 Historisk produktionsoversikt — statistik over tid for VD
+
+Ny sida `/rebotling/historisk-produktion` — ger VD:n en enkel oversikt av produktionen over tid med adaptiv granularitet, periodjamforelse och trendindikatorer.
+
+- **Backend**: `classes/HistoriskProduktionController.php`
+  - `run=overview` — KPI:er: total produktion, snitt/dag, basta dag, kassation% snitt
+  - `run=produktion-per-period` — aggregerad produktionsdata med adaptiv granularitet (dag/vecka/manad beroende pa period)
+  - `run=jamforelse` — jamfor vald period mot foregaende period (diff + trend)
+  - `run=detalj-tabell` — daglig detaljdata med pagination och sortering
+  - Anvander befintlig `rebotling_ibc`-tabell — inga nya DB-tabeller
+  - Registrerad i `api.php` med nyckel `historisk-produktion`
+- **Service**: `historisk-produktion.service.ts` — interfaces HistoriskOverview, PeriodDataPoint, Jamforelse, DetaljTabell m.fl.
+- **Komponent**: `pages/rebotling/historisk-produktion/`
+  - 4 KPI-kort: Total produktion, Snitt/dag, Basta dag, Kassation% snitt
+  - Produktionsgraf (linjediagram, Chart.js) med adaptiv granularitet: 7/30d dagvis, 90d veckovis, 365d manadsvis
+  - Jamforelsevy: nuvarande vs foregaende period sida vid sida med differenser
+  - Trendindikator: pilar + procentuella forandringar (produktion, snitt, kassation)
+  - Produktionstabell: daglig data med sortering pa alla kolumner + pagination
+  - Periodselektor: 7d/30d/90d/365d knappar + anpassat datumintervall
+  - Dark theme, OnInit/OnDestroy, destroy$ + takeUntil, chart?.destroy(), refreshTimer
+- **Route**: `rebotling/historisk-produktion`, authGuard, lazy-loaded
+- **Meny**: Under Rebotling med ikon `fas fa-chart-line`
+
 ## 2026-03-12 Leveransplanering — kundorder vs produktionskapacitet
 
 Ny sida `/rebotling/leveransplanering` — matchar kundordrar mot produktionskapacitet i rebotling-linjen med leveransprognos och forseningsvarningar.
