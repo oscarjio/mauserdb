@@ -1,0 +1,217 @@
+:host {
+  display: block;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+
+.kpi-card-danger {
+  border-color: #e53e3e;
+  box-shadow: 0 0 8px rgba(229,62,62,0.3);
+}
+
+.kpi-card-success {
+  border-color: #48bb78;
+  box-shadow: 0 0 8px rgba(72,187,120,0.2);
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  color: #e2e8f0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.kpi-value-sm {
+  font-size: 1rem;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Tabs */
+.custom-tabs .nav-link {
+  color: #a0aec0;
+  border-color: transparent;
+  cursor: pointer;
+}
+
+.custom-tabs .nav-link.active {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568 #4a5568 #1a202c;
+}
+
+.custom-tabs .nav-link:hover:not(.active) {
+  color: #e2e8f0;
+  border-color: transparent;
+}
+
+/* Table card */
+.table-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.table {
+  color: #e2e8f0;
+}
+
+.table thead th {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #4a5568;
+  background: transparent;
+}
+
+.table tbody td {
+  border-bottom: 1px solid #4a556844;
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background: #4a556844;
+}
+
+.clickable-row {
+  cursor: pointer;
+}
+
+/* Progress bar */
+.progress {
+  border-radius: 4px;
+}
+
+.progress-bar {
+  transition: width 0.4s ease;
+}
+
+/* Filter bar */
+.filter-bar {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #4a5568;
+}
+
+/* Dark inputs */
+.dark-input {
+  background: #1a202c;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+}
+
+.dark-input:focus {
+  background: #1a202c;
+  color: #e2e8f0;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99,179,237,0.25);
+}
+
+.dark-input::placeholder {
+  color: #718096;
+}
+
+/* Detail overlay */
+.detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.detail-panel {
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid #4a5568;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+/* Detail KPI:er */
+.detail-kpi {
+  background: #1a202c;
+  border-radius: 0.4rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.detail-kpi-label {
+  color: #a0aec0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-kpi-value {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Kasserad rad */
+.row-kasserad {
+  background: rgba(229,62,62,0.1) !important;
+}
+
+/* Form labels */
+.form-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+
+  .detail-panel {
+    max-height: 85vh;
+    padding: 1rem;
+  }
+}

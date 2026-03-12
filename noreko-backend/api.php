@@ -182,6 +182,8 @@ $classNameMap = [
     'kvalitetstrendbrott'          => 'KvalitetsTrendbrottController',
     'maskinunderhall'              => 'MaskinunderhallController',
     'statistikdashboard'           => 'StatistikDashboardController',
+    'batchsparning'                => 'BatchSparningController',
+    'kassationsorsakstatistik'     => 'KassationsorsakController',
 ];
 
 $actionKey = strtolower($action);

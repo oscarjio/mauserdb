@@ -1,0 +1,369 @@
+<div class="container-fluid py-4">
+
+  <!-- Rubrik -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-boxes me-2" style="color:#63b3ed"></i>Batch-spårning
+    </h2>
+    <button class="btn btn-sm btn-success" (click)="openCreateModal()">
+      <i class="fas fa-plus me-1"></i>Ny batch
+    </button>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Aktiva batchar</div>
+        <div class="kpi-value">{{ overview.aktiva_batchar }}</div>
+        <div class="kpi-sub">Pågående + pausade</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt ledtid</div>
+        <div class="kpi-value">{{ overview.snitt_ledtid_h }} h</div>
+        <div class="kpi-sub">Klara batchar</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card" [class.kpi-card-danger]="overview.snitt_kassation > 5">
+        <div class="kpi-label">Snitt kassation</div>
+        <div class="kpi-value" [class.text-danger]="overview.snitt_kassation > 5">{{ overview.snitt_kassation }}%</div>
+        <div class="kpi-sub">Per batch</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card kpi-card-success">
+        <div class="kpi-label">Bästa batch</div>
+        <div class="kpi-value kpi-value-sm">{{ overview.basta_batch }}</div>
+        <div class="kpi-sub">{{ overview.basta_batch_kass }}% kassation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading KPI -->
+  <div class="text-center py-3" *ngIf="loadingOverview">
+    <div class="spinner-border spinner-border-sm text-info"></div>
+    <span class="ms-2 text-muted">Laddar KPI:er...</span>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3 custom-tabs">
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'aktiva'" (click)="switchTab('aktiva')" href="javascript:void(0)">
+        <i class="fas fa-play-circle me-1"></i>Aktiva batchar
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" [class.active]="activeTab === 'historik'" (click)="switchTab('historik')" href="javascript:void(0)">
+        <i class="fas fa-history me-1"></i>Batch-historik
+      </a>
+    </li>
+  </ul>
+
+  <!-- ===== Aktiva batchar ===== -->
+  <div *ngIf="activeTab === 'aktiva'">
+
+    <!-- Progress chart -->
+    <div class="table-card mb-4" *ngIf="activeBatches.length > 0">
+      <h5 class="section-title mb-3"><i class="fas fa-chart-bar me-2"></i>Progress per batch</h5>
+      <div style="height: 200px; position: relative;">
+        <canvas id="batchProgressChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="text-center py-3" *ngIf="loadingActive">
+      <div class="spinner-border spinner-border-sm text-info"></div>
+      <span class="ms-2 text-muted">Laddar aktiva batchar...</span>
+    </div>
+
+    <!-- Error -->
+    <div class="alert alert-danger" *ngIf="errorActive && !loadingActive">
+      Kunde inte ladda aktiva batchar. Försök igen senare.
+    </div>
+
+    <!-- Ingen data -->
+    <div class="text-center text-muted py-4" *ngIf="!loadingActive && !errorActive && activeBatches.length === 0">
+      <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+      Inga aktiva batchar just nu.
+    </div>
+
+    <!-- Batch-lista -->
+    <div class="table-card" *ngIf="activeBatches.length > 0 && !loadingActive">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Batch</th>
+              <th>Status</th>
+              <th>Progress</th>
+              <th>Klara</th>
+              <th>Kasserade</th>
+              <th>Snitt cykeltid</th>
+              <th>Uppskattat kvar</th>
+              <th>Startad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of activeBatches" class="clickable-row" (click)="selectBatch(b.id)">
+              <td class="fw-bold">{{ b.batch_nummer }}</td>
+              <td><span [class]="statusBadgeClass(b.status)">{{ b.status_label }}</span></td>
+              <td style="min-width:140px">
+                <div class="progress bg-dark" style="height:20px">
+                  <div class="progress-bar bg-success" [style.width.%]="progressPct(b)">
+                    {{ progressPct(b) }}%
+                  </div>
+                </div>
+              </td>
+              <td>{{ b.antal_klara }} / {{ b.planerat_antal }}</td>
+              <td>
+                <span [class.text-danger]="b.antal_kasserade > 0">{{ b.antal_kasserade }}</span>
+              </td>
+              <td>{{ formatSeconds(b.snitt_cykeltid_s) }}</td>
+              <td>{{ formatMinutes(b.uppskattat_kvar_min) }}</td>
+              <td>{{ b.skapad_datum | date:'yyyy-MM-dd HH:mm' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Batch-historik ===== -->
+  <div *ngIf="activeTab === 'historik'">
+
+    <!-- Filter -->
+    <div class="filter-bar mb-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-auto">
+          <label class="form-label small text-muted">Från</label>
+          <input type="date" class="form-control form-control-sm dark-input" [(ngModel)]="historyFrom">
+        </div>
+        <div class="col-auto">
+          <label class="form-label small text-muted">Till</label>
+          <input type="date" class="form-control form-control-sm dark-input" [(ngModel)]="historyTo">
+        </div>
+        <div class="col-auto">
+          <label class="form-label small text-muted">Sök</label>
+          <input type="text" class="form-control form-control-sm dark-input" placeholder="Batch-nummer..." [(ngModel)]="historySearch">
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-info" (click)="applyHistoryFilter()">
+            <i class="fas fa-search me-1"></i>Filtrera
+          </button>
+        </div>
+        <div class="col-auto">
+          <button class="btn btn-sm btn-outline-secondary" (click)="clearHistoryFilter()">Rensa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="text-center py-3" *ngIf="loadingHistory">
+      <div class="spinner-border spinner-border-sm text-info"></div>
+      <span class="ms-2 text-muted">Laddar historik...</span>
+    </div>
+
+    <!-- Error -->
+    <div class="alert alert-danger" *ngIf="errorHistory && !loadingHistory">
+      Kunde inte ladda batch-historik.
+    </div>
+
+    <!-- Ingen data -->
+    <div class="text-center text-muted py-4" *ngIf="!loadingHistory && !errorHistory && historyBatches.length === 0">
+      <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+      Ingen historik hittades.
+    </div>
+
+    <!-- Historik-tabell -->
+    <div class="table-card" *ngIf="historyBatches.length > 0 && !loadingHistory">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Batch</th>
+              <th>Klara</th>
+              <th>Kasserade</th>
+              <th>Kassation%</th>
+              <th>Snitt cykeltid</th>
+              <th>Ledtid</th>
+              <th>Startad</th>
+              <th>Avslutad</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let b of historyBatches" class="clickable-row" (click)="selectBatch(b.id)">
+              <td class="fw-bold">{{ b.batch_nummer }}</td>
+              <td>{{ b.antal_klara }} / {{ b.planerat_antal }}</td>
+              <td><span [class.text-danger]="b.antal_kasserade > 0">{{ b.antal_kasserade }}</span></td>
+              <td>
+                <span [class.text-danger]="b.kassation_pct > 5" [class.text-success]="b.kassation_pct === 0">
+                  {{ b.kassation_pct }}%
+                </span>
+              </td>
+              <td>{{ formatSeconds(b.snitt_cykeltid_s) }}</td>
+              <td>{{ formatMinutes(b.ledtid_min) }}</td>
+              <td>{{ b.skapad_datum | date:'yyyy-MM-dd HH:mm' }}</td>
+              <td>{{ b.avslutad_datum | date:'yyyy-MM-dd HH:mm' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Batch-detaljvy (modal-liknande overlay) ===== -->
+  <div class="detail-overlay" *ngIf="selectedBatchDetail || loadingDetail" (click)="closeDetail()">
+    <div class="detail-panel" (click)="$event.stopPropagation()">
+
+      <!-- Loading -->
+      <div class="text-center py-5" *ngIf="loadingDetail && !selectedBatchDetail">
+        <div class="spinner-border text-info"></div>
+        <p class="mt-2 text-muted">Laddar batch-detaljer...</p>
+      </div>
+
+      <ng-container *ngIf="selectedBatchDetail">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h4 class="mb-1">{{ selectedBatchDetail.batch.batch_nummer }}</h4>
+            <span [class]="statusBadgeClass(selectedBatchDetail.batch.status)">{{ selectedBatchDetail.batch.status_label }}</span>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Kommentar -->
+        <p class="text-muted small" *ngIf="selectedBatchDetail.batch.kommentar">
+          <i class="fas fa-comment me-1"></i>{{ selectedBatchDetail.batch.kommentar }}
+        </p>
+
+        <!-- Progress bar -->
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>{{ selectedBatchDetail.antal_klara }} av {{ selectedBatchDetail.batch.planerat_antal }} klara</span>
+            <span>{{ selectedBatchDetail.batch.planerat_antal > 0 ? ((selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) | number:'1.0-0') : 0 }}%</span>
+          </div>
+          <div class="progress bg-dark" style="height:24px">
+            <div class="progress-bar bg-success"
+                 [style.width.%]="selectedBatchDetail.batch.planerat_antal > 0 ? (selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) : 0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalj-KPI:er -->
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Tidsåtgång</div>
+              <div class="detail-kpi-value">{{ formatMinutes(selectedBatchDetail.tidsatgang_min) }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Kasserade</div>
+              <div class="detail-kpi-value" [class.text-danger]="selectedBatchDetail.antal_kasserade > 0">{{ selectedBatchDetail.antal_kasserade }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Snitt cykeltid</div>
+              <div class="detail-kpi-value">{{ formatSeconds(selectedBatchDetail.snitt_cykeltid_s) }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Startad</div>
+              <div class="detail-kpi-value small">{{ selectedBatchDetail.batch.skapad_datum | date:'MM-dd HH:mm' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Operatörer -->
+        <div class="mb-3" *ngIf="selectedBatchDetail.operatorer.length > 0">
+          <h6 class="section-title"><i class="fas fa-users me-1"></i>Operatörer</h6>
+          <div class="d-flex flex-wrap gap-2">
+            <span class="badge bg-info text-dark" *ngFor="let op of selectedBatchDetail.operatorer">
+              {{ op.namn }} ({{ op.antal }} IBC)
+            </span>
+          </div>
+        </div>
+
+        <!-- IBC-lista -->
+        <div class="mb-3" *ngIf="selectedBatchDetail.ibcer.length > 0">
+          <h6 class="section-title"><i class="fas fa-list me-1"></i>IBC:er</h6>
+          <div class="table-responsive" style="max-height:300px; overflow-y:auto">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>IBC</th>
+                  <th>Startad</th>
+                  <th>Klar</th>
+                  <th>Cykeltid</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let ibc of selectedBatchDetail.ibcer" [class.row-kasserad]="ibc.kasserad">
+                  <td>{{ ibc.ibc_nummer || '-' }}</td>
+                  <td>{{ ibc.startad | date:'HH:mm' }}</td>
+                  <td>{{ ibc.klar ? (ibc.klar | date:'HH:mm') : '-' }}</td>
+                  <td>{{ formatSeconds(ibc.cykeltid_sekunder) }}</td>
+                  <td>
+                    <span class="badge bg-danger" *ngIf="ibc.kasserad">Kasserad</span>
+                    <span class="badge bg-success" *ngIf="!ibc.kasserad && ibc.klar">OK</span>
+                    <span class="badge bg-secondary" *ngIf="!ibc.kasserad && !ibc.klar">Pågår</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Åtgärd-knappar -->
+        <div class="d-flex gap-2" *ngIf="selectedBatchDetail.batch.status !== 'klar'">
+          <button class="btn btn-sm btn-primary" (click)="completeBatch(selectedBatchDetail.batch.id)">
+            <i class="fas fa-check me-1"></i>Markera som klar
+          </button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ===== Skapa batch-modal ===== -->
+  <div class="detail-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+    <div class="detail-panel" style="max-width:500px" (click)="$event.stopPropagation()">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-plus-circle me-2 text-success"></i>Skapa ny batch</h5>
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeCreateModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form (ngSubmit)="submitCreateBatch()" novalidate>
+        <div class="mb-3">
+          <label class="form-label">Batch-nummer</label>
+          <input type="text" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" required placeholder="T.ex. BATCH-2026-0312">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Planerat antal IBC</label>
+          <input type="number" class="form-control dark-input" [(ngModel)]="createForm.planerat_antal" name="planerat_antal" min="1" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Kommentar</label>
+          <textarea class="form-control dark-input" [(ngModel)]="createComment" name="kommentar" rows="3" placeholder="Valfri kommentar..."></textarea>
+        </div>
+
+        <div class="alert alert-success py-2" *ngIf="createMessage">{{ createMessage }}</div>
+        <div class="alert alert-danger py-2" *ngIf="createError">{{ createError }}</div>
+
+        <button type="submit" class="btn btn-success w-100" [disabled]="savingBatch">
+          {{ savingBatch ? 'Skapar...' : 'Skapa batch' }}
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>

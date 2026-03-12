@@ -1,3 +1,32 @@
+## 2026-03-12 Batch-spårning — följ IBC-batchar genom produktionslinjen
+
+Ny sida `/rebotling/batch-sparning` — VD/operatör kan följa batchar/ordrar av IBC:er genom hela produktionslinjen.
+
+- **Migration**: `2026-03-12_batch_sparning.sql` — tabeller `batch_order` + `batch_ibc` med seed-data (3 exempelbatchar: 1 klar, 1 pågående, 1 pausad med totalt 22 IBC:er)
+- **Backend**: `BatchSparningController.php` i `classes/`
+  - `run=overview` → KPI:er: aktiva batchar, snitt ledtid (h), snitt kassation%, bästa batch (lägst kassation)
+  - `run=active-batches` → lista aktiva/pausade batchar med progress, snitt cykeltid, uppskattad tid kvar
+  - `run=batch-detail&batch_id=X` → detaljinfo: progress bar, operatörer, tidsåtgång, kasserade, cykeltider, IBC-lista
+  - `run=batch-history` → avslutade batchar med KPI:er, stöd för period-filter (from/to) och sökning
+  - `run=create-batch` (POST) → skapa ny batch med batch-nummer, planerat antal, kommentar
+  - `run=complete-batch` (POST) → markera batch som klar
+  - `ensureTables()` kör migration automatiskt vid första anrop
+  - Registrerad i `api.php` med nyckel `batchsparning`
+- **Service**: `batch-sparning.service.ts` — interfaces BatchOverview, ActiveBatch, BatchDetailResponse, HistoryBatch, CreateBatchData
+- **Komponent**: `pages/rebotling/batch-sparning/`
+  - KPI-kort (4 st) — aktiva batchar, snitt ledtid, snitt kassation% (röd vid >5%), bästa batch (grön ram)
+  - Flik "Aktiva batchar" — tabell med progress bar, status-badge, snitt cykeltid, uppskattad tid kvar
+  - Flik "Batch-historik" — sökbar/filtrerbar tabell med period-filter, kassation%, ledtid
+  - Chart.js horisontellt staplat stapeldiagram (klara vs kvar per batch)
+  - Klickbar rad → detaljpanel (overlay): stor progress bar, detalj-KPI:er, operatörer, IBC-lista med kasserad-markering
+  - Modal: Skapa ny batch (batch-nummer, planerat antal, kommentar)
+  - Knapp "Markera som klar" i detaljvyn
+  - Auto-refresh var 30 sekunder, OnInit/OnDestroy + destroy$ + clearInterval
+- **Route**: `/rebotling/batch-sparning` (authGuard)
+- **Meny**: "Batch-spårning" med ikon `fas fa-boxes` under Rebotling
+
+---
+
 ## 2026-03-12 Maskinunderhåll — serviceintervall-vy
 
 Ny sida `/rebotling/maskinunderhall` — planerat underhåll, servicestatus per maskin och varningslampa vid försenat underhåll.
