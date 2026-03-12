@@ -1,3 +1,22 @@
+## 2026-03-12 Operatorsportal — personlig dashboard per inloggad operatör
+
+Ny sida `/rebotling/operatorsportal` där varje inloggad operatör ser sin egen statistik.
+
+- **Backend**: `OperatorsportalController.php` med tre endpoints:
+  - `run=my-stats` — IBC idag/vecka/månad, IBC/h snitt, teamsnitt, ranking (#X av Y)
+  - `run=my-trend&days=N` — daglig IBC-tidsserie operatör vs teamsnitt
+  - `run=my-bonus` — timmar, IBC, IBC/h, diff vs team, bonuspoäng + progress mot mål
+  - Identifiering via `$_SESSION['operator_id']` → `operators.id` → `rebotling_ibc.op1/op2/op3`
+  - Korrekt MAX()-aggregering av kumulativa PLC-fält per skiftraknare
+- **Frontend**: `OperatorsportalService` + `OperatorsportalPage` (standalone, OnInit/OnDestroy, destroy$/takeUntil, chart?.destroy())
+  - Välkomstbanner med operatörens namn och skiftstatus
+  - 4 KPI-kort: IBC idag, IBC vecka, IBC/h snitt (30 dagar), Ranking (#X av Y)
+  - Chart.js linjegraf: min IBC/dag vs teamsnitt, valbart 7/14/30 dagar
+  - Bonussektion: statistiktabell + visuell progress-bar mot bonusmål
+  - Skiftinfo-sektion med status, drifttid, senaste aktivitet
+- **Route**: `/rebotling/operatorsportal` med `authGuard`
+- **Meny**: "Min portal" lagd under Rebotling-dropdown (loggedIn)
+
 ## 2026-03-12 Veckorapport — utskriftsvanlig KPI-sammanstallning per vecka
 
 Ny sida `/rebotling/veckorapport` som sammanstaller veckans KPI:er i en snygg, utskriftsvanlig rapport.

@@ -1,0 +1,232 @@
+<div class="portal-container">
+
+  <!-- ---- Välkomstbanner ---- -->
+  <div class="welcome-banner" *ngIf="!loadingStats && stats">
+    <div class="welcome-text">
+      <span class="greeting">{{ halsningText }},</span>
+      <span class="op-name">{{ stats.operator_name }}</span>
+    </div>
+    <div class="skift-badge" [class.badge-active]="stats.skift.aktiv" [class.badge-inactive]="!stats.skift.aktiv">
+      <i class="fas" [class.fa-circle]="stats.skift.aktiv" [class.fa-moon]="!stats.skift.aktiv"></i>
+      {{ stats.skift.aktiv ? 'Aktivt skift' : 'Inget aktivt skift' }}
+    </div>
+  </div>
+
+  <!-- Laddning stats -->
+  <div *ngIf="loadingStats" class="loading-state">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="mt-2">Laddar din statistik...</p>
+  </div>
+
+  <!-- Fel stats -->
+  <div *ngIf="!loadingStats && errorStats" class="alert-box alert-danger-box">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ errorStats }}
+  </div>
+
+  <!-- ---- KPI-kort ---- -->
+  <div *ngIf="!loadingStats && stats" class="kpi-grid">
+
+    <!-- IBC idag -->
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fas fa-box"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-label">IBC idag</div>
+        <div class="kpi-value">{{ stats.ibc_idag }}</div>
+        <div class="kpi-diff" [class]="diffClass(stats.ibc_idag, stats.team_snitt_idag)">
+          {{ diffArrow(stats.ibc_idag, stats.team_snitt_idag) }}
+          {{ diffText(stats.ibc_idag, stats.team_snitt_idag) }}
+        </div>
+        <div class="kpi-sub">Teamsnitt: {{ stats.team_snitt_idag }}</div>
+      </div>
+    </div>
+
+    <!-- IBC denna vecka -->
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fas fa-calendar-week"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-label">IBC denna vecka</div>
+        <div class="kpi-value">{{ stats.ibc_vecka }}</div>
+        <div class="kpi-diff" [class]="diffClass(stats.ibc_vecka, stats.team_snitt_vecka)">
+          {{ diffArrow(stats.ibc_vecka, stats.team_snitt_vecka) }}
+          {{ diffText(stats.ibc_vecka, stats.team_snitt_vecka) }}
+        </div>
+        <div class="kpi-sub">Teamsnitt: {{ stats.team_snitt_vecka }}</div>
+      </div>
+    </div>
+
+    <!-- IBC/timme snitt -->
+    <div class="kpi-card">
+      <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-label">IBC/h snitt (30 dagar)</div>
+        <div class="kpi-value">{{ stats.ibc_per_timme | number:'1.1-1' }}</div>
+        <div class="kpi-diff" [class]="diffClass(stats.ibc_per_timme, stats.team_ibc_per_timme)">
+          {{ diffArrow(stats.ibc_per_timme, stats.team_ibc_per_timme) }}
+          {{ diffText(stats.ibc_per_timme, stats.team_ibc_per_timme) }}
+        </div>
+        <div class="kpi-sub">Teamsnitt: {{ stats.team_ibc_per_timme | number:'1.1-1' }} IBC/h</div>
+      </div>
+    </div>
+
+    <!-- Ranking -->
+    <div class="kpi-card kpi-ranking">
+      <div class="kpi-icon"><i class="fas fa-trophy"></i></div>
+      <div class="kpi-body">
+        <div class="kpi-label">Din ranking (30 dagar)</div>
+        <div class="kpi-value ranking-value" *ngIf="stats.ranking.position > 0">
+          #{{ stats.ranking.position }}
+          <span class="ranking-total">av {{ stats.ranking.total_ops }}</span>
+        </div>
+        <div class="kpi-value text-muted" *ngIf="stats.ranking.position === 0">
+          Ej rankad
+        </div>
+        <div class="kpi-sub">{{ stats.ibc_manad }} IBC denna månad</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ---- Trend-graf ---- -->
+  <div class="section-card">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-chart-line me-2" style="color:#4299e1"></i>
+        Min produktion per dag
+      </h2>
+      <div class="days-selector">
+        <button class="btn-days" [class.active]="trendDays === 7"  (click)="onDaysChange(7)">7 dagar</button>
+        <button class="btn-days" [class.active]="trendDays === 14" (click)="onDaysChange(14)">14 dagar</button>
+        <button class="btn-days" [class.active]="trendDays === 30" (click)="onDaysChange(30)">30 dagar</button>
+      </div>
+    </div>
+
+    <div *ngIf="loadingTrend" class="loading-inline">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div>
+      Laddar trenddata...
+    </div>
+    <div *ngIf="!loadingTrend && errorTrend" class="alert-box alert-danger-box">{{ errorTrend }}</div>
+
+    <div class="chart-container" *ngIf="!loadingTrend && trend">
+      <canvas #trendChart></canvas>
+    </div>
+  </div>
+
+  <!-- ---- Bonussektion ---- -->
+  <div class="section-card" *ngIf="!loadingBonus && bonus">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-star me-2" style="color:#ecc94b"></i>
+        Bonusstatus — senaste 30 dagar
+      </h2>
+    </div>
+
+    <div class="bonus-grid">
+
+      <!-- IBC-statistik -->
+      <div class="bonus-stat-group">
+        <div class="bonus-row">
+          <span class="bonus-label">Timmar arbetade</span>
+          <span class="bonus-val">{{ bonus.timmar_arbetade | number:'1.1-1' }} h</span>
+        </div>
+        <div class="bonus-row">
+          <span class="bonus-label">IBC producerade</span>
+          <span class="bonus-val">{{ bonus.ibc_totalt }}</span>
+        </div>
+        <div class="bonus-row">
+          <span class="bonus-label">Antal skift</span>
+          <span class="bonus-val">{{ bonus.antal_skift }}</span>
+        </div>
+        <div class="bonus-row">
+          <span class="bonus-label">Mitt IBC/h snitt</span>
+          <span class="bonus-val" [class]="diffClass(bonus.ibc_per_timme, bonus.team_ibc_per_timme)">
+            {{ bonus.ibc_per_timme | number:'1.2-2' }}
+          </span>
+        </div>
+        <div class="bonus-row">
+          <span class="bonus-label">Teamsnitt IBC/h</span>
+          <span class="bonus-val">{{ bonus.team_ibc_per_timme | number:'1.2-2' }}</span>
+        </div>
+        <div class="bonus-row">
+          <span class="bonus-label">Skillnad vs team</span>
+          <span class="bonus-val" [class]="bonus.diff_vs_team >= 0 ? 'text-success' : 'text-danger'">
+            {{ bonus.diff_vs_team >= 0 ? '+' : '' }}{{ bonus.diff_vs_team | number:'1.2-2' }} IBC/h
+          </span>
+        </div>
+      </div>
+
+      <!-- Bonuspoäng och mål -->
+      <div class="bonus-progress-group">
+        <div class="bonus-points-display">
+          <div class="bonus-points-label">Snitt bonuspoäng per skift</div>
+          <div class="bonus-points-value">{{ bonus.avg_bonus_poang | number:'1.2-2' }}</div>
+          <div class="bonus-points-sub">Mål: {{ bonus.bonus_mal | number:'1.1-1' }} poäng</div>
+        </div>
+
+        <div class="progress-bar-wrapper">
+          <div class="progress-bar-track">
+            <div
+              class="progress-bar-fill"
+              [class]="bonusBarClass(bonus.bonus_pct)"
+              [style.width]="bonusBarWidth(bonus.bonus_pct)">
+            </div>
+          </div>
+          <div class="progress-bar-label">
+            <span>0</span>
+            <span class="pct-label">{{ bonus.bonus_pct }}% av mål</span>
+            <span>{{ bonus.bonus_mal }}</span>
+          </div>
+        </div>
+
+        <div class="bonus-period-info">
+          Period: {{ formatDate(bonus.period_from) }} – {{ formatDate(bonus.period_to) }}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div *ngIf="loadingBonus" class="loading-inline">
+    <div class="spinner-border spinner-border-sm text-info me-2"></div>
+    Laddar bonusdata...
+  </div>
+  <div *ngIf="!loadingBonus && errorBonus" class="alert-box alert-danger-box">{{ errorBonus }}</div>
+
+  <!-- ---- Skiftinfo ---- -->
+  <div class="section-card" *ngIf="!loadingStats && stats">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-clock me-2" style="color:#68d391"></i>
+        Skiftinformation
+      </h2>
+    </div>
+
+    <div class="shift-info-grid">
+      <div class="shift-row">
+        <span class="shift-label">Skiftstatus</span>
+        <span class="shift-val">
+          <span class="status-dot" [class.dot-active]="stats.skift.aktiv" [class.dot-inactive]="!stats.skift.aktiv"></span>
+          {{ stats.skift.aktiv ? 'Aktivt' : 'Inaktivt' }}
+        </span>
+      </div>
+      <div class="shift-row" *ngIf="stats.skift.skiftraknare">
+        <span class="shift-label">Skiftnummer</span>
+        <span class="shift-val">{{ stats.skift.skiftraknare }}</span>
+      </div>
+      <div class="shift-row">
+        <span class="shift-label">IBC idag (skifttotal)</span>
+        <span class="shift-val">{{ stats.skift.ibc_idag }}</span>
+      </div>
+      <div class="shift-row" *ngIf="stats.skift.runtime_min > 0">
+        <span class="shift-label">Drifttid idag</span>
+        <span class="shift-val">{{ (stats.skift.runtime_min / 60) | number:'1.1-1' }} h</span>
+      </div>
+      <div class="shift-row" *ngIf="stats.skift.senaste_aktivitet">
+        <span class="shift-label">Senaste aktivitet</span>
+        <span class="shift-val">{{ formatDate(stats.skift.senaste_aktivitet) }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
