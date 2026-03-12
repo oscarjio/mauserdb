@@ -1,0 +1,219 @@
+<div class="waterfall-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-chart-waterfall me-2" style="color:#4fd1c5"></i>OEE-analys — Förlustnedbrytning
+    </h1>
+    <p class="page-subtitle">Vattenfall-diagram: var förloras produktionstid? OEE = Tillgänglighet × Prestanda × Kvalitet</p>
+  </div>
+
+  <!-- Periodväljare -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let opt of dayOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="days === opt.value"
+          [class.btn-outline-secondary]="days !== opt.value"
+          (click)="onDaysChange(opt.value)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort: OEE + 3 faktorer -->
+  <div class="kpi-row">
+
+    <div class="kpi-card kpi-loading" *ngIf="loadingSummary">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+
+    <ng-container *ngIf="!loadingSummary && summary">
+
+      <!-- OEE totalt -->
+      <div class="kpi-card kpi-main">
+        <div class="kpi-icon"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="kpi-value" [style.color]="faktorfarg(summary.oee_pct)">
+          {{ summary.oee_pct }}%
+        </div>
+        <div class="kpi-label">OEE totalt</div>
+        <div class="kpi-klass" [style.color]="oeeKlassFarg(summary.oee_klass)">
+          {{ oeeKlassText(summary.oee_klass) }}
+        </div>
+        <div class="kpi-trend" [style.color]="trendFarg(summary.oee_trend)">
+          {{ trendPil(summary.oee_trend) }} {{ summary.oee_trend > 0 ? '+' : '' }}{{ summary.oee_trend }}pp vs föregående period
+        </div>
+      </div>
+
+      <!-- Tillgänglighet -->
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#fc8181"><i class="fas fa-plug"></i></div>
+        <div class="kpi-value" [style.color]="faktorfarg(summary.tillganglighet_pct)">
+          {{ summary.tillganglighet_pct }}%
+        </div>
+        <div class="kpi-label">Tillgänglighet</div>
+        <div class="kpi-sub">Drifttid / planerad tid</div>
+        <div class="kpi-trend" [style.color]="trendFarg(summary.tillganglighet_trend)">
+          {{ trendPil(summary.tillganglighet_trend) }} {{ summary.tillganglighet_trend > 0 ? '+' : '' }}{{ summary.tillganglighet_trend }}pp
+        </div>
+      </div>
+
+      <!-- Prestanda -->
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#f6ad55"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="kpi-value" [style.color]="faktorfarg(summary.prestanda_pct)">
+          {{ summary.prestanda_pct }}%
+        </div>
+        <div class="kpi-label">Prestanda</div>
+        <div class="kpi-sub">Faktisk vs ideal takt</div>
+        <div class="kpi-trend" [style.color]="trendFarg(summary.prestanda_trend)">
+          {{ trendPil(summary.prestanda_trend) }} {{ summary.prestanda_trend > 0 ? '+' : '' }}{{ summary.prestanda_trend }}pp
+        </div>
+      </div>
+
+      <!-- Kvalitet -->
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#ecc94b"><i class="fas fa-star-half-alt"></i></div>
+        <div class="kpi-value" [style.color]="faktorfarg(summary.kvalitet_pct)">
+          {{ summary.kvalitet_pct }}%
+        </div>
+        <div class="kpi-label">Kvalitet</div>
+        <div class="kpi-sub">Godkänd IBC / total IBC</div>
+        <div class="kpi-trend" [style.color]="trendFarg(summary.kvalitet_trend)">
+          {{ trendPil(summary.kvalitet_trend) }} {{ summary.kvalitet_trend > 0 ? '+' : '' }}{{ summary.kvalitet_trend }}pp
+        </div>
+      </div>
+
+    </ng-container>
+
+    <div class="kpi-card" *ngIf="!loadingSummary && errorSummary">
+      <div class="kpi-icon text-muted"><i class="fas fa-exclamation"></i></div>
+      <div class="kpi-label text-muted">Kunde inte ladda KPI-data</div>
+    </div>
+
+  </div>
+
+  <!-- Waterfall-diagram -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-water me-2" style="color:#4fd1c5"></i>OEE-vattenfall
+      <span class="legend-hint ms-3">
+        <span class="legend-dot" style="background:#48bb78"></span> Total/Effektiv
+        <span class="legend-dot ms-2" style="background:#fc8181"></span> Tillgänglighetsförlust
+        <span class="legend-dot ms-2" style="background:#f6ad55"></span> Prestationsförlust
+        <span class="legend-dot ms-2" style="background:#ecc94b"></span> Kvalitetsförlust
+      </span>
+    </h2>
+
+    <div *ngIf="loadingWaterfall" class="chart-loading">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-2 text-muted">Beräknar OEE-vattenfall...</p>
+    </div>
+
+    <div *ngIf="!loadingWaterfall && errorWaterfall" class="alert alert-danger">
+      Kunde inte ladda OEE-data. Kontrollera att du är inloggad.
+    </div>
+
+    <div *ngIf="!loadingWaterfall && !errorWaterfall && !harData" class="no-data-msg">
+      <i class="fas fa-info-circle text-muted me-2"></i>Ingen produktionsdata hittades för perioden.
+    </div>
+
+    <div *ngIf="!loadingWaterfall && harData" class="chart-wrapper">
+      <canvas id="waterfallChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Förlusttabell -->
+  <div class="card-section" *ngIf="!loadingWaterfall && harData">
+    <h2 class="section-title">
+      <i class="fas fa-table me-2 text-info"></i>Förlustnedbrytning
+    </h2>
+
+    <div class="forlust-grid">
+
+      <!-- Total -->
+      <div class="forlust-rad forlust-total" *ngIf="segments.length > 0">
+        <div class="forlust-label">
+          <span class="forlust-dot" style="background:#48bb78"></span>
+          Total tillgänglig tid
+        </div>
+        <div class="forlust-timmar">{{ formatTimmar(segments[0]?.timmar ?? 0) }}</div>
+        <div class="forlust-pct forlust-pct-total">100%</div>
+        <div class="forlust-bar-wrap">
+          <div class="forlust-bar-fill" style="width:100%; background:#48bb78"></div>
+        </div>
+      </div>
+
+      <!-- Förluster -->
+      <div class="forlust-rad"
+           *ngFor="let seg of forlustSegments()"
+           [class.forlust-negativ]="seg.typ === 'forlust'">
+        <div class="forlust-label">
+          <span class="forlust-dot" [style.background]="seg.farg"></span>
+          {{ seg.label }}
+        </div>
+        <div class="forlust-timmar" [style.color]="seg.farg">−{{ formatTimmar(seg.timmar) }}</div>
+        <div class="forlust-pct" [style.color]="seg.farg">−{{ seg.procent }}%</div>
+        <div class="forlust-bar-wrap">
+          <div class="forlust-bar-fill"
+               [style.width.%]="seg.procent"
+               [style.background]="seg.farg">
+          </div>
+        </div>
+      </div>
+
+      <!-- Effektiv tid -->
+      <div class="forlust-rad forlust-effektiv" *ngIf="segments.length > 0">
+        <div class="forlust-label">
+          <span class="forlust-dot" style="background:#4fd1c5"></span>
+          Effektiv produktionstid
+        </div>
+        <div class="forlust-timmar" style="color:#4fd1c5">
+          {{ formatTimmar(segments[segments.length - 1]?.timmar ?? 0) }}
+        </div>
+        <div class="forlust-pct" style="color:#4fd1c5">
+          {{ segments[segments.length - 1]?.procent ?? 0 }}%
+        </div>
+        <div class="forlust-bar-wrap">
+          <div class="forlust-bar-fill"
+               [style.width.%]="segments[segments.length - 1]?.procent ?? 0"
+               style="background:#4fd1c5">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IBC-detaljer -->
+  <div class="card-section" *ngIf="!loadingWaterfall && harData && summary">
+    <h2 class="section-title">
+      <i class="fas fa-boxes me-2" style="color:#63b3ed"></i>IBC-statistik
+    </h2>
+    <div class="ibc-grid">
+      <div class="ibc-card">
+        <div class="ibc-value" style="color:#63b3ed">{{ summary.total_ibc }}</div>
+        <div class="ibc-label">Totalt producerade IBC</div>
+      </div>
+      <div class="ibc-card">
+        <div class="ibc-value" style="color:#48bb78">{{ summary.ok_ibc }}</div>
+        <div class="ibc-label">Godkända IBC</div>
+      </div>
+      <div class="ibc-card">
+        <div class="ibc-value" style="color:#fc8181">{{ summary.kasserade }}</div>
+        <div class="ibc-label">Kasserade IBC</div>
+      </div>
+      <div class="ibc-card">
+        <div class="ibc-value" style="color:#a0aec0">{{ summary.dag_count }}</div>
+        <div class="ibc-label">Dagar i perioden</div>
+      </div>
+    </div>
+  </div>
+
+</div>

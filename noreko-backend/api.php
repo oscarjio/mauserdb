@@ -167,6 +167,8 @@ $classNameMap = [
     'operatorsportal'         => 'OperatorsportalController',
     'heatmap'                 => 'HeatmapController',
     'pareto'                  => 'ParetoController',
+    'oee-waterfall'           => 'OeeWaterfallController',
+    'morgonrapport'           => 'MorgonrapportController',
 ];
 
 $actionKey = strtolower($action);

@@ -62,10 +62,12 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/effektivitet"><i class="fas fa-bolt me-2" style="color:#ecc94b"></i>Maskineffektivitet</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktionsmal"><i class="fas fa-bullseye me-2" style="color:#48bb78"></i>Produktionsmal</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/utnyttjandegrad"><i class="fas fa-gauge-high me-2" style="color:#4299e1"></i>Utnyttjandegrad</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/morgonrapport"><i class="fas fa-sun me-2" style="color:#fbd38d"></i>Morgonrapport</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/veckorapport"><i class="fas fa-file-alt me-2" style="color:#68d391"></i>Veckorapport</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/alarm-historik"><i class="fas fa-bell me-2" style="color:#f6ad55"></i>Alarm-historik</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/pareto"><i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-analys</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktions-heatmap"><i class="fas fa-th me-2" style="color:#68d391"></i>Produktions-heatmap</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/oee-waterfall"><i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>OEE-analys</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>

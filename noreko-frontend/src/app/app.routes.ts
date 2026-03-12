@@ -69,6 +69,8 @@ export const routes: Routes = [
       { path: 'rebotling/operatorsportal', canActivate: [authGuard], loadComponent: () => import('./pages/operatorsportal/operatorsportal').then(m => m.OperatorsportalPage) },
       { path: 'rebotling/produktions-heatmap', canActivate: [authGuard], loadComponent: () => import('./pages/heatmap/heatmap').then(m => m.HeatmapPage) },
       { path: 'rebotling/pareto', canActivate: [authGuard], loadComponent: () => import('./pages/pareto/pareto').then(m => m.ParetoPage) },
+      { path: 'rebotling/oee-waterfall', canActivate: [authGuard], loadComponent: () => import('./pages/oee-waterfall/oee-waterfall').then(m => m.OeeWaterfallPage) },
+      { path: 'rebotling/morgonrapport', canActivate: [authGuard], loadComponent: () => import('./pages/morgonrapport/morgonrapport').then(m => m.MorgonrapportPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

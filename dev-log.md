@@ -1,3 +1,24 @@
+## 2026-03-12 OEE-waterfall — Visuell nedbrytning av OEE-förluster
+
+Ny sida `/rebotling/oee-waterfall` som visar ett vattenfall-diagram (brygga) over OEE-förluster.
+
+- **Backend**: Ny `OeeWaterfallController.php` (classes/ + controllers/) med tva endpoints:
+  - `run=waterfall-data&days=N` — beraknar OEE-segment: Total tillganglig tid → Tillganglighetsforlust → Prestationsforlust → Kvalitetsforlust (kassationer) → Effektiv produktionstid. Returnerar floating bar-data (bar_start/bar_slut) for waterfall-effekt + procent av total.
+  - `run=summary&days=N` — OEE totalt + de 3 faktorerna (Tillganglighet, Prestanda, Kvalitet) + trend vs foregaende period (differens i procentenheter).
+  - Kallor: `rebotling_onoff` (drifttid), `rebotling_ibc` (IBC ok/total), `kassationsregistrering` (kasserade), `stoppage_log` + `stopporsak_registreringar` (stopptid-fallback)
+  - Auth: session kravs (401 om ej inloggad)
+- **api.php**: Route `oee-waterfall` → `OeeWaterfallController` registrerad
+- **Frontend Service**: `oee-waterfall.service.ts` med `getWaterfallData(days)` + `getSummary(days)`, TypeScript-interfaces, `timeout(15000)` + `catchError`
+- **Frontend Komponent**: `OeeWaterfallPage` (standalone, OnInit/OnDestroy, destroy$/takeUntil, chart?.destroy())
+  - Chart.js floating bar chart: waterfall-effekt dar forlusterna "hanger" fran foregaende niva
+  - Fargkodning: gron = total/effektiv, rod = tillganglighetsforlust, orange = prestationsforlust, gul = kvalitetsforlust
+  - 4 KPI-kort: OEE (%), Tillganglighet (%), Prestanda (%), Kvalitet (%) med fargkodning (gron >85%, gul 60-85%, rod <60%) och trendpilar
+  - Periodvaljare: 7d / 14d / 30d / 90d
+  - Forlusttabell: visuell nedbrytning med staplar + timmar + procent
+  - IBC-statistik: total, godkanda, kasserade, dagar
+- **Route**: `/rebotling/oee-waterfall` med `authGuard`
+- **Meny**: "OEE-analys" tillagd under Rebotling-dropdown (loggedIn), efter Produktions-heatmap
+
 ## 2026-03-12 Pareto-analys — Stopporsaker 80/20
 
 Ny sida `/rebotling/pareto` som visar klassisk Pareto-analys for stopporsaker.

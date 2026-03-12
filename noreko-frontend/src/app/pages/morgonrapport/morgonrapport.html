@@ -1,0 +1,406 @@
+<div class="morgonrapport-container">
+
+  <!-- ============================================================
+       SIDHUVUD
+       ============================================================ -->
+  <div class="rapport-header d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+    <div>
+      <h1 class="rapport-titel">VD:s Morgonrapport</h1>
+      <p class="rapport-undertitel text-muted mb-0">
+        Gårdagens produktion — Rebotling
+      </p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap no-print">
+      <input
+        type="date"
+        class="form-control form-control-sm datum-input"
+        [(ngModel)]="valtDatum"
+        (change)="onDatumChange()"
+        [max]="'2099-12-31'"
+      />
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadRapport()">
+        <i class="fas fa-sync-alt me-1"></i>Uppdatera
+      </button>
+      <button class="btn btn-sm btn-outline-light" (click)="skrivUt()">
+        <i class="fas fa-print me-1"></i>Skriv ut
+      </button>
+    </div>
+  </div>
+
+  <!-- Datum-rubrik för utskrift -->
+  <div class="print-datum-rubrik d-none">
+    Morgonrapport {{ formatDatum(valtDatum) }} — {{ formatVeckodag(valtDatum) }}
+  </div>
+
+  <!-- Laddning -->
+  <div *ngIf="loading" class="text-center py-5">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="text-muted mt-2">Laddar rapport…</p>
+  </div>
+
+  <!-- Fel -->
+  <div *ngIf="error && !loading" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ errorMessage }}
+  </div>
+
+  <!-- ============================================================
+       RAPPORT-INNEHALL
+       ============================================================ -->
+  <ng-container *ngIf="rapportData && !loading">
+
+    <!-- Rapport-datum & genererad -->
+    <div class="rapport-meta text-muted small mb-4">
+      <span><i class="fas fa-calendar-day me-1"></i>
+        Rapport för: <strong class="text-light">{{ formatVeckodag(rapportData.rapport_info.datum) }} {{ formatDatum(rapportData.rapport_info.datum) }}</strong>
+      </span>
+      <span class="ms-3"><i class="fas fa-clock me-1"></i>Genererad: {{ rapportData.rapport_info.genererad }}</span>
+    </div>
+
+    <!-- ============================================================
+         VARNINGAR
+         ============================================================ -->
+    <div class="sektion mb-4">
+      <h2 class="sektion-rubrik"><i class="fas fa-bell me-2"></i>Status &amp; Varningar</h2>
+      <div class="varning-lista">
+        <div
+          *ngFor="let v of varningar"
+          class="varning-rad"
+          [ngClass]="getSeverityKlass(v.severity)"
+        >
+          <span class="varning-ikon">{{ getSeverityIkon(v.severity) }}</span>
+          <span class="varning-text">{{ v.meddelande }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         EXECUTIVE SUMMARY — STORA NYCKELTAL
+         ============================================================ -->
+    <div class="sektion mb-4">
+      <h2 class="sektion-rubrik"><i class="fas fa-tachometer-alt me-2"></i>Sammanfattning</h2>
+      <div class="kpi-rad">
+
+        <!-- IBC Producerade -->
+        <div class="kpi-kort">
+          <div class="kpi-etikett">IBC producerade</div>
+          <div class="kpi-varde" [style.color]="uppfyllnadFarg">
+            {{ formatNumber(produktion?.totalt_ibc) }}
+          </div>
+          <div class="kpi-detalj">
+            Mål: {{ formatNumber(produktion?.mal) }} IBC
+          </div>
+          <div class="kpi-badge" [style.background-color]="uppfyllnadFarg">
+            {{ formatDecimal(produktion?.uppfyllnad_pct) }}% av mål
+          </div>
+        </div>
+
+        <!-- Effektivitet IBC/tim -->
+        <div class="kpi-kort">
+          <div class="kpi-etikett">IBC / drifttimme</div>
+          <div class="kpi-varde text-info">
+            {{ formatDecimal(effektivitet?.ibc_per_timme) }}
+          </div>
+          <div class="kpi-detalj">
+            Drifttid: {{ formatDecimal(effektivitet?.total_drifttid_h) }}h
+          </div>
+          <div class="kpi-trend" [ngClass]="getTrendKlass(effektivitet?.andring_ibc_per_timme ?? 0, true)">
+            {{ getTrendPil(effektivitet?.andring_ibc_per_timme ?? 0) }}
+            {{ formatDecimal(effektivitet?.andring_ibc_per_timme) }}% vs förreg. vecka
+          </div>
+        </div>
+
+        <!-- Stopp -->
+        <div class="kpi-kort">
+          <div class="kpi-etikett">Stopp</div>
+          <div class="kpi-varde text-warning">
+            {{ formatNumber(stopp?.totalt_antal) }}
+          </div>
+          <div class="kpi-detalj">
+            Stopptid: {{ formatDecimal(stopp?.totalt_timmar) }}h
+          </div>
+          <div class="kpi-trend" [ngClass]="getTrendKlass(stopp?.andring_pct ?? 0, false)">
+            {{ getTrendPil(stopp?.andring_pct ?? 0) }}
+            {{ formatDecimal(stopp?.andring_pct) }}% vs förreg. vecka
+          </div>
+        </div>
+
+        <!-- Kassation -->
+        <div class="kpi-kort">
+          <div class="kpi-etikett">Kassationsgrad</div>
+          <div class="kpi-varde"
+               [class.text-success]="(kvalitet?.kassationsgrad_pct ?? 0) < 3"
+               [class.text-warning]="(kvalitet?.kassationsgrad_pct ?? 0) >= 3 && (kvalitet?.kassationsgrad_pct ?? 0) < 5"
+               [class.text-danger]="(kvalitet?.kassationsgrad_pct ?? 0) >= 5">
+            {{ formatDecimal(kvalitet?.kassationsgrad_pct, 2) }}%
+          </div>
+          <div class="kpi-detalj">
+            {{ formatNumber(kvalitet?.kasserade_antal) }} kasserade IBC
+          </div>
+          <div class="kpi-trend" [ngClass]="getTrendKlass(kvalitet?.andring_pct ?? 0, false)">
+            {{ getTrendPil(kvalitet?.andring_pct ?? 0) }}
+            {{ formatDecimal(kvalitet?.andring_pct) }}% vs förreg. vecka
+          </div>
+        </div>
+
+        <!-- Utnyttjandegrad -->
+        <div class="kpi-kort">
+          <div class="kpi-etikett">Utnyttjandegrad</div>
+          <div class="kpi-varde"
+               [class.text-success]="(effektivitet?.utnyttjandegrad_pct ?? 0) >= 75"
+               [class.text-warning]="(effektivitet?.utnyttjandegrad_pct ?? 0) >= 50 && (effektivitet?.utnyttjandegrad_pct ?? 0) < 75"
+               [class.text-danger]="(effektivitet?.utnyttjandegrad_pct ?? 0) < 50">
+            {{ formatDecimal(effektivitet?.utnyttjandegrad_pct) }}%
+          </div>
+          <div class="kpi-detalj">
+            {{ formatDecimal(effektivitet?.total_drifttid_h) }}h / {{ effektivitet?.tillganglig_tid_h }}h tillg.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================
+         PRODUKTIONSSEKTION
+         ============================================================ -->
+    <div class="sektion mb-4">
+      <h2 class="sektion-rubrik"><i class="fas fa-industry me-2"></i>Produktion</h2>
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <div class="info-kort">
+            <table class="tabell-kompakt">
+              <tbody>
+                <tr>
+                  <td class="tabell-etikett">Datum</td>
+                  <td class="tabell-varde">{{ formatVeckodag(rapportData.rapport_info.datum) }} {{ formatDatum(rapportData.rapport_info.datum) }}</td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Producerade IBC</td>
+                  <td class="tabell-varde fw-bold" [style.color]="uppfyllnadFarg">{{ formatNumber(produktion?.totalt_ibc) }}</td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Dagsmål</td>
+                  <td class="tabell-varde">{{ formatNumber(produktion?.mal) }}</td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Måluppfyllnad</td>
+                  <td class="tabell-varde" [style.color]="uppfyllnadFarg">{{ formatDecimal(produktion?.uppfyllnad_pct) }}%</td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Förreg. vecka (samma dag)</td>
+                  <td class="tabell-varde">
+                    {{ formatNumber(produktion?.prev_week_ibc) }} IBC
+                    <span class="trend-chip" [ngClass]="getTrendKlass(produktion?.andring_vs_prev_vecka ?? 0, true)">
+                      {{ getTrendPil(produktion?.andring_vs_prev_vecka ?? 0) }}
+                      {{ formatDecimal(produktion?.andring_vs_prev_vecka) }}%
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Snitt senaste 30 dagar</td>
+                  <td class="tabell-varde">
+                    {{ formatDecimal(produktion?.snitt_30d, 0) }} IBC/dag
+                    <span class="trend-chip" [ngClass]="getTrendKlass(produktion?.andring_vs_30d ?? 0, true)">
+                      {{ getTrendPil(produktion?.andring_vs_30d ?? 0) }}
+                      {{ formatDecimal(produktion?.andring_vs_30d) }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Trendstaplar -->
+        <div class="col-12 col-md-6">
+          <div class="info-kort">
+            <div class="trendgraf-rubrik text-muted small mb-2">
+              <i class="fas fa-chart-bar me-1"></i>Produktion senaste 30 dagar
+            </div>
+            <div class="trendgraf-wrapper" *ngIf="trendDagar.length > 0; else ingenTrendData">
+              <div class="trendgraf">
+                <div
+                  *ngFor="let dag of trendDagar; let i = index"
+                  class="trendgraf-stapel-container"
+                  [title]="formatDatum(dag) + ': ' + getTrendIbcForDag(dag) + ' IBC'"
+                >
+                  <div
+                    class="trendgraf-stapel"
+                    [style.height.%]="getStapelHojd(getTrendIbcForDag(dag))"
+                    [style.background-color]="getStapelFarg(dag)"
+                  ></div>
+                  <div class="trendgraf-etikett" *ngIf="visaDagEtikett(i, trendDagar.length)">
+                    {{ formatDagEtikett(dag) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <ng-template #ingenTrendData>
+              <p class="text-muted small">Ingen trenddata tillgänglig.</p>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         STOPPSEKTION
+         ============================================================ -->
+    <div class="sektion mb-4">
+      <h2 class="sektion-rubrik"><i class="fas fa-stop-circle me-2 text-warning"></i>Stopp</h2>
+      <div class="row g-3">
+        <div class="col-12 col-md-5">
+          <div class="info-kort">
+            <table class="tabell-kompakt">
+              <tbody>
+                <tr>
+                  <td class="tabell-etikett">Antal stopp</td>
+                  <td class="tabell-varde text-warning fw-bold">{{ formatNumber(stopp?.totalt_antal) }}</td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Total stopptid</td>
+                  <td class="tabell-varde">{{ formatDecimal(stopp?.totalt_timmar) }}h</td>
+                </tr>
+                <tr>
+                  <td class="tabell-etikett">Förreg. vecka (samma dag)</td>
+                  <td class="tabell-varde">
+                    {{ formatNumber(stopp?.prev_week_antal) }} stopp
+                    <span class="trend-chip" [ngClass]="getTrendKlass(stopp?.andring_pct ?? 0, false)">
+                      {{ getTrendPil(stopp?.andring_pct ?? 0) }}
+                      {{ formatDecimal(stopp?.andring_pct) }}%
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="col-12 col-md-7">
+          <div class="info-kort">
+            <div class="text-muted small mb-2"><i class="fas fa-list-ol me-1"></i>Topp 3 stopporsaker</div>
+            <div *ngIf="stopp && stopp.top3_orsaker.length > 0; else ingaStopp">
+              <div
+                *ngFor="let o of stopp.top3_orsaker; let i = index"
+                class="stopp-orsak-rad"
+              >
+                <span class="stopp-orsak-rank">#{{ i + 1 }}</span>
+                <span class="stopp-orsak-namn">{{ o.orsak }}</span>
+                <span class="stopp-orsak-detalj">
+                  {{ o.antal }} stopp &bull; {{ formatDecimal(o.timmar) }}h
+                </span>
+              </div>
+            </div>
+            <ng-template #ingaStopp>
+              <p class="text-muted small">Inga stopporsaker registrerade.</p>
+            </ng-template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         KVALITETSSEKTION
+         ============================================================ -->
+    <div class="sektion mb-4">
+      <h2 class="sektion-rubrik"><i class="fas fa-star me-2 text-info"></i>Kvalitet</h2>
+      <div class="info-kort" style="max-width:600px;">
+        <table class="tabell-kompakt">
+          <tbody>
+            <tr>
+              <td class="tabell-etikett">Kassationsgrad</td>
+              <td class="tabell-varde fw-bold"
+                  [class.text-success]="(kvalitet?.kassationsgrad_pct ?? 0) < 3"
+                  [class.text-warning]="(kvalitet?.kassationsgrad_pct ?? 0) >= 3 && (kvalitet?.kassationsgrad_pct ?? 0) < 5"
+                  [class.text-danger]="(kvalitet?.kassationsgrad_pct ?? 0) >= 5">
+                {{ formatDecimal(kvalitet?.kassationsgrad_pct, 2) }}%
+              </td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Kasserade IBC</td>
+              <td class="tabell-varde">{{ formatNumber(kvalitet?.kasserade_antal) }}</td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Totalt producerade</td>
+              <td class="tabell-varde">{{ formatNumber(kvalitet?.totalt_producerade) }}</td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Topporsak</td>
+              <td class="tabell-varde">{{ kvalitet?.topp_orsak }}</td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Förreg. vecka kassationsgrad</td>
+              <td class="tabell-varde">
+                {{ formatDecimal(kvalitet?.prev_week_kassationsgrad, 2) }}%
+                <span class="trend-chip" [ngClass]="getTrendKlass(kvalitet?.andring_pct ?? 0, false)">
+                  {{ getTrendPil(kvalitet?.andring_pct ?? 0) }}
+                  {{ formatDecimal(kvalitet?.andring_pct) }}%
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         HIGHLIGHTS
+         ============================================================ -->
+    <div class="sektion mb-4" *ngIf="highlights && (highlights.basta_timme !== null || highlights.snabbast_operator)">
+      <h2 class="sektion-rubrik"><i class="fas fa-trophy me-2 text-warning"></i>Highlights</h2>
+      <div class="kpi-rad">
+        <div class="kpi-kort highlight-kort" *ngIf="highlights.basta_timme !== null">
+          <div class="kpi-etikett"><i class="fas fa-clock me-1"></i>Bästa timme</div>
+          <div class="kpi-varde text-warning">{{ highlights.basta_timme_label }}</div>
+          <div class="kpi-detalj">{{ formatNumber(highlights.basta_timme_antal) }} IBC</div>
+        </div>
+        <div class="kpi-kort highlight-kort" *ngIf="highlights.snabbast_operator">
+          <div class="kpi-etikett"><i class="fas fa-user me-1"></i>Snabbaste operatör</div>
+          <div class="kpi-varde text-success">{{ highlights.snabbast_operator }}</div>
+          <div class="kpi-detalj">{{ formatNumber(highlights.snabbast_antal) }} IBC</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================
+         EFFEKTIVITETSSEKTION
+         ============================================================ -->
+    <div class="sektion mb-4">
+      <h2 class="sektion-rubrik"><i class="fas fa-bolt me-2 text-info"></i>Effektivitet</h2>
+      <div class="info-kort" style="max-width:600px;">
+        <table class="tabell-kompakt">
+          <tbody>
+            <tr>
+              <td class="tabell-etikett">IBC / drifttimme</td>
+              <td class="tabell-varde fw-bold text-info">
+                {{ formatDecimal(effektivitet?.ibc_per_timme) }}
+                <span class="trend-chip" [ngClass]="getTrendKlass(effektivitet?.andring_ibc_per_timme ?? 0, true)">
+                  {{ getTrendPil(effektivitet?.andring_ibc_per_timme ?? 0) }}
+                  {{ formatDecimal(effektivitet?.andring_ibc_per_timme) }}%
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Total drifttid</td>
+              <td class="tabell-varde">{{ formatDecimal(effektivitet?.total_drifttid_h) }}h</td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Tillgänglig tid</td>
+              <td class="tabell-varde">{{ effektivitet?.tillganglig_tid_h }}h</td>
+            </tr>
+            <tr>
+              <td class="tabell-etikett">Utnyttjandegrad</td>
+              <td class="tabell-varde"
+                  [class.text-success]="(effektivitet?.utnyttjandegrad_pct ?? 0) >= 75"
+                  [class.text-warning]="(effektivitet?.utnyttjandegrad_pct ?? 0) >= 50 && (effektivitet?.utnyttjandegrad_pct ?? 0) < 75"
+                  [class.text-danger]="(effektivitet?.utnyttjandegrad_pct ?? 0) < 50">
+                {{ formatDecimal(effektivitet?.utnyttjandegrad_pct) }}%
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ng-container>
+  <!-- /rapportData -->
+
+</div>

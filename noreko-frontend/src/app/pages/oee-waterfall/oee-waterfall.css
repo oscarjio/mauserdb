@@ -1,0 +1,318 @@
+/* ===== OEE-analys — Vattenfall/brygga ===== */
+
+.waterfall-container {
+  padding: 1.5rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* ---- Sidrubrik ---- */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.3rem;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ---- Filterrad ---- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* ---- KPI-rad ---- */
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  flex: 1 1 180px;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kpi-main {
+  border-top: 3px solid #4fd1c5;
+}
+
+.kpi-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100px;
+}
+
+.kpi-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.2rem;
+  color: #a0aec0;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kpi-klass {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+.kpi-sub {
+  font-size: 0.72rem;
+  color: #718096;
+}
+
+.kpi-trend {
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+  font-weight: 500;
+}
+
+/* ---- Sektionskort ---- */
+.card-section {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---- Legend ---- */
+.legend-hint {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ---- Diagram ---- */
+.chart-wrapper {
+  position: relative;
+  height: 400px;
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #a0aec0;
+}
+
+.no-data-msg {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+  font-size: 0.95rem;
+}
+
+/* ---- Förlusttabell ---- */
+.forlust-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.forlust-rad {
+  display: grid;
+  grid-template-columns: 2fr 90px 70px 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.4rem;
+  background: rgba(255,255,255,0.02);
+  border-left: 3px solid transparent;
+}
+
+.forlust-total {
+  border-left-color: #48bb78;
+  background: rgba(72, 187, 120, 0.06);
+}
+
+.forlust-negativ {
+  border-left-color: #718096;
+}
+
+.forlust-effektiv {
+  border-left-color: #4fd1c5;
+  background: rgba(79, 209, 197, 0.06);
+}
+
+.forlust-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.forlust-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.forlust-timmar {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #a0aec0;
+  white-space: nowrap;
+}
+
+.forlust-pct {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.forlust-pct-total {
+  color: #a0aec0;
+}
+
+.forlust-bar-wrap {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.forlust-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  min-width: 2px;
+  transition: width 0.4s ease;
+}
+
+/* ---- IBC-statistik ---- */
+.ibc-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ibc-card {
+  background: rgba(255,255,255,0.03);
+  border-radius: 0.4rem;
+  padding: 0.75rem 1rem;
+  flex: 1 1 120px;
+  min-width: 110px;
+  text-align: center;
+}
+
+.ibc-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.ibc-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---- Responsivitet ---- */
+@media (max-width: 768px) {
+  .waterfall-container {
+    padding: 1rem;
+  }
+
+  .kpi-card {
+    flex: 1 1 140px;
+  }
+
+  .kpi-value {
+    font-size: 1.6rem;
+  }
+
+  .chart-wrapper {
+    height: 300px;
+  }
+
+  .forlust-rad {
+    grid-template-columns: 1fr 70px 55px;
+  }
+
+  .forlust-bar-wrap {
+    display: none;
+  }
+}
