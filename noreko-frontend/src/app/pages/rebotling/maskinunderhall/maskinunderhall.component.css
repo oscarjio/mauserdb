@@ -1,0 +1,267 @@
+:host {
+  display: block;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+
+.kpi-card-danger {
+  border-color: #e53e3e;
+  box-shadow: 0 0 8px rgba(229,62,62,0.3);
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  color: #e2e8f0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Maskinlista */
+.table-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.filter-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+  width: 150px;
+}
+
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #4a5568;
+}
+
+.table-dark thead th {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom-width: 2px;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: #63b3ed;
+}
+
+.machine-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.machine-row:hover {
+  background: rgba(99,179,237,0.06) !important;
+}
+
+.row-rod {
+  border-left: 3px solid #e53e3e;
+}
+
+.row-gul {
+  border-left: 3px solid #ecc94b;
+}
+
+/* Expanderad historik */
+.history-row td {
+  padding: 0 !important;
+}
+
+.history-panel {
+  background: #1a202c;
+  border-top: 2px solid #4a5568;
+  padding: 1rem 1.25rem;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.expand-icon {
+  font-size: 0.75rem;
+  transition: transform 0.2s;
+}
+
+.expand-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.badge-gron {
+  background-color: rgba(72,187,120,0.2);
+  color: #68d391;
+  border: 1px solid rgba(72,187,120,0.4);
+}
+
+.badge-gul {
+  background-color: rgba(236,201,75,0.2);
+  color: #ecc94b;
+  border: 1px solid rgba(236,201,75,0.4);
+}
+
+.badge-rod {
+  background-color: rgba(229,62,62,0.2);
+  color: #fc8181;
+  border: 1px solid rgba(229,62,62,0.4);
+}
+
+/* Liten knapp */
+.btn-xs {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  border-radius: 0.25rem;
+}
+
+/* Tidslinje-diagram */
+.chart-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+/* Modaler */
+.modal-backdrop-custom {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 1050;
+}
+
+.modal-custom {
+  position: fixed;
+  inset: 0;
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.modal-content-custom {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.6rem;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  pointer-events: auto;
+  animation: fadeInScale 0.18s ease;
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.modal-body-custom {
+  padding: 1.25rem;
+}
+
+/* Mörka formulärfält */
+.form-control-dark,
+.form-select-dark {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-control-dark:focus,
+.form-select-dark:focus {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99,179,237,0.2);
+}
+
+.form-control-dark::placeholder {
+  color: #718096;
+}
+
+.form-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}
+
+/* Responsiv */
+@media (max-width: 768px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 240px;
+  }
+  .modal-content-custom {
+    max-width: 95vw;
+  }
+}

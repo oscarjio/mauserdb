@@ -1,0 +1,359 @@
+<div class="container-fluid py-4">
+
+  <!-- Rubrik -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-wrench me-2" style="color:#68d391"></i>Maskinunderhåll
+    </h2>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-sm btn-success" (click)="openAddServiceModal()">
+        <i class="fas fa-plus me-1"></i>Registrera service
+      </button>
+      <button class="btn btn-sm btn-outline-info" (click)="openAddMachineModal()">
+        <i class="fas fa-cogs me-1"></i>Ny maskin
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Antal maskiner</div>
+        <div class="kpi-value">{{ overview.antal_maskiner }}</div>
+        <div class="kpi-sub">Aktiva</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Kommande service</div>
+        <div class="kpi-value" [class.text-warning]="overview.kommande_inom_sju > 0">
+          {{ overview.kommande_inom_sju }}
+        </div>
+        <div class="kpi-sub">Inom 7 dagar</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card" [class.kpi-card-danger]="overview.forsenade > 0">
+        <div class="kpi-label">Försenade</div>
+        <div class="kpi-value" [class.text-danger]="overview.forsenade > 0">
+          {{ overview.forsenade }}
+        </div>
+        <div class="kpi-sub" [class.text-danger]="overview.forsenade > 0">
+          {{ overview.forsenade > 0 ? 'Kräver åtgärd!' : 'Inga försenade' }}
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt intervall</div>
+        <div class="kpi-value">{{ overview.snitt_intervall_dagar }}</div>
+        <div class="kpi-sub">Dagar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overview -->
+  <div class="text-center py-4" *ngIf="loadingOverview">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Laddar KPI:er...</p>
+  </div>
+  <div class="alert alert-danger" *ngIf="errorOverview && !loadingOverview">
+    Kunde inte ladda KPI:er.
+  </div>
+
+  <!-- Maskinlista -->
+  <div class="table-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-list me-2" style="color:#63b3ed"></i>Maskiner &amp; servicestatus
+      </h5>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="text-light mb-0 small">Filtrera:</label>
+        <select class="form-select form-select-sm filter-select"
+                [(ngModel)]="statusFilter"
+                (ngModelChange)="onStatusFilter()">
+          <option value="alla">Alla</option>
+          <option value="gron">Grona (OK)</option>
+          <option value="gul">Gula (Snart)</option>
+          <option value="rod">Roda (Forsenat)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="text-center py-4" *ngIf="loadingMachines">
+      <div class="spinner-border text-info" role="status"></div>
+    </div>
+
+    <div class="alert alert-danger" *ngIf="errorMachines && !loadingMachines">
+      Kunde inte ladda maskiner.
+    </div>
+
+    <div class="table-responsive" *ngIf="!loadingMachines && !errorMachines">
+      <table class="table table-dark table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="sortBy('namn')">
+              Maskin <i [class]="getSortIcon('namn')"></i>
+            </th>
+            <th class="sortable" (click)="sortBy('senaste_service')">
+              Senaste service <i [class]="getSortIcon('senaste_service')"></i>
+            </th>
+            <th class="sortable" (click)="sortBy('nasta_service')">
+              Nästa service <i [class]="getSortIcon('nasta_service')"></i>
+            </th>
+            <th class="sortable" (click)="sortBy('dagar_kvar')">
+              Dagar kvar <i [class]="getSortIcon('dagar_kvar')"></i>
+            </th>
+            <th>Status</th>
+            <th>Intervall</th>
+            <th>Åtgärd</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let m of filteredMaskiner">
+            <!-- Maskinrad -->
+            <tr [class]="getRowClass(m)" class="machine-row" (click)="selectMaskin(m)">
+              <td>
+                <i class="fas fa-industry me-2 text-muted"></i>
+                <strong>{{ m.namn }}</strong>
+                <i class="fas fa-chevron-down ms-2 text-muted expand-icon"
+                   [class.rotated]="selectedMaskin?.id === m.id"></i>
+              </td>
+              <td>
+                <span *ngIf="m.senaste_service">{{ m.senaste_service }}</span>
+                <span *ngIf="!m.senaste_service" class="text-muted">Ingen registrerad</span>
+              </td>
+              <td>
+                <span *ngIf="m.nasta_service">{{ m.nasta_service }}</span>
+                <span *ngIf="!m.nasta_service" class="text-muted">—</span>
+              </td>
+              <td [class.text-danger]="m.dagar_kvar !== null && m.dagar_kvar <= 0"
+                  [class.text-warning]="m.dagar_kvar !== null && m.dagar_kvar > 0 && m.dagar_kvar <= 7">
+                {{ getDagarKvarText(m) }}
+              </td>
+              <td>
+                <span [class]="'status-badge ' + getStatusClass(m.status)">
+                  {{ getStatusText(m.status) }}
+                </span>
+              </td>
+              <td class="text-muted">{{ m.service_intervall_dagar }}d</td>
+              <td>
+                <button class="btn btn-xs btn-outline-success"
+                        (click)="$event.stopPropagation(); openAddServiceModal(m)"
+                        title="Registrera service">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </td>
+            </tr>
+            <!-- Expanderad historik -->
+            <tr *ngIf="selectedMaskin?.id === m.id" class="history-row">
+              <td colspan="7" class="p-0">
+                <div class="history-panel">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">
+                      <i class="fas fa-history me-2 text-info"></i>Servicehistorik — {{ m.namn }}
+                    </h6>
+                    <button class="btn btn-xs btn-outline-secondary" (click)="closeHistory()">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+
+                  <div class="text-center py-3" *ngIf="loadingHistory">
+                    <div class="spinner-border spinner-border-sm text-info"></div>
+                    <span class="ms-2 text-muted">Laddar historik...</span>
+                  </div>
+                  <div class="alert alert-danger mb-0" *ngIf="errorHistory && !loadingHistory">
+                    Kunde inte ladda historik.
+                  </div>
+
+                  <div *ngIf="!loadingHistory && !errorHistory">
+                    <div class="text-muted small mb-3" *ngIf="!historik.length">
+                      Ingen servicehistorik registrerad för denna maskin.
+                    </div>
+                    <div class="table-responsive" *ngIf="historik.length">
+                      <table class="table table-dark table-sm mb-0">
+                        <thead>
+                          <tr>
+                            <th>Datum</th>
+                            <th>Typ</th>
+                            <th>Beskrivning</th>
+                            <th>Utfört av</th>
+                            <th>Nästa planerad</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr *ngFor="let h of historik">
+                            <td>{{ h.service_datum }}</td>
+                            <td>
+                              <span [class]="getTypBadgeClass(h.service_typ)">
+                                {{ h.service_typ_label }}
+                              </span>
+                            </td>
+                            <td>
+                              <span *ngIf="h.beskrivning">{{ h.beskrivning }}</span>
+                              <span *ngIf="!h.beskrivning" class="text-muted">—</span>
+                            </td>
+                            <td>
+                              <span *ngIf="h.utfort_av">{{ h.utfort_av }}</span>
+                              <span *ngIf="!h.utfort_av" class="text-muted">—</span>
+                            </td>
+                            <td>
+                              <span *ngIf="h.nasta_planerad_datum">{{ h.nasta_planerad_datum }}</span>
+                              <span *ngIf="!h.nasta_planerad_datum" class="text-muted">—</span>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+      <div class="text-muted text-center py-3 small" *ngIf="filteredMaskiner.length === 0 && !loadingMachines">
+        Inga maskiner matchar det valda filtret.
+      </div>
+    </div>
+  </div>
+
+  <!-- Tidslinje-diagram -->
+  <div class="chart-card mb-4">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-bars me-2" style="color:#4fd1c5"></i>Serviceintervall — tidslinje
+    </h5>
+    <div class="text-center py-4" *ngIf="loadingTimeline">
+      <div class="spinner-border text-info" role="status"></div>
+    </div>
+    <div class="alert alert-danger" *ngIf="errorTimeline && !loadingTimeline">
+      Kunde inte ladda tidslinje-data.
+    </div>
+    <div class="chart-wrapper" *ngIf="!loadingTimeline && !errorTimeline">
+      <canvas id="timelineChart"></canvas>
+    </div>
+    <p class="text-muted small mt-2 mb-0">
+      <i class="fas fa-circle me-1" style="color:#48bb78"></i>Grön = tid sedan service (OK)
+      &nbsp;
+      <i class="fas fa-circle me-1" style="color:#ecc94b"></i>Gul = snart förfallet
+      &nbsp;
+      <i class="fas fa-circle me-1" style="color:#e53e3e"></i>Röd = försenat
+    </p>
+  </div>
+
+</div>
+
+<!-- ===================== MODAL: Lägg till service ===================== -->
+<div class="modal-backdrop-custom" *ngIf="showAddServiceModal" (click)="closeAddServiceModal()"></div>
+<div class="modal-custom" *ngIf="showAddServiceModal" role="dialog" aria-modal="true">
+  <div class="modal-content-custom" (click)="$event.stopPropagation()">
+    <div class="modal-header-custom">
+      <h5 class="mb-0"><i class="fas fa-plus me-2 text-success"></i>Registrera service</h5>
+      <button class="btn-close btn-close-white" (click)="closeAddServiceModal()"></button>
+    </div>
+    <div class="modal-body-custom">
+      <form (ngSubmit)="submitAddService()" #serviceFormRef="ngForm" novalidate>
+        <div class="mb-3">
+          <label class="form-label">Maskin <span class="text-danger">*</span></label>
+          <select class="form-select form-select-dark"
+                  [(ngModel)]="addServiceForm.maskin_id"
+                  name="maskin_id" required>
+            <option [value]="0" disabled>Välj maskin...</option>
+            <option *ngFor="let m of maskiner" [value]="m.id">{{ m.namn }}</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Servicedatum <span class="text-danger">*</span></label>
+          <input type="date" class="form-control form-control-dark"
+                 [(ngModel)]="addServiceForm.service_datum"
+                 name="service_datum" required />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Servicetyp</label>
+          <select class="form-select form-select-dark"
+                  [(ngModel)]="addServiceForm.service_typ"
+                  name="service_typ">
+            <option value="planerat">Planerat</option>
+            <option value="akut">Akut</option>
+            <option value="inspektion">Inspektion</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Beskrivning</label>
+          <textarea class="form-control form-control-dark" rows="3"
+                    [(ngModel)]="addServiceForm.beskrivning"
+                    name="beskrivning"
+                    placeholder="Vad utfördes..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Utfört av</label>
+          <input type="text" class="form-control form-control-dark"
+                 [(ngModel)]="addServiceForm.utfort_av"
+                 name="utfort_av"
+                 placeholder="Namn..." />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nästa planerad service (valfritt)</label>
+          <input type="date" class="form-control form-control-dark"
+                 [(ngModel)]="addServiceForm.nasta_planerad_datum"
+                 name="nasta_planerad_datum" />
+          <small class="text-muted">Lämna tomt för automatisk beräkning baserat på serviceintervall.</small>
+        </div>
+        <div class="alert alert-success py-2" *ngIf="serviceMessage">{{ serviceMessage }}</div>
+        <div class="alert alert-danger py-2" *ngIf="serviceError">{{ serviceError }}</div>
+        <div class="d-flex gap-2 justify-content-end mt-3">
+          <button type="button" class="btn btn-secondary" (click)="closeAddServiceModal()">Avbryt</button>
+          <button type="submit" class="btn btn-success" [disabled]="savingService">
+            <i class="fas fa-save me-1"></i>{{ savingService ? 'Sparar...' : 'Spara service' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: Lägg till maskin ===================== -->
+<div class="modal-backdrop-custom" *ngIf="showAddMachineModal" (click)="closeAddMachineModal()"></div>
+<div class="modal-custom" *ngIf="showAddMachineModal" role="dialog" aria-modal="true">
+  <div class="modal-content-custom" (click)="$event.stopPropagation()">
+    <div class="modal-header-custom">
+      <h5 class="mb-0"><i class="fas fa-cogs me-2 text-info"></i>Registrera ny maskin</h5>
+      <button class="btn-close btn-close-white" (click)="closeAddMachineModal()"></button>
+    </div>
+    <div class="modal-body-custom">
+      <form (ngSubmit)="submitAddMachine()" novalidate>
+        <div class="mb-3">
+          <label class="form-label">Namn <span class="text-danger">*</span></label>
+          <input type="text" class="form-control form-control-dark"
+                 [(ngModel)]="addMachineForm.namn"
+                 name="namn" required
+                 placeholder="T.ex. Tvättmaskin 2..." />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Beskrivning</label>
+          <textarea class="form-control form-control-dark" rows="2"
+                    [(ngModel)]="addMachineForm.beskrivning"
+                    name="beskrivning"
+                    placeholder="Kort beskrivning av maskinen..."></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Serviceintervall (dagar) <span class="text-danger">*</span></label>
+          <input type="number" class="form-control form-control-dark"
+                 [(ngModel)]="addMachineForm.service_intervall_dagar"
+                 name="service_intervall_dagar"
+                 min="1" max="3650" required />
+          <small class="text-muted">Antal dagar mellan planerade serviceinsatser.</small>
+        </div>
+        <div class="alert alert-success py-2" *ngIf="maskinMessage">{{ maskinMessage }}</div>
+        <div class="alert alert-danger py-2" *ngIf="maskinError">{{ maskinError }}</div>
+        <div class="d-flex gap-2 justify-content-end mt-3">
+          <button type="button" class="btn btn-secondary" (click)="closeAddMachineModal()">Avbryt</button>
+          <button type="submit" class="btn btn-info" [disabled]="savingMachine">
+            <i class="fas fa-save me-1"></i>{{ savingMachine ? 'Sparar...' : 'Spara maskin' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
