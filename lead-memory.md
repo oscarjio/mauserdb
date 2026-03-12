@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #75)*
+*Senast uppdaterad: 2026-03-12 (session #76)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -77,19 +77,24 @@ Session #72: Första-timme-analys + Operatörs-personligt dashboard — klara.
 Session #73: Produktionsprognos + Stopporsak per operatör — klara.
 Session #74: Operatörs-onboarding tracker + Skiftöverlämningslogg — klara.
 Session #75: Operatörsjämförelse sida-vid-sida + Produktionseffektivitet per timme — klara.
+Session #76: Snabbkommandon/favoritvy + Kvalitetsanalys trendbrott-detektion — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Operatörsjämförelse sida-vid-sida** — jämför 2-3 operatörer i samma graf
-- [x] **Produktionseffektivitet per timme** — heatmap vilka timmar är mest produktiva
-- [ ] **Snabbkommandon/favoritvy** — VD:s bokmärken
+- [x] **Snabbkommandon/favoritvy** — VD:s bokmärken
+- [x] **Kvalitetsanalys — trendbrott-detektion** — flagga avvikande kassationsgrad
 - [ ] **Maskinunderhåll — serviceintervall-vy** — planerade underhåll + varningar
 - [ ] **Batch-spårning** — följ en batch/order genom linjen
-- [ ] **Kvalitetsanalys — trendbrott-detektion** — flagga avvikande kassationsgrad
 - [ ] **Skiftplanering — bemanningsöversikt** — kapacitetsplanering per skift
 - [ ] **Produktionskostnad per IBC** — uppskattad kostnad per producerad IBC
+- [ ] **Statistik-dashboard sammanfattning** — VD:s 10-sek överblick
+- [ ] **Operatörsbonus-kalkylator** — transparent individuell bonusmodell
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #76 (klar)
+Worker 1 (Snabbkommandon/favoritvy): VD bokmärker mest använda sidor, visas som snabblänkar-kort. Ny DB-tabell user_favoriter. Backend: FavoriterController (4 endpoints: list, add, remove, reorder). Frontend: favorithanterare + snabblänkar på startsidan.
+Worker 2 (Kvalitetsanalys trendbrott-detektion): Automatisk flagga vid avvikande kassationsgrad (±2σ). Linjediagram med rörligt medelvärde + konfidensband. Alerts-lista sorterad efter allvarlighetsgrad. Drill-down per dag. Backend: KvalitetsTrendbrottController (3 endpoints: overview, alerts, daily-detail).
 
 ### 2026-03-12 — Session #75 (klar)
 Worker 1 (Operatörsjämförelse sida-vid-sida): VD väljer 2-3 operatörer, jämför KPI:er i tabell + linjediagram (IBC/dag) + radardiagram (normaliserade KPI:er). Dropdown med checkboxar, periodväljare 7/30/90d. Backend: OperatorJamforelseController (3 endpoints: operators-list, compare, compare-trend).
@@ -98,7 +103,3 @@ Worker 2 (Produktionseffektivitet per timme): Heatmap veckodag x timme med färg
 ### 2026-03-12 — Session #74 (klar)
 Worker 1 (Operatörs-onboarding tracker): Visa nya operatörers lärlingskurva — veckovis IBC/h de första 12 veckorna vs teamsnitt. Chart.js linjediagram, KPI-kort, statusfärger (grön/gul/röd). Backend: OperatorOnboardingController (3 endpoints: onboarding-overview, operator-curve, team-stats).
 Worker 2 (Skiftöverlämningslogg): Digital överlämning mellan skift. Formulär för avgående operatör + automatisk KPI-data. Historik-lista, detaljvy, filtrering. NY DB-tabell. Backend: SkiftoverlamningController (4 endpoints: list, detail, create, shift-kpis).
-
-### 2026-03-12 — Session #73 (klar)
-Worker 1 (Produktionsprognos): VD ser beräknat antal IBC till skiftslut. Stor tydlig siffra, progressbar, trendindikator. Skifttider dag/kväll/natt. Auto-refresh 60s. Backend: ProduktionsPrognosController (2 endpoints: forecast, shift-history).
-Worker 2 (Stopporsak per operatör): Vilka operatörer har mest stopp, vilka orsaker, flagga hög stopptid. Drill-down per operatör. Chart.js horisontella staplar + donut. Backend: StopporsakOperatorController (3 endpoints: overview, operator-detail, reasons-summary).
