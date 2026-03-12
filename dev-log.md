@@ -1,3 +1,31 @@
+## 2026-03-12 Maskinunderhåll — serviceintervall-vy
+
+Ny sida `/rebotling/maskinunderhall` — planerat underhåll, servicestatus per maskin och varningslampa vid försenat underhåll.
+
+- **Migration**: `2026-03-12_maskinunderhall.sql` — tabeller `maskin_register` + `maskin_service_logg` med seed-data (6 maskiner: Tvättmaskin, Torkugn, Inspektionsstation, Transportband, Etiketterare, Ventiltestare)
+- **Backend**: `MaskinunderhallController.php` i `classes/`
+  - `run=overview` → KPI:er: antal maskiner, kommande service inom 7 dagar, försenade (rött om >0), snitt intervall dagar
+  - `run=machines` → lista maskiner med senaste service, nästa planerad, dagar kvar, status (gron/gul/rod)
+  - `run=machine-history&maskin_id=X` → servicehistorik för specifik maskin (50 senaste)
+  - `run=timeline` → data för Chart.js: dagar sedan service, intervall, förbrukad%, status per maskin
+  - `run=add-service` (POST) → registrera genomförd service med auto-beräkning av nästa datum
+  - `run=add-machine` (POST) → registrera ny maskin
+  - `ensureTables()` kör migration automatiskt vid första anrop
+  - Registrerad i `api.php` med nyckel `maskinunderhall`
+- **Service**: `maskinunderhall.service.ts` — interfaces MaskinOverview, MaskinItem, ServiceHistoryItem, TimelineItem, AddServiceData, AddMachineData
+- **Komponent**: `pages/rebotling/maskinunderhall/`
+  - KPI-kort (4 st) — antal maskiner, kommande 7d, försenade (röd vid >0), snitt intervall
+  - Tabell med statusfärg: grön (>7d kvar), gul (1-7d), röd (försenat), sorterbara kolumner, statusfilter
+  - Klickbar rad → expanderbar servicehistorik inline (accordion-stil)
+  - Modal: Registrera service (maskin, datum, typ, beskrivning, utfört av, nästa planerad)
+  - Modal: Registrera ny maskin (namn, beskrivning, serviceintervall)
+  - Chart.js horisontellt stapeldiagram (indexAxis: 'y') — tid sedan service vs intervall, röd del för försenat
+  - Auto-refresh var 5 minuter, OnInit/OnDestroy + destroy$ + clearInterval
+- **Route**: `/rebotling/maskinunderhall` (authGuard)
+- **Meny**: "Maskinunderhåll" med ikon `fas fa-wrench` under Rebotling
+
+---
+
 ## 2026-03-12 Statistik-dashboard — komplett produktionsöverblick för VD
 
 Ny sida `/rebotling/statistik-dashboard` — VD kan på 10 sekunder se hela produktionsläget.
