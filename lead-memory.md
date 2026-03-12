@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #78)*
+*Senast uppdaterad: 2026-03-12 (session #79)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -80,27 +80,29 @@ Session #75: Operatörsjämförelse sida-vid-sida + Produktionseffektivitet per 
 Session #76: Snabbkommandon/favoritvy + Kvalitetsanalys trendbrott-detektion — klara.
 Session #77: Statistik-dashboard sammanfattning + Maskinunderhåll serviceintervall — klara.
 Session #78: Batch-spårning + Kassationsorsak-statistik — klara.
+Session #79: Skiftplanering + Produktions-SLA/måluppfyllnad — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Batch-spårning** — följ en batch/order genom linjen
-- [x] **Kassationsorsak-statistik** — Pareto + trend per orsak
-- [ ] **Skiftplanering — bemanningsöversikt** — kapacitetsplanering per skift
+- [x] **Skiftplanering — bemanningsöversikt** — kapacitetsplanering per skift
+- [x] **Produktions-SLA/måluppfyllnad** — dagliga/veckovisa mål + uppfyllnadsgrad
 - [ ] **Produktionskostnad per IBC** — uppskattad kostnad per producerad IBC
 - [ ] **Operatörsbonus-kalkylator** — transparent individuell bonusmodell
-- [ ] **Produktions-SLA/måluppfyllnad** — dagliga/veckovisa mål + uppfyllnadsgrad
+- [ ] **Leveransplanering — kundorder vs kapacitet** — matcha kundordrar mot produktionskapacitet
+- [ ] **Kvalitetscertifikat per batch** — kvalitetsintyg för avslutade batchar
+- [ ] **Rebotling stopptidsanalys per maskin** — drill-down stopptider, flaskhalsar
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #79 (klar)
+Worker 1 (Skiftplanering — bemanningsöversikt): Veckoschema med operatörstilldelning per skift/dag, kapacitetsplanering, underbemanningsvarning. NYA DB-tabeller: skift_schema + skift_konfiguration. Seed: 3 skifttyper (FM/EM/NATT). Backend: SkiftplaneringController (6 endpoints). Chart.js bemanningsgrad per dag.
+Worker 2 (Produktions-SLA/måluppfyllnad): Dagliga/veckovisa produktionsmål med uppfyllnadsgrad, streak-räknare, progress bars. NY DB-tabell: produktions_mal. Seed: standardmål 80 IBC/dag. Backend: ProduktionsSlaController (6 endpoints). Chart.js gauge + stapeldiagram.
 
 ### 2026-03-12 — Session #78 (klar)
 Worker 1 (Batch-spårning): Ny sida för att följa batchar/ordrar. Aktiva batchar med progress, batch-detalj med operatörer/cykeltider/kassation, skapa/avsluta batch. NYA DB-tabeller: batch_order + batch_ibc. Chart.js progress-diagram. Backend: BatchSparningController (6 endpoints).
 Worker 2 (Kassationsorsak-statistik): Pareto-diagram (stapel + kumulativ linje, 80/20-gräns), trenddiagram per orsak, per operatör, per skift, drilldown. NYA DB-tabeller: kassationsorsak_register + kassation_logg. Backend: KassationsorsakController (6 endpoints).
 
 ### 2026-03-12 — Session #77 (klar)
-Worker 1 (Statistik-dashboard sammanfattning): VD:s 10-sek överblick. 6 KPI-kort (IBC idag/vecka, kassation%, drifttid%, aktiv operatör, snitt IBC/h). Chart.js dual Y-axel (produktion + kassation% 30d). 7-dagars tabell med färgkodning. Statusindikator grön/gul/röd. Auto-refresh 60s. Backend: StatistikDashboardController (4 endpoints: summary, production-trend, daily-table, status-indicator).
-Worker 2 (Maskinunderhåll — serviceintervall-vy): Ny sida med maskinlista, servicestatus (grön/gul/röd), servicehistorik, registreringsformulär. NYA DB-tabeller: maskin_register + maskin_service_logg. 6 seed-maskiner. Chart.js horisontellt tidslinje-diagram. Backend: MaskinunderhallController (6 endpoints: overview, machines, machine-history, timeline, add-service, add-machine).
-
-### 2026-03-12 — Session #76 (klar)
-Worker 1 (Snabbkommandon/favoritvy): VD bokmärker mest använda sidor, visas som snabblänkar-kort. Ny DB-tabell user_favoriter. Backend: FavoriterController (4 endpoints: list, add, remove, reorder). Frontend: favorithanterare + snabblänkar på startsidan.
-Worker 2 (Kvalitetsanalys trendbrott-detektion): Automatisk flagga vid avvikande kassationsgrad (±2σ). Linjediagram med rörligt medelvärde + konfidensband. Alerts-lista sorterad efter allvarlighetsgrad. Drill-down per dag. Backend: KvalitetsTrendbrottController (3 endpoints: overview, alerts, daily-detail).
+Worker 1 (Statistik-dashboard sammanfattning): VD:s 10-sek överblick. 6 KPI-kort. Chart.js dual Y-axel. Statusindikator. Backend: StatistikDashboardController (4 endpoints).
+Worker 2 (Maskinunderhåll — serviceintervall-vy): Maskinlista, servicestatus, servicehistorik. NYA DB-tabeller: maskin_register + maskin_service_logg. Backend: MaskinunderhallController (6 endpoints).
 

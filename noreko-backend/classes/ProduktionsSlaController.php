@@ -202,7 +202,7 @@ class ProduktionsSlaController {
     /**
      * Beräkna veckonummer-gränser.
      */
-    private function getWeekBounds(string $weekStr = null): array {
+    private function getWeekBounds(?string $weekStr = null): array {
         if ($weekStr && preg_match('/^(\d{4})-W(\d{2})$/', $weekStr, $m)) {
             $dt = new \DateTime();
             $dt->setISODate((int)$m[1], (int)$m[2], 1); // Måndag

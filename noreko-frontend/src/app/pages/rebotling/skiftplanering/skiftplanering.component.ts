@@ -7,7 +7,6 @@ import { Chart, registerables } from 'chart.js';
 import {
   SkiftplaneringService,
   SkiftOverview,
-  ScheduleResponse,
   SkiftRad,
   DagInfo,
   ShiftDetailResponse,
