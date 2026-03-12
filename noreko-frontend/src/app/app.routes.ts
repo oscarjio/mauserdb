@@ -98,6 +98,7 @@ export const routes: Routes = [
       { path: 'rebotling/avvikelselarm', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/avvikelselarm/avvikelselarm.component').then(m => m.AvvikelselarmPage) },
       { path: 'rebotling/sammanfattning', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/rebotling-sammanfattning/rebotling-sammanfattning.component').then(m => m.RebotlingSammanfattningPage) },
       { path: 'rebotling/produktionsflode', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktionsflode/produktionsflode.component').then(m => m.ProduktionsflodePage) },
+      { path: 'rebotling/kassationsorsak', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kassationsorsak/kassationsorsak').then(m => m.KassationsorsakPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

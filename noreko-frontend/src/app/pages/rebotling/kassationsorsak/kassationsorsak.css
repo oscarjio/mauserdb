@@ -1,0 +1,196 @@
+/* ============================================================
+   Kassationsorsak per station — Dark theme
+   ============================================================ */
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+/* ---- KPI-kort ---- */
+
+.kps-kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 100%;
+}
+
+.kps-kpi-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.kps-kpi-value {
+  color: #e2e8f0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.3rem;
+}
+
+.kps-kpi-sub {
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+/* ---- Kort ---- */
+
+.kps-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.kps-card-header {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem 1rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.kps-card-body {
+  padding: 1rem;
+}
+
+.kps-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+/* ---- Charts ---- */
+
+.kps-chart-wrapper {
+  position: relative;
+  height: 300px;
+}
+
+.kps-chart-tall {
+  height: 360px;
+}
+
+/* ---- Loading / Error ---- */
+
+.kps-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  min-height: 60px;
+}
+
+.kps-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fc8181;
+  font-size: 0.9rem;
+  min-height: 60px;
+}
+
+/* ---- Select ---- */
+
+.kps-select {
+  background: #1a202c;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  min-width: 140px;
+}
+
+.kps-select:focus {
+  background: #1a202c;
+  color: #e2e8f0;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+.kps-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* ---- Tabell ---- */
+
+.kps-table {
+  font-size: 0.875rem;
+  margin-bottom: 0;
+  background: transparent;
+}
+
+.kps-table thead th {
+  background: rgba(0, 0, 0, 0.3);
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
+}
+
+.kps-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kps-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.kps-table tbody td {
+  color: #e2e8f0;
+  padding: 0.6rem 1rem;
+  vertical-align: middle;
+}
+
+.kps-table-footer td {
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 2px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  color: #e2e8f0;
+}
+
+.kps-station-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+
+/* ---- Knappar ---- */
+
+.btn-outline-secondary {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #a0aec0;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.btn-info {
+  background-color: #3182ce;
+  border-color: #3182ce;
+  color: #fff;
+}

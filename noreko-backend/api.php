@@ -196,6 +196,7 @@ $classNameMap = [
     'avvikelselarm'                => 'AvvikelselarmController',
     'rebotling-sammanfattning'     => 'RebotlingSammanfattningController',
     'produktionsflode'             => 'ProduktionsflodeController',
+    'kassationsorsak-per-station'  => 'KassationsorsakPerStationController',
 ];
 
 $actionKey = strtolower($action);

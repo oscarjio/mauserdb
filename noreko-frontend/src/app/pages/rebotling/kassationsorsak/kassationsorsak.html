@@ -1,0 +1,259 @@
+<div class="container-fluid py-4">
+
+  <!-- Rubrik + kontroller -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-times-circle me-2" style="color:#fc8181"></i>Kassationsorsak per station
+    </h2>
+    <div class="d-flex align-items-center flex-wrap gap-3">
+      <!-- Stationsfilter -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-light mb-0 small">Station:</label>
+        <select class="form-select form-select-sm kps-select"
+                [(ngModel)]="valdStation"
+                (change)="byttStation()">
+          <option value="">Alla stationer</option>
+          <option *ngFor="let s of tillgangligaStationer" [value]="s.id">{{ s.namn }}</option>
+        </select>
+      </div>
+      <!-- Periodselektor -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-light mb-0 small">Period:</label>
+        <div class="btn-group btn-group-sm">
+          <button *ngFor="let alt of dagarAlternativ"
+                  class="btn"
+                  [class.btn-info]="dagar === alt.varde"
+                  [class.btn-outline-secondary]="dagar !== alt.varde"
+                  (click)="byttPeriod(alt.varde)">
+            {{ alt.etikett }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <!-- Total kassation idag -->
+    <div class="col-6 col-md-3">
+      <div class="kps-kpi-card">
+        <div class="kps-kpi-label">Total kassation idag</div>
+        <ng-container *ngIf="!loadingOverview && overview; else laddaKpi1">
+          <div class="kps-kpi-value">{{ overview.total_kassation }}</div>
+          <div class="kps-kpi-sub">av {{ overview.total_producerade }} producerade</div>
+        </ng-container>
+        <ng-template #laddaKpi1>
+          <div class="kps-kpi-value text-muted">—</div>
+          <div class="kps-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+    <!-- Kassation% idag -->
+    <div class="col-6 col-md-3">
+      <div class="kps-kpi-card">
+        <div class="kps-kpi-label">Kassation% idag</div>
+        <ng-container *ngIf="!loadingOverview && overview; else laddaKpi2">
+          <div class="kps-kpi-value"
+               [style.color]="kassationFarg(overview.kassation_pct)">
+            {{ overview.kassation_pct }}%
+          </div>
+          <div class="kps-kpi-sub">Igar: {{ overview.kassation_pct_igar }}%</div>
+        </ng-container>
+        <ng-template #laddaKpi2>
+          <div class="kps-kpi-value text-muted">—</div>
+          <div class="kps-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+    <!-- Värsta station -->
+    <div class="col-6 col-md-3">
+      <div class="kps-kpi-card">
+        <div class="kps-kpi-label">Varsta station</div>
+        <ng-container *ngIf="!loadingOverview && overview; else laddaKpi3">
+          <div class="kps-kpi-value" style="font-size:1.2rem">
+            {{ overview.varsta_station || '—' }}
+          </div>
+          <div class="kps-kpi-sub">{{ overview.varsta_station_antal }} kasserade</div>
+        </ng-container>
+        <ng-template #laddaKpi3>
+          <div class="kps-kpi-value text-muted">—</div>
+          <div class="kps-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+    <!-- Trend vs igar -->
+    <div class="col-6 col-md-3">
+      <div class="kps-kpi-card">
+        <div class="kps-kpi-label">Trend vs igar</div>
+        <ng-container *ngIf="!loadingOverview && overview; else laddaKpi4">
+          <div class="kps-kpi-value"
+               [style.color]="trendFarg(overview.trend)">
+            {{ trendIkon(overview.trend) }}
+            {{ overview.trend === 'up' ? 'Forsamring' : overview.trend === 'down' ? 'Forbattring' : 'Stabilt' }}
+          </div>
+          <div class="kps-kpi-sub"
+               [style.color]="trendFarg(overview.trend)">
+            {{ overview.trend_diff > 0 ? '+' : '' }}{{ overview.trend_diff }}% pp
+          </div>
+        </ng-container>
+        <ng-template #laddaKpi4>
+          <div class="kps-kpi-value text-muted">—</div>
+          <div class="kps-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rad 2: Stapeldiagram + Top-5-orsaker -->
+  <div class="row g-3 mb-4">
+    <!-- Kassation per station -->
+    <div class="col-12 col-lg-7">
+      <div class="kps-card">
+        <div class="kps-card-header">
+          <i class="fas fa-chart-bar me-2" style="color:#fc8181"></i>Kassation per station
+          <span class="kps-badge ms-2" *ngIf="perStation">
+            snitt {{ perStation.snitt_per_station | number:'1.0-0' }} st/station
+          </span>
+        </div>
+        <div class="kps-card-body">
+          <div *ngIf="loadingPerStation" class="kps-loading">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+          </div>
+          <div *ngIf="errorPerStation && !loadingPerStation" class="kps-error">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stationsdata
+          </div>
+          <div *ngIf="!loadingPerStation && !errorPerStation" class="kps-chart-wrapper">
+            <canvas id="kpsStapelChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top-5 orsaker -->
+    <div class="col-12 col-lg-5">
+      <div class="kps-card">
+        <div class="kps-card-header">
+          <i class="fas fa-list-ol me-2" style="color:#f6ad55"></i>Top-5 kassationsorsaker
+          <span class="text-muted small ms-2" *ngIf="topOrsaker">
+            — {{ topOrsaker.station_namn }}
+          </span>
+        </div>
+        <div class="kps-card-body">
+          <div *ngIf="loadingTopOrsaker" class="kps-loading">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+          </div>
+          <div *ngIf="errorTopOrsaker && !loadingTopOrsaker" class="kps-error">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda orsakdata
+          </div>
+          <div *ngIf="!loadingTopOrsaker && !errorTopOrsaker && topOrsaker" class="kps-chart-wrapper">
+            <canvas id="kpsOrsakChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rad 3: Trendgraf -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="kps-card">
+        <div class="kps-card-header">
+          <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Kassation% per dag per station
+          <span class="text-muted small ms-2" *ngIf="trendData">
+            ({{ formatDatum(trendData.from_date) }} – {{ formatDatum(trendData.to_date) }})
+          </span>
+        </div>
+        <div class="kps-card-body">
+          <div *ngIf="loadingTrend" class="kps-loading">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar trenddata...
+          </div>
+          <div *ngIf="errorTrend && !loadingTrend" class="kps-error">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata
+          </div>
+          <div *ngIf="!loadingTrend && !errorTrend" class="kps-chart-wrapper kps-chart-tall">
+            <canvas id="kpsTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rad 4: Detaljerad tabell -->
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="kps-card">
+        <div class="kps-card-header">
+          <i class="fas fa-table me-2" style="color:#4fd1c5"></i>Detaljerad stationsöversikt
+        </div>
+        <div class="kps-card-body p-0">
+          <div *ngIf="loadingDetaljer" class="kps-loading p-3">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+          </div>
+          <div *ngIf="errorDetaljer && !loadingDetaljer" class="kps-error p-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda detaljer
+          </div>
+          <div *ngIf="!loadingDetaljer && !errorDetaljer && detaljer" class="table-responsive">
+            <table class="table table-dark table-hover kps-table mb-0">
+              <thead>
+                <tr>
+                  <th>Station</th>
+                  <th class="text-end">Totalt</th>
+                  <th class="text-end">Kasserade</th>
+                  <th class="text-end">Kassation%</th>
+                  <th>Top-orsak</th>
+                  <th class="text-center">Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let rad of detaljer?.detaljer">
+                  <td>
+                    <span class="kps-station-dot"
+                          [style.background]="stationFarg(rad.station_id)"></span>
+                    {{ rad.station_namn }}
+                  </td>
+                  <td class="text-end">{{ rad.totalt | number }}</td>
+                  <td class="text-end">{{ rad.kasserade | number }}</td>
+                  <td class="text-end"
+                      [style.color]="kassationFarg(rad.kassation_pct)">
+                    {{ rad.kassation_pct }}%
+                  </td>
+                  <td class="text-muted small">{{ rad.top_orsak || '—' }}</td>
+                  <td class="text-center">
+                    <span [style.color]="trendFarg(rad.trend)"
+                          title="{{ rad.trend_diff > 0 ? '+' : '' }}{{ rad.trend_diff }}%">
+                      {{ trendIkon(rad.trend) }}
+                      {{ rad.trend === 'up' ? 'Forsamring' : rad.trend === 'down' ? 'Forbattring' : 'Stabilt' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot *ngIf="detaljer">
+                <tr class="kps-table-footer">
+                  <td><strong>Totalt</strong></td>
+                  <td class="text-end"><strong>{{ detaljer.total_producerade | number }}</strong></td>
+                  <td class="text-end"><strong>{{ detaljer.total_kassation | number }}</strong></td>
+                  <td class="text-end"
+                      [style.color]="kassationFarg(detaljer.total_producerade > 0 ? (detaljer.total_kassation / detaljer.total_producerade * 100) : 0)">
+                    <strong>
+                      {{ detaljer.total_producerade > 0
+                          ? (detaljer.total_kassation / detaljer.total_producerade * 100 | number:'1.1-1')
+                          : '0.0' }}%
+                    </strong>
+                  </td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <!-- Tom-state -->
+          <div *ngIf="!loadingDetaljer && !errorDetaljer && (!detaljer || detaljer.total_kassation === 0)"
+               class="text-center py-4 text-muted">
+            <i class="fas fa-check-circle fa-2x mb-2 d-block text-success"></i>
+            Ingen kassation registrerad for vald period
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
