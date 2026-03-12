@@ -1,3 +1,24 @@
+## 2026-03-12 Produktionsflode (Sankey-diagram) — IBC-flode genom rebotling-linjen
+
+Ny sida `/rebotling/produktionsflode` — visar IBC-flodet visuellt genom rebotling-linjens stationer (Inspektion, Tvatt, Fyllning, Etikettering, Slutkontroll). Flaskhalsar synliga direkt.
+
+- **Backend**: `classes/ProduktionsflodeController.php`
+  - `run=overview` — KPI:er: totalt inkommande, godkanda, kasserade, genomstromning%, flaskhals-station
+  - `run=flode-data` — Sankey-data: noder + floden (links) med volymer for SVG-diagram
+  - `run=station-detaljer` — tabell per station: inkommande, godkanda, kasserade, genomstromning%, tid/IBC, flaskhalsstatus
+  - Anvander befintlig `rebotling_ibc`-tabell med MAX-per-skift-logik — inga nya DB-tabeller
+  - Registrerad i `api.php` med nyckel `produktionsflode`
+- **Service**: `produktionsflode.service.ts` — interfaces FlodeOverview, FlodeData, FlodeNode, FlodeLink, StationDetalj m.fl.
+- **Komponent**: `pages/rebotling/produktionsflode/`
+  - 5 KPI-kort: Totalt inkommande, Godkanda, Kasserade, Genomstromning%, Flaskhals-station
+  - SVG-baserat flodesdiagram (Sankey-stil): noder for stationer, kurvor for floden, kassationsgrenar i rott
+  - Stationsdetaljer-tabell med flaskhalssmarkering (gul rad + badge)
+  - Periodselektor: Idag/7d/30d/90d
+  - Legende + sammanfattningsrad under diagram
+- **Route**: `/rebotling/produktionsflode`, authGuard, lazy-loaded.
+- **Meny**: Under Rebotling med ikon `fas fa-project-diagram`.
+- Dark theme (#1a202c bg, #2d3748 cards), destroy$/takeUntil, clearInterval, auto-refresh var 120:e sekund.
+
 ## 2026-03-12 Automatiska avvikelselarm — larmsystem for produktionsavvikelser
 
 Ny sida `/rebotling/avvikelselarm` — automatiskt larmsystem som varnar VD vid avvikelser i produktionen. VD:n ska forsta laget pa 10 sekunder.

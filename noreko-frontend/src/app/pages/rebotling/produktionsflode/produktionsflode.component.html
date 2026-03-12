@@ -1,0 +1,300 @@
+<div class="container-fluid py-3" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
+      <i class="fas fa-project-diagram me-2" style="color:#9f7aea;"></i>
+      Produktionsflode
+    </h1>
+  </div>
+
+  <!-- Periodselektor -->
+  <div class="period-selector mb-4">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <span class="period-label">Period:</span>
+      <button class="btn btn-sm"
+              [class]="selectedDays === 1  ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(1)">Idag</button>
+      <button class="btn btn-sm"
+              [class]="selectedDays === 7  ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(7)">7d</button>
+      <button class="btn btn-sm"
+              [class]="selectedDays === 30 ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(30)">30d</button>
+      <button class="btn btn-sm"
+              [class]="selectedDays === 90 ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(90)">90d</button>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <!-- Totalt inkommande -->
+    <div class="col-6 col-lg-2">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#4299e122; color:#4299e1;">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Totalt inkommande</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ overview?.totalt_inkommande ?? 0 }} <small class="kpi-unit">IBC</small>
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Godkanda -->
+    <div class="col-6 col-lg-2">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#48bb7822; color:#48bb78;">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Godkanda</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ overview?.godkanda ?? 0 }} <small class="kpi-unit">IBC</small>
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kasserade -->
+    <div class="col-6 col-lg-2">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fc818122; color:#fc8181;">
+          <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Kasserade</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ overview?.kasserade ?? 0 }} <small class="kpi-unit">IBC</small>
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Genomstromning -->
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#9f7aea22; color:#9f7aea;">
+          <i class="fas fa-percentage"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Genomstromning</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ formatPct(overview?.genomstromning_pct) }}
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flaskhals -->
+    <div class="col-12 col-lg-3">
+      <div class="kpi-card kpi-bottleneck">
+        <div class="kpi-icon" style="background:#ed893622; color:#ed8936;">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Flaskhals-station</div>
+          <div class="kpi-value" *ngIf="!loadingOverview" style="font-size:1.1rem;">
+            {{ overview?.flaskhals_station ?? '-' }}
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flodesdiagram (SVG Sankey) -->
+  <div class="chart-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-project-diagram me-2" style="color:#9f7aea;"></i>
+      IBC-flode genom rebotling-linjen
+      <span class="text-muted ms-2 small">{{ periodLabel(selectedDays) }}</span>
+    </div>
+
+    <div *ngIf="loadingFlode" class="text-center py-5">
+      <div class="spinner-border text-info"></div>
+      <div class="text-muted mt-2">Laddar flodesdiagram...</div>
+    </div>
+
+    <div class="sankey-container" *ngIf="!loadingFlode && flodeData">
+      <!-- Legende -->
+      <div class="d-flex gap-3 mb-3 flex-wrap sankey-legend">
+        <span><span class="legend-dot" style="background:#4299e1;"></span> Flode</span>
+        <span><span class="legend-dot" style="background:#fc8181;"></span> Kassation</span>
+        <span><span class="legend-dot" style="background:#48bb78;"></span> Godkand</span>
+        <span><span class="legend-dot" style="background:#ed8936;"></span> Flaskhals</span>
+      </div>
+
+      <div class="sankey-scroll">
+        <svg [attr.viewBox]="'0 0 ' + svgWidth + ' ' + svgHeight"
+             [style.width.px]="svgWidth"
+             [style.height.px]="svgHeight"
+             class="sankey-svg">
+
+          <!-- Links -->
+          <g *ngFor="let link of sankeyLinks">
+            <path [attr.d]="link.d"
+                  [attr.stroke]="link.color"
+                  [attr.stroke-width]="link.strokeWidth"
+                  [attr.opacity]="link.opacity"
+                  fill="none"
+                  stroke-linecap="round">
+              <title>{{ link.from }} -> {{ link.to }}: {{ link.value }} IBC</title>
+            </path>
+          </g>
+
+          <!-- Nodes -->
+          <g *ngFor="let node of sankeyNodes">
+            <rect [attr.x]="node.x"
+                  [attr.y]="node.y"
+                  [attr.width]="node.w"
+                  [attr.height]="node.h"
+                  [attr.fill]="node.color"
+                  rx="4" ry="4"
+                  class="sankey-node">
+              <title>{{ node.label }}: {{ node.value }} IBC</title>
+            </rect>
+            <!-- Label -->
+            <text [attr.x]="node.x + node.w / 2"
+                  [attr.y]="node.y - 8"
+                  text-anchor="middle"
+                  fill="#e2e8f0"
+                  font-size="11"
+                  font-weight="600">
+              {{ node.label }}
+            </text>
+            <!-- Value -->
+            <text [attr.x]="node.x + node.w / 2"
+                  [attr.y]="node.y + node.h + 16"
+                  text-anchor="middle"
+                  fill="#a0aec0"
+                  font-size="10">
+              {{ node.value }} IBC
+            </text>
+          </g>
+
+        </svg>
+      </div>
+
+      <!-- Sammanfattning under diagram -->
+      <div class="flow-summary mt-3" *ngIf="flodeData.summary">
+        <div class="row g-2 text-center">
+          <div class="col-3">
+            <div class="flow-stat">
+              <span class="flow-stat-val" style="color:#4299e1;">{{ flodeData.summary.total }}</span>
+              <span class="flow-stat-label">Totalt in</span>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="flow-stat">
+              <span class="flow-stat-val" style="color:#48bb78;">{{ flodeData.summary.godkanda }}</span>
+              <span class="flow-stat-label">Godkanda ut</span>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="flow-stat">
+              <span class="flow-stat-val" style="color:#fc8181;">{{ flodeData.summary.kasserade }}</span>
+              <span class="flow-stat-label">Kasserade</span>
+            </div>
+          </div>
+          <div class="col-3">
+            <div class="flow-stat">
+              <span class="flow-stat-val" style="color:#9f7aea;">{{ formatPct(flodeData.summary.genomstromning) }}</span>
+              <span class="flow-stat-label">Genomstromning</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loadingFlode && !flodeData" class="text-center text-muted py-4">
+      <i class="fas fa-info-circle me-1"></i>Ingen data for vald period
+    </div>
+  </div>
+
+  <!-- Stationsdetaljer-tabell -->
+  <div class="table-card">
+    <div class="section-title mb-3">
+      <i class="fas fa-list-alt me-2 text-info"></i>
+      Stationsdetaljer
+      <span class="text-muted ms-2 small" *ngIf="stationerData">
+        ({{ stationerData.rows.length }} stationer)
+      </span>
+    </div>
+
+    <div *ngIf="loadingStationer" class="text-center py-3">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+
+    <div *ngIf="!loadingStationer && stationerData && stationerData.rows.length > 0">
+      <!-- Summor -->
+      <div class="summor-row mb-3">
+        <span class="summor-item">
+          <i class="fas fa-industry me-1 text-info"></i>
+          Totalt: <strong>{{ stationerData.totalt }}</strong> IBC
+        </span>
+        <span class="summor-item">
+          Godkanda: <strong class="text-success">{{ stationerData.totalt_godkanda }}</strong>
+        </span>
+        <span class="summor-item">
+          Kasserade: <strong class="text-danger">{{ stationerData.totalt_kasserade }}</strong>
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Station</th>
+              <th class="text-end">Inkommande</th>
+              <th class="text-end">Godkanda</th>
+              <th class="text-end">Kasserade</th>
+              <th class="text-end">Genomstromning</th>
+              <th class="text-end">Tid/IBC (sek)</th>
+              <th class="text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of stationerData.rows" [class.bottleneck-row]="row.flaskhals">
+              <td>{{ row.order }}</td>
+              <td>
+                <span class="fw-bold">{{ row.station }}</span>
+                <span *ngIf="row.flaskhals" class="badge bg-warning text-dark ms-2" style="font-size:0.65rem;">
+                  <i class="fas fa-exclamation-triangle me-1"></i>FLASKHALS
+                </span>
+              </td>
+              <td class="text-end">{{ row.inkommande }}</td>
+              <td class="text-end text-success">{{ row.godkanda }}</td>
+              <td class="text-end text-danger">{{ row.kasserade }}</td>
+              <td class="text-end">
+                <span [class]="stationStatusClass(row.genomstromning_pct)">
+                  {{ formatPct(row.genomstromning_pct) }}
+                </span>
+              </td>
+              <td class="text-end">{{ row.tid_per_ibc_sek }}</td>
+              <td class="text-center">
+                <span *ngIf="row.genomstromning_pct >= 98" class="badge bg-success">OK</span>
+                <span *ngIf="row.genomstromning_pct >= 95 && row.genomstromning_pct < 98" class="badge bg-info">Bra</span>
+                <span *ngIf="row.genomstromning_pct >= 90 && row.genomstromning_pct < 95" class="badge bg-warning text-dark">Varning</span>
+                <span *ngIf="row.genomstromning_pct < 90" class="badge bg-danger">Kritisk</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div *ngIf="!loadingStationer && (!stationerData || stationerData.rows.length === 0)"
+         class="text-center text-muted py-3">
+      <i class="fas fa-info-circle me-1"></i>Ingen data for vald period
+    </div>
+  </div>
+</div>

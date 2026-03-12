@@ -194,6 +194,8 @@ $classNameMap = [
     'kvalitetscertifikat'          => 'KvalitetscertifikatController',
     'historisk-produktion'         => 'HistoriskProduktionController',
     'avvikelselarm'                => 'AvvikelselarmController',
+    'rebotling-sammanfattning'     => 'RebotlingSammanfattningController',
+    'produktionsflode'             => 'ProduktionsflodeController',
 ];
 
 $actionKey = strtolower($action);
