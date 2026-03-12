@@ -1,3 +1,36 @@
+## 2026-03-12 Produktionskostnad per IBC — kostnadskalkyl med konfigurerbara faktorer
+
+Ny sida `/rebotling/produktionskostnad` -- VD kan se uppskattad produktionskostnad per IBC baserat pa stopptid, energi, bemanning och kassation.
+
+- **Migration**: `2026-03-12_produktionskostnad.sql` -- tabell `produktionskostnad_config` (id, faktor ENUM energi/bemanning/material/kassation/overhead, varde DECIMAL, enhet VARCHAR, updated_at, updated_by) med seed-data (energi 150kr/h, bemanning 350kr/h, material 50kr/IBC, kassation 200kr/IBC, overhead 100kr/h)
+- **Backend**: `ProduktionskostnadController.php` i `classes/`
+  - `run=overview` -- 4 KPI:er: kostnad/IBC idag, totalkostnad, kostnadstrend% vs forra veckan, kassationskostnad och andel
+  - `run=breakdown` (?period=dag/vecka/manad) -- kostnadsuppdelning per kategori (energi/bemanning/material/kassation/overhead)
+  - `run=trend` (?period=30/90) -- kostnad/IBC per dag med snitt
+  - `run=daily-table` (?from&to) -- daglig tabell med IBC, kostnader, stopptid
+  - `run=shift-comparison` (?period=dag/vecka/manad) -- kostnad/IBC per skift
+  - `run=config` (GET) -- hamta aktuell konfiguration
+  - `run=update-config` (POST) -- uppdatera kostnadsfaktorer (krav: inloggad)
+  - Kostnadsmodell: Energi = drifttimmar x kr/h, Bemanning = 2op x 8h x kr/h, Material = ibc_ok x kr, Kassation = ibc_ej_ok x kr, Overhead = arbetstimmar x kr/h
+  - Stopptid hamtas fran `rebotling_log`; produktionsdata fran `rebotling_ibc` med MAX per skift
+  - `ensureTables()` kor migration automatiskt vid forsta anrop
+  - Registrerad i `api.php` med nyckel `produktionskostnad`
+- **Service**: `produktionskostnad.service.ts` -- interfaces KostnadOverview, KostnadBreakdown, KostnadTrend, DailyTable, ShiftComparison, KonfigFaktor
+- **Komponent**: `pages/rebotling/produktionskostnad/`
+  - 4 KPI-kort: Kostnad/IBC idag, Totalkostnad, Kostnadstrend (pil upp/ner + %), Kassationskostnad (andel %)
+  - Kostnadskonfiguration: accordion med inputfalt per faktor, spara-knapp med feedback
+  - Kostnadsuppdelning: doughnut-diagram (Chart.js) + progress-bars med procent per kategori
+  - Kostnad/IBC over tid: linjediagram (30/90 dagar) med snittlinje
+  - Daglig kostnadstabell: datum, IBC ok/kasserad, totalkostnad, kostnad/IBC, kassationskostnad, stopptid
+  - Skiftjamforelse: stapeldiagram (kostnad/IBC per skift), fargpalette per skift
+  - Period-filter: dag/vecka/manad for breakdown och skiftjamforelse
+  - Datum-filter for tabell (fran/till)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval
+- **Route**: `/rebotling/produktionskostnad` (authGuard) i `app.routes.ts`
+- **Meny**: "Produktionskostnad/IBC" (coins-ikon, gul) lagd till i Rebotling-dropdown i `menu.html`
+
+---
+
 ## 2026-03-12 Produktions-SLA/Maluppfyllnad — dagliga/veckovisa produktionsmal med uppfyllnadsgrad
 
 Ny sida `/rebotling/produktions-sla` -- VD kan satta dagliga/veckovisa produktionsmal och se uppfyllnadsgrad i procent med progress bars, gauge-diagram och historik.
