@@ -165,6 +165,8 @@ $classNameMap = [
     'veckorapport'            => 'VeckorapportController',
     'alarm-historik'          => 'AlarmHistorikController',
     'operatorsportal'         => 'OperatorsportalController',
+    'heatmap'                 => 'HeatmapController',
+    'pareto'                  => 'ParetoController',
 ];
 
 $actionKey = strtolower($action);

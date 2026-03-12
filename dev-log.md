@@ -1,3 +1,24 @@
+## 2026-03-12 Produktions-heatmap — matrisvy IBC per timme och dag
+
+Ny sida `/rebotling/produktions-heatmap` som visar produktion som fargkodad matris (timmar x dagar).
+
+- **Backend**: Ny `HeatmapController.php` (classes/ + controllers/) med tva endpoints:
+  - `run=heatmap-data&days=N` — aggregerar IBC per timme per dag via MAX(ibc_ok) per skiftraknare+timme; returnerar `[{date, hour, count}]` + skalvarden `{min, max, avg}`
+  - `run=summary&days=N` — totalt IBC, basta timme med hogst snitt, samsta timme med lagst snitt, basta veckodag med snitt IBC/dag
+  - Auth: session kravs (401 om ej inloggad)
+- **api.php**: Route `heatmap` → `HeatmapController` registrerad
+- **Frontend Service**: `heatmap.service.ts` med `getHeatmapData(days)` + `getSummary(days)`, TypeScript-interfaces, `timeout(15000)` + `catchError`
+- **Frontend Komponent**: `pages/heatmap/` (standalone, OnInit/OnDestroy, destroy$/takeUntil)
+  - Matrisvy: rader = timmar 06:00–22:00, kolumner = dagar senaste N dagar
+  - Fargkodning: RGB-interpolation morkt gront (lag) → intensivt gront (hog); grat = ingen data
+  - 4 KPI-kort: Totalt IBC, Basta timme (med snitt), Samsta timme (med snitt), Basta veckodag
+  - Periodvaljare: 7 / 14 / 30 / 90 dagar
+  - Legend med fargskala (5 steg)
+  - Hover-tooltip med datum, timme och exakt IBC-antal
+  - Sticky timme-rubrik och datum-header vid horisontell/vertikal scroll
+- **Route**: `/rebotling/produktions-heatmap` med `authGuard`
+- **Meny**: "Produktions-heatmap" lagd under Rebotling-dropdown (loggedIn)
+
 ## 2026-03-12 Operatorsportal — personlig dashboard per inloggad operatör
 
 Ny sida `/rebotling/operatorsportal` där varje inloggad operatör ser sin egen statistik.

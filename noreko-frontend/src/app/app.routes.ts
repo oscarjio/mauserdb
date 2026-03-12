@@ -67,6 +67,8 @@ export const routes: Routes = [
       { path: 'rebotling/veckorapport', canActivate: [authGuard], loadComponent: () => import('./pages/veckorapport/veckorapport').then(m => m.VeckorapportPage) },
       { path: 'rebotling/alarm-historik', canActivate: [authGuard], loadComponent: () => import('./pages/alarm-historik/alarm-historik').then(m => m.AlarmHistorikPage) },
       { path: 'rebotling/operatorsportal', canActivate: [authGuard], loadComponent: () => import('./pages/operatorsportal/operatorsportal').then(m => m.OperatorsportalPage) },
+      { path: 'rebotling/produktions-heatmap', canActivate: [authGuard], loadComponent: () => import('./pages/heatmap/heatmap').then(m => m.HeatmapPage) },
+      { path: 'rebotling/pareto', canActivate: [authGuard], loadComponent: () => import('./pages/pareto/pareto').then(m => m.ParetoPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

@@ -1,0 +1,171 @@
+<div class="heatmap-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-th me-2" style="color:#68d391"></i>Produktions-heatmap
+    </h1>
+    <p class="page-subtitle">
+      Matrisvy over produktion per timme och dag — identifiera nar produktionen ar hog eller lag.
+    </p>
+  </div>
+
+  <!-- Periodväljare -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let d of dayOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="days === d"
+          [class.btn-outline-secondary]="days !== d"
+          (click)="onDaysChange(d)">
+          {{ d }} dagar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+
+    <!-- Laddnings-spinner for KPI -->
+    <ng-container *ngIf="loadingSummary">
+      <div class="kpi-card kpi-loading">
+        <div class="spinner-border spinner-border-sm text-success" role="status"></div>
+        <span class="ms-2 text-muted small">Laddar...</span>
+      </div>
+    </ng-container>
+
+    <!-- KPI-data -->
+    <ng-container *ngIf="!loadingSummary && summary">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-boxes" style="color:#68d391"></i></div>
+        <div class="kpi-value" style="color:#68d391">{{ formatNumber(summary.total_ibc) }}</div>
+        <div class="kpi-label">Totalt IBC ({{ dayLabel }})</div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-arrow-up" style="color:#f6ad55"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">
+          {{ summary.best_hour !== null ? formatHour(summary.best_hour) : '-' }}
+        </div>
+        <div class="kpi-label">
+          Basta timme (snitt {{ summary.best_hour_avg }} IBC)
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-arrow-down" style="color:#fc8181"></i></div>
+        <div class="kpi-value" style="color:#fc8181">
+          {{ summary.worst_hour !== null ? formatHour(summary.worst_hour) : '-' }}
+        </div>
+        <div class="kpi-label">
+          Samsta timme (snitt {{ summary.worst_hour_avg }} IBC)
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-calendar-day" style="color:#76e4f7"></i></div>
+        <div class="kpi-value" style="color:#76e4f7">
+          {{ summary.best_weekday_name ?? '-' }}
+        </div>
+        <div class="kpi-label">
+          Basta veckodag (snitt {{ summary.best_weekday_avg }} IBC/dag)
+        </div>
+      </div>
+    </ng-container>
+
+    <!-- Fel vid laddning av KPI -->
+    <div class="kpi-card kpi-error" *ngIf="!loadingSummary && errorSummary">
+      <div class="kpi-icon text-muted"><i class="fas fa-exclamation-circle"></i></div>
+      <div class="kpi-label text-muted">Kunde inte ladda KPI-data</div>
+    </div>
+  </div>
+
+  <!-- Heatmap-matris -->
+  <div class="card-section">
+    <div class="section-header">
+      <h2 class="section-title">
+        <i class="fas fa-th me-2" style="color:#68d391"></i>Heatmap — IBC per timme och dag
+      </h2>
+      <!-- Legend -->
+      <div class="legend" *ngIf="!loadingHeatmap && hasData">
+        <span class="legend-label">Lag</span>
+        <div class="legend-steps">
+          <div
+            *ngFor="let step of getLegendSteps()"
+            class="legend-step"
+            [style.background]="step.color"
+            [title]="step.label">
+          </div>
+        </div>
+        <span class="legend-label">Hog</span>
+      </div>
+    </div>
+
+    <!-- Laddning -->
+    <div *ngIf="loadingHeatmap" class="loading-state">
+      <div class="spinner-border text-success" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-3 text-muted">Genererar heatmap...</p>
+    </div>
+
+    <!-- Fel -->
+    <div *ngIf="!loadingHeatmap && errorHeatmap" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      Kunde inte ladda heatmap-data. Kontrollera att du ar inloggad.
+    </div>
+
+    <!-- Ingen data -->
+    <div *ngIf="!loadingHeatmap && !errorHeatmap && !hasData" class="no-data-msg">
+      <i class="fas fa-info-circle me-2 text-muted"></i>
+      Ingen produktionsdata hittades for de senaste {{ days }} dagarna.
+    </div>
+
+    <!-- Heatmap-tabell -->
+    <div *ngIf="!loadingHeatmap && hasData" class="heatmap-scroll-wrapper">
+      <table class="heatmap-table">
+        <thead>
+          <tr>
+            <th class="hour-header-cell">Timme</th>
+            <th
+              *ngFor="let date of dates; let i = index"
+              class="date-header-cell"
+              [title]="date">
+              <span *ngIf="shouldShowDateLabel(i)">{{ formatDate(date) }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let hour of displayHours">
+            <td class="hour-label-cell">{{ formatHour(hour) }}</td>
+            <td
+              *ngFor="let date of dates"
+              class="heat-cell"
+              [style.background-color]="getCellColor(getCellCount(date, hour))"
+              [style.color]="getCellTextColor(getCellCount(date, hour))"
+              (mouseenter)="showTooltip($event, date, hour)"
+              (mouseleave)="hideTooltip()">
+              <span class="cell-value" *ngIf="getCellCount(date, hour) !== null">
+                {{ getCellCount(date, hour) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div
+    class="heatmap-tooltip"
+    *ngIf="tooltip.visible"
+    [style.left.px]="tooltip.x"
+    [style.top.px]="tooltip.y">
+    <pre class="tooltip-text">{{ tooltip.text }}</pre>
+  </div>
+
+</div>
