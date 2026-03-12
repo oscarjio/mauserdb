@@ -1,3 +1,23 @@
+## 2026-03-12 Pareto-analys — Stopporsaker 80/20
+
+Ny sida `/rebotling/pareto` som visar klassisk Pareto-analys for stopporsaker.
+
+- **Backend**: Ny `ParetoController.php` (classes/ + controllers/) med tva endpoints:
+  - `run=pareto-data&days=N` — aggregerar stopporsaker med total stopptid, sorterar fallande, beraknar kumulativ % och markerar vilka som utgör 80%-gransen
+  - `run=summary&days=N` — KPI-sammanfattning: total stopptid (h:min), antal unika orsaker, #1 orsak (%), antal orsaker inom 80%
+  - Datakallor: `stoppage_log` + `stoppage_reasons` och `stopporsak_registreringar` + `stopporsak_kategorier`
+  - Auth: session kravs (401 om ej inloggad)
+- **Frontend**: `ParetoService` + `ParetoPage` (standalone, OnInit/OnDestroy, destroy$/takeUntil, chart?.destroy())
+  - Chart.js combo-chart: staplar (stopptid per orsak, fallande) + rod kumulativ linje med punkter
+  - Staplar: bla for orsaker inom 80%, orange for ovriga
+  - Streckad gul 80%-grans-linje
+  - Dubbel Y-axel: vanster = minuter, hoger = kumulativ %
+  - 4 KPI-kort: Total stopptid, Antal orsaker, #1 orsak (%), Orsaker inom 80%
+  - Periodvaljare: 7d / 14d / 30d / 90d
+  - Tabell under grafen: orsak, stopptid, antal stopp, andel %, kumulativ %, badge "Top 80%"
+- **Route**: `/rebotling/pareto` med `authGuard`
+- **Meny**: "Pareto-analys" tillagd under Rebotling-dropdown (loggedIn), efter Alarm-historik
+
 ## 2026-03-12 Produktions-heatmap — matrisvy IBC per timme och dag
 
 Ny sida `/rebotling/produktions-heatmap` som visar produktion som fargkodad matris (timmar x dagar).

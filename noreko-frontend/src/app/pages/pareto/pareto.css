@@ -1,0 +1,324 @@
+/* ===== Pareto-analys — Stopporsaker ===== */
+
+.pareto-container {
+  padding: 1.5rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* ---- Sidrubrik ---- */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.3rem;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ---- Filterrad ---- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* ---- KPI-rad ---- */
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  flex: 1 1 160px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.kpi-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.2rem;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+}
+
+.kpi-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: #718096;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.kpi-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  width: 100%;
+}
+
+/* ---- Sektionskort ---- */
+.card-section {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.count-badge {
+  background: #4a5568;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ---- Legend ---- */
+.legend-hint {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-line {
+  display: inline-block;
+  width: 20px;
+  height: 3px;
+  background: #fc8181;
+  border-radius: 2px;
+}
+
+.legend-dash {
+  display: inline-block;
+  width: 20px;
+  height: 0;
+  border-top: 2px dashed rgba(255, 255, 100, 0.7);
+}
+
+/* ---- Diagram ---- */
+.chart-wrapper {
+  position: relative;
+  height: 380px;
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #a0aec0;
+}
+
+.no-data-msg {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+  font-size: 0.95rem;
+}
+
+/* ---- Pareto-tabell ---- */
+.pareto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.pareto-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #4a5568;
+}
+
+.pareto-table tbody tr {
+  border-bottom: 1px solid #374151;
+  transition: background 0.15s;
+}
+
+.pareto-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.pareto-table tbody td {
+  padding: 0.55rem 0.75rem;
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.row-in-80 {
+  border-left: 3px solid #4299e1;
+}
+
+.row-out-80 {
+  border-left: 3px solid #ed8936;
+}
+
+.td-rank {
+  color: #718096;
+  font-weight: 700;
+  min-width: 30px;
+}
+
+.td-reason {
+  font-weight: 500;
+  max-width: 200px;
+}
+
+.td-minutes {
+  white-space: nowrap;
+  color: #f6ad55;
+}
+
+.td-count {
+  color: #a0aec0;
+}
+
+/* ---- Procent-stapel i tabell ---- */
+.pct-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 90px;
+}
+
+.pct-bar-fill {
+  height: 8px;
+  border-radius: 4px;
+  min-width: 4px;
+  transition: width 0.3s ease;
+}
+
+.pct-label {
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+.td-cumulative {
+  color: #fc8181;
+  font-weight: 500;
+}
+
+/* ---- Top 80% badge ---- */
+.badge-80pct {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(66, 153, 225, 0.2);
+  color: #63b3ed;
+  border: 1px solid rgba(66, 153, 225, 0.4);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- Responsivitet ---- */
+@media (max-width: 768px) {
+  .pareto-container {
+    padding: 1rem;
+  }
+
+  .kpi-card {
+    flex: 1 1 130px;
+  }
+
+  .chart-wrapper {
+    height: 300px;
+  }
+
+  .pareto-table {
+    font-size: 0.8rem;
+  }
+
+  .pareto-table thead th,
+  .pareto-table tbody td {
+    padding: 0.45rem 0.5rem;
+  }
+
+  .td-reason {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

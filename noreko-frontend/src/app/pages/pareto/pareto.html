@@ -1,0 +1,155 @@
+<div class="pareto-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-analys — Stopporsaker
+    </h1>
+    <p class="page-subtitle">80/20-analys: vilka stopporsaker star for 80% av total stopptid?</p>
+  </div>
+
+  <!-- Periodvaljare -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let opt of dayOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="days === opt.value"
+          [class.btn-outline-secondary]="days !== opt.value"
+          (click)="onDaysChange(opt.value)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+    <div class="kpi-card" *ngIf="loadingSummary">
+      <div class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!loadingSummary && summary">
+      <!-- Total stopptid -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-clock" style="color:#f6ad55"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">{{ summary.total_formatted || '0 min' }}</div>
+        <div class="kpi-label">Total stopptid ({{ days }} dagar)</div>
+      </div>
+      <!-- Antal orsaker -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-list-ul" style="color:#63b3ed"></i></div>
+        <div class="kpi-value" style="color:#63b3ed">{{ summary.antal_orsaker }}</div>
+        <div class="kpi-label">Unika stopporsaker</div>
+      </div>
+      <!-- #1 orsak -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#fc8181"></i></div>
+        <div class="kpi-value" style="color:#fc8181">
+          {{ summary.top_orsak_pct > 0 ? summary.top_orsak_pct + '%' : '-' }}
+        </div>
+        <div class="kpi-label">
+          #1 orsak
+          <span class="kpi-sub" *ngIf="summary.top_orsak">{{ summary.top_orsak }}</span>
+        </div>
+      </div>
+      <!-- Antal inom 80% -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-bullseye" style="color:#68d391"></i></div>
+        <div class="kpi-value" style="color:#68d391">{{ summary.antal_inom_80pct }}</div>
+        <div class="kpi-label">Orsaker inom 80%-gransen</div>
+      </div>
+    </ng-container>
+
+    <div class="kpi-card" *ngIf="!loadingSummary && errorSummary">
+      <div class="kpi-icon text-muted"><i class="fas fa-exclamation"></i></div>
+      <div class="kpi-label text-muted">Kunde inte ladda KPI-data</div>
+    </div>
+  </div>
+
+  <!-- Pareto-diagram -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-diagram
+      <span class="legend-hint ms-3">
+        <span class="legend-dot" style="background:#4299e1"></span> Inom 80%
+        <span class="legend-dot ms-2" style="background:#ed8936"></span> Over 80%
+        <span class="legend-line ms-2"></span> Kumulativ %
+        <span class="legend-dash ms-2"></span> 80%-grans
+      </span>
+    </h2>
+
+    <div *ngIf="loadingPareto" class="chart-loading">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-2 text-muted">Genererar Pareto-diagram...</p>
+    </div>
+
+    <div *ngIf="!loadingPareto && errorPareto" class="alert alert-danger">
+      Kunde inte ladda Pareto-data. Kontrollera att du ar inloggad.
+    </div>
+
+    <div *ngIf="!loadingPareto && !errorPareto && !harData" class="no-data-msg">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga stopp registrerade under perioden.
+    </div>
+
+    <div *ngIf="!loadingPareto && harData" class="chart-wrapper">
+      <canvas id="paretoChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Pareto-tabell -->
+  <div class="card-section" *ngIf="!loadingPareto && harData">
+    <h2 class="section-title">
+      <i class="fas fa-table me-2 text-info"></i>Detaljerad tabell
+      <span class="count-badge ms-2">{{ paretoItems.length }} orsaker</span>
+    </h2>
+
+    <div class="table-responsive">
+      <table class="pareto-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Stopporsak</th>
+            <th>Stopptid</th>
+            <th>Antal stopp</th>
+            <th>Andel %</th>
+            <th>Kumulativ %</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paretoItems; let i = index"
+              [class.row-in-80]="item.in_80pct"
+              [class.row-out-80]="!item.in_80pct">
+            <td class="td-rank">{{ i + 1 }}</td>
+            <td class="td-reason">{{ item.reason }}</td>
+            <td class="td-minutes">{{ formatMinutes(item.minutes) }}</td>
+            <td class="td-count">{{ item.count }}</td>
+            <td class="td-pct">
+              <div class="pct-bar-wrap">
+                <div class="pct-bar-fill"
+                     [style.width.%]="item.percentage"
+                     [style.background]="item.in_80pct ? '#4299e1' : '#ed8936'">
+                </div>
+                <span class="pct-label">{{ item.percentage }}%</span>
+              </div>
+            </td>
+            <td class="td-cumulative">{{ item.cumulative_pct }}%</td>
+            <td class="td-badge">
+              <span class="badge-80pct" *ngIf="item.in_80pct">
+                <i class="fas fa-star me-1"></i>Top 80%
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
