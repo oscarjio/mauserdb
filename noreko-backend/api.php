@@ -178,6 +178,8 @@ $classNameMap = [
     'operator-onboarding'     => 'OperatorOnboardingController',
     'operator-jamforelse'          => 'OperatorJamforelseController',
     'produktionseffektivitet'      => 'ProduktionseffektivitetController',
+    'favoriter'                    => 'FavoriterController',
+    'kvalitetstrendbrott'          => 'KvalitetsTrendbrottController',
 ];
 
 $actionKey = strtolower($action);

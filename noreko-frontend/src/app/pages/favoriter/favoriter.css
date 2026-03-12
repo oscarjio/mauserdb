@@ -1,0 +1,153 @@
+.favoriter-page {
+  padding: 1.5rem 0;
+  min-height: 70vh;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Favoritkort */
+.favorit-card {
+  background: #2d3748;
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.favorit-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.favorit-card-top {
+  border-top: 3px solid #4299e1;
+  padding: 1.2rem 1rem 0.8rem;
+  text-align: center;
+}
+
+.favorit-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #e2e8f0;
+  gap: 0.5rem;
+}
+
+.favorit-link:hover {
+  color: #fff;
+}
+
+.favorit-icon {
+  font-size: 1.8rem;
+}
+
+.favorit-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.favorit-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.5rem;
+  background: rgba(0,0,0,0.15);
+}
+
+.favorit-card-actions .btn {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+}
+
+/* Tom-state */
+.empty-state i {
+  opacity: 0.4;
+}
+
+/* Lägg-till-overlay */
+.add-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-dialog {
+  background: #2d3748;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 550px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
+
+.add-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.add-dialog-header h5 {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 1.1rem;
+}
+
+.add-dialog-search {
+  padding: 0.8rem 1.2rem;
+}
+
+.add-dialog-search .form-control {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.add-dialog-search .form-control::placeholder {
+  color: #718096;
+}
+
+.add-dialog-list {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0 0.5rem 0.5rem;
+}
+
+.add-page-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  transition: background 0.15s;
+}
+
+.add-page-item:hover {
+  background: #4a5568;
+}
+
+.add-page-item small {
+  font-size: 0.7rem;
+}
+
+/* Alert anpassning */
+.alert {
+  border-radius: 6px;
+  font-size: 0.9rem;
+}

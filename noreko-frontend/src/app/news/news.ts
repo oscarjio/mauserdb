@@ -8,6 +8,7 @@ import { RebotlingService, RebotlingLiveStatsResponse, LineStatusResponse } from
 import { TvattlinjeService, TvattlinjeLiveStatsResponse } from '../services/tvattlinje.service';
 import { LineSkiftrapportService } from '../services/line-skiftrapport.service';
 import { AuthService, AuthUser } from '../services/auth.service';
+import { FavoriterService, Favorit } from '../services/favoriter.service';
 import { localToday } from '../utils/date-utils';
 import { ProduktionspulsWidget } from '../pages/rebotling/produktionspuls/produktionspuls-widget';
 
@@ -103,6 +104,9 @@ export class News implements OnInit, OnDestroy {
   // Expanderade nyheter (läs-mer)
   expandedIds = new Set<number | string>();
 
+  // Favoriter (snabblänkar på startsidan)
+  userFavoriter: Favorit[] = [];
+
   private apiBase = '/noreko-backend/api.php';
 
   constructor(
@@ -110,9 +114,17 @@ export class News implements OnInit, OnDestroy {
     private tvattlinjeService: TvattlinjeService,
     private lineSkiftrapportService: LineSkiftrapportService,
     private auth: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private favoriterService: FavoriterService
   ) {
-    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => this.loggedIn = val);
+    this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe((val: boolean) => {
+      this.loggedIn = val;
+      if (val) {
+        this.loadFavoriter();
+      } else {
+        this.userFavoriter = [];
+      }
+    });
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe((val: AuthUser | null | undefined) => {
       this.isAdmin = val?.role === 'admin';
     });
@@ -142,6 +154,14 @@ export class News implements OnInit, OnDestroy {
     if (this.eventsIntervalId) {
       clearInterval(this.eventsIntervalId);
     }
+  }
+
+  private loadFavoriter(): void {
+    this.favoriterService.list().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      if (res.success) {
+        this.userFavoriter = res.data;
+      }
+    });
   }
 
   private fetchAllData() {

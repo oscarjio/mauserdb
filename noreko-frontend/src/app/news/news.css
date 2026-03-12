@@ -490,3 +490,38 @@
   color: #fc8181;
   border: 1px solid rgba(245, 101, 101, 0.4);
 }
+
+/* Favoriter widget på startsidan */
+.favoriter-widget {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fav-shortcut-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: #2d3748;
+  border-radius: 10px;
+  border-top: 3px solid #4299e1;
+  padding: 1rem 0.5rem;
+  text-decoration: none;
+  color: #e2e8f0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 80px;
+}
+
+.fav-shortcut-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  color: #fff;
+}
+
+.fav-shortcut-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}

@@ -1,3 +1,20 @@
+## 2026-03-12 Favoriter / Snabbkommandon — bokmärk mest använda sidor
+
+VD:n kan spara sina mest använda sidor som favoriter och se dem samlade på startsidan for snabb atkomst (10 sekunder).
+
+- **Backend**: `FavoriterController.php` i `classes/` + proxy i `controllers/`
+  - `run=list` — hämta användarens sparade favoriter (sorterade)
+  - `run=add` (POST) — lägg till favorit (route, label, icon, color)
+  - `run=remove` (POST) — ta bort favorit (id)
+  - `run=reorder` (POST) — ändra ordning (array av ids)
+  - Registrerad i `api.php` med nyckel `favoriter`
+- **DB-migrering**: `migrations/2026-03-12_favoriter.sql` — tabell `user_favoriter` (id, user_id, route, label, icon, color, sort_order, created_at) med UNIQUE(user_id, route)
+- **Frontend Service**: `favoriter.service.ts` — list/add/remove/reorder + AVAILABLE_PAGES (36 sidor)
+- **Frontend Komponent**: `pages/favoriter/` — hantera favoriter med lägg-till-dialog, sökfilter, ordningsknappar, ta-bort
+- **Dashboard-widget**: Favoriter visas som klickbara kort med ikon direkt på startsidan (news.html/news.ts)
+- **Route**: `/favoriter` i `app.routes.ts` (authGuard)
+- **Meny**: Nytt "Favoriter"-menyitem med stjärn-ikon i navigationsmenyn (synlig for inloggade)
+
 ## 2026-03-12 Produktionseffektivitet per timme — Heatmap och toppanalys
 
 Ny sida `/rebotling/produktionseffektivitet` — VD förstår vilka timmar på dygnet som är mest/minst produktiva via heatmap, KPI-kort och toppanalys.

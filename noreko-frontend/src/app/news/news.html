@@ -149,6 +149,26 @@
       <app-produktionspuls-widget></app-produktionspuls-widget>
     </div>
 
+    <!-- Favoriter / Snabblänkar -->
+    <div class="favoriter-widget mt-4 dashboard-grid" *ngIf="loggedIn && userFavoriter.length > 0">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h6 style="color:#e2e8f0; font-size:1rem; margin:0;">
+          <i class="fas fa-star me-2" style="color:#ecc94b"></i>Mina favoriter
+        </h6>
+        <a routerLink="/favoriter" class="btn btn-outline-secondary btn-sm" style="font-size:0.75rem;">
+          <i class="fas fa-cog me-1"></i>Hantera
+        </a>
+      </div>
+      <div class="row g-2">
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2" *ngFor="let fav of userFavoriter">
+          <a [routerLink]="fav.route" class="fav-shortcut-card" [style.borderTopColor]="fav.color">
+            <i [class]="fav.icon" [style.color]="fav.color" style="font-size:1.4rem;"></i>
+            <span class="fav-shortcut-label">{{ fav.label }}</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
     <!-- Quick links for logged-in users -->
     <div class="quick-links mt-4" *ngIf="loggedIn">
       <div class="row g-3 dashboard-grid">
