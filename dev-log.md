@@ -1,3 +1,32 @@
+## 2026-03-12 Operatorsbonus — individuell bonuskalkylator per operator
+
+Ny sida `/rebotling/operatorsbonus` — transparent bonusmodell som beraknar individuell bonus baserat pa IBC/h, kvalitet, narvaro och team-mal.
+
+- **Migration**: `2026-03-12_operatorsbonus.sql` — nya tabeller `bonus_konfiguration` (faktor ENUM, vikt, mal_varde, max_bonus_kr, beskrivning) och `bonus_utbetalning` (operator_id, period_start/slut, delbonus per faktor, total_bonus). Seed-data: IBC/h 40%/12 mal/500kr, Kvalitet 30%/98%/400kr, Narvaro 20%/100%/200kr, Team 10%/95%/100kr.
+- **Backend**: `classes/OperatorsbonusController.php`
+  - `run=overview` — KPI:er: snittbonus, hogsta/lagsta bonus (med namn), total utbetald, antal kvalificerade
+  - `run=per-operator` — bonusberakning per operator med IBC/h, kvalitet%, narvaro%, team-mal%, delbonus per faktor, total bonus, progress-procent per faktor
+  - `run=konfiguration` — hamta bonuskonfiguration (vikter, mal, maxbelopp)
+  - `run=spara-konfiguration` (POST) — uppdatera bonusparametrar (admin)
+  - `run=historik` — tidigare utbetalningar per operator/period
+  - `run=simulering` — vad-om-analys med anpassade invaranden
+  - Bonusformel: min(verkligt/mal, 1.0) x max_bonus_kr
+  - Registrerad i `api.php` med nyckel `operatorsbonus`
+- **Service**: `operatorsbonus.service.ts` — interfaces BonusOverviewData, OperatorBonus, BonusKonfig, KonfigItem, SimuleringData m.fl.
+- **Komponent**: `pages/rebotling/operatorsbonus/`
+  - KPI-kort (4 st): Snittbonus, Hogsta bonus (namn+kr), Total utbetald, Antal kvalificerade
+  - Stapeldiagram (Chart.js, stacked bar) — bonus per operator uppdelat pa faktor
+  - Radardiagram — prestationsprofil per vald operator (IBC/h, Kvalitet, Narvaro, Team)
+  - Operatorstabell — sorterbar med progress bars per faktor, delbonus per kolumn, total
+  - Konfigurationspanel (admin) — andra vikter, mal, maxbelopp
+  - Bonussimulator — skjutreglage for IBC/h, Kvalitet, Narvaro, Team med doughnut-resultat
+  - Period-filter: Idag / Vecka / Manad
+  - Auto-refresh var 60 sek, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + chart.destroy()
+- **Route**: `/rebotling/operatorsbonus` (authGuard, lazy-loaded)
+- **Meny**: "Operatorsbonus" med ikon `fas fa-award` under Rebotling
+
+---
+
 ## 2026-03-12 Maskin-OEE — OEE per maskin/station i rebotling-linjen
 
 Ny sida `/rebotling/maskin-oee` — OEE (Overall Equipment Effectiveness) nedbruten per maskin. OEE = Tillganglighet x Prestanda x Kvalitet.

@@ -1,0 +1,367 @@
+<div class="container-fluid py-3" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
+      <i class="fas fa-award me-2" style="color:#ecc94b;"></i>
+      Operatorsbonus
+    </h1>
+    <button class="btn btn-sm btn-outline-warning" (click)="toggleKonfig()">
+      <i class="fas fa-cog me-1"></i>
+      {{ showKonfig ? 'Stang konfiguration' : 'Bonuskonfiguration' }}
+    </button>
+  </div>
+
+  <!-- Konfigurationspanel (admin) -->
+  <div *ngIf="showKonfig" class="config-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-sliders-h me-2 text-warning"></i>Bonusparametrar
+    </div>
+
+    <div *ngIf="loadingKonfig" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+
+    <div *ngIf="!loadingKonfig && konfigForm.length > 0">
+      <div class="config-row" *ngFor="let item of konfigForm; let i = index">
+        <span class="config-label">{{ faktorLabel(item.faktor) }}</span>
+        <div class="d-flex gap-2 align-items-center">
+          <div class="text-center">
+            <small class="text-muted d-block">Vikt (%)</small>
+            <input type="number" class="config-input" [(ngModel)]="item.vikt" min="0" max="100" step="5" style="width:80px;" />
+          </div>
+          <div class="text-center">
+            <small class="text-muted d-block">Malvarde</small>
+            <input type="number" class="config-input" [(ngModel)]="item.mal_varde" min="0" step="1" style="width:90px;" />
+          </div>
+          <div class="text-center">
+            <small class="text-muted d-block">Max bonus (kr)</small>
+            <input type="number" class="config-input" [(ngModel)]="item.max_bonus_kr" min="0" step="50" style="width:100px;" />
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3 d-flex gap-2 align-items-center">
+        <button class="btn btn-sm btn-warning" (click)="submitKonfig()" [disabled]="savingKonfig">
+          <span *ngIf="savingKonfig" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!savingKonfig" class="fas fa-save me-1"></i>
+          Spara konfiguration
+        </button>
+        <span *ngIf="konfigMessage" class="text-success small">
+          <i class="fas fa-check-circle me-1"></i>{{ konfigMessage }}
+        </span>
+        <span *ngIf="konfigError" class="text-danger small">
+          <i class="fas fa-exclamation-circle me-1"></i>{{ konfigError }}
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="!loadingKonfig && konfigForm.length === 0" class="text-muted small py-2">
+      Ingen konfiguration hittades.
+    </div>
+  </div>
+
+  <!-- Period-filter -->
+  <div class="d-flex gap-2 mb-4 align-items-center">
+    <span class="text-muted small me-1">Period:</span>
+    <button class="period-btn" [class.active]="period === 'dag'"   (click)="period='dag';   onPeriodChange()">Idag</button>
+    <button class="period-btn" [class.active]="period === 'vecka'" (click)="period='vecka'; onPeriodChange()">Vecka</button>
+    <button class="period-btn" [class.active]="period === 'manad'" (click)="period='manad'; onPeriodChange()">Manad</button>
+  </div>
+
+  <!-- KPI-kort (4 st) -->
+  <div class="row g-3 mb-4">
+    <!-- Snittbonus -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Snittbonus</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value text-bonus">{{ formatKr(overview?.snitt_bonus) }}</div>
+          <div class="kpi-sub">Per operator — {{ periodLabel(period) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hogsta bonus -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Hogsta bonus</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value text-bonus-high">{{ formatKr(overview?.hogsta_bonus) }}</div>
+          <div class="kpi-sub">{{ overview?.hogsta_namn || '\u2014' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Total utbetald -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Total utbetald</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value">{{ formatKr(overview?.total_utbetald) }}</div>
+          <div class="kpi-sub">Alla operatorer — {{ periodLabel(period) }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Antal kvalificerade -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Kvalificerade operatorer</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value" style="color:#48bb78;">{{ overview?.antal_kvalificerade ?? 0 }}</div>
+          <div class="kpi-sub">Av {{ overview?.antal_operatorer ?? 0 }} totalt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rad 2: Stapeldiagram + Radardiagram -->
+  <div class="row g-3 mb-4">
+    <!-- Stapeldiagram: Bonus per operator -->
+    <div class="col-12 col-md-7">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-chart-bar me-2" style="color:#4299e1;"></i>
+          Bonus per operator — {{ periodLabel(period) }}
+        </div>
+        <div *ngIf="loadingOperatorer" class="loading-spinner">
+          <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+        </div>
+        <div *ngIf="!loadingOperatorer && operatorer.length > 0" class="chart-container">
+          <canvas id="bonusBarChart"></canvas>
+        </div>
+        <div *ngIf="!loadingOperatorer && operatorer.length === 0" class="text-muted small py-3 text-center">
+          Inga operatorer med data.
+        </div>
+      </div>
+    </div>
+
+    <!-- Radardiagram: Per operator -->
+    <div class="col-12 col-md-5">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-spider me-2" style="color:#9f7aea;"></i>
+          Prestationsprofil
+          <span *ngIf="selectedOperator" class="ms-2 small" style="color:#a0aec0;">
+            — {{ selectedOperator.operator_namn }}
+          </span>
+        </div>
+
+        <!-- Operatorval -->
+        <div *ngIf="operatorer.length > 0" class="d-flex flex-wrap gap-1 mb-3">
+          <button
+            *ngFor="let op of operatorer"
+            class="btn btn-sm"
+            [class.btn-info]="selectedOperator?.operator_id === op.operator_id"
+            [class.btn-outline-secondary]="selectedOperator?.operator_id !== op.operator_id"
+            style="font-size:0.75rem; padding:0.2rem 0.5rem;"
+            (click)="selectOperator(op)">
+            {{ op.operator_namn }}
+          </button>
+        </div>
+
+        <div *ngIf="selectedOperator" class="chart-container-sm">
+          <canvas id="bonusRadarChart"></canvas>
+        </div>
+        <div *ngIf="!selectedOperator" class="text-muted small py-3 text-center">
+          Valj en operator.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Operatorstabell -->
+  <div class="table-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-users me-2" style="color:#4299e1;"></i>
+      Operatorer — bonusoversikt
+    </div>
+
+    <div *ngIf="loadingOperatorer" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+
+    <div *ngIf="!loadingOperatorer && operatorer.length > 0" style="overflow-x:auto;">
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th class="sortable-th" (click)="sortBy('operator_namn')">
+              Operator <i [class]="sortIcon('operator_namn')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('ibc_per_timme')">
+              IBC/h <i [class]="sortIcon('ibc_per_timme')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('kvalitet')">
+              Kvalitet% <i [class]="sortIcon('kvalitet')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('narvaro')">
+              Narvaro% <i [class]="sortIcon('narvaro')"></i>
+            </th>
+            <th class="text-end">Bonus IBC</th>
+            <th class="text-end">Bonus Kval.</th>
+            <th class="text-end">Bonus Narv.</th>
+            <th class="text-end">Bonus Team</th>
+            <th class="text-end sortable-th" (click)="sortBy('total_bonus')">
+              <strong>Total</strong> <i [class]="sortIcon('total_bonus')"></i>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operatorer" (click)="selectOperator(op)" style="cursor:pointer;"
+              [class.selected-row]="selectedOperator?.operator_id === op.operator_id">
+            <td>
+              <strong>{{ op.operator_namn }}</strong>
+            </td>
+            <td class="text-end">
+              <span>{{ op.ibc_per_timme.toFixed(1) }}</span>
+              <div class="mini-progress">
+                <div class="mini-progress-bar" [style.width.%]="op.pct_ibc" [style.background]="progressBarColor(op.pct_ibc)"></div>
+              </div>
+            </td>
+            <td class="text-end">
+              <span>{{ op.kvalitet.toFixed(1) }}%</span>
+              <div class="mini-progress">
+                <div class="mini-progress-bar" [style.width.%]="op.pct_kvalitet" [style.background]="progressBarColor(op.pct_kvalitet)"></div>
+              </div>
+            </td>
+            <td class="text-end">
+              <span>{{ op.narvaro.toFixed(1) }}%</span>
+              <div class="mini-progress">
+                <div class="mini-progress-bar" [style.width.%]="op.pct_narvaro" [style.background]="progressBarColor(op.pct_narvaro)"></div>
+              </div>
+            </td>
+            <td class="text-end" style="color:#4299e1;">{{ formatKr(op.bonus_ibc) }}</td>
+            <td class="text-end" style="color:#48bb78;">{{ formatKr(op.bonus_kvalitet) }}</td>
+            <td class="text-end" style="color:#ecc94b;">{{ formatKr(op.bonus_narvaro) }}</td>
+            <td class="text-end" style="color:#9f7aea;">{{ formatKr(op.bonus_team) }}</td>
+            <td class="text-end">
+              <strong class="text-bonus-high">{{ formatKr(op.total_bonus) }}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loadingOperatorer && operatorer.length === 0" class="text-muted small py-3 text-center">
+      Inga operatorer med data.
+    </div>
+  </div>
+
+  <!-- Simulator -->
+  <div class="chart-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-calculator me-2" style="color:#63b3ed;"></i>
+      Bonussimulator — vad-om-analys
+    </div>
+
+    <div class="row g-3 align-items-end mb-3">
+      <div class="col-6 col-md-3">
+        <label class="form-label text-muted small">IBC per timme</label>
+        <input type="range" class="form-range" [(ngModel)]="simIbcPerTimme" min="0" max="20" step="0.5" />
+        <div class="d-flex justify-content-between">
+          <input type="number" class="config-input" [(ngModel)]="simIbcPerTimme" min="0" max="20" step="0.5" style="width:80px;" />
+          <span class="text-muted small align-self-center">IBC/h</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label text-muted small">Kvalitet (%)</label>
+        <input type="range" class="form-range" [(ngModel)]="simKvalitet" min="0" max="100" step="1" />
+        <div class="d-flex justify-content-between">
+          <input type="number" class="config-input" [(ngModel)]="simKvalitet" min="0" max="100" step="1" style="width:80px;" />
+          <span class="text-muted small align-self-center">%</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label text-muted small">Narvaro (%)</label>
+        <input type="range" class="form-range" [(ngModel)]="simNarvaro" min="0" max="100" step="1" />
+        <div class="d-flex justify-content-between">
+          <input type="number" class="config-input" [(ngModel)]="simNarvaro" min="0" max="100" step="1" style="width:80px;" />
+          <span class="text-muted small align-self-center">%</span>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label text-muted small">Team-mal (%)</label>
+        <input type="range" class="form-range" [(ngModel)]="simTeamMal" min="0" max="100" step="1" />
+        <div class="d-flex justify-content-between">
+          <input type="number" class="config-input" [(ngModel)]="simTeamMal" min="0" max="100" step="1" style="width:80px;" />
+          <span class="text-muted small align-self-center">%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <button class="btn btn-sm btn-info" (click)="runSimulering()" [disabled]="loadingSimulering">
+        <span *ngIf="loadingSimulering" class="spinner-border spinner-border-sm me-1"></span>
+        <i *ngIf="!loadingSimulering" class="fas fa-play me-1"></i>
+        Kor simulering
+      </button>
+    </div>
+
+    <div *ngIf="simulering" class="row g-3">
+      <div class="col-12 col-md-4">
+        <div class="chart-container-sm">
+          <canvas id="simResultChart"></canvas>
+        </div>
+      </div>
+      <div class="col-12 col-md-8">
+        <div class="sim-result-grid">
+          <div class="sim-result-item">
+            <span class="sim-label" style="color:#4299e1;">
+              <i class="fas fa-industry me-1"></i>IBC/h bonus
+            </span>
+            <span class="sim-value">{{ formatKr(simulering.bonus_ibc) }}</span>
+          </div>
+          <div class="sim-result-item">
+            <span class="sim-label" style="color:#48bb78;">
+              <i class="fas fa-check-circle me-1"></i>Kvalitetsbonus
+            </span>
+            <span class="sim-value">{{ formatKr(simulering.bonus_kvalitet) }}</span>
+          </div>
+          <div class="sim-result-item">
+            <span class="sim-label" style="color:#ecc94b;">
+              <i class="fas fa-calendar-check me-1"></i>Narvarobonus
+            </span>
+            <span class="sim-value">{{ formatKr(simulering.bonus_narvaro) }}</span>
+          </div>
+          <div class="sim-result-item">
+            <span class="sim-label" style="color:#9f7aea;">
+              <i class="fas fa-users me-1"></i>Teambonus
+            </span>
+            <span class="sim-value">{{ formatKr(simulering.bonus_team) }}</span>
+          </div>
+          <div class="sim-result-total">
+            <span class="sim-label"><i class="fas fa-coins me-1"></i>Total bonus</span>
+            <span class="sim-value text-bonus-high" style="font-size:1.5rem;">{{ formatKr(simulering.total_bonus) }}</span>
+          </div>
+          <div class="sim-result-item">
+            <span class="sim-label text-muted">Av max {{ formatKr(simulering.max_total) }}</span>
+            <span class="sim-value">{{ simulering.pct_av_max }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info-fotnot -->
+  <div class="text-muted small mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    Bonusformel: Bonus per faktor = min(verkligt / mal, 1.0) x max_bonus_kr.
+    Faktorer: IBC/h (40%), Kvalitet (30%), Narvaro (20%), Team-mal (10%).
+    Klicka <strong>Bonuskonfiguration</strong> for att justera parametrar.
+    Data uppdateras automatiskt var 60:e sekund.
+  </div>
+
+</div>

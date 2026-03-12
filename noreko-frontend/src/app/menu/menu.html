@@ -86,6 +86,8 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/skiftplanering"><i class="fas fa-calendar-alt me-2" style="color:#63b3ed"></i>Skiftplanering</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktionskostnad"><i class="fas fa-coins me-2" style="color:#ecc94b"></i>Produktionskostnad/IBC</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/stopptidsanalys"><i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Stopptidsanalys</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/maskin-oee"><i class="fas fa-tachometer-alt me-2" style="color:#9f7aea"></i>Maskin-OEE</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/operatorsbonus"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Operatorsbonus</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
