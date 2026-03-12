@@ -6,6 +6,11 @@
       <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Automatiska avvikelselarm
     </h2>
     <div class="d-flex align-items-center gap-2 flex-wrap">
+      <app-pdf-export-button
+        targetElementId="avvikelselarm-content"
+        filename="avvikelselarm"
+        title="Automatiska Avvikelselarm">
+      </app-pdf-export-button>
       <span class="text-muted small me-1">Period:</span>
       <div class="btn-group btn-group-sm">
         <button *ngFor="let p of periodOptions"
@@ -39,6 +44,8 @@
       </div>
     </div>
   </div>
+
+  <div id="avvikelselarm-content">
 
   <!-- Loading -->
   <div *ngIf="loadingOverview" class="text-center py-5">
@@ -278,5 +285,7 @@
       </div>
     </div>
   </div>
+
+  </div><!-- /#avvikelselarm-content -->
 
 </div>

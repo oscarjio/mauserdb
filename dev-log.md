@@ -1,3 +1,28 @@
+## 2026-03-12 PDF-export — generell rapport-export for alla statistiksidor
+
+Generell PDF-export-funktion tillagd. VD:n kan klicka "Exportera PDF" pa statistiksidorna och fa en snygg PDF.
+
+- **`services/pdf-export.service.ts`** (NY):
+  - `exportToPdf(elementId, filename, title?)` — fångar element med html2canvas, skapar A4 PDF (auto landscape/portrait)
+  - Header: "MauserDB — [title]" + datum/tid, footer: "Genererad [datum tid]"
+  - `exportTableToPdf(data, columns, filename, title?)` — ren tabell-PDF utan screenshot, zebra-randade rader, automatisk sidbrytning
+  - Installerat: `html2canvas`, `jspdf` via npm
+
+- **`components/pdf-export-button/`** (NY katalog):
+  - Standalone Angular-komponent `PdfExportButtonComponent`
+  - Input: `targetElementId`, `filename`, `title`
+  - Snygg knapp med `fas fa-file-pdf`-ikon + "Exportera PDF"
+  - Loading-state (spinner + "Genererar...") medan PDF skapas
+  - Dark theme-styling: rod border/text (#fc8181), hover: fylld bakgrund
+
+- **Export-knapp lagd till pa 4 sidor** (bara statistiksidor — inga live-sidor):
+  - `/rebotling/sammanfattning` — innehall wrappad i `#rebotling-sammanfattning-content`
+  - `/rebotling/historisk-produktion` — innehall wrappad i `#historisk-produktion-content`
+  - `/rebotling/avvikelselarm` — innehall wrappad i `#avvikelselarm-content`
+  - `/rebotling/produktionsflode` — innehall wrappad i `#produktionsflode-content`
+
+---
+
 ## 2026-03-12 Kassationsorsak per station — drill-down sida
 
 Ny sida `/rebotling/kassationsorsak` — visar vilka stationer i rebotling-linjen som kasserar mest och varfor, med trendgraf och top-5-orsaker.

@@ -9,13 +9,14 @@ import {
   FlodeData,
   StationDetaljerData,
 } from '../../../services/produktionsflode.service';
+import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
 
 @Component({
   standalone: true,
   selector: 'app-produktionsflode',
   templateUrl: './produktionsflode.component.html',
   styleUrls: ['./produktionsflode.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PdfExportButtonComponent],
 })
 export class ProduktionsflodePage implements OnInit, OnDestroy {
 

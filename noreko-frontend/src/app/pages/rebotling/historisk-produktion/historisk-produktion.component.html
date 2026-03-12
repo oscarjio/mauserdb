@@ -6,7 +6,14 @@
       <i class="fas fa-chart-line me-2" style="color:#63b3ed;"></i>
       Historisk produktionsoversikt
     </h1>
+    <app-pdf-export-button
+      targetElementId="historisk-produktion-content"
+      filename="historisk-produktion"
+      title="Historisk Produktionsoversikt">
+    </app-pdf-export-button>
   </div>
+
+  <div id="historisk-produktion-content">
 
   <!-- Periodselektor -->
   <div class="period-selector mb-4">
@@ -330,4 +337,5 @@
       <i class="fas fa-info-circle me-1"></i>Ingen data for vald period
     </div>
   </div>
+  </div><!-- /#historisk-produktion-content -->
 </div>

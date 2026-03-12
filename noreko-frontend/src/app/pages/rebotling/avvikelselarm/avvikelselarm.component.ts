@@ -11,6 +11,7 @@ import {
   HistorikData,
   Regel,
 } from '../../../services/avvikelselarm.service';
+import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
 
 Chart.register(...registerables);
 
@@ -35,7 +36,7 @@ const GRAD_COLORS: Record<string, string> = {
   selector: 'app-avvikelselarm',
   templateUrl: './avvikelselarm.component.html',
   styleUrls: ['./avvikelselarm.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PdfExportButtonComponent],
 })
 export class AvvikelselarmPage implements OnInit, OnDestroy {
 

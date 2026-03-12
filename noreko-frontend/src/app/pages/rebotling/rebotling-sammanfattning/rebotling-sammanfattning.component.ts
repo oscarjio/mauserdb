@@ -10,6 +10,7 @@ import {
   Produktion7dData,
   MaskinStatusData,
 } from '../../../services/rebotling-sammanfattning.service';
+import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
 
 Chart.register(...registerables);
 
@@ -18,7 +19,7 @@ Chart.register(...registerables);
   selector: 'app-rebotling-sammanfattning',
   templateUrl: './rebotling-sammanfattning.component.html',
   styleUrls: ['./rebotling-sammanfattning.component.css'],
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, PdfExportButtonComponent],
 })
 export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
 

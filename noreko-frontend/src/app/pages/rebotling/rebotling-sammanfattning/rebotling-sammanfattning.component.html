@@ -6,10 +6,19 @@
       <i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5;"></i>
       Rebotling Sammanfattning
     </h1>
-    <span class="text-muted" style="font-size:0.85rem;">
-      <i class="fas fa-sync-alt me-1"></i>Uppdateras automatiskt var 60:e sekund
-    </span>
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <app-pdf-export-button
+        targetElementId="rebotling-sammanfattning-content"
+        filename="rebotling-sammanfattning"
+        title="Rebotling Sammanfattning">
+      </app-pdf-export-button>
+      <span class="text-muted" style="font-size:0.85rem;">
+        <i class="fas fa-sync-alt me-1"></i>Uppdateras automatiskt var 60:e sekund
+      </span>
+    </div>
   </div>
+
+  <div id="rebotling-sammanfattning-content">
 
   <!-- ========================================== -->
   <!-- KPI-kort (overst) -->
@@ -271,5 +280,7 @@
       </div>
     </div>
   </div>
+
+  </div><!-- /#rebotling-sammanfattning-content -->
 
 </div>

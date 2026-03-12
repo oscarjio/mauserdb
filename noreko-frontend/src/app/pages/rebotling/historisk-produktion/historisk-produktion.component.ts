@@ -11,6 +11,7 @@ import {
   Jamforelse,
   DetaljTabell,
 } from '../../../services/historisk-produktion.service';
+import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
 
 Chart.register(...registerables);
 
@@ -19,7 +20,7 @@ Chart.register(...registerables);
   selector: 'app-historisk-produktion',
   templateUrl: './historisk-produktion.component.html',
   styleUrls: ['./historisk-produktion.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, PdfExportButtonComponent],
 })
 export class HistoriskProduktionPage implements OnInit, OnDestroy {
 
