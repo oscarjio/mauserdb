@@ -1,0 +1,244 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-truck-loading me-2" style="color:#63b3ed"></i>Leveransplanering
+    </h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <button class="btn btn-sm btn-outline-info" (click)="showNewOrderModal = true">
+        <i class="fas fa-plus me-1"></i>Ny order
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" [disabled]="loading">
+        <i class="fas fa-sync-alt me-1" [class.fa-spin]="loading"></i>Uppdatera
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar mb-4">
+    <div class="d-flex align-items-center gap-2">
+      <span class="filter-label">Status:</span>
+      <select class="form-select form-select-sm" [(ngModel)]="filterStatus" (change)="onFilterChange()" style="width:auto">
+        <option value="alla">Alla</option>
+        <option value="planerad">Planerad</option>
+        <option value="i_produktion">I produktion</option>
+        <option value="forsenad">Forsenad</option>
+        <option value="levererad">Levererad</option>
+      </select>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <span class="filter-label">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let p of periodOptions"
+                class="btn"
+                [class.btn-info]="filterPeriod === p.key"
+                [class.btn-outline-secondary]="filterPeriod !== p.key"
+                (click)="setFilterPeriod(p.key)">
+          {{ p.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading spinner -->
+  <div class="text-center py-5" *ngIf="loadingOverview && !overview">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="text-muted mt-2">Laddar leveransplanering...</p>
+  </div>
+
+  <!-- KPI-KORT -->
+  <div class="row g-3 mb-4" *ngIf="overview">
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-clipboard-list" style="color:#63b3ed"></i></div>
+        <div class="kpi-label">Aktiva ordrar</div>
+        <div class="kpi-value">{{ overview.aktiva_ordrar }}</div>
+        <div class="kpi-sub">Av totalt {{ overview.totalt_ordrar }}</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-check-circle" style="color:#68d391"></i></div>
+        <div class="kpi-label">Leveransgrad</div>
+        <div class="kpi-value" [style.color]="getLeveransgradColor(overview.leveransgrad)">
+          {{ overview.leveransgrad }}%
+        </div>
+        <div class="kpi-sub">I tid eller levererade</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#fc8181"></i></div>
+        <div class="kpi-label">Forsenade ordrar</div>
+        <div class="kpi-value" style="color:#fc8181">{{ overview.forsenade_ordrar }}</div>
+        <div class="kpi-sub">Behover atgard</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-industry" style="color:#f6ad55"></i></div>
+        <div class="kpi-label">Kapacitetsutnyttjande</div>
+        <div class="kpi-value" [style.color]="getKapacitetColor(overview.kapacitetsutnyttjande)">
+          {{ overview.kapacitetsutnyttjande }}%
+        </div>
+        <div class="kpi-sub">{{ overview.planerad_produktion }} / {{ overview.tillganglig_kapacitet }} IBC</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ORDERTABELL -->
+  <div class="chart-card mb-4" *ngIf="ordrarData">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-table me-2" style="color:#63b3ed"></i>Kundordrar
+      </h5>
+      <span class="text-muted small">{{ ordrarData.total }} ordrar</span>
+    </div>
+
+    <div class="text-center py-3" *ngIf="loadingOrdrar">
+      <div class="spinner-border spinner-border-sm text-info"></div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loadingOrdrar && ordrarData.ordrar.length > 0">
+      <table class="table table-dark table-striped table-hover mb-0">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="sortBy('prioritet')">Prio <i [class]="getSortIcon('prioritet')"></i></th>
+            <th class="sortable" (click)="sortBy('kundnamn')">Kund <i [class]="getSortIcon('kundnamn')"></i></th>
+            <th class="sortable" (click)="sortBy('antal_ibc')">Antal IBC <i [class]="getSortIcon('antal_ibc')"></i></th>
+            <th class="sortable" (click)="sortBy('bestallningsdatum')">Bestallning <i [class]="getSortIcon('bestallningsdatum')"></i></th>
+            <th class="sortable" (click)="sortBy('onskat_leveransdatum')">Onskat <i [class]="getSortIcon('onskat_leveransdatum')"></i></th>
+            <th class="sortable" (click)="sortBy('beraknat_leveransdatum')">Beraknat <i [class]="getSortIcon('beraknat_leveransdatum')"></i></th>
+            <th>Status</th>
+            <th>Atgard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of sortedOrdrar">
+            <td>
+              <span class="prio-badge" [ngClass]="getPrioClass(order.prioritet)">{{ order.prioritet }}</span>
+            </td>
+            <td>
+              <strong>{{ order.kundnamn }}</strong>
+              <br *ngIf="order.notering">
+              <small class="text-muted" *ngIf="order.notering">{{ order.notering }}</small>
+            </td>
+            <td>{{ order.antal_ibc }}</td>
+            <td>{{ order.bestallningsdatum }}</td>
+            <td>{{ order.onskat_leveransdatum }}</td>
+            <td [style.color]="order.display_status === 'forsenad' ? '#fc8181' : '#e2e8f0'">
+              {{ order.beraknat_leveransdatum || '-' }}
+            </td>
+            <td>
+              <span class="status-badge" [ngClass]="'status-' + order.display_status">
+                {{ getStatusLabel(order.display_status) }}
+              </span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-success btn-sm" title="Markera levererad"
+                        *ngIf="order.status !== 'levererad'"
+                        (click)="updateStatus(order.id, 'levererad')">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-outline-info btn-sm" title="Satt i produktion"
+                        *ngIf="order.status === 'planerad'"
+                        (click)="updateStatus(order.id, 'i_produktion')">
+                  <i class="fas fa-play"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center text-muted py-3" *ngIf="!loadingOrdrar && ordrarData.ordrar.length === 0">
+      Inga ordrar matchar filtret.
+    </div>
+  </div>
+
+  <!-- GANTT-LIKNANDE KAPACITETSVY -->
+  <div class="chart-card mb-4" *ngIf="kapacitetData">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-project-diagram me-2" style="color:#f6ad55"></i>Kapacitetsvy — Planerade ordrar
+    </h5>
+
+    <div class="text-center py-3" *ngIf="loadingKapacitet">
+      <div class="spinner-border spinner-border-sm text-info"></div>
+    </div>
+
+    <div class="chart-wrapper-gantt" *ngIf="!loadingKapacitet">
+      <canvas id="ganttChart"></canvas>
+    </div>
+  </div>
+
+  <!-- KAPACITETSPROGNOS — linjediagram -->
+  <div class="chart-card mb-4" *ngIf="kapacitetData">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-chart-area me-2" style="color:#68d391"></i>Kapacitetsprognos — Tillganglig vs Planerad
+    </h5>
+
+    <div class="text-center py-3" *ngIf="loadingKapacitet">
+      <div class="spinner-border spinner-border-sm text-info"></div>
+    </div>
+
+    <div class="chart-wrapper" *ngIf="!loadingKapacitet">
+      <canvas id="kapacitetChart"></canvas>
+    </div>
+  </div>
+
+  <!-- NY ORDER MODAL -->
+  <div class="modal fade show d-block" tabindex="-1" *ngIf="showNewOrderModal" style="background:rgba(0,0,0,0.6)">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-plus-circle me-2 text-info"></i>Ny kundorder</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="showNewOrderModal = false"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Kundnamn *</label>
+              <input type="text" class="form-control" [(ngModel)]="newOrder.kundnamn" placeholder="T.ex. BASF Ludwigshafen">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Antal IBC *</label>
+              <input type="number" class="form-control" [(ngModel)]="newOrder.antal_ibc" min="1">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Prioritet (1-10)</label>
+              <input type="number" class="form-control" [(ngModel)]="newOrder.prioritet" min="1" max="10">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Bestallningsdatum</label>
+              <input type="date" class="form-control" [(ngModel)]="newOrder.bestallningsdatum">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Onskat leveransdatum *</label>
+              <input type="date" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notering</label>
+              <textarea class="form-control" rows="2" [(ngModel)]="newOrder.notering" placeholder="Valfri notering..."></textarea>
+            </div>
+          </div>
+          <div class="alert alert-danger mt-3 py-2" *ngIf="newOrderError">{{ newOrderError }}</div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="showNewOrderModal = false">Avbryt</button>
+          <button class="btn btn-info" (click)="submitNewOrder()" [disabled]="savingOrder">
+            <i class="fas fa-save me-1"></i>{{ savingOrder ? 'Sparar...' : 'Skapa order' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

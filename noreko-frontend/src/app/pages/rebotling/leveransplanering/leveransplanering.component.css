@@ -1,0 +1,272 @@
+/* ===================================================
+   Leveransplanering — Dark theme styles
+   =================================================== */
+
+:host {
+  display: block;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  border: 1px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: #63b3ed;
+}
+
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Chart cards */
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Chart wrappers */
+.chart-wrapper {
+  position: relative;
+  height: 360px;
+}
+
+.chart-wrapper-gantt {
+  position: relative;
+  height: 320px;
+}
+
+/* Table overrides */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-striped-bg: #374151;
+  --bs-table-hover-bg: #374151;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.table-dark thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: #4a5568;
+  white-space: nowrap;
+}
+
+.table-dark td,
+.table-dark th {
+  border-color: #4a5568;
+  vertical-align: middle;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background: #374151;
+  color: #63b3ed;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status-planerad {
+  background: rgba(99, 179, 237, 0.15);
+  color: #63b3ed;
+  border: 1px solid rgba(99, 179, 237, 0.3);
+}
+
+.status-i_produktion {
+  background: rgba(104, 211, 145, 0.15);
+  color: #68d391;
+  border: 1px solid rgba(104, 211, 145, 0.3);
+}
+
+.status-levererad {
+  background: rgba(160, 174, 192, 0.15);
+  color: #a0aec0;
+  border: 1px solid rgba(160, 174, 192, 0.3);
+}
+
+.status-forsenad {
+  background: rgba(252, 129, 129, 0.15);
+  color: #fc8181;
+  border: 1px solid rgba(252, 129, 129, 0.3);
+}
+
+/* Prioritet indicator */
+.prio-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.prio-high {
+  background: rgba(252, 129, 129, 0.2);
+  color: #fc8181;
+  border: 1px solid rgba(252, 129, 129, 0.4);
+}
+
+.prio-medium {
+  background: rgba(246, 173, 85, 0.2);
+  color: #f6ad55;
+  border: 1px solid rgba(246, 173, 85, 0.4);
+}
+
+.prio-low {
+  background: rgba(104, 211, 145, 0.2);
+  color: #68d391;
+  border: 1px solid rgba(104, 211, 145, 0.4);
+}
+
+/* Filter bar */
+.filter-bar {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #4a5568;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  white-space: nowrap;
+}
+
+/* Form overrides */
+.form-select, .form-control {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-select:focus, .form-control:focus {
+  background-color: #374151;
+  color: #e2e8f0;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+.form-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Modal overrides */
+.modal-content {
+  background: #2d3748;
+  color: #e2e8f0;
+  border: 1px solid #4a5568;
+}
+
+.modal-header {
+  border-bottom-color: #4a5568;
+}
+
+.modal-footer {
+  border-top-color: #4a5568;
+}
+
+.form-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+/* Spinner */
+.spinner-border-sm {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* Gantt bars */
+.gantt-bar {
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 280px;
+  }
+  .chart-wrapper-gantt {
+    height: 240px;
+  }
+  .filter-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
