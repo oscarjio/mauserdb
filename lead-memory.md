@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #77)*
+*Senast uppdaterad: 2026-03-12 (session #78)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -79,19 +79,22 @@ Session #74: Operatörs-onboarding tracker + Skiftöverlämningslogg — klara.
 Session #75: Operatörsjämförelse sida-vid-sida + Produktionseffektivitet per timme — klara.
 Session #76: Snabbkommandon/favoritvy + Kvalitetsanalys trendbrott-detektion — klara.
 Session #77: Statistik-dashboard sammanfattning + Maskinunderhåll serviceintervall — klara.
+Session #78: Batch-spårning + Kassationsorsak-statistik — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Statistik-dashboard sammanfattning** — VD:s 10-sek överblick
-- [x] **Maskinunderhåll — serviceintervall-vy** — planerade underhåll + varningar
-- [ ] **Batch-spårning** — följ en batch/order genom linjen
+- [x] **Batch-spårning** — följ en batch/order genom linjen
+- [x] **Kassationsorsak-statistik** — Pareto + trend per orsak
 - [ ] **Skiftplanering — bemanningsöversikt** — kapacitetsplanering per skift
 - [ ] **Produktionskostnad per IBC** — uppskattad kostnad per producerad IBC
 - [ ] **Operatörsbonus-kalkylator** — transparent individuell bonusmodell
-- [ ] **Kassationsorsak-statistik** — Pareto-diagram + trend per orsak
 - [ ] **Produktions-SLA/måluppfyllnad** — dagliga/veckovisa mål + uppfyllnadsgrad
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #78 (klar)
+Worker 1 (Batch-spårning): Ny sida för att följa batchar/ordrar. Aktiva batchar med progress, batch-detalj med operatörer/cykeltider/kassation, skapa/avsluta batch. NYA DB-tabeller: batch_order + batch_ibc. Chart.js progress-diagram. Backend: BatchSparningController (6 endpoints).
+Worker 2 (Kassationsorsak-statistik): Pareto-diagram (stapel + kumulativ linje, 80/20-gräns), trenddiagram per orsak, per operatör, per skift, drilldown. NYA DB-tabeller: kassationsorsak_register + kassation_logg. Backend: KassationsorsakController (6 endpoints).
 
 ### 2026-03-12 — Session #77 (klar)
 Worker 1 (Statistik-dashboard sammanfattning): VD:s 10-sek överblick. 6 KPI-kort (IBC idag/vecka, kassation%, drifttid%, aktiv operatör, snitt IBC/h). Chart.js dual Y-axel (produktion + kassation% 30d). 7-dagars tabell med färgkodning. Statusindikator grön/gul/röd. Auto-refresh 60s. Backend: StatistikDashboardController (4 endpoints: summary, production-trend, daily-table, status-indicator).
@@ -100,8 +103,4 @@ Worker 2 (Maskinunderhåll — serviceintervall-vy): Ny sida med maskinlista, se
 ### 2026-03-12 — Session #76 (klar)
 Worker 1 (Snabbkommandon/favoritvy): VD bokmärker mest använda sidor, visas som snabblänkar-kort. Ny DB-tabell user_favoriter. Backend: FavoriterController (4 endpoints: list, add, remove, reorder). Frontend: favorithanterare + snabblänkar på startsidan.
 Worker 2 (Kvalitetsanalys trendbrott-detektion): Automatisk flagga vid avvikande kassationsgrad (±2σ). Linjediagram med rörligt medelvärde + konfidensband. Alerts-lista sorterad efter allvarlighetsgrad. Drill-down per dag. Backend: KvalitetsTrendbrottController (3 endpoints: overview, alerts, daily-detail).
-
-### 2026-03-12 — Session #75 (klar)
-Worker 1 (Operatörsjämförelse sida-vid-sida): VD väljer 2-3 operatörer, jämför KPI:er i tabell + linjediagram (IBC/dag) + radardiagram (normaliserade KPI:er). Dropdown med checkboxar, periodväljare 7/30/90d. Backend: OperatorJamforelseController (3 endpoints: operators-list, compare, compare-trend).
-Worker 2 (Produktionseffektivitet per timme): Heatmap veckodag x timme med färgskala röd→gul→grön. Topp/botten-analys. Linjediagram snitt IBC/h per timme. Backend: ProduktionseffektivitetController (3 endpoints: hourly-heatmap, hourly-summary, peak-analysis).
 
