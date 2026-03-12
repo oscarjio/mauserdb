@@ -162,6 +162,7 @@ $classNameMap = [
     'produktionsmal'          => 'ProduktionsmalController',
     'utnyttjandegrad'         => 'UtnyttjandegradController',
     'produktionstakt'         => 'ProduktionsTaktController',
+    'veckorapport'            => 'VeckorapportController',
 ];
 
 $actionKey = strtolower($action);

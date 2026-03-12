@@ -1,3 +1,26 @@
+## 2026-03-12 Veckorapport — utskriftsvanlig KPI-sammanstallning per vecka
+
+Ny sida `/rebotling/veckorapport` som sammanstaller veckans KPI:er i en snygg, utskriftsvanlig rapport.
+
+- **Backend**: Ny `VeckorapportController.php` med endpoint `run=report&week=YYYY-WNN`:
+  - Returnerar ALL data i ett enda API-anrop: week_info, production, efficiency, stops, quality
+  - Produktion: totalt IBC, mal vs faktiskt (uppfyllnad %), basta/samsta dag, snitt IBC/dag
+  - Effektivitet: snitt IBC/drifttimme, total drifttid vs tillganglig tid (utnyttjandegrad %)
+  - Stopp: antal stopp, total stopptid, topp-3 stopporsaker (bada kallor: stoppage_log + stopporsak_registreringar)
+  - Kvalitet: kassationsgrad (%), antal kasserade, topp-orsak
+  - Trendindikator: jamforelse mot foregaende vecka pa varje KPI
+  - Datakallor: rebotling_ibc, rebotling_weekday_goals, stoppage_log/stoppage_reasons, stopporsak_registreringar/stopporsak_kategorier, kassationsregistrering/kassationsorsak_typer
+- **Frontend**: Ny service `veckorapport.service.ts` + komponent `pages/veckorapport/`:
+  - Veckovaljare (input type="week") med default senaste avslutade veckan
+  - Strukturerad rapport med sektioner, KPI-kort, tabeller, trendpilar
+  - Fargkodning: gron = battre, rod = samre, gra = oforandrad
+  - Sammanfattningstabell med alla KPI:er + trend jamfort med foregaende vecka
+  - "Skriv ut"-knapp som triggar window.print()
+  - CSS @media print: vit bakgrund, svart text, doljer meny/knappar, A4-optimerad layout
+  - Dark theme i webblasaren (#1a202c / #2d3748)
+- **Route**: `rebotling/veckorapport` med authGuard
+- **Meny**: "Veckorapport" med file-alt-ikon under Rebotling-dropdown
+
 ## 2026-03-12 Fabriksskarm (Andon Board) — realtidsvy for TV-skarm
 
 Ny dedikerad fabriksskarm `/rebotling/andon-board` optimerad for stor TV-skarm i produktionen.

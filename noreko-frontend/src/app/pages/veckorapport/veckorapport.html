@@ -1,0 +1,278 @@
+<div class="veckorapport-container">
+  <!-- Kontroller (doljs vid utskrift) -->
+  <div class="controls no-print">
+    <div class="controls-row">
+      <div class="week-picker">
+        <label for="weekSelect">Valj vecka:</label>
+        <input
+          type="week"
+          id="weekSelect"
+          class="form-control form-control-sm"
+          [(ngModel)]="selectedWeek"
+          (change)="onWeekChange()" />
+      </div>
+      <button class="btn btn-outline-light btn-sm print-btn" (click)="printReport()" [disabled]="loading || !report">
+        <i class="fas fa-print me-1"></i> Skriv ut
+      </button>
+    </div>
+  </div>
+
+  <!-- Laddning -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="spinner-border text-info" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="mt-2">Genererar veckorapport...</p>
+  </div>
+
+  <!-- Fel -->
+  <div *ngIf="!loading && error" class="alert alert-danger">
+    {{ error }}
+  </div>
+
+  <!-- Rapport -->
+  <div *ngIf="!loading && report" class="report" id="printable-report">
+
+    <!-- Rubrik -->
+    <div class="report-header">
+      <h1 class="report-title">Veckorapport &mdash; Rebotling</h1>
+      <div class="report-subtitle">{{ weekLabel }} &bull; {{ dateRange }}</div>
+      <div class="report-generated">Genererad: {{ report.week_info.start_date }}</div>
+    </div>
+
+    <!-- Sektion 1: Produktion -->
+    <section class="report-section">
+      <h2 class="section-title">
+        <i class="fas fa-industry me-2 no-print"></i>Produktion
+        <span class="trend-badge" [ngClass]="trendClass(report.production.change_pct)">
+          {{ trendIcon(report.production.change_pct) }} {{ report.production.change_pct > 0 ? '+' : '' }}{{ report.production.change_pct }}%
+        </span>
+      </h2>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.production.total_ibc }}</div>
+          <div class="kpi-label">Totalt producerade IBC</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.production.fulfillment_pct }}%</div>
+          <div class="kpi-label">Maluppfyllnad (mal: {{ report.production.goal }})</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.production.avg_per_day }}</div>
+          <div class="kpi-label">Snitt IBC/dag</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value text-muted-sm">{{ report.production.prev_week_total }}</div>
+          <div class="kpi-label">Foregaende vecka</div>
+        </div>
+      </div>
+
+      <div class="detail-row" *ngIf="report.production.best_day">
+        <span class="detail-label">Basta dag:</span>
+        <span class="detail-value text-success">
+          {{ formatDateFull(report.production.best_day.date) }} &mdash; {{ report.production.best_day.count }} IBC
+        </span>
+      </div>
+      <div class="detail-row" *ngIf="report.production.worst_day">
+        <span class="detail-label">Samsta dag:</span>
+        <span class="detail-value text-danger">
+          {{ formatDateFull(report.production.worst_day.date) }} &mdash; {{ report.production.worst_day.count }} IBC
+        </span>
+      </div>
+
+      <!-- Daglig tabell -->
+      <table class="report-table" *ngIf="report.production.daily">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th class="text-end">IBC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of report.production.daily | keyvalue">
+            <td>{{ formatDateFull(entry.key) }}</td>
+            <td class="text-end">{{ entry.value }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Sektion 2: Effektivitet -->
+    <section class="report-section">
+      <h2 class="section-title">
+        <i class="fas fa-bolt me-2 no-print"></i>Effektivitet
+        <span class="trend-badge" [ngClass]="trendClass(report.efficiency.change_pct)">
+          {{ trendIcon(report.efficiency.change_pct) }} {{ report.efficiency.change_pct > 0 ? '+' : '' }}{{ report.efficiency.change_pct }}%
+        </span>
+      </h2>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.efficiency.avg_ibc_per_hour }}</div>
+          <div class="kpi-label">Snitt IBC/drifttimme</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.efficiency.utilization_pct }}%</div>
+          <div class="kpi-label">Utnyttjandegrad</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.efficiency.total_runtime_hours }}h</div>
+          <div class="kpi-label">Total drifttid</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.efficiency.available_hours }}h</div>
+          <div class="kpi-label">Tillganglig tid</div>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Foregaende vecka IBC/h:</span>
+        <span class="detail-value">{{ report.efficiency.prev_week_ibc_per_hour }}</span>
+      </div>
+    </section>
+
+    <!-- Sektion 3: Stopp -->
+    <section class="report-section">
+      <h2 class="section-title">
+        <i class="fas fa-stop-circle me-2 no-print"></i>Stopp
+        <span class="trend-badge" [ngClass]="trendClassInverted(report.stops.change_pct)">
+          {{ trendIcon(report.stops.change_pct) }} {{ report.stops.change_pct > 0 ? '+' : '' }}{{ report.stops.change_pct }}%
+        </span>
+      </h2>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.stops.total_count }}</div>
+          <div class="kpi-label">Antal stopp totalt</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.stops.total_hours }}h</div>
+          <div class="kpi-label">Total stopptid</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value text-muted-sm">{{ report.stops.prev_week_count }}</div>
+          <div class="kpi-label">Foregaende vecka (antal)</div>
+        </div>
+      </div>
+
+      <div *ngIf="report.stops.top_reasons.length > 0">
+        <h3 class="sub-title">Topp stopporsaker</h3>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>Orsak</th>
+              <th class="text-end">Antal</th>
+              <th class="text-end">Tid (h)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reason of report.stops.top_reasons; let i = index">
+              <td>{{ i + 1 }}. {{ reason.reason }}</td>
+              <td class="text-end">{{ reason.count }}</td>
+              <td class="text-end">{{ reason.hours }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div *ngIf="report.stops.top_reasons.length === 0" class="text-muted">
+        Inga registrerade stopp denna vecka.
+      </div>
+    </section>
+
+    <!-- Sektion 4: Kvalitet -->
+    <section class="report-section">
+      <h2 class="section-title">
+        <i class="fas fa-check-circle me-2 no-print"></i>Kvalitet
+        <span class="trend-badge" [ngClass]="trendClassInverted(report.quality.change_pct)">
+          {{ trendIcon(report.quality.change_pct) }} {{ report.quality.change_pct > 0 ? '+' : '' }}{{ report.quality.change_pct }}%
+        </span>
+      </h2>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.quality.scrap_rate_pct }}%</div>
+          <div class="kpi-label">Kassationsgrad</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value">{{ report.quality.scrapped_count }}</div>
+          <div class="kpi-label">Antal kasserade</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-value text-muted-sm">{{ report.quality.prev_week_scrap_rate }}%</div>
+          <div class="kpi-label">Foregaende vecka</div>
+        </div>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Topp-kassationsorsak:</span>
+        <span class="detail-value">{{ report.quality.top_scrap_reason }}</span>
+      </div>
+    </section>
+
+    <!-- Sammanfattning trendtabell -->
+    <section class="report-section summary-section">
+      <h2 class="section-title">
+        <i class="fas fa-chart-line me-2 no-print"></i>Veckosammanfattning
+      </h2>
+      <table class="report-table summary-table">
+        <thead>
+          <tr>
+            <th>KPI</th>
+            <th class="text-end">Denna vecka</th>
+            <th class="text-end">Foregaende vecka</th>
+            <th class="text-center">Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Producerade IBC</td>
+            <td class="text-end">{{ report.production.total_ibc }}</td>
+            <td class="text-end">{{ report.production.prev_week_total }}</td>
+            <td class="text-center">
+              <span [ngClass]="trendClass(report.production.change_pct)">
+                {{ trendIcon(report.production.change_pct) }} {{ report.production.change_pct > 0 ? '+' : '' }}{{ report.production.change_pct }}%
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>IBC/drifttimme</td>
+            <td class="text-end">{{ report.efficiency.avg_ibc_per_hour }}</td>
+            <td class="text-end">{{ report.efficiency.prev_week_ibc_per_hour }}</td>
+            <td class="text-center">
+              <span [ngClass]="trendClass(report.efficiency.change_pct)">
+                {{ trendIcon(report.efficiency.change_pct) }} {{ report.efficiency.change_pct > 0 ? '+' : '' }}{{ report.efficiency.change_pct }}%
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Antal stopp</td>
+            <td class="text-end">{{ report.stops.total_count }}</td>
+            <td class="text-end">{{ report.stops.prev_week_count }}</td>
+            <td class="text-center">
+              <span [ngClass]="trendClassInverted(report.stops.change_pct)">
+                {{ trendIcon(report.stops.change_pct) }} {{ report.stops.change_pct > 0 ? '+' : '' }}{{ report.stops.change_pct }}%
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Kassationsgrad</td>
+            <td class="text-end">{{ report.quality.scrap_rate_pct }}%</td>
+            <td class="text-end">{{ report.quality.prev_week_scrap_rate }}%</td>
+            <td class="text-center">
+              <span [ngClass]="trendClassInverted(report.quality.change_pct)">
+                {{ trendIcon(report.quality.change_pct) }} {{ report.quality.change_pct > 0 ? '+' : '' }}{{ report.quality.change_pct }}%
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Footer (visas vid utskrift) -->
+    <div class="report-footer">
+      <hr />
+      <small>Rebotling Veckorapport &mdash; Genererad av mauserDB</small>
+    </div>
+  </div>
+</div>
