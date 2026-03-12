@@ -1,0 +1,214 @@
+/* ===================================================
+   Stopptidsanalys per maskin — Dark theme styles
+   =================================================== */
+
+:host {
+  display: block;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* Page title */
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  border: 1px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: #63b3ed;
+}
+
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Chart cards */
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Chart wrappers */
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+.chart-wrapper-tall {
+  position: relative;
+  height: 300px;
+}
+
+.doughnut-wrapper {
+  position: relative;
+  height: 280px;
+}
+
+/* Table overrides */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-striped-bg: #374151;
+  --bs-table-hover-bg: #374151;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.table-dark thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: #4a5568;
+  white-space: nowrap;
+}
+
+.table-dark td,
+.table-dark th {
+  border-color: #4a5568;
+  vertical-align: middle;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background: #374151;
+  color: #63b3ed;
+}
+
+/* Trend checkboxar */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1.5px solid #4a5568;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #1a202c;
+  user-select: none;
+}
+
+.trend-badge:hover {
+  background: #374151;
+}
+
+.trend-badge-active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.trend-badge .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Color dot i tabell */
+.color-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Progress bar */
+.progress {
+  background: #1a202c !important;
+  border-radius: 4px;
+}
+
+/* Form select */
+.form-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Badge overrides */
+.badge {
+  font-size: 0.72rem;
+}
+
+/* Spinner */
+.spinner-border-sm {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* Alert */
+.alert-danger {
+  background: rgba(252, 129, 129, 0.15);
+  border-color: rgba(252, 129, 129, 0.4);
+  color: #fc8181;
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 240px;
+  }
+  .chart-wrapper-tall {
+    height: 220px;
+  }
+  .doughnut-wrapper {
+    height: 220px;
+  }
+}

@@ -1,0 +1,203 @@
+/* Produktionskostnad per IBC — styles */
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 130px;
+  border-left: 4px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-left-color: #4299e1;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-sub {
+  font-size: 0.82rem;
+  color: #718096;
+}
+
+.kpi-trend {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 280px;
+}
+
+.chart-container-sm {
+  position: relative;
+  height: 240px;
+}
+
+.table-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+.table-dark-custom {
+  color: #e2e8f0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-dark-custom th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid #4a5568;
+  white-space: nowrap;
+}
+
+.table-dark-custom td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #4a556840;
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.table-dark-custom tr:hover td {
+  background: #4a556822;
+}
+
+.badge-klass {
+  font-size: 0.72rem;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  background: #e53e3e22;
+  color: #fc8181;
+}
+
+.config-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.config-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #4a556840;
+}
+
+.config-row:last-child {
+  border-bottom: none;
+}
+
+.config-label {
+  flex: 1;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.config-enhet {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  min-width: 60px;
+}
+
+.config-input {
+  width: 110px;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.breakdown-bar {
+  height: 10px;
+  border-radius: 4px;
+  margin-top: 2px;
+  transition: width 0.4s ease;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #a0aec0;
+}
+
+.period-btn {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #a0aec0;
+  padding: 0.35rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.15s;
+}
+
+.period-btn.active,
+.period-btn:hover {
+  background: #4299e1;
+  border-color: #4299e1;
+  color: #fff;
+}
+
+.summary-row {
+  background: #1a202c;
+  font-weight: 600;
+}
+
+.text-cost { color: #4299e1; }
+.text-cost-high { color: #e53e3e; }
+.text-cost-low  { color: #48bb78; }

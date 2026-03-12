@@ -1,0 +1,276 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Stopptidsanalys per maskin
+    </h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-muted small me-1">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let p of periodOptions"
+                class="btn"
+                [class.btn-info]="period === p.key"
+                [class.btn-outline-secondary]="period !== p.key"
+                (click)="setPeriod(p.key)">
+          {{ p.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-KORT -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-clock" style="color:#63b3ed"></i></div>
+        <div class="kpi-label">Total stopptid idag</div>
+        <div class="kpi-value" style="color:#63b3ed">{{ formatMin(overview.total_idag_min) }}</div>
+        <div class="kpi-sub">{{ overview.antal_stopp_idag }} stopp registrerade</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#fc8181"></i></div>
+        <div class="kpi-label">Flaskhals-maskin</div>
+        <div class="kpi-value" style="color:#fc8181; font-size:1.1rem">
+          {{ overview.flaskhals_maskin || '-' }}
+        </div>
+        <div class="kpi-sub">{{ formatMin(overview.flaskhals_maskin_min) }} under perioden</div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-list-ol" style="color:#68d391"></i></div>
+        <div class="kpi-label">Antal stopp idag</div>
+        <div class="kpi-value" style="color:#68d391">{{ overview.antal_stopp_idag }}</div>
+        <div class="kpi-sub">
+          <i [class]="getTrendIcon()" class="me-1"></i>
+          {{ getTrendText() }} vs foreg. period
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-hourglass-half" style="color:#f6ad55"></i></div>
+        <div class="kpi-label">Snitt per stopp</div>
+        <div class="kpi-value" style="color:#f6ad55">{{ formatMin(overview.snitt_per_stopp_min) }}</div>
+        <div class="kpi-sub">
+          {{ overview.period_total_min.toFixed(1) }} min totalt under perioden
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overview -->
+  <div class="text-center py-4" *ngIf="loadingOverview">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted small">Laddar KPI-data...</p>
+  </div>
+
+  <!-- Error overview -->
+  <div class="alert alert-danger" *ngIf="errorOverview && !loadingOverview">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stopptidsdata.
+  </div>
+
+  <!-- RAD: Stapeldiagram + Doughnut -->
+  <div class="row g-3 mb-4">
+
+    <!-- Stopptid per maskin — horisontellt stapeldiagram -->
+    <div class="col-lg-7">
+      <div class="chart-card h-100">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-chart-bar me-2" style="color:#63b3ed"></i>
+          Stopptid per maskin
+          <small class="text-muted ms-2">sortering: storst forst</small>
+        </h5>
+        <div *ngIf="loadingPerMaskin" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div class="chart-wrapper" *ngIf="!loadingPerMaskin && perMaskinData?.maskiner?.length">
+          <canvas id="barChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4"
+             *ngIf="!loadingPerMaskin && !perMaskinData?.maskiner?.length">
+          <i class="fas fa-info-circle me-2"></i>Inga stopptider under vald period.
+        </div>
+      </div>
+    </div>
+
+    <!-- Doughnut-diagram: fördelning per maskin -->
+    <div class="col-lg-5">
+      <div class="chart-card h-100">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-chart-pie me-2" style="color:#9f7aea"></i>
+          Stopptidsfordelning per maskin
+        </h5>
+        <div *ngIf="loadingFordelning" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div class="doughnut-wrapper" *ngIf="!loadingFordelning && fordelningData?.fordelning?.length">
+          <canvas id="doughnutChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4"
+             *ngIf="!loadingFordelning && !fordelningData?.fordelning?.length">
+          <i class="fas fa-info-circle me-2"></i>Inga data.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDDIAGRAM -->
+  <div class="chart-card mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-chart-line me-2" style="color:#68d391"></i>
+        Trenddiagram — Stopptid per dag per maskin
+      </h5>
+      <!-- Maskin-checkboxar -->
+      <div class="d-flex flex-wrap gap-2" *ngIf="trendData?.series?.length">
+        <span *ngFor="let s of trendData!.series; let i = index"
+              class="trend-badge"
+              [class.trend-badge-active]="isTrendMaskinSelected(s.maskin_id)"
+              [style.border-color]="getMaskinColor(i)"
+              [style.color]="isTrendMaskinSelected(s.maskin_id) ? getMaskinColor(i) : '#718096'"
+              (click)="toggleTrendMaskin(s.maskin_id)">
+          <span class="dot" [style.background]="getMaskinColor(i)"></span>
+          {{ s.maskin_namn }}
+        </span>
+      </div>
+    </div>
+    <div *ngIf="loadingTrend" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+    <div class="chart-wrapper-tall" *ngIf="!loadingTrend && trendData?.dates?.length">
+      <canvas id="trendChart"></canvas>
+    </div>
+    <div class="text-center text-muted py-4"
+         *ngIf="!loadingTrend && !trendData?.dates?.length">
+      <i class="fas fa-info-circle me-2"></i>Inga trenddata under vald period.
+    </div>
+  </div>
+
+  <!-- MASKIN-JÄMFÖRELSETABELL -->
+  <div class="chart-card mb-4" *ngIf="perMaskinData?.maskiner?.length">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-table me-2" style="color:#f6ad55"></i>
+      Maskin-sammanfattning — {{ getPeriodLabel() }}
+    </h5>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Maskin</th>
+            <th class="text-end">Total stopptid</th>
+            <th class="text-end">Antal stopp</th>
+            <th class="text-end">Snitt/stopp</th>
+            <th class="text-end">Langsta stopp</th>
+            <th class="text-end">Andel</th>
+            <th>Andel (bar)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of perMaskinData!.maskiner; let i = index">
+            <td>
+              <span class="color-dot" [style.background]="getMaskinColor(i)"></span>
+              {{ m.maskin_namn }}
+            </td>
+            <td class="text-end fw-bold" style="color:#63b3ed">{{ formatMin(m.total_min) }}</td>
+            <td class="text-end">{{ m.antal_stopp }}</td>
+            <td class="text-end">{{ formatMin(m.snitt_min) }}</td>
+            <td class="text-end text-danger">{{ formatMin(m.max_stopp_min) }}</td>
+            <td class="text-end">{{ m.andel_pct.toFixed(1) }}%</td>
+            <td style="min-width:120px">
+              <div class="progress" style="height:8px;background:#1a202c">
+                <div class="progress-bar"
+                     [style.width]="m.andel_pct + '%'"
+                     [style.background]="getMaskinColor(i)">
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="table-secondary">
+            <td><strong>Totalt</strong></td>
+            <td class="text-end fw-bold">{{ formatMin(perMaskinData!.total_min) }}</td>
+            <td class="text-end fw-bold">
+              {{ getTotalAntalStopp() }}
+            </td>
+            <td colspan="4"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- DETALJERAD TABELL -->
+  <div class="chart-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-list me-2" style="color:#a0aec0"></i>
+        Detaljerad stopptids-log
+      </h5>
+      <!-- Maskin-filter -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-light small mb-0">Maskin-filter:</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary"
+                style="width:auto"
+                [(ngModel)]="maskinFilter"
+                (change)="onMaskinFilterChange()">
+          <option [value]="0">Alla maskiner</option>
+          <option *ngFor="let m of allaMaskiner" [value]="m.id">{{ m.namn }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div *ngIf="loadingDetalj" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loadingDetalj && sortedStopp.length">
+      <table class="table table-dark table-hover table-sm align-middle">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="sortBy('startad_at')">
+              Tidpunkt <i [class]="getSortIcon('startad_at')"></i>
+            </th>
+            <th class="sortable" (click)="sortBy('maskin_namn')">
+              Maskin <i [class]="getSortIcon('maskin_namn')"></i>
+            </th>
+            <th class="sortable text-end" (click)="sortBy('duration_min')">
+              Varaktighet <i [class]="getSortIcon('duration_min')"></i>
+            </th>
+            <th>Orsak</th>
+            <th>Kategori</th>
+            <th>Operatör</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sortedStopp">
+            <td class="text-nowrap">{{ s.startad_at | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td>{{ s.maskin_namn }}</td>
+            <td class="text-end fw-bold" style="color:#63b3ed">{{ formatMin(s.duration_min) }}</td>
+            <td>{{ s.orsak }}</td>
+            <td><span [class]="getKategoriKlass(s.orsak_kategori)">{{ s.orsak_kategori }}</span></td>
+            <td class="text-muted">{{ s.operator_namn }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center text-muted py-4"
+         *ngIf="!loadingDetalj && !sortedStopp.length">
+      <i class="fas fa-info-circle me-2"></i>Inga stopptider registrerade under vald period.
+    </div>
+
+    <div class="text-muted small mt-2" *ngIf="detaljData?.total">
+      Visar {{ detaljData!.total }} poster (max 500)
+    </div>
+  </div>
+
+</div>

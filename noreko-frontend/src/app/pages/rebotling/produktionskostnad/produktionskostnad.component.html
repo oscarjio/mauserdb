@@ -1,0 +1,360 @@
+<div class="container-fluid py-3" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
+      <i class="fas fa-coins me-2" style="color:#ecc94b;"></i>
+      Produktionskostnad per IBC
+    </h1>
+    <button class="btn btn-sm btn-outline-warning" (click)="toggleConfigForm()">
+      <i class="fas fa-cog me-1"></i>
+      {{ showConfigForm ? 'Stäng konfiguration' : 'Kostnadskonfiguration' }}
+    </button>
+  </div>
+
+  <!-- Kostnadskonfiguration (accordion) -->
+  <div *ngIf="showConfigForm" class="config-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-sliders-h me-2 text-warning"></i>Kostnadsfaktorer
+    </div>
+
+    <div *ngIf="loadingConfig" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+
+    <div *ngIf="!loadingConfig && configForm.length > 0">
+      <div class="config-row" *ngFor="let item of configForm; let i = index">
+        <span class="config-label">{{ getConfigLabel(item.faktor) }}</span>
+        <span class="config-enhet">{{ getConfigEnhet(item.faktor) }}</span>
+        <input
+          type="number"
+          class="config-input"
+          [(ngModel)]="item.varde"
+          min="0"
+          step="1"
+        />
+      </div>
+
+      <div class="mt-3 d-flex gap-2 align-items-center">
+        <button class="btn btn-sm btn-warning" (click)="submitConfig()" [disabled]="savingConfig">
+          <span *ngIf="savingConfig" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!savingConfig" class="fas fa-save me-1"></i>
+          Spara konfiguration
+        </button>
+        <span *ngIf="configMessage" class="text-success small">
+          <i class="fas fa-check-circle me-1"></i>{{ configMessage }}
+        </span>
+        <span *ngIf="configError" class="text-danger small">
+          <i class="fas fa-exclamation-circle me-1"></i>{{ configError }}
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="!loadingConfig && configForm.length === 0" class="text-muted small py-2">
+      Ingen konfiguration hittades.
+    </div>
+  </div>
+
+  <!-- KPI-kort (4 st) -->
+  <div class="row g-3 mb-4">
+    <!-- Kostnad/IBC idag -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Kostnad/IBC idag</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value text-cost">{{ formatKrDecimal(overview?.kostnad_per_ibc_idag) }}</div>
+          <div class="kpi-sub">{{ overview?.ibc_ok_idag ?? 0 }} godkända IBC</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Totalkostnad idag -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Totalkostnad idag</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value">{{ formatKr(overview?.totalkostnad_idag) }}</div>
+          <div class="kpi-sub">Energi + Bemanning + Material + Kassation + Overhead</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kostnadstrend -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Kostnadstrend</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview && overview">
+          <div class="kpi-value">
+            <i [class]="trendIcon(overview.trend_riktning)" style="font-size:1.5rem;"></i>
+            <span class="ms-2" style="font-size:1.2rem;"
+              [class.text-danger]="overview.trend_riktning === 'uppat'"
+              [class.text-success]="overview.trend_riktning === 'nedat'"
+              [class.text-muted]="overview.trend_riktning === 'stabil'">
+              {{ overview.trend_pct > 0 ? '+' : '' }}{{ overview.trend_pct }}%
+            </span>
+          </div>
+          <div class="kpi-sub">{{ trendLabel(overview.trend_riktning, overview.trend_pct) }}</div>
+          <div class="kpi-sub">Förra veckan: {{ formatKrDecimal(overview.kostnad_per_ibc_forr_vecka) }}/IBC</div>
+        </div>
+        <div *ngIf="!loadingOverview && !overview" class="kpi-value text-muted">—</div>
+      </div>
+    </div>
+
+    <!-- Kassationskostnad -->
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Kassationskostnad</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value text-cost-high">{{ formatKr(overview?.kassationskostnad_idag) }}</div>
+          <div class="kpi-sub">
+            {{ overview?.kassation_andel_pct ?? 0 }}% av totalkostnaden
+          </div>
+          <div class="kpi-sub">{{ overview?.ibc_ej_ok_idag ?? 0 }} kasserade IBC</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Period-filter -->
+  <div class="d-flex gap-2 mb-4 align-items-center">
+    <span class="text-muted small me-1">Period:</span>
+    <button class="period-btn" [class.active]="period === 'dag'"   (click)="period='dag';   onPeriodChange()">Dag</button>
+    <button class="period-btn" [class.active]="period === 'vecka'" (click)="period='vecka'; onPeriodChange()">Vecka</button>
+    <button class="period-btn" [class.active]="period === 'manad'" (click)="period='manad'; onPeriodChange()">Månad</button>
+  </div>
+
+  <!-- Rad 2: Kostnadsuppdelning + Skiftjämförelse -->
+  <div class="row g-3 mb-4">
+
+    <!-- Kostnadsuppdelning (doughnut) -->
+    <div class="col-12 col-md-6">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-chart-pie me-2" style="color:#ecc94b;"></i>
+          Kostnadsuppdelning — {{ periodLabel(period) }}
+        </div>
+
+        <div *ngIf="loadingBreakdown" class="loading-spinner">
+          <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+        </div>
+
+        <div *ngIf="!loadingBreakdown && breakdown">
+          <!-- Summering ovanför diagrammet -->
+          <div class="d-flex flex-wrap gap-3 mb-3">
+            <div>
+              <span class="text-muted small">Totalt: </span>
+              <span class="fw-bold" style="color:#e2e8f0;">{{ formatKr(breakdown.total) }}</span>
+            </div>
+            <div>
+              <span class="text-muted small">Kostnad/IBC: </span>
+              <span class="fw-bold text-cost">{{ formatKrDecimal(breakdown.kostnad_per_ibc) }}</span>
+            </div>
+            <div>
+              <span class="text-muted small">IBC ok: </span>
+              <span class="fw-bold" style="color:#48bb78;">{{ breakdown.ibc_ok }}</span>
+            </div>
+          </div>
+
+          <div class="chart-container-sm">
+            <canvas id="kostnadDoughnutChart"></canvas>
+          </div>
+
+          <!-- Kostnadsbars -->
+          <div class="mt-3">
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small">
+                <span style="color:#4299e1;"><i class="fas fa-bolt me-1"></i>Energi</span>
+                <span>{{ formatKr(breakdown.energi) }} ({{ breakdownPct(breakdown.energi) }}%)</span>
+              </div>
+              <div class="breakdown-bar" [style.width.%]="breakdownPct(breakdown.energi)" style="background:#4299e1;"></div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small">
+                <span style="color:#48bb78;"><i class="fas fa-users me-1"></i>Bemanning</span>
+                <span>{{ formatKr(breakdown.bemanning) }} ({{ breakdownPct(breakdown.bemanning) }}%)</span>
+              </div>
+              <div class="breakdown-bar" [style.width.%]="breakdownPct(breakdown.bemanning)" style="background:#48bb78;"></div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small">
+                <span style="color:#ecc94b;"><i class="fas fa-box me-1"></i>Material</span>
+                <span>{{ formatKr(breakdown.material) }} ({{ breakdownPct(breakdown.material) }}%)</span>
+              </div>
+              <div class="breakdown-bar" [style.width.%]="breakdownPct(breakdown.material)" style="background:#ecc94b;"></div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small">
+                <span style="color:#e53e3e;"><i class="fas fa-times-circle me-1"></i>Kassation</span>
+                <span>{{ formatKr(breakdown.kassation) }} ({{ breakdownPct(breakdown.kassation) }}%)</span>
+              </div>
+              <div class="breakdown-bar" [style.width.%]="breakdownPct(breakdown.kassation)" style="background:#e53e3e;"></div>
+            </div>
+            <div class="mb-2">
+              <div class="d-flex justify-content-between small">
+                <span style="color:#a0aec0;"><i class="fas fa-building me-1"></i>Overhead</span>
+                <span>{{ formatKr(breakdown.overhead) }} ({{ breakdownPct(breakdown.overhead) }}%)</span>
+              </div>
+              <div class="breakdown-bar" [style.width.%]="breakdownPct(breakdown.overhead)" style="background:#a0aec0;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="!loadingBreakdown && !breakdown" class="text-muted small py-3 text-center">
+          Ingen data tillgänglig.
+        </div>
+      </div>
+    </div>
+
+    <!-- Skiftjämförelse -->
+    <div class="col-12 col-md-6">
+      <div class="chart-card">
+        <div class="chart-title">
+          <i class="fas fa-layer-group me-2" style="color:#63b3ed;"></i>
+          Kostnad per IBC per skift — {{ periodLabel(period) }}
+        </div>
+
+        <div *ngIf="loadingShift" class="loading-spinner">
+          <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+        </div>
+
+        <div *ngIf="!loadingShift && shiftComp && shiftComp.skift.length > 0">
+          <div class="chart-container">
+            <canvas id="kostnadShiftChart"></canvas>
+          </div>
+        </div>
+
+        <div *ngIf="!loadingShift && (!shiftComp || shiftComp.skift.length === 0)" class="text-muted small py-3 text-center">
+          Ingen skiftdata tillgänglig för vald period.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kostnad/IBC över tid (linjediagram) -->
+  <div class="chart-card mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div class="chart-title mb-0">
+        <i class="fas fa-chart-line me-2" style="color:#4299e1;"></i>
+        Kostnad per IBC över tid
+        <span *ngIf="trendData" class="ms-2 small text-muted">
+          Snitt: <strong class="text-cost">{{ formatKrDecimal(trendData.snitt) }}</strong>/IBC
+        </span>
+      </div>
+      <div class="d-flex gap-2 align-items-center">
+        <span class="text-muted small">Visa:</span>
+        <button class="period-btn" [class.active]="trendPeriod===30" (click)="trendPeriod=30; onTrendPeriodChange()">30 dagar</button>
+        <button class="period-btn" [class.active]="trendPeriod===90" (click)="trendPeriod=90; onTrendPeriodChange()">90 dagar</button>
+      </div>
+    </div>
+
+    <div *ngIf="loadingTrend" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar trend...
+    </div>
+
+    <div *ngIf="!loadingTrend && trendData && trendData.trend.length > 0" class="chart-container">
+      <canvas id="kostnadTrendChart"></canvas>
+    </div>
+
+    <div *ngIf="!loadingTrend && (!trendData || trendData.trend.length === 0)" class="text-muted small py-3 text-center">
+      Ingen trenddata tillgänglig.
+    </div>
+  </div>
+
+  <!-- Daglig kostnadstabell -->
+  <div class="table-card mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+      <div class="section-title mb-0">
+        <i class="fas fa-table me-2" style="color:#a0aec0;"></i>
+        Daglig kostnadstabell
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <label class="text-muted small mb-0">Från:</label>
+        <input type="date" class="config-input" [(ngModel)]="tableFrom" style="width:130px;" />
+        <label class="text-muted small mb-0">Till:</label>
+        <input type="date" class="config-input" [(ngModel)]="tableTo"   style="width:130px;" />
+        <button class="btn btn-sm btn-outline-info" (click)="onTableFilterChange()">
+          <i class="fas fa-sync me-1"></i>Uppdatera
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="loadingTable" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar tabell...
+    </div>
+
+    <div *ngIf="!loadingTable && dailyTable">
+      <div style="overflow-x:auto;">
+        <table class="table-dark-custom">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th class="text-end">IBC godkänd</th>
+              <th class="text-end">IBC kasserad</th>
+              <th class="text-end">Totalt</th>
+              <th class="text-end">Totalkostnad</th>
+              <th class="text-end">Kostnad/IBC</th>
+              <th class="text-end">Kassationskostnad</th>
+              <th class="text-end">Stopptid (min)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of dailyTable.rows">
+              <td>{{ row.date }}</td>
+              <td class="text-end" style="color:#48bb78;">{{ row.ibc_ok }}</td>
+              <td class="text-end">
+                <span *ngIf="row.ibc_ej_ok > 0" class="badge-klass">{{ row.ibc_ej_ok }}</span>
+                <span *ngIf="row.ibc_ej_ok === 0" class="text-muted">0</span>
+              </td>
+              <td class="text-end">{{ row.ibc_total }}</td>
+              <td class="text-end">{{ formatKr(row.total_kostnad) }}</td>
+              <td class="text-end text-cost fw-bold">{{ formatKrDecimal(row.kostnad_per_ibc) }}</td>
+              <td class="text-end" [class.text-cost-high]="row.kassationskostnad > 0">
+                {{ formatKr(row.kassationskostnad) }}
+              </td>
+              <td class="text-end text-muted">{{ row.stopp_minuter }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="summary-row">
+              <td><strong>Totalt / Snitt</strong></td>
+              <td class="text-end" style="color:#48bb78;"><strong>{{ dailyTable.total_ibc_ok }}</strong></td>
+              <td class="text-end">—</td>
+              <td class="text-end">—</td>
+              <td class="text-end"><strong>{{ formatKr(dailyTable.total_kostnad) }}</strong></td>
+              <td class="text-end text-cost"><strong>{{ formatKrDecimal(dailyTable.snitt_per_ibc) }}</strong></td>
+              <td class="text-end">—</td>
+              <td class="text-end">—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="text-muted small mt-2">
+        Visar {{ dailyTable.rows.length }} dagar ({{ dailyTable.from }} – {{ dailyTable.to }})
+      </div>
+    </div>
+
+    <div *ngIf="!loadingTable && !dailyTable" class="text-muted small py-3 text-center">
+      Ingen data tillgänglig.
+    </div>
+  </div>
+
+  <!-- Info-fotnot -->
+  <div class="text-muted small mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    Kostnadsmodell: Energi = drifttimmar × kr/h | Bemanning = 2 operatörer × 8h × kr/h | Material = godkända IBC × kr/IBC | Kassation = kasserade IBC × kr/IBC | Overhead = arbetstimmar × kr/h.
+    Stopptid hämtas från maskinloggen. Klicka <strong>Kostnadskonfiguration</strong> för att justera faktorer.
+  </div>
+
+</div>

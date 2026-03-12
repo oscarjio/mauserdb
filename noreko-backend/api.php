@@ -186,6 +186,8 @@ $classNameMap = [
     'kassationsorsakstatistik'     => 'KassationsorsakController',
     'skiftplanering'               => 'SkiftplaneringController',
     'produktionssla'               => 'ProduktionsSlaController',
+    'stopptidsanalys'              => 'StopptidsanalysController',
+    'produktionskostnad'           => 'ProduktionskostnadController',
 ];
 
 $actionKey = strtolower($action);
