@@ -26,7 +26,7 @@ export const routes: Routes = [
       { path: 'rebotling/statistik', loadComponent: () => import('./pages/rebotling/rebotling-statistik').then(m => m.RebotlingStatistikPage) },
       { path: 'rebotling/historik', loadComponent: () => import('./pages/historik/historik').then(m => m.HistorikPage) },
       { path: 'rebotling/narvarotracker', loadComponent: () => import('./pages/rebotling/narvarotracker/narvarotracker').then(m => m.NarvarotrackerPage) },
-      { path: 'rebotling/produktionspuls', loadComponent: () => import('./pages/rebotling/produktionspuls/produktionspuls').then(m => m.ProduktionspulsPage) },
+      { path: 'rebotling/produktionspuls', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktionspuls/produktionspuls').then(m => m.ProduktionspulsPage) },
       { path: 'rebotling/benchmarking', canActivate: [authGuard], loadComponent: () => import('./pages/benchmarking/benchmarking').then(m => m.BenchmarkingPage) },
       { path: 'tvattlinje/skiftrapport', loadComponent: () => import('./pages/tvattlinje-skiftrapport/tvattlinje-skiftrapport').then(m => m.TvattlinjeSkiftrapportPage) },
       { path: 'tvattlinje/statistik', loadComponent: () => import('./pages/tvattlinje-statistik/tvattlinje-statistik').then(m => m.TvattlinjeStatistikPage) },
@@ -72,6 +72,7 @@ export const routes: Routes = [
       { path: 'rebotling/oee-waterfall', canActivate: [authGuard], loadComponent: () => import('./pages/oee-waterfall/oee-waterfall').then(m => m.OeeWaterfallPage) },
       { path: 'rebotling/morgonrapport', canActivate: [authGuard], loadComponent: () => import('./pages/morgonrapport/morgonrapport').then(m => m.MorgonrapportPage) },
       { path: 'rebotling/drifttids-timeline', canActivate: [authGuard], loadComponent: () => import('./pages/drifttids-timeline/drifttids-timeline.component').then(m => m.DrifttidsTimelineComponent) },
+      { path: 'rebotling/kassationsorsak-drilldown', canActivate: [authGuard], loadComponent: () => import('./pages/kassations-drilldown/kassations-drilldown').then(m => m.KassationsDrilldownPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

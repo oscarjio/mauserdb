@@ -1,0 +1,352 @@
+/* ===== Kassationsanalys+ — Drill-down ===== */
+
+.drilldown-container {
+  padding: 1.5rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* ---- Sidrubrik ---- */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.3rem;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ---- Filterrad ---- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* ---- KPI-rad ---- */
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  flex: 1 1 160px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.kpi-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.2rem;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kpi-value-sm {
+  font-size: 1.1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+}
+
+.kpi-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  width: 100%;
+}
+
+/* ---- Sektionskort ---- */
+.card-section {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.count-badge {
+  background: #4a5568;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ---- Diagram ---- */
+.chart-wrapper {
+  position: relative;
+  height: 380px;
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+}
+
+.chart-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #a0aec0;
+}
+
+.no-data-msg {
+  text-align: center;
+  padding: 2rem;
+  color: #a0aec0;
+  font-size: 0.95rem;
+}
+
+/* ---- Drilldown-tabell ---- */
+.drilldown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.drilldown-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #4a5568;
+}
+
+.drilldown-table tbody td {
+  padding: 0.55rem 0.75rem;
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+/* ---- Orsaksrader ---- */
+.reason-row {
+  border-bottom: 1px solid #374151;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.reason-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.reason-expanded {
+  background: rgba(66, 153, 225, 0.08);
+  border-left: 3px solid #4299e1;
+}
+
+.td-rank {
+  color: #718096;
+  font-weight: 700;
+  min-width: 30px;
+}
+
+.td-reason {
+  font-weight: 500;
+  max-width: 200px;
+}
+
+.td-count-val {
+  color: #fc8181;
+  font-weight: 600;
+}
+
+.td-reg {
+  color: #a0aec0;
+}
+
+.td-chevron {
+  color: #718096;
+  text-align: center;
+  width: 30px;
+}
+
+/* ---- Procent-stapel i tabell ---- */
+.pct-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 90px;
+}
+
+.pct-bar-fill {
+  height: 8px;
+  border-radius: 4px;
+  min-width: 4px;
+  transition: width 0.3s ease;
+}
+
+.pct-label {
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  white-space: nowrap;
+}
+
+/* ---- Detalj-expansion ---- */
+.detail-row {
+  background: rgba(26, 32, 44, 0.6);
+}
+
+.detail-panel {
+  padding: 1rem 0.5rem;
+}
+
+.detail-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+}
+
+.detail-loading {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+/* ---- Detaljtabell ---- */
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.detail-table thead th {
+  background: #2d3748;
+  color: #a0aec0;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #4a5568;
+}
+
+.detail-table tbody tr {
+  border-bottom: 1px solid #374151;
+  transition: background 0.15s;
+}
+
+.detail-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.detail-table tbody td {
+  padding: 0.45rem 0.6rem;
+  color: #e2e8f0;
+  vertical-align: middle;
+}
+
+.td-antal {
+  color: #fc8181;
+  font-weight: 600;
+}
+
+.td-comment {
+  color: #a0aec0;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Responsivitet ---- */
+@media (max-width: 768px) {
+  .drilldown-container {
+    padding: 1rem;
+  }
+
+  .kpi-card {
+    flex: 1 1 130px;
+  }
+
+  .chart-wrapper {
+    height: 300px;
+  }
+
+  .drilldown-table {
+    font-size: 0.8rem;
+  }
+
+  .drilldown-table thead th,
+  .drilldown-table tbody td {
+    padding: 0.45rem 0.5rem;
+  }
+
+  .td-reason {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .detail-table {
+    font-size: 0.75rem;
+  }
+}

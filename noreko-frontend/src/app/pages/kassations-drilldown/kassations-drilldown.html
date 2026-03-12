@@ -1,0 +1,218 @@
+<div class="drilldown-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-search-plus me-2" style="color:#fc8181"></i>Kassationsanalys+
+    </h1>
+    <p class="page-subtitle">Hierarkisk drill-down: kassationsgrad, orsaker och enskilda handelser</p>
+  </div>
+
+  <!-- Periodvaljare -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let opt of dayOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="days === opt.value"
+          [class.btn-outline-secondary]="days !== opt.value"
+          (click)="onDaysChange(opt.value)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+    <div class="kpi-card" *ngIf="loadingOverview">
+      <div class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!loadingOverview && overview">
+      <!-- Total kasserade -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-trash-alt" style="color:#fc8181"></i></div>
+        <div class="kpi-value" style="color:#fc8181">{{ overview.total_kasserade }}</div>
+        <div class="kpi-label">Kasserade IBC ({{ days }} dagar)</div>
+      </div>
+      <!-- Kassationsgrad -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-percentage" style="color:#f6ad55"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">{{ overview.kassationsgrad }}%</div>
+        <div class="kpi-label">Kassationsgrad</div>
+      </div>
+      <!-- Vanligaste orsaken -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#ecc94b"></i></div>
+        <div class="kpi-value kpi-value-sm" style="color:#ecc94b">{{ overview.top_reason || '-' }}</div>
+        <div class="kpi-label">Vanligaste orsaken</div>
+      </div>
+      <!-- Trend -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas" [ngClass]="trendArrow" [style.color]="trendColor"></i></div>
+        <div class="kpi-value" [style.color]="trendColor">
+          {{ overview.trend_diff > 0 ? '+' : '' }}{{ overview.trend_diff }}%
+        </div>
+        <div class="kpi-label">Trend vs foregaende period</div>
+      </div>
+    </ng-container>
+
+    <div class="kpi-card" *ngIf="!loadingOverview && errorOverview">
+      <div class="kpi-icon text-muted"><i class="fas fa-exclamation"></i></div>
+      <div class="kpi-label text-muted">Kunde inte ladda KPI-data</div>
+    </div>
+  </div>
+
+  <!-- Orsaker — Stapeldiagram -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-chart-bar me-2" style="color:#fc8181"></i>Kassationsorsaker
+      <span class="count-badge ms-2" *ngIf="harReasons">{{ reasons.length }} orsaker</span>
+    </h2>
+
+    <div *ngIf="loadingOverview" class="chart-loading">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-2 text-muted">Genererar orsakdiagram...</p>
+    </div>
+
+    <div *ngIf="!loadingOverview && errorOverview" class="alert alert-danger">
+      Kunde inte ladda orsakdata. Kontrollera att du ar inloggad.
+    </div>
+
+    <div *ngIf="!loadingOverview && !errorOverview && !harReasons" class="no-data-msg">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga kassationer registrerade under perioden.
+    </div>
+
+    <div *ngIf="!loadingOverview && harReasons" class="chart-wrapper">
+      <canvas id="reasonChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Orsaker — Tabell med drill-down -->
+  <div class="card-section" *ngIf="!loadingOverview && harReasons">
+    <h2 class="section-title">
+      <i class="fas fa-table me-2 text-info"></i>Orsaker — klicka for detaljer
+    </h2>
+
+    <div class="table-responsive">
+      <table class="drilldown-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Orsak</th>
+            <th>Antal</th>
+            <th>Registreringar</th>
+            <th>Andel</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let reason of reasons; let i = index">
+            <!-- Orsaksrad -->
+            <tr class="reason-row"
+                [class.reason-expanded]="expandedReasonId === reason.reason_id"
+                (click)="toggleReason(reason)">
+              <td class="td-rank">{{ i + 1 }}</td>
+              <td class="td-reason">{{ reason.reason }}</td>
+              <td class="td-count-val">{{ reason.antal }}</td>
+              <td class="td-reg">{{ reason.registreringar }}</td>
+              <td class="td-pct">
+                <div class="pct-bar-wrap">
+                  <div class="pct-bar-fill"
+                       [style.width.%]="reason.andel"
+                       style="background: #fc8181;">
+                  </div>
+                  <span class="pct-label">{{ reason.andel }}%</span>
+                </div>
+              </td>
+              <td class="td-chevron">
+                <i class="fas"
+                   [ngClass]="expandedReasonId === reason.reason_id ? 'fa-chevron-up' : 'fa-chevron-down'">
+                </i>
+              </td>
+            </tr>
+
+            <!-- Detalj-expansion -->
+            <tr *ngIf="expandedReasonId === reason.reason_id" class="detail-row">
+              <td colspan="6">
+                <div class="detail-panel">
+                  <h3 class="detail-title">
+                    <i class="fas fa-list me-2"></i>Handelser: {{ expandedReasonName }}
+                  </h3>
+
+                  <div *ngIf="loadingDetail" class="detail-loading">
+                    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+                    <span class="ms-2 text-muted">Laddar handelser...</span>
+                  </div>
+
+                  <div *ngIf="!loadingDetail && errorDetail" class="alert alert-danger mt-2">
+                    Kunde inte ladda detaljer.
+                  </div>
+
+                  <div *ngIf="!loadingDetail && !errorDetail && detailEvents.length === 0" class="text-muted mt-2">
+                    Inga enskilda handelser hittades.
+                  </div>
+
+                  <table *ngIf="!loadingDetail && detailEvents.length > 0" class="detail-table">
+                    <thead>
+                      <tr>
+                        <th>Datum</th>
+                        <th>Tid</th>
+                        <th>Operator</th>
+                        <th>Antal</th>
+                        <th>Kommentar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let ev of detailEvents">
+                        <td>{{ ev.datum | date:'yyyy-MM-dd' }}</td>
+                        <td>{{ ev.created_at | date:'HH:mm' }}</td>
+                        <td>{{ ev.registrerad_av || '-' }}</td>
+                        <td class="td-antal">{{ ev.antal }}</td>
+                        <td class="td-comment">{{ ev.kommentar || '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Kassationstrend -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-chart-line me-2" style="color:#f6ad55"></i>Kassationstrend over tid
+    </h2>
+
+    <div *ngIf="loadingTrend" class="chart-loading">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-2 text-muted">Genererar trenddiagram...</p>
+    </div>
+
+    <div *ngIf="!loadingTrend && errorTrend" class="alert alert-danger">
+      Kunde inte ladda trenddata.
+    </div>
+
+    <div *ngIf="!loadingTrend && !errorTrend && !harTrendData" class="no-data-msg">
+      <i class="fas fa-info-circle text-info me-2"></i>Ingen trenddata for perioden.
+    </div>
+
+    <div *ngIf="!loadingTrend && harTrendData" class="chart-wrapper">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+</div>
