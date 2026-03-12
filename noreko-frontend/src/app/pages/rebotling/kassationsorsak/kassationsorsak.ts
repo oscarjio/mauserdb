@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   KassationsorsakPerStationService,
