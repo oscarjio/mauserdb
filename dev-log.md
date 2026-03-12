@@ -1,3 +1,34 @@
+## 2026-03-12 Maskin-OEE — OEE per maskin/station i rebotling-linjen
+
+Ny sida `/rebotling/maskin-oee` — OEE (Overall Equipment Effectiveness) nedbruten per maskin. OEE = Tillganglighet x Prestanda x Kvalitet.
+
+- **Migration**: `2026-03-12_maskin_oee.sql` — nya tabeller `maskin_oee_config` (maskin_id, planerad_tid_min, ideal_cykeltid_sek, oee_mal_pct) och `maskin_oee_daglig` (maskin_id, datum, planerad_tid_min, drifttid_min, stopptid_min, total_output, ok_output, kassation, T/P/K/OEE%) med seed-data for 6 maskiner x 30 dagar
+- **Backend**: `classes/MaskinOeeController.php`
+  - `run=overview` — Total OEE idag, basta/samsta maskin, trend vs forra veckan, OEE-mal
+  - `run=per-maskin` — OEE per maskin med T/P/K-uppdelning, planerad tid, drifttid, output, kassation
+  - `run=trend` — OEE per dag per maskin (linjediagram), med OEE-mallinje
+  - `run=benchmark` — jamfor maskiner mot varandra och mot mal-OEE (min/max/avg)
+  - `run=detalj` — detaljerad daglig breakdown per maskin: planerad tid, drifttid, ideal cykeltid, output, kassation
+  - `run=maskiner` — lista aktiva maskiner
+  - `ensureTables()` kor migration automatiskt vid forsta anrop
+  - Registrerad i `api.php` med nyckel `maskin-oee`
+- **Service**: `maskin-oee.service.ts` — interfaces OeeOverviewData, OeeMaskinItem, OeeTrendSeries, OeeBenchmarkItem, OeeDetaljItem, Maskin
+- **Komponent**: `pages/rebotling/maskin-oee/`
+  - KPI-kort (4 st): Total OEE idag (fargkodad mot mal), Basta maskin (namn+OEE), Samsta maskin (namn+OEE), Trend vs forra veckan (+/- %)
+  - OEE gauge-kort per maskin med progress bars for T/P/K och over/under mal-badge
+  - Stapeldiagram: T/P/K per maskin (grupperat) med OEE i tooltip
+  - Linjediagram: OEE-trend per dag per maskin med streckad mal-linje (konfigurerbar)
+  - Maskin-checkboxar for att valja vilka maskiner som visas i trenddiagrammet
+  - Detaljerad tabell: OEE%, T%, P%, K%, planerad tid, drifttid, output, kassation% per maskin
+  - Daglig OEE-logg: sorterbar tabell med alla dagliga OEE-poster
+  - Period-filter: Idag / Vecka / Manad (30d)
+  - Maskin-filter dropdown for trend + detalj
+  - Auto-refresh var 60 sekunder, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + destroyCharts
+- **Route**: `/rebotling/maskin-oee` (authGuard, lazy loading)
+- **Meny**: "Maskin-OEE" med ikon `fas fa-tachometer-alt` (lila) under Rebotling
+
+---
+
 ## 2026-03-12 Stopptidsanalys per maskin — drill-down, flaskhalsar, maskin-jämförelse
 
 Ny sida `/rebotling/stopptidsanalys` — VD kan göra drill-down på stopptider per maskin, identifiera flaskhalsar och jämföra maskiner.

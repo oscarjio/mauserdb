@@ -1,0 +1,320 @@
+<div class="container-fluid py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-tachometer-alt me-2" style="color:#9f7aea"></i>Maskin-OEE
+    </h2>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="mal-indicator">
+        <i class="fas fa-bullseye"></i> OEE-mal: {{ oeeMal }}%
+      </span>
+      <span class="text-muted small me-1">Period:</span>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let p of periodOptions"
+                class="btn"
+                [class.btn-info]="period === p.key"
+                [class.btn-outline-secondary]="period !== p.key"
+                (click)="setPeriod(p.key)">
+          {{ p.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-KORT -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-tachometer-alt" style="color:#9f7aea"></i></div>
+        <div class="kpi-label">Total OEE idag</div>
+        <div class="kpi-value" [style.color]="getOeeColor(overview.total_oee_idag || 0)">
+          {{ overview.total_oee_idag !== null ? overview.total_oee_idag + '%' : '-' }}
+        </div>
+        <div class="kpi-sub">
+          Mal: {{ overview.oee_mal }}%
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-trophy" style="color:#68d391"></i></div>
+        <div class="kpi-label">Basta maskin</div>
+        <div class="kpi-value" style="color:#68d391; font-size:1.1rem">
+          {{ overview.basta_maskin?.namn || '-' }}
+        </div>
+        <div class="kpi-sub" *ngIf="overview.basta_maskin">
+          OEE: {{ overview.basta_maskin.oee }}%
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-triangle" style="color:#fc8181"></i></div>
+        <div class="kpi-label">Samsta maskin</div>
+        <div class="kpi-value" style="color:#fc8181; font-size:1.1rem">
+          {{ overview.samsta_maskin?.namn || '-' }}
+        </div>
+        <div class="kpi-sub" *ngIf="overview.samsta_maskin">
+          OEE: {{ overview.samsta_maskin.oee }}%
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i [class]="getTrendIcon()" style="font-size:1.4rem"></i></div>
+        <div class="kpi-label">Trend vs forra veckan</div>
+        <div class="kpi-value" [style.color]="getTrendColor()">
+          {{ overview.trend_diff !== null ? (overview.trend_diff > 0 ? '+' : '') + overview.trend_diff + '%' : '-' }}
+        </div>
+        <div class="kpi-sub">
+          {{ getTrendText() }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overview -->
+  <div class="text-center py-4" *ngIf="loadingOverview">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted small">Laddar OEE-data...</p>
+  </div>
+
+  <!-- Error overview -->
+  <div class="alert alert-danger" *ngIf="errorOverview && !loadingOverview">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda OEE-data.
+  </div>
+
+  <!-- OEE PER MASKIN — Gauge-kort med T/P/K progress bars -->
+  <div class="chart-card mb-4" *ngIf="perMaskinData?.maskiner?.length">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-industry me-2" style="color:#63b3ed"></i>
+      OEE per maskin — {{ getPeriodLabel() }}
+    </h5>
+    <div class="row g-3">
+      <div class="col-md-4 col-lg-3 col-xl-2" *ngFor="let m of perMaskinData!.maskiner; let i = index">
+        <div class="oee-gauge-card">
+          <div class="oee-gauge-name">{{ m.maskin_namn }}</div>
+          <div class="oee-gauge-value" [style.color]="getOeeColor(m.oee)">
+            {{ m.oee }}%
+          </div>
+          <div class="mb-2">
+            <span class="oee-status-badge"
+                  [class.bg-success]="m.oee >= m.oee_mal"
+                  [class.bg-danger]="m.oee < m.oee_mal">
+              {{ m.oee >= m.oee_mal ? 'Over mal' : 'Under mal' }}
+              ({{ m.oee_mal }}%)
+            </span>
+          </div>
+          <div class="oee-bar-group">
+            <div>
+              <div class="oee-bar-label">
+                <span>Tillganglighet</span><span>{{ m.tillganglighet }}%</span>
+              </div>
+              <div class="oee-bar-track">
+                <div class="oee-bar-fill tillganglighet" [style.width]="m.tillganglighet + '%'"></div>
+              </div>
+            </div>
+            <div>
+              <div class="oee-bar-label">
+                <span>Prestanda</span><span>{{ m.prestanda }}%</span>
+              </div>
+              <div class="oee-bar-track">
+                <div class="oee-bar-fill prestanda" [style.width]="m.prestanda + '%'"></div>
+              </div>
+            </div>
+            <div>
+              <div class="oee-bar-label">
+                <span>Kvalitet</span><span>{{ m.kvalitet }}%</span>
+              </div>
+              <div class="oee-bar-track">
+                <div class="oee-bar-fill kvalitet" [style.width]="m.kvalitet + '%'"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading per-maskin -->
+  <div class="text-center py-4" *ngIf="loadingPerMaskin">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+  </div>
+
+  <!-- RAD: Stapeldiagram (stacked T/P/K) + Trenddiagram -->
+  <div class="row g-3 mb-4">
+
+    <!-- Stapeldiagram: OEE per maskin jamforelse -->
+    <div class="col-lg-6">
+      <div class="chart-card h-100">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-chart-bar me-2" style="color:#63b3ed"></i>
+          OEE per maskin — Jamforelse
+        </h5>
+        <div *ngIf="loadingBenchmark" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div class="chart-wrapper" *ngIf="!loadingBenchmark && benchmarkData?.benchmark?.length">
+          <canvas id="oeeBarChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4"
+             *ngIf="!loadingBenchmark && !benchmarkData?.benchmark?.length">
+          <i class="fas fa-info-circle me-2"></i>Inga OEE-data under vald period.
+        </div>
+      </div>
+    </div>
+
+    <!-- Trenddiagram: OEE per dag per maskin -->
+    <div class="col-lg-6">
+      <div class="chart-card h-100">
+        <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2" style="color:#68d391"></i>
+            OEE-trend per maskin
+          </h5>
+          <div class="d-flex flex-wrap gap-2" *ngIf="trendData?.series?.length">
+            <span *ngFor="let s of trendData!.series; let i = index"
+                  class="trend-badge"
+                  [class.trend-badge-active]="isTrendMaskinSelected(s.maskin_id)"
+                  [style.border-color]="getMaskinColor(i)"
+                  [style.color]="isTrendMaskinSelected(s.maskin_id) ? getMaskinColor(i) : '#718096'"
+                  (click)="toggleTrendMaskin(s.maskin_id)">
+              <span class="dot" [style.background]="getMaskinColor(i)"></span>
+              {{ s.maskin_namn }}
+            </span>
+          </div>
+        </div>
+        <div *ngIf="loadingTrend" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div class="chart-wrapper-tall" *ngIf="!loadingTrend && trendData?.dates?.length">
+          <canvas id="oeeTrendChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4"
+             *ngIf="!loadingTrend && !trendData?.dates?.length">
+          <i class="fas fa-info-circle me-2"></i>Inga trenddata.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALJERAD TABELL -->
+  <div class="chart-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-table me-2" style="color:#f6ad55"></i>
+        OEE-detaljer per maskin — {{ getPeriodLabel() }}
+      </h5>
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-light small mb-0">Maskin-filter:</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary"
+                style="width:auto"
+                [(ngModel)]="maskinFilter"
+                (change)="onMaskinFilterChange()">
+          <option [value]="0">Alla maskiner</option>
+          <option *ngFor="let m of allaMaskiner" [value]="m.id">{{ m.namn }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div *ngIf="loadingDetalj" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+
+    <div class="table-responsive" *ngIf="!loadingDetalj && perMaskinData?.maskiner?.length">
+      <table class="table table-dark table-hover table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Maskin</th>
+            <th class="text-end">OEE%</th>
+            <th class="text-end">Tillganglighet%</th>
+            <th class="text-end">Prestanda%</th>
+            <th class="text-end">Kvalitet%</th>
+            <th class="text-end">Planerad tid</th>
+            <th class="text-end">Drifttid</th>
+            <th class="text-end">Output</th>
+            <th class="text-end">Kassation%</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of perMaskinData!.maskiner; let i = index">
+            <td>
+              <span class="color-dot" [style.background]="getMaskinColor(i)"></span>
+              {{ m.maskin_namn }}
+            </td>
+            <td class="text-end fw-bold" [style.color]="getOeeColor(m.oee)">{{ m.oee }}%</td>
+            <td class="text-end" style="color:#63b3ed">{{ m.tillganglighet }}%</td>
+            <td class="text-end" style="color:#68d391">{{ m.prestanda }}%</td>
+            <td class="text-end" style="color:#f6ad55">{{ m.kvalitet }}%</td>
+            <td class="text-end text-muted">{{ formatMin(m.total_planerad) }}</td>
+            <td class="text-end text-muted">{{ formatMin(m.total_drifttid) }}</td>
+            <td class="text-end">{{ m.total_ok }} / {{ m.total_output }}</td>
+            <td class="text-end" [class.text-danger]="m.kassation_pct > 3">{{ m.kassation_pct }}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-center text-muted py-4"
+         *ngIf="!loadingDetalj && !perMaskinData?.maskiner?.length && !loadingPerMaskin">
+      <i class="fas fa-info-circle me-2"></i>Inga OEE-data under vald period.
+    </div>
+  </div>
+
+  <!-- DETALJERAD DAGLIG LOGG -->
+  <div class="chart-card mb-4" *ngIf="detaljData?.detaljer?.length">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-list me-2" style="color:#a0aec0"></i>
+      Daglig OEE-logg
+    </h5>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover table-sm align-middle">
+        <thead>
+          <tr>
+            <th class="sortable" (click)="sortBy('datum')">
+              Datum <i [class]="getSortIcon('datum')"></i>
+            </th>
+            <th class="sortable" (click)="sortBy('maskin_namn')">
+              Maskin <i [class]="getSortIcon('maskin_namn')"></i>
+            </th>
+            <th class="text-end sortable" (click)="sortBy('oee')">
+              OEE% <i [class]="getSortIcon('oee')"></i>
+            </th>
+            <th class="text-end">T%</th>
+            <th class="text-end">P%</th>
+            <th class="text-end">K%</th>
+            <th class="text-end">Planerad</th>
+            <th class="text-end">Drifttid</th>
+            <th class="text-end">Stopptid</th>
+            <th class="text-end">Output</th>
+            <th class="text-end">Kassation</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of sortedDetaljer">
+            <td class="text-nowrap">{{ d.datum }}</td>
+            <td>{{ d.maskin_namn }}</td>
+            <td class="text-end fw-bold" [style.color]="getOeeColor(d.oee)">{{ d.oee }}%</td>
+            <td class="text-end" style="color:#63b3ed">{{ d.tillganglighet }}%</td>
+            <td class="text-end" style="color:#68d391">{{ d.prestanda }}%</td>
+            <td class="text-end" style="color:#f6ad55">{{ d.kvalitet }}%</td>
+            <td class="text-end text-muted">{{ d.planerad_tid_min }} min</td>
+            <td class="text-end text-muted">{{ d.drifttid_min }} min</td>
+            <td class="text-end text-danger">{{ d.stopptid_min }} min</td>
+            <td class="text-end">{{ d.ok_output }}/{{ d.total_output }}</td>
+            <td class="text-end" [class.text-danger]="d.kassation_pct > 3">{{ d.kassation }} ({{ d.kassation_pct }}%)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="text-muted small mt-2">
+      Visar {{ detaljData!.total }} poster (max 500)
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,287 @@
+/* ===================================================
+   Maskin-OEE — Dark theme styles
+   =================================================== */
+
+:host {
+  display: block;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* Page title */
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1rem;
+  border: 1px solid #4a5568;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: #63b3ed;
+}
+
+.kpi-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-sub {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Chart cards */
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Chart wrappers */
+.chart-wrapper {
+  position: relative;
+  height: 360px;
+}
+
+.chart-wrapper-tall {
+  position: relative;
+  height: 320px;
+}
+
+/* OEE progress bars */
+.oee-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.oee-bar-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.oee-bar-track {
+  height: 8px;
+  background: #1a202c;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.oee-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.oee-bar-fill.tillganglighet { background: #63b3ed; }
+.oee-bar-fill.prestanda { background: #68d391; }
+.oee-bar-fill.kvalitet { background: #f6ad55; }
+.oee-bar-fill.oee { background: #9f7aea; }
+
+/* OEE gauge card */
+.oee-gauge-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1rem;
+  border: 1px solid #4a5568;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.oee-gauge-card:hover {
+  border-color: #63b3ed;
+}
+
+.oee-gauge-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.oee-gauge-name {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.oee-status-badge {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* Table overrides */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-striped-bg: #374151;
+  --bs-table-hover-bg: #374151;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.table-dark thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-color: #4a5568;
+  white-space: nowrap;
+}
+
+.table-dark td,
+.table-dark th {
+  border-color: #4a5568;
+  vertical-align: middle;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  background: #374151;
+  color: #63b3ed;
+}
+
+/* Trend checkboxar */
+.trend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1.5px solid #4a5568;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: #1a202c;
+  user-select: none;
+}
+
+.trend-badge:hover {
+  background: #374151;
+}
+
+.trend-badge-active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.trend-badge .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Color dot i tabell */
+.color-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+/* Progress bar */
+.progress {
+  background: #1a202c !important;
+  border-radius: 4px;
+}
+
+/* Form select */
+.form-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.form-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* Badge overrides */
+.badge {
+  font-size: 0.72rem;
+}
+
+/* Spinner */
+.spinner-border-sm {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+/* Alert */
+.alert-danger {
+  background: rgba(252, 129, 129, 0.15);
+  border-color: rgba(252, 129, 129, 0.4);
+  color: #fc8181;
+}
+
+/* Mal-linje indikator */
+.mal-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: #a0aec0;
+  padding: 4px 10px;
+  background: rgba(159, 122, 234, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(159, 122, 234, 0.3);
+}
+
+/* Responsive tweaks */
+@media (max-width: 576px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 280px;
+  }
+  .chart-wrapper-tall {
+    height: 240px;
+  }
+  .oee-gauge-value {
+    font-size: 1.5rem;
+  }
+}
