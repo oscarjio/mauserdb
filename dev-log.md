@@ -1,3 +1,26 @@
+## 2026-03-12 Produktionsprognos — Skiftbaserad realtidsprognos
+
+Ny sida `/rebotling/produktionsprognos` — VD ser på 10 sekunder: producerat X IBC, takt Y IBC/h, prognos Z IBC vid skiftslut.
+
+- **Backend**: `ProduktionsPrognosController.php` i `classes/` och `controllers/` (proxy)
+  - `run=forecast`: Aktuellt skift (dag/kväll/natt), IBC hittills, takt (IBC/h), prognos vid skiftslut, tid kvar, trendstatus (bättre/sämre/i snitt), historiskt snitt (14 dagar), dagsmål + progress%
+  - `run=shift-history`: Senaste 10 fullständiga skiftens faktiska IBC-resultat och takt, med genomsnitt
+  - Skifttider: dag 06-14, kväll 14-22, natt 22-06. Auto-detekterar aktuellt skift inkl. nattskift som spänner midnatt
+  - Dagsmål från `rebotling_settings.rebotling_target` + `produktionsmal_undantag` för undantag
+  - Registrerad i `api.php` som `'produktionsprognos' => 'ProduktionsPrognosController'`
+- **Frontend Service**: `produktionsprognos.service.ts` — TypeScript-interfaces ForecastData, ShiftHistorik, ShiftHistoryData + timeout(10000) + catchError
+- **Frontend Komponent**: `pages/produktionsprognos/` (standalone, OnInit/OnDestroy, destroy$, takeUntil, setInterval/clearInterval)
+  - VD-sammanfattning: Skifttyp (ikon+namn), Producerat IBC, Takt IBC/h (färgkodad), stor prognossiffra vid skiftslut, tid kvar
+  - Skiftprogress: horisontell progressbar som visar hur långt in i skiftet man är
+  - Dagsmålsprogress: progressbar för IBC idag vs dagsmål (grön/gul/blå beroende på nivå)
+  - Trendindikator: pil upp/ner/neutral + färg + %-avvikelse vs historiskt snitt (14 dagars snitt)
+  - Prognosdetaljer: 4 kort — IBC hittills, prognos, vs skiftmål (diff +/-), tid kvar
+  - Skifthistorik: de 10 senaste skiften med namn, datum, IBC-total, takt + mini-progressbar (färgkodad grön/gul/röd mot snitt)
+  - Auto-refresh var 60:e sekund med isFetching-guard mot dubbla anrop
+- **Route**: `rebotling/produktionsprognos` (authGuard) i `app.routes.ts`
+- **Meny**: Under Rebotling, ikon `fas fa-chart-line`, text "Produktionsprognos", visas för inloggade
+- **Buggfix**: Rättade pre-existenta byggfel i `stopporsak-operator` (orsakFärg → orsakFarg i HTML+TS, styleUrls → styleUrl, ctx: any)
+
 ## 2026-03-12 Operatörs-personligt dashboard — Min statistik
 
 Ny sida `/rebotling/operator-dashboard` — varje inloggad operatör ser sin egen statistik, trender och jämförelse mot teamsnitt.

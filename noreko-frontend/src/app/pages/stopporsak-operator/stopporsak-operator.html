@@ -1,0 +1,297 @@
+<div class="stopp-op-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Stopporsak per operatör
+    </h1>
+    <p class="page-subtitle">Identifiera operatörer med hög stopptid och kartlägg utbildningsbehov</p>
+  </div>
+
+  <!-- Periodväljare -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let opt of periodOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="period === opt.val"
+          [class.btn-outline-secondary]="period !== opt.val"
+          (click)="onPeriodChange(opt.val)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+    <div class="filter-info" *ngIf="overview">
+      <span class="info-chip"><i class="fas fa-calendar-alt me-1"></i>{{ overview.from_date }} – {{ overview.to_date }}</span>
+      <span class="info-chip ms-2"><i class="fas fa-users me-1"></i>{{ operatorer.length }} operatörer</span>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+    <div class="kpi-card" *ngIf="loadingOverview">
+      <div class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+    </div>
+
+    <ng-container *ngIf="!loadingOverview && overview">
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-clock" style="color:#fc8181"></i></div>
+        <div class="kpi-value" style="color:#fc8181">{{ formatMinuter(overview.total_min) }}</div>
+        <div class="kpi-label">Total stopptid ({{ period }} dagar)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-stop-circle" style="color:#f6ad55"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">{{ overview.total_stopp }}</div>
+        <div class="kpi-label">Antal stopp</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-chart-bar" style="color:#68d391"></i></div>
+        <div class="kpi-value" style="color:#68d391">{{ formatMinuter(overview.team_snitt_min) }}</div>
+        <div class="kpi-label">Teamsnitt per operatör</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-exclamation-circle" style="color:#ecc94b"></i></div>
+        <div class="kpi-value" style="color:#ecc94b">
+          {{ hogAntalOperatorer }}
+        </div>
+        <div class="kpi-label">Operatörer med hög stopptid</div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Horisontell stapeldiagram -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-align-left me-2" style="color:#4299e1"></i>Stopptid per operatör
+      <span class="legend-pill hog ms-3"><span class="dot"></span>Över teamsnitt (>150%)</span>
+      <span class="legend-pill normal ms-2"><span class="dot"></span>Normal</span>
+      <span class="legend-pill snitt ms-2"><span class="dot dashed"></span>Teamsnitt</span>
+    </h2>
+
+    <div *ngIf="loadingOverview" class="chart-loading">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="mt-2">Laddar operatörsdata...</p>
+    </div>
+    <div *ngIf="!loadingOverview && errorOverview" class="alert alert-danger">
+      Kunde inte ladda data. Kontrollera att du är inloggad.
+    </div>
+    <div *ngIf="!loadingOverview && !errorOverview && !harOperatorer" class="no-data-msg">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga stopp registrerade under perioden.
+    </div>
+    <div *ngIf="!loadingOverview && harOperatorer" class="chart-wrapper-bar">
+      <canvas id="operatorBarChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Operatörstabell med drill-down -->
+  <div class="card-section" *ngIf="!loadingOverview && harOperatorer">
+    <h2 class="section-title">
+      <i class="fas fa-table me-2 text-info"></i>Operatörer — klicka för detaljer
+    </h2>
+
+    <div class="table-responsive">
+      <table class="stopp-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Operatör</th>
+            <th>Total stopptid</th>
+            <th>Antal stopp</th>
+            <th>Vanligaste orsak</th>
+            <th>% av teamsnitt</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let op of operatorer; let i = index">
+            <!-- Operatörsrad -->
+            <tr class="op-row"
+                [class.op-expanded]="selectedOperator?.user_id === op.user_id"
+                [class.op-hog]="op.hog_stopptid"
+                (click)="selectOperator(op)">
+              <td class="td-rank">{{ i + 1 }}</td>
+              <td class="td-namn">
+                <i class="fas fa-user me-2 text-muted"></i>{{ op.namn }}
+              </td>
+              <td class="td-tid">
+                <span [class.text-danger]="op.hog_stopptid">
+                  {{ formatMinuter(op.total_min) }}
+                </span>
+              </td>
+              <td class="td-antal">{{ op.antal_stopp }}</td>
+              <td class="td-orsak">{{ op.vanligast_orsak || '—' }}</td>
+              <td class="td-pct">
+                <div class="pct-bar-wrap">
+                  <div class="pct-bar-fill"
+                       [style.width.%]="Math.min(op.pct_av_snitt, 200) / 2"
+                       [style.background]="op.hog_stopptid ? '#fc8181' : '#4299e1'">
+                  </div>
+                  <span class="pct-label" [class.text-danger]="op.hog_stopptid">
+                    {{ op.pct_av_snitt }}%
+                  </span>
+                </div>
+              </td>
+              <td class="td-status">
+                <span *ngIf="op.hog_stopptid" class="badge-hog">
+                  <i class="fas fa-exclamation-triangle me-1"></i>Hög
+                </span>
+                <span *ngIf="!op.hog_stopptid" class="badge-ok">
+                  <i class="fas fa-check me-1"></i>OK
+                </span>
+              </td>
+              <td class="td-chevron">
+                <i class="fas"
+                   [ngClass]="selectedOperator?.user_id === op.user_id ? 'fa-chevron-up' : 'fa-chevron-down'">
+                </i>
+              </td>
+            </tr>
+
+            <!-- Detaljrad -->
+            <tr class="detail-row"
+                *ngIf="selectedOperator?.user_id === op.user_id">
+              <td colspan="8" class="detail-cell">
+                <div class="detail-panel">
+
+                  <!-- Laddning -->
+                  <div *ngIf="loadingDetail" class="detail-loading">
+                    <div class="spinner-border spinner-border-sm text-info me-2" role="status"></div>
+                    Hämtar stopporsaker för {{ op.namn }}...
+                  </div>
+
+                  <!-- Fel -->
+                  <div *ngIf="!loadingDetail && errorDetail" class="text-danger">
+                    <i class="fas fa-times-circle me-1"></i>Kunde inte ladda detaljer.
+                  </div>
+
+                  <!-- Detaljinnehåll -->
+                  <ng-container *ngIf="!loadingDetail && !errorDetail && detailData">
+                    <div class="detail-header">
+                      <span class="detail-title">
+                        <i class="fas fa-id-badge me-2" style="color:#4299e1"></i>
+                        {{ detailData.operator_namn }} — {{ detailData.total_antal }} stopp, {{ formatMinuter(detailData.total_min) }}
+                      </span>
+                      <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail(); $event.stopPropagation()">
+                        <i class="fas fa-times me-1"></i>Stäng
+                      </button>
+                    </div>
+
+                    <div *ngIf="!harDetail" class="no-data-msg">
+                      Inga stopporsaker registrerade.
+                    </div>
+
+                    <div *ngIf="harDetail" class="detail-grid">
+                      <!-- Donut-chart -->
+                      <div class="detail-chart-wrap">
+                        <canvas id="detailDonutChart"></canvas>
+                      </div>
+
+                      <!-- Orsakstabell -->
+                      <div class="detail-table-wrap">
+                        <table class="detail-table">
+                          <thead>
+                            <tr>
+                              <th>Orsak</th>
+                              <th>Antal</th>
+                              <th>Stopptid</th>
+                              <th>Andel</th>
+                              <th>Senaste</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr *ngFor="let orsak of detailData.orsaker; let j = index">
+                              <td>
+                                <span class="orsak-dot" [style.background]="orsakFarg(j)"></span>
+                                {{ orsak.orsak }}
+                              </td>
+                              <td class="td-antal-d">{{ orsak.antal }}</td>
+                              <td class="td-tid-d">{{ formatMinuter(orsak.total_min) }}</td>
+                              <td>
+                                <div class="pct-bar-wrap">
+                                  <div class="pct-bar-fill"
+                                       [style.width.%]="orsakAndel(orsak)"
+                                       [style.background]="orsakFarg(j)">
+                                  </div>
+                                  <span class="pct-label">{{ orsakAndel(orsak) }}%</span>
+                                </div>
+                              </td>
+                              <td class="td-senaste">{{ orsak.senaste ? (orsak.senaste | date:'yyyy-MM-dd HH:mm') : '—' }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </ng-container>
+
+                </div>
+              </td>
+            </tr>
+
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Stopporsaker totalt — donut -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-chart-pie me-2" style="color:#9f7aea"></i>Stopporsaker totalt (alla operatörer)
+    </h2>
+
+    <div *ngIf="loadingReasons" class="chart-loading">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="mt-2">Laddar orsaksammanfattning...</p>
+    </div>
+    <div *ngIf="!loadingReasons && errorReasons" class="alert alert-danger">
+      Kunde inte ladda orsakdata.
+    </div>
+    <div *ngIf="!loadingReasons && !errorReasons && !harReasons" class="no-data-msg">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga stopporsaker registrerade.
+    </div>
+
+    <div *ngIf="!loadingReasons && harReasons" class="reasons-layout">
+      <div class="reasons-chart-wrap">
+        <canvas id="reasonsDonutChart"></canvas>
+      </div>
+      <div class="reasons-table-wrap">
+        <table class="detail-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Orsak</th>
+              <th>Antal</th>
+              <th>Stopptid</th>
+              <th>Andel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let orsak of reasonsSummary!.orsaker; let i = index">
+              <td class="td-rank-sm">{{ i + 1 }}</td>
+              <td>
+                <span class="orsak-dot" [style.background]="orsakFarg(i)"></span>
+                {{ orsak.orsak }}
+              </td>
+              <td class="td-antal-d">{{ orsak.antal }}</td>
+              <td class="td-tid-d">{{ formatMinuter(orsak.total_min) }}</td>
+              <td>
+                <div class="pct-bar-wrap">
+                  <div class="pct-bar-fill"
+                       [style.width.%]="orsak.andel_pct"
+                       [style.background]="orsakFarg(i)">
+                  </div>
+                  <span class="pct-label">{{ orsak.andel_pct }}%</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>

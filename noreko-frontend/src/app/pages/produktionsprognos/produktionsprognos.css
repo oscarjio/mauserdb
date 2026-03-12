@@ -1,0 +1,209 @@
+/* =====================================================
+   Produktionsprognos — dark theme styling
+   ===================================================== */
+
+.prognos-page {
+  padding: 1.5rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* Header */
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.page-subtitle {
+  font-size: 0.85rem;
+  color: #718096;
+}
+
+/* Cards */
+.card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  color: #e2e8f0;
+}
+
+.card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* VD-sammanfattning */
+.vd-summary {
+  background: linear-gradient(135deg, #2d3748 0%, #1a2535 100%);
+  border: 1px solid #4a5568;
+  border-left: 4px solid #63b3ed;
+}
+
+.shift-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+}
+
+.shift-icon {
+  font-size: 2rem;
+  color: #f6ad55;
+}
+
+.shift-name {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  text-align: center;
+}
+
+.vd-sep {
+  width: 1px;
+  height: 60px;
+  background: #4a5568;
+}
+
+.vd-label {
+  font-size: 0.72rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.vd-number {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.vd-number-big {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.vd-unit {
+  font-size: 0.72rem;
+  color: #718096;
+  margin-top: 0.2rem;
+}
+
+/* Progress bars */
+.progress-thick {
+  height: 14px;
+  background: #4a5568;
+  border-radius: 7px;
+}
+
+.progress-thick .progress-bar {
+  border-radius: 7px;
+  transition: width 0.6s ease;
+}
+
+.hist-progress {
+  height: 8px;
+  background: #4a5568;
+  border-radius: 4px;
+  margin-bottom: 0.3rem;
+}
+
+.hist-progress .progress-bar {
+  border-radius: 4px;
+}
+
+/* Trend */
+.trend-box {
+  background: #1a202c;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.trend-icon-wrap {
+  line-height: 1;
+}
+
+.trend-icon-big {
+  font-size: 2.5rem;
+}
+
+.trend-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.trend-pct {
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+/* Statistik mini */
+.stat-mini-label {
+  font-size: 0.72rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-mini-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.stat-mini-unit {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: #718096;
+}
+
+/* Detaljer */
+.detail-card {
+  background: #1a202c;
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.5rem;
+}
+
+.detail-label {
+  font-size: 0.72rem;
+  color: #718096;
+  margin-bottom: 0.3rem;
+}
+
+.detail-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* Skifthistorik */
+.shift-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shift-hist-row {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #4a5568;
+}
+
+.shift-hist-row:last-child {
+  border-bottom: none;
+}
+
+/* Responsiv */
+@media (max-width: 576px) {
+  .prognos-page {
+    padding: 1rem 0.5rem;
+  }
+  .vd-number-big {
+    font-size: 2.2rem;
+  }
+  .vd-number {
+    font-size: 1.6rem;
+  }
+}

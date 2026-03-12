@@ -1,0 +1,311 @@
+<div class="prognos-page">
+
+  <!-- Header -->
+  <div class="page-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1 class="page-title mb-0">
+          <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Produktionsprognos
+        </h1>
+        <p class="page-subtitle mb-0">Prognos för pågående skift — uppdateras var 60:e sekund</p>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-secondary" *ngIf="lastUpdated">
+          <i class="fas fa-sync-alt me-1"></i>Uppdaterad {{ lastUpdated }}
+        </span>
+        <button class="btn btn-sm btn-outline-info" (click)="fetchAll()">
+          <i class="fas fa-refresh me-1"></i>Uppdatera nu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Laddning -->
+  <div *ngIf="loadingForecast" class="text-center py-5">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Hämtar prognosdata...</p>
+  </div>
+
+  <!-- Fel -->
+  <div *ngIf="!loadingForecast && errorForecast" class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Kunde inte hämta prognosdata. Kontrollera att du är inloggad.
+  </div>
+
+  <!-- Huvudinnehåll -->
+  <div *ngIf="!loadingForecast && !errorForecast && forecast">
+
+    <!-- VD-vy: Sammanfattning på 10 sekunder -->
+    <div class="card vd-summary mb-4">
+      <div class="card-body">
+        <div class="row g-3 align-items-center">
+
+          <!-- Skiftinfo -->
+          <div class="col-auto">
+            <div class="shift-badge">
+              <i [class]="skiftIcon(forecast.skift_namn)" class="shift-icon"></i>
+              <span class="shift-name">{{ skiftLabel(forecast.skift_namn) }}</span>
+            </div>
+          </div>
+
+          <!-- Separator -->
+          <div class="col-auto d-none d-md-block">
+            <div class="vd-sep"></div>
+          </div>
+
+          <!-- IBC hittills -->
+          <div class="col-auto text-center">
+            <div class="vd-label">Producerat</div>
+            <div class="vd-number text-white">{{ forecast.ibc_hittills }}</div>
+            <div class="vd-unit">IBC hittills</div>
+          </div>
+
+          <!-- Separator -->
+          <div class="col-auto d-none d-md-block">
+            <div class="vd-sep"></div>
+          </div>
+
+          <!-- Takt -->
+          <div class="col-auto text-center">
+            <div class="vd-label">Takt</div>
+            <div class="vd-number" [style.color]="trendColor(forecast.trend_status)">
+              {{ forecast.takt_per_timme }}
+            </div>
+            <div class="vd-unit">IBC/timme</div>
+          </div>
+
+          <!-- Separator -->
+          <div class="col-auto d-none d-md-block">
+            <div class="vd-sep"></div>
+          </div>
+
+          <!-- Prognos -->
+          <div class="col-auto text-center">
+            <div class="vd-label">Prognos vid skiftslut</div>
+            <div class="vd-number-big" [style.color]="forecast.dags_mal && forecast.prognos_vid_slut >= forecast.dags_mal/3 ? '#68d391' : '#63b3ed'">
+              {{ forecast.prognos_vid_slut }}
+            </div>
+            <div class="vd-unit">IBC beräknat</div>
+          </div>
+
+          <!-- Tid kvar -->
+          <div class="col-auto text-center">
+            <div class="vd-label">Tid kvar</div>
+            <div class="vd-number text-muted">
+              {{ forecast.tid_kvar_h > 0 ? forecast.tid_kvar_h + 'h ' : '' }}{{ forecast.tid_kvar_min }}min
+            </div>
+            <div class="vd-unit">av skiftet</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress + Trendindikator -->
+    <div class="row g-3 mb-4">
+
+      <!-- Skiftprogress -->
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-3">
+              <i class="fas fa-hourglass-half me-2 text-info"></i>Skiftets förlopp
+            </h5>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted small">Skiftets start</span>
+                <span class="text-muted small">Skiftets slut</span>
+              </div>
+              <div class="progress progress-thick">
+                <div class="progress-bar bg-info"
+                     [style.width.%]="forecast.shift_elapsed_pct"
+                     role="progressbar">
+                  <span *ngIf="forecast.shift_elapsed_pct > 10">{{ forecast.shift_elapsed_pct }}%</span>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between mt-1">
+                <span class="small text-muted">{{ forecast.skift_start | date:'HH:mm' }}</span>
+                <span class="small text-white fw-bold">Nu: {{ forecast.shift_elapsed_pct }}% genomfört</span>
+                <span class="small text-muted">{{ forecast.skift_slut | date:'HH:mm' }}</span>
+              </div>
+            </div>
+
+            <!-- IBC-produktion i skiftet -->
+            <div class="mb-3" *ngIf="forecast.dags_mal">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="small text-muted">IBC idag: <strong class="text-white">{{ forecast.ibc_idag }}</strong></span>
+                <span class="small text-muted">Dagsmål: <strong class="text-white">{{ forecast.dags_mal }}</strong></span>
+              </div>
+              <div class="progress progress-thick">
+                <div class="progress-bar"
+                     [class.bg-success]="(forecast.progress_pct ?? 0) >= 100"
+                     [class.bg-warning]="(forecast.progress_pct ?? 0) >= 70 && (forecast.progress_pct ?? 0) < 100"
+                     [class.bg-info]="(forecast.progress_pct ?? 0) < 70"
+                     [style.width.%]="forecast.progress_pct ?? 0"
+                     role="progressbar">
+                  <span *ngIf="(forecast.progress_pct ?? 0) > 10">{{ forecast.progress_pct }}%</span>
+                </div>
+              </div>
+              <div class="text-center mt-1">
+                <span class="small"
+                      [class.text-success]="(forecast.progress_pct ?? 0) >= 100"
+                      [class.text-warning]="(forecast.progress_pct ?? 0) >= 70 && (forecast.progress_pct ?? 0) < 100"
+                      [class.text-info]="(forecast.progress_pct ?? 0) < 70">
+                  {{ forecast.progress_pct ?? 0 }}% av dagsmålet nått
+                </span>
+              </div>
+            </div>
+
+            <!-- Ingen dagsmål -->
+            <div *ngIf="!forecast.dags_mal" class="text-muted small text-center mt-2">
+              <i class="fas fa-info-circle me-1"></i>Inget dagsmål konfigurerat
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Trendindikator -->
+      <div class="col-md-6">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5 class="card-title mb-3">
+              <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Taktjämförelse
+            </h5>
+
+            <div class="trend-box text-center py-3">
+              <div class="trend-icon-wrap mb-2">
+                <i [class]="trendIcon(forecast.trend_status)"
+                   [style.color]="trendColor(forecast.trend_status)"
+                   class="trend-icon-big"></i>
+              </div>
+              <div class="trend-label" [style.color]="trendColor(forecast.trend_status)">
+                <ng-container [ngSwitch]="forecast.trend_status">
+                  <span *ngSwitchCase="'bättre'">Bättre än snitt</span>
+                  <span *ngSwitchCase="'sämre'">Sämre än snitt</span>
+                  <span *ngSwitchCase="'i snitt'">I linje med snitt</span>
+                  <span *ngSwitchDefault>Inte tillräckligt med data</span>
+                </ng-container>
+              </div>
+              <div class="trend-pct mt-1" *ngIf="forecast.trend_pct !== null"
+                   [style.color]="trendColor(forecast.trend_status)">
+                {{ forecast.trend_pct > 0 ? '+' : '' }}{{ forecast.trend_pct }}%
+              </div>
+            </div>
+
+            <div class="row g-2 mt-3">
+              <div class="col-6 text-center">
+                <div class="stat-mini-label">Aktuell takt</div>
+                <div class="stat-mini-value text-white">{{ forecast.takt_per_timme }} <span class="stat-mini-unit">IBC/h</span></div>
+              </div>
+              <div class="col-6 text-center">
+                <div class="stat-mini-label">Historiskt snitt</div>
+                <div class="stat-mini-value text-muted">
+                  <ng-container *ngIf="forecast.snitt_takt !== null">{{ forecast.snitt_takt }} <span class="stat-mini-unit">IBC/h</span></ng-container>
+                  <ng-container *ngIf="forecast.snitt_takt === null">—</ng-container>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Prognos-detaljer -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-bullseye me-2" style="color:#f6ad55"></i>Prognosdetaljer
+        </h5>
+        <div class="row g-3">
+          <div class="col-6 col-md-3 text-center">
+            <div class="detail-card">
+              <div class="detail-label">IBC hittills i skiftet</div>
+              <div class="detail-value text-white">{{ forecast.ibc_hittills }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3 text-center">
+            <div class="detail-card">
+              <div class="detail-label">Prognos vid skiftslut</div>
+              <div class="detail-value" style="color:#63b3ed">{{ forecast.prognos_vid_slut }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3 text-center">
+            <div class="detail-card">
+              <div class="detail-label">
+                <ng-container *ngIf="forecast.dags_mal">Vs skiftmål ({{ skiftMal(forecast.dags_mal) }} per skift)</ng-container>
+                <ng-container *ngIf="!forecast.dags_mal">Dagsmål</ng-container>
+              </div>
+              <div class="detail-value" *ngIf="forecast.dags_mal"
+                   [style.color]="forecast.prognos_vid_slut >= skiftMal(forecast.dags_mal) ? '#68d391' : '#fc8181'">
+                {{ skiftDiffStr(forecast.prognos_vid_slut, forecast.dags_mal) }}
+              </div>
+              <div class="detail-value text-muted" *ngIf="!forecast.dags_mal">—</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3 text-center">
+            <div class="detail-card">
+              <div class="detail-label">Tid kvar i skiftet</div>
+              <div class="detail-value text-muted">
+                {{ forecast.tid_kvar_h > 0 ? forecast.tid_kvar_h + 'h ' : '' }}{{ forecast.tid_kvar_min }}min
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- /forecast -->
+
+  <!-- Skifthistorik -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">
+        <i class="fas fa-history me-2" style="color:#a0aec0"></i>Senaste 10 skiftens utfall
+      </h5>
+
+      <div *ngIf="loadingHistory" class="text-center py-3">
+        <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+      </div>
+
+      <div *ngIf="!loadingHistory && errorHistory" class="text-muted small">
+        <i class="fas fa-exclamation-circle me-1"></i>Kunde inte hämta historikdata.
+      </div>
+
+      <div *ngIf="!loadingHistory && !errorHistory && history">
+
+        <!-- Snitt-rad -->
+        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded" style="background:#2d3748">
+          <span class="text-muted small">Genomsnitt ({{ history.antal_skift }} skift)</span>
+          <span class="text-white fw-bold">{{ history.snitt_ibc }} IBC &nbsp;|&nbsp; {{ history.snitt_takt }} IBC/h</span>
+        </div>
+
+        <div class="shift-history-list">
+          <div *ngFor="let s of history.skift_historik" class="shift-hist-row">
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i [class]="skiftIcon(s.skift_namn)" class="text-muted small"></i>
+              <span class="small text-muted">{{ formatDatum(s.skift_start) }} — {{ skiftLabel(s.skift_namn) }}</span>
+              <span class="ms-auto small fw-bold text-white">{{ s.ibc_totalt }} IBC</span>
+              <span class="small text-muted">({{ s.takt_per_timme }} /h)</span>
+            </div>
+            <div class="progress hist-progress">
+              <div class="progress-bar"
+                   [style.width.%]="histBarWidth(s.ibc_totalt, history.snitt_ibc)"
+                   [style.background-color]="histBarColor(s.ibc_totalt, history.snitt_ibc)"
+                   role="progressbar"></div>
+            </div>
+          </div>
+
+          <div *ngIf="history.skift_historik.length === 0" class="text-muted small text-center py-3">
+            Ingen historikdata tillgänglig.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
