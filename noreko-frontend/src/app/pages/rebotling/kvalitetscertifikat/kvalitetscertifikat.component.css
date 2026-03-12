@@ -1,0 +1,499 @@
+/* Kvalitetscertifikat — styles */
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-height: 130px;
+  border-left: 4px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-left-color: #48bb78;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-sub {
+  font-size: 0.82rem;
+  color: #718096;
+}
+
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.chart-container {
+  position: relative;
+  height: 300px;
+}
+
+.table-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+.table-dark-custom {
+  color: #e2e8f0;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-dark-custom th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 2px solid #4a5568;
+  white-space: nowrap;
+}
+
+.table-dark-custom td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #4a556840;
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.table-dark-custom tr:hover td {
+  background: #4a556822;
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable-th:hover {
+  color: #e2e8f0;
+}
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #a0aec0;
+}
+
+/* Filter */
+.filter-select {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-godkand {
+  background: #48bb7833;
+  color: #48bb78;
+  border: 1px solid #48bb7855;
+}
+
+.badge-underkand {
+  background: #e53e3e33;
+  color: #e53e3e;
+  border: 1px solid #e53e3e55;
+}
+
+.badge-ej-bedomd {
+  background: #a0aec033;
+  color: #a0aec0;
+  border: 1px solid #a0aec055;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.cert-modal {
+  background: #2d3748;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.gen-modal {
+  background: #2d3748;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.cert-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.cert-content {
+  padding: 1.5rem;
+}
+
+.gen-form {
+  padding: 1.5rem;
+}
+
+/* Certifikat sections */
+.cert-header-section {
+  text-align: center;
+  padding: 1.5rem 0;
+  border-bottom: 2px solid #4a5568;
+  margin-bottom: 1.5rem;
+}
+
+.cert-company {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cert-title-big {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #48bb78;
+  margin: 0.5rem 0;
+  letter-spacing: 0.05em;
+}
+
+.cert-subtitle {
+  font-size: 1.1rem;
+  color: #e2e8f0;
+}
+
+.cert-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #4a556840;
+}
+
+.cert-section:last-child {
+  border-bottom: none;
+}
+
+.cert-section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+.cert-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.cert-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cert-field-label {
+  font-size: 0.78rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cert-field-value {
+  font-size: 1rem;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.cert-poang {
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.cert-kommentar {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: #1a202c;
+  border-radius: 8px;
+}
+
+.cert-kommentar p {
+  margin: 0.25rem 0 0;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.cert-kriterier-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e2e8f0;
+}
+
+.cert-kriterier-table th {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  padding: 0.5rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.cert-kriterier-table td {
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #4a556840;
+}
+
+.cert-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 2px solid #4a5568;
+  font-size: 0.78rem;
+  color: #718096;
+}
+
+.cert-textarea {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.cert-textarea:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+.cert-input {
+  width: 100%;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.cert-input:focus {
+  outline: none;
+  border-color: #4299e1;
+}
+
+/* Print styles */
+@media print {
+  .kvalitet-page {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .no-print,
+  .kpi-card,
+  .chart-card,
+  .table-card,
+  .filter-select,
+  .modal-overlay .cert-modal-header button,
+  .cert-section.no-print,
+  h1,
+  .text-muted.small.mb-3 {
+    display: none !important;
+  }
+
+  .modal-overlay {
+    position: static;
+    background: transparent;
+    padding: 0;
+  }
+
+  .cert-modal {
+    box-shadow: none;
+    border-radius: 0;
+    max-height: none;
+    background: #fff;
+    color: #000;
+    max-width: 100%;
+  }
+
+  .cert-modal-header {
+    border-bottom: 2px solid #333;
+    padding: 0.5rem 0;
+  }
+
+  .cert-modal-header h2 {
+    color: #000;
+  }
+
+  .cert-content {
+    padding: 1rem 0;
+  }
+
+  .cert-header-section {
+    border-bottom: 2px solid #333;
+  }
+
+  .cert-company {
+    color: #666;
+  }
+
+  .cert-title-big {
+    color: #222;
+  }
+
+  .cert-subtitle {
+    color: #333;
+  }
+
+  .cert-section {
+    border-bottom: 1px solid #ccc;
+  }
+
+  .cert-section-title {
+    color: #555;
+  }
+
+  .cert-field-label {
+    color: #666;
+  }
+
+  .cert-field-value {
+    color: #000;
+  }
+
+  .cert-kommentar {
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+  }
+
+  .cert-kommentar p {
+    color: #000;
+  }
+
+  .cert-kriterier-table {
+    color: #000;
+  }
+
+  .cert-kriterier-table th {
+    color: #555;
+    border-bottom: 1px solid #999;
+  }
+
+  .cert-kriterier-table td {
+    border-bottom: 1px solid #ddd;
+  }
+
+  .cert-footer {
+    border-top: 2px solid #333;
+    color: #666;
+  }
+
+  .status-badge {
+    border: 1px solid #333;
+  }
+
+  .badge-godkand {
+    background: #e6f7e6;
+    color: #2d6a2d;
+  }
+
+  .badge-underkand {
+    background: #fde8e8;
+    color: #9b1c1c;
+  }
+
+  .badge-ej-bedomd {
+    background: #f0f0f0;
+    color: #555;
+  }
+}
+
+@media (max-width: 768px) {
+  .cert-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cert-modal {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+}

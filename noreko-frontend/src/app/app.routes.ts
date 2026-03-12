@@ -92,6 +92,8 @@ export const routes: Routes = [
       { path: 'rebotling/stopptidsanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/stopptidsanalys/stopptidsanalys.component').then(m => m.StopptidsanalysPage) },
       { path: 'rebotling/maskin-oee', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/maskin-oee/maskin-oee.component').then(m => m.MaskinOeePage) },
       { path: 'rebotling/operatorsbonus', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operatorsbonus/operatorsbonus.component').then(m => m.OperatorsbonusPage) },
+      { path: 'rebotling/leveransplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/leveransplanering/leveransplanering.component').then(m => m.LeveransplaneringPage) },
+      { path: 'rebotling/kvalitetscertifikat', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component').then(m => m.KvalitetscertifikatPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

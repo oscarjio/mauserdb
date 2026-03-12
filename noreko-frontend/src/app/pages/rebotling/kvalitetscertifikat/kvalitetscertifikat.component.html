@@ -1,0 +1,430 @@
+<div class="container-fluid py-3 kvalitet-page" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
+      <i class="fas fa-certificate me-2" style="color:#48bb78;"></i>
+      Kvalitetscertifikat
+    </h1>
+    <button class="btn btn-sm btn-outline-success" (click)="openGenerera()">
+      <i class="fas fa-plus me-1"></i>
+      Nytt certifikat
+    </button>
+  </div>
+
+  <!-- KPI-kort (4 st) -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Totala certifikat</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value" style="color:#4299e1;">{{ overview?.totala_certifikat ?? 0 }}</div>
+          <div class="kpi-sub">Genererade totalt</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Godkanda batchar</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value" style="color:#48bb78;">{{ overview?.godkand_procent ?? 0 }}%</div>
+          <div class="kpi-sub">{{ overview?.godkanda ?? 0 }} av {{ overview?.totala_certifikat ?? 0 }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Senaste certifikat</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value" style="font-size:1.3rem;">{{ formatDate(overview?.senaste_datum ?? null) }}</div>
+          <div class="kpi-sub">{{ overview?.senaste_batch ?? '\u2014' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt kvalitetspoang</div>
+        <div *ngIf="loadingOverview" class="loading-spinner py-2">
+          <div class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+        <div *ngIf="!loadingOverview">
+          <div class="kpi-value" [style.color]="poangColor(overview?.snitt_kvalitetspoang ?? 0)">
+            {{ formatDecimal(overview?.snitt_kvalitetspoang, 1) }}
+          </div>
+          <div class="kpi-sub">Av 100 mojliga</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="d-flex gap-2 mb-4 align-items-center flex-wrap">
+    <span class="text-muted small me-1">Filter:</span>
+
+    <select class="filter-select" [(ngModel)]="filterPeriod" (change)="onFilterChange()">
+      <option value="">Alla perioder</option>
+      <option value="vecka">Denna vecka</option>
+      <option value="manad">Denna manad</option>
+      <option value="kvartal">Detta kvartal</option>
+    </select>
+
+    <select class="filter-select" [(ngModel)]="filterStatus" (change)="onFilterChange()">
+      <option value="">Alla statusar</option>
+      <option value="godkand">Godkand</option>
+      <option value="underkand">Underkand</option>
+      <option value="ej_bedomd">Ej bedomd</option>
+    </select>
+
+    <select class="filter-select" [(ngModel)]="filterOperator" (change)="onFilterChange()">
+      <option [ngValue]="0">Alla operatorer</option>
+      <option *ngFor="let op of operatorer" [ngValue]="op.operator_id">{{ op.operator_namn }}</option>
+    </select>
+  </div>
+
+  <!-- Kvalitetsdiagram -->
+  <div class="chart-card mb-4">
+    <div class="chart-title">
+      <i class="fas fa-chart-bar me-2" style="color:#48bb78;"></i>
+      Kvalitetspoang per batch (senaste 30)
+    </div>
+    <div *ngIf="loadingStatistik" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+    <div *ngIf="!loadingStatistik && statistik.length > 0" class="chart-container">
+      <canvas id="kvalitetChart"></canvas>
+    </div>
+    <div *ngIf="!loadingStatistik && statistik.length === 0" class="text-muted small py-3 text-center">
+      Ingen statistik tillganglig.
+    </div>
+  </div>
+
+  <!-- Batch-tabell -->
+  <div class="table-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-list me-2" style="color:#4299e1;"></i>
+      Certifikat — batchlista
+    </div>
+
+    <div *ngIf="loadingLista" class="loading-spinner">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+
+    <div *ngIf="!loadingLista && certifikat.length > 0" style="overflow-x:auto;">
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th class="sortable-th" (click)="sortBy('batch_nummer')">
+              Batch <i [class]="sortIcon('batch_nummer')"></i>
+            </th>
+            <th class="sortable-th" (click)="sortBy('datum')">
+              Datum <i [class]="sortIcon('datum')"></i>
+            </th>
+            <th class="sortable-th" (click)="sortBy('operator_namn')">
+              Operator <i [class]="sortIcon('operator_namn')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('antal_ibc')">
+              IBC <i [class]="sortIcon('antal_ibc')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('kassation_procent')">
+              Kass.% <i [class]="sortIcon('kassation_procent')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('cykeltid_snitt')">
+              Cykeltid <i [class]="sortIcon('cykeltid_snitt')"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortBy('kvalitetspoang')">
+              Poang <i [class]="sortIcon('kvalitetspoang')"></i>
+            </th>
+            <th>Status</th>
+            <th class="text-center">Certifikat</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of certifikat">
+            <td><strong>{{ c.batch_nummer }}</strong></td>
+            <td>{{ formatDate(c.datum) }}</td>
+            <td>{{ c.operator_namn || '\u2014' }}</td>
+            <td class="text-end">{{ c.antal_ibc }}</td>
+            <td class="text-end" [style.color]="c.kassation_procent > 3 ? '#e53e3e' : '#48bb78'">
+              {{ formatDecimal(c.kassation_procent) }}%
+            </td>
+            <td class="text-end" [style.color]="c.cykeltid_snitt > 45 ? '#e53e3e' : '#e2e8f0'">
+              {{ formatDecimal(c.cykeltid_snitt) }}s
+            </td>
+            <td class="text-end">
+              <strong [style.color]="poangColor(c.kvalitetspoang)">{{ formatDecimal(c.kvalitetspoang) }}</strong>
+            </td>
+            <td>
+              <span class="status-badge" [class]="statusBadgeClass(c.status)">
+                {{ statusLabel(c.status) }}
+              </span>
+            </td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-outline-info" (click)="openCertifikat(c)">
+                <i class="fas fa-eye me-1"></i>Visa
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="!loadingLista && certifikat.length === 0" class="text-muted small py-3 text-center">
+      Inga certifikat hittades.
+    </div>
+  </div>
+
+  <!-- Certifikat-modal -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="cert-modal" (click)="$event.stopPropagation()">
+      <div class="cert-modal-header">
+        <h2 class="mb-0">
+          <i class="fas fa-certificate me-2" style="color:#48bb78;"></i>
+          Kvalitetscertifikat
+        </h2>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-light" (click)="printCertifikat()" title="Skriv ut">
+            <i class="fas fa-print"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-light" (click)="closeModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div *ngIf="loadingDetalj" class="loading-spinner py-4">
+        <div class="spinner-border text-info"></div>
+      </div>
+
+      <div *ngIf="!loadingDetalj && selectedCert" class="cert-content" id="printable-cert">
+        <!-- Certifikat-huvud -->
+        <div class="cert-header-section">
+          <div class="cert-company">Noreko / Mauser IBC-tvatteri</div>
+          <div class="cert-title-big">KVALITETSCERTIFIKAT</div>
+          <div class="cert-subtitle">Batch: {{ selectedCert.batch_nummer }}</div>
+        </div>
+
+        <!-- Grunddata -->
+        <div class="cert-section">
+          <div class="cert-section-title">Batchinformation</div>
+          <div class="cert-grid">
+            <div class="cert-field">
+              <span class="cert-field-label">Batchnummer</span>
+              <span class="cert-field-value">{{ selectedCert.batch_nummer }}</span>
+            </div>
+            <div class="cert-field">
+              <span class="cert-field-label">Datum</span>
+              <span class="cert-field-value">{{ formatDate(selectedCert.datum) }}</span>
+            </div>
+            <div class="cert-field">
+              <span class="cert-field-label">Operator</span>
+              <span class="cert-field-value">{{ selectedCert.operator_namn || '\u2014' }}</span>
+            </div>
+            <div class="cert-field">
+              <span class="cert-field-label">Skapad</span>
+              <span class="cert-field-value">{{ formatDate(selectedCert.skapad_datum) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Produktionsdata -->
+        <div class="cert-section">
+          <div class="cert-section-title">Produktionsdata</div>
+          <div class="cert-grid">
+            <div class="cert-field">
+              <span class="cert-field-label">Antal IBC</span>
+              <span class="cert-field-value">{{ selectedCert.antal_ibc }}</span>
+            </div>
+            <div class="cert-field">
+              <span class="cert-field-label">Kassation</span>
+              <span class="cert-field-value" [style.color]="selectedCert.kassation_procent > 3 ? '#e53e3e' : '#48bb78'">
+                {{ formatDecimal(selectedCert.kassation_procent) }}%
+              </span>
+            </div>
+            <div class="cert-field">
+              <span class="cert-field-label">Genomsnittlig cykeltid</span>
+              <span class="cert-field-value" [style.color]="selectedCert.cykeltid_snitt > 45 ? '#e53e3e' : '#e2e8f0'">
+                {{ formatDecimal(selectedCert.cykeltid_snitt) }}s
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Kvalitetsbedomning -->
+        <div class="cert-section">
+          <div class="cert-section-title">Kvalitetsbedomning</div>
+          <div class="cert-grid">
+            <div class="cert-field">
+              <span class="cert-field-label">Kvalitetspoang</span>
+              <span class="cert-field-value cert-poang" [style.color]="poangColor(selectedCert.kvalitetspoang)">
+                {{ formatDecimal(selectedCert.kvalitetspoang) }} / 100
+              </span>
+            </div>
+            <div class="cert-field">
+              <span class="cert-field-label">Status</span>
+              <span class="status-badge" [class]="statusBadgeClass(selectedCert.status)">
+                {{ statusLabel(selectedCert.status) }}
+              </span>
+            </div>
+            <div class="cert-field" *ngIf="selectedCert.bedomd_av">
+              <span class="cert-field-label">Bedomd av</span>
+              <span class="cert-field-value">{{ selectedCert.bedomd_av }}</span>
+            </div>
+            <div class="cert-field" *ngIf="selectedCert.bedomd_datum">
+              <span class="cert-field-label">Bedomd datum</span>
+              <span class="cert-field-value">{{ formatDate(selectedCert.bedomd_datum) }}</span>
+            </div>
+          </div>
+          <div *ngIf="selectedCert.kommentar" class="cert-kommentar">
+            <span class="cert-field-label">Kommentar</span>
+            <p>{{ selectedCert.kommentar }}</p>
+          </div>
+        </div>
+
+        <!-- Kvalitetskriterier -->
+        <div class="cert-section" *ngIf="selectedKriterier.length > 0">
+          <div class="cert-section-title">Kvalitetskriterier</div>
+          <table class="cert-kriterier-table">
+            <thead>
+              <tr>
+                <th>Kriterium</th>
+                <th>Beskrivning</th>
+                <th class="text-end">Min</th>
+                <th class="text-end">Max</th>
+                <th class="text-end">Vikt</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let k of selectedKriterier">
+                <td><strong>{{ k.namn }}</strong></td>
+                <td class="text-muted">{{ k.beskrivning }}</td>
+                <td class="text-end">{{ k.min_varde != null ? formatDecimal(k.min_varde) : '\u2014' }}</td>
+                <td class="text-end">{{ k.max_varde != null ? formatDecimal(k.max_varde) : '\u2014' }}</td>
+                <td class="text-end">{{ formatDecimal(k.vikt) }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bedom-sektion (ej vid utskrift) -->
+        <div class="cert-section no-print" *ngIf="selectedCert.status === 'ej_bedomd'">
+          <div class="cert-section-title">Bedom certifikat</div>
+          <div class="d-flex gap-2 mb-3 align-items-center">
+            <button class="btn btn-sm"
+                    [class.btn-success]="bedomStatus === 'godkand'"
+                    [class.btn-outline-success]="bedomStatus !== 'godkand'"
+                    (click)="bedomStatus = 'godkand'">
+              <i class="fas fa-check me-1"></i>Godkann
+            </button>
+            <button class="btn btn-sm"
+                    [class.btn-danger]="bedomStatus === 'underkand'"
+                    [class.btn-outline-danger]="bedomStatus !== 'underkand'"
+                    (click)="bedomStatus = 'underkand'">
+              <i class="fas fa-times me-1"></i>Underkann
+            </button>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted small">Kommentar</label>
+            <textarea class="cert-textarea" rows="3" [(ngModel)]="bedomKommentar"
+                      placeholder="Valfri kommentar..."></textarea>
+          </div>
+          <button class="btn btn-sm btn-info" (click)="submitBedom()"
+                  [disabled]="bedomLoading || !bedomStatus">
+            <span *ngIf="bedomLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <i *ngIf="!bedomLoading" class="fas fa-save me-1"></i>
+            Spara bedomning
+          </button>
+          <span *ngIf="bedomMessage" class="text-success small ms-2">
+            <i class="fas fa-check-circle me-1"></i>{{ bedomMessage }}
+          </span>
+          <span *ngIf="bedomError" class="text-danger small ms-2">
+            <i class="fas fa-exclamation-circle me-1"></i>{{ bedomError }}
+          </span>
+        </div>
+
+        <!-- Footer -->
+        <div class="cert-footer">
+          <div>Genererat av MauserDB Kvalitetssystem</div>
+          <div>{{ formatDate(selectedCert.skapad_datum) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Generera-modal -->
+  <div class="modal-overlay" *ngIf="showGenereraModal" (click)="closeGenerera()">
+    <div class="gen-modal" (click)="$event.stopPropagation()">
+      <div class="cert-modal-header">
+        <h2 class="mb-0" style="font-size:1.2rem;">
+          <i class="fas fa-plus-circle me-2" style="color:#48bb78;"></i>
+          Skapa nytt certifikat
+        </h2>
+        <button class="btn btn-sm btn-outline-light" (click)="closeGenerera()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <div class="gen-form">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Batchnummer *</label>
+            <input type="text" class="cert-input" [(ngModel)]="genBatchNummer" placeholder="T.ex. B-2026-0326" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Datum</label>
+            <input type="date" class="cert-input" [(ngModel)]="genDatum" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Operator</label>
+            <input type="text" class="cert-input" [(ngModel)]="genOperatorNamn" placeholder="Operatornamn" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Antal IBC</label>
+            <input type="number" class="cert-input" [(ngModel)]="genAntalIbc" min="0" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Kassation (%)</label>
+            <input type="number" class="cert-input" [(ngModel)]="genKassationPct" min="0" max="100" step="0.1" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label text-muted small">Genomsnittlig cykeltid (s)</label>
+            <input type="number" class="cert-input" [(ngModel)]="genCykeltidSnitt" min="0" step="0.1" />
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <button class="btn btn-sm btn-success" (click)="submitGenerera()" [disabled]="genLoading">
+            <span *ngIf="genLoading" class="spinner-border spinner-border-sm me-1"></span>
+            <i *ngIf="!genLoading" class="fas fa-plus me-1"></i>
+            Skapa certifikat
+          </button>
+          <span *ngIf="genMessage" class="text-success small ms-2">
+            <i class="fas fa-check-circle me-1"></i>{{ genMessage }}
+          </span>
+          <span *ngIf="genError" class="text-danger small ms-2">
+            <i class="fas fa-exclamation-circle me-1"></i>{{ genError }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info-fotnot -->
+  <div class="text-muted small mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    Kvalitetspoang beraknas automatiskt baserat pa kassation, cykeltid och antal IBC.
+    Klicka <strong>Visa</strong> for att se komplett certifikat och bedoma batchen.
+  </div>
+
+</div>

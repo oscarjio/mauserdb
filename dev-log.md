@@ -1,3 +1,34 @@
+## 2026-03-12 Kvalitetscertifikat — certifikat per batch med kvalitetsbedomning
+
+Ny sida `/rebotling/kvalitetscertifikat` — genererar kvalitetsintyg for avslutade batchar med nyckeltal (kassation%, cykeltid, operatorer, godkand/underkand).
+
+- **Migration**: `2026-03-12_kvalitetscertifikat.sql` — nya tabeller `kvalitetscertifikat` (batch_nummer, datum, operator, antal_ibc, kassation_procent, cykeltid_snitt, kvalitetspoang, status ENUM godkand/underkand/ej_bedomd, kommentar, bedomd_av/datum) och `kvalitetskriterier` (namn, beskrivning, min/max_varde, vikt, aktiv). Seed-data: 25 exempelcertifikat + 5 kvalitetskriterier.
+- **Backend**: `classes/KvalitetscertifikatController.php`
+  - `run=overview` — KPI:er: totala certifikat, godkand%, senaste certifikat, snitt kvalitetspoang
+  - `run=lista` — lista certifikat med filter (status, period, operator)
+  - `run=detalj` — hamta komplett certifikat for en batch
+  - `run=generera` (POST) — skapa nytt certifikat med automatisk poangberakning
+  - `run=bedom` (POST) — godkann/underkann certifikat med kommentar
+  - `run=kriterier` — hamta kvalitetskriterier
+  - `run=uppdatera-kriterier` (POST) — uppdatera kriterier (admin)
+  - `run=statistik` — kvalitetspoang per batch for trenddiagram
+  - Registrerad i `api.php` med nyckel `kvalitetscertifikat`
+- **Service**: `kvalitetscertifikat.service.ts` — interfaces Certifikat, KvalitetOverviewData, Kriterium, StatistikItem m.fl.
+- **Komponent**: `pages/rebotling/kvalitetscertifikat/`
+  - KPI-kort (4 st): Totala certifikat, Godkanda%, Senaste certifikat, Snitt kvalitetspoang
+  - Batch-tabell med sortering, statusbadges, poangfargkodning
+  - Certifikat-modal: formaterat kvalitetscertifikat med batchinfo, produktionsdata, bedomning, kriterier
+  - Bedom-funktion: godkann/underkann med kommentar
+  - Generera-modal: skapa nytt certifikat med batchdata
+  - Stapeldiagram (Chart.js) med kvalitetspoang per batch + trendlinje
+  - Filter: period (vecka/manad/kvartal), status, operator
+  - Print CSS (@media print) for utskriftsvanliq certifikatvy
+  - Auto-refresh var 60 sek, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + chart.destroy()
+- **Route**: `/rebotling/kvalitetscertifikat` (authGuard, lazy-loaded)
+- **Meny**: "Kvalitetscertifikat" med ikon `fas fa-certificate` under Rebotling
+
+---
+
 ## 2026-03-12 Operatorsbonus — individuell bonuskalkylator per operator
 
 Ny sida `/rebotling/operatorsbonus` — transparent bonusmodell som beraknar individuell bonus baserat pa IBC/h, kvalitet, narvaro och team-mal.
