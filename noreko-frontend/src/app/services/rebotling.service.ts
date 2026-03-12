@@ -618,6 +618,54 @@ export class RebotlingService {
     );
   }
 
+  // ---- Operatörsjämförelse ----
+
+  getOperatorsForCompare(): Observable<OperatorsListResponse> {
+    return this.http.get<OperatorsListResponse>(
+      `/noreko-backend/api.php?action=operator-jamforelse&run=operators-list`,
+      { withCredentials: true }
+    );
+  }
+
+  compareOperators(ids: number[], period: number): Observable<CompareResponse> {
+    const ops = ids.join(',');
+    return this.http.get<CompareResponse>(
+      `/noreko-backend/api.php?action=operator-jamforelse&run=compare&operators=${ops}&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
+  compareOperatorsTrend(ids: number[], period: number): Observable<CompareTrendResponse> {
+    const ops = ids.join(',');
+    return this.http.get<CompareTrendResponse>(
+      `/noreko-backend/api.php?action=operator-jamforelse&run=compare-trend&operators=${ops}&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
+  // ---- Produktionseffektivitet per timme ----
+
+  getHourlyHeatmap(period: number): Observable<HourlyHeatmapResponse> {
+    return this.http.get<HourlyHeatmapResponse>(
+      `/noreko-backend/api.php?action=produktionseffektivitet&run=hourly-heatmap&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
+  getHourlySummary(period: number): Observable<HourlySummaryResponse> {
+    return this.http.get<HourlySummaryResponse>(
+      `/noreko-backend/api.php?action=produktionseffektivitet&run=hourly-summary&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
+  getPeakAnalysis(period: number): Observable<PeakAnalysisResponse> {
+    return this.http.get<PeakAnalysisResponse>(
+      `/noreko-backend/api.php?action=produktionseffektivitet&run=peak-analysis&period=${period}`,
+      { withCredentials: true }
+    );
+  }
+
 }
 
 export interface LeaderboardOperator {
@@ -1730,5 +1778,117 @@ export interface DashboardLayoutSaveResponse {
 export interface DashboardAvailableWidgetsResponse {
   success: boolean;
   widgets?: DashboardAvailableWidget[];
+  error?: string;
+}
+
+// ---- Operatörsjämförelse interfaces ----
+
+export interface OperatorJamforelseItem {
+  id: number;
+  namn: string;
+}
+
+export interface OperatorJamforelseKpi {
+  operator_id: number;
+  namn: string;
+  totalt_ibc: number;
+  ibc_per_h: number;
+  kvalitetsgrad: number | null;
+  antal_stopp: number;
+  total_stopptid_min: number;
+  aktiva_timmar: number;
+  period_dagar: number;
+}
+
+export interface OperatorJamforelseTrendPoint {
+  datum: string;
+  ibc_count: number;
+  ibc_per_hour: number;
+}
+
+export interface OperatorJamforelseTrendRow {
+  operator_id: number;
+  namn: string;
+  trend: OperatorJamforelseTrendPoint[];
+}
+
+export interface OperatorsListResponse {
+  success: boolean;
+  data?: { operatorer: OperatorJamforelseItem[] };
+  error?: string;
+}
+
+export interface CompareResponse {
+  success: boolean;
+  data?: { period: number; operatorer: OperatorJamforelseKpi[] };
+  error?: string;
+}
+
+export interface CompareTrendResponse {
+  success: boolean;
+  data?: { period: number; operatorer: OperatorJamforelseTrendRow[] };
+  error?: string;
+}
+
+// ---- Produktionseffektivitet per timme ----
+
+export interface HeatmapVeckodag {
+  index: number;
+  namn: string;
+  data: (number | null)[];
+}
+
+export interface HourlyHeatmapData {
+  period: number;
+  veckodagar: HeatmapVeckodag[];
+  max_val: number;
+  timmar: number[];
+}
+
+export interface HourlyHeatmapResponse {
+  success: boolean;
+  data?: HourlyHeatmapData;
+  error?: string;
+}
+
+export interface HourlySummaryRow {
+  timme: number;
+  snitt_ibc: number | null;
+  snitt_ibc_h: number | null;
+  antal_dagar: number;
+  basta_dag: string | null;
+  samsta_dag: string | null;
+}
+
+export interface HourlySummaryData {
+  period: number;
+  timmar: HourlySummaryRow[];
+}
+
+export interface HourlySummaryResponse {
+  success: boolean;
+  data?: HourlySummaryData;
+  error?: string;
+}
+
+export interface PeakTimmeRow {
+  timme: number;
+  timme_label: string;
+  totalt_ibc: number;
+  antal_dagar: number;
+  snitt_ibc: number;
+}
+
+export interface PeakAnalysisData {
+  period: number;
+  topp3: PeakTimmeRow[];
+  botten3: PeakTimmeRow[];
+  skillnad_pct: number | null;
+  har_data: boolean;
+}
+
+export interface PeakAnalysisResponse {
+  success: boolean;
+  data?: PeakAnalysisData;
   error?: string;
 }

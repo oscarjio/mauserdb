@@ -1,0 +1,7 @@
+.dropdown-operator-item:hover {
+  background: #374151;
+}
+
+.dropdown-operator-item:last-child {
+  border-bottom: none;
+}

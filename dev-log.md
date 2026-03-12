@@ -1,3 +1,26 @@
+## 2026-03-12 Operatörsjämförelse — Sida-vid-sida KPI-jämförelse
+
+Ny sida `/rebotling/operator-jamforelse` — VD väljer 2–3 operatörer och ser deras KPI:er jämförda sida vid sida.
+
+- **Backend**: `OperatorJamforelseController.php` i `classes/`
+  - `run=operators-list` — lista aktiva operatörer (id, namn) för dropdown
+  - `run=compare&operators=1,2,3&period=7|30|90` — per operatör: totalt_ibc, ibc_per_h, kvalitetsgrad, antal_stopp, total_stopptid_min, aktiva_timmar
+  - `run=compare-trend&operators=1,2,3&period=30` — daglig trenddata (datum, ibc_count, ibc_per_hour) per operatör
+  - Stopptid hämtas från stoppage_log med fallback till rebotling_skiftrapport.stopp_min
+  - Registrerad i `api.php` som `'operator-jamforelse' => 'OperatorJamforelseController'`
+- **Frontend Service**: Tre nya metoder i `rebotling.service.ts`:
+  - `getOperatorsForCompare()`, `compareOperators(ids, period)`, `compareOperatorsTrend(ids, period)`
+  - Nya interfaces: OperatorJamforelseItem, OperatorJamforelseKpi, OperatorJamforelseTrendRow, OperatorsListResponse, CompareResponse, CompareTrendResponse
+- **Frontend Komponent**: `pages/rebotling/operator-jamforelse/` (standalone, OnInit/OnDestroy, destroy$, takeUntil, auto-refresh 120s)
+  - Dropdown med checkboxar — välj upp till 3 operatörer
+  - Periodväljare: 7/30/90 dagar
+  - KPI-tabell sida-vid-sida med kronikon för bästa värde per rad
+  - Chart.js linjediagram: IBC/dag per operatör (en linje per operatör)
+  - Chart.js radardiagram: normaliserade KPI:er (0–100) i spider chart
+  - Guard: isFetchingCompare/isFetchingTrend mot dubbel-requests
+- **Route**: `/rebotling/operator-jamforelse` med authGuard i `app.routes.ts`
+- **Meny**: Under Rebotling, ikon `fas fa-users`, text "Operatörsjämförelse"
+
 ## 2026-03-12 Skiftoverlamninslogg — Digital overlamning mellan skift
 
 Ombyggd sida `/rebotling/skiftoverlamning` — komplett digital skiftoverlamning med strukturerat formular, auto-KPI:er, historik och detaljvy.

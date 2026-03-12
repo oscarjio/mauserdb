@@ -78,6 +78,8 @@ export const routes: Routes = [
       { path: 'rebotling/produktionsprognos', canActivate: [authGuard], loadComponent: () => import('./pages/produktionsprognos/produktionsprognos').then(m => m.ProduktionsPrognosPage) },
       { path: 'rebotling/stopporsak-operator', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-operator/stopporsak-operator').then(m => m.StopporsakOperatorPage) },
       { path: 'rebotling/operator-onboarding', canActivate: [authGuard], loadComponent: () => import('./pages/operator-onboarding/operator-onboarding').then(m => m.OperatorOnboardingPage) },
+      { path: 'rebotling/operator-jamforelse', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operator-jamforelse/operator-jamforelse').then(m => m.OperatorJamforelsePage) },
+      { path: 'rebotling/produktionseffektivitet', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktionseffektivitet/produktionseffektivitet').then(m => m.ProduktionseffektivitetPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

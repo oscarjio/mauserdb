@@ -1,0 +1,293 @@
+<div class="container-fluid py-4" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h2 class="fw-bold mb-1" style="color:#e2e8f0;">
+        <i class="fas fa-users me-2" style="color:#4299e1;"></i>Operatörsjämförelse
+      </h2>
+      <p class="text-muted mb-0">Jämför KPI:er sida-vid-sida för 2–3 operatörer. Uppdateras var 120:e sekund.</p>
+    </div>
+  </div>
+
+  <!-- Filter-rad -->
+  <div class="row mb-4 g-3 align-items-end">
+
+    <!-- Operatörs-dropdown (multiselect) -->
+    <div class="col-md-6 col-lg-5">
+      <label class="form-label text-muted small mb-1">Välj operatörer (max 3)</label>
+      <div class="position-relative">
+        <button
+          class="btn btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center"
+          style="background:#2d3748; border-color:#4a5568; color:#e2e8f0;"
+          type="button"
+          (click)="toggleDropdown()">
+          <span class="text-truncate" style="max-width:85%;">{{ valdaNamn }}</span>
+          <i class="fas" [class.fa-chevron-down]="!dropdownOpen" [class.fa-chevron-up]="dropdownOpen"></i>
+        </button>
+
+        <!-- Dropdown-lista -->
+        <div *ngIf="dropdownOpen"
+             class="position-absolute w-100 mt-1 rounded"
+             style="background:#2d3748; border:1px solid #4a5568; z-index:1000; max-height:300px; overflow-y:auto;">
+
+          <div *ngIf="loadingOperators" class="px-3 py-2 text-muted small">
+            <i class="fas fa-spinner fa-spin me-1"></i>Hämtar...
+          </div>
+          <div *ngIf="errorOperators && !loadingOperators" class="px-3 py-2 text-danger small">
+            Kunde inte hämta operatörer.
+          </div>
+
+          <div *ngFor="let op of alleOperatorer"
+               class="px-3 py-2 d-flex align-items-center gap-2 dropdown-operator-item"
+               [class.opacity-50]="!isVald(op.id) && valdaIds.size >= 3"
+               style="cursor:pointer;"
+               (click)="toggleOperator(op.id)">
+            <input type="checkbox"
+                   class="form-check-input mt-0"
+                   [checked]="isVald(op.id)"
+                   [disabled]="!isVald(op.id) && valdaIds.size >= 3"
+                   (click)="$event.stopPropagation()">
+            <span style="color:#e2e8f0;">{{ op.namn }}</span>
+          </div>
+
+          <div *ngIf="!loadingOperators && !errorOperators && alleOperatorer.length === 0"
+               class="px-3 py-2 text-muted small">
+            Inga operatörer hittades.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Periodväljare -->
+    <div class="col-md-4 col-lg-3">
+      <label class="form-label text-muted small mb-1">Period</label>
+      <div class="btn-group w-100" role="group">
+        <button *ngFor="let opt of periodOptions"
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="period === opt.val"
+                [class.btn-outline-secondary]="period !== opt.val"
+                [style.background]="period !== opt.val ? '#2d3748' : ''"
+                [style.border-color]="period !== opt.val ? '#4a5568' : ''"
+                [style.color]="period !== opt.val ? '#a0aec0' : ''"
+                (click)="onPeriodChange(opt.val)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Rensa-knapp -->
+    <div class="col-md-2 col-lg-2" *ngIf="valdaIds.size > 0">
+      <button class="btn btn-sm btn-outline-danger w-100" (click)="clearSelection()">
+        <i class="fas fa-times me-1"></i>Rensa
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Valda operatörers färgkod -->
+  <div class="row mb-4" *ngIf="valdaLista.length > 0">
+    <div class="col-12">
+      <div class="d-flex flex-wrap gap-2">
+        <span *ngFor="let op of valdaLista; let i = index"
+              class="badge px-3 py-2"
+              [style.background-color]="operatorFarg(i) + '33'"
+              [style.border]="'1px solid ' + operatorFarg(i)"
+              [style.color]="operatorFarg(i)">
+          <i class="fas fa-circle me-1" style="font-size:0.5em;"></i>{{ op.namn }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tom-tillstånd -->
+  <div *ngIf="valdaIds.size === 0" class="row">
+    <div class="col-12 text-center py-5">
+      <i class="fas fa-users" style="font-size:3rem; color:#4a5568;"></i>
+      <p class="mt-3 text-muted">Välj 2–3 operatörer i dropdown-menyn ovan för att jämföra deras KPI:er.</p>
+    </div>
+  </div>
+
+  <!-- Laddning -->
+  <div *ngIf="loadingCompare && valdaIds.size > 0" class="row">
+    <div class="col-12 text-center py-4">
+      <i class="fas fa-spinner fa-spin me-2" style="color:#4299e1;"></i>
+      <span class="text-muted">Hämtar jämförelsedata...</span>
+    </div>
+  </div>
+
+  <!-- Fel -->
+  <div *ngIf="errorCompare && !loadingCompare" class="row mb-3">
+    <div class="col-12">
+      <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte hämta jämförelsedata.
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-jämförelsetabell -->
+  <div *ngIf="harData && !loadingCompare" class="row mb-4">
+    <div class="col-12">
+      <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-header" style="background:#2d3748; border-bottom:1px solid #4a5568; border-radius:12px 12px 0 0;">
+          <h5 class="mb-0 fw-semibold" style="color:#e2e8f0;">
+            <i class="fas fa-table me-2" style="color:#48bb78;"></i>KPI-jämförelse
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0" style="color:#e2e8f0;">
+              <thead>
+                <tr style="border-bottom:1px solid #4a5568;">
+                  <th style="background:#1a202c; color:#a0aec0; padding:12px 16px; width:180px;">KPI</th>
+                  <th *ngFor="let op of compareData; let i = index"
+                      style="background:#1a202c; padding:12px 16px; text-align:center;">
+                    <span [style.color]="operatorFarg(i)" class="fw-semibold">{{ op.namn }}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Totalt IBC -->
+                <tr style="border-bottom:1px solid #2d3748;">
+                  <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
+                    <i class="fas fa-box me-2" style="color:#4299e1;"></i>Totalt IBC
+                  </td>
+                  <td *ngFor="let op of compareData; let i = index"
+                      style="padding:10px 16px; text-align:center;"
+                      [class.fw-bold]="bestOperatorFor('totalt_ibc') === i"
+                      [style.color]="bestOperatorFor('totalt_ibc') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ kpiRowValue(op, 'totalt_ibc') }}
+                    <i *ngIf="bestOperatorFor('totalt_ibc') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                  </td>
+                </tr>
+                <!-- IBC/h -->
+                <tr style="border-bottom:1px solid #2d3748;">
+                  <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
+                    <i class="fas fa-tachometer-alt me-2" style="color:#48bb78;"></i>IBC per timme
+                  </td>
+                  <td *ngFor="let op of compareData; let i = index"
+                      style="padding:10px 16px; text-align:center;"
+                      [class.fw-bold]="bestOperatorFor('ibc_per_h') === i"
+                      [style.color]="bestOperatorFor('ibc_per_h') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ kpiRowValue(op, 'ibc_per_h') }}
+                    <i *ngIf="bestOperatorFor('ibc_per_h') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                  </td>
+                </tr>
+                <!-- Kvalitetsgrad -->
+                <tr style="border-bottom:1px solid #2d3748;">
+                  <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
+                    <i class="fas fa-star me-2" style="color:#ecc94b;"></i>Kvalitetsgrad
+                  </td>
+                  <td *ngFor="let op of compareData; let i = index"
+                      style="padding:10px 16px; text-align:center;"
+                      [class.fw-bold]="bestOperatorFor('kvalitetsgrad') === i"
+                      [style.color]="bestOperatorFor('kvalitetsgrad') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ kpiRowValue(op, 'kvalitetsgrad') }}
+                    <i *ngIf="bestOperatorFor('kvalitetsgrad') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                  </td>
+                </tr>
+                <!-- Antal stopp -->
+                <tr style="border-bottom:1px solid #2d3748;">
+                  <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
+                    <i class="fas fa-stop-circle me-2" style="color:#fc8181;"></i>Antal stopp
+                  </td>
+                  <td *ngFor="let op of compareData; let i = index"
+                      style="padding:10px 16px; text-align:center;"
+                      [class.fw-bold]="bestOperatorFor('antal_stopp') === i"
+                      [style.color]="bestOperatorFor('antal_stopp') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ kpiRowValue(op, 'antal_stopp') }}
+                    <i *ngIf="bestOperatorFor('antal_stopp') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                  </td>
+                </tr>
+                <!-- Total stopptid -->
+                <tr style="border-bottom:1px solid #2d3748;">
+                  <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
+                    <i class="fas fa-clock me-2" style="color:#ed8936;"></i>Total stopptid
+                  </td>
+                  <td *ngFor="let op of compareData; let i = index"
+                      style="padding:10px 16px; text-align:center;"
+                      [class.fw-bold]="bestOperatorFor('total_stopptid_min') === i"
+                      [style.color]="bestOperatorFor('total_stopptid_min') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ kpiRowValue(op, 'total_stopptid_min') }}
+                    <i *ngIf="bestOperatorFor('total_stopptid_min') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                  </td>
+                </tr>
+                <!-- Aktiva timmar -->
+                <tr>
+                  <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
+                    <i class="fas fa-business-time me-2" style="color:#9f7aea;"></i>Aktiva timmar
+                  </td>
+                  <td *ngFor="let op of compareData; let i = index"
+                      style="padding:10px 16px; text-align:center;"
+                      [class.fw-bold]="bestOperatorFor('aktiva_timmar') === i"
+                      [style.color]="bestOperatorFor('aktiva_timmar') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ kpiRowValue(op, 'aktiva_timmar') }}
+                    <i *ngIf="bestOperatorFor('aktiva_timmar') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagram-rad -->
+  <div *ngIf="harData" class="row g-4 mb-4">
+
+    <!-- Linjediagram: IBC/dag -->
+    <div class="col-lg-7">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-header" style="background:#2d3748; border-bottom:1px solid #4a5568; border-radius:12px 12px 0 0;">
+          <h6 class="mb-0 fw-semibold" style="color:#e2e8f0;">
+            <i class="fas fa-chart-line me-2" style="color:#4299e1;"></i>IBC per dag — trend
+          </h6>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loadingTrend" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin" style="color:#4299e1;"></i>
+          </div>
+          <div *ngIf="errorTrend && !loadingTrend" class="text-danger small text-center py-3">
+            Kunde inte hämta trenddata.
+          </div>
+          <div *ngIf="!loadingTrend && !errorTrend" style="height:280px; position:relative;">
+            <canvas id="jamforelseLineChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Radardiagram: normaliserade KPI:er -->
+    <div class="col-lg-5">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-header" style="background:#2d3748; border-bottom:1px solid #4a5568; border-radius:12px 12px 0 0;">
+          <h6 class="mb-0 fw-semibold" style="color:#e2e8f0;">
+            <i class="fas fa-spider me-2" style="color:#9f7aea;"></i>KPI-radar (normaliserat 0–100)
+          </h6>
+        </div>
+        <div class="card-body d-flex align-items-center justify-content-center">
+          <div *ngIf="loadingCompare" class="text-center py-4">
+            <i class="fas fa-spinner fa-spin" style="color:#9f7aea;"></i>
+          </div>
+          <div *ngIf="!loadingCompare" style="height:280px; width:100%; position:relative;">
+            <canvas id="jamforelseRadarChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Förklaring av krona-ikon -->
+  <div *ngIf="harData" class="row">
+    <div class="col-12">
+      <p class="text-muted small mb-0">
+        <i class="fas fa-crown text-warning me-1"></i>
+        Kronan visar bästa värdet bland valda operatörer för varje KPI. För stopp är lägre bättre.
+      </p>
+    </div>
+  </div>
+
+</div>

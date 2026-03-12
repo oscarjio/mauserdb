@@ -176,6 +176,8 @@ $classNameMap = [
     'produktionsprognos'      => 'ProduktionsPrognosController',
     'stopporsak-operator'     => 'StopporsakOperatorController',
     'operator-onboarding'     => 'OperatorOnboardingController',
+    'operator-jamforelse'          => 'OperatorJamforelseController',
+    'produktionseffektivitet'      => 'ProduktionseffektivitetController',
 ];
 
 $actionKey = strtolower($action);

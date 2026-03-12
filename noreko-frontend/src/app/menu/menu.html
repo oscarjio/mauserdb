@@ -75,6 +75,8 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktionsprognos"><i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Produktionsprognos</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/stopporsak-operator"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Stopporsak per operatör</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/operator-onboarding"><i class="fas fa-user-graduate me-2" style="color:#63b3ed"></i>Operator-onboarding</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/operator-jamforelse"><i class="fas fa-users me-2" style="color:#4299e1"></i>Operatörsjämförelse</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktionseffektivitet"><i class="fas fa-clock me-2" style="color:#68d391"></i>Produktionseffektivitet/h</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
