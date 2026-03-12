@@ -1,3 +1,34 @@
+## 2026-03-12 VD:s Morgonrapport — Daglig produktionssammanfattning
+
+Ny sida `/rebotling/morgonrapport` — en komplett daglig sammanfattning av gårdagens produktion redo for VD på morgonen.
+
+- **Backend**: Ny `MorgonrapportController.php` (classes/ + controllers/) med endpoint `run=rapport&date=YYYY-MM-DD`:
+  - **Produktion**: Totalt IBC, mål vs utfall (uppfyllnad %), jämförelse med föregående vecka samma dag och 30-dagarssnitt
+  - **Effektivitet**: IBC/drifttimme, total drifttid, utnyttjandegrad (jämfört föregående vecka)
+  - **Stopp**: Antal stopp, total stopptid, top-3 stopporsaker (från `stoppage_log` + `stopporsak_registreringar`)
+  - **Kvalitet**: Kassationsgrad, antal kasserade, topporsak (från `rebotling_ibc` + `kassationsregistrering`)
+  - **Trender**: Daglig IBC senaste 30 dagar + 7-dagars glidande medelvärde
+  - **Highlights**: Bästa timme, snabbaste operatör (via `operators`-tabell om tillgänglig)
+  - **Varningar**: Automatiska flaggor — produktion under mål, hög kassation (≥5%), hög stopptid (≥20% av drifttid), låg utnyttjandegrad (<50%) — severity röd/gul/grön
+  - Default: gårdagens datum om `date` saknas
+  - Auth: session krävs (401 om ej inloggad)
+- **Route** i `api.php`: `morgonrapport` → `MorgonrapportController`
+- **Frontend Service**: `morgonrapport.service.ts` med fullständiga TypeScript-interfaces, `timeout(20000)` + `catchError`
+- **Frontend Komponent**: `pages/morgonrapport/` (standalone, OnInit/OnDestroy, destroy$/takeUntil)
+  - Datumväljare (default: gårdagen)
+  - Varningssektion överst med rod/gul/gron statusfärger
+  - Executive summary: 5 stora KPI-kort (IBC, IBC/tim, stopp, kassation, utnyttjandegrad)
+  - Produktionssektion: detaljerad tabell + trendgraf (staplar 30 dagar)
+  - Stoppsektion: KPI + topp 3 orsaker
+  - Kvalitetssektion: kassationsgrad, topporsak, jämförelse
+  - Highlights-sektion: bästa timme + snabbaste operatör
+  - Effektivitetssektion: drifttid, utnyttjandegrad
+  - Trendpilar (▲/▼/→) med grönt/rött/neutralt för alla KPI-förändringar
+  - "Skriv ut"-knapp med `@media print` CSS (döljer kontroller, ljus bakgrund)
+  - Responsiv design
+- **Route**: `/rebotling/morgonrapport` med `authGuard` i `app.routes.ts`
+- **Meny**: "Morgonrapport" tillagd under Rebotling-dropdown (loggedIn), ikon fas fa-sun, före Veckorapport
+
 ## 2026-03-12 OEE-waterfall — Visuell nedbrytning av OEE-förluster
 
 Ny sida `/rebotling/oee-waterfall` som visar ett vattenfall-diagram (brygga) over OEE-förluster.

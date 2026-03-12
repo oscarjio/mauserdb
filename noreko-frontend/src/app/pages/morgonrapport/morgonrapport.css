@@ -1,0 +1,398 @@
+/* ============================================================
+   Morgonrapport — Övergripande layout
+   ============================================================ */
+
+.morgonrapport-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+  color: #e2e8f0;
+}
+
+/* ============================================================
+   Sidhuvud
+   ============================================================ */
+
+.rapport-titel {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.rapport-undertitel {
+  font-size: 0.95rem;
+}
+
+.datum-input {
+  background: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  min-width: 150px;
+}
+
+.datum-input:focus {
+  background: #2d3748;
+  border-color: #63b3ed;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+.rapport-meta {
+  font-size: 0.85rem;
+  border-bottom: 1px solid #2d3748;
+  padding-bottom: 0.75rem;
+}
+
+/* ============================================================
+   Sektioner
+   ============================================================ */
+
+.sektion {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+}
+
+.sektion-rubrik {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+/* ============================================================
+   KPI-kort-rad
+   ============================================================ */
+
+.kpi-rad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.kpi-kort {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  min-width: 160px;
+  flex: 1 1 160px;
+  position: relative;
+}
+
+.kpi-etikett {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a0aec0;
+  margin-bottom: 0.3rem;
+}
+
+.kpi-varde {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-detalj {
+  font-size: 0.78rem;
+  color: #718096;
+  margin-bottom: 0.35rem;
+}
+
+.kpi-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-top: 0.2rem;
+}
+
+.kpi-trend {
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+}
+
+.highlight-kort {
+  border: 1px solid #4a5568;
+}
+
+/* ============================================================
+   Trendpilar
+   ============================================================ */
+
+.trend-up     { color: #48bb78; }
+.trend-down   { color: #fc8181; }
+.trend-neutral { color: #a0aec0; }
+
+.trend-chip {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-left: 0.4rem;
+}
+
+.trend-chip.trend-up      { background: rgba(72, 187, 120, 0.18); }
+.trend-chip.trend-down    { background: rgba(252, 129, 129, 0.18); }
+.trend-chip.trend-neutral { background: rgba(160, 174, 192, 0.15); }
+
+/* ============================================================
+   Info-kort och tabell
+   ============================================================ */
+
+.info-kort {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  height: 100%;
+}
+
+.tabell-kompakt {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabell-kompakt td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid rgba(74, 85, 104, 0.4);
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+
+.tabell-kompakt tr:last-child td {
+  border-bottom: none;
+}
+
+.tabell-etikett {
+  color: #a0aec0;
+  white-space: nowrap;
+  width: 55%;
+}
+
+.tabell-varde {
+  color: #e2e8f0;
+  text-align: right;
+}
+
+/* ============================================================
+   Varningar
+   ============================================================ */
+
+.varning-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.varning-rad {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+}
+
+.varning-ikon {
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 0.05rem;
+}
+
+.varning-text {
+  flex: 1;
+}
+
+.varning-gron {
+  background: rgba(72, 187, 120, 0.12);
+  border-left: 3px solid #48bb78;
+  color: #9ae6b4;
+}
+
+.varning-gron .varning-ikon { color: #48bb78; }
+
+.varning-gul {
+  background: rgba(246, 173, 85, 0.12);
+  border-left: 3px solid #f6ad55;
+  color: #fbd38d;
+}
+
+.varning-gul .varning-ikon { color: #f6ad55; }
+
+.varning-rod {
+  background: rgba(252, 129, 129, 0.12);
+  border-left: 3px solid #fc8181;
+  color: #feb2b2;
+}
+
+.varning-rod .varning-ikon { color: #fc8181; }
+
+/* ============================================================
+   Stopporsaker
+   ============================================================ */
+
+.stopp-orsak-rad {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(74, 85, 104, 0.4);
+  font-size: 0.88rem;
+}
+
+.stopp-orsak-rad:last-child {
+  border-bottom: none;
+}
+
+.stopp-orsak-rank {
+  font-weight: 700;
+  color: #f6ad55;
+  min-width: 28px;
+}
+
+.stopp-orsak-namn {
+  flex: 1;
+  color: #e2e8f0;
+}
+
+.stopp-orsak-detalj {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Trendgraf (staplar)
+   ============================================================ */
+
+.trendgraf-rubrik {
+  margin-bottom: 0.5rem;
+}
+
+.trendgraf-wrapper {
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.trendgraf {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 100px;
+  min-width: 400px;
+}
+
+.trendgraf-stapel-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+}
+
+.trendgraf-stapel {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 2px 2px 0 0;
+  transition: background-color 0.2s;
+}
+
+.trendgraf-etikett {
+  position: absolute;
+  bottom: -18px;
+  font-size: 0.58rem;
+  color: #718096;
+  white-space: nowrap;
+  transform: rotate(-45deg);
+  transform-origin: top left;
+}
+
+/* ============================================================
+   Utskrift (@media print)
+   ============================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-datum-rubrik {
+    display: block !important;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 1rem;
+    font-style: italic;
+  }
+
+  .morgonrapport-container {
+    padding: 0;
+    color: #000;
+  }
+
+  .sektion {
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    page-break-inside: avoid;
+    color: #000;
+  }
+
+  .sektion-rubrik {
+    color: #000;
+    border-bottom-color: #ccc;
+  }
+
+  .kpi-kort {
+    background: #fff;
+    border: 1px solid #ccc;
+  }
+
+  .kpi-etikett { color: #555; }
+  .kpi-varde   { color: #000 !important; font-size: 1.5rem; }
+  .kpi-detalj  { color: #555; }
+
+  .info-kort {
+    background: #fff;
+    border: 1px solid #ccc;
+  }
+
+  .tabell-etikett { color: #555; }
+  .tabell-varde   { color: #000; }
+
+  .varning-gron,
+  .varning-gul,
+  .varning-rod {
+    color: #000;
+  }
+
+  .trendgraf-stapel {
+    background-color: #777 !important;
+  }
+
+  .rapport-meta {
+    color: #555;
+    border-bottom-color: #ccc;
+  }
+
+  .rapport-titel { color: #000; }
+  .rapport-undertitel { color: #555; }
+}
+
+/* ============================================================
+   Responsivitet
+   ============================================================ */
+
+@media (max-width: 576px) {
+  .rapport-titel { font-size: 1.35rem; }
+  .kpi-varde     { font-size: 1.5rem; }
+  .kpi-kort      { min-width: 130px; }
+}
