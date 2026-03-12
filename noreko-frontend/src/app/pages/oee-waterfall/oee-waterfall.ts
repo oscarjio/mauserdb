@@ -174,7 +174,7 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
               color: '#a0aec0',
               maxRotation: 20,
               font: { size: 11 },
-              callback: (val: any, idx: number) => {
+              callback: (_val: any, idx: number) => {
                 const lbl = labels[idx] ?? '';
                 return lbl.length > 20 ? lbl.substring(0, 18) + '…' : lbl;
               },

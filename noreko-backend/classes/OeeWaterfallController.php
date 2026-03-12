@@ -219,7 +219,8 @@ class OeeWaterfallController {
 
         // -- KVALITET --
         // Kasserade IBC → kvalitetsförlust i tid
-        $effektivTotalIbc = ($totalIbc > 0) ? $totalIbc : max(1, (int)($idealTidSek / self::IDEAL_CYCLE_SEC));
+        // effektivTotalIbc används implicit via $totalIbc nedan
+
         $kvalitet         = ($totalIbc > 0) ? (($okIbc > 0 ? $okIbc : max(0, $totalIbc - $kasserade)) / $totalIbc) : 0.0;
         $kvalitet         = min(1.0, max(0.0, $kvalitet));
 
