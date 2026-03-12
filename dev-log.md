@@ -1,3 +1,22 @@
+## 2026-03-12 Operator-onboarding — Larlingskurva & nya operatorers utveckling
+
+Ny sida `/rebotling/operator-onboarding` — VD ser hur snabbt nya operatorer nar teamgenomsnitt i IBC/h under sina forsta veckor.
+
+- **Backend**: `OperatorOnboardingController.php` i `classes/` och `controllers/` (proxy)
+  - `run=overview&months=3|6|12`: Alla operatorer med onboarding-status, KPI-kort. Filtrerar pa operatorer vars forsta registrerade IBC ar inom valt tidsfonstret. Beraknar nuvarande IBC/h (30d), % av teamsnitt, veckor aktiv, veckor till teamsnitt, status (gron/gul/rod)
+  - `run=operator-curve&operator_number=X`: Veckovis IBC/h de forsta 12 veckorna for en operator, jamfort med teamsnitt
+  - `run=team-stats`: Teamsnitt IBC/h (90 dagar), antal aktiva operatorer
+  - Anvander `rebotling_skiftrapport` (op1/op2/op3, ibc_ok, drifttid, datum) och `operators` (number, name)
+  - Registrerad i `api.php` som `'operator-onboarding' => 'OperatorOnboardingController'`
+- **Frontend Service**: `operator-onboarding.service.ts` — interfaces OnboardingOperator, OnboardingKpi, OverviewData, WeekData, OperatorCurveData, TeamStatsData + timeout(15000) + catchError
+- **Frontend Komponent**: `pages/operator-onboarding/` (standalone, OnInit/OnDestroy, destroy$, takeUntil)
+  - KPI-rad: Antal nya operatorer, snitt veckor till teamsnitt, basta nykomling (IBC/h), teamsnitt IBC/h
+  - Operatorstabell: sorterad efter startdatum (nyast forst), NY-badge, status-badge (gron >= 90%, gul 70-90%, rod < 70%), procent-stapel
+  - Drill-down: klicka operator -> Chart.js linjediagram (12 veckor, IBC/h + teamsnitt-linje) + veckotabell (IBC/h, IBC OK, drifttid, vs teamsnitt)
+  - Periodvaljare: 3 / 6 / 12 manader
+- **Route**: `rebotling/operator-onboarding` (authGuard) i `app.routes.ts`
+- **Meny**: Under Rebotling, ikon `fas fa-user-graduate`, text "Operator-onboarding", visas for inloggade
+
 ## 2026-03-12 Stopporsak per operatör — Utbildningsbehov & drill-down
 
 Ny sida `/rebotling/stopporsak-operator` — identifiera vilka operatörer som har mest stopp och kartlägg utbildningsbehov.

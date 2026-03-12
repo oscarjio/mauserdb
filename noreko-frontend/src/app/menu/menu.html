@@ -74,6 +74,7 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/forsta-timme-analys"><i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Forsta timmen</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktionsprognos"><i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Produktionsprognos</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/stopporsak-operator"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Stopporsak per operatör</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/operator-onboarding"><i class="fas fa-user-graduate me-2" style="color:#63b3ed"></i>Operator-onboarding</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>

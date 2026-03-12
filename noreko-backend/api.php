@@ -175,6 +175,7 @@ $classNameMap = [
     'my-stats'                => 'MyStatsController',
     'produktionsprognos'      => 'ProduktionsPrognosController',
     'stopporsak-operator'     => 'StopporsakOperatorController',
+    'operator-onboarding'     => 'OperatorOnboardingController',
 ];
 
 $actionKey = strtolower($action);

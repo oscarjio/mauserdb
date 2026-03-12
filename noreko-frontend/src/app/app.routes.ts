@@ -77,6 +77,7 @@ export const routes: Routes = [
       { path: 'rebotling/operator-dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/operator-personal-dashboard/operator-personal-dashboard').then(m => m.OperatorPersonalDashboardPage) },
       { path: 'rebotling/produktionsprognos', canActivate: [authGuard], loadComponent: () => import('./pages/produktionsprognos/produktionsprognos').then(m => m.ProduktionsPrognosPage) },
       { path: 'rebotling/stopporsak-operator', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-operator/stopporsak-operator').then(m => m.StopporsakOperatorPage) },
+      { path: 'rebotling/operator-onboarding', canActivate: [authGuard], loadComponent: () => import('./pages/operator-onboarding/operator-onboarding').then(m => m.OperatorOnboardingPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
