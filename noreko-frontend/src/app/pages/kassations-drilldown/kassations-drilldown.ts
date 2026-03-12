@@ -233,7 +233,7 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
             ticks: {
               color: '#a0aec0',
               font: { size: 11 },
-              callback: (val: any, idx: number) => {
+              callback: (_val: any, idx: number) => {
                 const lbl = labels[idx] ?? '';
                 return lbl.length > 22 ? lbl.substring(0, 20) + '...' : lbl;
               },
