@@ -5,11 +5,11 @@
 
 ## Förbättringar
 
-- [x] **Andon-board / fabriksskärm** — stor skärm i produktionen med realtidsdata: takt, status, dagens mål vs producerat, senaste stopp. Optimerad för TV (stor text, helskärm, auto-refresh 30s)
-- [x] **Veckorapport-generator** — automatisk sammanställning av veckans KPI:er (produktion, kvalitet, stopp, utnyttjandegrad) med utskriftslayout (Ctrl+P till PDF)
-- [ ] **Operatörsportal (personlig dashboard)** — varje operatör loggar in och ser sin egen statistik, bonus, trender, jämförelse mot teamsnitt. Motiverande och transparent
+- [x] **Operatörsportal (personlig dashboard)** — varje operatör loggar in och ser sin egen statistik, bonus, trender, jämförelse mot teamsnitt. Motiverande och transparent
+- [x] **Alarm-historik dashboard** — lista alla alerts/larm som triggats (låg takt, långt stopp etc.), filtrerbar, med severity-nivåer
 - [ ] **Operatörs-onboarding tracker** — visa nya operatörers lärlingskurva: hur snabbt de når team-genomsnittet i IBC/h de första veckorna
-- [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning, visa luckor/dubbelbokningar
 - [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift: vad gjordes, pågående problem, specialinstruktioner
-- [ ] **Alarm-historik dashboard** — lista alla alerts/larm som triggats (låg takt, långt stopp etc.), filtrerbar, med åtgärdsstatus
 - [ ] **Snabbkommandon/favoritvy** — VD kan bokmärka sina mest använda sidor för snabb åtkomst från startsidan
+- [ ] **Produktions-heatmap per timme/dag** — matrisvy (dagar x timmar) med färgkodning som visar när produktionen är hög/låg. Identifiera mönster snabbt
+- [ ] **Stopporsak Pareto-diagram** — 80/20-analys: vilka stopporsaker står för 80% av stopptiden? Visuell Pareto-stapel + kumulativ linje
+- [ ] **VD:s morgonrapport (auto-email/vy)** — sammanfattning av gårdagens produktion redo kl 06:00: mål vs utfall, stopp, kassation, highlight/varning

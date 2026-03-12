@@ -416,8 +416,6 @@ class AlarmHistorikController {
 
         // Snitt per dag (baserat pa antal unika dagar med larm)
         $unikaDagar = count(array_unique(array_column($alarms, 'datum')));
-        $snittPerDag = $unikaDagar > 0 ? round($total / $unikaDagar, 1) : 0;
-
         // Snitt per dag baserat pa hela perioden
         $periodDagar = max(1, $days);
         $snittPeriod = round($total / $periodDagar, 2);

@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #66)*
+*Senast uppdaterad: 2026-03-12 (session #67)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -68,29 +68,30 @@ Session #63: Stopporsak-trendanalys + Energi/effektivitetsvy — klara.
 Session #64: Produktionsmål vs utfall + Maskinutnyttjandegrad — klara.
 Session #65: Realtids-produktionstakt + Kassationsanalys — klara.
 Session #66: Andon-board/fabriksskärm + Veckorapport-generator — klara.
+Session #67: Operatörsportal + Alarm-historik dashboard — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Andon-board / fabriksskärm** — stor TV-skärm med realtidsdata
-- [x] **Veckorapport-generator** — automatisk vecko-KPI till PDF
-- [ ] **Operatörsportal** — personlig dashboard per operatör
+- [x] **Operatörsportal** — personlig dashboard per operatör
+- [x] **Alarm-historik dashboard** — lista triggade alerts med severity
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
-- [ ] **Skiftplaneringsöversikt** — visuell kalender med skiftbeläggning
 - [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift
-- [ ] **Alarm-historik dashboard** — lista triggade alerts
 - [ ] **Snabbkommandon/favoritvy** — VD:s bokmärken
+- [ ] **Produktions-heatmap** — matrisvy timme x dag
+- [ ] **Stopporsak Pareto-diagram** — 80/20-analys
+- [ ] **VD:s morgonrapport** — automatisk gårdagssammanfattning
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #67 (klar)
+Worker 1 (Operatörsportal): Personlig dashboard per operatör — IBC idag/vecka/månad vs teamsnitt, bonusberäkning, ranking (#X av Y), 30d trendgraf vs teamsnitt. Backend: OperatorsportalController (3 endpoints: my-stats, my-trend, my-bonus).
+Worker 2 (Alarm-historik dashboard): Lista alla triggade larm med severity (critical/warning/info). Byggs från befintlig data: långa stopp, låg takt, hög kassation, maskinstopp. KPI-kort, staplat stapeldiagram, filtrerbar tabell. Backend: AlarmHistorikController (3 endpoints: list, summary, timeline).
+Backlog utökad med: Produktions-heatmap, Stopporsak Pareto-diagram, VD:s morgonrapport.
 
 ### 2026-03-12 — Session #66 (klar)
 Worker 1 (Andon-board/fabriksskärm): TV-optimerad helskärmsvy med dagens produktion vs mål, aktuell takt, maskinens status (KÖR/STOPP), senaste stopp, kvalitet, skiftinfo, klocka. Backend: AndonController (1 samlat endpoint). Auto-refresh 30s, stor text, pulsande statusindikator.
 Worker 2 (Veckorapport-generator): Utskriftsvänlig veckosammanfattning med KPI:er (produktion, effektivitet, stopp, kvalitet). Veckoväljare, @media print CSS, Ctrl+P till PDF. Backend: VeckorapportController (1 samlat endpoint). Trendpilar vs föregående vecka.
-Backlog utökad med: Alarm-historik dashboard, Snabbkommandon/favoritvy.
 
 ### 2026-03-11 — Session #65 (klar)
 Worker 1 (Realtids-produktionstakt): Live IBC/h med trendpil, måltal-indikator (grön/gul/röd), alert vid låg takt, 24h linjegraf, timtabell. Backend: ProduktionsTaktController. Auto-poll 30s.
 Worker 2 (Kassationsanalys): 4 KPI-kort, staplat stapeldiagram per orsak, doughnut, trendgraf, detaljerad tabell med filter. Backend: KassationsanalysController.
-
-### 2026-03-11 — Session #64 (klar)
-Worker 1 (Produktionsmål vs utfall): 3 stora statuskort (dag/vecka/månad) med progress bars och färgkodning (grön/gul/röd). Kumulativ Chart.js linjegraf (mål vs faktiskt). Daglig tabell. Backend: ProduktionsmalController (3 endpoints). VD-prioriterad feature.
-Worker 2 (Maskinutnyttjandegrad): 3 KPI-kort med cirkulär progress, staplad bar chart (drifttid/stopptid/okänd), doughnut för tidsförlustfördelning. Backend: UtnyttjandegradController (3 endpoints).
