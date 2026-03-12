@@ -192,6 +192,8 @@ $classNameMap = [
     'operatorsbonus'               => 'OperatorsbonusController',
     'leveransplanering'            => 'LeveransplaneringController',
     'kvalitetscertifikat'          => 'KvalitetscertifikatController',
+    'historisk-produktion'         => 'HistoriskProduktionController',
+    'avvikelselarm'                => 'AvvikelselarmController',
 ];
 
 $actionKey = strtolower($action);

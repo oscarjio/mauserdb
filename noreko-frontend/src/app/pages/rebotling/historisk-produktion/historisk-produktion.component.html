@@ -1,0 +1,333 @@
+<div class="container-fluid py-3" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik + Periodselektor -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
+      <i class="fas fa-chart-line me-2" style="color:#63b3ed;"></i>
+      Historisk produktionsoversikt
+    </h1>
+  </div>
+
+  <!-- Periodselektor -->
+  <div class="period-selector mb-4">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <span class="period-label">Period:</span>
+      <button class="btn btn-sm"
+              [class]="!useCustom && selectedDays === 7  ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(7)">7d</button>
+      <button class="btn btn-sm"
+              [class]="!useCustom && selectedDays === 30 ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(30)">30d</button>
+      <button class="btn btn-sm"
+              [class]="!useCustom && selectedDays === 90 ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(90)">90d</button>
+      <button class="btn btn-sm"
+              [class]="!useCustom && selectedDays === 365 ? 'btn-info' : 'btn-outline-info'"
+              (click)="selectPeriod(365)">365d</button>
+      <span class="text-muted mx-1">|</span>
+      <input type="date" class="form-control form-control-sm custom-date"
+             [(ngModel)]="customFrom" />
+      <span class="text-muted">-</span>
+      <input type="date" class="form-control form-control-sm custom-date"
+             [(ngModel)]="customTo" />
+      <button class="btn btn-sm"
+              [class]="useCustom ? 'btn-warning' : 'btn-outline-warning'"
+              (click)="applyCustom()">
+        <i class="fas fa-filter me-1"></i>Anpassad
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <!-- Total produktion -->
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#4299e122; color:#4299e1;">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Total produktion</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ overview?.total_produktion ?? 0 }} <small class="kpi-unit">IBC</small>
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snitt per dag -->
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#48bb7822; color:#48bb78;">
+          <i class="fas fa-chart-bar"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Snitt per dag</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ overview?.snitt_per_dag ?? 0 }} <small class="kpi-unit">IBC/dag</small>
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Basta dag -->
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#ecc94b22; color:#ecc94b;">
+          <i class="fas fa-trophy"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Basta dag</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ overview?.basta_dag_antal ?? 0 }} <small class="kpi-unit">IBC</small>
+          </div>
+          <div class="kpi-sub" *ngIf="overview?.basta_dag">{{ formatDate(overview!.basta_dag) }}</div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassation % -->
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fc818122; color:#fc8181;">
+          <i class="fas fa-trash-alt"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Kassation snitt</div>
+          <div class="kpi-value" *ngIf="!loadingOverview">
+            {{ formatPct(overview?.kassation_pct) }}
+          </div>
+          <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trendindikator -->
+  <div class="trend-banner mb-4" *ngIf="jamforelse">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="trend-arrow">
+        <i [class]="trendIcon()" style="font-size:1.5rem;"></i>
+      </div>
+      <div>
+        <div class="trend-text" [style.color]="trendColor()">{{ trendLabel() }}</div>
+        <div class="trend-sub text-muted">
+          Nuvarande: <strong>{{ jamforelse.nuvarande.total }}</strong> IBC
+          &mdash;
+          Foregaende: <strong>{{ jamforelse.foregaende.total }}</strong> IBC
+        </div>
+      </div>
+      <div class="ms-auto d-flex gap-3 flex-wrap" *ngIf="jamforelse.diff">
+        <div class="trend-badge" [style.borderColor]="trendColor()">
+          <span class="trend-badge-label">Produktion</span>
+          <span class="trend-badge-val" [style.color]="trendColor()">
+            {{ jamforelse.diff.total_pct > 0 ? '+' : '' }}{{ jamforelse.diff.total_pct }}%
+          </span>
+        </div>
+        <div class="trend-badge" [style.borderColor]="jamforelse.diff.snitt_pct >= 0 ? '#48bb78' : '#fc8181'">
+          <span class="trend-badge-label">Snitt/dag</span>
+          <span class="trend-badge-val" [style.color]="jamforelse.diff.snitt_pct >= 0 ? '#48bb78' : '#fc8181'">
+            {{ jamforelse.diff.snitt_pct > 0 ? '+' : '' }}{{ jamforelse.diff.snitt_pct }}%
+          </span>
+        </div>
+        <div class="trend-badge" [style.borderColor]="jamforelse.diff.kassation_diff <= 0 ? '#48bb78' : '#fc8181'">
+          <span class="trend-badge-label">Kassation</span>
+          <span class="trend-badge-val" [style.color]="jamforelse.diff.kassation_diff <= 0 ? '#48bb78' : '#fc8181'">
+            {{ jamforelse.diff.kassation_diff > 0 ? '+' : '' }}{{ jamforelse.diff.kassation_diff }}pp
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jamforelsevy -->
+  <div class="row g-3 mb-4" *ngIf="jamforelse">
+    <div class="col-md-6">
+      <div class="compare-card">
+        <div class="compare-title">
+          <i class="fas fa-calendar-check me-2 text-info"></i>Nuvarande period
+        </div>
+        <div class="compare-dates">{{ jamforelse.nuvarande.from }} - {{ jamforelse.nuvarande.to }}</div>
+        <div class="compare-grid">
+          <div class="compare-item">
+            <span class="compare-label">Totalt</span>
+            <span class="compare-val">{{ jamforelse.nuvarande.total }} IBC</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Godkanda</span>
+            <span class="compare-val text-success">{{ jamforelse.nuvarande.ibc_ok }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Kasserade</span>
+            <span class="compare-val text-danger">{{ jamforelse.nuvarande.ibc_ej_ok }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Snitt/dag</span>
+            <span class="compare-val">{{ jamforelse.nuvarande.snitt_per_dag }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Kassation%</span>
+            <span class="compare-val">{{ formatPct(jamforelse.nuvarande.kassation_pct) }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Dagar data</span>
+            <span class="compare-val">{{ jamforelse.nuvarande.dagar_med_data }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="compare-card">
+        <div class="compare-title">
+          <i class="fas fa-history me-2 text-warning"></i>Foregaende period
+        </div>
+        <div class="compare-dates">{{ jamforelse.foregaende.from }} - {{ jamforelse.foregaende.to }}</div>
+        <div class="compare-grid">
+          <div class="compare-item">
+            <span class="compare-label">Totalt</span>
+            <span class="compare-val">{{ jamforelse.foregaende.total }} IBC</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Godkanda</span>
+            <span class="compare-val text-success">{{ jamforelse.foregaende.ibc_ok }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Kasserade</span>
+            <span class="compare-val text-danger">{{ jamforelse.foregaende.ibc_ej_ok }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Snitt/dag</span>
+            <span class="compare-val">{{ jamforelse.foregaende.snitt_per_dag }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Kassation%</span>
+            <span class="compare-val">{{ formatPct(jamforelse.foregaende.kassation_pct) }}</span>
+          </div>
+          <div class="compare-item">
+            <span class="compare-label">Dagar data</span>
+            <span class="compare-val">{{ jamforelse.foregaende.dagar_med_data }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Produktionsgraf -->
+  <div class="chart-card mb-4">
+    <div class="section-title">
+      <i class="fas fa-chart-area me-2 text-info"></i>
+      Produktion {{ granularityLabel() }}
+    </div>
+    <div *ngIf="loadingGraph" class="text-center py-4">
+      <div class="spinner-border text-info"></div>
+      <div class="text-muted mt-2">Laddar graf...</div>
+    </div>
+    <div class="chart-container" *ngIf="!loadingGraph">
+      <canvas id="historiskProductionChart"></canvas>
+    </div>
+    <div *ngIf="!loadingGraph && (!periodData || periodData.series.length === 0)"
+         class="text-center text-muted py-4">
+      <i class="fas fa-info-circle me-1"></i>Ingen produktionsdata for vald period
+    </div>
+  </div>
+
+  <!-- Produktionstabell -->
+  <div class="table-card">
+    <div class="section-title mb-3">
+      <i class="fas fa-table me-2 text-info"></i>
+      Daglig produktionsdata
+      <span class="text-muted ms-2 small" *ngIf="tabell">
+        ({{ tabell.total_rows }} dagar)
+      </span>
+    </div>
+
+    <div *ngIf="loadingTable" class="text-center py-3">
+      <div class="spinner-border spinner-border-sm text-info me-2"></div> Laddar...
+    </div>
+
+    <div *ngIf="!loadingTable && tabell && tabell.rows.length > 0">
+      <!-- Summor -->
+      <div class="summor-row mb-3">
+        <span class="summor-item">
+          <i class="fas fa-sigma me-1 text-info"></i>
+          Totalt: <strong>{{ tabell.summor.total }}</strong> IBC
+        </span>
+        <span class="summor-item">
+          Godkanda: <strong class="text-success">{{ tabell.summor.ibc_ok }}</strong>
+        </span>
+        <span class="summor-item">
+          Kasserade: <strong class="text-danger">{{ tabell.summor.ibc_ej_ok }}</strong>
+        </span>
+        <span class="summor-item">
+          Kassation: <strong>{{ formatPct(tabell.summor.kassation_pct) }}</strong>
+        </span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-dark table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th class="sortable" (click)="sortBy('date')">
+                Datum <i [class]="sortIcon('date')"></i>
+              </th>
+              <th class="sortable text-end" (click)="sortBy('ibc_ok')">
+                Godkanda <i [class]="sortIcon('ibc_ok')"></i>
+              </th>
+              <th class="sortable text-end" (click)="sortBy('ibc_ej_ok')">
+                Kasserade <i [class]="sortIcon('ibc_ej_ok')"></i>
+              </th>
+              <th class="sortable text-end" (click)="sortBy('total')">
+                Totalt <i [class]="sortIcon('total')"></i>
+              </th>
+              <th class="sortable text-end" (click)="sortBy('kassation_pct')">
+                Kassation% <i [class]="sortIcon('kassation_pct')"></i>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of tabell.rows">
+              <td>{{ row.date }}</td>
+              <td class="text-end text-success">{{ row.ibc_ok }}</td>
+              <td class="text-end text-danger">{{ row.ibc_ej_ok }}</td>
+              <td class="text-end fw-bold">{{ row.total }}</td>
+              <td class="text-end">
+                <span [class]="row.kassation_pct > 5 ? 'text-danger' : row.kassation_pct > 2 ? 'text-warning' : 'text-success'">
+                  {{ formatPct(row.kassation_pct) }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="d-flex justify-content-between align-items-center mt-3" *ngIf="tabell.total_pages > 1">
+        <span class="text-muted small">
+          Sida {{ tabell.page }} av {{ tabell.total_pages }}
+        </span>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(1)" [disabled]="tabell.page <= 1">
+            <i class="fas fa-angle-double-left"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page - 1)" [disabled]="tabell.page <= 1">
+            <i class="fas fa-angle-left"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.page + 1)" [disabled]="tabell.page >= tabell.total_pages">
+            <i class="fas fa-angle-right"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-info" (click)="goPage(tabell.total_pages)" [disabled]="tabell.page >= tabell.total_pages">
+            <i class="fas fa-angle-double-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="!loadingTable && (!tabell || tabell.rows.length === 0)"
+         class="text-center text-muted py-3">
+      <i class="fas fa-info-circle me-1"></i>Ingen data for vald period
+    </div>
+  </div>
+</div>

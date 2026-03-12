@@ -94,6 +94,8 @@ export const routes: Routes = [
       { path: 'rebotling/operatorsbonus', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operatorsbonus/operatorsbonus.component').then(m => m.OperatorsbonusPage) },
       { path: 'rebotling/leveransplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/leveransplanering/leveransplanering.component').then(m => m.LeveransplaneringPage) },
       { path: 'rebotling/kvalitetscertifikat', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component').then(m => m.KvalitetscertifikatPage) },
+      { path: 'rebotling/historisk-produktion', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/historisk-produktion/historisk-produktion.component').then(m => m.HistoriskProduktionPage) },
+      { path: 'rebotling/avvikelselarm', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/avvikelselarm/avvikelselarm.component').then(m => m.AvvikelselarmPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

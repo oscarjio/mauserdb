@@ -1,0 +1,265 @@
+/* Period selector */
+.period-selector {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.period-label {
+  font-weight: 600;
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.custom-date {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  width: 140px;
+}
+
+.custom-date:focus {
+  background: #1a202c;
+  border-color: #63b3ed;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+/* KPI cards */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #4a5568;
+  transition: border-color 0.2s;
+}
+
+.kpi-card:hover {
+  border-color: #63b3ed;
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.kpi-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-unit {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+.kpi-sub {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+/* Trend banner */
+.trend-banner {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #4a5568;
+}
+
+.trend-arrow {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1a202c;
+  border-radius: 50%;
+}
+
+.trend-text {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.trend-sub {
+  font-size: 0.8rem;
+}
+
+.trend-badge {
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 6px 12px;
+  text-align: center;
+  background: #1a202c;
+}
+
+.trend-badge-label {
+  display: block;
+  font-size: 0.65rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+}
+
+.trend-badge-val {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* Compare cards */
+.compare-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #4a5568;
+}
+
+.compare-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.compare-dates {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  margin-bottom: 12px;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.compare-item {
+  text-align: center;
+}
+
+.compare-label {
+  display: block;
+  font-size: 0.65rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+}
+
+.compare-val {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* Chart card */
+.chart-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #4a5568;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 12px;
+}
+
+.chart-container {
+  position: relative;
+  height: 350px;
+}
+
+/* Table card */
+.table-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px 20px;
+  border: 1px solid #4a5568;
+}
+
+.summor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 10px 12px;
+  background: #1a202c;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.summor-item {
+  color: #a0aec0;
+}
+
+.table {
+  font-size: 0.85rem;
+}
+
+.table th {
+  border-bottom-color: #4a5568 !important;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table td {
+  border-bottom-color: #4a556844 !important;
+  vertical-align: middle;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: #63b3ed;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .compare-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+
+  .trend-banner {
+    padding: 12px;
+  }
+}
