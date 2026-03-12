@@ -1,0 +1,310 @@
+/* ===== Forsta timme-analys ===== */
+
+.fta-container {
+  padding: 1.5rem;
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+/* ---- Sidrubrik ---- */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.3rem;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ---- Filterrad ---- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* ---- KPI-rad ---- */
+.kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1rem 1.25rem;
+  flex: 1 1 160px;
+  min-width: 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.kpi-loading {
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+}
+
+.kpi-icon {
+  font-size: 1.3rem;
+  margin-bottom: 0.2rem;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  margin-top: 0.2rem;
+}
+
+.kpi-error {
+  font-size: 0.85rem;
+  color: #fc8181;
+}
+
+/* ---- Diagram-rad ---- */
+.charts-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.chart-card-wide {
+  flex: 1 1 100%;
+}
+
+.chart-card-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chart-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.chart-body {
+  padding: 1rem;
+  height: 280px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-body canvas {
+  max-height: 100%;
+  width: 100% !important;
+}
+
+.chart-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.chart-empty {
+  color: #718096;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.chart-error {
+  color: #fc8181;
+}
+
+/* ---- Tabell ---- */
+.table-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.table-card-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.table-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.table-subtitle {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.table-loading {
+  padding: 1.5rem;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.table-empty {
+  padding: 1.5rem;
+  color: #718096;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.table-error {
+  color: #fc8181;
+}
+
+.fta-table {
+  margin-bottom: 0;
+  font-size: 0.88rem;
+}
+
+.fta-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-color: rgba(255, 255, 255, 0.08);
+  padding: 0.6rem 0.75rem;
+  font-weight: 600;
+}
+
+.fta-table tbody td {
+  border-color: rgba(255, 255, 255, 0.06);
+  vertical-align: middle;
+  padding: 0.55rem 0.75rem;
+  color: #e2e8f0;
+}
+
+.fta-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ---- Skift-badge ---- */
+.shift-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.shift-dag {
+  background: rgba(246, 173, 85, 0.2);
+  color: #f6ad55;
+}
+
+.shift-kvall {
+  background: rgba(99, 179, 237, 0.2);
+  color: #63b3ed;
+}
+
+.shift-natt {
+  background: rgba(159, 122, 234, 0.2);
+  color: #b794f4;
+}
+
+/* ---- Bedomning-badge ---- */
+.bedomning-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.badge-snabb {
+  background: rgba(104, 211, 145, 0.2);
+  color: #68d391;
+}
+
+.badge-normal {
+  background: rgba(246, 173, 85, 0.2);
+  color: #f6ad55;
+}
+
+.badge-langssam {
+  background: rgba(252, 129, 129, 0.2);
+  color: #fc8181;
+}
+
+/* ---- Tid-cell ---- */
+.tid-cell {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ---- Responsivitet ---- */
+@media (max-width: 768px) {
+  .fta-container {
+    padding: 1rem;
+  }
+
+  .kpi-card {
+    flex: 1 1 120px;
+    min-width: 130px;
+    padding: 0.75rem 0.9rem;
+  }
+
+  .kpi-value {
+    font-size: 1.4rem;
+  }
+
+  .chart-body {
+    height: 220px;
+  }
+}

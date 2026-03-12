@@ -1,3 +1,25 @@
+## 2026-03-12 Forsta timme-analys — Uppstartsanalys per skift
+
+Ny sida `/rebotling/forsta-timme-analys` — analyserar hur forsta timmen efter varje skiftstart gar.
+
+- **Backend**: `ForstaTimmeAnalysController.php` i `classes/` och `controllers/` (proxy-monster)
+  - `run=analysis&period=7|30|90`: Per-skiftstart-data for varje skift (dag 06:00, kväll 14:00, natt 22:00). Beraknar tid till forsta IBC, IBC/10-min-intervaller under forsta 60 min (6 x 10-min), bedomning (snabb/normal/langssam). Returnerar aggregerad genomsnitts-kurva + KPI:er (snitt tid, snabbaste/langsamma start, rampup%).
+  - `run=trend&period=30|90`: Daglig trend av "tid till forsta IBC" — visar om uppstarterna forbattras eller forsamras over tid (snitt + min + max per dag).
+  - Auth: session kravs (401 om ej inloggad). Stod for bade `timestamp`- och `datum`-kolumnnamn i rebotling_ibc.
+- **Proxy-controller**: `controllers/ForstaTimmeAnalysController.php` (ny)
+- **api.php**: `'forsta-timme-analys' => 'ForstaTimmeAnalysController'` registrerad i $classNameMap
+- **Frontend Service**: `services/forsta-timme-analys.service.ts` — interfaces SkiftStart, AnalysData, AnalysResponse, TrendPoint, TrendData, TrendResponse + getAnalysis()/getTrend() med timeout(15000) + catchError
+- **Frontend Komponent**: `pages/forsta-timme-analys/` (ny, standalone)
+  - 4 KPI-kort: Snitt tid till forsta IBC, Snabbaste start (min), Langsamma start (min), Ramp-up-hastighet (% av normal takt efter 30 min)
+  - Linjediagram (Chart.js): Genomsnittlig ramp-up-kurva (6 x 10-min-intervaller, snitt IBC/intervall)
+  - Stapeldiagram med linjer: Tid till forsta IBC per dag — snitt (staplar) + snabbaste/langsamma start (linjer)
+  - Tabell: Senaste skiftstarter med datum, skift-badge (dag/kväll/natt), tid till forsta IBC, IBC forsta timmen, bedomning-badge (snabb/normal/langssam)
+  - Periodvaljare: 7d / 30d / 90d
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy()
+  - Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text, Bootstrap 5
+- **Route**: `/rebotling/forsta-timme-analys` med `authGuard` (tillagd i app.routes.ts)
+- **Meny**: "Forsta timmen" med ikon fas fa-stopwatch tillagd i Rebotling-dropdown (menu.html)
+
 ## 2026-03-12 Produktionspuls — Realtids-ticker (uppgraderad)
 
 Uppgraderad sida `/rebotling/produktionspuls` — scrollande realtids-ticker (borsticker-stil) for VD.

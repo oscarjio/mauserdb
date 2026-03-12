@@ -1,0 +1,183 @@
+<div class="fta-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Forsta timme-analys
+    </h1>
+    <p class="page-subtitle">Uppstartstid och ramp-up-kurva for varje skift — hur snabbt kommer linjen upp i takt?</p>
+  </div>
+
+  <!-- Periodvaljare -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let opt of periodOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="period === opt.value"
+          [class.btn-outline-secondary]="period !== opt.value"
+          (click)="onPeriodChange(opt.value)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+    <ng-container *ngIf="loadingAnalys">
+      <div class="kpi-card kpi-loading">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div class="kpi-card kpi-loading">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div class="kpi-card kpi-loading">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div class="kpi-card kpi-loading">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loadingAnalys && analys">
+      <!-- Snitt tid till forsta IBC -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-clock" style="color:#63b3ed"></i></div>
+        <div class="kpi-value" style="color:#63b3ed">
+          {{ analys.snitt_tid_till_forsta !== null ? analys.snitt_tid_till_forsta + ' min' : '--' }}
+        </div>
+        <div class="kpi-label">Snitt tid till forsta IBC</div>
+      </div>
+
+      <!-- Snabbaste start -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-bolt" style="color:#68d391"></i></div>
+        <div class="kpi-value" style="color:#68d391">
+          {{ analys.snabbaste_start !== null ? analys.snabbaste_start + ' min' : '--' }}
+        </div>
+        <div class="kpi-label">Snabbaste start</div>
+      </div>
+
+      <!-- Langsamma start -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-snail" style="color:#fc8181"></i></div>
+        <div class="kpi-value" style="color:#fc8181">
+          {{ analys.langsamma_start !== null ? analys.langsamma_start + ' min' : '--' }}
+        </div>
+        <div class="kpi-label">Langsamma start</div>
+      </div>
+
+      <!-- Ramp-up-hastighet -->
+      <div class="kpi-card">
+        <div class="kpi-icon"><i class="fas fa-chart-line" style="color:#f6ad55"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">{{ analys.rampup_pct_30min }}%</div>
+        <div class="kpi-label">Av normal takt efter 30 min</div>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="!loadingAnalys && errorAnalys">
+      <div class="kpi-card">
+        <div class="kpi-error"><i class="fas fa-exclamation-circle me-1"></i>Kunde inte hamta KPI-data</div>
+      </div>
+    </ng-container>
+  </div>
+
+  <!-- Diagram-rad -->
+  <div class="charts-row">
+
+    <!-- Ramp-up-kurva -->
+    <div class="chart-card chart-card-wide">
+      <div class="chart-card-header">
+        <span class="chart-title"><i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Genomsnittlig ramp-up-kurva (IBC per 10-min-intervall)</span>
+      </div>
+      <div class="chart-body">
+        <div *ngIf="loadingAnalys" class="chart-loading">
+          <div class="spinner-border text-info" role="status"></div>
+        </div>
+        <div *ngIf="!loadingAnalys && !harAnalysData && !errorAnalys" class="chart-empty">
+          Ingen data for vald period
+        </div>
+        <div *ngIf="!loadingAnalys && errorAnalys" class="chart-empty chart-error">
+          <i class="fas fa-exclamation-triangle me-1"></i>Fel vid inlasning
+        </div>
+        <canvas id="rampupChart" *ngIf="!loadingAnalys && harAnalysData"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Trend-diagram -->
+  <div class="chart-card">
+    <div class="chart-card-header">
+      <span class="chart-title"><i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Tid till forsta IBC per dag (senaste {{ period }} dagar)</span>
+    </div>
+    <div class="chart-body">
+      <div *ngIf="loadingTrend" class="chart-loading">
+        <div class="spinner-border text-info" role="status"></div>
+      </div>
+      <div *ngIf="!loadingTrend && !harTrendData && !errorTrend" class="chart-empty">
+        Ingen trend-data for vald period
+      </div>
+      <div *ngIf="!loadingTrend && errorTrend" class="chart-empty chart-error">
+        <i class="fas fa-exclamation-triangle me-1"></i>Fel vid inlasning av trend
+      </div>
+      <canvas id="trendChart" *ngIf="!loadingTrend && harTrendData"></canvas>
+    </div>
+  </div>
+
+  <!-- Tabell: senaste skiftstarter -->
+  <div class="table-card">
+    <div class="table-card-header">
+      <span class="table-title"><i class="fas fa-list me-2" style="color:#e2e8f0"></i>Senaste skiftstarter</span>
+      <span class="table-subtitle" *ngIf="analys">{{ analys.total_shifts_med_data }} skift med data</span>
+    </div>
+
+    <div *ngIf="loadingAnalys" class="table-loading">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <span class="ms-2">Hamtar data...</span>
+    </div>
+
+    <div *ngIf="!loadingAnalys && !harAnalysData && !errorAnalys" class="table-empty">
+      Inga skiftstarter hittades for vald period.
+    </div>
+
+    <div *ngIf="!loadingAnalys && errorAnalys" class="table-empty table-error">
+      <i class="fas fa-exclamation-circle me-1"></i>Kunde inte hamta skiftdata
+    </div>
+
+    <div class="table-responsive" *ngIf="!loadingAnalys && harAnalysData">
+      <table class="table table-dark table-hover fta-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Skift</th>
+            <th>Tid till forsta IBC</th>
+            <th>IBC forsta timmen</th>
+            <th>Bedomning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of skiftStarter">
+            <td>{{ row.date }}</td>
+            <td>
+              <span class="shift-badge" [class.shift-dag]="row.shift === 'dag'" [class.shift-kvall]="row.shift === 'kväll'" [class.shift-natt]="row.shift === 'natt'">
+                {{ shiftLabel(row.shift) }}
+              </span>
+            </td>
+            <td>
+              <span class="tid-cell">{{ row.tid_till_forsta_ibc }} min</span>
+            </td>
+            <td>{{ row.ibc_forsta_timme }}</td>
+            <td>
+              <span [class]="bedomningClass(row.bedomning)">{{ bedomningLabel(row.bedomning) }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

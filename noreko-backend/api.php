@@ -171,6 +171,8 @@ $classNameMap = [
     'morgonrapport'           => 'MorgonrapportController',
     'drifttids-timeline'      => 'DrifttidsTimelineController',
     'kassations-drilldown'    => 'KassationsDrilldownController',
+    'forsta-timme-analys'     => 'ForstaTimmeAnalysController',
+    'my-stats'                => 'MyStatsController',
 ];
 
 $actionKey = strtolower($action);
