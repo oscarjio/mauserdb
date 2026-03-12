@@ -1,0 +1,358 @@
+<div class="statistik-dashboard">
+
+  <!-- Header -->
+  <div class="dashboard-header mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1 class="dashboard-title">
+          <i class="fas fa-tachometer-alt me-2 text-info"></i>Statistik-dashboard
+        </h1>
+        <p class="dashboard-subtitle text-muted mb-0">Komplett produktionsöverblick — IBC-tvätteri</p>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-muted small" *ngIf="lastUpdated">
+          <i class="fas fa-sync-alt me-1"></i>Uppdaterad {{ lastUpdated }}
+        </span>
+        <button class="btn btn-outline-info btn-sm" (click)="loadAll()">
+          <i class="fas fa-redo me-1"></i>Uppdatera
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- STATUSINDIKATOR                                               -->
+  <!-- ============================================================ -->
+  <div class="status-section mb-4">
+    <div *ngIf="loadingStatus" class="text-center py-3 text-muted">
+      <i class="fas fa-spinner fa-spin me-2"></i>Laddar status…
+    </div>
+    <div *ngIf="errorStatus" class="alert alert-danger">
+      <i class="fas fa-exclamation-circle me-2"></i>Kunde inte hämta statusindikator.
+    </div>
+    <div *ngIf="!loadingStatus && !errorStatus && status" class="status-card" [ngClass]="getStatusClass()">
+      <div class="status-main">
+        <i [class]="status.status_icon + ' status-icon'"></i>
+        <div class="status-label">{{ status.status_text }}</div>
+      </div>
+      <div class="status-details">
+        <div *ngFor="let p of status.problem" class="status-msg status-msg-röd">
+          <i class="fas fa-times-circle me-1"></i>{{ p }}
+        </div>
+        <div *ngFor="let v of status.varning" class="status-msg status-msg-gul">
+          <i class="fas fa-exclamation-triangle me-1"></i>{{ v }}
+        </div>
+        <div *ngIf="status.problem.length === 0 && status.varning.length === 0" class="status-msg status-msg-grön">
+          <i class="fas fa-check me-1"></i>Alla nyckeltal inom mål
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- KPI-KORT                                                      -->
+  <!-- ============================================================ -->
+  <div *ngIf="loadingSummary" class="text-center py-4 text-muted">
+    <i class="fas fa-spinner fa-spin me-2"></i>Laddar KPI:er…
+  </div>
+  <div *ngIf="errorSummary" class="alert alert-danger mb-4">
+    <i class="fas fa-exclamation-circle me-2"></i>Kunde inte hämta sammanfattning.
+  </div>
+
+  <div *ngIf="!loadingSummary && !errorSummary && summary" class="row g-3 mb-4">
+
+    <!-- IBC producerade idag -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap" style="background:rgba(99,179,237,0.15)">
+          <i class="fas fa-box kpi-icon" style="color:#63b3ed"></i>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">IBC producerade idag</div>
+          <div class="kpi-value">{{ summary.idag.total }}</div>
+          <div class="kpi-diff" [ngClass]="getDiffClass(summary.idag.total, summary.igar.total)">
+            <i [class]="getDiffIcon(summary.idag.total, summary.igar.total) + ' me-1'"></i>
+            {{ getDiffValue(summary.idag.total, summary.igar.total) }} vs igår ({{ summary.igar.total }})
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IBC producerade denna vecka -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap" style="background:rgba(104,211,145,0.15)">
+          <i class="fas fa-calendar-week kpi-icon" style="color:#68d391"></i>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">IBC denna vecka</div>
+          <div class="kpi-value">{{ summary.denna_vecka.total }}</div>
+          <div class="kpi-diff" [ngClass]="getDiffClass(summary.denna_vecka.total, summary.forra_veckan.total)">
+            <i [class]="getDiffIcon(summary.denna_vecka.total, summary.forra_veckan.total) + ' me-1'"></i>
+            {{ getDiffPct(summary.denna_vecka.total, summary.forra_veckan.total) }} vs förra veckan
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassationsgrad idag -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap" style="background:rgba(252,129,129,0.15)">
+          <i class="fas fa-trash-alt kpi-icon" style="color:#fc8181"></i>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">Kassationsgrad idag</div>
+          <div class="kpi-value">{{ summary.idag.kassation_pct }}%</div>
+          <div class="kpi-diff" [ngClass]="getDiffClass(summary.idag.kassation_pct, summary.igar.kassation_pct, true)">
+            <i [class]="getDiffIcon(summary.idag.kassation_pct, summary.igar.kassation_pct, true) + ' me-1'"></i>
+            Igår: {{ summary.igar.kassation_pct }}% — mål &lt;{{ summary.mal_kassation }}%
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drifttid idag -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap" style="background:rgba(237,202,75,0.15)">
+          <i class="fas fa-clock kpi-icon" style="color:#ecc94b"></i>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">Drifttid idag</div>
+          <div class="kpi-value">{{ summary.idag.drifttid_pct }}%</div>
+          <div class="kpi-diff text-muted">
+            {{ summary.idag.drifttid_h }}h av {{ summary.planerad_drift_h }}h planerat
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktiv operatör -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap" style="background:rgba(159,122,234,0.15)">
+          <i class="fas fa-user-hard-hat kpi-icon" style="color:#9f7aea"></i>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">Aktiv operatör just nu</div>
+          <div class="kpi-value kpi-value-sm" *ngIf="summary.aktiv_operator">
+            {{ summary.aktiv_operator.operator_name }}
+          </div>
+          <div class="kpi-value kpi-value-sm text-muted" *ngIf="!summary.aktiv_operator">
+            Ingen data
+          </div>
+          <div class="kpi-diff text-muted" *ngIf="summary.aktiv_operator">
+            Senaste registrering: {{ summary.aktiv_operator.senaste_datum | slice:0:10 }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snitt IBC/h senaste 7 dagar -->
+    <div class="col-12 col-sm-6 col-xl-4">
+      <div class="kpi-card">
+        <div class="kpi-icon-wrap" style="background:rgba(79,209,197,0.15)">
+          <i class="fas fa-tachometer-alt kpi-icon" style="color:#4fd1c5"></i>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-label">Snitt IBC/h (7 dagar)</div>
+          <div class="kpi-value" [ngClass]="ibcPerHVsMal(summary.snitt_ibc_per_h)">
+            {{ summary.snitt_ibc_per_h }}
+          </div>
+          <div class="kpi-diff text-muted">
+            Mål: {{ summary.mal_ibc_per_h }} IBC/h
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- TRENDGRAF                                                     -->
+  <!-- ============================================================ -->
+  <div class="card dashboard-card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h5 class="mb-0">
+        <i class="fas fa-chart-line me-2 text-info"></i>Produktionstrend
+      </h5>
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-muted small mb-0">Period:</label>
+        <select class="form-select form-select-sm dash-select" [(ngModel)]="trendPeriod" (change)="onPeriodChange()">
+          <option *ngFor="let p of periodOptions" [value]="p.val">{{ p.label }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="card-body">
+      <div *ngIf="loadingTrend" class="text-center py-5 text-muted">
+        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>Laddar trenddata…
+      </div>
+      <div *ngIf="errorTrend" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-2"></i>Kunde inte hämta produktionstrend.
+      </div>
+      <div *ngIf="!loadingTrend && !errorTrend && trendData">
+        <!-- Snitt-info -->
+        <div class="d-flex gap-4 mb-3 flex-wrap">
+          <div class="trend-stat">
+            <span class="text-muted small">Snitt IBC/dag</span>
+            <span class="trend-stat-val text-info">{{ trendData.snitt_ibc_dag }}</span>
+          </div>
+          <div class="trend-stat">
+            <span class="text-muted small">Snitt IBC/h</span>
+            <span class="trend-stat-val text-info">{{ trendData.snitt_ibc_h }}</span>
+          </div>
+          <div class="trend-stat">
+            <span class="text-muted small">Mål IBC/h</span>
+            <span class="trend-stat-val text-warning">{{ trendData.mal_ibc_per_h }}</span>
+          </div>
+          <div class="trend-stat">
+            <span class="text-muted small">Antal dagar</span>
+            <span class="trend-stat-val">{{ trendData.daily.length }}</span>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <p class="text-muted small mt-2 mb-0">
+          <i class="fas fa-info-circle me-1"></i>Klicka på en datapunkt för att se detaljer.
+          Vänster axel = IBC (blå). Höger axel = Kassation % (röd).
+        </p>
+      </div>
+      <div *ngIf="!loadingTrend && !errorTrend && !trendData" class="text-center text-muted py-4">
+        Ingen data för vald period.
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend tooltip/modal -->
+  <div *ngIf="tooltipItem" class="trend-detail-overlay" (click)="closeTrendTooltip()">
+    <div class="trend-detail-card" (click)="$event.stopPropagation()">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0">
+          <i class="fas fa-calendar-day me-2 text-info"></i>{{ formatDatum(tooltipItem.datum) }}
+        </h6>
+        <button class="btn-close btn-close-white" (click)="closeTrendTooltip()"></button>
+      </div>
+      <div class="row g-2">
+        <div class="col-6">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">IBC totalt</div>
+            <div class="detail-kpi-val text-info">{{ tooltipItem.total }}</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">IBC OK</div>
+            <div class="detail-kpi-val text-success">{{ tooltipItem.ibc_ok }}</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">IBC ej OK</div>
+            <div class="detail-kpi-val text-danger">{{ tooltipItem.ibc_ej_ok }}</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Kassation %</div>
+            <div class="detail-kpi-val" [ngClass]="getKassationBadgeClass(tooltipItem.kassation_pct)">
+              {{ tooltipItem.kassation_pct }}%
+            </div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Drifttid</div>
+            <div class="detail-kpi-val text-warning">{{ tooltipItem.drifttid_h }}h</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">IBC/h</div>
+            <div class="detail-kpi-val text-info">{{ tooltipItem.ibc_per_h }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SAMMANFATTNINGSTABELL                                         -->
+  <!-- ============================================================ -->
+  <div class="card dashboard-card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="fas fa-table me-2 text-success"></i>Senaste 7 dagarna — detaljerad vy
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div *ngIf="loadingTable" class="text-center py-5 text-muted">
+        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i><br>Laddar tabell…
+      </div>
+      <div *ngIf="errorTable" class="alert alert-danger m-3">
+        <i class="fas fa-exclamation-circle me-2"></i>Kunde inte hämta dagstabell.
+      </div>
+      <div *ngIf="!loadingTable && !errorTable && tableData" class="table-responsive">
+        <table class="table table-dark table-hover dash-table mb-0">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th class="text-end">IBC OK</th>
+              <th class="text-end">IBC ej OK</th>
+              <th class="text-center">Kassation</th>
+              <th class="text-end">Drifttid (h)</th>
+              <th class="text-end">IBC/h</th>
+              <th>Bästa operatör</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of tableData.rows" [ngClass]="getRowClass(row)">
+              <td>{{ formatDatum(row.datum) }}</td>
+              <td class="text-end text-success">{{ row.ibc_ok }}</td>
+              <td class="text-end text-danger">{{ row.ibc_ej_ok }}</td>
+              <td class="text-center">
+                <span class="kass-badge" [ngClass]="getKassationBadgeClass(row.kassation_pct)">
+                  {{ row.kassation_pct }}%
+                </span>
+              </td>
+              <td class="text-end">{{ row.drifttid_h }}</td>
+              <td class="text-end">{{ row.ibc_per_h }}</td>
+              <td>
+                <span *ngIf="row.basta_operator" class="operator-chip">
+                  <i class="fas fa-user me-1"></i>{{ row.basta_operator.operator_name }}
+                </span>
+                <span *ngIf="!row.basta_operator" class="text-muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot *ngIf="tableData.veckosnitt">
+            <tr class="snitt-row">
+              <td><strong>Veckosnitt / Total</strong></td>
+              <td class="text-end text-success"><strong>{{ tableData.veckosnitt.ibc_ok }}</strong></td>
+              <td class="text-end text-danger"><strong>{{ tableData.veckosnitt.ibc_ej_ok }}</strong></td>
+              <td class="text-center">
+                <span class="kass-badge" [ngClass]="getKassationBadgeClass(tableData.veckosnitt.kassation_pct)">
+                  {{ tableData.veckosnitt.kassation_pct }}%
+                </span>
+              </td>
+              <td class="text-end"><strong>{{ tableData.veckosnitt.drifttid_h }}</strong></td>
+              <td class="text-end"><strong>{{ tableData.veckosnitt.ibc_per_h }}</strong></td>
+              <td>
+                <div class="legend-items">
+                  <span class="legend-dot legend-grön"></span><span class="text-muted small">&lt;5%</span>
+                  <span class="legend-dot legend-gul ms-2"></span><span class="text-muted small">5–10%</span>
+                  <span class="legend-dot legend-röd ms-2"></span><span class="text-muted small">&gt;10%</span>
+                </div>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div *ngIf="!loadingTable && !errorTable && !tableData" class="text-center text-muted py-4">
+        Ingen data för de senaste 7 dagarna.
+      </div>
+    </div>
+  </div>
+
+</div>

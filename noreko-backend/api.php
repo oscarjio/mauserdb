@@ -180,6 +180,8 @@ $classNameMap = [
     'produktionseffektivitet'      => 'ProduktionseffektivitetController',
     'favoriter'                    => 'FavoriterController',
     'kvalitetstrendbrott'          => 'KvalitetsTrendbrottController',
+    'maskinunderhall'              => 'MaskinunderhallController',
+    'statistikdashboard'           => 'StatistikDashboardController',
 ];
 
 $actionKey = strtolower($action);

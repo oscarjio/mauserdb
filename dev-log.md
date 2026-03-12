@@ -1,3 +1,20 @@
+## 2026-03-12 Statistik-dashboard — komplett produktionsöverblick för VD
+
+Ny sida `/rebotling/statistik-dashboard` — VD kan på 10 sekunder se hela produktionsläget.
+
+- **Backend**: `StatistikDashboardController.php` i `classes/` + proxy i `controllers/`
+  - `run=summary` → 6 KPI:er: IBC idag/igår, vecka/förra veckan, kassation%, drifttid%, aktiv operatör, snitt IBC/h 7d
+  - `run=production-trend` → daglig data senaste N dagar med dual-axis stöd (IBC + kassation%)
+  - `run=daily-table` → senaste 7 dagars tabell med bästa operatör per dag + färgkodning
+  - `run=status-indicator` → beräknar grön/gul/röd baserat på kassation% och IBC/h vs mål
+- **api.php**: nyckel `statistikdashboard` registrerad
+- **Service**: `statistik-dashboard.service.ts` med interfaces DashboardSummary, ProductionTrendItem, DailyTableRow, StatusIndicator
+- **Komponent**: `pages/rebotling/statistik-dashboard/` — standalone, OnInit/OnDestroy, destroy$/takeUntil, Chart.js dual Y-axel (IBC vänster, kassation% höger), auto-refresh var 60s, klickbara datapunkter med detaljvy
+- **Route**: `/rebotling/statistik-dashboard` (authGuard)
+- **Meny**: "Statistik-dashboard" under Rebotling med ikon `fas fa-tachometer-alt`
+
+---
+
 ## 2026-03-12 Kvalitetsanalys — Trendbrott-detektion
 
 Ny sida `/rebotling/kvalitets-trendbrott` — automatisk flaggning av dagar med markant avvikande kassationsgrad. VD ser direkt varningar.

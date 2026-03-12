@@ -1,0 +1,322 @@
+/* ============================================================ */
+/* Statistik-dashboard                                           */
+/* ============================================================ */
+
+:host {
+  display: block;
+  background: #1a202c;
+  min-height: 100vh;
+  padding: 1.5rem;
+  color: #e2e8f0;
+}
+
+/* ---- Header ---- */
+.dashboard-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.dashboard-subtitle {
+  font-size: 0.9rem;
+}
+
+/* ---- Status-indikator ---- */
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.2rem 1.5rem;
+  border-radius: 10px;
+  flex-wrap: wrap;
+}
+
+.status-grön  { background: rgba(72,187,120,0.15); border: 1.5px solid #48bb78; }
+.status-gul   { background: rgba(237,137,54,0.15);  border: 1.5px solid #ed8936; }
+.status-röd   { background: rgba(245,101,101,0.15); border: 1.5px solid #f56565; }
+
+.status-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+}
+
+.status-icon {
+  font-size: 2.2rem;
+  margin-bottom: 4px;
+}
+
+.status-grön .status-icon { color: #48bb78; }
+.status-gul  .status-icon { color: #ed8936; }
+.status-röd  .status-icon { color: #f56565; }
+
+.status-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.status-grön .status-label { color: #48bb78; }
+.status-gul  .status-label { color: #ed8936; }
+.status-röd  .status-label { color: #f56565; }
+
+.status-details {
+  flex: 1;
+}
+
+.status-msg {
+  font-size: 0.9rem;
+  padding: 2px 0;
+}
+
+.status-msg-röd  { color: #fc8181; }
+.status-msg-gul  { color: #f6ad55; }
+.status-msg-grön { color: #68d391; }
+
+/* ---- KPI-kort ---- */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.2rem 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  height: 100%;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+
+.kpi-icon-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon {
+  font-size: 1.3rem;
+}
+
+.kpi-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+}
+
+.kpi-value-sm {
+  font-size: 1.25rem;
+}
+
+.kpi-diff {
+  font-size: 0.8rem;
+  margin-top: 3px;
+}
+
+/* ---- Dashboard cards ---- */
+.dashboard-card {
+  background: #2d3748;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+}
+
+.dashboard-card .card-header {
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 0.9rem 1.25rem;
+  color: #e2e8f0;
+}
+
+.dashboard-card .card-body {
+  color: #e2e8f0;
+}
+
+/* ---- Period-väljare ---- */
+.dash-select {
+  background: #1a202c;
+  color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.15);
+  min-width: 110px;
+}
+
+.dash-select:focus {
+  background: #1a202c;
+  color: #e2e8f0;
+  border-color: #4299e1;
+  box-shadow: none;
+}
+
+/* ---- Trendgraf ---- */
+.trend-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.trend-stat-val {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+}
+
+/* ---- Trend detalj-overlay ---- */
+.trend-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.trend-detail-card {
+  background: #2d3748;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  min-width: 320px;
+  max-width: 480px;
+  width: 100%;
+  color: #e2e8f0;
+}
+
+.detail-kpi {
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  text-align: center;
+}
+
+.detail-kpi-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.detail-kpi-val {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* ---- Tabell ---- */
+.dash-table {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.dash-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.75rem 1rem;
+}
+
+.dash-table tbody td {
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: middle;
+}
+
+.dash-table tbody tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+.table-danger-row td  { border-left: 3px solid #f56565; }
+.table-warning-row td { border-left: 3px solid #ed8936; }
+.table-success-row td { border-left: 3px solid #48bb78; }
+
+.kass-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.badge-grön { background: rgba(72,187,120,0.2);  color: #68d391; border: 1px solid #48bb78; }
+.badge-gul  { background: rgba(237,137,54,0.2);   color: #f6ad55; border: 1px solid #ed8936; }
+.badge-röd  { background: rgba(245,101,101,0.2);  color: #fc8181; border: 1px solid #f56565; }
+
+.operator-chip {
+  font-size: 0.82rem;
+  color: #a0aec0;
+}
+
+.snitt-row td {
+  background: rgba(255,255,255,0.04);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 0.75rem 1rem;
+}
+
+/* ---- Legend ---- */
+.legend-items {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-grön { background: #48bb78; }
+.legend-gul  { background: #ed8936; }
+.legend-röd  { background: #f56565; }
+
+/* ---- Responsiv ---- */
+@media (max-width: 576px) {
+  :host {
+    padding: 1rem 0.75rem;
+  }
+  .dashboard-title {
+    font-size: 1.3rem;
+  }
+  .kpi-value {
+    font-size: 1.6rem;
+  }
+  .chart-wrapper {
+    height: 240px;
+  }
+  .status-card {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
