@@ -1,0 +1,281 @@
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-chart-line me-2" style="color:#fc8181"></i>Kvalitetsanalys — Trendbrott
+    </h2>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-light me-1 mb-0">Period:</label>
+      <select class="form-select form-select-sm period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
+        <option *ngFor="let p of periodOptions" [value]="p">{{ p }} dagar</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt kassation</div>
+        <div class="kpi-value">{{ overview.snitt_kassation }}%</div>
+        <div class="kpi-sub">Period: {{ overview.period }} dagar</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Antal trendbrott</div>
+        <div class="kpi-value" [class.text-danger]="overview.antal_avvikelser > 0">
+          {{ overview.antal_avvikelser }}
+        </div>
+        <div class="kpi-sub">Avvikelser &gt; 2&sigma;</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Senaste trendbrott</div>
+        <div class="kpi-value" *ngIf="overview.senaste_avvikelse">
+          {{ overview.senaste_avvikelse.datum }}
+        </div>
+        <div class="kpi-value text-muted" *ngIf="!overview.senaste_avvikelse">Inga</div>
+        <div class="kpi-sub" *ngIf="overview.senaste_avvikelse">
+          {{ overview.senaste_avvikelse.kassation_pct }}% ({{ overview.senaste_avvikelse.sigma }}&sigma;)
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Aktuell trend</div>
+        <div class="kpi-value">
+          <i [class]="getTrendIcon()" class="me-2"></i>{{ getTrendText() }}
+        </div>
+        <div class="kpi-sub">
+          &sigma; = {{ overview.stddev }}%
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overview -->
+  <div class="text-center py-5" *ngIf="loadingOverview">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Laddar kvalitetsdata...</p>
+  </div>
+
+  <!-- Error overview -->
+  <div class="alert alert-danger" *ngIf="errorOverview && !loadingOverview">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kvalitetsdata.
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-card mb-4" *ngIf="overview && !loadingOverview && overview.daily.length > 0">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-chart-area me-2" style="color:#63b3ed"></i>Daglig kassationsgrad med trendgranser
+    </h5>
+    <p class="text-muted small mb-2">Klicka pa en punkt for att se detaljer for den dagen</p>
+    <div class="chart-wrapper">
+      <canvas id="trendbrottChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Varningslista / Alerts -->
+  <div class="alerts-card mb-4" *ngIf="alertsData && !loadingAlerts">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Trendbrott / Avvikelser
+      <span class="badge bg-danger ms-2" *ngIf="alertsData.alerts.length > 0">{{ alertsData.alerts.length }}</span>
+    </h5>
+
+    <div class="text-muted" *ngIf="alertsData.alerts.length === 0">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga trendbrott upptackta i perioden.
+    </div>
+
+    <div class="table-responsive" *ngIf="alertsData.alerts.length > 0">
+      <table class="table table-dark table-hover table-sm">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Kassation %</th>
+            <th>Avvikelse</th>
+            <th>Typ</th>
+            <th>Operatorer</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let alert of alertsData.alerts" class="alert-row" [class.high-alert]="alert.avvikelse_sigma > 3">
+            <td>{{ alert.datum }}</td>
+            <td>
+              <strong>{{ alert.kassation_pct }}%</strong>
+              <small class="text-muted ms-1">({{ alert.ej_ok }}/{{ alert.total }})</small>
+            </td>
+            <td>
+              <strong>{{ alert.avvikelse_sigma }}&sigma;</strong>
+            </td>
+            <td>
+              <span [class]="getTypBadgeClass(alert.typ)">{{ alert.typ === 'hög' ? 'Hög' : 'Låg' }}</span>
+            </td>
+            <td>
+              <span *ngFor="let op of alert.operators; let last = last">
+                {{ op.name }}<span *ngIf="!last">, </span>
+              </span>
+              <span *ngIf="!alert.operators?.length" class="text-muted">-</span>
+            </td>
+            <td>
+              <button class="btn btn-outline-info btn-sm" (click)="openDailyDetail(alert.datum)">
+                <i class="fas fa-search-plus"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Loading alerts -->
+  <div class="text-center py-3" *ngIf="loadingAlerts">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <span class="ms-2 text-muted">Laddar varningar...</span>
+  </div>
+
+  <!-- Error alerts -->
+  <div class="alert alert-danger" *ngIf="errorAlerts && !loadingAlerts">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda varningar.
+  </div>
+
+  <!-- Drill-down: Daglig detalj -->
+  <div class="detail-card mb-4" *ngIf="selectedDate">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-calendar-day me-2" style="color:#ecc94b"></i>Detalj for {{ selectedDate }}
+      </h5>
+      <button class="btn btn-outline-secondary btn-sm" (click)="closeDailyDetail()">
+        <i class="fas fa-times me-1"></i>Stang
+      </button>
+    </div>
+
+    <div class="text-center py-3" *ngIf="loadingDetail">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <span class="ms-2 text-muted">Laddar detaljer...</span>
+    </div>
+
+    <div class="alert alert-danger" *ngIf="errorDetail && !loadingDetail">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda detaljer.
+    </div>
+
+    <div *ngIf="dailyDetail && !loadingDetail">
+      <!-- Sammanfattning -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Kassation</div>
+            <div class="detail-kpi-value">{{ dailyDetail.kassation_pct }}%</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Total IBC</div>
+            <div class="detail-kpi-value">{{ dailyDetail.total }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Kasserade</div>
+            <div class="detail-kpi-value text-danger">{{ dailyDetail.ej_ok }}</div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Avvikelse</div>
+            <div class="detail-kpi-value" [class.text-danger]="dailyDetail.avvikelse" [class.text-success]="!dailyDetail.avvikelse">
+              {{ dailyDetail.avvikelse ? dailyDetail.avvikelse_sigma + '\u03c3' : 'Normal' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Per skift -->
+      <h6 class="sub-title mt-3"><i class="fas fa-layer-group me-2"></i>Per skift</h6>
+      <div class="table-responsive" *ngIf="dailyDetail.skift.length > 0">
+        <table class="table table-dark table-sm">
+          <thead>
+            <tr>
+              <th>Skift</th>
+              <th>OK</th>
+              <th>Kasserade</th>
+              <th>Total</th>
+              <th>Kassation %</th>
+              <th>Drifttid (min)</th>
+              <th>Operatorer</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of dailyDetail.skift">
+              <td>{{ s.skiftraknare }}</td>
+              <td>{{ s.ibc_ok }}</td>
+              <td>{{ s.ibc_ej_ok }}</td>
+              <td>{{ s.total }}</td>
+              <td [class.text-danger]="s.kassation_pct > (dailyDetail.ref_snitt + dailyDetail.ref_stddev * 2)">
+                {{ s.kassation_pct }}%
+              </td>
+              <td>{{ s.drifttid }}</td>
+              <td>
+                <span *ngFor="let op of s.operators; let last = last">
+                  {{ op.name }}<span *ngIf="!last">, </span>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted" *ngIf="dailyDetail.skift.length === 0">Ingen skiftdata tillganglig.</p>
+
+      <!-- Per operatör -->
+      <h6 class="sub-title mt-3"><i class="fas fa-user me-2"></i>Per operator</h6>
+      <div class="table-responsive" *ngIf="dailyDetail.per_operator.length > 0">
+        <table class="table table-dark table-sm">
+          <thead>
+            <tr>
+              <th>Operator</th>
+              <th>OK</th>
+              <th>Kasserade</th>
+              <th>Total</th>
+              <th>Kassation %</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of dailyDetail.per_operator">
+              <td>{{ op.name }}</td>
+              <td>{{ op.ok }}</td>
+              <td>{{ op.ej_ok }}</td>
+              <td>{{ op.total }}</td>
+              <td [class.text-danger]="op.kassation_pct > (dailyDetail.ref_snitt + dailyDetail.ref_stddev * 2)">
+                {{ op.kassation_pct }}%
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted" *ngIf="dailyDetail.per_operator.length === 0">Ingen operatorsdata tillganglig.</p>
+
+      <!-- Stopporsaker -->
+      <h6 class="sub-title mt-3"><i class="fas fa-stop-circle me-2" style="color:#fc8181"></i>Stopporsaker</h6>
+      <div class="table-responsive" *ngIf="dailyDetail.stopporsaker.length > 0">
+        <table class="table table-dark table-sm">
+          <thead>
+            <tr>
+              <th>Orsak</th>
+              <th>Antal</th>
+              <th>Minuter</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of dailyDetail.stopporsaker">
+              <td>{{ s.orsak }}</td>
+              <td>{{ s.antal }}</td>
+              <td>{{ s.minuter }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-muted" *ngIf="dailyDetail.stopporsaker.length === 0">Inga stopporsaker registrerade.</p>
+    </div>
+  </div>
+</div>

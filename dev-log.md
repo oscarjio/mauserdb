@@ -1,3 +1,25 @@
+## 2026-03-12 Kvalitetsanalys — Trendbrott-detektion
+
+Ny sida `/rebotling/kvalitets-trendbrott` — automatisk flaggning av dagar med markant avvikande kassationsgrad. VD ser direkt varningar.
+
+- **Backend**: `KvalitetsTrendbrottController.php` i `classes/`
+  - `run=overview` (?period=7/30/90) — daglig kassationsgrad (%) med rorligt medelv (7d), stddev, ovre/undre grans (+-2 sigma), flaggade avvikelser
+  - `run=alerts` (?period=30/90) — trendbrott sorterade efter allvarlighetsgrad (sigma), med skift- och operatorsinfo
+  - `run=daily-detail` (?date=YYYY-MM-DD) — drill-down: per-skift kassation, per-operator, stopporsaker
+  - Kassationsgrad = ibc_ej_ok / (ibc_ok + ibc_ej_ok) * 100 fran rebotling_ibc
+  - Registrerad i `api.php` med nyckel `kvalitetstrendbrott`
+- **Proxy**: `controllers/KvalitetsTrendbrottController.php`
+- **Frontend Service**: `services/kvalitets-trendbrott.service.ts` (standalone)
+  - `getOverview(period)`, `getAlerts(period)`, `getDailyDetail(date)`
+  - Interfaces: TrendbrottDailyItem, TrendbrottOverviewData, TrendbrottAlert, TrendbrottAlertsData, TrendbrottDailyDetailData
+- **Frontend Komponent**: `pages/rebotling/kvalitets-trendbrott/` (standalone, OnInit/OnDestroy, destroy$, takeUntil)
+  - KPI-kort: Snitt kassation%, Antal trendbrott, Senaste trendbrott, Aktuell trend (battre/samre/stabil)
+  - Chart.js linjediagram: Daglig kassation% + rorligt medelv (7d) + ovre/undre grans. Avvikande punkter i rott/gront
+  - Varningstabell: datum, kassation%, avvikelse (sigma), typ-badge (hog=rod, lag=gron), operatorer
+  - Drill-down: klicka pa dag -> detaljvy med per-skift + per-operator kassation + stopporsaker
+- **Route**: `rebotling/kvalitets-trendbrott` i `app.routes.ts` (authGuard)
+- **Meny**: Under Rebotling, ikon `fas fa-chart-line` (rod), text "Kvalitets-trendbrott"
+
 ## 2026-03-12 Favoriter / Snabbkommandon — bokmärk mest använda sidor
 
 VD:n kan spara sina mest använda sidor som favoriter och se dem samlade på startsidan for snabb atkomst (10 sekunder).
