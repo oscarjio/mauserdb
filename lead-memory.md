@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #83)*
+*Senast uppdaterad: 2026-03-12 (session #84)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -85,19 +85,24 @@ Session #80: Stopptidsanalys per maskin + Produktionskostnad per IBC — klara.
 Session #81: Rebotling maskin-OEE per station + Operatörsbonus-kalkylator — klara.
 Session #82: Leveransplanering + Kvalitetscertifikat per batch — klara.
 Session #83: Historisk produktionsöversikt + Automatiska avvikelseLarm — klara.
+Session #84: Rebotling sammanfattnings-dashboard + Produktionsflödesvy (Sankey) — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Historisk produktionsöversikt** — statistiksida: produktion med trender (klar #83)
-- [x] **Automatiska avvikelseLarm** — larm vid OEE/kassation/stopp-avvikelser (klar #83)
+- [x] **Rebotling sammanfattnings-dashboard** — VD:ns landing page med alla KPI:er (klar #84)
+- [x] **Produktionsflödesvy (Sankey)** — visuellt IBC-flöde genom rebotling (klar #84)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
-- [ ] **Produktionsflödesvy (Sankey)** — visuellt IBC-flöde genom rebotling
-- [ ] **Rebotling sammanfattnings-dashboard** — VD:ns landing page med alla KPI:er
 - [ ] **Exportera alla rapporter till PDF** — generell PDF-export
+- [ ] **Kassationsorsak per station** — drill-down per station med trendgraf
+- [ ] **Operatörs-schemaöversikt** — veckovis schemavy med bemanningsgrad
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #84 (klar)
+Worker 1 (Rebotling sammanfattnings-dashboard): VD:ns landing page — alla KPI:er på en sida: produktion, OEE, kassation, larm, drifttid. 7-dagars produktionsgraf, maskin-status, senaste larm, snabblänkar. Använder befintliga tabeller. Backend: RebotlingSammanfattningController.
+Worker 2 (Produktionsflödesvy Sankey): Visuellt IBC-flöde genom stationer — inkommande → process → godkänd/kassation. Flaskhalsar synliga. Periodselektor. Använder befintliga tabeller. Backend: ProduktionsflodeController.
 
 ### 2026-03-12 — Session #83 (klar)
 Worker 1 (Historisk produktionsöversikt): Statistiksida — produktion per dag/vecka/månad, adaptiv granularitet, periodjämförelse, trendpilar. Använder befintliga tabeller. Backend: HistoriskProduktionController.
@@ -106,8 +111,4 @@ Worker 2 (Automatiska avvikelseLarm): Larmsystem — OEE/kassation/stopp-avvikel
 ### 2026-03-12 — Session #82 (klar)
 Worker 1 (Leveransplanering): Kundorder vs kapacitet — ordertabell, Gantt-kapacitetsvy, leveransprognos. NYA DB-tabeller: kundordrar + produktionskapacitet_config. Backend: LeveransplaneringController.
 Worker 2 (Kvalitetscertifikat per batch): Kvalitetsintyg för batchar — batch-lista, certifikatvy (utskrivbar), kvalitetsöversikt. NYA DB-tabeller: kvalitetscertifikat + kvalitetskriterier. Backend: KvalitetscertifikatController.
-
-### 2026-03-12 — Session #81 (klar)
-Worker 1 (Rebotling maskin-OEE per station): OEE nedbruten per maskin — Tillgänglighet × Prestanda × Kvalitet. Gauge/progress bars, stacked bars, trend, benchmark mot mål. Backend: MaskinOeeController.
-Worker 2 (Operatörsbonus-kalkylator): Transparent individuell bonusmodell — IBC/h, kvalitet, närvaro, team-bonus. Konfigurationspanel, simulator, radardiagram. NYA DB-tabeller: bonus_konfiguration + bonus_utbetalning. Backend: OperatorsbonusController.
 

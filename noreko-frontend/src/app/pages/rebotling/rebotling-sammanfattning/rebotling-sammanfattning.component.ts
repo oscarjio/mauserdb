@@ -9,7 +9,6 @@ import {
   SammanfattningOverview,
   Produktion7dData,
   MaskinStatusData,
-  LarmItem,
 } from '../../../services/rebotling-sammanfattning.service';
 
 Chart.register(...registerables);

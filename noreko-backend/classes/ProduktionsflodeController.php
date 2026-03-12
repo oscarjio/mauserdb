@@ -131,35 +131,6 @@ class ProduktionsflodeController {
     }
 
     /**
-     * Hamta produktion per dag for detaljerade stationsberakningar.
-     */
-    private function getProductionPerDay(string $fromDate, string $toDate): array {
-        $stmt = $this->pdo->prepare("
-            SELECT
-                dag,
-                COALESCE(SUM(shift_ok), 0)      AS ibc_ok,
-                COALESCE(SUM(shift_ej_ok), 0)    AS ibc_ej_ok,
-                COALESCE(SUM(shift_runtime), 0)  AS runtime
-            FROM (
-                SELECT
-                    DATE(datum) AS dag,
-                    skiftraknare,
-                    MAX(COALESCE(ibc_ok, 0))     AS shift_ok,
-                    MAX(COALESCE(ibc_ej_ok, 0))  AS shift_ej_ok,
-                    MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                  AND skiftraknare IS NOT NULL
-                GROUP BY DATE(datum), skiftraknare
-            ) AS per_shift
-            GROUP BY dag
-            ORDER BY dag ASC
-        ");
-        $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
-    }
-
-    /**
      * Forda kassation pa stationer och berakna flodesdata.
      */
     private function buildStationData(int $totalIncoming, int $totalKassation): array {
@@ -371,7 +342,7 @@ class ProduktionsflodeController {
             $antalStationer  = count($stationData);
 
             $rows = [];
-            foreach ($stationData as $i => $s) {
+            foreach ($stationData as $s) {
                 // Uppskattad tid per station (fordelat pa antal stationer)
                 $stationTidMin = $antalStationer > 0 && $total > 0
                     ? round(($totalRuntimeMin / $antalStationer) / max(1, $s['inkommande']) * 60, 1)
