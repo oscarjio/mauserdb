@@ -3,23 +3,32 @@
     <h2 class="puls-title">
       <i class="fas fa-heartbeat me-2 text-danger"></i>Produktionspuls
     </h2>
-    <p class="puls-subtitle">Realtidsflöde av producerade IBC:er</p>
+    <p class="puls-subtitle">Realtids-ticker -- se vad som hander NU pa rebotling-linjen. Uppdateras var 30:e sekund.</p>
 
     <!-- Laddar -->
     <div *ngIf="loading" class="text-center py-5">
       <div class="spinner-border text-secondary" role="status">
         <span class="visually-hidden">Laddar...</span>
       </div>
-      <p class="text-muted mt-2">Hämtar produktionsdata...</p>
+      <p class="text-muted mt-2">Hamtar produktionsdata...</p>
     </div>
 
-    <!-- Ticker -->
+    <!-- === TICKER === -->
     <div class="ticker-container" *ngIf="!loading"
          (mouseenter)="onTickerMouseEnter()"
          (mouseleave)="onTickerMouseLeave()">
       <div class="ticker-track" [class.ticker-paused]="paused">
+        <!-- Forsta kopian -->
         <ng-container *ngFor="let item of items; let i = index">
           <div [ngClass]="getItemClass(item)" [title]="item.produkt">
+            <div class="puls-icon-row">
+              <i class="fas" [ngClass]="{
+                'fa-check-circle text-success': !item.kasserad && !item.over_target,
+                'fa-times-circle text-danger': item.kasserad,
+                'fa-exclamation-circle text-warning': !item.kasserad && item.over_target
+              }"></i>
+              <span class="puls-tid">{{ formatTime(item.datum) }}</span>
+            </div>
             <div class="puls-operator">{{ item.operator }}</div>
             <div class="puls-produkt">{{ item.produkt }}</div>
             <div class="puls-cykeltid" *ngIf="item.cykeltid !== null">
@@ -28,17 +37,24 @@
             <div class="puls-cykeltid puls-cykeltid-na" *ngIf="item.cykeltid === null">
               --
             </div>
-            <div class="puls-tid">{{ formatTime(item.datum) }}</div>
             <div class="puls-status">
               <span *ngIf="item.kasserad" class="badge bg-danger">Kasserad</span>
-              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lång cykel</span>
+              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lang cykel</span>
               <span *ngIf="!item.kasserad && !item.over_target" class="badge bg-success">OK</span>
             </div>
           </div>
         </ng-container>
-        <!-- Duplicera för sömlös loop -->
+        <!-- Duplicerat for somlos loop -->
         <ng-container *ngFor="let item of items; let i = index">
           <div [ngClass]="getItemClass(item)" [title]="item.produkt">
+            <div class="puls-icon-row">
+              <i class="fas" [ngClass]="{
+                'fa-check-circle text-success': !item.kasserad && !item.over_target,
+                'fa-times-circle text-danger': item.kasserad,
+                'fa-exclamation-circle text-warning': !item.kasserad && item.over_target
+              }"></i>
+              <span class="puls-tid">{{ formatTime(item.datum) }}</span>
+            </div>
             <div class="puls-operator">{{ item.operator }}</div>
             <div class="puls-produkt">{{ item.produkt }}</div>
             <div class="puls-cykeltid" *ngIf="item.cykeltid !== null">
@@ -47,10 +63,9 @@
             <div class="puls-cykeltid puls-cykeltid-na" *ngIf="item.cykeltid === null">
               --
             </div>
-            <div class="puls-tid">{{ formatTime(item.datum) }}</div>
             <div class="puls-status">
               <span *ngIf="item.kasserad" class="badge bg-danger">Kasserad</span>
-              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lång cykel</span>
+              <span *ngIf="!item.kasserad && item.over_target" class="badge bg-warning text-dark">Lang cykel</span>
               <span *ngIf="!item.kasserad && !item.over_target" class="badge bg-success">OK</span>
             </div>
           </div>
@@ -58,52 +73,92 @@
       </div>
     </div>
 
-    <!-- Statistikrad -->
-    <div class="stats-row mt-4" *ngIf="!loading">
+    <!-- === KPI-KORT (4 st) === -->
+    <div class="kpi-row mt-4" *ngIf="!loading">
       <div class="row g-3">
-        <!-- IBC/h -->
+        <!-- IBC idag -->
         <div class="col-6 col-md-3">
-          <div class="stat-card">
-            <div class="stat-label">IBC/h (senaste timmen)</div>
-            <div class="stat-value-lg">
-              {{ currentHour.ibc_count }}
-              <span class="trend-arrow" *ngIf="ibcTrend > 0" title="Upp jämfört med föregående timme">
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-icon-blue">
+              <i class="fas fa-boxes"></i>
+            </div>
+            <div class="kpi-label">IBC idag</div>
+            <div class="kpi-value">{{ liveKpi?.ibc_idag ?? '--' }}</div>
+          </div>
+        </div>
+
+        <!-- IBC/h nu -->
+        <div class="col-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-icon-green">
+              <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <div class="kpi-label">IBC/h nu</div>
+            <div class="kpi-value">
+              {{ liveKpi?.ibc_per_timme ?? currentHour.ibc_count }}
+              <span class="trend-arrow" *ngIf="ibcTrend > 0">
                 <i class="fas fa-arrow-up text-success"></i>
                 <small class="text-success">+{{ ibcTrend }}</small>
               </span>
-              <span class="trend-arrow" *ngIf="ibcTrend < 0" title="Ner jämfört med föregående timme">
+              <span class="trend-arrow" *ngIf="ibcTrend < 0">
                 <i class="fas fa-arrow-down text-danger"></i>
                 <small class="text-danger">{{ ibcTrend }}</small>
-              </span>
-              <span class="trend-arrow" *ngIf="ibcTrend === 0" title="Oförändrat">
-                <i class="fas fa-minus text-muted"></i>
               </span>
             </div>
           </div>
         </div>
 
-        <!-- Snittcykeltid -->
+        <!-- Driftstatus -->
+        <div class="col-6 col-md-3">
+          <div class="kpi-card" [ngClass]="{'kpi-card-running': driftstatusRunning, 'kpi-card-stopped': !driftstatusRunning && liveKpi}">
+            <div class="kpi-icon-wrap" [ngClass]="driftstatusRunning ? 'kpi-icon-green' : 'kpi-icon-red'">
+              <i class="fas" [ngClass]="driftstatusRunning ? 'fa-play-circle' : 'fa-stop-circle'"></i>
+            </div>
+            <div class="kpi-label">Driftstatus</div>
+            <div class="kpi-value" [ngClass]="driftstatusRunning ? 'text-success' : 'text-danger'">
+              {{ driftstatusText }}
+            </div>
+            <div class="kpi-sub" *ngIf="driftSedanText">{{ driftSedanText }}</div>
+          </div>
+        </div>
+
+        <!-- Tid sedan senaste stopp -->
+        <div class="col-6 col-md-3">
+          <div class="kpi-card">
+            <div class="kpi-icon-wrap kpi-icon-yellow">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="kpi-label">Sedan senaste stopp</div>
+            <div class="kpi-value">{{ tidSedanStoppText }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === EXTRA STATISTIKRAD === -->
+    <div class="stats-row mt-3" *ngIf="!loading">
+      <div class="row g-3">
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-label">IBC/h (senaste timmen)</div>
+            <div class="stat-value-lg">{{ currentHour.ibc_count }}</div>
+          </div>
+        </div>
         <div class="col-6 col-md-3">
           <div class="stat-card">
             <div class="stat-label">Snittcykeltid</div>
             <div class="stat-value-lg">
               {{ currentHour.snitt_cykeltid !== null ? currentHour.snitt_cykeltid + ' min' : '--' }}
               <ng-container *ngIf="cykeltidTrend !== null">
-                <span class="trend-arrow" *ngIf="cykeltidTrend < 0" title="Snabbare">
-                  <i class="fas fa-arrow-down text-success"></i>
-                </span>
-                <span class="trend-arrow" *ngIf="cykeltidTrend > 0" title="Långsammare">
-                  <i class="fas fa-arrow-up text-danger"></i>
-                </span>
+                <span class="trend-arrow" *ngIf="cykeltidTrend < 0"><i class="fas fa-arrow-down text-success"></i></span>
+                <span class="trend-arrow" *ngIf="cykeltidTrend > 0"><i class="fas fa-arrow-up text-danger"></i></span>
               </ng-container>
             </div>
           </div>
         </div>
-
-        <!-- Godkända/Kasserade -->
         <div class="col-6 col-md-3">
           <div class="stat-card">
-            <div class="stat-label">Godkända / Kasserade</div>
+            <div class="stat-label">Godkanda / Kasserade</div>
             <div class="stat-value-lg">
               <span class="text-success">{{ currentHour.godkanda }}</span>
               <span class="text-muted"> / </span>
@@ -111,8 +166,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Kvalitet -->
         <div class="col-6 col-md-3">
           <div class="stat-card">
             <div class="stat-label">Kvalitet (senaste timmen)</div>
@@ -128,10 +181,41 @@
       </div>
     </div>
 
+    <!-- === HANDELSETABELL (senaste 20) === -->
+    <div class="events-section mt-4" *ngIf="!loading && pulseEvents.length > 0">
+      <h5 class="events-title">
+        <i class="fas fa-list-ul me-2"></i>Senaste handelser
+      </h5>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover events-table">
+          <thead>
+            <tr>
+              <th>Tid</th>
+              <th>Typ</th>
+              <th>Handelse</th>
+              <th>Detalj</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let event of pulseEvents">
+              <td class="events-time">{{ formatDateTime(event.time) }}</td>
+              <td>
+                <span [ngClass]="getEventBadgeClass(event)">
+                  <i [ngClass]="event.icon" class="me-1"></i>{{ getEventTypeLabel(event) }}
+                </span>
+              </td>
+              <td>{{ event.label }}</td>
+              <td class="events-detail">{{ event.detail }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Tom vy -->
-    <div *ngIf="!loading && items.length === 0" class="text-center py-5">
+    <div *ngIf="!loading && items.length === 0 && pulseEvents.length === 0" class="text-center py-5">
       <i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i>
-      <p class="text-muted">Inga IBC:er registrerade just nu.</p>
+      <p class="text-muted">Inga IBC:er eller handelser registrerade just nu.</p>
     </div>
   </div>
 </div>

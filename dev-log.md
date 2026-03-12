@@ -1,3 +1,25 @@
+## 2026-03-12 Produktionspuls — Realtids-ticker (uppgraderad)
+
+Uppgraderad sida `/rebotling/produktionspuls` — scrollande realtids-ticker (borsticker-stil) for VD.
+
+- **Backend**: `ProduktionspulsController.php` i `classes/` och `controllers/` (proxy-monster)
+  - `run=pulse&limit=20`: Kronologisk handelsefeed — samlar IBC-registreringar, on/off-handelser, stopporsaker fran `rebotling_ibc`, `rebotling_onoff`, `stoppage_log`, `stopporsak_registreringar`. Varje handelse har type/time/label/detail/color/icon. Sorterat nyast forst.
+  - `run=live-kpi`: Realtids-KPI:er — IBC idag (COUNT fran rebotling_ibc), IBC/h (senaste timmen), driftstatus (kor/stopp + sedan nar fran rebotling_onoff), tid sedan senaste stopp (minuter).
+  - `run=latest` + `run=hourly-stats`: Bakatkompat (oforandrade).
+  - Auth: session kravs for pulse/live-kpi (401 om ej inloggad).
+- **Proxy-controller**: `controllers/ProduktionspulsController.php` (ny)
+- **Frontend Service**: `produktionspuls.service.ts` — nya interfaces PulseEvent, PulseResponse, Driftstatus, TidSedanSenasteStopp, LiveKpiResponse + getPulse()/getLiveKpi()
+- **Frontend Komponent**: `pages/rebotling/produktionspuls/` (uppgraderad)
+  - Scrollande CSS ticker med ikon + text + tid + fargbakgrund per IBC (gront=OK, rott=kasserad, gult=lang cykel). Pausa vid hover. Somlos marquee-loop.
+  - 4 KPI-kort: IBC idag, IBC/h nu (med trend-pil), Driftstatus (kor/stopp med pulserande rod ram vid stopp), Tid sedan senaste stopp
+  - Extra statistikrad: IBC/h, snittcykeltid, godkanda/kasserade, kvalitet%
+  - Handelsetabell: senaste 20 handelser med tid, typ-badge (fargkodad), handelse, detalj
+  - Auto-refresh var 30:e sekund
+  - Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval
+- **Route**: `/rebotling/produktionspuls` med `authGuard` (tillagd)
+- **Meny**: "Produktionspuls" fanns redan under Rebotling-dropdown (ikon fas fa-heartbeat)
+
 ## 2026-03-12 Kassationsorsak-drilldown — Hierarkisk kassationsanalys
 
 Ny sida `/rebotling/kassationsorsak-drilldown` — hierarkisk drill-down-vy for kassationsorsaker.

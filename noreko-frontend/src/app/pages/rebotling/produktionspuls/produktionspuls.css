@@ -71,7 +71,7 @@
   }
 }
 
-/* === Puls Item (IBC-bricka) === */
+/* === Puls Item (IBC-bricka i ticker) === */
 .puls-item {
   flex-shrink: 0;
   width: 150px;
@@ -101,6 +101,17 @@
 .puls-over-target {
   border-left: 3px solid #ecc94b;
   background: #2d2a1b;
+}
+
+.puls-icon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+
+.puls-icon-row i {
+  font-size: 0.9rem;
 }
 
 .puls-operator {
@@ -134,7 +145,6 @@
 .puls-tid {
   font-size: 0.7rem;
   color: #718096;
-  margin-top: 0.15rem;
 }
 
 .puls-status {
@@ -146,9 +156,91 @@
   padding: 0.2em 0.5em;
 }
 
+/* === KPI-kort (4 st) === */
+.kpi-row {
+  margin-bottom: 0.5rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.1rem 1.25rem;
+  text-align: center;
+  position: relative;
+  transition: border-color 0.3s;
+}
+
+.kpi-card-running {
+  border-color: #48bb78;
+  box-shadow: 0 0 12px rgba(72, 187, 120, 0.15);
+}
+
+.kpi-card-stopped {
+  border-color: #fc8181;
+  box-shadow: 0 0 12px rgba(252, 129, 129, 0.15);
+  animation: stopPulse 2s ease-in-out infinite;
+}
+
+@keyframes stopPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(252, 129, 129, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(252, 129, 129, 0.35); }
+}
+
+.kpi-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 0.5rem;
+  font-size: 1.1rem;
+}
+
+.kpi-icon-blue {
+  background: rgba(66, 153, 225, 0.15);
+  color: #63b3ed;
+}
+
+.kpi-icon-green {
+  background: rgba(72, 187, 120, 0.15);
+  color: #48bb78;
+}
+
+.kpi-icon-red {
+  background: rgba(252, 129, 129, 0.15);
+  color: #fc8181;
+}
+
+.kpi-icon-yellow {
+  background: rgba(236, 201, 75, 0.15);
+  color: #ecc94b;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.kpi-sub {
+  font-size: 0.72rem;
+  color: #718096;
+  margin-top: 0.2rem;
+}
+
 /* === Statistikrad === */
 .stats-row {
-  margin-bottom: 2rem;
+  margin-bottom: 0.5rem;
 }
 
 .stat-card {
@@ -182,11 +274,81 @@
   font-size: 0.75rem;
 }
 
+/* === Handelsetabell === */
+.events-section {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.events-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
+}
+
+.events-table {
+  background: transparent !important;
+  margin-bottom: 0;
+}
+
+.events-table thead th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #4a5568;
+  padding: 0.6rem 0.75rem;
+}
+
+.events-table tbody tr {
+  border-bottom: 1px solid #4a5568;
+}
+
+.events-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.events-table td {
+  vertical-align: middle;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.events-time {
+  white-space: nowrap;
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.events-detail {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.events-table .badge {
+  font-size: 0.7rem;
+}
+
 /* === Responsivt === */
 @media (max-width: 768px) {
   .puls-item {
     width: 130px;
     padding: 0.5rem 0.6rem;
+  }
+
+  .kpi-value {
+    font-size: 1.2rem;
   }
 
   .stat-value-lg {
@@ -195,5 +357,9 @@
 
   .puls-title {
     font-size: 1.3rem;
+  }
+
+  .events-detail {
+    max-width: 180px;
   }
 }

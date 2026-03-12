@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+// === Legacy interfaces (bakatkompat) ===
+
 export interface PulsItem {
   id: number;
   datum: string;
@@ -33,12 +35,49 @@ export interface PulsHourlyResponse {
   previous: HourData;
 }
 
+// === Nya interfaces for realtids-ticker ===
+
+export interface PulseEvent {
+  type: 'ibc' | 'onoff' | 'stopp';
+  time: string;
+  label: string;
+  detail: string;
+  color: 'success' | 'danger' | 'warning' | 'info';
+  icon: string;
+}
+
+export interface PulseResponse {
+  success: boolean;
+  data: PulseEvent[];
+  timestamp: string;
+}
+
+export interface Driftstatus {
+  running: boolean;
+  sedan: string | null;
+}
+
+export interface TidSedanSenasteStopp {
+  minuter: number | null;
+  senaste_stopp: string | null;
+}
+
+export interface LiveKpiResponse {
+  success: boolean;
+  ibc_idag: number;
+  ibc_per_timme: number;
+  driftstatus: Driftstatus;
+  tid_sedan_senaste_stopp: TidSedanSenasteStopp;
+  timestamp: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProduktionspulsService {
   private api = '/noreko-backend/api.php?action=produktionspuls';
 
   constructor(private http: HttpClient) {}
 
+  // Legacy
   getLatest(limit = 50): Observable<PulsLatestResponse> {
     return this.http.get<PulsLatestResponse>(
       `${this.api}&run=latest&limit=${limit}`,
@@ -46,9 +85,26 @@ export class ProduktionspulsService {
     );
   }
 
+  // Legacy
   getHourlyStats(): Observable<PulsHourlyResponse> {
     return this.http.get<PulsHourlyResponse>(
       `${this.api}&run=hourly-stats`,
+      { withCredentials: true }
+    );
+  }
+
+  // Ny: kronologisk handelsefeed
+  getPulse(limit = 20): Observable<PulseResponse> {
+    return this.http.get<PulseResponse>(
+      `${this.api}&run=pulse&limit=${limit}`,
+      { withCredentials: true }
+    );
+  }
+
+  // Ny: realtids-KPI:er
+  getLiveKpi(): Observable<LiveKpiResponse> {
+    return this.http.get<LiveKpiResponse>(
+      `${this.api}&run=live-kpi`,
       { withCredentials: true }
     );
   }
