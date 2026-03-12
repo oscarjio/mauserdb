@@ -1,0 +1,418 @@
+/* ================================================================
+   Drifttids-timeline — dark theme
+   ================================================================ */
+
+.timeline-container {
+  background-color: #1a202c;
+  min-height: 100vh;
+  padding: 1.5rem;
+  color: #e2e8f0;
+}
+
+/* ----------------------------------------------------------------
+   Sidhuvud
+   ---------------------------------------------------------------- */
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  color: #718096;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ----------------------------------------------------------------
+   Datumväljare
+   ---------------------------------------------------------------- */
+
+.date-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.date-input {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  max-width: 160px;
+}
+
+.date-input:focus {
+  background: #1a202c;
+  color: #e2e8f0;
+  border-color: #4fd1c5;
+  box-shadow: 0 0 0 0.2rem rgba(79,209,197,0.25);
+}
+
+.nav-btn {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.nav-btn:hover {
+  background: #4a5568;
+  color: #e2e8f0;
+}
+
+.date-display {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  margin-left: 0.5rem;
+}
+
+/* ----------------------------------------------------------------
+   KPI-kort
+   ---------------------------------------------------------------- */
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #3d4a5a;
+  transition: transform 0.15s;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-card.kpi-loading,
+.kpi-card.kpi-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 90px;
+}
+
+.kpi-icon {
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* ----------------------------------------------------------------
+   Tidslinje-sektion
+   ---------------------------------------------------------------- */
+
+.timeline-card {
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #3d4a5a;
+  position: relative;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 1.25rem;
+}
+
+.loading-state,
+.error-state,
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: #718096;
+}
+
+/* ----------------------------------------------------------------
+   Tidslinje-komponent
+   ---------------------------------------------------------------- */
+
+.timeline-wrapper {
+  position: relative;
+  overflow: visible;
+}
+
+.timeline-hours {
+  position: relative;
+  height: 20px;
+  margin-bottom: 4px;
+  user-select: none;
+}
+
+.hour-label {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #718096;
+  white-space: nowrap;
+}
+
+.timeline-track {
+  position: relative;
+  height: 48px;
+  background: #1a202c;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #3d4a5a;
+  cursor: pointer;
+}
+
+.timeline-segment {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  min-width: 2px;
+  transition: filter 0.1s, opacity 0.1s;
+  cursor: pointer;
+}
+
+.timeline-segment:hover {
+  filter: brightness(1.2);
+  z-index: 2;
+}
+
+.timeline-segment.selected {
+  filter: brightness(1.3);
+  outline: 2px solid #e2e8f0;
+  outline-offset: -2px;
+  z-index: 3;
+}
+
+.timeline-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ----------------------------------------------------------------
+   Tooltip (fixed, följer musen)
+   ---------------------------------------------------------------- */
+
+.segment-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-width: 180px;
+  max-width: 280px;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.tooltip-type {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #2d3748;
+  padding-bottom: 0.4rem;
+}
+
+.tooltip-row {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  margin-bottom: 0.2rem;
+}
+
+.tooltip-label {
+  color: #718096;
+  min-width: 60px;
+}
+
+.tooltip-reason {
+  color: #fc8181;
+  word-break: break-word;
+}
+
+/* ----------------------------------------------------------------
+   Detalj-sektion (klickat segment)
+   ---------------------------------------------------------------- */
+
+.detail-card {
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #4fd1c5;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ----------------------------------------------------------------
+   Tabellsektion
+   ---------------------------------------------------------------- */
+
+.table-card {
+  background: #2d3748;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #3d4a5a;
+}
+
+.table-responsive {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.table-dark {
+  background: transparent;
+  color: #e2e8f0;
+}
+
+.table-dark th {
+  background: #1a202c;
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-color: #3d4a5a;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table-dark td {
+  border-color: #3d4a5a;
+  font-size: 0.88rem;
+  vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(79, 209, 197, 0.06);
+}
+
+.table-dark tbody tr.table-active {
+  background-color: rgba(79, 209, 197, 0.12);
+}
+
+.text-mono {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.text-danger-soft {
+  color: #fc8181;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+/* ----------------------------------------------------------------
+   Responsivitet
+   ---------------------------------------------------------------- */
+
+@media (max-width: 576px) {
+  .timeline-container {
+    padding: 1rem;
+  }
+
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .date-display {
+    display: none;
+  }
+
+  .timeline-track {
+    height: 36px;
+  }
+}
+
+@media (max-width: 400px) {
+  .kpi-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}

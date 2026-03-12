@@ -1,3 +1,24 @@
+## 2026-03-12 Drifttids-timeline — Visuell tidslinje per dag (session #70)
+
+Ny sida `/rebotling/drifttids-timeline` — horisontell tidslinje som visar körning, stopp och ej planerad tid per dag.
+
+- **Backend**: `DrifttidsTimelineController.php` i `classes/` och `controllers/` (proxy-mönster)
+  - `run=timeline-data&date=YYYY-MM-DD`: Bygger tidssegment från `rebotling_onoff` (körperioder) + `stoppage_log` + `stopporsak_registreringar` (stopporsaker). Returnerar array av segment med typ, start, slut, duration_min, stop_reason, operator. Planerat skift: 06:00–22:00, övrig tid = ej planerat.
+  - `run=summary&date=YYYY-MM-DD`: KPI:er — drifttid, stopptid, antal stopp, längsta körperiod, utnyttjandegrad (% av 16h skift). Default: dagens datum.
+  - Auth: session krävs (401 om ej inloggad).
+- **Route** i `api.php`: `drifttids-timeline` → `DrifttidsTimelineController`
+- **Frontend Service**: `drifttids-timeline.service.ts` med TypeScript-interfaces (SegmentType, TimelineSegment, TimelineData, TimelineSummaryData), `timeout(15000)` + `catchError`
+- **Frontend Komponent**: `pages/drifttids-timeline/` (standalone, OnInit/OnDestroy, destroy$/takeUntil)
+  - Datumväljare med ◀ ▶-navigeringsknappar (blockerar framåt om idag)
+  - 4 KPI-kort: Drifttid, Stopptid, Antal stopp, Utnyttjandegrad (färgkodad)
+  - Horisontell div-baserad tidslinje (06:00–22:00): grönt = körning, rött = stopp, grått = ej planerat
+  - Hover-tooltip (fixed, följer musen) med start/slut/längd/orsak/operatör
+  - Klick på segment öppnar detalj-sektion under tidslinjen
+  - Segmenttabell under tidslinjen: alla segment med typ-badge, tider, orsak, operatör
+  - Responsiv design, dark theme (#1a202c bg, #2d3748 cards)
+- **Route**: `/rebotling/drifttids-timeline` med `authGuard` i `app.routes.ts`
+- **Meny**: "Drifttids-timeline" tillagd under Rebotling-dropdown (loggedIn), ikon fas fa-stream, efter OEE-analys
+
 ## 2026-03-12 Skiftjämförelse — Skiftvis produktionsjämförelse (session #70)
 
 Ny sida `/rebotling/skiftjamforelse` — jämför dag-, kväll- och nattskift för VD.

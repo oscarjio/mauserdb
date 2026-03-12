@@ -169,6 +169,7 @@ $classNameMap = [
     'pareto'                  => 'ParetoController',
     'oee-waterfall'           => 'OeeWaterfallController',
     'morgonrapport'           => 'MorgonrapportController',
+    'drifttids-timeline'      => 'DrifttidsTimelineController',
 ];
 
 $actionKey = strtolower($action);

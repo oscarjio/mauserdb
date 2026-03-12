@@ -1,0 +1,297 @@
+<div class="timeline-container">
+
+  <!-- Sidhuvud -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-stream me-2" style="color:#4fd1c5"></i>Drifttids-timeline
+    </h1>
+    <p class="page-subtitle">Visuell tidslinje over maskindrift — körning, stopp och ej planerad tid per dag</p>
+  </div>
+
+  <!-- Datumväljare -->
+  <div class="date-bar">
+    <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="prevDay()" title="Föregående dag">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <input
+      type="date"
+      class="form-control form-control-sm date-input"
+      [(ngModel)]="selectedDate"
+      (change)="onDateChange()"
+      [max]="todayStr()" />
+    <button
+      class="btn btn-outline-secondary btn-sm nav-btn"
+      (click)="nextDay()"
+      [disabled]="isToday"
+      title="Nästa dag">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+    <span class="date-display">{{ formatDisplayDate(selectedDate) }}</span>
+    <button class="btn btn-sm btn-outline-info ms-auto" (click)="loadAll()" title="Uppdatera">
+      <i class="fas fa-sync-alt"></i> Uppdatera
+    </button>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+
+    <!-- Laddning -->
+    <div class="kpi-card kpi-loading" *ngIf="loadingSummary">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <span class="ms-2 text-muted">Laddar...</span>
+    </div>
+
+    <!-- Fel -->
+    <div class="kpi-card kpi-error" *ngIf="!loadingSummary && errorSummary">
+      <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+      <span class="text-danger">Kunde inte ladda sammanfattning</span>
+    </div>
+
+    <ng-container *ngIf="!loadingSummary && summary">
+
+      <!-- Drifttid -->
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#48bb78"><i class="fas fa-play-circle"></i></div>
+        <div class="kpi-value" style="color:#48bb78">{{ drifttidTimmar(summary.drifttid_min) }}</div>
+        <div class="kpi-label">Drifttid</div>
+        <div class="kpi-sub">{{ summary.drifttid_min | number:'1.0-0' }} min</div>
+      </div>
+
+      <!-- Stopptid -->
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#fc8181"><i class="fas fa-pause-circle"></i></div>
+        <div class="kpi-value" style="color:#fc8181">{{ drifttidTimmar(summary.stopptid_min) }}</div>
+        <div class="kpi-label">Stopptid</div>
+        <div class="kpi-sub">{{ summary.stopptid_min | number:'1.0-0' }} min</div>
+      </div>
+
+      <!-- Antal stopp -->
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color:#f6ad55"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="kpi-value" style="color:#f6ad55">{{ summary.antal_stopp }}</div>
+        <div class="kpi-label">Antal stopp</div>
+        <div class="kpi-sub">
+          Längsta körn.: {{ drifttidTimmar(summary.langsta_korning_min) }}
+        </div>
+      </div>
+
+      <!-- Utnyttjandegrad -->
+      <div class="kpi-card">
+        <div class="kpi-icon" [style.color]="utnyttjandegradFarg(summary.utnyttjandegrad_pct)">
+          <i class="fas fa-gauge-high"></i>
+        </div>
+        <div class="kpi-value" [style.color]="utnyttjandegradFarg(summary.utnyttjandegrad_pct)">
+          {{ summary.utnyttjandegrad_pct | number:'1.1-1' }}%
+        </div>
+        <div class="kpi-label">Utnyttjandegrad</div>
+        <div class="kpi-sub">av planerad tid (16h)</div>
+      </div>
+
+    </ng-container>
+  </div>
+
+  <!-- Tidslinje -->
+  <div class="timeline-card">
+    <h2 class="section-title">
+      <i class="fas fa-stream me-2" style="color:#4fd1c5"></i>Tidslinje
+    </h2>
+
+    <!-- Laddning -->
+    <div class="loading-state" *ngIf="loadingTimeline">
+      <div class="spinner-border text-info" role="status"></div>
+      <span class="ms-3 text-muted">Laddar tidslinje...</span>
+    </div>
+
+    <!-- Fel -->
+    <div class="error-state" *ngIf="!loadingTimeline && errorTimeline">
+      <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+      <span class="text-danger">Kunde inte ladda tidslinje-data</span>
+    </div>
+
+    <!-- Tom data -->
+    <div class="empty-state" *ngIf="!loadingTimeline && !errorTimeline && visibleSegments.length === 0">
+      <i class="fas fa-calendar-times me-2 text-muted"></i>
+      <span class="text-muted">Ingen data tillgänglig för detta datum</span>
+    </div>
+
+    <!-- Tidslinje-innehåll -->
+    <div class="timeline-wrapper" *ngIf="!loadingTimeline && !errorTimeline && visibleSegments.length > 0">
+
+      <!-- Timrubriker -->
+      <div class="timeline-hours">
+        <span
+          class="hour-label"
+          *ngFor="let h of timelineHours"
+          [style.left.%]="hourLeft(h)">
+          {{ h }}:00
+        </span>
+      </div>
+
+      <!-- Tidslinje-balk -->
+      <div class="timeline-track">
+        <div
+          class="timeline-segment"
+          *ngFor="let seg of visibleSegments; let i = index"
+          [style.left.%]="segmentLeft(seg)"
+          [style.width.%]="segmentWidth(seg)"
+          [style.background-color]="segmentColor(seg.type)"
+          [class.selected]="selectedSegment === seg"
+          [title]="seg.type"
+          (click)="onSegmentClick(seg)"
+          (mouseenter)="onSegmentMouseEnter(seg, $event)"
+          (mousemove)="onSegmentMouseMove($event)"
+          (mouseleave)="onSegmentMouseLeave()">
+        </div>
+      </div>
+
+      <!-- Förklaring -->
+      <div class="timeline-legend">
+        <span class="legend-item">
+          <span class="legend-dot" style="background:#48bb78"></span>
+          Körning
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot" style="background:#fc8181"></span>
+          Stopp
+        </span>
+        <span class="legend-item">
+          <span class="legend-dot" style="background:#4a5568"></span>
+          Ej planerat
+        </span>
+      </div>
+    </div>
+
+    <!-- Tooltip (följer musen) -->
+    <div
+      class="segment-tooltip"
+      *ngIf="tooltipSegment"
+      [style.left.px]="tooltipX"
+      [style.top.px]="tooltipY">
+      <div class="tooltip-type" [style.color]="segmentColor(tooltipSegment.type)">
+        <i class="fas" [class.fa-play-circle]="tooltipSegment.type === 'running'"
+           [class.fa-pause-circle]="tooltipSegment.type === 'stopped'"
+           [class.fa-clock]="tooltipSegment.type === 'unplanned'"></i>
+        {{ segmentTypeLabel(tooltipSegment.type) }}
+      </div>
+      <div class="tooltip-row">
+        <span class="tooltip-label">Start:</span>
+        <span>{{ formatTime(tooltipSegment.start) }}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="tooltip-label">Slut:</span>
+        <span>{{ formatTime(tooltipSegment.end) }}</span>
+      </div>
+      <div class="tooltip-row">
+        <span class="tooltip-label">Längd:</span>
+        <span>{{ formatDuration(tooltipSegment.duration_min) }}</span>
+      </div>
+      <div class="tooltip-row" *ngIf="tooltipSegment.stop_reason">
+        <span class="tooltip-label">Orsak:</span>
+        <span class="tooltip-reason">{{ tooltipSegment.stop_reason }}</span>
+      </div>
+      <div class="tooltip-row" *ngIf="tooltipSegment.operator">
+        <span class="tooltip-label">Operatör:</span>
+        <span>{{ tooltipSegment.operator }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Klickat segment — detaljer -->
+  <div class="detail-card" *ngIf="selectedSegment">
+    <h2 class="section-title">
+      <i class="fas me-2"
+         [class.fa-play-circle]="selectedSegment.type === 'running'"
+         [class.fa-pause-circle]="selectedSegment.type === 'stopped'"
+         [class.fa-clock]="selectedSegment.type === 'unplanned'"
+         [style.color]="segmentColor(selectedSegment.type)"></i>
+      Segment-detaljer
+      <button class="btn btn-sm btn-outline-secondary ms-3" (click)="selectedSegment = null">
+        <i class="fas fa-times"></i> Stäng
+      </button>
+    </h2>
+    <div class="detail-grid">
+      <div class="detail-item">
+        <span class="detail-label">Typ</span>
+        <span class="detail-value" [style.color]="segmentColor(selectedSegment.type)">
+          {{ segmentTypeLabel(selectedSegment.type) }}
+        </span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Start</span>
+        <span class="detail-value">{{ formatTime(selectedSegment.start) }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Slut</span>
+        <span class="detail-value">{{ formatTime(selectedSegment.end) }}</span>
+      </div>
+      <div class="detail-item">
+        <span class="detail-label">Längd</span>
+        <span class="detail-value">{{ formatDuration(selectedSegment.duration_min) }}</span>
+      </div>
+      <div class="detail-item" *ngIf="selectedSegment.stop_reason">
+        <span class="detail-label">Stopporsak</span>
+        <span class="detail-value text-danger">{{ selectedSegment.stop_reason }}</span>
+      </div>
+      <div class="detail-item" *ngIf="!selectedSegment.stop_reason && selectedSegment.type === 'stopped'">
+        <span class="detail-label">Stopporsak</span>
+        <span class="detail-value text-muted">Ej registrerad</span>
+      </div>
+      <div class="detail-item" *ngIf="selectedSegment.operator">
+        <span class="detail-label">Operatör</span>
+        <span class="detail-value">{{ selectedSegment.operator }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Segmentlista i tabellformat -->
+  <div class="table-card" *ngIf="!loadingTimeline && !errorTimeline && visibleSegments.length > 0">
+    <h2 class="section-title">
+      <i class="fas fa-list me-2" style="color:#a0aec0"></i>Alla segment
+    </h2>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover table-sm">
+        <thead>
+          <tr>
+            <th>Typ</th>
+            <th>Start</th>
+            <th>Slut</th>
+            <th>Längd</th>
+            <th>Stopporsak</th>
+            <th>Operatör</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let seg of visibleSegments"
+            [class.table-active]="selectedSegment === seg"
+            (click)="onSegmentClick(seg)"
+            style="cursor: pointer;">
+            <td>
+              <span class="type-badge" [style.background-color]="segmentColor(seg.type) + '33'"
+                    [style.color]="segmentColor(seg.type)"
+                    [style.border-color]="segmentColor(seg.type) + '66'">
+                <i class="fas me-1"
+                   [class.fa-play]="seg.type === 'running'"
+                   [class.fa-pause]="seg.type === 'stopped'"
+                   [class.fa-clock]="seg.type === 'unplanned'"></i>
+                {{ segmentTypeLabel(seg.type) }}
+              </span>
+            </td>
+            <td class="text-mono">{{ formatTime(seg.start) }}</td>
+            <td class="text-mono">{{ formatTime(seg.end) }}</td>
+            <td>{{ formatDuration(seg.duration_min) }}</td>
+            <td class="text-muted">
+              <span *ngIf="seg.stop_reason" class="text-danger-soft">{{ seg.stop_reason }}</span>
+              <span *ngIf="!seg.stop_reason && seg.type === 'stopped'" class="text-muted fst-italic">Ej angiven</span>
+              <span *ngIf="seg.type !== 'stopped'" class="text-muted">—</span>
+            </td>
+            <td class="text-muted">
+              {{ seg.operator || '—' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

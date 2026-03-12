@@ -71,6 +71,7 @@ export const routes: Routes = [
       { path: 'rebotling/pareto', canActivate: [authGuard], loadComponent: () => import('./pages/pareto/pareto').then(m => m.ParetoPage) },
       { path: 'rebotling/oee-waterfall', canActivate: [authGuard], loadComponent: () => import('./pages/oee-waterfall/oee-waterfall').then(m => m.OeeWaterfallPage) },
       { path: 'rebotling/morgonrapport', canActivate: [authGuard], loadComponent: () => import('./pages/morgonrapport/morgonrapport').then(m => m.MorgonrapportPage) },
+      { path: 'rebotling/drifttids-timeline', canActivate: [authGuard], loadComponent: () => import('./pages/drifttids-timeline/drifttids-timeline.component').then(m => m.DrifttidsTimelineComponent) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
