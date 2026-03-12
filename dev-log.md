@@ -1,3 +1,26 @@
+## 2026-03-12 Skiftjämförelse — Skiftvis produktionsjämförelse (session #70)
+
+Ny sida `/rebotling/skiftjamforelse` — jämför dag-, kväll- och nattskift för VD.
+
+- **Backend**: `SkiftjamforelseController.php` i `classes/` och `controllers/`
+  - `run=shift-comparison&period=N`: aggregerar IBC/h, kvalitet%, OEE, stopptid per skift (dag 06-14, kväll 14-22, natt 22-06); beräknar bästa/sämsta skift, diff vs snitt, auto-genererad sammanfattningstext
+  - `run=shift-trend&period=N`: veckovis IBC/h per skift (trend)
+  - `run=shift-operators&shift=dag|kvall|natt&period=N`: topp-5 operatörer per skift
+  - Auth: session krävs (401 om ej inloggad)
+- **Route** i `api.php`: `skiftjamforelse` → `SkiftjamforelseController`
+- **Frontend Service**: `skiftjamforelse.service.ts` med fullständiga TypeScript-interfaces, `timeout(15000)` + `catchError`
+- **Frontend Komponent**: `pages/skiftjamforelse/` (standalone, OnInit/OnDestroy, destroy$/takeUntil, chart?.destroy())
+  - Periodväljare: 7d / 30d / 90d
+  - 3 skiftkort (dag/kväll/natt): IBC/h (stor), kvalitet%, OEE%, stopptid, IBC OK, antal pass, tillgänglighetsstapel
+  - Krona-badge på bästa skiftet, diff vs snitt-procent
+  - Expanderbar topp-operatörslista per skiftkort
+  - Grupperat stapeldiagram (IBC/h, Kvalitet, OEE) — Chart.js
+  - Linjediagram med veckovis IBC/h-trend per skift (3 linjer)
+  - Auto-refresh var 2:e minut
+  - Responsiv design, dark theme
+- **Route**: `/rebotling/skiftjamforelse` med `authGuard` i `app.routes.ts`
+- **Meny**: "Skiftjämförelse" under Rebotling-dropdown, ikon `fas fa-people-arrows`
+
 ## 2026-03-12 VD:s Morgonrapport — Daglig produktionssammanfattning
 
 Ny sida `/rebotling/morgonrapport` — en komplett daglig sammanfattning av gårdagens produktion redo for VD på morgonen.
