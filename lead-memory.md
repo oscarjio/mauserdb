@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #69)*
+*Senast uppdaterad: 2026-03-12 (session #70)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -71,29 +71,30 @@ Session #66: Andon-board/fabriksskärm + Veckorapport-generator — klara.
 Session #67: Operatörsportal + Alarm-historik dashboard — klara.
 Session #68: Produktions-heatmap + Stopporsak Pareto-diagram — klara.
 Session #69: VD:s morgonrapport + OEE-waterfall/brygga — klara.
+Session #70: Drifttids-timeline + Skiftvis produktionsjämförelse — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **VD:s morgonrapport** — automatisk gårdagssammanfattning
-- [x] **OEE-waterfall/brygga** — visuell OEE-förlustanalys
+- [x] **Drifttids-timeline** — visuell tidslinje körning/stopp per dag
+- [x] **Skiftvis produktionsjämförelse** — jämför skift A/B/C
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 - [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift
 - [ ] **Snabbkommandon/favoritvy** — VD:s bokmärken
-- [ ] **Skiftvis produktionsjämförelse** — jämför skift A/B/C
-- [ ] **Drifttids-timeline** — visuell tidslinje körning/stopp per dag
 - [ ] **Kassationsorsak-drill-down** — hierarkisk vy orsak → händelse
+- [ ] **Produktionspuls — realtids-ticker** — scrollande ticker på startsidan
+- [ ] **Maskinunderhåll — serviceintervall-vy** — planerade underhåll + varningar
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #70 (klar)
+Worker 1 (Drifttids-timeline): Visuell tidslinje per dag — gröna block=körning, röda=stopp, grå=ej planerat. Klickbara block med detaljer. Datumväljare med navigation. Backend: DrifttidsTimelineController (2 endpoints: timeline-data, summary).
+Worker 2 (Skiftvis produktionsjämförelse): Jämför skift A/B/C: IBC/h, stopptid, kassation, OEE. Grupperade staplar, radar-chart, rankingtabell, trendgraf. Backend: SkiftjamforelseController (3 endpoints: comparison, trend, summary).
+Backlog: Lade till Produktionspuls-ticker + Maskinunderhåll-serviceintervall. Rensade klara items.
 
 ### 2026-03-12 — Session #69 (klar)
 Worker 1 (VD:s morgonrapport): Gårdagssammanfattning med mål vs utfall, stopp, kassation, varningar, highlights. Datumväljare, utskriftsvänlig. Backend: MorgonrapportController.
 Worker 2 (OEE-waterfall/brygga): Waterfall-diagram som visar var produktionstid förloras: tillgänglighet → prestanda → kvalitet. 4 KPI-kort (OEE/A/P/Q %), periodväljare. Backend: OeeWaterfallController.
-Backlog: Lade till Drifttids-timeline + Kassationsorsak-drill-down.
 
 ### 2026-03-12 — Session #68 (klar)
-Worker 1 (Produktions-heatmap): Matrisvy dagar x timmar (06-22) med färgkodning — grön=hög, mörk=låg produktion. 4 KPI-kort, periodväljare, hover-tooltip. Backend: HeatmapController (2 endpoints: heatmap-data, summary).
-Worker 2 (Stopporsak Pareto-diagram): 80/20-analys med Chart.js combo-chart: staplar (stopptid fallande) + kumulativ linje med 80%-markering. Dubbel Y-axel. Backend: ParetoController (2 endpoints: pareto-data, summary).
-
-### 2026-03-12 — Session #67 (klar)
-Worker 1 (Operatörsportal): Personlig dashboard per operatör — IBC idag/vecka/månad vs teamsnitt, bonusberäkning, ranking (#X av Y), 30d trendgraf vs teamsnitt. Backend: OperatorsportalController (3 endpoints: my-stats, my-trend, my-bonus).
-Worker 2 (Alarm-historik dashboard): Lista alla triggade larm med severity (critical/warning/info). Byggs från befintlig data: långa stopp, låg takt, hög kassation, maskinstopp. KPI-kort, staplat stapeldiagram, filtrerbar tabell. Backend: AlarmHistorikController (3 endpoints: list, summary, timeline).
+Worker 1 (Produktions-heatmap): Matrisvy dagar x timmar (06-22) med färgkodning — grön=hög, mörk=låg produktion. 4 KPI-kort, periodväljare, hover-tooltip. Backend: HeatmapController.
+Worker 2 (Stopporsak Pareto-diagram): 80/20-analys med Chart.js combo-chart: staplar + kumulativ linje med 80%-markering. Backend: ParetoController.
