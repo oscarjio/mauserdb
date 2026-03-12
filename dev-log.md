@@ -1,3 +1,19 @@
+## 2026-03-12 Fabriksskarm (Andon Board) — realtidsvy for TV-skarm
+
+Ny dedikerad fabriksskarm `/rebotling/andon-board` optimerad for stor TV-skarm i produktionen.
+
+- **Backend**: Nytt endpoint `run=board-status` i befintlig `AndonController.php`:
+  - Returnerar ALL data i ett enda API-anrop: today_production, current_rate, machine_status, quality, shift
+  - Datakallor: rebotling_ibc, rebotling_settings, stoppage_log, stopporsak_registreringar, shift_plan
+- **Frontend**: Ny service `andon-board.service.ts` + komponent `pages/andon-board/`:
+  - 7 informationskort: klocka, produktion vs mal (progress bar), aktuell takt (IBC/h med trendpil),
+    maskinstatus (KOR/STOPP/OKAND med pulserande glow), senaste stopp, kassationsgrad, skiftinfo
+  - Mork bakgrund (#0a0e14), extremt stor text (3-5rem), helskarmslage via Fullscreen API
+  - Auto-uppdatering var 30:e sekund, klocka varje sekund
+  - Responsiv grid for 1920x1080 TV
+- **Route**: `rebotling/andon-board` med authGuard
+- **Meny**: "Fabriksskarm" med monitor-ikon under Rebotling-dropdown
+
 ## 2026-03-11 Kassationsanalys — utokad vy med KPI, grafer, trendlinje, filter
 
 Utokad kassationsanalys-sida `/rebotling/kassationsanalys` med detaljerad vy over kasserade IBC:er.

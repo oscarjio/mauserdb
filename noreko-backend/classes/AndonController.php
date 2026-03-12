@@ -36,6 +36,8 @@ class AndonController {
             $this->getHourlyToday();
         } elseif ($run === 'daily-challenge') {
             $this->getDailyChallenge();
+        } elseif ($run === 'board-status') {
+            $this->getBoardStatus();
         } else {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Okänd metod']);
@@ -582,6 +584,232 @@ class AndonController {
 
         } catch (\Exception $e) {
             error_log('AndonController::getDailyChallenge fel: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+        }
+    }
+
+    /**
+     * GET api.php?action=andon&run=board-status
+     *
+     * Returnerar ALL data for fabriksskärmen (andon-board) i ett enda anrop:
+     *   today_production, current_rate, machine_status, quality, shift
+     */
+    private function getBoardStatus(): void {
+        try {
+            $nu    = new DateTimeImmutable('now');
+            $datum = $nu->format('Y-m-d');
+            $timme = (int)$nu->format('H');
+
+            // ---- 1. Dagsmål ----
+            $malIdag = 100;
+            try {
+                $stmt = $this->pdo->prepare(
+                    "SELECT value FROM rebotling_settings WHERE setting = 'dagmal' LIMIT 1"
+                );
+                $stmt->execute();
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row && is_numeric($row['value']) && (int)$row['value'] > 0) {
+                    $malIdag = (int)$row['value'];
+                }
+            } catch (\Exception $e) {
+                error_log('AndonBoard dagmal: ' . $e->getMessage());
+            }
+
+            // ---- 2. Dagens IBC + runtime ----
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    MAX(ibc_ok)                                      AS ibc_idag,
+                    MAX(ibc_ej_ok)                                   AS ibc_ej_ok,
+                    MAX(runtime_plc)                                 AS runtime_min_plc,
+                    MIN(datum)                                       AS forsta_post,
+                    MAX(datum)                                       AS senaste_ibc_tid,
+                    TIMESTAMPDIFF(MINUTE, MIN(datum), NOW())         AS total_min
+                FROM rebotling_ibc
+                WHERE DATE(datum) = :datum
+            ");
+            $stmt->execute([':datum' => $datum]);
+            $rad = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            $ibcIdag    = (int)($rad['ibc_idag']         ?? 0);
+            $ibcEjOk    = (int)($rad['ibc_ej_ok']        ?? 0);
+            $senasteTid = $rad['senaste_ibc_tid']           ?? null;
+            $totalMin   = max(1, (int)($rad['total_min']    ?? 1));
+
+            // Mål-procent
+            $malPct = $malIdag > 0 ? round(($ibcIdag / $malIdag) * 100, 1) : 0.0;
+
+            // Status (green / yellow / red)
+            if ($malPct >= 90)     $goalStatus = 'green';
+            elseif ($malPct >= 60) $goalStatus = 'yellow';
+            else                   $goalStatus = 'red';
+
+            // ---- 3. Aktuell takt (IBC senaste timmen) ----
+            $oneHourAgo = $nu->modify('-1 hour')->format('Y-m-d H:i:s');
+            $twoHoursAgo = $nu->modify('-2 hours')->format('Y-m-d H:i:s');
+            $nowStr = $nu->format('Y-m-d H:i:s');
+
+            $stmtRate = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
+            );
+            $stmtRate->execute([$oneHourAgo, $nowStr]);
+            $lastHourCount = (int)$stmtRate->fetchColumn();
+
+            $stmtPrev = $this->pdo->prepare(
+                "SELECT COUNT(*) FROM rebotling_ibc WHERE datum BETWEEN ? AND ?"
+            );
+            $stmtPrev->execute([$twoHoursAgo, $oneHourAgo]);
+            $prevHourCount = (int)$stmtPrev->fetchColumn();
+
+            $diff = $lastHourCount - $prevHourCount;
+            if ($diff > 1)      $trend = 'up';
+            elseif ($diff < -1) $trend = 'down';
+            else                $trend = 'stable';
+
+            // ---- 4. Maskinstatus ----
+            $minuterSedanSenaste = 9999;
+            if ($senasteTid) {
+                $senaste = new DateTimeImmutable($senasteTid);
+                $diffSek = $nu->getTimestamp() - $senaste->getTimestamp();
+                $minuterSedanSenaste = max(0, (int)round($diffSek / 60));
+            }
+
+            if ($ibcIdag === 0 || $minuterSedanSenaste > 30) {
+                $machineStatus = 'stopped';
+            } elseif ($minuterSedanSenaste >= 10) {
+                $machineStatus = 'unknown';
+            } else {
+                $machineStatus = 'running';
+            }
+
+            $machineSince = $senasteTid ?? '';
+
+            // ---- 5. Senaste stopp ----
+            $lastStopReason = null;
+            $lastStopDuration = null;
+            $lastStopCreatedAt = null;
+            try {
+                // Prova stopporsak_registreringar först
+                $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
+                if ($check && $check->rowCount() > 0) {
+                    $stmtStop = $this->pdo->prepare("
+                        SELECT r.kommentar AS reason, r.varaktighet_min AS duration_minutes,
+                               r.created_at, k.namn AS category_name
+                        FROM stopporsak_registreringar r
+                        LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id
+                        ORDER BY r.created_at DESC
+                        LIMIT 1
+                    ");
+                    $stmtStop->execute();
+                    $stopRow = $stmtStop->fetch(PDO::FETCH_ASSOC);
+                    if ($stopRow) {
+                        $lastStopReason = trim(($stopRow['category_name'] ?? '') . ' ' . ($stopRow['reason'] ?? ''));
+                        $lastStopDuration = (int)($stopRow['duration_minutes'] ?? 0);
+                        $lastStopCreatedAt = $stopRow['created_at'] ?? null;
+                    }
+                }
+
+                // Fallback: stoppage_log
+                if (!$lastStopReason) {
+                    $stmtStop2 = $this->pdo->prepare("
+                        SELECT sl.duration_minutes, sl.created_at, sr.name AS reason_name
+                        FROM stoppage_log sl
+                        JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                        ORDER BY sl.created_at DESC
+                        LIMIT 1
+                    ");
+                    $stmtStop2->execute();
+                    $stopRow2 = $stmtStop2->fetch(PDO::FETCH_ASSOC);
+                    if ($stopRow2) {
+                        $lastStopReason = $stopRow2['reason_name'] ?? 'Okänd';
+                        $lastStopDuration = (int)($stopRow2['duration_minutes'] ?? 0);
+                        $lastStopCreatedAt = $stopRow2['created_at'] ?? null;
+                    }
+                }
+            } catch (\Exception $e) {
+                error_log('AndonBoard stopp: ' . $e->getMessage());
+            }
+
+            // Minuter sedan senaste stopp
+            $lastStopMinutesAgo = null;
+            if ($lastStopCreatedAt) {
+                $stopTime = new DateTimeImmutable($lastStopCreatedAt);
+                $lastStopMinutesAgo = max(0, (int)round(($nu->getTimestamp() - $stopTime->getTimestamp()) / 60));
+            }
+
+            // ---- 6. Kvalitet (kassationsgrad) ----
+            $totalProduced = $ibcIdag + $ibcEjOk;
+            $scrapRate = $totalProduced > 0 ? round(($ibcEjOk / $totalProduced) * 100, 1) : 0.0;
+
+            // ---- 7. Skiftinfo ----
+            if ($timme >= 6 && $timme < 14) {
+                $skiftNamn  = 'Morgon';
+                $skiftStart = '06:00';
+                $skiftEnd   = '14:00';
+            } elseif ($timme >= 14 && $timme < 22) {
+                $skiftNamn  = 'Eftermiddag';
+                $skiftStart = '14:00';
+                $skiftEnd   = '22:00';
+            } else {
+                $skiftNamn  = 'Natt';
+                $skiftStart = '22:00';
+                $skiftEnd   = '06:00';
+            }
+
+            // Försök hämta operatör från shift_plan
+            $operator = null;
+            try {
+                $stmtOp = $this->pdo->prepare("
+                    SELECT op_name FROM shift_plan
+                    WHERE DATE(shift_date) = :datum
+                    ORDER BY id DESC LIMIT 1
+                ");
+                $stmtOp->execute([':datum' => $datum]);
+                $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
+                if ($opRow && !empty($opRow['op_name'])) {
+                    $operator = $opRow['op_name'];
+                }
+            } catch (\Exception $e) {
+                // shift_plan kanske inte finns — ignorera
+            }
+
+            // ---- Sammanställ svar ----
+            echo json_encode([
+                'success' => true,
+                'today_production' => [
+                    'goal'       => $malIdag,
+                    'actual'     => $ibcIdag,
+                    'percentage' => $malPct,
+                    'status'     => $goalStatus,
+                ],
+                'current_rate' => [
+                    'ibc_per_hour'    => $lastHourCount,
+                    'trend'           => $trend,
+                    'last_hour_count' => $lastHourCount,
+                ],
+                'machine_status' => [
+                    'status'                   => $machineStatus,
+                    'since'                    => $machineSince,
+                    'last_stop_reason'         => $lastStopReason,
+                    'last_stop_duration_minutes' => $lastStopDuration,
+                    'last_stop_minutes_ago'    => $lastStopMinutesAgo,
+                ],
+                'quality' => [
+                    'scrap_rate_percent' => $scrapRate,
+                    'scrapped_today'     => $ibcEjOk,
+                    'total_today'        => $totalProduced,
+                ],
+                'shift' => [
+                    'name'     => $skiftNamn,
+                    'start'    => $skiftStart,
+                    'end'      => $skiftEnd,
+                    'operator' => $operator,
+                ],
+                'timestamp' => $nu->format('Y-m-d H:i:s'),
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('AndonController::getBoardStatus fel: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
         }

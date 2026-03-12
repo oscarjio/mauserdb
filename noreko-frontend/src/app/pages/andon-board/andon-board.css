@@ -1,0 +1,409 @@
+/* ============================================================
+   ANDON BOARD — Fabriksskarm for TV (1920x1080)
+   Mork bakgrund, extremt stor text, hog kontrast
+   ============================================================ */
+
+:host {
+  display: block;
+  width: 100vw;
+  min-height: 100vh;
+  background: #0a0e14;
+  color: #e2e8f0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+}
+
+.andon-board {
+  width: 100vw;
+  min-height: 100vh;
+  background: #0a0e14;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.andon-board.fullscreen-mode {
+  padding: 1rem 1.5rem;
+}
+
+/* ---- Fullscreen button ---- */
+.fullscreen-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+  background: rgba(45, 55, 72, 0.7);
+  border: 1px solid #4a556866;
+  color: #a0aec0;
+  font-size: 1.2rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.fullscreen-btn:hover {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* ---- Loading ---- */
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  color: #a0aec0;
+  font-size: 1.5rem;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid #2d3748;
+  border-top: 4px solid #4299e1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Error banner ---- */
+.error-banner {
+  background: #742a2a;
+  color: #fed7d7;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.3rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+/* ============================================================
+   GRID LAYOUT — 7 cards on a single screen
+   ============================================================ */
+.board-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.8fr 1fr;
+  grid-template-rows: auto auto auto;
+  gap: 1.2rem;
+  max-width: 1920px;
+  margin: 0 auto;
+}
+
+/* ---- Card base ---- */
+.card {
+  background: #1a202c;
+  border: 1px solid #2d3748;
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.card-label {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+/* ---- Big number styling ---- */
+.big-number {
+  font-size: 4.5rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   CLOCK CARD
+   ============================================================ */
+.clock-card {
+  text-align: center;
+  grid-column: 1 / 2;
+  grid-row: 1 / 2;
+}
+
+.clock-time {
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.clock-date {
+  font-size: 1rem;
+  color: #718096;
+  margin-top: 0.3rem;
+  text-transform: capitalize;
+}
+
+/* ============================================================
+   PRODUCTION CARD
+   ============================================================ */
+.production-card {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  text-align: center;
+}
+
+.production-numbers {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.separator {
+  font-size: 3rem;
+  color: #4a5568;
+  font-weight: 300;
+}
+
+.goal-number {
+  font-size: 3rem;
+  font-weight: 600;
+  color: #a0aec0;
+}
+
+.progress-bar-container {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  background: #2d3748;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 16px;
+  transition: width 0.8s ease, background-color 0.5s ease;
+}
+
+.progress-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* ============================================================
+   RATE CARD
+   ============================================================ */
+.rate-card {
+  grid-column: 3 / 4;
+  grid-row: 1 / 2;
+  text-align: center;
+}
+
+.rate-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.rate-unit {
+  font-size: 1.5rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.trend-icon {
+  font-size: 2.5rem;
+  margin-left: 0.4rem;
+}
+
+/* ============================================================
+   MACHINE STATUS CARD — with pulsating glow
+   ============================================================ */
+.machine-card {
+  grid-column: 1 / 2;
+  grid-row: 2 / 3;
+  text-align: center;
+  transition: box-shadow 0.3s ease;
+}
+
+.machine-status-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.status-dot {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-text {
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+/* Glow animations */
+.glow-running {
+  box-shadow: 0 0 20px rgba(72, 187, 120, 0.3), inset 0 0 20px rgba(72, 187, 120, 0.05);
+}
+.glow-running .status-dot {
+  box-shadow: 0 0 30px rgba(72, 187, 120, 0.6);
+}
+
+.glow-stopped {
+  box-shadow: 0 0 20px rgba(245, 101, 101, 0.3), inset 0 0 20px rgba(245, 101, 101, 0.05);
+}
+.glow-stopped .status-dot {
+  box-shadow: 0 0 30px rgba(245, 101, 101, 0.6);
+}
+
+.glow-unknown {
+  box-shadow: 0 0 20px rgba(237, 137, 54, 0.3), inset 0 0 20px rgba(237, 137, 54, 0.05);
+}
+.glow-unknown .status-dot {
+  box-shadow: 0 0 30px rgba(237, 137, 54, 0.6);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.7; transform: scale(1.08); }
+}
+
+/* ============================================================
+   STOP CARD
+   ============================================================ */
+.stop-card {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+  justify-content: center;
+}
+
+.stop-text {
+  font-size: 1.8rem;
+  color: #cbd5e0;
+  line-height: 1.3;
+}
+
+/* ============================================================
+   QUALITY CARD
+   ============================================================ */
+.quality-card {
+  grid-column: 3 / 4;
+  grid-row: 2 / 3;
+  text-align: center;
+}
+
+.quality-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.quality-detail {
+  font-size: 1rem;
+  color: #718096;
+}
+
+/* ============================================================
+   SHIFT CARD
+   ============================================================ */
+.shift-card {
+  grid-column: 1 / 4;
+  grid-row: 3 / 4;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1rem 2rem;
+}
+
+.shift-name {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #4299e1;
+}
+
+.shift-times {
+  font-size: 1.4rem;
+  color: #a0aec0;
+}
+
+.shift-operator {
+  font-size: 1.2rem;
+  color: #48bb78;
+}
+.shift-operator i {
+  margin-right: 0.3rem;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.board-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 0 0 0;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.auto-refresh {
+  font-style: italic;
+}
+
+/* ============================================================
+   RESPONSIVE — for smaller screens (fallback, main target is 1920x1080)
+   ============================================================ */
+@media (max-width: 1200px) {
+  .big-number { font-size: 3rem; }
+  .clock-time { font-size: 2.5rem; }
+  .status-text { font-size: 2.5rem; }
+  .stop-text { font-size: 1.3rem; }
+  .board-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .production-card { grid-column: 1 / 3; }
+  .stop-card { grid-column: 1 / 3; }
+  .shift-card { grid-column: 1 / 3; }
+}
+
+@media (max-width: 768px) {
+  .board-grid {
+    grid-template-columns: 1fr;
+  }
+  .production-card,
+  .stop-card,
+  .shift-card,
+  .clock-card,
+  .rate-card,
+  .machine-card,
+  .quality-card {
+    grid-column: 1 / 2;
+  }
+  .shift-card {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .big-number { font-size: 2.5rem; }
+  .clock-time { font-size: 2rem; }
+  .status-text { font-size: 2rem; }
+}

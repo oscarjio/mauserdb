@@ -1,0 +1,99 @@
+<div class="andon-board" [class.fullscreen-mode]="isFullscreen">
+
+  <!-- Fullscreen toggle -->
+  <button class="fullscreen-btn" (click)="toggleFullscreen()" title="Helskarm (F11)">
+    <i class="fas" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
+  </button>
+
+  <!-- Loading -->
+  <div class="loading-overlay" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Laddar fabriksskarm...</p>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-banner" *ngIf="error && !loading">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <!-- Main grid -->
+  <div class="board-grid" *ngIf="!loading">
+
+    <!-- KLOCKA + DATUM -->
+    <div class="card clock-card">
+      <div class="clock-time">{{ clock }}</div>
+      <div class="clock-date">{{ clockDate }}</div>
+    </div>
+
+    <!-- DAGENS PRODUKTION VS MAL -->
+    <div class="card production-card">
+      <div class="card-label">Dagens produktion</div>
+      <div class="production-numbers">
+        <span class="big-number" [style.color]="progressColor">{{ production?.actual ?? 0 }}</span>
+        <span class="separator">/</span>
+        <span class="goal-number">{{ production?.goal ?? 0 }}</span>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill"
+             [style.width.%]="progressWidth"
+             [style.backgroundColor]="progressColor">
+        </div>
+        <span class="progress-label">{{ production?.percentage ?? 0 }}%</span>
+      </div>
+    </div>
+
+    <!-- AKTUELL TAKT -->
+    <div class="card rate-card">
+      <div class="card-label">Aktuell takt</div>
+      <div class="rate-row">
+        <span class="big-number" [style.color]="trendColor">{{ rate?.ibc_per_hour ?? 0 }}</span>
+        <span class="rate-unit">IBC/h</span>
+        <i class="fas trend-icon" [ngClass]="trendIcon" [style.color]="trendColor"></i>
+      </div>
+    </div>
+
+    <!-- MASKINENS STATUS -->
+    <div class="card machine-card" [ngClass]="machineGlowClass">
+      <div class="card-label">Maskinstatus</div>
+      <div class="machine-status-indicator" [style.color]="machineStatusColor">
+        <div class="status-dot" [style.backgroundColor]="machineStatusColor"></div>
+        <span class="status-text">{{ machineStatusText }}</span>
+      </div>
+    </div>
+
+    <!-- SENASTE STOPP -->
+    <div class="card stop-card">
+      <div class="card-label">Senaste stopp</div>
+      <div class="stop-text">{{ lastStopText }}</div>
+    </div>
+
+    <!-- DAGENS KVALITET -->
+    <div class="card quality-card">
+      <div class="card-label">Kassationsgrad</div>
+      <div class="quality-row">
+        <span class="big-number" [style.color]="qualityColor">{{ quality?.scrap_rate_percent ?? 0 }}%</span>
+        <span class="quality-detail" *ngIf="quality">
+          {{ quality.scrapped_today }} av {{ quality.total_today }} kasserade
+        </span>
+      </div>
+    </div>
+
+    <!-- SKIFTINFO -->
+    <div class="card shift-card">
+      <div class="card-label">Skift</div>
+      <div class="shift-name">{{ shift?.name ?? '-' }}</div>
+      <div class="shift-times">{{ shift?.start }} - {{ shift?.end }}</div>
+      <div class="shift-operator" *ngIf="shift?.operator">
+        <i class="fas fa-user"></i> {{ shift!.operator }}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer: senaste uppdatering -->
+  <div class="board-footer" *ngIf="!loading">
+    <span>Senaste uppdatering: {{ timestamp }}</span>
+    <span class="auto-refresh">Auto-uppdatering var 30:e sekund</span>
+  </div>
+
+</div>
