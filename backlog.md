@@ -5,11 +5,12 @@
 
 ## Förbättringar
 
-- [x] **Kassationsorsak-drill-down** — från kassationsgrad → klicka ner till specifika orsaker → enskilda händelser. Trädvy/hierarki
-- [x] **Produktionspuls — realtids-ticker** — scrollande tickerrad (som börskurs) på startsidan: senaste IBC, takt, stopp. VD ser vad som händer NU
+- [x] **Första-timme-analys** — hur går första timmen efter skiftstart? Uppstartstid, ramp-up till full takt. Identifiera långsamma starter
+- [x] **Operatörs-personligt dashboard** — varje operatör ser sin egen statistik, trender, jämförelse mot teamsnitt. Motiverande "din utveckling"-vy
 - [ ] **Operatörs-onboarding tracker** — visa nya operatörers lärlingskurva: hur snabbt de når team-genomsnittet i IBC/h de första veckorna
 - [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift: vad gjordes, pågående problem, specialinstruktioner
 - [ ] **Snabbkommandon/favoritvy** — VD kan bokmärka sina mest använda sidor för snabb åtkomst från startsidan
 - [ ] **Maskinunderhåll — serviceintervall-vy** — visa kommande planerade underhåll, tid sedan senaste service, varningslampa vid försenat underhåll
-- [ ] **Första-timme-analys** — hur går första timmen efter skiftstart? Uppstartstid, ramp-up till full takt. Identifiera långsamma starter
-- [ ] **Operatörs-personligt dashboard** — varje operatör ser sin egen statistik, trender, jämförelse mot teamsnitt. Motiverande "din utveckling"-vy
+- [ ] **Produktionsprognos** — baserat på nuvarande takt och tid kvar på skiftet, visa prognos: "beräknat X IBC till skiftslut". VD ser om målet nås
+- [ ] **Stopporsak per operatör** — vilka operatörer har mest stopp? Vilka stopporsaker? Identifiera utbildningsbehov
+- [ ] **Batch-spårning** — följ en batch/order IBC:er, se hur många klara, uppskattad tid kvar, status

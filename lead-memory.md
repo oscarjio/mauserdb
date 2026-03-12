@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #71)*
+*Senast uppdaterad: 2026-03-12 (session #72)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -73,29 +73,31 @@ Session #68: Produktions-heatmap + Stopporsak Pareto-diagram — klara.
 Session #69: VD:s morgonrapport + OEE-waterfall/brygga — klara.
 Session #70: Drifttids-timeline + Skiftvis produktionsjämförelse — klara.
 Session #71: Kassationsorsak-drill-down + Produktionspuls realtids-ticker — klara.
+Session #72: Första-timme-analys + Operatörs-personligt dashboard — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Kassationsorsak-drill-down** — hierarkisk vy orsak → händelse
-- [x] **Produktionspuls — realtids-ticker** — scrollande ticker på startsidan
+- [x] **Första-timme-analys** — uppstartstid efter skiftstart, ramp-up-kurva
+- [x] **Operatörs-personligt dashboard** — egen statistik + jämförelse mot team
 - [ ] **Operatörs-onboarding tracker** — lärlingskurva nya operatörer
 - [ ] **Skiftöverlämningslogg** — digital överlämning mellan skift
 - [ ] **Snabbkommandon/favoritvy** — VD:s bokmärken
 - [ ] **Maskinunderhåll — serviceintervall-vy** — planerade underhåll + varningar
-- [ ] **Första-timme-analys** — uppstartstid efter skiftstart
-- [ ] **Operatörs-personligt dashboard** — egen statistik + jämförelse mot team
+- [ ] **Produktionsprognos** — beräknat antal IBC till skiftslut
+- [ ] **Stopporsak per operatör** — identifiera utbildningsbehov
+- [ ] **Batch-spårning** — följ en batch/order genom linjen
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-12 — Session #72 (klar)
+Worker 1 (Första-timme-analys): Analyserar första timmen efter skiftstart — tid till första IBC, ramp-up-kurva (10-min-intervaller), jämförelse mot snitt. Identifierar långsamma starter. Backend: ForstaTimmeAnalysController (2 endpoints: analysis, trend).
+Worker 2 (Operatörs-personligt dashboard): Varje operatör ser sin egen statistik — IBC, IBC/h, kvalitet, ranking, trender vs teamsnitt. Motiverande prestationer/milstolpar. Backend: OperatorDashboardController (3 endpoints: my-stats, my-trend, my-achievements).
+Backlog: Lade till Produktionsprognos, Stopporsak per operatör, Batch-spårning. Rensade klara items.
 
 ### 2026-03-12 — Session #71 (klar)
 Worker 1 (Kassationsorsak-drill-down): Hierarkisk vy — klicka från kassationsgrad → orsaker → enskilda händelser. Chart.js horisontella staplar + trendlinje. Backend: KassationsDrilldownController (3 endpoints: overview, reason-detail, trend).
 Worker 2 (Produktionspuls realtids-ticker): Scrollande börsticker med senaste händelser (IBC, stopp, driftstatus). CSS marquee-animation. 4 KPI-snabbkort. Auto-refresh 30s. Backend: ProduktionspulsController (2 endpoints: pulse, live-kpi).
-Backlog: Lade till Första-timme-analys + Operatörs-personligt dashboard. Rensade klara items.
 
 ### 2026-03-12 — Session #70 (klar)
-Worker 1 (Drifttids-timeline): Visuell tidslinje per dag — gröna block=körning, röda=stopp, grå=ej planerat. Klickbara block med detaljer. Datumväljare med navigation. Backend: DrifttidsTimelineController (2 endpoints: timeline-data, summary).
-Worker 2 (Skiftvis produktionsjämförelse): Jämför skift A/B/C: IBC/h, stopptid, kassation, OEE. Grupperade staplar, radar-chart, rankingtabell, trendgraf. Backend: SkiftjamforelseController (3 endpoints: comparison, trend, summary).
-
-### 2026-03-12 — Session #69 (klar)
-Worker 1 (VD:s morgonrapport): Gårdagssammanfattning med mål vs utfall, stopp, kassation, varningar, highlights. Datumväljare, utskriftsvänlig. Backend: MorgonrapportController.
-Worker 2 (OEE-waterfall/brygga): Waterfall-diagram som visar var produktionstid förloras: tillgänglighet → prestanda → kvalitet. 4 KPI-kort (OEE/A/P/Q %), periodväljare. Backend: OeeWaterfallController.
+Worker 1 (Drifttids-timeline): Visuell tidslinje per dag — gröna block=körning, röda=stopp, grå=ej planerat. Klickbara block med detaljer. Backend: DrifttidsTimelineController (2 endpoints: timeline-data, summary).
+Worker 2 (Skiftvis produktionsjämförelse): Jämför skift A/B/C: IBC/h, stopptid, kassation, OEE. Backend: SkiftjamforelseController (3 endpoints: comparison, trend, summary).
