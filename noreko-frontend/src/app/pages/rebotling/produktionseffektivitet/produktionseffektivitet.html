@@ -1,0 +1,329 @@
+<div class="container-fluid py-3 px-3" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="row mb-3">
+    <div class="col">
+      <h2 class="mb-0" style="color:#e2e8f0;">
+        <i class="fas fa-clock me-2" style="color:#68d391;"></i>
+        Produktionseffektivitet per timme
+      </h2>
+      <small class="text-muted">Vilka timmar på dygnet är mest produktiva?</small>
+    </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <span *ngIf="lastUpdated" class="text-muted small">
+        <i class="fas fa-sync-alt me-1"></i>{{ lastUpdated }}
+      </span>
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" [disabled]="isLoading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Periodväljare -->
+  <div class="row mb-4">
+    <div class="col-auto">
+      <div class="btn-group" role="group">
+        <button
+          *ngFor="let opt of periodOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="period === opt.val"
+          [class.btn-outline-secondary]="period !== opt.val"
+          (click)="onPeriodChange(opt.val)">
+          {{ opt.label }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <!-- Mest produktiva timmen -->
+    <div class="col-12 col-md-4">
+      <div class="card h-100" style="background:#2d3748; border:none;">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="fas fa-arrow-trend-up fa-2x" style="color:#68d391;"></i>
+          </div>
+          <h6 class="text-muted mb-1">Mest produktiv timme</h6>
+          <ng-container *ngIf="mostProductiveHour; else ingenData1">
+            <div class="fs-3 fw-bold" style="color:#68d391;">
+              {{ timmeLabel(mostProductiveHour.timme) }}
+            </div>
+            <div class="text-muted small">{{ mostProductiveHour.snitt_ibc?.toFixed(1) }} IBC/h i snitt</div>
+            <div class="text-muted small" *ngIf="mostProductiveHour.basta_dag">
+              Bäst på {{ mostProductiveHour.basta_dag }}
+            </div>
+          </ng-container>
+          <ng-template #ingenData1>
+            <span class="text-muted">Laddar...</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Minst produktiva timmen -->
+    <div class="col-12 col-md-4">
+      <div class="card h-100" style="background:#2d3748; border:none;">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="fas fa-arrow-trend-down fa-2x" style="color:#fc8181;"></i>
+          </div>
+          <h6 class="text-muted mb-1">Minst produktiv timme</h6>
+          <ng-container *ngIf="leastProductiveHour; else ingenData2">
+            <div class="fs-3 fw-bold" style="color:#fc8181;">
+              {{ timmeLabel(leastProductiveHour.timme) }}
+            </div>
+            <div class="text-muted small">{{ leastProductiveHour.snitt_ibc?.toFixed(1) }} IBC/h i snitt</div>
+            <div class="text-muted small" *ngIf="leastProductiveHour.samsta_dag">
+              Svagast på {{ leastProductiveHour.samsta_dag }}
+            </div>
+          </ng-container>
+          <ng-template #ingenData2>
+            <span class="text-muted">Laddar...</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skillnad -->
+    <div class="col-12 col-md-4">
+      <div class="card h-100" style="background:#2d3748; border:none;">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="fas fa-percent fa-2x" style="color:#f6ad55;"></i>
+          </div>
+          <h6 class="text-muted mb-1">Skillnad topp vs botten</h6>
+          <ng-container *ngIf="skillnadPct !== null; else ingenData3">
+            <div class="fs-3 fw-bold" style="color:#f6ad55;">
+              {{ skillnadStr(skillnadPct) }}
+            </div>
+            <div class="text-muted small">mer IBC under toppimmen</div>
+          </ng-container>
+          <ng-template #ingenData3>
+            <span class="text-muted">Laddar...</span>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heatmap -->
+  <div class="card mb-4" style="background:#2d3748; border:none;">
+    <div class="card-body">
+      <h5 class="card-title mb-3" style="color:#e2e8f0;">
+        <i class="fas fa-th me-2" style="color:#4299e1;"></i>
+        Produktionsheatmap — veckodag × timme
+        <small class="text-muted fs-6">(snitt IBC per timme)</small>
+      </h5>
+
+      <div *ngIf="loadingHeatmap" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-2">Laddar heatmap...</div>
+      </div>
+
+      <div *ngIf="errorHeatmap && !loadingHeatmap" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda heatmap.
+        <button class="btn btn-sm btn-outline-danger ms-2" (click)="loadHeatmap()">Försök igen</button>
+      </div>
+
+      <div *ngIf="!loadingHeatmap && !errorHeatmap && heatmapVeckodagar.length" class="table-responsive">
+        <table class="table table-sm mb-0" style="border-collapse:separate; border-spacing:2px;">
+          <thead>
+            <tr>
+              <th style="background:transparent; border:none; color:#718096; font-size:0.7rem; width:80px;">Dag \ Timme</th>
+              <th
+                *ngFor="let h of timmar"
+                style="background:transparent; border:none; color:#718096; font-size:0.65rem; text-align:center; padding:2px; min-width:30px;">
+                {{ h }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let dag of heatmapVeckodagar">
+              <td style="background:transparent; border:none; color:#a0aec0; font-size:0.75rem; white-space:nowrap; padding-right:8px;">
+                {{ dag.namn }}
+              </td>
+              <td
+                *ngFor="let val of dag.data; let h = index"
+                [style.background]="cellColor(val)"
+                [style.color]="cellTextColor(val)"
+                style="border-radius:3px; text-align:center; font-size:0.6rem; padding:3px 1px; cursor:default; min-width:30px;"
+                [title]="dag.namn + ' ' + timmeLabel(h) + ': ' + (val !== null ? val.toFixed(1) + ' IBC' : 'Ingen data')">
+                {{ val !== null && val > 0 ? val.toFixed(0) : '' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Färgskala-legend -->
+        <div class="d-flex align-items-center gap-2 mt-3">
+          <span class="text-muted small">Låg</span>
+          <div style="width:150px; height:12px; border-radius:4px; background:linear-gradient(to right, rgb(220,50,50), rgb(220,226,50), rgb(74,212,50));"></div>
+          <span class="text-muted small">Hög</span>
+          <span class="text-muted small ms-3">Max: {{ heatmapMaxVal.toFixed(1) }} IBC/h</span>
+        </div>
+      </div>
+
+      <div *ngIf="!loadingHeatmap && !errorHeatmap && !heatmapVeckodagar.length" class="text-center py-4 text-muted">
+        <i class="fas fa-inbox fa-2x mb-2 d-block"></i>Ingen data tillgänglig
+      </div>
+    </div>
+  </div>
+
+  <!-- Topp/Botten-lista -->
+  <div class="row g-3 mb-4">
+    <!-- Topp 3 -->
+    <div class="col-12 col-md-6">
+      <div class="card h-100" style="background:#2d3748; border:none;">
+        <div class="card-body">
+          <h5 class="card-title mb-3" style="color:#e2e8f0;">
+            <i class="fas fa-trophy me-2" style="color:#f6ad55;"></i>
+            Topp 3 mest produktiva timmar
+          </h5>
+
+          <div *ngIf="loadingPeak" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+          </div>
+
+          <div *ngIf="!loadingPeak && harData">
+            <div *ngFor="let t of topp3; let i = index" class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                  <span class="badge me-2" [style.background]="i === 0 ? '#d69e2e' : i === 1 ? '#a0aec0' : '#c05621'">#{{ i + 1 }}</span>
+                  <span style="color:#e2e8f0; font-weight:600;">{{ t.timme_label }}</span>
+                </div>
+                <span style="color:#68d391; font-weight:700;">{{ t.snitt_ibc.toFixed(1) }} IBC/h</span>
+              </div>
+              <div class="progress" style="height:8px; background:#1a202c;">
+                <div
+                  class="progress-bar"
+                  style="background:#68d391;"
+                  [style.width.%]="peakBarWidth(t.snitt_ibc, topp3MaxSnitt)">
+                </div>
+              </div>
+              <div class="text-muted small mt-1">{{ t.antal_dagar }} mätdagar · Totalt {{ t.totalt_ibc }} IBC</div>
+            </div>
+          </div>
+
+          <div *ngIf="!loadingPeak && !harData" class="text-center text-muted py-3">
+            <i class="fas fa-inbox me-2"></i>Ingen data
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Botten 3 -->
+    <div class="col-12 col-md-6">
+      <div class="card h-100" style="background:#2d3748; border:none;">
+        <div class="card-body">
+          <h5 class="card-title mb-3" style="color:#e2e8f0;">
+            <i class="fas fa-arrow-down me-2" style="color:#fc8181;"></i>
+            Botten 3 minst produktiva timmar
+          </h5>
+
+          <div *ngIf="loadingPeak" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary"></div>
+          </div>
+
+          <div *ngIf="!loadingPeak && harData">
+            <div *ngFor="let t of botten3; let i = index" class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <div>
+                  <span class="badge bg-danger me-2">#{{ i + 1 }}</span>
+                  <span style="color:#e2e8f0; font-weight:600;">{{ t.timme_label }}</span>
+                </div>
+                <span style="color:#fc8181; font-weight:700;">{{ t.snitt_ibc.toFixed(1) }} IBC/h</span>
+              </div>
+              <div class="progress" style="height:8px; background:#1a202c;">
+                <div
+                  class="progress-bar"
+                  style="background:#fc8181;"
+                  [style.width.%]="peakBarWidth(t.snitt_ibc, botten3MaxSnitt)">
+                </div>
+              </div>
+              <div class="text-muted small mt-1">{{ t.antal_dagar }} mätdagar · Totalt {{ t.totalt_ibc }} IBC</div>
+            </div>
+          </div>
+
+          <div *ngIf="!loadingPeak && !harData" class="text-center text-muted py-3">
+            <i class="fas fa-inbox me-2"></i>Ingen data
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Linjediagram -->
+  <div class="card mb-4" style="background:#2d3748; border:none;">
+    <div class="card-body">
+      <h5 class="card-title mb-3" style="color:#e2e8f0;">
+        <i class="fas fa-chart-line me-2" style="color:#4299e1;"></i>
+        Snitt IBC/h per timme på dygnet
+      </h5>
+
+      <div *ngIf="loadingSummary" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="text-muted mt-2">Laddar diagram...</div>
+      </div>
+
+      <div *ngIf="errorSummary && !loadingSummary" class="alert alert-danger">
+        <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda data.
+        <button class="btn btn-sm btn-outline-danger ms-2" (click)="loadSummary()">Försök igen</button>
+      </div>
+
+      <div *ngIf="!loadingSummary && !errorSummary" style="height:300px; position:relative;">
+        <canvas id="hourlyLineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detaljerade data per timme -->
+  <div class="card" style="background:#2d3748; border:none;">
+    <div class="card-body">
+      <h5 class="card-title mb-3" style="color:#e2e8f0;">
+        <i class="fas fa-table me-2" style="color:#a0aec0;"></i>
+        Detaljdata per timme
+      </h5>
+
+      <div *ngIf="loadingSummary" class="text-center py-3">
+        <div class="spinner-border spinner-border-sm text-primary"></div>
+      </div>
+
+      <div *ngIf="!loadingSummary && summaryTimmar.length" class="table-responsive">
+        <table class="table table-sm table-hover" style="color:#e2e8f0;">
+          <thead>
+            <tr style="color:#718096; font-size:0.8rem; border-bottom:1px solid #4a5568;">
+              <th>Timme</th>
+              <th class="text-end">Snitt IBC/h</th>
+              <th class="text-end">Mätdagar</th>
+              <th>Bästa dag</th>
+              <th>Svagaste dag</th>
+            </tr>
+          </thead>
+          <tbody style="font-size:0.85rem;">
+            <tr *ngFor="let t of summaryTimmar">
+              <td style="color:#a0aec0;">{{ formatTimme(t.timme) }}</td>
+              <td class="text-end">
+                <span
+                  [style.color]="t.snitt_ibc && mostProductiveHour && t.timme === mostProductiveHour.timme ? '#68d391' :
+                                  t.snitt_ibc && leastProductiveHour && t.timme === leastProductiveHour.timme ? '#fc8181' : '#e2e8f0'"
+                  [style.font-weight]="(mostProductiveHour && t.timme === mostProductiveHour.timme) ||
+                                        (leastProductiveHour && t.timme === leastProductiveHour.timme) ? '700' : '400'">
+                  {{ t.snitt_ibc !== null ? t.snitt_ibc.toFixed(1) : '—' }}
+                </span>
+              </td>
+              <td class="text-end" style="color:#a0aec0;">{{ t.antal_dagar }}</td>
+              <td style="color:#68d391;">{{ t.basta_dag ?? '—' }}</td>
+              <td style="color:#fc8181;">{{ t.samsta_dag ?? '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!loadingSummary && !summaryTimmar.length" class="text-center text-muted py-3">
+        <i class="fas fa-inbox me-2"></i>Ingen data tillgänglig
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,17 @@
+/* Produktionseffektivitet per timme */
+
+.table td, .table th {
+  border-color: #374151;
+}
+
+.table-hover tbody tr:hover td {
+  background: rgba(66, 153, 225, 0.08);
+}
+
+.card {
+  border-radius: 8px;
+}
+
+.progress {
+  border-radius: 4px;
+}

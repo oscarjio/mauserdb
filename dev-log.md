@@ -1,3 +1,24 @@
+## 2026-03-12 Produktionseffektivitet per timme — Heatmap och toppanalys
+
+Ny sida `/rebotling/produktionseffektivitet` — VD förstår vilka timmar på dygnet som är mest/minst produktiva via heatmap, KPI-kort och toppanalys.
+
+- **Backend**: `ProduktionseffektivitetController.php` i `classes/`
+  - `run=hourly-heatmap` (?period=7/30/90) — matris veckodag (mån-sön) x timme (0-23), snitt IBC per timme beräknat via antal unika dagar per veckodag
+  - `run=hourly-summary` (?period=30) — per timme (0-23): snitt IBC/h, antal mätdagar, bästa/sämsta veckodag
+  - `run=peak-analysis` (?period=30) — topp-3 mest produktiva + botten-3 minst produktiva timmar, skillnad i %
+  - Registrerad i `api.php` med nyckel `produktionseffektivitet`
+- **Frontend Service**: Tre nya metoder + interfaces i `rebotling.service.ts`:
+  - `getHourlyHeatmap(period)`, `getHourlySummary(period)`, `getPeakAnalysis(period)`
+  - Interfaces: HeatmapVeckodag, HourlyHeatmapData/Response, HourlySummaryRow/Data/Response, PeakTimmeRow, PeakAnalysisData/Response
+- **Frontend Komponent**: `pages/rebotling/produktionseffektivitet/` (standalone, OnInit/OnDestroy, destroy$, takeUntil, auto-refresh 120s)
+  - KPI-kort: mest produktiv timme, minst produktiv timme, skillnad i %
+  - Heatmap som HTML-tabell med dynamiska bakgrundsfärger (röd→gul→grön interpolation)
+  - Topp/botten-lista: de 3 bästa och 3 sämsta timmarna med IBC-siffror och progress-bar
+  - Linjediagram (Chart.js): snitt IBC/h per timme (0-23) med färgkodade datapunkter
+  - Detaljdatatabell med veckodag-info per timme
+- **Route**: `rebotling/produktionseffektivitet` i `app.routes.ts` (authGuard)
+- **Meny**: Under Rebotling, ikon `fas fa-clock` (grön), text "Produktionseffektivitet/h"
+
 ## 2026-03-12 Operatörsjämförelse — Sida-vid-sida KPI-jämförelse
 
 Ny sida `/rebotling/operator-jamforelse` — VD väljer 2–3 operatörer och ser deras KPI:er jämförda sida vid sida.
