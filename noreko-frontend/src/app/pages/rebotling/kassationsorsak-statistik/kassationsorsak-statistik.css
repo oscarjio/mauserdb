@@ -1,0 +1,226 @@
+:host {
+  display: block;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.period-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+  width: 130px;
+}
+
+/* KPI kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  color: #e2e8f0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Chart */
+.chart-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 380px;
+}
+
+.chart-wrapper-sm {
+  position: relative;
+  height: 300px;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Tabell */
+.data-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #4a5568;
+}
+
+.table-dark thead th {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom-width: 2px;
+}
+
+/* Detail / Drilldown card */
+.detail-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+  border-top: 3px solid #ecc94b;
+}
+
+.detail-kpi {
+  background: #1a202c;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.detail-kpi-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.detail-kpi-value {
+  color: #e2e8f0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* Sub-title */
+.sub-title {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-bottom: 1px solid #4a5568;
+  padding-bottom: 0.5rem;
+}
+
+/* 80/20-linje */
+.pareto-line-80 {
+  color: #fc8181;
+  font-size: 0.75rem;
+}
+
+/* Checkbox lista */
+.orsak-checkbox-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.orsak-checkbox-list label {
+  color: #e2e8f0;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.orsak-checkbox-list input[type="checkbox"] {
+  accent-color: #63b3ed;
+  margin-right: 0.35rem;
+}
+
+/* Diff badge */
+.diff-badge {
+  font-size: 0.75rem;
+  padding: 0.15em 0.5em;
+  border-radius: 0.25rem;
+}
+
+.diff-positive {
+  background: rgba(252, 129, 129, 0.2);
+  color: #fc8181;
+}
+
+.diff-negative {
+  background: rgba(104, 211, 145, 0.2);
+  color: #68d391;
+}
+
+.diff-neutral {
+  background: rgba(160, 174, 192, 0.15);
+  color: #a0aec0;
+}
+
+/* Clickable row */
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.clickable-row:hover {
+  background: rgba(99, 179, 237, 0.08) !important;
+}
+
+/* Skift badge */
+.skift-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.skift-dag {
+  background: rgba(236, 201, 75, 0.2);
+  color: #ecc94b;
+}
+
+.skift-kvall {
+  background: rgba(99, 179, 237, 0.2);
+  color: #63b3ed;
+}
+
+.skift-natt {
+  background: rgba(159, 122, 234, 0.2);
+  color: #9f7aea;
+}
+
+.skift-okand {
+  background: rgba(160, 174, 192, 0.15);
+  color: #a0aec0;
+}
+
+/* Responsiv */
+@media (max-width: 768px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 280px;
+  }
+  .chart-wrapper-sm {
+    height: 220px;
+  }
+}

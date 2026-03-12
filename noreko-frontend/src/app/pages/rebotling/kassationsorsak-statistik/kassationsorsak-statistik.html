@@ -1,0 +1,279 @@
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Kassationsorsak-statistik
+    </h2>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-light me-1 mb-0">Period:</label>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let p of periodOptions"
+                class="btn"
+                [class.btn-info]="period === p"
+                [class.btn-outline-secondary]="period !== p"
+                (click)="setPeriod(p)">
+          {{ p }}d
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Totalt kasserade</div>
+        <div class="kpi-value">{{ overview.total_kasserade | number }}</div>
+        <div class="kpi-sub">av {{ overview.total_producerade | number }} producerade</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Vanligaste orsak</div>
+        <div class="kpi-value" style="font-size:1.2rem">{{ overview.top_reason || '-' }}</div>
+        <div class="kpi-sub">{{ overview.unique_reasons }} unika orsaker</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Kassationsgrad</div>
+        <div class="kpi-value">{{ overview.kassationsgrad }}%</div>
+        <div class="kpi-sub">
+          <i [class]="getTrendIcon()" class="me-1"></i>
+          {{ getTrendText() }}
+          <span class="ms-1">({{ overview.trend_diff > 0 ? '+' : '' }}{{ overview.trend_diff }}%)</span>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Trend vs foreg. period</div>
+        <div class="kpi-value">
+          <i [class]="getTrendIcon()" class="me-1"></i>
+          {{ overview.trend_direction === 'up' ? 'Uppat' : overview.trend_direction === 'down' ? 'Nedat' : 'Stabilt' }}
+        </div>
+        <div class="kpi-sub">Foreg. {{ overview.prev_kassationsgrad }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="text-center py-5" *ngIf="loadingOverview">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="mt-2 text-muted">Laddar kassationsdata...</p>
+  </div>
+
+  <!-- Error -->
+  <div class="alert alert-danger" *ngIf="errorOverview && !loadingOverview">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kassationsdata.
+  </div>
+
+  <!-- PARETO-DIAGRAM -->
+  <div class="chart-card mb-4" *ngIf="paretoData && !loadingPareto">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-diagram — Kassationsorsaker
+      <small class="text-muted ms-2">(klicka pa en stapel for drilldown)</small>
+    </h5>
+    <div class="chart-wrapper">
+      <canvas id="paretoChart"></canvas>
+    </div>
+  </div>
+
+  <div class="text-center py-3" *ngIf="loadingPareto">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <span class="ms-2 text-muted">Laddar Pareto-data...</span>
+  </div>
+
+  <!-- TRENDDIAGRAM PER ORSAK -->
+  <div class="chart-card mb-4" *ngIf="trendData && !loadingTrend">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Trend per orsak over tid
+    </h5>
+    <div class="orsak-checkbox-list mb-3">
+      <label *ngFor="let s of trendData.series; let i = index">
+        <input type="checkbox"
+               [checked]="selectedTrendOrsaker.has(s.orsak_id)"
+               (change)="toggleTrendOrsak(s.orsak_id)">
+        {{ s.orsak }}
+      </label>
+    </div>
+    <div class="chart-wrapper-sm">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="text-center py-3" *ngIf="loadingTrend">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <span class="ms-2 text-muted">Laddar trenddata...</span>
+  </div>
+
+  <!-- PER OPERATOR -->
+  <div class="data-card mb-4" *ngIf="operatorData && !loadingOperator">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-user me-2" style="color:#68d391"></i>Kassationsprofil per operator
+    </h5>
+
+    <div class="text-muted" *ngIf="operatorData.operators.length === 0">
+      Ingen operatorsdata tillganglig for perioden.
+    </div>
+
+    <div class="table-responsive" *ngIf="operatorData.operators.length > 0">
+      <table class="table table-dark table-hover table-sm">
+        <thead>
+          <tr>
+            <th>Operator</th>
+            <th class="text-end">Totalt</th>
+            <th>Vanligaste orsak</th>
+            <th class="text-end">Andel</th>
+            <th class="text-end">Snitt</th>
+            <th class="text-end">Avvikelse</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let op of operatorData.operators">
+            <td>{{ op.op_namn }}</td>
+            <td class="text-end">{{ op.total }}</td>
+            <td>{{ op.orsaker.length > 0 ? op.orsaker[0].orsak : '-' }}</td>
+            <td class="text-end">{{ op.orsaker.length > 0 ? op.orsaker[0].andel : 0 }}%</td>
+            <td class="text-end">{{ op.orsaker.length > 0 ? op.orsaker[0].snitt : 0 }}%</td>
+            <td class="text-end">
+              <span *ngIf="op.orsaker.length > 0"
+                    class="diff-badge"
+                    [class.diff-positive]="op.orsaker[0].diff > 5"
+                    [class.diff-negative]="op.orsaker[0].diff < -5"
+                    [class.diff-neutral]="op.orsaker[0].diff >= -5 && op.orsaker[0].diff <= 5">
+                {{ op.orsaker[0].diff > 0 ? '+' : '' }}{{ op.orsaker[0].diff }}%
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="text-center py-3" *ngIf="loadingOperator">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <span class="ms-2 text-muted">Laddar operatorsdata...</span>
+  </div>
+
+  <!-- PER SKIFT -->
+  <div class="data-card mb-4" *ngIf="shiftData && !loadingShift">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-clock me-2" style="color:#9f7aea"></i>Kassationsorsaker per skift
+    </h5>
+
+    <div class="text-muted" *ngIf="shiftData.shifts.length === 0">
+      Ingen skiftdata tillganglig for perioden.
+    </div>
+
+    <div class="row g-3" *ngIf="shiftData.shifts.length > 0">
+      <div class="col-md-4" *ngFor="let shift of shiftData.shifts">
+        <div class="detail-kpi" style="text-align:left; padding:1rem;">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="skift-badge"
+                  [class.skift-dag]="shift.skift === 'dag'"
+                  [class.skift-kvall]="shift.skift === 'kväll'"
+                  [class.skift-natt]="shift.skift === 'natt'"
+                  [class.skift-okand]="shift.skift === 'okänd'">
+              {{ getSkiftLabel(shift.skift) }}
+            </span>
+            <span class="text-muted small">{{ shift.total }} st</span>
+          </div>
+          <div *ngFor="let o of shift.orsaker; let i = index" class="mb-1">
+            <div class="d-flex justify-content-between small">
+              <span>{{ o.orsak }}</span>
+              <span>{{ o.antal }} ({{ o.andel }}%)</span>
+            </div>
+            <div class="progress" style="height: 4px; background: #1a202c;">
+              <div class="progress-bar" role="progressbar" [style.width.%]="o.andel"
+                   [style.background-color]="getOrsakColor(i)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center py-3" *ngIf="loadingShift">
+    <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    <span class="ms-2 text-muted">Laddar skiftdata...</span>
+  </div>
+
+  <!-- DRILLDOWN -->
+  <div class="detail-card mb-4" *ngIf="drilldownData">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-search-plus me-2" style="color:#ecc94b"></i>Drilldown: {{ drilldownOrsakNamn }}
+      </h5>
+      <button class="btn btn-outline-secondary btn-sm" (click)="closeDrilldown()">
+        <i class="fas fa-times me-1"></i>Stang
+      </button>
+    </div>
+
+    <div class="text-center py-3" *ngIf="loadingDrilldown">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <span class="ms-2 text-muted">Laddar detaljer...</span>
+    </div>
+
+    <div *ngIf="drilldownData && !loadingDrilldown">
+      <!-- Mini KPI -->
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Totalt antal</div>
+            <div class="detail-kpi-value">{{ drilldownData.total_antal }}</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Registreringar</div>
+            <div class="detail-kpi-value">{{ drilldownData.total }}</div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="detail-kpi">
+            <div class="detail-kpi-label">Period</div>
+            <div class="detail-kpi-value" style="font-size:1rem">{{ drilldownData.from_date }} — {{ drilldownData.to_date }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drilldown tidsserie -->
+      <div class="chart-wrapper-sm mb-3" *ngIf="drilldownData.dag_series.length > 0">
+        <canvas id="drilldownChart"></canvas>
+      </div>
+
+      <!-- Händelselista -->
+      <h6 class="sub-title mt-3"><i class="fas fa-list me-2"></i>Alla handelser</h6>
+      <div class="table-responsive">
+        <table class="table table-dark table-hover table-sm">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Skift</th>
+              <th>Operator</th>
+              <th class="text-end">Antal</th>
+              <th>Kommentar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ev of drilldownData.events">
+              <td>{{ ev.datum }}</td>
+              <td>
+                <span class="skift-badge"
+                      [class.skift-dag]="ev.skift === 'dag'"
+                      [class.skift-kvall]="ev.skift === 'kväll'"
+                      [class.skift-natt]="ev.skift === 'natt'"
+                      [class.skift-okand]="ev.skift !== 'dag' && ev.skift !== 'kväll' && ev.skift !== 'natt'">
+                  {{ getSkiftLabel(ev.skift) }}
+                </span>
+              </td>
+              <td>{{ ev.operator }}</td>
+              <td class="text-end">{{ ev.antal }}</td>
+              <td class="text-muted small">{{ ev.kommentar || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
