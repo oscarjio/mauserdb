@@ -1,3 +1,24 @@
+## 2026-03-12 Rebotling Sammanfattning — VD:ns landing page
+
+Ny sida `/rebotling/sammanfattning` — VD:ns "landing page" med de viktigaste KPI:erna fran alla rebotling-sidor. Forsta laget pa 10 sekunder.
+
+- **Backend**: `classes/RebotlingSammanfattningController.php`
+  - `run=overview` — Alla KPI:er i ett anrop: dagens produktion, OEE%, kassation%, aktiva larm (med de 5 senaste), drifttid%
+  - `run=produktion-7d` — Senaste 7 dagars produktion (for stapeldiagram), komplett dagssekvens
+  - `run=maskin-status` — Status per maskin/station med OEE, tillganglighet, stopptid (gron/gul/rod)
+  - Anvander befintliga tabeller: rebotling_ibc, maskin_oee_daglig, maskin_register, avvikelselarm — inga nya DB-tabeller
+  - Registrerad i `api.php` med nyckel `rebotling-sammanfattning`
+- **Service**: `rebotling-sammanfattning.service.ts` — interfaces SammanfattningOverview, Produktion7dData, MaskinStatusData
+- **Komponent**: `pages/rebotling/rebotling-sammanfattning/`
+  - 5 KPI-kort: Dagens produktion (IBC), OEE (%), Kassation (%), Aktiva larm, Drifttid (%)
+  - Produktionsgraf: staplat stapeldiagram (Chart.js) med godkanda/kasserade senaste 7 dagar
+  - Maskinstatus-tabell: en rad per station med fargkodad status (gron/gul/rod), OEE, tillganglighet, produktion, kassation, stopptid
+  - Senaste larm: de 5 senaste aktiva larmen med typ, allvarlighetsgrad, meddelande, tidsstampel
+  - Snabblankar: knappar till Live, Historisk produktion, Maskin-OEE, Avvikelselarm, Kassationsanalys, m.fl.
+- **Route**: `/rebotling/sammanfattning`, authGuard, lazy-loaded
+- **Meny**: Overst i Rebotling-menyn med ikon `fas fa-tachometer-alt`
+- Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text), destroy$/takeUntil, chart?.destroy(), clearInterval, auto-refresh var 60:e sekund
+
 ## 2026-03-12 Produktionsflode (Sankey-diagram) — IBC-flode genom rebotling-linjen
 
 Ny sida `/rebotling/produktionsflode` — visar IBC-flodet visuellt genom rebotling-linjens stationer (Inspektion, Tvatt, Fyllning, Etikettering, Slutkontroll). Flaskhalsar synliga direkt.

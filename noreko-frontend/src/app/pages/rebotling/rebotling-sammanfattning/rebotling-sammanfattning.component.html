@@ -1,0 +1,275 @@
+<div class="container-fluid py-3" style="background:#1a202c; min-height:100vh; color:#e2e8f0;">
+
+  <!-- Rubrik -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <h1 class="mb-0" style="font-size:1.5rem; font-weight:700; color:#e2e8f0;">
+      <i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5;"></i>
+      Rebotling Sammanfattning
+    </h1>
+    <span class="text-muted" style="font-size:0.85rem;">
+      <i class="fas fa-sync-alt me-1"></i>Uppdateras automatiskt var 60:e sekund
+    </span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- KPI-kort (overst) -->
+  <!-- ========================================== -->
+  <div class="row g-3 mb-4">
+
+    <!-- Dagens produktion -->
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#4299e122; color:#4299e1;">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Dagens produktion</div>
+          <div class="kpi-value" *ngIf="!loadingOverview && overview">{{ overview.dagens_produktion }} <small class="text-muted">IBC</small></div>
+          <div class="kpi-value text-muted" *ngIf="loadingOverview">...</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && !overview">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OEE -->
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#9f7aea22; color:#9f7aea;">
+          <i class="fas fa-chart-pie"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">OEE</div>
+          <div class="kpi-value" *ngIf="!loadingOverview && overview && overview.oee_pct !== null">{{ overview.oee_pct }}%</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && overview && overview.oee_pct === null">Ingen data</div>
+          <div class="kpi-value text-muted" *ngIf="loadingOverview">...</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && !overview">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassation -->
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#fc818122; color:#fc8181;">
+          <i class="fas fa-trash-alt"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Kassation</div>
+          <div class="kpi-value" *ngIf="!loadingOverview && overview">{{ overview.kassation_pct }}%</div>
+          <div class="kpi-value text-muted" *ngIf="loadingOverview">...</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && !overview">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktiva larm -->
+    <div class="col-6 col-lg">
+      <div class="kpi-card" [style.border-color]="overview && overview.aktiva_larm > 0 ? '#fc8181' : '#4a5568'">
+        <div class="kpi-icon" style="background:#ecc94b22; color:#ecc94b;">
+          <i class="fas fa-bell"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Aktiva larm</div>
+          <div class="kpi-value" *ngIf="!loadingOverview && overview"
+               [style.color]="overview.aktiva_larm > 0 ? '#fc8181' : '#48bb78'">
+            {{ overview.aktiva_larm }}
+          </div>
+          <div class="kpi-value text-muted" *ngIf="loadingOverview">...</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && !overview">-</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drifttid -->
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:#48bb7822; color:#48bb78;">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Drifttid</div>
+          <div class="kpi-value" *ngIf="!loadingOverview && overview && overview.drifttid_pct !== null">{{ overview.drifttid_pct }}%</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && overview && overview.drifttid_pct === null">Ingen data</div>
+          <div class="kpi-value text-muted" *ngIf="loadingOverview">...</div>
+          <div class="kpi-value text-muted" *ngIf="!loadingOverview && !overview">-</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- Produktionsgraf + Senaste larm -->
+  <!-- ========================================== -->
+  <div class="row g-3 mb-4">
+
+    <!-- Produktionsgraf -->
+    <div class="col-lg-8">
+      <div class="card-panel">
+        <h5 class="panel-title">
+          <i class="fas fa-chart-bar me-2" style="color:#4299e1;"></i>
+          Produktion senaste 7 dagar
+        </h5>
+        <div class="chart-container" *ngIf="!loadingGraph">
+          <canvas id="sammanfattningChart"></canvas>
+        </div>
+        <div class="text-center text-muted py-4" *ngIf="loadingGraph">
+          <i class="fas fa-spinner fa-spin me-2"></i>Laddar graf...
+        </div>
+      </div>
+    </div>
+
+    <!-- Senaste larm -->
+    <div class="col-lg-4">
+      <div class="card-panel">
+        <h5 class="panel-title">
+          <i class="fas fa-exclamation-triangle me-2" style="color:#ecc94b;"></i>
+          Senaste larm
+        </h5>
+        <div *ngIf="!loadingOverview && overview && overview.senaste_larm.length > 0">
+          <div class="larm-item" *ngFor="let larm of overview.senaste_larm">
+            <div class="d-flex align-items-start gap-2">
+              <i [class]="larmIcon(larm.allvarlighetsgrad)" [style.color]="larmColor(larm.allvarlighetsgrad)" style="margin-top:3px;"></i>
+              <div class="flex-grow-1">
+                <div class="larm-msg">{{ larm.meddelande }}</div>
+                <div class="larm-meta">
+                  <span class="badge" [style.background]="larmColor(larm.allvarlighetsgrad) + '33'" [style.color]="larmColor(larm.allvarlighetsgrad)">{{ larm.typ }}</span>
+                  <span class="text-muted ms-2" style="font-size:0.75rem;">{{ formatDate(larm.tidsstampel) }} {{ formatTime(larm.tidsstampel) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="text-center text-muted py-3" *ngIf="!loadingOverview && overview && overview.senaste_larm.length === 0">
+          <i class="fas fa-check-circle me-2 text-success"></i>Inga aktiva larm
+        </div>
+        <div class="text-center text-muted py-3" *ngIf="!loadingOverview && !overview">
+          Kunde inte ladda larm
+        </div>
+        <div class="text-center text-muted py-3" *ngIf="loadingOverview">
+          <i class="fas fa-spinner fa-spin me-2"></i>Laddar...
+        </div>
+        <div class="mt-2 text-end" *ngIf="overview && overview.aktiva_larm > 0">
+          <a routerLink="/rebotling/avvikelselarm" class="btn btn-sm btn-outline-warning">
+            Visa alla larm <i class="fas fa-arrow-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- Maskin-status-oversikt -->
+  <!-- ========================================== -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card-panel">
+        <h5 class="panel-title">
+          <i class="fas fa-cogs me-2" style="color:#63b3ed;"></i>
+          Maskinstatus idag
+        </h5>
+        <div class="table-responsive" *ngIf="!loadingMaskiner && maskinStatus && maskinStatus.maskiner.length > 0">
+          <table class="table table-dark table-hover mb-0">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Maskin</th>
+                <th class="text-end">OEE</th>
+                <th class="text-end">Tillganglighet</th>
+                <th class="text-end">Produktion</th>
+                <th class="text-end">Kassation</th>
+                <th class="text-end">Stopptid</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let m of maskinStatus.maskiner">
+                <td>
+                  <span class="status-dot" [style.background]="statusColor(m.status)"></span>
+                  <span class="status-text" [style.color]="statusColor(m.status)">{{ statusLabel(m.status) }}</span>
+                </td>
+                <td style="font-weight:600;">{{ m.maskin_namn }}</td>
+                <td class="text-end">
+                  <span *ngIf="m.oee !== null" [style.color]="m.oee >= 70 ? '#48bb78' : m.oee >= 50 ? '#ecc94b' : '#fc8181'">{{ m.oee }}%</span>
+                  <span *ngIf="m.oee === null" class="text-muted">-</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="m.tillganglighet !== null">{{ m.tillganglighet }}%</span>
+                  <span *ngIf="m.tillganglighet === null" class="text-muted">-</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="m.total_output !== null">{{ m.total_output }} IBC</span>
+                  <span *ngIf="m.total_output === null" class="text-muted">-</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="m.kassation !== null">{{ m.kassation }}</span>
+                  <span *ngIf="m.kassation === null" class="text-muted">-</span>
+                </td>
+                <td class="text-end">
+                  <span *ngIf="m.stopptid_min !== null">{{ m.stopptid_min }} min</span>
+                  <span *ngIf="m.stopptid_min === null" class="text-muted">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="text-center text-muted py-3" *ngIf="!loadingMaskiner && maskinStatus && maskinStatus.maskiner.length === 0">
+          Ingen maskindata tillganglig
+        </div>
+        <div class="text-center text-muted py-3" *ngIf="!loadingMaskiner && !maskinStatus">
+          Kunde inte ladda maskinstatus
+        </div>
+        <div class="text-center text-muted py-3" *ngIf="loadingMaskiner">
+          <i class="fas fa-spinner fa-spin me-2"></i>Laddar maskinstatus...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- Snabblankar -->
+  <!-- ========================================== -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card-panel">
+        <h5 class="panel-title">
+          <i class="fas fa-link me-2" style="color:#4fd1c5;"></i>
+          Snabblankar
+        </h5>
+        <div class="d-flex flex-wrap gap-2">
+          <a routerLink="/rebotling/live" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-broadcast-tower me-1"></i>Live
+          </a>
+          <a routerLink="/rebotling/historisk-produktion" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-chart-line me-1"></i>Historisk produktion
+          </a>
+          <a routerLink="/rebotling/maskin-oee" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-tachometer-alt me-1"></i>Maskin-OEE
+          </a>
+          <a routerLink="/rebotling/avvikelselarm" class="btn btn-outline-warning btn-sm">
+            <i class="fas fa-exclamation-triangle me-1"></i>Avvikelselarm
+          </a>
+          <a routerLink="/rebotling/kassationsanalys" class="btn btn-outline-danger btn-sm">
+            <i class="fas fa-trash-alt me-1"></i>Kassationsanalys
+          </a>
+          <a routerLink="/rebotling/skiftrapport" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-file-alt me-1"></i>Skiftrapport
+          </a>
+          <a routerLink="/rebotling/daglig-sammanfattning" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-tachometer-alt me-1"></i>Daglig sammanfattning
+          </a>
+          <a routerLink="/rebotling/morgonrapport" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-sun me-1"></i>Morgonrapport
+          </a>
+          <a routerLink="/rebotling/stopptidsanalys" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-stopwatch me-1"></i>Stopptidsanalys
+          </a>
+          <a routerLink="/rebotling/produktionsprognos" class="btn btn-outline-info btn-sm">
+            <i class="fas fa-chart-line me-1"></i>Produktionsprognos
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

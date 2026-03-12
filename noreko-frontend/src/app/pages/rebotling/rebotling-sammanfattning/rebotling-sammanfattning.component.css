@@ -1,0 +1,157 @@
+/* KPI cards */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #4a5568;
+  transition: border-color 0.2s;
+  height: 100%;
+}
+
+.kpi-card:hover {
+  border-color: #63b3ed;
+}
+
+.kpi-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.kpi-body {
+  min-width: 0;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-value small {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+/* Card panels */
+.card-panel {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #4a5568;
+  height: 100%;
+}
+
+.panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #4a5568;
+}
+
+/* Chart */
+.chart-container {
+  position: relative;
+  height: 280px;
+}
+
+/* Table */
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: #4a556833;
+  color: #e2e8f0;
+}
+
+.table-dark th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a0aec0;
+  border-bottom-color: #4a5568;
+  font-weight: 600;
+}
+
+.table-dark td {
+  border-bottom-color: #4a556844;
+  vertical-align: middle;
+  font-size: 0.9rem;
+}
+
+/* Status dot */
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Larm items */
+.larm-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #4a556844;
+}
+
+.larm-item:last-child {
+  border-bottom: none;
+}
+
+.larm-msg {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.larm-meta {
+  display: flex;
+  align-items: center;
+}
+
+.larm-meta .badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kpi-value {
+    font-size: 1.2rem;
+  }
+
+  .kpi-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  .chart-container {
+    height: 220px;
+  }
+}
