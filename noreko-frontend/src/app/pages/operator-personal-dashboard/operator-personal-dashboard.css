@@ -1,0 +1,300 @@
+/* ======================================================
+   Personligt Operatörsdashboard — "Min statistik"
+   Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text
+   ====================================================== */
+
+.op-personal-page {
+  background: #1a202c;
+  min-height: 100vh;
+  padding: 24px 16px 40px;
+  color: #e2e8f0;
+}
+
+/* --- Header --- */
+.op-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.op-title {
+  color: #e2e8f0;
+  font-size: 1.7rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.op-subtitle {
+  color: #718096;
+  font-size: 14px;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+/* --- Periodknappar --- */
+.period-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.period-btn {
+  background: #2d3748;
+  color: #a0aec0;
+  border: 1px solid #4a5568;
+  padding: 7px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.period-btn:hover {
+  background: #3a4a5e;
+  color: #e2e8f0;
+}
+
+.period-btn--active {
+  background: #3182ce;
+  color: #fff;
+  border-color: #3182ce;
+}
+
+/* --- Fel-banner --- */
+.op-alert {
+  background: rgba(252, 129, 129, 0.12);
+  border: 1px solid #fc8181;
+  border-radius: 10px;
+  padding: 14px 18px;
+  color: #fc8181;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* --- KPI-grid (4 kort) --- */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+  .kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.kpi-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 14px;
+  padding: 22px 18px;
+  text-align: center;
+  min-height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 12px;
+}
+
+.kpi-spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-empty {
+  color: #4a5568;
+  font-size: 1.5rem;
+}
+
+/* --- Sektionskort --- */
+.section-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 18px;
+}
+
+.section-title {
+  color: #e2e8f0;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 18px;
+}
+
+/* --- Jämförelse-sektion --- */
+.compare-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.compare-row:last-child {
+  margin-bottom: 0;
+}
+
+.compare-label {
+  width: 70px;
+  flex-shrink: 0;
+  color: #a0aec0;
+  font-size: 13px;
+  padding-top: 6px;
+  font-weight: 600;
+}
+
+.compare-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.compare-bar-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compare-bar-label {
+  width: 36px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.compare-bar-track {
+  flex: 1;
+  background: #1a202c;
+  border-radius: 99px;
+  height: 12px;
+  overflow: hidden;
+}
+
+.compare-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  max-width: 100%;
+  transition: width 0.5s ease;
+}
+
+.compare-bar-val {
+  width: 50px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* --- Diagram --- */
+.chart-wrapper {
+  position: relative;
+  height: 280px;
+}
+
+/* --- Tom state --- */
+.op-empty {
+  text-align: center;
+  color: #718096;
+  padding: 28px 0 12px;
+  font-size: 14px;
+}
+
+/* --- Prestationskortkort --- */
+.achieve-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 576px) {
+  .achieve-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 992px) {
+  .achieve-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.achieve-card {
+  background: #1e2a38;
+  border: 1px solid #3d4f63;
+  border-radius: 12px;
+  padding: 18px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.achieve-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.achieve-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.achieve-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 3px;
+}
+
+.achieve-label {
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.achieve-sub {
+  color: #718096;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* --- Bästa dag --- */
+.bast-dag-row {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.bast-dag-val {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.bast-dag-date {
+  color: #a0aec0;
+  font-size: 14px;
+}

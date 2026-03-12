@@ -74,6 +74,7 @@ export const routes: Routes = [
       { path: 'rebotling/drifttids-timeline', canActivate: [authGuard], loadComponent: () => import('./pages/drifttids-timeline/drifttids-timeline.component').then(m => m.DrifttidsTimelineComponent) },
       { path: 'rebotling/kassationsorsak-drilldown', canActivate: [authGuard], loadComponent: () => import('./pages/kassations-drilldown/kassations-drilldown').then(m => m.KassationsDrilldownPage) },
       { path: 'rebotling/forsta-timme-analys', canActivate: [authGuard], loadComponent: () => import('./pages/forsta-timme-analys/forsta-timme-analys').then(m => m.ForstaTimmeAnalysPage) },
+      { path: 'rebotling/operator-dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/operator-personal-dashboard/operator-personal-dashboard').then(m => m.OperatorPersonalDashboardPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

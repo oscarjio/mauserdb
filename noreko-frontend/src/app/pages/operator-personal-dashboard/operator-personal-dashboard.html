@@ -1,0 +1,264 @@
+<div class="op-personal-page">
+
+  <!-- ============================= HEADER ============================= -->
+  <div class="op-header">
+    <div>
+      <h2 class="op-title">
+        <i class="fas fa-id-badge me-2" style="color:#63b3ed;"></i>Hej, {{ operatorNamn }}!
+      </h2>
+      <p class="op-subtitle">{{ todayLabel }}</p>
+    </div>
+
+    <!-- Periodväljare -->
+    <div class="period-btns">
+      <button
+        *ngFor="let opt of periodOptions"
+        class="period-btn"
+        [class.period-btn--active]="period === opt.value"
+        (click)="onPeriodChange(opt.value)">
+        {{ opt.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================= FEL ================================ -->
+  <div *ngIf="errorStats && errorStatsMsg" class="op-alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ errorStatsMsg }}
+  </div>
+
+  <!-- ============================= KPI-KORT =========================== -->
+  <div class="kpi-grid">
+
+    <!-- Dina IBC -->
+    <div class="kpi-card">
+      <div *ngIf="loadingStats" class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div *ngIf="!loadingStats && stats">
+        <div class="kpi-value" style="color:#63b3ed;">{{ stats.total_ibc }}</div>
+        <div class="kpi-label"><i class="fas fa-box me-1"></i>Dina IBC ({{ period }} dagar)</div>
+      </div>
+      <div *ngIf="!loadingStats && !stats" class="kpi-empty">—</div>
+    </div>
+
+    <!-- Din IBC/h -->
+    <div class="kpi-card">
+      <div *ngIf="loadingStats" class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div *ngIf="!loadingStats && stats">
+        <div class="kpi-value" [style.color]="ibcPerHColor">
+          {{ stats.snitt_ibc_per_h | number:'1.1-1' }}
+        </div>
+        <div class="kpi-label"><i class="fas fa-tachometer-alt me-1"></i>Din IBC/h (snitt)</div>
+      </div>
+      <div *ngIf="!loadingStats && !stats" class="kpi-empty">—</div>
+    </div>
+
+    <!-- Din kvalitet% -->
+    <div class="kpi-card">
+      <div *ngIf="loadingStats" class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div *ngIf="!loadingStats && stats">
+        <div class="kpi-value" [style.color]="kvalitetColor">
+          <ng-container *ngIf="stats.kvalitet_pct !== null">
+            {{ stats.kvalitet_pct | number:'1.1-1' }}%
+          </ng-container>
+          <ng-container *ngIf="stats.kvalitet_pct === null">—</ng-container>
+        </div>
+        <div class="kpi-label"><i class="fas fa-check-circle me-1"></i>Din kvalitet%</div>
+      </div>
+      <div *ngIf="!loadingStats && !stats" class="kpi-empty">—</div>
+    </div>
+
+    <!-- Din ranking -->
+    <div class="kpi-card">
+      <div *ngIf="loadingStats" class="kpi-spinner">
+        <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      </div>
+      <div *ngIf="!loadingStats && stats">
+        <div class="kpi-value" [style.color]="rankingColor">
+          {{ rankingLabel(stats.ranking, stats.total_ops) }}
+        </div>
+        <div class="kpi-label"><i class="fas fa-trophy me-1"></i>Din ranking (IBC/h)</div>
+      </div>
+      <div *ngIf="!loadingStats && !stats" class="kpi-empty">—</div>
+    </div>
+
+  </div>
+
+  <!-- ============================= JÄMFÖRELSE ========================= -->
+  <div class="section-card" *ngIf="!loadingStats && stats">
+    <h5 class="section-title">
+      <i class="fas fa-balance-scale me-2" style="color:#9f7aea;"></i>Du vs. teamsnitt
+    </h5>
+
+    <!-- IBC/h jämförelse -->
+    <div class="compare-row">
+      <div class="compare-label">IBC/h</div>
+      <div class="compare-bars">
+        <div class="compare-bar-group">
+          <span class="compare-bar-label" style="color:#63b3ed;">Du</span>
+          <div class="compare-bar-track">
+            <div class="compare-bar-fill"
+                 [style.width]="myIbcBarPct + '%'"
+                 [style.background]="ibcPerHColor">
+            </div>
+          </div>
+          <span class="compare-bar-val" [style.color]="ibcPerHColor">
+            {{ stats.snitt_ibc_per_h | number:'1.1-1' }}
+          </span>
+        </div>
+        <div class="compare-bar-group">
+          <span class="compare-bar-label" style="color:#f6ad55;">Team</span>
+          <div class="compare-bar-track">
+            <div class="compare-bar-fill"
+                 [style.width]="teamIbcBarPct + '%'"
+                 style="background:#f6ad55;">
+            </div>
+          </div>
+          <span class="compare-bar-val" style="color:#f6ad55;">
+            {{ stats.team_snitt_ibc_per_h | number:'1.1-1' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kvalitet jämförelse -->
+    <div class="compare-row" *ngIf="stats.kvalitet_pct !== null">
+      <div class="compare-label">Kvalitet%</div>
+      <div class="compare-bars">
+        <div class="compare-bar-group">
+          <span class="compare-bar-label" style="color:#63b3ed;">Du</span>
+          <div class="compare-bar-track">
+            <div class="compare-bar-fill"
+                 [style.width]="myKvalitetBarPct + '%'"
+                 [style.background]="kvalitetColor">
+            </div>
+          </div>
+          <span class="compare-bar-val" [style.color]="kvalitetColor">
+            {{ stats.kvalitet_pct | number:'1.1-1' }}%
+          </span>
+        </div>
+        <div class="compare-bar-group" *ngIf="stats.team_snitt_kvalitet !== null">
+          <span class="compare-bar-label" style="color:#f6ad55;">Team</span>
+          <div class="compare-bar-track">
+            <div class="compare-bar-fill"
+                 [style.width]="teamKvalitetBarPct + '%'"
+                 style="background:#f6ad55;">
+            </div>
+          </div>
+          <span class="compare-bar-val" style="color:#f6ad55;">
+            {{ stats.team_snitt_kvalitet | number:'1.1-1' }}%
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================= TREND-DIAGRAM ====================== -->
+  <div class="section-card">
+    <h5 class="section-title">
+      <i class="fas fa-chart-line me-2" style="color:#63b3ed;"></i>Din IBC/h-trend vs teamsnitt
+    </h5>
+
+    <div *ngIf="loadingTrend" class="text-center py-4">
+      <div class="spinner-border text-info" role="status"></div>
+      <p style="color:#718096;margin-top:10px;">Laddar trend&hellip;</p>
+    </div>
+
+    <div *ngIf="!loadingTrend && harTrendData" class="chart-wrapper">
+      <canvas id="trendChart"></canvas>
+    </div>
+
+    <div *ngIf="!loadingTrend && !harTrendData" class="op-empty">
+      <i class="fas fa-chart-line mb-2" style="font-size:1.8rem;opacity:.3;"></i>
+      <p>Ingen trend-data tillg&auml;nglig f&ouml;r perioden.</p>
+    </div>
+  </div>
+
+  <!-- ============================= PRESTATIONER ======================= -->
+  <div class="section-card">
+    <h5 class="section-title">
+      <i class="fas fa-medal me-2" style="color:#f6e05e;"></i>Dina prestationer
+    </h5>
+
+    <div *ngIf="loadingAchievements" class="text-center py-4">
+      <div class="spinner-border" style="color:#f6e05e;" role="status"></div>
+      <p style="color:#718096;margin-top:10px;">Laddar prestationer&hellip;</p>
+    </div>
+
+    <div *ngIf="!loadingAchievements && achievements" class="achieve-grid">
+
+      <!-- Karriär-total -->
+      <div class="achieve-card">
+        <div class="achieve-icon" style="background:rgba(99,179,237,0.15);">
+          <i class="fas fa-box" style="color:#63b3ed;font-size:1.4rem;"></i>
+        </div>
+        <div class="achieve-body">
+          <div class="achieve-value" style="color:#63b3ed;">{{ achievements.karriar_total }}</div>
+          <div class="achieve-label">IBC karriär-totalt</div>
+        </div>
+      </div>
+
+      <!-- Bästa dag ever -->
+      <div class="achieve-card">
+        <div class="achieve-icon" style="background:rgba(246,224,94,0.15);">
+          <i class="fas fa-crown" style="color:#f6e05e;font-size:1.4rem;"></i>
+        </div>
+        <div class="achieve-body">
+          <div class="achieve-value" style="color:#f6e05e;">{{ achievements.bast_dag_ever_ibc }} IBC</div>
+          <div class="achieve-label">B&auml;sta dag ever</div>
+          <div class="achieve-sub">{{ formatDate(achievements.bast_dag_ever) }}</div>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="achieve-card">
+        <div class="achieve-icon" style="background:rgba(104,211,145,0.15);">
+          <i class="fas fa-fire" style="color:#68d391;font-size:1.4rem;"></i>
+        </div>
+        <div class="achieve-body">
+          <div class="achieve-value" style="color:#68d391;">{{ achievements.streak }} dagar</div>
+          <div class="achieve-label">Nuvarande streak</div>
+          <div class="achieve-sub">dagar i rad med produktion</div>
+        </div>
+      </div>
+
+      <!-- Förbättring -->
+      <div class="achieve-card">
+        <div class="achieve-icon" [style.background]="'rgba(0,0,0,0.2)'">
+          <i class="fas" [class]="forbattringIcon" [style.color]="forbattringColor" style="font-size:1.4rem;"></i>
+        </div>
+        <div class="achieve-body">
+          <div class="achieve-value" [style.color]="forbattringColor">{{ forbattringText }}</div>
+          <div class="achieve-label">Jämfört med förra veckan</div>
+          <div class="achieve-sub" style="color:#718096;">
+            <ng-container *ngIf="achievements.forbattring_direction === 'upp'">Bra jobbat! Du förbättrar dig.</ng-container>
+            <ng-container *ngIf="achievements.forbattring_direction === 'ner'">Du kan bli bättre — kör på!</ng-container>
+            <ng-container *ngIf="achievements.forbattring_direction === 'stabil'">Stabil prestation.</ng-container>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div *ngIf="!loadingAchievements && !achievements" class="op-empty">
+      <i class="fas fa-medal mb-2" style="font-size:1.8rem;opacity:.3;"></i>
+      <p>Inga prestationsdata tillg&auml;ngliga.</p>
+    </div>
+  </div>
+
+  <!-- ============================= BÄSTA DAG (PERIOD) ================= -->
+  <div class="section-card" *ngIf="!loadingStats && stats && stats.bast_dag">
+    <h5 class="section-title">
+      <i class="fas fa-calendar-star me-2" style="color:#68d391;"></i>B&auml;sta dag denna period
+    </h5>
+    <div class="bast-dag-row">
+      <div class="bast-dag-val" style="color:#68d391;">{{ stats.bast_dag_ibc }} IBC</div>
+      <div class="bast-dag-date">{{ formatDate(stats.bast_dag) }}</div>
+    </div>
+  </div>
+
+</div>
