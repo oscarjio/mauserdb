@@ -1,0 +1,270 @@
+<div class="container-fluid py-4">
+
+  <!-- Rubrik -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-calendar-alt me-2" style="color:#63b3ed"></i>Skiftplanering
+    </h2>
+    <span class="badge bg-info" *ngIf="overview">
+      Aktivt skift: {{ overview.aktivt_skift }}
+    </span>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Operatörer denna vecka</div>
+        <div class="kpi-value">{{ overview.operatorer_totalt }}</div>
+        <div class="kpi-sub">Unika inplanerade</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card" [class.kpi-card-success]="overview.bemanningsgrad >= 100"
+           [class.kpi-card-warning]="overview.bemanningsgrad >= 75 && overview.bemanningsgrad < 100"
+           [class.kpi-card-danger]="overview.bemanningsgrad < 75">
+        <div class="kpi-label">Bemanningsgrad idag</div>
+        <div class="kpi-value">{{ overview.bemanningsgrad }}%</div>
+        <div class="kpi-sub">Av minimikrav</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card" [class.kpi-card-danger]="overview.underbemanning > 0">
+        <div class="kpi-label">Underbemanning</div>
+        <div class="kpi-value" [class.text-danger]="overview.underbemanning > 0"
+             [class.text-success]="overview.underbemanning === 0">
+          {{ overview.underbemanning }}
+        </div>
+        <div class="kpi-sub">Skift under minimikrav</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Nästa skiftbyte</div>
+        <div class="kpi-value kpi-value-sm">{{ overview.nasta_skiftbyte }}</div>
+        <div class="kpi-sub">Tid kvar</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading KPI -->
+  <div class="text-center py-3" *ngIf="loadingOverview">
+    <div class="spinner-border spinner-border-sm text-info"></div>
+    <span class="ms-2 text-muted">Laddar KPI:er...</span>
+  </div>
+
+  <!-- Veckoväljare -->
+  <div class="week-nav mb-3" *ngIf="!loadingSchedule">
+    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(-1)">
+      <i class="fas fa-chevron-left"></i>
+    </button>
+    <span class="week-label">
+      Vecka {{ currentWeek }}
+      <small class="text-muted ms-2">{{ monday }} - {{ sunday }}</small>
+    </span>
+    <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(1)">
+      <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
+
+  <!-- Veckoschema-tabell -->
+  <div class="table-card mb-4" *ngIf="schema.length > 0 && !loadingSchedule">
+    <h5 class="section-title mb-3"><i class="fas fa-table me-2"></i>Veckoschema</h5>
+    <div class="table-responsive">
+      <table class="table table-bordered mb-0 schedule-table">
+        <thead>
+          <tr>
+            <th class="skift-col">Skift</th>
+            <th *ngFor="let d of dagar" [class.today-col]="isToday(d.datum)">
+              {{ d.dag_namn }}<br>
+              <small>{{ d.datum | date:'MM-dd' }}</small>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of schema">
+            <td class="skift-col">
+              <strong>{{ skiftLabel(row.skift_typ) }}</strong>
+              <br><small class="text-muted">Min: {{ row.min_bemanning }} / Max: {{ row.max_bemanning }}</small>
+            </td>
+            <td *ngFor="let dag of row.dagar"
+                [class]="cellStatusClass(dag.status)"
+                [class.today-col]="isToday(dag.datum)"
+                class="schedule-cell"
+                (click)="openShiftDetail(row.skift_typ, dag.datum)">
+              <div class="cell-operators">
+                <span class="operator-tag" *ngFor="let op of dag.operatorer">
+                  {{ op.namn }}
+                </span>
+              </div>
+              <div class="cell-count">
+                {{ dag.antal }} / {{ row.min_bemanning }}
+              </div>
+              <button class="btn btn-xs btn-outline-success add-btn"
+                      (click)="openAssignModal(row.skift_typ, dag.datum); $event.stopPropagation()"
+                      title="Lägg till operatör">
+                <i class="fas fa-plus"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend mt-3">
+      <span class="legend-item"><span class="legend-dot legend-gron"></span> Full bemanning</span>
+      <span class="legend-item"><span class="legend-dot legend-gul"></span> Låg bemanning</span>
+      <span class="legend-item"><span class="legend-dot legend-rod"></span> Under minimikrav</span>
+    </div>
+  </div>
+
+  <!-- Loading schedule -->
+  <div class="text-center py-3" *ngIf="loadingSchedule">
+    <div class="spinner-border spinner-border-sm text-info"></div>
+    <span class="ms-2 text-muted">Laddar veckoschema...</span>
+  </div>
+
+  <!-- Error schedule -->
+  <div class="alert alert-danger" *ngIf="errorSchedule && !loadingSchedule">
+    Kunde inte ladda veckoschema. Försök igen senare.
+  </div>
+
+  <!-- Bemanningsgrad-diagram -->
+  <div class="table-card mb-4" *ngIf="capacityData.length > 0">
+    <h5 class="section-title mb-3"><i class="fas fa-chart-bar me-2"></i>Bemanningsgrad per dag</h5>
+    <div style="height: 250px; position: relative;">
+      <canvas id="capacityChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ===== Skiftdetalj (modal-liknande overlay) ===== -->
+  <div class="detail-overlay" *ngIf="shiftDetail || loadingDetail" (click)="closeDetail()">
+    <div class="detail-panel" (click)="$event.stopPropagation()">
+
+      <!-- Loading -->
+      <div class="text-center py-5" *ngIf="loadingDetail && !shiftDetail">
+        <div class="spinner-border text-info"></div>
+        <p class="mt-2 text-muted">Laddar skiftdetaljer...</p>
+      </div>
+
+      <ng-container *ngIf="shiftDetail">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h4 class="mb-1">{{ skiftLabel(shiftDetail.skift_typ) }}</h4>
+            <span class="text-muted">{{ shiftDetail.datum }}</span>
+            <span class="badge ms-2"
+                  [class.bg-success]="shiftDetail.status === 'gron'"
+                  [class.bg-warning]="shiftDetail.status === 'gul'"
+                  [class.bg-danger]="shiftDetail.status === 'rod'">
+              {{ shiftDetail.antal_bemanning }} / {{ shiftDetail.min_bemanning }} operatörer
+            </span>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Detalj-KPI:er -->
+        <div class="row g-2 mb-3">
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Bemanning</div>
+              <div class="detail-kpi-value">{{ shiftDetail.antal_bemanning }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Min / Max</div>
+              <div class="detail-kpi-value">{{ shiftDetail.min_bemanning }} / {{ shiftDetail.max_bemanning }}</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Planerad kapacitet</div>
+              <div class="detail-kpi-value">{{ shiftDetail.planerad_kapacitet }} IBC/h</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="detail-kpi">
+              <div class="detail-kpi-label">Faktisk produktion</div>
+              <div class="detail-kpi-value">{{ shiftDetail.faktisk_produktion !== null ? shiftDetail.faktisk_produktion + ' IBC' : '-' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tid -->
+        <p class="text-muted small">
+          <i class="fas fa-clock me-1"></i>{{ shiftDetail.start_tid }} - {{ shiftDetail.slut_tid }}
+        </p>
+
+        <!-- Operatörer -->
+        <div class="mb-3">
+          <h6 class="section-title"><i class="fas fa-users me-1"></i>Operatörer i skiftet</h6>
+          <div *ngIf="shiftDetail.operatorer.length === 0" class="text-muted small">
+            Inga operatörer tilldelade.
+          </div>
+          <div class="list-group list-group-flush" *ngIf="shiftDetail.operatorer.length > 0">
+            <div class="list-group-item d-flex justify-content-between align-items-center"
+                 *ngFor="let op of shiftDetail.operatorer">
+              <span>
+                <i class="fas fa-user me-2 text-info"></i>{{ op.namn }}
+              </span>
+              <button class="btn btn-xs btn-outline-danger" (click)="removeOperator(op.schema_id)"
+                      title="Ta bort">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lägg till -->
+        <button class="btn btn-sm btn-success"
+                (click)="openAssignModal(shiftDetail.skift_typ, shiftDetail.datum)">
+          <i class="fas fa-plus me-1"></i>Lägg till operatör
+        </button>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ===== Tilldela operatör-modal ===== -->
+  <div class="detail-overlay" *ngIf="showAssignModal" (click)="closeAssignModal()">
+    <div class="detail-panel" style="max-width:450px" (click)="$event.stopPropagation()">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="fas fa-user-plus me-2 text-success"></i>Tilldela operatör</h5>
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeAssignModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <p class="text-muted small">
+        Skift: <strong>{{ skiftLabel(assignSkift) }}</strong> |
+        Datum: <strong>{{ assignDatum }}</strong>
+      </p>
+
+      <div class="mb-3" *ngIf="!loadingOperators">
+        <label class="form-label">Välj operatör</label>
+        <select class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp">
+          <option [ngValue]="0" disabled>-- Välj operatör --</option>
+          <option *ngFor="let op of getAvailableOperators()" [ngValue]="op.id">
+            {{ op.namn }}
+          </option>
+        </select>
+        <small class="text-muted" *ngIf="getAvailableOperators().length === 0">
+          Alla operatörer är redan inplanerade denna dag.
+        </small>
+      </div>
+
+      <div class="text-center py-2" *ngIf="loadingOperators">
+        <div class="spinner-border spinner-border-sm text-info"></div>
+        <span class="ms-2 text-muted">Laddar operatörer...</span>
+      </div>
+
+      <div class="alert alert-success py-2" *ngIf="assignMessage">{{ assignMessage }}</div>
+      <div class="alert alert-danger py-2" *ngIf="assignError">{{ assignError }}</div>
+
+      <button class="btn btn-success w-100" (click)="submitAssign()" [disabled]="savingAssign || !assignOperatorId">
+        {{ savingAssign ? 'Sparar...' : 'Tilldela' }}
+      </button>
+    </div>
+  </div>
+
+</div>

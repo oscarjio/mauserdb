@@ -86,6 +86,8 @@ export const routes: Routes = [
       { path: 'rebotling/statistik-dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/statistik-dashboard/statistik-dashboard.component').then(m => m.StatistikDashboardPage) },
       { path: 'rebotling/batch-sparning', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/batch-sparning/batch-sparning.component').then(m => m.BatchSparningPage) },
       { path: 'rebotling/kassationsorsak-statistik', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kassationsorsak-statistik/kassationsorsak-statistik').then(m => m.KassationsorsakStatistikPage) },
+      { path: 'rebotling/produktions-sla', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktions-sla/produktions-sla.component').then(m => m.ProduktionsSlaPage) },
+      { path: 'rebotling/skiftplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/skiftplanering/skiftplanering.component').then(m => m.SkiftplaneringPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

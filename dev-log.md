@@ -1,3 +1,35 @@
+## 2026-03-12 Skiftplanering — bemanningsöversikt
+
+Ny sida `/rebotling/skiftplanering` — VD/admin ser vilka operatörer som jobbar vilket skift, planerar kapacitet och får varning vid underbemanning.
+
+- **Migration**: `2026-03-12_skiftplanering.sql` — tabeller `skift_konfiguration` (3 skifttyper: FM 06-14, EM 14-22, NATT 22-06 med min/max bemanning) + `skift_schema` (operator_id, skift_typ, datum) med seed-data för aktuell vecka (8 operatörer)
+- **Backend**: `SkiftplaneringController.php` i `classes/`
+  - `run=overview` — KPI:er: antal operatörer totalt (unika denna vecka), bemanningsgrad idag (%), antal skift med underbemanning, nästa skiftbyte (tid kvar + klockslag)
+  - `run=schedule` (?week=YYYY-Wxx) — veckoschema: per skift och dag, vilka operatörer med namn, antal, status (gron/gul/rod) baserat på min/max-konfiguration
+  - `run=shift-detail` (?shift=FM/EM/NATT&date=YYYY-MM-DD) — detalj: operatörer i skiftet, planerad kapacitet (IBC/h), faktisk produktion från rebotling_log
+  - `run=assign` (POST) — tilldela operatör till skift/dag (med validering: ej dubbelbokad samma dag)
+  - `run=unassign` (POST) — ta bort operatör från skift (via schema_id eller operator_id+datum)
+  - `run=capacity` — bemanningsgrad per dag i veckan, historisk IBC/h, skift-konfiguration
+  - `run=operators` — lista alla operatörer (för dropdown vid tilldelning)
+  - `ensureTables()` kör migration automatiskt vid första anrop
+  - Registrerad i `api.php` med nyckel `skiftplanering`
+  - Proxy-controller i `controllers/SkiftplaneringController.php`
+- **Service**: `skiftplanering.service.ts` — interfaces SkiftOverview, ScheduleResponse, SkiftRad, DagInfo, ShiftDetailResponse, OperatorItem, DagKapacitet, CapacityResponse
+- **Komponent**: `pages/rebotling/skiftplanering/`
+  - KPI-kort (4 st): Operatörer denna vecka, Bemanningsgrad idag % (grön/gul/röd ram), Underbemanning (röd vid >0), Nästa skiftbyte
+  - Veckoväljare: navigera framåt/bakåt mellan veckor med pilar
+  - Veckoschema-tabell: dagar som kolumner, skift som rader, operatörsnamn som taggar i celler, färgkodad (grön=full, gul=låg, röd=under min), today-markering (blå kant)
+  - Klickbar cell — öppnar skiftdetalj-overlay med operatörlista, planerad kapacitet, faktisk produktion
+  - Plus-knapp i varje cell — öppnar tilldelnings-modal med dropdown av tillgängliga operatörer (filtrerar bort redan inplanerade)
+  - Ta bort-knapp per operatör i detaljvyn
+  - Chart.js: Bemanningsgrad per dag (stapeldiagram med grön/gul/röd färg + röd streckad target-linje vid 100%)
+  - Förklaring (legend): grön/gul/röd
+  - Auto-refresh var 5 minuter, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval
+- **Route**: `/rebotling/skiftplanering` (authGuard)
+- **Meny**: "Skiftplanering" med ikon `fas fa-calendar-alt` under Rebotling
+
+---
+
 ## 2026-03-12 Batch-spårning — följ IBC-batchar genom produktionslinjen
 
 Ny sida `/rebotling/batch-sparning` — VD/operatör kan följa batchar/ordrar av IBC:er genom hela produktionslinjen.

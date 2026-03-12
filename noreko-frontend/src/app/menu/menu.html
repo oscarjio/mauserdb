@@ -82,6 +82,8 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/statistik-dashboard"><i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>Statistik-dashboard</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/batch-sparning"><i class="fas fa-boxes me-2" style="color:#63b3ed"></i>Batch-spårning</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak-statistik"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Kassationsorsak-statistik</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktions-sla"><i class="fas fa-bullseye me-2" style="color:#48bb78"></i>Maluppfyllnad</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/skiftplanering"><i class="fas fa-calendar-alt me-2" style="color:#63b3ed"></i>Skiftplanering</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
