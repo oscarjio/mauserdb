@@ -1,3 +1,32 @@
+## 2026-03-12 Stopptidsanalys per maskin — drill-down, flaskhalsar, maskin-jämförelse
+
+Ny sida `/rebotling/stopptidsanalys` — VD kan göra drill-down på stopptider per maskin, identifiera flaskhalsar och jämföra maskiner.
+
+- **Migration**: `2026-03-12_stopptidsanalys.sql` — ny tabell `maskin_stopptid` (id, maskin_id, maskin_namn, startad_at, avslutad_at, duration_min, orsak, orsak_kategori ENUM, operator_id, operator_namn, kommentar) med 27 demo-stopphändelser för 6 maskiner (Tvättmaskin, Torkugn, Inspektionsstation, Transportband, Etiketterare, Ventiltestare)
+- **Backend**: `classes/StopptidsanalysController.php`
+  - `run=overview` — KPI:er: total stopptid idag (min), flaskhals-maskin (mest stopp i perioden), antal stopp idag, snitt per stopp, trend vs föregående period
+  - `run=per-maskin` — horisontellt stapeldiagram-data: total stopptid per maskin sorterat störst→minst, andel%, antal stopp, snitt/max per stopp
+  - `run=trend` — linjediagram: stopptid per dag per maskin, filtrerbart per maskin_id
+  - `run=fordelning` — doughnut-data: andel stopptid per maskin
+  - `run=detaljtabell` — detaljlog alla stopp med tidpunkt, maskin, varaktighet, orsak, kategori, operatör (max 500 poster), maskin_id-filter
+  - `run=maskiner` — lista alla aktiva maskiner (för filter-dropdowns)
+  - `ensureTables()` kör migration automatiskt vid första anrop
+  - Registrerad i `api.php` med nyckel `stopptidsanalys`
+- **Service**: `stopptidsanalys.service.ts` — interfaces OverviewData, PerMaskinData, MaskinItem, TrendData, TrendSeries, FordelningData, DetaljData, StoppEvent, Maskin
+- **Komponent**: `pages/rebotling/stopptidsanalys/`
+  - KPI-kort (4 st): Total stopptid idag, Flaskhals-maskin (med tid), Antal stopp idag (med trendikon), Snitt per stopp (med period-total)
+  - Horisontellt stapeldiagram (Chart.js) per maskin, sorterat störst→minst med tooltip: min/stopp/snitt
+  - Trenddiagram (linjediagram) per dag per maskin med interaktiva maskin-checkboxar (standard: top-3 valda)
+  - Doughnut-diagram: stopptidsfördelning per maskin med tooltip: min/andel/stopp
+  - Maskin-sammanfattningstabell med progress bars, andel%, snitt, max-stopp
+  - Detaljerad stopptids-log: sorterbar tabell (klicka kolumnrubrik), maskin-filter dropdown, kategori-badges
+  - Period-filter: Idag / Vecka / Manad (30d) med btn-group
+  - Auto-refresh var 60 sekunder, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + destroyCharts
+- **Route**: `/rebotling/stopptidsanalys` (authGuard)
+- **Meny**: "Stopptidsanalys" med ikon `fas fa-stopwatch` under Rebotling
+
+---
+
 ## 2026-03-12 Produktionskostnad per IBC — kostnadskalkyl med konfigurerbara faktorer
 
 Ny sida `/rebotling/produktionskostnad` -- VD kan se uppskattad produktionskostnad per IBC baserat pa stopptid, energi, bemanning och kassation.
