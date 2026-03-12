@@ -163,6 +163,8 @@ $classNameMap = [
     'utnyttjandegrad'         => 'UtnyttjandegradController',
     'produktionstakt'         => 'ProduktionsTaktController',
     'veckorapport'            => 'VeckorapportController',
+    'alarm-historik'          => 'AlarmHistorikController',
+    'operatorsportal'         => 'OperatorsportalController',
 ];
 
 $actionKey = strtolower($action);

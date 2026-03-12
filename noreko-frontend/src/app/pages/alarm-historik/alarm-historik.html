@@ -1,0 +1,201 @@
+<div class="alarm-historik-container">
+
+  <!-- Rubrik -->
+  <div class="page-header">
+    <h1 class="page-title">
+      <i class="fas fa-bell me-2 text-warning"></i>Alarm-historik
+    </h1>
+    <p class="page-subtitle">Oversikt over alla larm och varningar som triggats i produktionssystemet.</p>
+  </div>
+
+  <!-- Filterrad -->
+  <div class="filter-bar">
+    <!-- Periodselektor -->
+    <div class="filter-group">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        <button
+          *ngFor="let d of dayOptions"
+          class="btn btn-sm"
+          [class.btn-primary]="days === d"
+          [class.btn-outline-secondary]="days !== d"
+          (click)="onDaysChange(d)">
+          {{ d === 7 ? '7 dagar' : d === 30 ? '30 dagar' : '90 dagar' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Severity-filter -->
+    <div class="filter-group">
+      <label class="filter-label">Allvarlighetsgrad</label>
+      <select class="form-select form-select-sm" [(ngModel)]="filterSeverity" (change)="onFilterChange()">
+        <option value="all">Alla</option>
+        <option value="critical">Kritiska</option>
+        <option value="warning">Varningar</option>
+        <option value="info">Info</option>
+      </select>
+    </div>
+
+    <!-- Typ-filter -->
+    <div class="filter-group">
+      <label class="filter-label">Larmtyp</label>
+      <select class="form-select form-select-sm" [(ngModel)]="filterTyp" (change)="onFilterChange()">
+        <option value="all">Alla typer</option>
+        <option *ngFor="let t of typOptionsForFilter" [value]="t">{{ t }}</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="kpi-row">
+    <div class="kpi-card" *ngIf="loadingSummary">
+      <div class="kpi-spinner"><div class="spinner-border spinner-border-sm text-info" role="status"></div></div>
+    </div>
+
+    <ng-container *ngIf="!loadingSummary && summary">
+      <div class="kpi-card kpi-total">
+        <div class="kpi-icon"><i class="fas fa-bell"></i></div>
+        <div class="kpi-value">{{ summary.total }}</div>
+        <div class="kpi-label">Totalt larm ({{ days }} dagar)</div>
+      </div>
+      <div class="kpi-card kpi-critical">
+        <div class="kpi-icon text-danger"><i class="fas fa-exclamation-circle"></i></div>
+        <div class="kpi-value text-danger">{{ summary.critical }}</div>
+        <div class="kpi-label">Kritiska</div>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <div class="kpi-icon text-warning"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="kpi-value text-warning">{{ summary.warning }}</div>
+        <div class="kpi-label">Varningar</div>
+      </div>
+      <div class="kpi-card kpi-avg">
+        <div class="kpi-icon text-info"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-value text-info">{{ summary.snitt_per_dag }}</div>
+        <div class="kpi-label">Snitt larm/dag</div>
+      </div>
+    </ng-container>
+
+    <div class="kpi-card kpi-error" *ngIf="!loadingSummary && errorSummary">
+      <div class="kpi-icon text-muted"><i class="fas fa-exclamation"></i></div>
+      <div class="kpi-label text-muted">Kunde inte ladda KPI-data</div>
+    </div>
+  </div>
+
+  <!-- Vanligaste larmtyp -->
+  <div class="top-typ-bar" *ngIf="!loadingSummary && summary && summary.vanligast_typ">
+    <i class="fas fa-fire text-warning me-2"></i>
+    Vanligaste larmtyp: <strong class="ms-1">{{ summary.vanligast_typ }}</strong>
+    <span class="ms-2 text-muted">
+      ({{ summary.per_typ[summary.vanligast_typ] }} larm under perioden)
+    </span>
+  </div>
+
+  <!-- Tidslinje (Chart.js) -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-chart-bar me-2 text-info"></i>Larm per dag
+    </h2>
+
+    <div *ngIf="loadingTimeline" class="chart-loading">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-2 text-muted">Genererar tidslinje...</p>
+    </div>
+
+    <div *ngIf="!loadingTimeline && errorTimeline" class="alert alert-danger">
+      Kunde inte ladda tidslinje.
+    </div>
+
+    <div *ngIf="!loadingTimeline && timelineData && !timelineData.har_data" class="no-data-msg">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga larm registrerade under perioden.
+    </div>
+
+    <div *ngIf="!loadingTimeline && timelineData && timelineData.har_data" class="chart-wrapper">
+      <canvas id="alarmTimelineChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Larmlista (tabell) -->
+  <div class="card-section">
+    <h2 class="section-title">
+      <i class="fas fa-list me-2 text-info"></i>Larmlista
+      <span class="count-badge ms-2" *ngIf="!loadingList">{{ alarms.length }} larm</span>
+    </h2>
+
+    <div *ngIf="loadingList" class="table-loading">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="mt-2 text-muted">Hamtar larm...</p>
+    </div>
+
+    <div *ngIf="!loadingList && errorList" class="alert alert-danger">
+      Kunde inte ladda larmlista. Kontrollera att du ar inloggad.
+    </div>
+
+    <div *ngIf="!loadingList && !errorList && alarms.length === 0" class="no-data-msg">
+      <i class="fas fa-check-circle text-success me-2"></i>Inga larm matchar filtret.
+    </div>
+
+    <div *ngIf="!loadingList && alarms.length > 0" class="table-responsive">
+      <table class="alarm-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Tid</th>
+            <th>Typ</th>
+            <th>Allvarlighetsgrad</th>
+            <th>Beskrivning</th>
+            <th>Varaktighet</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let alarm of alarms" [class.row-critical]="alarm.severity === 'critical'" [class.row-warning]="alarm.severity === 'warning'">
+            <td class="td-datum">{{ formatDatum(alarm.datum) }}</td>
+            <td class="td-tid">{{ formatTid(alarm.tid) }}</td>
+            <td class="td-typ">{{ alarm.typ }}</td>
+            <td class="td-severity">
+              <span [class]="severityBadgeClass(alarm.severity)">
+                <i class="fas me-1"
+                   [class.fa-exclamation-circle]="alarm.severity === 'critical'"
+                   [class.fa-exclamation-triangle]="alarm.severity === 'warning'"
+                   [class.fa-info-circle]="alarm.severity === 'info'"></i>
+                {{ severityLabel(alarm.severity) }}
+              </span>
+            </td>
+            <td class="td-beskrivning">{{ alarm.beskrivning }}</td>
+            <td class="td-varaktighet">{{ formatVaraktighet(alarm.varaktighet_min) }}</td>
+            <td class="td-status">
+              <span [class]="statusClass(alarm.status)">
+                <i class="fas me-1"
+                   [class.fa-circle-notch]="alarm.status === 'active'"
+                   [class.fa-check-circle]="alarm.status === 'resolved'"></i>
+                {{ statusLabel(alarm.status) }}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Per-typ sammanfattning -->
+  <div class="card-section" *ngIf="!loadingSummary && summary && summary.total > 0">
+    <h2 class="section-title">
+      <i class="fas fa-tags me-2 text-info"></i>Fordelning per typ
+    </h2>
+    <div class="typ-grid">
+      <div class="typ-card" *ngFor="let entry of summary.per_typ | keyvalue">
+        <div class="typ-name">{{ entry.key }}</div>
+        <div class="typ-count">{{ entry.value }}</div>
+        <div class="typ-bar">
+          <div class="typ-bar-fill" [style.width.%]="summary.total > 0 ? (entry.value / summary.total * 100) : 0"></div>
+        </div>
+        <div class="typ-pct">{{ summary.total > 0 ? (entry.value / summary.total * 100 | number:'1.0-0') : 0 }}%</div>
+      </div>
+    </div>
+  </div>
+
+</div>

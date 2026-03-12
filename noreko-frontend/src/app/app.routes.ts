@@ -65,6 +65,8 @@ export const routes: Routes = [
       { path: 'rebotling/utnyttjandegrad', canActivate: [authGuard], loadComponent: () => import('./pages/utnyttjandegrad/utnyttjandegrad').then(m => m.UtnyttjandegradComponent) },
       { path: 'rebotling/produktionstakt', loadComponent: () => import('./pages/rebotling/produktionstakt/produktionstakt').then(m => m.ProduktionsTaktPage) },
       { path: 'rebotling/veckorapport', canActivate: [authGuard], loadComponent: () => import('./pages/veckorapport/veckorapport').then(m => m.VeckorapportPage) },
+      { path: 'rebotling/alarm-historik', canActivate: [authGuard], loadComponent: () => import('./pages/alarm-historik/alarm-historik').then(m => m.AlarmHistorikPage) },
+      { path: 'rebotling/operatorsportal', canActivate: [authGuard], loadComponent: () => import('./pages/operatorsportal/operatorsportal').then(m => m.OperatorsportalPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
