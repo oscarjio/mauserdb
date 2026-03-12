@@ -1,3 +1,27 @@
+## 2026-03-12 Operatörs-personligt dashboard — Min statistik
+
+Ny sida `/rebotling/operator-dashboard` — varje inloggad operatör ser sin egen statistik, trender och jämförelse mot teamsnitt.
+
+- **Backend**: `MyStatsController.php` i `classes/` och `controllers/` (proxy-monster)
+  - `run=my-stats&period=7|30|90`: Total IBC, snitt IBC/h, kvalitet%, bästa dag, jämförelse mot teamsnitt (IBC/h + kvalitet), ranking bland alla operatörer
+  - `run=my-trend&period=30|90`: Daglig trend — IBC/dag, IBC/h/dag, kvalitet/dag samt teamsnitt IBC/h per dag
+  - `run=my-achievements`: Karriär-total, bästa dag ever (all-time), nuvarande streak (dagar i rad med produktion), förbättring senaste vecka vs föregående (%)
+  - Auth: 401 om ej inloggad, 403 om inget operator_id kopplat till kontot
+  - Aggregering: MAX() per skiftraknare, sedan SUM() — korrekt för kumulativa PLC-värden
+  - Registrerad i `api.php` som `'my-stats' => 'MyStatsController'`
+- **Frontend Service**: `my-stats.service.ts` — TypeScript-interfaces för MyStatsData, MyTrendData, MyAchievementsData + timeout(15000) + catchError
+- **Frontend Komponent**: `pages/operator-personal-dashboard/` (standalone, OnInit/OnDestroy, destroy$, takeUntil, chart?.destroy())
+  - Välkomst-header: "Hej, [operatörsnamn]!" + dagens datum (lång format)
+  - 4 KPI-kort: Dina IBC (period), Din IBC/h (färgkodad grön/gul/röd), Din kvalitet%, Din ranking (#X av Y)
+  - Jämförelse-sektion: progressbars Du vs Teamsnitt för IBC/h och kvalitet%
+  - Linjediagram (Chart.js): Din IBC/h per dag (blå fylld linje) vs teamsnitt (orange streckad linje), 2 dataset
+  - Prestationsblock (4 kort): karriär-total IBC, bästa dag ever, nuvarande streak, förbättring +/-% vs förra veckan
+  - Bästa dag denna period (extra sektion)
+  - Periodväljare: 7d / 30d / 90d
+  - Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text, Bootstrap 5
+- **Route**: `/rebotling/operator-dashboard` med `authGuard` (tillagd i `app.routes.ts`)
+- **Meny**: "Min statistik" (ikon `fas fa-id-badge`) under Rebotling-dropdown direkt efter "Min dag"
+
 ## 2026-03-12 Forsta timme-analys — Uppstartsanalys per skift
 
 Ny sida `/rebotling/forsta-timme-analys` — analyserar hur forsta timmen efter varje skiftstart gar.
