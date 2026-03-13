@@ -59,12 +59,12 @@ Session #57-#93: Feature-utveckling löpande. Se lead-memory-archive.md för det
 Session #92: Rebotling stationsdetalj-dashboard + VD veckorapport + buggjakt — klara.
 Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
 Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
-Session #96: Rebotling underhållslogg + Buggjakt — pågår.
+Session #96: Rebotling underhållslogg + Buggjakt — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Rebotling underhållslogg** — registrera underhåll per station (#96)
-- [PÅGÅR] **Buggjakt #96** — granska + fixa buggar senaste features (#96)
+- [x] **Rebotling underhållslogg** — registrera underhåll per station (klar #96)
+- [x] **Buggjakt #96** — granska + fixa buggar senaste features (klar #96)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall
 - [ ] **Stopporsak-dashboard** — visuell översikt av alla stopp med Pareto
@@ -80,6 +80,6 @@ Rebotling stationsdetalj-dashboard rebotling — duplicerat/förbättrat från #
 Worker 1 (Kassationsorsak-analys): Pareto-diagram top-5/10 kassationsorsaker, drill-down per station/operatör, trendgraf, KPI-kort. Backend: KassationsanalysController.
 Worker 2 (Rebotling skiftöverlämning): Digital checklista vid skiftbyte — skift-sammanfattning, öppna problem, interaktiv checklista, fritextnoteringar, historik. Backend: SkiftoverlamningController + ny DB-tabell.
 
-### 2026-03-13 — Session #96 (pågår)
+### 2026-03-13 — Session #96 (klar)
 Worker 1 (Rebotling underhållslogg): Ny sida — registrera underhåll per station, planerat/oplanerat, varaktighet, stopporsak-koppling, KPI-kort, bar chart. Backend: UnderhallsloggController + ny DB-tabell.
 Worker 2 (Buggjakt #96): Systematisk granskning av kassationsanalys, skiftöverlämning, stationsdetalj, VD-veckorapport — memory leaks, SQL injection, UX, dark theme.
