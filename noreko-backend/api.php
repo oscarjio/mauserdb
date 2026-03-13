@@ -205,6 +205,8 @@ $classNameMap = [
     'produktionsdashboard'          => 'ProduktionsDashboardController',
     'rebotlingtrendanalys'          => 'RebotlingTrendanalysController',
     'operatorsprestanda'            => 'OperatorsPrestandaController',
+    'rebotling-stationsdetalj'      => 'RebotlingStationsdetaljController',
+    'vd-veckorapport'               => 'VDVeckorapportController',
 ];
 
 $actionKey = strtolower($action);

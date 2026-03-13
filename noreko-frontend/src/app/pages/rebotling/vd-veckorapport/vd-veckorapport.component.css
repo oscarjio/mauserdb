@@ -1,0 +1,252 @@
+/* ============================================================
+   VD Veckorapport — Dark theme
+   ============================================================ */
+
+.vd-veckorapport {
+  color: #e2e8f0;
+}
+
+/* ---- KPI-kort ---- */
+.kpi-kort {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  min-height: 110px;
+}
+
+.kpi-rubrik {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-varde {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.2;
+}
+
+.kpi-forra {
+  font-size: 0.8rem;
+}
+
+.kpi-diff {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ---- Trend-kort ---- */
+.trend-kort {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+}
+
+.trend-positiv { color: #48bb78; }
+.trend-negativ { color: #fc8181; }
+.trend-stabil  { color: #a0aec0; }
+
+/* ---- Anomali ---- */
+.anomali-rad {
+  background: #2d374899;
+}
+
+/* ---- Operatörer ---- */
+.op-rad {
+  cursor: default;
+}
+
+.op-top {
+  background: #48bb7811;
+  border: 1px solid #48bb7844;
+}
+
+.op-bottom {
+  background: #fc818111;
+  border: 1px solid #fc818144;
+}
+
+.rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.rank-top {
+  background: #48bb7833;
+  color: #48bb78;
+}
+
+.rank-bottom {
+  background: #fc818133;
+  color: #fc8181;
+}
+
+.oee-badge {
+  font-size: 0.9rem;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+}
+
+.oee-top    { color: #48bb78; }
+.oee-bottom { color: #fc8181; }
+
+/* ---- Stopporsaker ---- */
+.stopp-progress {
+  height: 6px;
+  background: #4a5568;
+  border-radius: 3px;
+}
+
+.stopp-bar {
+  background: linear-gradient(90deg, #f6ad55, #fc8181);
+  border-radius: 3px;
+}
+
+.rank-nr {
+  color: #a0aec0;
+  min-width: 20px;
+  display: inline-block;
+}
+
+/* ============================================================
+   UTSKRIFTSVÄNLIG SAMMANFATTNING
+   ============================================================ */
+
+.print-overlay {
+  position: fixed;
+  inset: 0;
+  background: #1a202c;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.rapport-sida {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  color: #1a202c;
+  padding: 40px;
+  border-radius: 4px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 13px;
+}
+
+.rapport-rubrik {
+  border-bottom: 3px solid #1a202c;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.rapport-rubrik h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 4px;
+}
+
+.rapport-period {
+  color: #4a5568;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.rapport-foretag {
+  color: #718096;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.rapport-sektion {
+  margin-bottom: 28px;
+}
+
+.rapport-sektion h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #2d3748;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 6px;
+  margin-bottom: 12px;
+}
+
+.rapport-tabell {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.rapport-tabell th {
+  background: #2d3748;
+  color: #fff;
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.rapport-tabell td {
+  padding: 5px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1a202c;
+}
+
+.rapport-tabell tr:nth-child(even) td {
+  background: #f7fafc;
+}
+
+.positiv-text { color: #276749; font-weight: 600; }
+.negativ-text { color: #c53030; font-weight: 600; }
+.varning-text { color: #c05621; font-weight: 600; }
+
+.rapport-footer {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+  margin-top: 24px;
+  color: #718096;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* ============================================================
+   PRINT CSS
+   ============================================================ */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-overlay {
+    position: static;
+    background: transparent;
+    padding: 0;
+  }
+
+  .rapport-sida {
+    box-shadow: none;
+    padding: 20px;
+    max-width: 100%;
+    border-radius: 0;
+  }
+
+  .rapport-tabell {
+    page-break-inside: auto;
+  }
+
+  .rapport-sektion {
+    page-break-inside: avoid;
+  }
+
+  @page {
+    margin: 15mm 15mm 15mm 15mm;
+    size: A4 portrait;
+  }
+}

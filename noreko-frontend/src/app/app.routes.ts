@@ -108,6 +108,8 @@ export const routes: Routes = [
       { path: 'rebotling/kapacitetsplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kapacitetsplanering/kapacitetsplanering.component').then(m => m.KapacitetsplaneringPage) },
       { path: 'rebotling/rebotling-trendanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/rebotling-trendanalys/rebotling-trendanalys.component').then(m => m.RebotlingTrendanalysPage) },
       { path: 'rebotling/operators-prestanda', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operators-prestanda/operators-prestanda.component').then(m => m.OperatorsPrestandaPage) },
+      { path: 'rebotling/stationsdetalj', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/stationsdetalj/stationsdetalj.component').then(m => m.RebotlingStationsdetaljPage) },
+      { path: 'rebotling/vd-veckorapport', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/vd-veckorapport/vd-veckorapport.component').then(m => m.VdVeckorapportPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

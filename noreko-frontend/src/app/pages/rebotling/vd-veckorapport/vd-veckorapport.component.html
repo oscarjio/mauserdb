@@ -1,0 +1,486 @@
+<div class="container-fluid py-4 vd-veckorapport">
+
+  <!-- ========================================================
+       UTSKRIFTSVÄNLIG SAMMANFATTNING (overlay)
+       ======================================================== -->
+  <div *ngIf="visaSammanfattning && sammanfattningData" class="print-overlay">
+    <div class="print-header no-print d-flex align-items-center gap-3 mb-3">
+      <button class="btn btn-sm btn-outline-light" (click)="stangSammanfattning()">
+        &#8592; Tillbaka
+      </button>
+      <button class="btn btn-sm btn-success" (click)="skrivUt()">
+        Skriv ut / Spara som PDF
+      </button>
+      <span class="text-muted small">Rapporten öppnas i utskriftsläge</span>
+    </div>
+
+    <!-- Utskriftssida -->
+    <div class="rapport-sida">
+      <div class="rapport-rubrik">
+        <h1>VD Veckorapport — Vecka {{ sammanfattningData.vecka }}, {{ sammanfattningData.ar }}</h1>
+        <p class="rapport-period">
+          Period: {{ sammanfattningData.fran }} – {{ sammanfattningData.till }}
+          &nbsp;|&nbsp; Genererad: {{ sammanfattningData.genererad }}
+        </p>
+        <p class="rapport-foretag">Noreko AB — IBC-tvätteri Rebotling</p>
+      </div>
+
+      <!-- KPI-tabell -->
+      <section class="rapport-sektion">
+        <h2>KPI-jämförelse — Denna vecka vs förra veckan</h2>
+        <table class="rapport-tabell">
+          <thead>
+            <tr>
+              <th>Nyckeltal</th>
+              <th>Förra veckan</th>
+              <th>Denna vecka</th>
+              <th>Förändring</th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let kpi of kpiLista()">
+              <td><strong>{{ formatKpiNamn(kpi) }}</strong></td>
+              <td>{{ (sammanfattningData.kpi_forra)[kpi] | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}</td>
+              <td>{{ (sammanfattningData.kpi_denna)[kpi] | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}</td>
+              <td [class.positiv-text]="sammanfattningKpiDiff(kpi) > 0"
+                  [class.negativ-text]="sammanfattningKpiDiff(kpi) < 0">
+                {{ diffPlusMinus(sammanfattningKpiDiff(kpi)) }}{{ formatKpiEnhet(kpi) }}
+              </td>
+              <td [class.positiv-text]="sammanfattningKpiDiff(kpi) > 0 && kpi !== 'kassation'"
+                  [class.negativ-text]="sammanfattningKpiDiff(kpi) < 0 && kpi !== 'kassation'">
+                <span *ngIf="sammanfattningDiffPct(kpi) !== null">
+                  {{ diffPlusMinus(sammanfattningDiffPct(kpi)!) }} %
+                </span>
+                <span *ngIf="sammanfattningDiffPct(kpi) === null">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Daglig produktion -->
+      <section class="rapport-sektion" *ngIf="sammanfattningData.daglig?.length">
+        <h2>Daglig produktion</h2>
+        <table class="rapport-tabell">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>IBC producerade</th>
+              <th>Kassation %</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let dag of sammanfattningData.daglig">
+              <td>{{ dag.dag }}</td>
+              <td>{{ dag.ibc }}</td>
+              <td [class.negativ-text]="dag.kassation > 5">{{ dag.kassation | number:'1.1-1' }} %</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Top operatörer -->
+      <section class="rapport-sektion" *ngIf="sammanfattningData.operatorer?.length">
+        <h2>Operatörsprestanda</h2>
+        <table class="rapport-tabell">
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th>IBC OK</th>
+              <th>Kassation %</th>
+              <th>OEE %</th>
+              <th>Skift</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let op of sammanfattningData.operatorer">
+              <td>{{ op.operator_namn }}</td>
+              <td>{{ op.ibc_ok }}</td>
+              <td>{{ op.kassationsgrad | number:'1.1-1' }} %</td>
+              <td>{{ op.oee | number:'1.1-1' }} %</td>
+              <td>{{ op.antal_skift }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Stopporsaker -->
+      <section class="rapport-sektion" *ngIf="sammanfattningData.stopporsaker?.length">
+        <h2>Stopporsaker</h2>
+        <table class="rapport-tabell">
+          <thead>
+            <tr>
+              <th>Orsak</th>
+              <th>Antal</th>
+              <th>Total tid (min)</th>
+              <th>Andel</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of sammanfattningData.stopporsaker">
+              <td>{{ s.orsak }}</td>
+              <td>{{ s.antal }}</td>
+              <td>{{ s.total_min | number:'1.0-0' }}</td>
+              <td>{{ s.andel_pct | number:'1.0-0' }} %</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Anomalier -->
+      <section class="rapport-sektion" *ngIf="sammanfattningData.anomalier?.length">
+        <h2>Identifierade anomalier</h2>
+        <table class="rapport-tabell">
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Typ</th>
+              <th>Beskrivning</th>
+              <th>Allvarlighet</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let a of sammanfattningData.anomalier">
+              <td>{{ a.datum }}</td>
+              <td>{{ a.typ }}</td>
+              <td>{{ a.beskrivning }}</td>
+              <td [class.positiv-text]="a.allvarlighet === 'positiv'"
+                  [class.negativ-text]="a.allvarlighet === 'kritisk'"
+                  [class.varning-text]="a.allvarlighet === 'varning'">
+                {{ a.allvarlighet }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="rapport-footer">
+        Noreko AB | Automatiskt genererad VD-rapport | {{ sammanfattningData.genererad }}
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       NORMAL VY
+       ======================================================== -->
+  <div *ngIf="!visaSammanfattning">
+
+    <!-- Rubrik + knappar -->
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+      <div>
+        <h1 class="h3 mb-1 text-light">
+          VD Veckorapport
+          <span *ngIf="kpiData" class="text-muted fs-5">
+            — Vecka {{ kpiData.veckonummer }}, {{ kpiData.ar }}
+          </span>
+        </h1>
+        <p class="text-muted mb-0 small">
+          Automatisk sammanfattning av veckans produktion för ledningen.
+        </p>
+      </div>
+      <div class="d-flex gap-2 flex-wrap">
+        <!-- Period-filter -->
+        <div class="btn-group" role="group">
+          <button
+            *ngFor="let alt of periodAlternativ"
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="valdPeriod === alt.val"
+            [class.btn-outline-secondary]="valdPeriod !== alt.val"
+            (click)="onPeriodChange(alt.val)">
+            {{ alt.label }}
+          </button>
+        </div>
+        <button
+          class="btn btn-sm btn-outline-info"
+          (click)="laddaAllt()"
+          title="Uppdatera data">
+          &#x21bb; Uppdatera
+        </button>
+        <button
+          class="btn btn-sm btn-success"
+          (click)="genereraSammanfattning()"
+          [disabled]="loadingSammanfattning">
+          <span *ngIf="loadingSammanfattning" class="spinner-border spinner-border-sm me-1"></span>
+          Generera utskriftsrapport
+        </button>
+      </div>
+    </div>
+
+    <!-- Fel: sammanfattning -->
+    <div *ngIf="errorSammanfattning" class="alert alert-danger alert-dismissible mb-3" role="alert">
+      Det gick inte att generera rapporten.
+    </div>
+
+    <!-- ====================================================
+         SEKTION 1: KPI-JÄMFÖRELSE
+         ==================================================== -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card bg-dark border-secondary">
+          <div class="card-header border-secondary d-flex align-items-center justify-content-between">
+            <h5 class="mb-0 text-light">KPI — Denna vecka vs förra veckan</h5>
+            <span *ngIf="kpiData" class="text-muted small">
+              {{ kpiData.denna_vecka_fran }} – {{ kpiData.denna_vecka_till }}
+              &nbsp;vs&nbsp;
+              {{ kpiData.forra_vecka_fran }} – {{ kpiData.forra_vecka_till }}
+            </span>
+          </div>
+          <div class="card-body">
+
+            <!-- Spinner -->
+            <div *ngIf="loadingKpi" class="text-center py-4">
+              <div class="spinner-border text-info" role="status"></div>
+              <p class="text-muted mt-2 mb-0 small">Hämtar KPI-data...</p>
+            </div>
+
+            <!-- Fel -->
+            <div *ngIf="!loadingKpi && errorKpi" class="alert alert-danger mb-0">
+              Kunde inte hämta KPI-data.
+            </div>
+
+            <!-- KPI-kort -->
+            <div *ngIf="!loadingKpi && kpiData" class="row g-3">
+              <div *ngFor="let kpi of kpiLista()" class="col-6 col-md-3">
+                <div class="kpi-kort p-3 rounded">
+                  <div class="kpi-rubrik mb-1">{{ formatKpiNamn(kpi) }}</div>
+                  <div class="kpi-varde">
+                    {{ (kpiData.jamforelse)[kpi].denna_vecka | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}
+                  </div>
+                  <div class="kpi-forra text-muted small mt-1">
+                    Förra: {{ (kpiData.jamforelse)[kpi].forra_vecka | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}
+                  </div>
+                  <div class="kpi-diff mt-1"
+                       [style.color]="getTrendFarg(kpi, (kpiData.jamforelse)[kpi].trend)">
+                    {{ getTrendIkon((kpiData.jamforelse)[kpi].trend) }}
+                    {{ diffPlusMinus((kpiData.jamforelse)[kpi].diff) }}{{ formatKpiEnhet(kpi) }}
+                    <span *ngIf="(kpiData.jamforelse)[kpi].diff_pct !== null" class="small">
+                      ({{ diffPlusMinus((kpiData.jamforelse)[kpi].diff_pct!) }} %)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Daglig produktionsgraf -->
+            <div *ngIf="!loadingKpi && kpiData?.daglig_produktion?.length" class="mt-4">
+              <h6 class="text-muted mb-2">Daglig produktion — denna vecka</h6>
+              <div style="height:200px;">
+                <canvas id="dagligProduktionChart"></canvas>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================
+         SEKTION 2: TRENDER & ANOMALIER
+         ==================================================== -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="card bg-dark border-secondary">
+          <div class="card-header border-secondary">
+            <h5 class="mb-0 text-light">Trender &amp; Anomalier (14 dagar)</h5>
+          </div>
+          <div class="card-body">
+
+            <div *ngIf="loadingTrender" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+              <span class="ms-2 text-muted small">Analyserar...</span>
+            </div>
+
+            <div *ngIf="!loadingTrender && errorTrender" class="alert alert-danger mb-0">
+              Kunde inte hämta trend-data.
+            </div>
+
+            <div *ngIf="!loadingTrender && trenderData">
+
+              <!-- Trend-indikatorer -->
+              <div class="row g-3 mb-3">
+                <div class="col-6">
+                  <div class="trend-kort p-3 rounded">
+                    <div class="text-muted small mb-1">Produktionstrend (7d)</div>
+                    <div class="fs-5 fw-bold"
+                         [ngClass]="getTrendTextklass(trenderData.trender.produktion.trend)">
+                      {{ getTrendIkon(trenderData.trender.produktion.trend === 'stiger' ? 'upp' : trenderData.trender.produktion.trend === 'sjunker' ? 'ned' : 'stabil') }}
+                      {{ trenderData.trender.produktion.trend | titlecase }}
+                    </div>
+                    <div class="text-muted small">
+                      Lutning: {{ trenderData.trender.produktion.slope > 0 ? '+' : '' }}{{ trenderData.trender.produktion.slope }} IBC/dag
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="trend-kort p-3 rounded">
+                    <div class="text-muted small mb-1">Kassationstrend (7d)</div>
+                    <div class="fs-5 fw-bold"
+                         [ngClass]="trenderData.trender.kassation.trend === 'forbattras' ? 'trend-positiv' : trenderData.trender.kassation.trend === 'forsamras' ? 'trend-negativ' : 'trend-stabil'">
+                      {{ trenderData.trender.kassation.trend === 'forbattras' ? '↓ Förbättras' : trenderData.trender.kassation.trend === 'forsamras' ? '↑ Försämras' : '→ Stabil' }}
+                    </div>
+                    <div class="text-muted small">
+                      Lutning: {{ trenderData.trender.kassation.slope > 0 ? '+' : '' }}{{ trenderData.trender.kassation.slope }} %/dag
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Anomalilista -->
+              <div *ngIf="trenderData.anomalier.length > 0">
+                <h6 class="text-muted mb-2">Identifierade avvikelser</h6>
+                <div *ngFor="let a of trenderData.anomalier"
+                     class="anomali-rad mb-2 p-2 rounded d-flex align-items-center gap-3"
+                     [style.border-left]="'4px solid ' + getAnomaliFarg(a.allvarlighet)">
+                  <span class="anomali-ikon fw-bold"
+                        [style.color]="getAnomaliFarg(a.allvarlighet)">
+                    {{ getAnomaliIkon(a.allvarlighet) }}
+                  </span>
+                  <div class="flex-grow-1">
+                    <div class="text-light small fw-semibold">{{ a.beskrivning }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">{{ a.datum }}</div>
+                  </div>
+                  <span class="badge rounded-pill"
+                        [style.background-color]="getAnomaliFarg(a.allvarlighet) + '33'"
+                        [style.color]="getAnomaliFarg(a.allvarlighet)">
+                    {{ a.allvarlighet }}
+                  </span>
+                </div>
+              </div>
+              <div *ngIf="trenderData.anomalier.length === 0" class="text-muted small">
+                Inga anomalier identifierade de senaste 14 dagarna.
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====================================================
+         SEKTION 3: TOP / BOTTOM OPERATÖRER + STOPPORSAKER
+         ==================================================== -->
+    <div class="row g-3 mb-4">
+
+      <!-- Top/Bottom operatörer -->
+      <div class="col-12 col-lg-6">
+        <div class="card bg-dark border-secondary h-100">
+          <div class="card-header border-secondary">
+            <h5 class="mb-0 text-light">
+              Operatörer — Top &amp; Bottom
+              <span class="text-muted small">({{ valdPeriod }}d)</span>
+            </h5>
+          </div>
+          <div class="card-body">
+
+            <div *ngIf="loadingOperatorer" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+            </div>
+
+            <div *ngIf="!loadingOperatorer && errorOperatorer" class="alert alert-danger mb-0">
+              Kunde inte hämta operatörsdata.
+            </div>
+
+            <div *ngIf="!loadingOperatorer && topBottomData">
+
+              <!-- Top 3 -->
+              <div *ngIf="topBottomData.top.length > 0" class="mb-3">
+                <div class="text-muted small mb-2 fw-semibold">TOP 3 — OEE</div>
+                <div *ngFor="let op of topBottomData.top; let i = index"
+                     class="op-rad d-flex align-items-center gap-3 p-2 mb-1 rounded op-top">
+                  <span class="rank-badge rank-top">{{ i + 1 }}</span>
+                  <div class="flex-grow-1">
+                    <div class="text-light fw-semibold">{{ op.operator_namn }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">
+                      {{ op.ibc_ok }} IBC &bull; Kass: {{ op.kassationsgrad | number:'1.1-1' }} %
+                    </div>
+                  </div>
+                  <span class="oee-badge oee-top">{{ op.oee | number:'1.1-1' }} %</span>
+                </div>
+              </div>
+
+              <!-- Bottom 3 -->
+              <div *ngIf="topBottomData.bottom.length > 0">
+                <div class="text-muted small mb-2 fw-semibold">BEHÖVER STÖD</div>
+                <div *ngFor="let op of topBottomData.bottom"
+                     class="op-rad d-flex align-items-center gap-3 p-2 mb-1 rounded op-bottom">
+                  <span class="rank-badge rank-bottom">!</span>
+                  <div class="flex-grow-1">
+                    <div class="text-light fw-semibold">{{ op.operator_namn }}</div>
+                    <div class="text-muted" style="font-size:0.75rem;">
+                      {{ op.ibc_ok }} IBC &bull; Kass: {{ op.kassationsgrad | number:'1.1-1' }} %
+                    </div>
+                  </div>
+                  <span class="oee-badge oee-bottom">{{ op.oee | number:'1.1-1' }} %</span>
+                </div>
+              </div>
+
+              <div *ngIf="topBottomData.top.length === 0 && topBottomData.bottom.length === 0"
+                   class="text-muted small">
+                Ingen operatörsdata för perioden.
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stopporsaker -->
+      <div class="col-12 col-lg-6">
+        <div class="card bg-dark border-secondary h-100">
+          <div class="card-header border-secondary">
+            <h5 class="mb-0 text-light">
+              Stopporsaker — Rangordning
+              <span class="text-muted small">({{ valdPeriod }}d)</span>
+            </h5>
+          </div>
+          <div class="card-body">
+
+            <div *ngIf="loadingStopp" class="text-center py-3">
+              <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+            </div>
+
+            <div *ngIf="!loadingStopp && errorStopp" class="alert alert-danger mb-0">
+              Kunde inte hämta stoppdata.
+            </div>
+
+            <div *ngIf="!loadingStopp && stopporsakData">
+
+              <div *ngIf="stopporsakData.stopporsaker.length === 0" class="text-muted small">
+                Inga stopporsaker registrerade för perioden.
+              </div>
+
+              <div *ngFor="let s of stopporsakData.stopporsaker; let i = index"
+                   class="stopp-rad mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="text-light small">
+                    <span class="rank-nr me-1">{{ i + 1 }}.</span>{{ s.orsak }}
+                  </span>
+                  <span class="text-muted small">{{ s.total_min | number:'1.0-0' }} min</span>
+                </div>
+                <div class="progress stopp-progress">
+                  <div
+                    class="progress-bar stopp-bar"
+                    role="progressbar"
+                    [style.width.%]="s.andel_pct"
+                    [attr.aria-valuenow]="s.andel_pct"
+                    aria-valuemin="0"
+                    aria-valuemax="100">
+                  </div>
+                </div>
+                <div class="d-flex justify-content-between text-muted mt-1" style="font-size:0.7rem;">
+                  <span>{{ s.antal }} stopp &bull; {{ s.medel_min }} min/stopp</span>
+                  <span>{{ s.andel_pct | number:'1.0-0' }} %</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /!visaSammanfattning -->
+</div>
