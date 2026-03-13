@@ -87,12 +87,12 @@ Session #82: Leveransplanering + Kvalitetscertifikat per batch — klara.
 Session #83: Historisk produktionsöversikt + Automatiska avvikelseLarm — klara.
 Session #84: Rebotling sammanfattnings-dashboard + Produktionsflödesvy (Sankey) — klara.
 Session #85: Kassationsorsak per station + PDF-export alla rapporter — klara.
-Session #86: Rebotling OEE-jämförelse per vecka + Maskin-drifttid heatmap — pågår.
+Session #86: Rebotling OEE-jämförelse per vecka + Maskin-drifttid heatmap — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Rebotling OEE-jämförelse per vecka** — veckovis OEE-jämförelse med trendpilar (#86)
-- [PÅGÅR] **Maskin-drifttid heatmap** — visuell heatmap per timme/dag (#86)
+- [x] **Rebotling OEE-jämförelse per vecka** — veckovis OEE-jämförelse med trendpilar (klar #86)
+- [x] **Maskin-drifttid heatmap** — visuell heatmap per timme/dag (klar #86)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
@@ -102,7 +102,7 @@ Session #86: Rebotling OEE-jämförelse per vecka + Maskin-drifttid heatmap — 
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-13 — Session #86 (pågår)
+### 2026-03-13 — Session #86 (klar)
 Worker 1 (OEE-jämförelse per vecka): Veckovis OEE-jämförelse med trendpilar. KPI-kort (aktuell vs förra veckan), linjediagram 12 veckor, tabell med OEE/tillgänglighet/prestanda/kvalitet per vecka. Periodselektor 8-52 veckor. Målindikator. Använder befintlig rebotling_ibc. Backend: OeeJamforelseController.
 Worker 2 (Maskin-drifttid heatmap): Visuell heatmap — timmar × dagar, färgkodad (grön/gul/röd/grå). KPI-kort drifttid. Maskinfilter + periodselektor. Tooltip + dagsammanfattning vid klick. Ren HTML/CSS-grid. Använder befintlig rebotling_ibc. Backend: MaskinDrifttidController.
 
