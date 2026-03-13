@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-12 (session #85)*
+*Senast uppdaterad: 2026-03-13 (session #86)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -87,19 +87,24 @@ Session #82: Leveransplanering + Kvalitetscertifikat per batch — klara.
 Session #83: Historisk produktionsöversikt + Automatiska avvikelseLarm — klara.
 Session #84: Rebotling sammanfattnings-dashboard + Produktionsflödesvy (Sankey) — klara.
 Session #85: Kassationsorsak per station + PDF-export alla rapporter — klara.
+Session #86: Rebotling OEE-jämförelse per vecka + Maskin-drifttid heatmap — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Kassationsorsak per station** — drill-down per station med trendgraf (klar #85)
-- [x] **Exportera alla rapporter till PDF** — generell PDF-export (klar #85)
+- [PÅGÅR] **Rebotling OEE-jämförelse per vecka** — veckovis OEE-jämförelse med trendpilar (#86)
+- [PÅGÅR] **Maskin-drifttid heatmap** — visuell heatmap per timme/dag (#86)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Operatörs-schemaöversikt** — veckovis schemavy med bemanningsgrad
-- [ ] **Rebotling OEE-jämförelse per vecka** — veckovis OEE-jämförelse med trendpilar
-- [ ] **Maskin-drifttid heatmap** — visuell heatmap per timme/dag
+- [ ] **Rebotling skiftrapport-sammanställning** — daglig rapport per skift
+- [ ] **Produktionsmål-dashboard** — sätt mål, visa progress + prognos
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-13 — Session #86 (pågår)
+Worker 1 (OEE-jämförelse per vecka): Veckovis OEE-jämförelse med trendpilar. KPI-kort (aktuell vs förra veckan), linjediagram 12 veckor, tabell med OEE/tillgänglighet/prestanda/kvalitet per vecka. Periodselektor 8-52 veckor. Målindikator. Använder befintlig rebotling_ibc. Backend: OeeJamforelseController.
+Worker 2 (Maskin-drifttid heatmap): Visuell heatmap — timmar × dagar, färgkodad (grön/gul/röd/grå). KPI-kort drifttid. Maskinfilter + periodselektor. Tooltip + dagsammanfattning vid klick. Ren HTML/CSS-grid. Använder befintlig rebotling_ibc. Backend: MaskinDrifttidController.
 
 ### 2026-03-12 — Session #85 (klar)
 Worker 1 (Kassationsorsak per station): Drill-down per station — vilka stationer kasserar mest och varför. Stapeldiagram per station, top-5-orsaker, trendgraf per dag, detaljerad tabell. Periodselektor + stationsfilter. Använder befintlig rebotling_ibc. Backend: KassationsorsakController.
@@ -108,8 +113,4 @@ Worker 2 (PDF-export alla rapporter): Generell PDF-export med html2canvas + jsPD
 ### 2026-03-12 — Session #84 (klar)
 Worker 1 (Rebotling sammanfattnings-dashboard): VD:ns landing page — alla KPI:er på en sida: produktion, OEE, kassation, larm, drifttid. 7-dagars produktionsgraf, maskin-status, senaste larm, snabblänkar. Använder befintliga tabeller. Backend: RebotlingSammanfattningController.
 Worker 2 (Produktionsflödesvy Sankey): Visuellt IBC-flöde genom stationer — inkommande → process → godkänd/kassation. Flaskhalsar synliga. Periodselektor. Använder befintliga tabeller. Backend: ProduktionsflodeController.
-
-### 2026-03-12 — Session #83 (klar)
-Worker 1 (Historisk produktionsöversikt): Statistiksida — produktion per dag/vecka/månad, adaptiv granularitet, periodjämförelse, trendpilar. Använder befintliga tabeller. Backend: HistoriskProduktionController.
-Worker 2 (Automatiska avvikelseLarm): Larmsystem — OEE/kassation/stopp-avvikelser, kvittering, regelkonfiguration, larmtrend. NYA DB-tabeller: avvikelselarm + larmregler. Backend: AvvikelselarmController.
 
