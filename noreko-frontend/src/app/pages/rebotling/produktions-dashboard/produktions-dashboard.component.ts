@@ -206,7 +206,7 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
       {
         label: 'Producerade IBC',
         data: totalt,
-        backgroundColor: this.veckoProd.map((d, i) =>
+        backgroundColor: this.veckoProd.map((_d, i) =>
           i === this.veckoProd.length - 1
             ? 'rgba(79, 209, 197, 0.85)'
             : 'rgba(79, 209, 197, 0.45)'

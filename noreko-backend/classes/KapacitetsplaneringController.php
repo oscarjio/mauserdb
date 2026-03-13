@@ -140,7 +140,7 @@ class KapacitetsplaneringController {
             $stmt->execute([':datum' => $datum, ':datum2' => $datum]);
             $val = $stmt->fetchColumn();
             return $val !== false ? (int)$val : null;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Tabellen kanske inte finns — ignorera
             return null;
         }
@@ -294,7 +294,6 @@ class KapacitetsplaneringController {
 
             // Station med minst produktion = potentiell flaskhals
             $samst = $rader[0];
-            $best  = end($rader);
 
             $avgAll = array_sum(array_column($rader, 'antal')) / count($rader);
             $gapPct = $avgAll > 0 ? round((1 - (float)$samst['antal'] / $avgAll) * 100, 1) : 0.0;
@@ -348,7 +347,7 @@ class KapacitetsplaneringController {
             ");
             $stmtSnitt->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
             $snitt = (float)($stmtSnitt->fetchColumn() ?? 0);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             $snitt = 0.0;
         }
 

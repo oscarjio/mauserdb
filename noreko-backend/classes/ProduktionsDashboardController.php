@@ -27,13 +27,6 @@ class ProduktionsDashboardController {
     private const IDEAL_CYCLE_SEC   = 120;      // sekunder per IBC (ideal cykeltid)
     private const PLANERAD_DAG_SEK  = 24 * 3600; // 24h planeringshorisont
 
-    // Skiftdefinitioner
-    private const SKIFT = [
-        ['namn' => 'Dag',   'start' => '06:00', 'slut' => '14:00'],
-        ['namn' => 'Kvall', 'start' => '14:00', 'slut' => '22:00'],
-        ['namn' => 'Natt',  'start' => '22:00', 'slut' => '06:00'],
-    ];
-
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
