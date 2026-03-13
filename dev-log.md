@@ -1,3 +1,28 @@
+## 2026-03-13 VD Executive Dashboard — realtids-KPI:er pa en sida
+
+Ny sida `/rebotling/vd-dashboard` — VD Executive Dashboard med alla kritiska produktions-KPI:er synliga pa 10 sekunder.
+
+- **Backend**: `classes/VdDashboardController.php` + proxy `controllers/VdDashboardController.php`, registrerad i `api.php` som `vd-dashboard`
+  - `run=oversikt` — OEE idag, total IBC, aktiva operatorer, dagsmal vs faktiskt (med progress-procent)
+  - `run=stopp-nu` — aktiva stopp just nu med station, orsak och varaktighet i minuter
+  - `run=top-operatorer` — top 3 operatorer idag med rank och IBC-antal
+  - `run=station-oee` — OEE per station idag med fargkodning (gron/gul/rod)
+  - `run=veckotrend` — senaste 7 dagars OEE + IBC per dag for sparkline-diagram
+  - `run=skiftstatus` — aktuellt skift (FM/EM/Natt), kvarvarande tid, jamforelse mot forra skiftet
+  - Datakallor: rebotling_ibc, rebotling_onoff, rebotling_stationer, stopporsak_registreringar, users, produktionsmal
+- **Frontend**: Standalone Angular component `pages/vd-dashboard/` + `services/vd-dashboard.service.ts`
+  - Hero-sektion: 3 stora KPI-kort (Produktion idag, OEE %, Aktiva operatorer)
+  - Mal vs Faktiskt: progress-bar med dagsmal, fargkodad (gron/gul/rod)
+  - Stoppstatus: gron "Allt kor!" eller rod alert med aktiva stopp per station
+  - Top 3 operatorer: podium med guld/silver/brons-ikoner och IBC-antal
+  - OEE per station: horisontellt bar-chart (Chart.js) med fargkodning
+  - Veckotrend: linjediagram (Chart.js) med OEE % och IBC dubbel y-axel
+  - Skiftstatus: aktuellt skift, kvarvarande tid, producerat vs forra skiftet
+  - OEE-breakdown: tillganglighet/prestanda/kvalitet mini-kort
+  - Auto-refresh: var 30:e sekund med setInterval + korrekt cleanup
+  - Dark theme: #1a202c bg, #2d3748 cards, responsivt grid, Bootstrap 5
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + chart?.destroy()
+
 ## 2026-03-13 Operatorsranking — gamifierad ranking med poang, bonus och MVP
 
 Ny sida `/rebotling/operator-ranking` — gamifierad operatorsranking med poangsystem, bonuskategorier och motiverande element.

@@ -1,0 +1,1 @@
+function o(){return a(new Date)}function a(t){let e=t.getFullYear(),n=String(t.getMonth()+1).padStart(2,"0"),r=String(t.getDate()).padStart(2,"0");return`${e}-${n}-${r}`}function i(t){return t?/^\d{4}-\d{2}-\d{2}$/.test(t)?new Date(t+"T00:00:00"):new Date(t):new Date(NaN)}export{o as a,a as b,i as c};

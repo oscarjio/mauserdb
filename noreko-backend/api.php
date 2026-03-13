@@ -211,6 +211,8 @@ $classNameMap = [
     'tidrapport'                    => 'TidrapportController',
     'oee-trendanalys'               => 'OeeTrendanalysController',
     'operator-ranking'              => 'OperatorRankingController',
+    'vd-dashboard'                  => 'VdDashboardController',
+    'historisk-sammanfattning'       => 'HistoriskSammanfattningController',
 ];
 
 $actionKey = strtolower($action);

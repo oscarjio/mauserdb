@@ -1,0 +1,310 @@
+<div class="vd-dashboard" style="background:#1a202c; min-height:100vh; padding:1.5rem; color:#e2e8f0;">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="mb-0" style="font-size:1.8rem; font-weight:700; color:#fff;">
+        <i class="bi bi-speedometer2 me-2" style="color:#4fd1c5"></i>VD Dashboard
+      </h1>
+      <small style="color:#a0aec0;">Realtidsvy av produktionen</small>
+    </div>
+    <div class="text-end">
+      <small style="color:#a0aec0;">
+        <i class="bi bi-arrow-repeat me-1" [class.spin]="loading"></i>
+        Uppdateras var 30:e sekund
+      </small>
+      <br>
+      <small style="color:#718096;" *ngIf="lastUpdate">Senast: {{ lastUpdate }}</small>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading && !oversikt" class="text-center py-5">
+    <div class="spinner-border" style="color:#4fd1c5; width:3rem; height:3rem;" role="status">
+      <span class="visually-hidden">Laddar...</span>
+    </div>
+    <p class="mt-3" style="color:#a0aec0;">Hamtar produktionsdata...</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 1. HERO SECTION -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4" *ngIf="oversikt">
+
+    <!-- Total IBC idag -->
+    <div class="col-md-4">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body text-center py-4">
+          <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Produktion idag</div>
+          <div style="font-size:3.5rem; font-weight:800; color:#fff; line-height:1.1;" class="mt-2">
+            {{ oversikt.total_ibc }}
+          </div>
+          <div style="color:#a0aec0; font-size:0.9rem;">IBC producerade</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OEE idag -->
+    <div class="col-md-4">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body text-center py-4">
+          <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">OEE idag</div>
+          <div class="mt-2" [style.color]="getOeeColor(oversikt.oee_pct)" style="font-size:3.5rem; font-weight:800; line-height:1.1;">
+            {{ oversikt.oee_pct }}%
+          </div>
+          <span class="badge mt-1" [style.background]="getOeeColor(oversikt.oee_pct)" style="font-size:0.75rem;">
+            {{ getOeeLabel(oversikt.oee_pct) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Aktiva operatorer -->
+    <div class="col-md-4">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body text-center py-4">
+          <div style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">Aktiva operatorer</div>
+          <div style="font-size:3.5rem; font-weight:800; color:#63b3ed; line-height:1.1;" class="mt-2">
+            {{ oversikt.aktiva_operatorer }}
+          </div>
+          <div style="color:#a0aec0; font-size:0.9rem;">just nu</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 2. MAL VS FAKTISKT -->
+  <!-- ============================================================ -->
+  <div class="card mb-4" style="background:#2d3748; border:none; border-radius:12px;" *ngIf="oversikt">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span style="color:#a0aec0; font-size:0.85rem; text-transform:uppercase; letter-spacing:1px;">
+          <i class="bi bi-bullseye me-1"></i>Mal vs Faktiskt
+        </span>
+        <span style="color:#e2e8f0; font-weight:600;">
+          {{ oversikt.total_ibc }} / {{ oversikt.dagsmal }} IBC
+          <span class="ms-2" [style.color]="getMalBarColor()">
+            ({{ oversikt.mal_procent }}%)
+          </span>
+        </span>
+      </div>
+      <div style="background:#1a202c; border-radius:8px; height:28px; overflow:hidden;">
+        <div [style.width]="getMalBarWidth()" [style.background]="getMalBarColor()"
+             style="height:100%; border-radius:8px; transition:width 0.8s ease; display:flex; align-items:center; justify-content:center;">
+          <span style="color:#1a202c; font-weight:700; font-size:0.8rem;" *ngIf="oversikt.mal_procent >= 15">
+            {{ oversikt.mal_procent }}%
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 3. STOPPSTATUS + 4. TOP 3 OPERATORER -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Stoppstatus -->
+    <div class="col-lg-6">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body">
+          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+            <i class="bi bi-exclamation-triangle me-1"></i>Stoppstatus
+          </h6>
+
+          <!-- Allt kor -->
+          <div *ngIf="stoppNu?.allt_kor" class="text-center py-4">
+            <div style="font-size:3rem; color:#48bb78;">
+              <i class="bi bi-check-circle-fill"></i>
+            </div>
+            <div style="color:#48bb78; font-size:1.2rem; font-weight:600;">Allt kor!</div>
+            <small style="color:#a0aec0;">Inga aktiva stopp just nu</small>
+          </div>
+
+          <!-- Aktiva stopp -->
+          <div *ngIf="stoppNu && !stoppNu.allt_kor">
+            <div class="alert py-2 px-3 mb-2" style="background:rgba(252,129,129,0.15); border:1px solid #fc8181; border-radius:8px;"
+                 *ngFor="let stopp of stoppNu.aktiva_stopp">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <i class="bi bi-stop-circle-fill me-1" style="color:#fc8181"></i>
+                  <strong style="color:#fc8181;">{{ stopp.station_namn }}</strong>
+                </div>
+                <span class="badge" style="background:#fc8181; color:#1a202c; font-weight:700;">
+                  {{ stopp.varaktighet_min }} min
+                </span>
+              </div>
+              <small style="color:#e2e8f0;">{{ stopp.orsak }}</small>
+            </div>
+            <div *ngIf="stoppNu.aktiva_stopp.length === 0" class="text-center py-3">
+              <small style="color:#a0aec0;">Inga registrerade stopp, men kontrollera stationer</small>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div *ngIf="!stoppNu" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top 3 operatorer -->
+    <div class="col-lg-6">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body">
+          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+            <i class="bi bi-trophy me-1"></i>Top 3 operatorer idag
+          </h6>
+
+          <div *ngIf="topOperatorer?.top_operatorer?.length; else noOperators">
+            <div *ngFor="let op of topOperatorer?.top_operatorer" class="d-flex align-items-center py-2"
+                 [style.border-bottom]="op.rank < 3 ? '1px solid rgba(255,255,255,0.05)' : 'none'">
+              <div class="me-3 text-center" style="width:40px;">
+                <i [class]="getPodiumIcon(op.rank)" [style.color]="getPodiumColor(op.rank)" style="font-size:1.5rem;"></i>
+              </div>
+              <div class="flex-grow-1">
+                <div style="color:#e2e8f0; font-weight:600;">{{ op.operator_namn }}</div>
+              </div>
+              <div class="text-end">
+                <span style="font-size:1.3rem; font-weight:700; color:#fff;">{{ op.total_ibc }}</span>
+                <small style="color:#a0aec0;"> IBC</small>
+              </div>
+            </div>
+          </div>
+          <ng-template #noOperators>
+            <div class="text-center py-4" *ngIf="topOperatorer">
+              <small style="color:#a0aec0;">Inga operatorer har producerat idag annu</small>
+            </div>
+            <div *ngIf="!topOperatorer" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm" style="color:#a0aec0;" role="status"></div>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 5. OEE PER STATION + 6. VECKOTREND -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- OEE per station -->
+    <div class="col-lg-5">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body">
+          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+            <i class="bi bi-bar-chart-fill me-1"></i>OEE per station
+          </h6>
+          <div style="height:220px; position:relative;">
+            <canvas id="vdStationChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Veckotrend -->
+    <div class="col-lg-7">
+      <div class="card h-100" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body">
+          <h6 style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px; font-size:0.85rem;">
+            <i class="bi bi-graph-up me-1"></i>Senaste 7 dagar
+          </h6>
+          <div style="height:220px; position:relative;">
+            <canvas id="vdTrendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 7. SKIFTSTATUS -->
+  <!-- ============================================================ -->
+  <div class="card mb-4" style="background:#2d3748; border:none; border-radius:12px;" *ngIf="skiftstatus">
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-md-3 text-center">
+          <i [class]="getSkiftIcon()" style="font-size:2.5rem; color:#4fd1c5;"></i>
+          <div style="font-size:1.5rem; font-weight:700; color:#fff;" class="mt-1">
+            {{ skiftstatus.skift }}-skiftet
+          </div>
+          <small style="color:#a0aec0;">{{ skiftstatus.skift_start }} - {{ skiftstatus.skift_slut }}</small>
+        </div>
+        <div class="col-md-3 text-center">
+          <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">Kvar</div>
+          <div style="font-size:1.8rem; font-weight:700; color:#ecc94b;">
+            {{ skiftstatus.kvar_timmar }}h {{ skiftstatus.kvar_minuter }}min
+          </div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">Producerat</div>
+          <div style="font-size:1.8rem; font-weight:700; color:#fff;">
+            {{ skiftstatus.ibc_aktuellt }} <small style="color:#a0aec0; font-size:0.7rem;">IBC</small>
+          </div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div style="color:#a0aec0; font-size:0.8rem; text-transform:uppercase;">vs forra skiftet</div>
+          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getJamforelseColor()">
+            {{ getJamforelseText() }}
+          </div>
+          <small style="color:#a0aec0;">{{ skiftstatus.ibc_forra }} IBC forra</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OEE Breakdown mini-cards -->
+  <div class="row g-3 mb-4" *ngIf="oversikt">
+    <div class="col-md-4">
+      <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body text-center py-3">
+          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px;">Tillganglighet</small>
+          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getOeeColor(oversikt.tillganglighet_pct)">
+            {{ oversikt.tillganglighet_pct }}%
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body text-center py-3">
+          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px;">Prestanda</small>
+          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getOeeColor(oversikt.prestanda_pct)">
+            {{ oversikt.prestanda_pct }}%
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card" style="background:#2d3748; border:none; border-radius:12px;">
+        <div class="card-body text-center py-3">
+          <small style="color:#a0aec0; text-transform:uppercase; letter-spacing:1px;">Kvalitet</small>
+          <div style="font-size:1.8rem; font-weight:700;" [style.color]="getOeeColor(oversikt.kvalitet_pct)">
+            {{ oversikt.kvalitet_pct }}%
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .vd-dashboard .card {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease;
+  }
+  .vd-dashboard .card:hover {
+    transform: translateY(-2px);
+  }
+  .spin {
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>
