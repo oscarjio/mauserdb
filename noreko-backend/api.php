@@ -214,6 +214,7 @@ $classNameMap = [
     'vd-dashboard'                  => 'VdDashboardController',
     'historisk-sammanfattning'       => 'HistoriskSammanfattningController',
     'kvalitetstrendanalys'           => 'KvalitetstrendanalysController',
+    'statistik-overblick'            => 'StatistikOverblickController',
 ];
 
 $actionKey = strtolower($action);

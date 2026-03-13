@@ -1,0 +1,169 @@
+<div class="overblick-container">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="page-title mb-1">
+        <i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>Statistik - Overblick
+      </h2>
+      <p class="text-muted mb-0">Sammanfattning av produktion, OEE och kvalitet</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-muted small me-1 mb-0">Period:</label>
+      <select class="form-select form-select-sm period-select" [(ngModel)]="months" (ngModelChange)="onPeriodChange()">
+        <option [ngValue]="3">3 manader</option>
+        <option [ngValue]="6">6 manader</option>
+        <option [ngValue]="12">12 manader</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="!loadingKpi && !errorKpi && kpi">
+    <!-- Total produktion -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(66,153,225,0.15);color:#4299e1">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Produktion (30d)</div>
+          <div class="kpi-value">{{ kpi.total_produktion | number }}</div>
+          <div class="kpi-trend" [ngClass]="getTrendClass(kpi.produktion_trend)">
+            <i [class]="getTrendIcon(kpi.produktion_trend)"></i>
+            {{ abs(kpi.produktion_trend) }}% vs foreg. 30d
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Snitt-OEE -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(72,187,120,0.15);color:#48bb78">
+          <i class="fas fa-tachometer-alt"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Snitt-OEE (30d)</div>
+          <div class="kpi-value">{{ kpi.snitt_oee }}%</div>
+          <div class="kpi-trend" [ngClass]="getTrendClass(kpi.oee_trend)">
+            <i [class]="getTrendIcon(kpi.oee_trend)"></i>
+            {{ abs(kpi.oee_trend) }} pp vs foreg. 30d
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassationsrate -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(236,201,75,0.15);color:#ecc94b">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Kassation (30d)</div>
+          <div class="kpi-value">{{ kpi.kassationsrate }}%</div>
+          <div class="kpi-trend" [ngClass]="getTrendClass(kpi.kassation_trend, true)">
+            <i [class]="getTrendIcon(kpi.kassation_trend)"></i>
+            {{ abs(kpi.kassation_trend) }} pp vs foreg. 30d
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trend-sammanfattning -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(79,209,197,0.15);color:#4fd1c5">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-label">Produktions-trend</div>
+          <div class="kpi-value">
+            <span *ngIf="kpi.produktion_trend > 0" class="text-success">Uppat</span>
+            <span *ngIf="kpi.produktion_trend < 0" class="text-danger">Nedat</span>
+            <span *ngIf="kpi.produktion_trend === 0" class="text-muted">Stabilt</span>
+          </div>
+          <div class="kpi-trend text-muted">
+            Foreg: {{ kpi.prev_total | number }} IBC
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI loading -->
+  <div class="row g-3 mb-4" *ngIf="loadingKpi">
+    <div class="col-md-3 col-sm-6" *ngFor="let i of [1,2,3,4]">
+      <div class="kpi-card skeleton-card">
+        <div class="skeleton-text w-50 mb-2"></div>
+        <div class="skeleton-text w-75 mb-1" style="height:28px"></div>
+        <div class="skeleton-text w-60"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI error -->
+  <div class="alert alert-danger mb-4" *ngIf="errorKpi && !loadingKpi">
+    <i class="fas fa-exclamation-circle me-2"></i>Kunde inte hamta KPI-data. Forsok igen senare.
+  </div>
+
+  <!-- Grafer -->
+  <div class="row g-3">
+    <!-- Produktion per vecka -->
+    <div class="col-12">
+      <div class="chart-card">
+        <h5 class="chart-title">
+          <i class="fas fa-chart-bar me-2" style="color:#4299e1"></i>Produktion per vecka
+        </h5>
+        <div class="chart-wrapper" *ngIf="!loadingProduktion && !errorProduktion">
+          <canvas id="produktionChart"></canvas>
+        </div>
+        <div class="chart-loading" *ngIf="loadingProduktion">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="ms-2 text-muted">Laddar...</span>
+        </div>
+        <div class="chart-error" *ngIf="errorProduktion && !loadingProduktion">
+          <i class="fas fa-exclamation-circle text-danger me-2"></i>Kunde inte ladda data.
+        </div>
+      </div>
+    </div>
+
+    <!-- OEE per vecka -->
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h5 class="chart-title">
+          <i class="fas fa-tachometer-alt me-2" style="color:#48bb78"></i>OEE per vecka
+        </h5>
+        <div class="chart-wrapper" *ngIf="!loadingOee && !errorOee">
+          <canvas id="oeeChart"></canvas>
+        </div>
+        <div class="chart-loading" *ngIf="loadingOee">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="ms-2 text-muted">Laddar...</span>
+        </div>
+        <div class="chart-error" *ngIf="errorOee && !loadingOee">
+          <i class="fas fa-exclamation-circle text-danger me-2"></i>Kunde inte ladda data.
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassation per vecka -->
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h5 class="chart-title">
+          <i class="fas fa-exclamation-triangle me-2" style="color:#ecc94b"></i>Kassation per vecka
+        </h5>
+        <div class="chart-wrapper" *ngIf="!loadingKassation && !errorKassation">
+          <canvas id="kassationChart"></canvas>
+        </div>
+        <div class="chart-loading" *ngIf="loadingKassation">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+          <span class="ms-2 text-muted">Laddar...</span>
+        </div>
+        <div class="chart-error" *ngIf="errorKassation && !loadingKassation">
+          <i class="fas fa-exclamation-circle text-danger me-2"></i>Kunde inte ladda data.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

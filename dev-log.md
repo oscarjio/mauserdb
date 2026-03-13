@@ -1,3 +1,26 @@
+## 2026-03-13 Statistik overblick — VD:ns sammanslagen oversiktssida
+
+Ny sida `/statistik/overblick` — enkel, ren oversikt med tre grafer och fyra KPI-kort. VD:ns go-to-sida for "hur gar det?".
+
+- **Backend**: `classes/StatistikOverblickController.php`, registrerad i `api.php` som `statistik-overblick`
+  - `run=kpi` — 4 KPI-kort: total produktion (30d), snitt-OEE (30d), kassationsrate (30d), trend vs foregaende 30d
+  - `run=produktion` — antal IBC per vecka for stapeldiagram
+  - `run=oee` — OEE% per vecka for linjediagram med mal-linje (65%)
+  - `run=kassation` — kassationsrate% per vecka for linjediagram med troskel-linje (3%)
+  - Period-filter: 3/6/12 manader
+- **Frontend**: Angular standalone-komponent med:
+  - 4 KPI-kort overst: Total produktion, Snitt-OEE, Kassationsrate, Produktions-trend (alla 30d med jamforelse mot foregaende period)
+  - Stapeldiagram: Produktion per vecka (Chart.js)
+  - Linjediagram: OEE per vecka med mal-linje
+  - Linjediagram: Kassation per vecka med troskel-linje
+  - Period-filter: 3/6/12 manader
+  - Auto-refresh var 2:e minut
+  - Dark theme (#1a202c/#2d3748/#e2e8f0)
+- **Meny**: Lank tillagd i Rapporter-dropdown
+- **Filer**: `StatistikOverblickController.php` (classes + controllers proxy), `statistik-overblick.service.ts`, `statistik-overblick/` (ts + html + css), `api.php`, `app.routes.ts`, `menu.html`
+
+---
+
 ## 2026-03-13 Rebotling operatörs-dashboard — personlig vy med produktion, tempo, bonus, stopp, veckotrend
 
 Ombyggd sida `/rebotling/operator-dashboard` — personligt operatörs-dashboard med motiverande design.
