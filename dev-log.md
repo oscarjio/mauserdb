@@ -1,3 +1,29 @@
+## 2026-03-13 Produktionsmal-uppfoljning — dagliga/veckovisa produktionsmal vs faktiskt utfall
+
+Ny sida `/rebotling/produktionsmal-uppfoljning` — visar dagliga och veckovisa produktionsmal mot faktiskt utfall med skiftvis breakdown och stationsdata.
+
+- **Backend**: Utokat befintlig `classes/ProduktionsmalController.php` med 7 nya endpoints + ny proxy `controllers/ProduktionsmalController.php`
+  - `run=sammanfattning` — KPI-kort: dagens mal, utfall, uppfyllnad%, veckotrend med riktning
+  - `run=per-skift` — utfall per skift idag (formiddag/eftermiddag/natt) med progress-bar data
+  - `run=veckodata` — mal vs utfall per dag, senaste 4 veckorna (for Chart.js stapeldiagram)
+  - `run=historik` — daglig historik senaste 30d: mal, utfall, uppfyllnad%, trend
+  - `run=per-station` — utfall per station idag (8 stationer) med bidragsprocent
+  - `run=hamta-mal` — hamta aktuella mal (dag via weekday_goals + vecka via rebotling_produktionsmal)
+  - `run=spara-mal` (POST) — spara/uppdatera dagsmal (alla vardagar) eller veckomal
+  - Stodjer nu typ 'dag' i satt-mal (utover vecka/manad)
+- **Migration**: Uppdaterad `2026-03-13_produktionsmal.sql` — ENUM utokad med 'dag' typ
+- **Frontend**: Ny Angular standalone component + uppdaterad service
+  - `produktionsmal.component.ts/.html/.css` — dark theme (#1a202c bg, #2d3748 cards)
+  - 4 KPI-kort (dagens mal, utfall, uppfyllnad%, veckotrend)
+  - Progress-bar per skift (3 skift med fargkodning gron/gul/rod)
+  - Veckoversikt Chart.js stapeldiagram med mallinje
+  - Historisk maluppfyllnad-tabell (30d) med trendpilar
+  - Per-station breakdown med progress-bars och bidragsprocent
+  - Malhantering-formular for admin (dag/vecka)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + clearInterval/clearTimeout + chart?.destroy()
+- **Routing**: Ny route `/rebotling/produktionsmal-uppfoljning` med authGuard
+- **Meny**: Tillagd under Rebotling-dropdown
+
 ## 2026-03-13 Stopporsak-dashboard — visuell oversikt av alla produktionsstopp
 
 Ny sida `/rebotling/stopporsaker` — VD och operatorer far en komplett visuell oversikt av alla produktionsstopp pa Rebotling-linjen.

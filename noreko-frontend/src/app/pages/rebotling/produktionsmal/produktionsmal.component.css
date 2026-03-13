@@ -1,0 +1,165 @@
+/* Produktionsmal-uppfoljning — dark theme */
+
+.pm-wrapper {
+  background-color: #1a202c;
+  color: #e2e8f0;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+}
+
+/* Kort */
+.card-dark {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+/* KPI-kort */
+.kpi-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  text-align: center;
+  height: 100%;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.kpi-value {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-unit {
+  font-size: 0.8rem;
+  color: #718096;
+}
+
+/* Progress bars */
+.progress-dark {
+  background-color: #4a5568;
+  border-radius: 0.5rem;
+  height: 14px;
+  overflow: hidden;
+}
+
+.progress-dark .progress-bar {
+  border-radius: 0.5rem;
+  transition: width 0.6s ease;
+}
+
+/* Form dark-theme */
+.form-select-dark,
+.form-control-dark {
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.form-select-dark:focus,
+.form-control-dark:focus {
+  background-color: #1a202c;
+  border-color: #48bb78;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.2rem rgba(72, 187, 120, 0.25);
+}
+
+.form-select-dark option {
+  background-color: #1a202c;
+  color: #e2e8f0;
+}
+
+/* Chart */
+.chart-container {
+  position: relative;
+  height: 350px;
+}
+
+/* Tabell */
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-color: #e2e8f0;
+  --bs-table-border-color: #4a5568;
+  --bs-table-hover-bg: #374151;
+  --bs-table-hover-color: #e2e8f0;
+}
+
+.table-dark thead th {
+  background-color: #1a202c;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #4a5568;
+}
+
+/* Station row */
+.station-row {
+  padding: 0.25rem 0;
+}
+
+/* Alert tweaks */
+.alert-info {
+  background-color: rgba(99, 179, 237, 0.15);
+  border-color: #63b3ed;
+  color: #e2e8f0;
+}
+
+.alert-success {
+  background-color: rgba(72, 187, 120, 0.15);
+  border-color: #48bb78;
+  color: #e2e8f0;
+}
+
+.alert-danger {
+  background-color: rgba(252, 92, 101, 0.15);
+  border-color: #fc5c65;
+  color: #e2e8f0;
+}
+
+.alert-warning {
+  background-color: rgba(236, 201, 75, 0.15);
+  border-color: #ecc94b;
+  color: #e2e8f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pm-wrapper {
+    padding: 1rem;
+  }
+
+  .kpi-value {
+    font-size: 1.6rem;
+  }
+
+  .chart-container {
+    height: 250px;
+  }
+}

@@ -9,6 +9,15 @@
  *   run=satt-mal      -> Spara nytt mal (POST: typ, antal, startdatum)
  *   run=mal-historik   -> Historiska mal och om de uppnaddes
  *
+ *   --- Produktionsmal-uppfoljning (daglig/veckovis) ---
+ *   run=sammanfattning -> Dagens mal, utfall, uppfyllnad%, veckotrend (KPI-kort)
+ *   run=per-skift      -> Utfall per skift idag (formiddag/eftermiddag/natt)
+ *   run=veckodata      -> Mal vs utfall per dag, senaste 4 veckorna (Chart.js)
+ *   run=historik        -> Daglig historik senaste 30d: mal, utfall, uppfyllnad
+ *   run=per-station     -> Utfall per station idag
+ *   run=hamta-mal       -> Hamta aktuella mal (dag/vecka)
+ *   run=spara-mal (POST) -> Spara/uppdatera mal (dag/vecka)
+ *
  *   (Legacy, behalls for bakatkompabilitet)
  *   run=summary        -> Dag/vecka/manad sammanfattning
  *   run=daily          -> Daglig tidsserie
@@ -47,6 +56,15 @@ class ProduktionsmalController {
             case 'progress':      $this->getProgress();      break;
             case 'satt-mal':      $this->sattMal();          break;
             case 'mal-historik':  $this->getMalHistorik();   break;
+
+            // Produktionsmal-uppfoljning (daglig/veckovis)
+            case 'sammanfattning':  $this->getSammanfattning();  break;
+            case 'per-skift':       $this->getPerSkift();        break;
+            case 'veckodata':       $this->getVeckodata();       break;
+            case 'historik':        $this->getHistorik30d();     break;
+            case 'per-station':     $this->getPerStation();      break;
+            case 'hamta-mal':       $this->getHamtaMal();        break;
+            case 'spara-mal':       $this->sparaMal();           break;
 
             // Legacy endpoints
             case 'summary': $this->getSummary(); break;
@@ -277,8 +295,8 @@ class ProduktionsmalController {
         $startdatum = trim($input['startdatum'] ?? '');
 
         // Validering
-        if (!in_array($typ, ['vecka', 'manad'])) {
-            $this->sendError('Ogiltig typ. Anvand "vecka" eller "manad".');
+        if (!in_array($typ, ['dag', 'vecka', 'manad'])) {
+            $this->sendError('Ogiltig typ. Anvand "dag", "vecka" eller "manad".');
             return;
         }
         if ($antal <= 0 || $antal > 99999) {
@@ -293,7 +311,9 @@ class ProduktionsmalController {
         try {
             // Berakna slutdatum
             $startDt = new \DateTime($startdatum);
-            if ($typ === 'vecka') {
+            if ($typ === 'dag') {
+                $slutDt = clone $startDt; // Samma dag
+            } elseif ($typ === 'vecka') {
                 // Satt start till mandag i veckan
                 $dow = (int)$startDt->format('N');
                 if ($dow !== 1) {
@@ -403,6 +423,450 @@ class ProduktionsmalController {
         } catch (\Exception $e) {
             error_log('ProduktionsmalController::getMalHistorik: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta malhistorik', 500);
+        }
+    }
+
+    // ================================================================
+    // PRODUKTIONSMAL-UPPFOLJNING (daglig/veckovis dashboard)
+    // ================================================================
+
+    private const STATIONER = [
+        1 => 'Station 1 - Avtappning',
+        2 => 'Station 2 - Hoglyckspolning',
+        3 => 'Station 3 - Invandlig tvatt',
+        4 => 'Station 4 - Utvandlig tvatt',
+        5 => 'Station 5 - Inspektion',
+        6 => 'Station 6 - Montering',
+        7 => 'Station 7 - Funktionstest',
+        8 => 'Station 8 - Palletering',
+    ];
+
+    private const SKIFT_NAMN = [
+        1 => 'Formiddag (06-14)',
+        2 => 'Eftermiddag (14-22)',
+        3 => 'Natt (22-06)',
+    ];
+
+    /**
+     * run=sammanfattning — KPI-kort: dagens mal, utfall, uppfyllnad%, veckotrend
+     */
+    private function getSammanfattning(): void {
+        try {
+            $today = date('Y-m-d');
+            $weekdayGoals = $this->getWeekdayGoals();
+            $dagMal = $this->getDailyGoal($today, $weekdayGoals);
+
+            // Dagens utfall
+            $dagFactual = $this->getFactualIbcByDate($today, $today);
+            $dagUtfall = $dagFactual[$today] ?? 0;
+            $dagPct = $dagMal > 0 ? round(($dagUtfall / $dagMal) * 100, 1) : 0.0;
+
+            // Vecko-mal och utfall (hittills i veckan)
+            $weekStart = date('Y-m-d', strtotime('monday this week'));
+            $weekFactual = $this->getFactualIbcByDate($weekStart, $today);
+            $veckoMal = 0;
+            $veckoUtfall = 0;
+            $cur = strtotime($weekStart);
+            $endTs = strtotime($today);
+            while ($cur <= $endTs) {
+                $d = date('Y-m-d', $cur);
+                $veckoMal += $this->getDailyGoal($d, $weekdayGoals);
+                $veckoUtfall += $weekFactual[$d] ?? 0;
+                $cur = strtotime('+1 day', $cur);
+            }
+            $veckoPct = $veckoMal > 0 ? round(($veckoUtfall / $veckoMal) * 100, 1) : 0.0;
+
+            // Veckotrend: jamfor denna vecka vs forra veckan (samma antal dagar)
+            $dagIVeckan = (int)date('N'); // 1=man ... 7=son
+            $prevWeekStart = date('Y-m-d', strtotime('-7 days', strtotime($weekStart)));
+            $prevWeekEnd = date('Y-m-d', strtotime(($dagIVeckan - 1) . ' days', strtotime($prevWeekStart)));
+            $prevFactual = $this->getFactualIbcByDate($prevWeekStart, $prevWeekEnd);
+            $prevUtfall = 0;
+            $pc = strtotime($prevWeekStart);
+            $pe = strtotime($prevWeekEnd);
+            while ($pc <= $pe) {
+                $d = date('Y-m-d', $pc);
+                $prevUtfall += $prevFactual[$d] ?? 0;
+                $pc = strtotime('+1 day', $pc);
+            }
+            $veckoTrend = $prevUtfall > 0 ? round((($veckoUtfall - $prevUtfall) / $prevUtfall) * 100, 1) : 0.0;
+            $veckoTrendRiktning = $veckoTrend > 1 ? 'upp' : ($veckoTrend < -1 ? 'ner' : 'oforandrad');
+
+            // Farger
+            $dagFarg = $dagPct >= 90 ? 'gron' : ($dagPct >= 70 ? 'gul' : 'rod');
+
+            $this->sendSuccess([
+                'dag_mal'             => $dagMal,
+                'dag_utfall'          => $dagUtfall,
+                'dag_uppfyllnad'      => $dagPct,
+                'dag_farg'            => $dagFarg,
+                'vecko_mal'           => $veckoMal,
+                'vecko_utfall'        => $veckoUtfall,
+                'vecko_uppfyllnad'    => $veckoPct,
+                'vecko_trend'         => $veckoTrend,
+                'vecko_trend_riktning' => $veckoTrendRiktning,
+                'datum'               => $today,
+                'veckonr'             => (int)date('W'),
+            ]);
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getSammanfattning: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta sammanfattning', 500);
+        }
+    }
+
+    /**
+     * run=per-skift — Utfall per skift idag
+     * Skift 1=formiddag(06-14), 2=eftermiddag(14-22), 3=natt(22-06)
+     */
+    private function getPerSkift(): void {
+        try {
+            $today = date('Y-m-d');
+            $weekdayGoals = $this->getWeekdayGoals();
+            $dagMal = $this->getDailyGoal($today, $weekdayGoals);
+            $malPerSkift = round($dagMal / 3);
+
+            // Hamta utfall per skiftraknare idag via kumulativa raknare
+            $stmt = $this->pdo->prepare("
+                SELECT skiftraknare, MAX(ibc_ok) AS max_ok
+                FROM rebotling_ibc
+                WHERE DATE(created_at) = :today
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare
+            ");
+            $stmt->execute([':today' => $today]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $skift = [];
+            $totalUtfall = 0;
+            foreach ($rows as $row) {
+                $nr = (int)$row['skiftraknare'];
+                $utfall = (int)($row['max_ok'] ?? 0);
+                $totalUtfall += $utfall;
+                $pct = $malPerSkift > 0 ? round(($utfall / $malPerSkift) * 100, 1) : 0.0;
+                $skift[] = [
+                    'skift_nr'   => $nr,
+                    'skift_namn' => self::SKIFT_NAMN[$nr] ?? "Skift {$nr}",
+                    'utfall'     => $utfall,
+                    'mal'        => $malPerSkift,
+                    'procent'    => min(100.0, $pct),
+                    'farg'       => $pct >= 90 ? 'gron' : ($pct >= 70 ? 'gul' : 'rod'),
+                ];
+            }
+
+            // Fyll i saknade skift med 0
+            $skiftNr = array_column($skift, 'skift_nr');
+            foreach ([1, 2, 3] as $nr) {
+                if (!in_array($nr, $skiftNr)) {
+                    $skift[] = [
+                        'skift_nr'   => $nr,
+                        'skift_namn' => self::SKIFT_NAMN[$nr],
+                        'utfall'     => 0,
+                        'mal'        => $malPerSkift,
+                        'procent'    => 0.0,
+                        'farg'       => 'rod',
+                    ];
+                }
+            }
+
+            // Sortera per skift_nr
+            usort($skift, fn($a, $b) => $a['skift_nr'] - $b['skift_nr']);
+
+            $this->sendSuccess([
+                'datum'        => $today,
+                'dag_mal'      => $dagMal,
+                'total_utfall' => $totalUtfall,
+                'skift'        => $skift,
+            ]);
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getPerSkift: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta skiftdata', 500);
+        }
+    }
+
+    /**
+     * run=veckodata — Mal vs utfall per dag, senaste 4 veckorna (for Chart.js)
+     */
+    private function getVeckodata(): void {
+        try {
+            $weeks = max(1, min(12, (int)($_GET['weeks'] ?? 4)));
+            $days = $weeks * 7;
+            $toDate = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+            $weekdayGoals = $this->getWeekdayGoals();
+            $factual = $this->getFactualIbcByDate($fromDate, $toDate);
+
+            $datumArr = [];
+            $malArr = [];
+            $utfallArr = [];
+
+            $cur = strtotime($fromDate);
+            $end = strtotime($toDate);
+            while ($cur <= $end) {
+                $d = date('Y-m-d', $cur);
+                $mal = $this->getDailyGoal($d, $weekdayGoals);
+                $utfall = $factual[$d] ?? 0;
+                $datumArr[] = $d;
+                $malArr[] = $mal;
+                $utfallArr[] = $utfall;
+                $cur = strtotime('+1 day', $cur);
+            }
+
+            $this->sendSuccess([
+                'weeks'  => $weeks,
+                'datum'  => $datumArr,
+                'mal'    => $malArr,
+                'utfall' => $utfallArr,
+            ]);
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getVeckodata: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta veckodata', 500);
+        }
+    }
+
+    /**
+     * run=historik — Daglig historik senaste 30d: mal, utfall, uppfyllnad
+     */
+    private function getHistorik30d(): void {
+        try {
+            $days = max(7, min(90, (int)($_GET['days'] ?? 30)));
+            $toDate = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime("-{$days} days"));
+
+            $weekdayGoals = $this->getWeekdayGoals();
+            $factual = $this->getFactualIbcByDate($fromDate, $toDate);
+
+            $historik = [];
+            $prevUtfall = null;
+            $cur = strtotime($fromDate);
+            $end = strtotime($toDate);
+            while ($cur <= $end) {
+                $d = date('Y-m-d', $cur);
+                $mal = $this->getDailyGoal($d, $weekdayGoals);
+                $utfall = $factual[$d] ?? 0;
+                $pct = $mal > 0 ? round(($utfall / $mal) * 100, 1) : ($utfall > 0 ? 100.0 : 0.0);
+                $trend = 'oforandrad';
+                if ($prevUtfall !== null) {
+                    if ($utfall > $prevUtfall) $trend = 'upp';
+                    elseif ($utfall < $prevUtfall) $trend = 'ner';
+                }
+                $historik[] = [
+                    'datum'     => $d,
+                    'veckodag'  => $this->getSwedishWeekday($d),
+                    'mal'       => $mal,
+                    'utfall'    => $utfall,
+                    'uppfyllnad' => $pct,
+                    'trend'     => $trend,
+                ];
+                $prevUtfall = $utfall;
+                $cur = strtotime('+1 day', $cur);
+            }
+
+            // Returnera i omvand ordning (nyast forst)
+            $this->sendSuccess([
+                'days'     => $days,
+                'historik' => array_reverse($historik),
+            ]);
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getHistorik30d: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta historik', 500);
+        }
+    }
+
+    /**
+     * run=per-station — Utfall per station idag (baserat pa rebotling_ibc)
+     * Anvander lopnummer (1-8) som station-proxy
+     */
+    private function getPerStation(): void {
+        try {
+            $today = date('Y-m-d');
+
+            // rebotling_ibc har lopnummer (station), raknare ar kumulativ per skift
+            // Vi tar MAX(ibc_ok) per skiftraknare for att fa ratt utfall per station
+            $stmt = $this->pdo->prepare("
+                SELECT lopnummer AS station,
+                       COUNT(*) AS antal_rader,
+                       COUNT(DISTINCT skiftraknare) AS antal_skift
+                FROM rebotling_ibc
+                WHERE DATE(created_at) = :today
+                  AND lopnummer IS NOT NULL
+                  AND lopnummer BETWEEN 1 AND 8
+                GROUP BY lopnummer
+                ORDER BY lopnummer ASC
+            ");
+            $stmt->execute([':today' => $today]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $weekdayGoals = $this->getWeekdayGoals();
+            $dagMal = $this->getDailyGoal($today, $weekdayGoals);
+            $totalDagUtfall = 0;
+
+            // Hamta total dagens utfall for procentberakning
+            $dagFactual = $this->getFactualIbcByDate($today, $today);
+            $totalDagUtfall = $dagFactual[$today] ?? 0;
+
+            $stationer = [];
+            foreach ($rows as $row) {
+                $nr = (int)$row['station'];
+                $antal = (int)$row['antal_rader'];
+                $bidragPct = $totalDagUtfall > 0 ? round(($antal / max(1, $totalDagUtfall)) * 100, 1) : 0;
+
+                $stationer[] = [
+                    'station_id'   => $nr,
+                    'station_namn' => self::STATIONER[$nr] ?? "Station {$nr}",
+                    'antal'        => $antal,
+                    'bidrag_pct'   => $bidragPct,
+                ];
+            }
+
+            // Fyll i stationer som saknar data med 0
+            $befintliga = array_column($stationer, 'station_id');
+            foreach (self::STATIONER as $id => $namn) {
+                if (!in_array($id, $befintliga)) {
+                    $stationer[] = [
+                        'station_id'   => $id,
+                        'station_namn' => $namn,
+                        'antal'        => 0,
+                        'bidrag_pct'   => 0,
+                    ];
+                }
+            }
+            usort($stationer, fn($a, $b) => $a['station_id'] - $b['station_id']);
+
+            $this->sendSuccess([
+                'datum'       => $today,
+                'dag_mal'     => $dagMal,
+                'dag_utfall'  => $totalDagUtfall,
+                'stationer'   => $stationer,
+            ]);
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getPerStation: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta stationsdata', 500);
+        }
+    }
+
+    /**
+     * run=hamta-mal — Hamta aktuella mal (dag/vecka)
+     */
+    private function getHamtaMal(): void {
+        try {
+            $today = date('Y-m-d');
+
+            // Hamta aktuellt dagsmal (weekday_goals)
+            $weekdayGoals = $this->getWeekdayGoals();
+            $dagMal = $this->getDailyGoal($today, $weekdayGoals);
+
+            // Hamta aktivt vecko-mal fran rebotling_produktionsmal
+            $stmt = $this->pdo->prepare("
+                SELECT id, typ, mal_antal, start_datum, slut_datum, skapad_av, skapad_datum
+                FROM rebotling_produktionsmal
+                WHERE typ = 'vecka'
+                  AND start_datum <= :today AND slut_datum >= :today2
+                ORDER BY skapad_datum DESC
+                LIMIT 1
+            ");
+            $stmt->execute([':today' => $today, ':today2' => $today]);
+            $veckoMal = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if ($veckoMal) {
+                $veckoMal['mal_antal'] = (int)$veckoMal['mal_antal'];
+                $veckoMal['id'] = (int)$veckoMal['id'];
+            }
+
+            $this->sendSuccess([
+                'dag_mal'   => $dagMal,
+                'vecko_mal' => $veckoMal ?: null,
+            ]);
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getHamtaMal: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta mal', 500);
+        }
+    }
+
+    /**
+     * run=spara-mal (POST) — Spara/uppdatera mal (dag/vecka)
+     * POST: { typ: 'dag'|'vecka', antal: number, giltig_fran?: 'YYYY-MM-DD' }
+     */
+    private function sparaMal(): void {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->sendError('POST kravs', 405);
+            return;
+        }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        if (!$input) {
+            $this->sendError('Ogiltig JSON-data');
+            return;
+        }
+
+        $typ = trim($input['typ'] ?? '');
+        $antal = (int)($input['antal'] ?? 0);
+        $giltigFran = trim($input['giltig_fran'] ?? date('Y-m-d'));
+
+        if (!in_array($typ, ['dag', 'vecka'])) {
+            $this->sendError('Ogiltig typ. Anvand "dag" eller "vecka".');
+            return;
+        }
+        if ($antal <= 0 || $antal > 99999) {
+            $this->sendError('Antal maste vara mellan 1 och 99999.');
+            return;
+        }
+
+        try {
+            $userId = $_SESSION['user_id'] ?? null;
+
+            if ($typ === 'dag') {
+                // Uppdatera rebotling_weekday_goals for alla vardagar
+                // Eller satt specifikt dagsmal
+                $wd = (int)date('N', strtotime($giltigFran));
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO rebotling_weekday_goals (weekday, daily_goal)
+                    VALUES (:wd, :goal)
+                    ON DUPLICATE KEY UPDATE daily_goal = :goal2
+                ");
+                // Uppdatera alla vardagar (1-5) med samma mal
+                for ($d = 1; $d <= 5; $d++) {
+                    $stmt->execute([':wd' => $d, ':goal' => $antal, ':goal2' => $antal]);
+                }
+
+                $this->sendSuccess([
+                    'meddelande' => 'Dagsmal uppdaterat till ' . $antal . ' IBC for alla vardagar.',
+                    'typ' => 'dag',
+                    'mal_antal' => $antal,
+                ]);
+            } else {
+                // Veckomal via rebotling_produktionsmal
+                $startDt = new \DateTime($giltigFran);
+                $dow = (int)$startDt->format('N');
+                if ($dow !== 1) {
+                    $startDt->modify('monday this week');
+                }
+                $slutDt = clone $startDt;
+                $slutDt->modify('+6 days');
+
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO rebotling_produktionsmal (typ, mal_antal, start_datum, slut_datum, skapad_av)
+                    VALUES ('vecka', :antal, :start, :slut, :user)
+                ");
+                $stmt->execute([
+                    ':antal' => $antal,
+                    ':start' => $startDt->format('Y-m-d'),
+                    ':slut' => $slutDt->format('Y-m-d'),
+                    ':user' => $userId,
+                ]);
+
+                $this->sendSuccess([
+                    'meddelande' => 'Veckomal sparat!',
+                    'id' => (int)$this->pdo->lastInsertId(),
+                    'typ' => 'vecka',
+                    'mal_antal' => $antal,
+                    'start_datum' => $startDt->format('Y-m-d'),
+                    'slut_datum' => $slutDt->format('Y-m-d'),
+                ]);
+            }
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::sparaMal: ' . $e->getMessage());
+            $this->sendError('Kunde inte spara malet', 500);
         }
     }
 

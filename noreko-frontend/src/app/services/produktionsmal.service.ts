@@ -85,6 +85,86 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+// --- Produktionsmal-uppfoljning interfaces ---
+export interface SammanfattningData {
+  dag_mal: number;
+  dag_utfall: number;
+  dag_uppfyllnad: number;
+  dag_farg: 'gron' | 'gul' | 'rod';
+  vecko_mal: number;
+  vecko_utfall: number;
+  vecko_uppfyllnad: number;
+  vecko_trend: number;
+  vecko_trend_riktning: 'upp' | 'ner' | 'oforandrad';
+  datum: string;
+  veckonr: number;
+}
+
+export interface SkiftData {
+  skift_nr: number;
+  skift_namn: string;
+  utfall: number;
+  mal: number;
+  procent: number;
+  farg: 'gron' | 'gul' | 'rod';
+}
+
+export interface PerSkiftData {
+  datum: string;
+  dag_mal: number;
+  total_utfall: number;
+  skift: SkiftData[];
+}
+
+export interface VeckodataResponse {
+  weeks: number;
+  datum: string[];
+  mal: number[];
+  utfall: number[];
+}
+
+export interface HistorikRad {
+  datum: string;
+  veckodag: string;
+  mal: number;
+  utfall: number;
+  uppfyllnad: number;
+  trend: 'upp' | 'ner' | 'oforandrad';
+}
+
+export interface HistorikData {
+  days: number;
+  historik: HistorikRad[];
+}
+
+export interface StationData {
+  station_id: number;
+  station_namn: string;
+  antal: number;
+  bidrag_pct: number;
+}
+
+export interface PerStationData {
+  datum: string;
+  dag_mal: number;
+  dag_utfall: number;
+  stationer: StationData[];
+}
+
+export interface HamtaMalData {
+  dag_mal: number;
+  vecko_mal: { id: number; typ: string; mal_antal: number; start_datum: string; slut_datum: string } | null;
+}
+
+export interface SparaMalData {
+  meddelande: string;
+  typ: string;
+  mal_antal: number;
+  id?: number;
+  start_datum?: string;
+  slut_datum?: string;
+}
+
 // Legacy interfaces (bakatkompabilitet)
 export interface DagSummary {
   datum: string; mal: number; faktiskt: number; uppfyllnad: number;
@@ -148,6 +228,57 @@ export class ProduktionsmalService {
   getMalHistorik(limit: number = 12): Observable<ApiResponse<MalHistorikData> | null> {
     return this.http.get<ApiResponse<MalHistorikData>>(
       `${this.api}&run=mal-historik&limit=${limit}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  // Produktionsmal-uppfoljning endpoints
+  getSammanfattning(): Observable<ApiResponse<SammanfattningData> | null> {
+    return this.http.get<ApiResponse<SammanfattningData>>(
+      `${this.api}&run=sammanfattning`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  getPerSkift(): Observable<ApiResponse<PerSkiftData> | null> {
+    return this.http.get<ApiResponse<PerSkiftData>>(
+      `${this.api}&run=per-skift`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  getVeckodata(weeks: number = 4): Observable<ApiResponse<VeckodataResponse> | null> {
+    return this.http.get<ApiResponse<VeckodataResponse>>(
+      `${this.api}&run=veckodata&weeks=${weeks}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  getHistorik(days: number = 30): Observable<ApiResponse<HistorikData> | null> {
+    return this.http.get<ApiResponse<HistorikData>>(
+      `${this.api}&run=historik&days=${days}`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  getPerStation(): Observable<ApiResponse<PerStationData> | null> {
+    return this.http.get<ApiResponse<PerStationData>>(
+      `${this.api}&run=per-station`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  getHamtaMal(): Observable<ApiResponse<HamtaMalData> | null> {
+    return this.http.get<ApiResponse<HamtaMalData>>(
+      `${this.api}&run=hamta-mal`,
+      { withCredentials: true }
+    ).pipe(timeout(15000), catchError(() => of(null)));
+  }
+
+  sparaMal(typ: string, antal: number, giltig_fran?: string): Observable<ApiResponse<SparaMalData> | null> {
+    return this.http.post<ApiResponse<SparaMalData>>(
+      `${this.api}&run=spara-mal`,
+      { typ, antal, giltig_fran },
       { withCredentials: true }
     ).pipe(timeout(15000), catchError(() => of(null)));
   }
