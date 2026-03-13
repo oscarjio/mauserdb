@@ -1,5 +1,5 @@
 /* ============================================================
-   Skiftoverlamninslogg — morkt tema
+   Skiftoverlamning — morkt tema
    ============================================================ */
 
 .page-container {
@@ -12,6 +12,86 @@
   font-size: 1.6rem;
   font-weight: 700;
   color: #e2e8f0;
+}
+
+/* ---- Skift-status-banner ---- */
+.shift-banner {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.shift-banner-header {
+  background: #374151;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.shift-banner-kpis {
+  padding: 1rem 1.25rem;
+}
+
+.shift-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.shift-active {
+  color: #48bb78;
+}
+
+.shift-stopped {
+  color: #fc8181;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.shift-active .pulse-dot {
+  background: #48bb78;
+  animation: pulse-green 1.5s ease-in-out infinite;
+}
+
+.shift-stopped .pulse-dot {
+  background: #fc8181;
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(72, 187, 120, 0); }
+}
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(252, 129, 129, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(252, 129, 129, 0); }
+}
+
+.mini-kpi {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.mini-kpi-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a0aec0;
+}
+
+.mini-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 800;
 }
 
 /* ---- KPI-kort ---- */
@@ -49,16 +129,98 @@
   color: #718096;
 }
 
-/* ---- Filter-kort ---- */
-.filter-card {
+/* ---- Section-kort ---- */
+.section-card {
   background: #2d3748;
   border: 1px solid #4a5568;
   border-radius: 0.5rem;
   color: #e2e8f0;
 }
 
-.filter-card .card-body {
-  padding: 1rem 1.25rem;
+.section-card .card-header {
+  background: #374151;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+  padding: 0.75rem 1.25rem;
+}
+
+.section-card .card-body {
+  padding: 1.25rem;
+}
+
+.clickable-header {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clickable-header:hover {
+  background: #3d4a5e !important;
+}
+
+/* ---- Problem-rader (severity-fargkodning) ---- */
+.problem-row {
+  border-left: 4px solid transparent;
+  transition: background-color 0.2s;
+}
+
+.problem-row:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.severity-kritisk {
+  border-left-color: #e53e3e !important;
+  background: rgba(229, 62, 62, 0.08);
+}
+
+.severity-hog {
+  border-left-color: #ed8936 !important;
+  background: rgba(237, 137, 54, 0.06);
+}
+
+.severity-medel {
+  border-left-color: #ecc94b !important;
+}
+
+.severity-lag {
+  border-left-color: #a0aec0 !important;
+}
+
+/* ---- Forra skiftets noteringar ---- */
+.forra-noteringar {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 0.5rem;
+  border-left: 3px solid #4299e1;
+}
+
+/* ---- Checklista (form) ---- */
+.checklista-item {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.checklista-item:hover {
+  border-color: #4299e1;
+  background: #2d3748;
+}
+
+.checklista-item .form-check {
+  margin-bottom: 0;
+}
+
+.checklista-item .form-check-label {
+  cursor: pointer;
+  color: #e2e8f0;
+  transition: color 0.2s;
+}
+
+.checked-label {
+  color: #48bb78 !important;
+  text-decoration: line-through;
+  opacity: 0.8;
 }
 
 /* ---- Dark inputs ---- */
@@ -75,27 +237,6 @@
   border-color: #4299e1;
   color: #e2e8f0;
   box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
-}
-
-/* ---- List-kort ---- */
-.list-card {
-  background: #2d3748;
-  border: 1px solid #4a5568;
-  border-radius: 0.5rem;
-  color: #e2e8f0;
-}
-
-.list-card .card-header {
-  background: #374151;
-  border-bottom: 1px solid #4a5568;
-  color: #e2e8f0;
-  padding: 0.75rem 1.25rem;
-}
-
-.list-card .card-footer {
-  background: #374151;
-  border-top: 1px solid #4a5568;
-  padding: 0.75rem;
 }
 
 /* ---- Tabell ---- */
@@ -130,30 +271,6 @@
 
 .row-problem {
   border-left: 3px solid #e53e3e;
-}
-
-/* ---- Paginering ---- */
-.pagination .page-link {
-  background: #2d3748;
-  border-color: #4a5568;
-  color: #e2e8f0;
-}
-
-.pagination .page-item.active .page-link {
-  background: #4299e1;
-  border-color: #4299e1;
-  color: #fff;
-}
-
-.pagination .page-item.disabled .page-link {
-  background: #1a202c;
-  border-color: #4a5568;
-  color: #4a5568;
-}
-
-.pagination .page-link:hover {
-  background: #374151;
-  color: #e2e8f0;
 }
 
 /* ---- Detail-kort ---- */
@@ -219,16 +336,19 @@
 }
 
 .form-check-input:checked {
+  background-color: #48bb78;
+  border-color: #48bb78;
+}
+
+#pagaendeCheck:checked {
   background-color: #e53e3e;
   border-color: #e53e3e;
 }
 
-/* ---- Problem-varning ---- */
-.problem-item {
-  background: rgba(0, 0, 0, 0.15);
-  border-radius: 4px;
-  padding: 0.5rem 0.75rem;
-  border-left: 3px solid #d69e2e;
+/* ---- Progress bar override ---- */
+.progress {
+  background-color: #1a202c;
+  border-radius: 3px;
 }
 
 /* ---- Responsive ---- */
@@ -240,6 +360,14 @@
   .kpi-value {
     font-size: 1.5rem;
   }
+
+  .mini-kpi-value {
+    font-size: 1.2rem;
+  }
+
+  .shift-banner-header {
+    padding: 0.5rem 1rem;
+  }
 }
 
 /* ---- Print ---- */
@@ -249,15 +377,14 @@
     max-width: 100%;
   }
 
-  .filter-card,
-  .pagination,
+  .shift-banner,
   .btn {
     display: none !important;
   }
 
   .kpi-card,
   .detail-card,
-  .list-card {
+  .section-card {
     border: 1px solid #000 !important;
     background: #fff !important;
     color: #000 !important;

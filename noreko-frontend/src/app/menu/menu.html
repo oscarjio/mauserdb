@@ -43,9 +43,9 @@
               <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
             </a>
           </li>
-          <li>
+          <li *ngIf="loggedIn">
             <a class="dropdown-item" routerLink="/rebotling/skiftoverlamning">
-              <i class="fas fa-clipboard-list me-2 text-info"></i>Skiftöverlämningsmall
+              <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftoverlamning
             </a>
           </li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/operatorsportal"><i class="fas fa-user-circle me-2" style="color:#4299e1"></i>Min portal</a></li>

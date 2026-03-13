@@ -1,3 +1,34 @@
+## 2026-03-13 Rebotling skiftoverlamning — digital checklista vid skiftbyte (session #95)
+
+Ombyggd sida `/rebotling/skiftoverlamning` — digital checklista vid skiftbyte med realtids-status, KPI-jamforelse och interaktiv checklista.
+
+- **Backend**: Utokade `classes/SkiftoverlamningController.php` med nya endpoints:
+  - `run=aktuellt-skift` — realtidsstatus pagaende skift (IBC, OEE, kasserade, aktiv/stoppad)
+  - `run=skift-sammanfattning` — sammanfattning av forra skiftet med KPI:er och mal-jamforelse
+  - `run=oppna-problem` — lista oppna/pagaende problem med allvarlighetsgrad (sorterat)
+  - `run=checklista` — hamta standard-checklistepunkter (7 st)
+  - `run=historik` — senaste 10 overlamningar med checklista-status och mal
+  - `run=skapa-overlamning` (POST) — spara overlamning med checklista-JSON, mal-nasta-skift, allvarlighetsgrad
+  - Proxy: `controllers/SkiftoverlamningController.php` uppdaterad
+
+- **Migration**: `2026-03-13_skiftoverlamning_checklista.sql`
+  - Nya kolumner: `checklista_json` (JSON), `mal_nasta_skift` (TEXT), `allvarlighetsgrad` (ENUM)
+
+- **Frontend**: Helt ombyggd `pages/skiftoverlamning/`
+  - Skift-status-banner: realtidsstatus med pulsande grön/röd indikator, IBC/OEE/kasserade, tid kvar
+  - Forra skiftets sammanfattning: 4 KPI-kort (OEE, IBC, kassation, drifttid) med mal-jamforelse och progress-bars
+  - Interaktiv checklista: 7 förfyllda punkter, progress-bar, bockbar med visuell feedback
+  - Oppna problem: fargkodade efter allvarlighetsgrad (kritisk=röd, hög=orange, medel=gul, låg=grå)
+  - Mal nasta skift: fritextfalt for produktionsmal och fokusomraden
+  - Allvarlighetsgrad-selektor vid problemflaggning
+  - Expanderbar historik-lista med checklista-status
+  - 60s auto-refresh av aktuellt skift
+  - Service: `services/skiftoverlamning.service.ts` utokad med alla nya interfaces och endpoints
+  - Route: authGuard tillagd
+  - Navigation: menytext uppdaterad i menu.html
+
+---
+
 ## 2026-03-13 Kassationsanalys — forbattrad drill-down med Pareto, per-station och per-operator (session #94)
 
 Ombyggd sida `/rebotling/kassationsanalys` — fullstandig kassationsorsak-analys med Pareto-diagram, per-station/operator-tabeller och detaljlista.

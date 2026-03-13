@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { Subject, interval } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -13,9 +13,13 @@ import {
   PagaendeProblem,
   OperatorOption,
   CreatePayload,
+  ChecklistaItem,
+  AktuelltSkiftResponse,
+  SkiftSammanfattningResponse,
+  OppnaProblemItem,
 } from '../../services/skiftoverlamning.service';
 
-type ViewMode = 'list' | 'form' | 'detail';
+type ViewMode = 'dashboard' | 'form' | 'detail';
 
 @Component({
   standalone: true,
@@ -26,7 +30,7 @@ type ViewMode = 'list' | 'form' | 'detail';
 })
 export class SkiftoverlamningPage implements OnInit, OnDestroy {
   // Vy
-  viewMode: ViewMode = 'list';
+  viewMode: ViewMode = 'dashboard';
 
   // Tillstand
   isLoading = false;
@@ -39,6 +43,16 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   currentUser: any = null;
   loggedIn = false;
 
+  // Aktuellt skift
+  aktuelltSkift: AktuelltSkiftResponse | null = null;
+  tidKvarFormatted = '';
+
+  // Forra skiftet
+  skiftSammanfattning: SkiftSammanfattningResponse | null = null;
+
+  // Oppna problem
+  oppnaProblem: OppnaProblemItem[] = [];
+
   // KPI-sammanfattning
   senaste: SenastOverlamning | null = null;
   antalVecka = 0;
@@ -46,18 +60,9 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   pagaendeProblems: PagaendeProblem[] = [];
   pagaendeAntal = 0;
 
-  // Lista
-  items: SkiftoverlamningItem[] = [];
-  totalItems = 0;
-  currentPage = 1;
-  pageSize = 20;
-
-  // Filter
-  filterSkiftTyp = '';
-  filterOperatorId = 0;
-  filterFrom = '';
-  filterTo = '';
-  operators: OperatorOption[] = [];
+  // Historik
+  historikItems: SkiftoverlamningItem[] = [];
+  historikExpanded = false;
 
   // Detaljvy
   selectedItem: SkiftoverlamningItem | null = null;
@@ -65,7 +70,10 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   // Formular
   autoKpis: ShiftKpis | null = null;
   form: CreatePayload = this.emptyForm();
+  checklista: ChecklistaItem[] = [];
 
+  // Timer
+  private refreshInterval: any;
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -82,19 +90,59 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
       this.loggedIn = li;
     });
 
-    this.loadSummary();
-    this.loadList();
-    this.loadOperators();
+    this.loadDashboard();
+
+    // Uppdatera aktuellt skift var 60:e sekund
+    this.refreshInterval = setInterval(() => {
+      this.loadAktuelltSkift();
+      this.updateTidKvar();
+    }, 60000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+    }
   }
 
   // =========================================================================
-  // Data
+  // Data loading
   // =========================================================================
+
+  loadDashboard(): void {
+    this.loadAktuelltSkift();
+    this.loadSkiftSammanfattning();
+    this.loadOppnaProblem();
+    this.loadHistorik();
+    this.loadSummary();
+  }
+
+  loadAktuelltSkift(): void {
+    this.svc.getAktuelltSkift().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      if (res.success) {
+        this.aktuelltSkift = res;
+        this.updateTidKvar();
+      }
+    });
+  }
+
+  loadSkiftSammanfattning(): void {
+    this.svc.getSkiftSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      if (res.success) {
+        this.skiftSammanfattning = res;
+      }
+    });
+  }
+
+  loadOppnaProblem(): void {
+    this.svc.getOppnaProblem().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      if (res.success) {
+        this.oppnaProblem = res.problem;
+      }
+    });
+  }
 
   loadSummary(): void {
     this.svc.getSummary().pipe(takeUntil(this.destroy$)).subscribe(res => {
@@ -108,34 +156,10 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     });
   }
 
-  loadList(): void {
-    if (this.isLoading) return;
-    this.isLoading = true;
-    this.loadError = '';
-
-    const offset = (this.currentPage - 1) * this.pageSize;
-    this.svc.getList({
-      skift_typ: this.filterSkiftTyp || undefined,
-      operator_id: this.filterOperatorId || undefined,
-      from: this.filterFrom || undefined,
-      to: this.filterTo || undefined,
-      limit: this.pageSize,
-      offset,
-    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.isLoading = false;
-      if (!res.success) {
-        this.loadError = res.error ?? 'Kunde inte hamta overlamningar';
-        return;
-      }
-      this.items = res.items;
-      this.totalItems = res.total;
-    });
-  }
-
-  loadOperators(): void {
-    this.svc.getOperators().pipe(takeUntil(this.destroy$)).subscribe(res => {
+  loadHistorik(): void {
+    this.svc.getHistorik(10).pipe(takeUntil(this.destroy$)).subscribe(res => {
       if (res.success) {
-        this.operators = res.operators;
+        this.historikItems = res.items;
       }
     });
   }
@@ -170,6 +194,15 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     });
   }
 
+  loadChecklista(): void {
+    this.svc.getChecklista().pipe(takeUntil(this.destroy$)).subscribe(res => {
+      if (res.success) {
+        this.checklista = res.checklista.map(c => ({ ...c }));
+        this.form.checklista = this.checklista;
+      }
+    });
+  }
+
   // =========================================================================
   // Actions
   // =========================================================================
@@ -177,50 +210,56 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   showForm(): void {
     this.form = this.emptyForm();
     this.autoKpis = null;
+    this.checklista = [];
     this.viewMode = 'form';
     this.loadAutoKpis();
+    this.loadChecklista();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  backToList(): void {
-    this.viewMode = 'list';
+  backToDashboard(): void {
+    this.viewMode = 'dashboard';
     this.selectedItem = null;
-    this.loadList();
-    this.loadSummary();
+    this.loadDashboard();
   }
 
   submitForm(): void {
     if (this.isSubmitting) return;
     this.isSubmitting = true;
 
+    this.form.checklista = this.checklista;
+
     this.svc.create(this.form).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.isSubmitting = false;
       if (res.success) {
         this.toast.success('Skiftoverlamning sparad!');
-        this.backToList();
+        this.backToDashboard();
       } else {
         this.toast.error(res.error ?? 'Kunde inte spara');
       }
     });
   }
 
-  applyFilters(): void {
-    this.currentPage = 1;
-    this.loadList();
+  toggleChecklista(idx: number): void {
+    if (this.checklista[idx]) {
+      this.checklista[idx].checked = !this.checklista[idx].checked;
+    }
   }
 
-  clearFilters(): void {
-    this.filterSkiftTyp = '';
-    this.filterOperatorId = 0;
-    this.filterFrom = '';
-    this.filterTo = '';
-    this.currentPage = 1;
-    this.loadList();
+  toggleHistorik(): void {
+    this.historikExpanded = !this.historikExpanded;
   }
 
-  goPage(page: number): void {
-    this.currentPage = page;
-    this.loadList();
+  updateTidKvar(): void {
+    if (!this.aktuelltSkift) return;
+    const kvar = this.aktuelltSkift.tid_kvar_min;
+    if (kvar <= 0) {
+      this.tidKvarFormatted = 'Skiftet ar slut';
+      return;
+    }
+    const h = Math.floor(kvar / 60);
+    const m = Math.round(kvar % 60);
+    this.tidKvarFormatted = h > 0 ? `${h}h ${m}min kvar` : `${m} min kvar`;
   }
 
   // =========================================================================
@@ -240,6 +279,9 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
       instruktioner: '',
       kommentar: '',
       har_pagaende_problem: false,
+      allvarlighetsgrad: 'medel',
+      checklista: [],
+      mal_nasta_skift: '',
     };
   }
 
@@ -250,16 +292,14 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     return 'natt';
   }
 
-  get totalPages(): number {
-    return Math.max(1, Math.ceil(this.totalItems / this.pageSize));
+  get checklistaProgress(): number {
+    if (this.checklista.length === 0) return 0;
+    const checked = this.checklista.filter(c => c.checked).length;
+    return Math.round((checked / this.checklista.length) * 100);
   }
 
-  get pageNumbers(): number[] {
-    const pages: number[] = [];
-    const start = Math.max(1, this.currentPage - 2);
-    const end = Math.min(this.totalPages, this.currentPage + 2);
-    for (let i = start; i <= end; i++) pages.push(i);
-    return pages;
+  get allChecked(): boolean {
+    return this.checklista.length > 0 && this.checklista.every(c => c.checked);
   }
 
   skiftBadgeClass(typ: string): string {
@@ -280,6 +320,48 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     }
   }
 
+  severityClass(grad: string): string {
+    switch (grad) {
+      case 'kritisk': return 'severity-kritisk';
+      case 'hog':     return 'severity-hog';
+      case 'medel':   return 'severity-medel';
+      case 'lag':     return 'severity-lag';
+      default:        return 'severity-medel';
+    }
+  }
+
+  severityLabel(grad: string): string {
+    switch (grad) {
+      case 'kritisk': return 'Kritisk';
+      case 'hog':     return 'Hog';
+      case 'medel':   return 'Medel';
+      case 'lag':     return 'Lag';
+      default:        return grad;
+    }
+  }
+
+  severityBadgeClass(grad: string): string {
+    switch (grad) {
+      case 'kritisk': return 'bg-danger';
+      case 'hog':     return 'bg-warning text-dark';
+      case 'medel':   return 'bg-info text-dark';
+      case 'lag':     return 'bg-secondary';
+      default:        return 'bg-secondary';
+    }
+  }
+
+  kpiComparison(value: number, target: number): string {
+    if (value >= target) return 'text-success';
+    if (value >= target * 0.9) return 'text-warning';
+    return 'text-danger';
+  }
+
+  kpiComparisonReverse(value: number, target: number): string {
+    if (value <= target) return 'text-success';
+    if (value <= target * 1.1) return 'text-warning';
+    return 'text-danger';
+  }
+
   formatDate(d: string | null): string {
     if (!d) return '--';
     return new Date(d + 'T00:00:00').toLocaleDateString('sv-SE');
@@ -294,6 +376,12 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     });
   }
 
+  formatTime(dt: string | null): string {
+    if (!dt) return '--';
+    const d = new Date(dt);
+    return d.toLocaleString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+  }
+
   formatMin(min: number): string {
     const h = Math.floor(min / 60);
     const m = min % 60;
@@ -304,5 +392,11 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   truncate(text: string | null, len = 80): string {
     if (!text) return '--';
     return text.length > len ? text.substring(0, len) + '...' : text;
+  }
+
+  getChecklistaCount(checklista: ChecklistaItem[]): string {
+    if (!checklista || checklista.length === 0) return '--';
+    const checked = checklista.filter(c => c.checked).length;
+    return `${checked}/${checklista.length}`;
   }
 }

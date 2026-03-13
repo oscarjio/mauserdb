@@ -6,152 +6,245 @@
   <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
       <h1 class="page-title mb-1">
-        <i class="fas fa-clipboard-list me-2 text-info"></i>Skiftoverlamninslogg
+        <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftoverlamning
       </h1>
-      <p class="text-muted mb-0 small">Digital overlamning mellan skift — vad gjordes, pagaende problem, instruktioner</p>
+      <p class="text-muted mb-0 small">Digital checklista vid skiftbyte: vad hande, pagaende problem, mal nasta skift</p>
     </div>
     <div class="d-flex gap-2">
-      <button *ngIf="viewMode !== 'list'" class="btn btn-outline-secondary btn-sm" (click)="backToList()">
+      <button *ngIf="viewMode !== 'dashboard'" class="btn btn-outline-secondary btn-sm" (click)="backToDashboard()">
         <i class="fas fa-arrow-left me-1"></i>Tillbaka
       </button>
-      <button *ngIf="viewMode === 'list' && loggedIn" class="btn btn-primary btn-sm" (click)="showForm()">
+      <button *ngIf="viewMode === 'dashboard' && loggedIn" class="btn btn-primary btn-sm" (click)="showForm()">
         <i class="fas fa-plus me-1"></i>Ny overlamning
       </button>
-      <button *ngIf="viewMode === 'list'" class="btn btn-outline-secondary btn-sm" (click)="loadList(); loadSummary()">
+      <button *ngIf="viewMode === 'dashboard'" class="btn btn-outline-secondary btn-sm" (click)="loadDashboard()">
         <i class="fas fa-sync-alt me-1"></i>Uppdatera
       </button>
     </div>
   </div>
 
   <!-- ================================================================== -->
-  <!-- KPI-KORT (visas alltid i listvy)                                    -->
+  <!-- DASHBOARD-VY                                                        -->
   <!-- ================================================================== -->
-  <div *ngIf="viewMode === 'list'" class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-      <div class="kpi-card">
-        <div class="kpi-label">Senaste overlamning</div>
-        <div class="kpi-value text-info" style="font-size:1.1rem">
-          {{ senaste ? formatDateTime(senaste.skapad) : '--' }}
-        </div>
-        <div class="kpi-sub">{{ senaste?.operator_namn ?? '--' }}</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="kpi-card">
-        <div class="kpi-label">Denna vecka</div>
-        <div class="kpi-value text-success">{{ antalVecka }}</div>
-        <div class="kpi-sub">overlamningar</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="kpi-card">
-        <div class="kpi-label">Snitt IBC (senaste 10)</div>
-        <div class="kpi-value text-warning">{{ snittProduktion }}</div>
-        <div class="kpi-sub">IBC per skift</div>
-      </div>
-    </div>
-    <div class="col-6 col-md-3">
-      <div class="kpi-card" [class.kpi-alert]="pagaendeAntal > 0">
-        <div class="kpi-label">Pagaende problem</div>
-        <div class="kpi-value" [class.text-danger]="pagaendeAntal > 0" [class.text-success]="pagaendeAntal === 0">
-          {{ pagaendeAntal }}
-        </div>
-        <div class="kpi-sub">{{ pagaendeAntal > 0 ? 'aktiva' : 'inga aktiva' }}</div>
-      </div>
-    </div>
-  </div>
+  <div *ngIf="viewMode === 'dashboard'">
 
-  <!-- Pagaende problem varning -->
-  <div *ngIf="viewMode === 'list' && pagaendeProblems.length > 0" class="alert alert-warning mb-4">
-    <h6 class="mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Pagaende problem</h6>
-    <div *ngFor="let p of pagaendeProblems" class="problem-item mb-2">
-      <div class="d-flex justify-content-between align-items-start">
-        <div>
-          <strong>{{ formatDate(p.datum) }}</strong> — {{ p.skift_typ_label }} ({{ p.operator_namn }})
-          <div class="small mt-1" *ngIf="p.problem_text">{{ truncate(p.problem_text, 150) }}</div>
-          <div class="small text-muted mt-1" *ngIf="p.pagaende_arbete">
-            <i class="fas fa-wrench me-1"></i>{{ truncate(p.pagaende_arbete, 100) }}
+    <!-- ---- SKIFT-STATUS-BANNER ---- -->
+    <div class="shift-banner mb-4" *ngIf="aktuelltSkift">
+      <div class="shift-banner-header">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+          <div class="shift-indicator" [class.shift-active]="aktuelltSkift.aktiv_nu" [class.shift-stopped]="!aktuelltSkift.aktiv_nu">
+            <span class="pulse-dot"></span>
+            {{ aktuelltSkift.aktiv_nu ? 'Produktion pagar' : 'Stoppad' }}
+          </div>
+          <div>
+            <span class="badge fs-6" [ngClass]="skiftBadgeClass(aktuelltSkift.skift_typ)">
+              {{ aktuelltSkift.skift_typ_label }}
+            </span>
+          </div>
+          <div class="text-muted small">
+            <i class="fas fa-clock me-1"></i>{{ tidKvarFormatted }}
+          </div>
+          <div class="text-muted small" *ngIf="aktuelltSkift.operator">
+            <i class="fas fa-user me-1"></i>{{ aktuelltSkift.operator }}
           </div>
         </div>
-        <button class="btn btn-outline-warning btn-sm ms-2" (click)="loadDetail(p.id)">
-          <i class="fas fa-eye"></i>
-        </button>
       </div>
-    </div>
-  </div>
-
-  <!-- ================================================================== -->
-  <!-- LISTVY                                                              -->
-  <!-- ================================================================== -->
-  <div *ngIf="viewMode === 'list'">
-
-    <!-- Filtrering -->
-    <div class="card filter-card mb-4">
-      <div class="card-body">
-        <div class="row g-3 align-items-end">
-          <div class="col-6 col-md-2">
-            <label class="form-label small text-muted">Skifttyp</label>
-            <select class="form-select form-select-sm dark-select" [(ngModel)]="filterSkiftTyp">
-              <option value="">Alla</option>
-              <option value="dag">Dag</option>
-              <option value="kvall">Kvall</option>
-              <option value="natt">Natt</option>
-            </select>
+      <div class="shift-banner-kpis">
+        <div class="row g-3">
+          <div class="col-6 col-md-3">
+            <div class="mini-kpi">
+              <span class="mini-kpi-label">IBC</span>
+              <span class="mini-kpi-value text-success">{{ aktuelltSkift.ibc_ok }}</span>
+            </div>
           </div>
           <div class="col-6 col-md-3">
-            <label class="form-label small text-muted">Operator</label>
-            <select class="form-select form-select-sm dark-select" [(ngModel)]="filterOperatorId">
-              <option [ngValue]="0">Alla</option>
-              <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.namn }}</option>
-            </select>
+            <div class="mini-kpi">
+              <span class="mini-kpi-label">IBC/h</span>
+              <span class="mini-kpi-value text-info">{{ aktuelltSkift.ibc_per_h }}</span>
+            </div>
           </div>
-          <div class="col-6 col-md-2">
-            <label class="form-label small text-muted">Fran</label>
-            <input type="date" class="form-control form-control-sm dark-input" [(ngModel)]="filterFrom">
+          <div class="col-6 col-md-3">
+            <div class="mini-kpi">
+              <span class="mini-kpi-label">OEE</span>
+              <span class="mini-kpi-value" [class.text-success]="aktuelltSkift.oee_pct >= 75"
+                    [class.text-warning]="aktuelltSkift.oee_pct >= 50 && aktuelltSkift.oee_pct < 75"
+                    [class.text-danger]="aktuelltSkift.oee_pct < 50">
+                {{ aktuelltSkift.oee_pct }}%
+              </span>
+            </div>
           </div>
-          <div class="col-6 col-md-2">
-            <label class="form-label small text-muted">Till</label>
-            <input type="date" class="form-control form-control-sm dark-input" [(ngModel)]="filterTo">
-          </div>
-          <div class="col-12 col-md-3 d-flex gap-2">
-            <button class="btn btn-info btn-sm" (click)="applyFilters()">
-              <i class="fas fa-search me-1"></i>Filtrera
-            </button>
-            <button class="btn btn-outline-secondary btn-sm" (click)="clearFilters()">
-              <i class="fas fa-times me-1"></i>Rensa
-            </button>
+          <div class="col-6 col-md-3">
+            <div class="mini-kpi">
+              <span class="mini-kpi-label">Kasserade</span>
+              <span class="mini-kpi-value" [class.text-danger]="aktuelltSkift.kasserade > 0"
+                    [class.text-success]="aktuelltSkift.kasserade === 0">
+                {{ aktuelltSkift.kasserade }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Laddning -->
-    <div *ngIf="isLoading" class="text-center py-5">
-      <div class="spinner-border text-info"></div>
-      <p class="text-muted mt-2">Hamtar overlamningar...</p>
-    </div>
-
-    <!-- Felmeddelande -->
-    <div *ngIf="!isLoading && loadError" class="alert alert-danger">
-      <i class="fas fa-exclamation-circle me-2"></i>{{ loadError }}
-    </div>
-
-    <!-- Tom lista -->
-    <div *ngIf="!isLoading && !loadError && items.length === 0" class="text-center py-5 text-muted">
-      <i class="fas fa-clipboard fa-3x mb-3 d-block" style="opacity:0.3"></i>
-      <p>Inga overlamningar hittades.</p>
-      <button *ngIf="loggedIn" class="btn btn-primary btn-sm" (click)="showForm()">
-        <i class="fas fa-plus me-1"></i>Skapa forsta overlamningen
-      </button>
-    </div>
-
-    <!-- Historik-tabell -->
-    <div *ngIf="!isLoading && items.length > 0" class="card list-card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="fas fa-history me-2 text-secondary"></i>Overlamningar</h5>
-        <span class="badge bg-secondary">{{ totalItems }} totalt</span>
+    <!-- ---- FORRA SKIFTETS SAMMANFATTNING ---- -->
+    <div *ngIf="skiftSammanfattning" class="card section-card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-chart-bar me-2 text-info"></i>Forra skiftet: {{ skiftSammanfattning.forra_skift_typ_label }}
+          <span class="text-muted small ms-2">{{ formatDate(skiftSammanfattning.forra_datum) }}</span>
+        </h5>
       </div>
-      <div class="table-responsive">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">OEE</div>
+              <div class="kpi-value" [ngClass]="kpiComparison(skiftSammanfattning.oee_pct, skiftSammanfattning.mal.oee_mal)">
+                {{ skiftSammanfattning.oee_pct }}%
+              </div>
+              <div class="kpi-sub">Mal: {{ skiftSammanfattning.mal.oee_mal }}%</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar" [style.width.%]="skiftSammanfattning.oee_pct"
+                     [class.bg-success]="skiftSammanfattning.oee_pct >= skiftSammanfattning.mal.oee_mal"
+                     [class.bg-warning]="skiftSammanfattning.oee_pct >= skiftSammanfattning.mal.oee_mal * 0.9 && skiftSammanfattning.oee_pct < skiftSammanfattning.mal.oee_mal"
+                     [class.bg-danger]="skiftSammanfattning.oee_pct < skiftSammanfattning.mal.oee_mal * 0.9"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Antal IBC</div>
+              <div class="kpi-value" [ngClass]="kpiComparison(skiftSammanfattning.ibc_ok, skiftSammanfattning.mal.ibc_mal)">
+                {{ skiftSammanfattning.ibc_ok }}
+              </div>
+              <div class="kpi-sub">Mal: {{ skiftSammanfattning.mal.ibc_mal }}</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar bg-info" [style.width.%]="(skiftSammanfattning.ibc_ok / skiftSammanfattning.mal.ibc_mal) * 100"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Kassation</div>
+              <div class="kpi-value" [ngClass]="kpiComparisonReverse(skiftSammanfattning.kassationsgrad_pct, skiftSammanfattning.mal.kassation_mal)">
+                {{ skiftSammanfattning.kassationsgrad_pct }}%
+              </div>
+              <div class="kpi-sub">Mal: &lt;{{ skiftSammanfattning.mal.kassation_mal }}%</div>
+            </div>
+          </div>
+          <div class="col-6 col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-label">Drifttid</div>
+              <div class="kpi-value" [ngClass]="kpiComparison(skiftSammanfattning.drifttid_pct, skiftSammanfattning.mal.drifttid_mal)">
+                {{ skiftSammanfattning.drifttid_pct }}%
+              </div>
+              <div class="kpi-sub">{{ skiftSammanfattning.drifttid_h }}h av 8h</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar bg-success" [style.width.%]="skiftSammanfattning.drifttid_pct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Forra skiftets overlamningsnoteringar -->
+        <div *ngIf="skiftSammanfattning.overlamning" class="mt-3 p-3 forra-noteringar">
+          <h6 class="text-muted mb-2"><i class="fas fa-sticky-note me-1"></i>Noteringar fran forra skiftet</h6>
+          <div class="row g-2">
+            <div class="col-12" *ngIf="skiftSammanfattning.overlamning.problem_text">
+              <div class="small"><strong class="text-danger">Problem:</strong> {{ truncate(skiftSammanfattning.overlamning.problem_text, 200) }}</div>
+            </div>
+            <div class="col-12" *ngIf="skiftSammanfattning.overlamning.pagaende_arbete">
+              <div class="small"><strong class="text-warning">Pagaende:</strong> {{ truncate(skiftSammanfattning.overlamning.pagaende_arbete, 200) }}</div>
+            </div>
+            <div class="col-12" *ngIf="skiftSammanfattning.overlamning.mal_nasta_skift">
+              <div class="small"><strong class="text-info">Mal for detta skift:</strong> {{ skiftSammanfattning.overlamning.mal_nasta_skift }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- OPPNA PROBLEM ---- -->
+    <div *ngIf="oppnaProblem.length > 0" class="card section-card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <i class="fas fa-exclamation-triangle me-2 text-warning"></i>Oppna problem
+          <span class="badge bg-danger ms-2">{{ oppnaProblem.length }}</span>
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div *ngFor="let p of oppnaProblem; let i = index"
+             class="problem-row" [ngClass]="severityClass(p.allvarlighetsgrad)">
+          <div class="d-flex justify-content-between align-items-start p-3">
+            <div class="flex-grow-1">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge" [ngClass]="severityBadgeClass(p.allvarlighetsgrad)">
+                  {{ severityLabel(p.allvarlighetsgrad) }}
+                </span>
+                <span class="badge" [ngClass]="skiftBadgeClass(p.skift_typ)">{{ p.skift_typ_label }}</span>
+                <span class="text-muted small">{{ formatDate(p.datum) }} &middot; {{ p.operator_namn }}</span>
+              </div>
+              <div class="small text-light" *ngIf="p.problem_text">{{ truncate(p.problem_text, 200) }}</div>
+              <div class="small text-muted mt-1" *ngIf="p.pagaende_arbete">
+                <i class="fas fa-wrench me-1"></i>{{ truncate(p.pagaende_arbete, 150) }}
+              </div>
+            </div>
+            <button class="btn btn-outline-warning btn-sm ms-2" (click)="loadDetail(p.id)">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          <hr *ngIf="i < oppnaProblem.length - 1" class="m-0 border-secondary">
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- SNABBVY: KPI-KORT ---- -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Senaste overlamning</div>
+          <div class="kpi-value text-info" style="font-size:1.1rem">
+            {{ senaste ? formatDateTime(senaste.skapad) : '--' }}
+          </div>
+          <div class="kpi-sub">{{ senaste?.operator_namn ?? '--' }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Denna vecka</div>
+          <div class="kpi-value text-success">{{ antalVecka }}</div>
+          <div class="kpi-sub">overlamningar</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card">
+          <div class="kpi-label">Snitt IBC (senaste 10)</div>
+          <div class="kpi-value text-warning">{{ snittProduktion }}</div>
+          <div class="kpi-sub">IBC per skift</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="kpi-card" [class.kpi-alert]="pagaendeAntal > 0">
+          <div class="kpi-label">Pagaende problem</div>
+          <div class="kpi-value" [class.text-danger]="pagaendeAntal > 0" [class.text-success]="pagaendeAntal === 0">
+            {{ pagaendeAntal }}
+          </div>
+          <div class="kpi-sub">{{ pagaendeAntal > 0 ? 'aktiva' : 'inga aktiva' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- HISTORIK (expanderbar) ---- -->
+    <div class="card section-card mb-4">
+      <div class="card-header clickable-header d-flex justify-content-between align-items-center"
+           (click)="toggleHistorik()">
+        <h5 class="mb-0">
+          <i class="fas fa-history me-2 text-secondary"></i>Senaste overlamningar
+          <span class="badge bg-secondary ms-2">{{ historikItems.length }}</span>
+        </h5>
+        <i class="fas" [class.fa-chevron-down]="!historikExpanded" [class.fa-chevron-up]="historikExpanded"></i>
+      </div>
+      <div *ngIf="historikExpanded" class="table-responsive">
         <table class="table table-dark table-hover table-sm mb-0">
           <thead>
             <tr>
@@ -161,12 +254,13 @@
               <th class="text-end">IBC</th>
               <th class="text-end">IBC/h</th>
               <th class="text-end">Stopp</th>
+              <th>Checklista</th>
               <th>Sammanfattning</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of items"
+            <tr *ngFor="let item of historikItems"
                 [class.row-problem]="item.har_pagaende_problem"
                 class="clickable-row"
                 (click)="loadDetail(item.id)">
@@ -176,9 +270,17 @@
               <td class="text-end text-success">{{ item.ibc_totalt }}</td>
               <td class="text-end">{{ item.ibc_per_h }}</td>
               <td class="text-end">{{ formatMin(item.stopptid_min) }}</td>
+              <td>
+                <span *ngIf="item.checklista" class="small text-muted">
+                  {{ getChecklistaCount(item.checklista) }}
+                </span>
+                <span *ngIf="!item.checklista" class="small text-muted">--</span>
+              </td>
               <td class="small">
-                <span *ngIf="item.har_pagaende_problem" class="badge bg-danger me-1">Problem</span>
-                {{ truncate(item.problem_text || item.kommentar, 50) }}
+                <span *ngIf="item.har_pagaende_problem" class="badge" [ngClass]="severityBadgeClass(item.allvarlighetsgrad)">
+                  {{ severityLabel(item.allvarlighetsgrad) }}
+                </span>
+                {{ truncate(item.problem_text || item.kommentar, 40) }}
               </td>
               <td class="text-end">
                 <button class="btn btn-outline-info btn-sm py-0" (click)="loadDetail(item.id); $event.stopPropagation()">
@@ -189,24 +291,12 @@
           </tbody>
         </table>
       </div>
-
-      <!-- Paginering -->
-      <div *ngIf="totalPages > 1" class="card-footer d-flex justify-content-center">
-        <nav>
-          <ul class="pagination pagination-sm mb-0">
-            <li class="page-item" [class.disabled]="currentPage === 1">
-              <a class="page-link" (click)="goPage(currentPage - 1)">Foreg.</a>
-            </li>
-            <li *ngFor="let p of pageNumbers" class="page-item" [class.active]="p === currentPage">
-              <a class="page-link" (click)="goPage(p)">{{ p }}</a>
-            </li>
-            <li class="page-item" [class.disabled]="currentPage === totalPages">
-              <a class="page-link" (click)="goPage(currentPage + 1)">Nasta</a>
-            </li>
-          </ul>
-        </nav>
+      <div *ngIf="historikExpanded && historikItems.length === 0" class="text-center text-muted py-4">
+        <i class="fas fa-clipboard fa-2x mb-2 d-block" style="opacity:0.3"></i>
+        Inga overlamningar annu.
       </div>
     </div>
+
   </div>
 
   <!-- ================================================================== -->
@@ -230,7 +320,10 @@
                 <span class="badge ms-2" [ngClass]="skiftBadgeClass(selectedItem.skift_typ)">
                   {{ selectedItem.skift_typ_label }}
                 </span>
-                <span *ngIf="selectedItem.har_pagaende_problem" class="badge bg-danger ms-2">Pagaende problem</span>
+                <span *ngIf="selectedItem.har_pagaende_problem" class="badge ms-2"
+                      [ngClass]="severityBadgeClass(selectedItem.allvarlighetsgrad)">
+                  {{ severityLabel(selectedItem.allvarlighetsgrad) }} problem
+                </span>
               </h4>
               <span class="text-muted small">
                 <i class="fas fa-user me-1"></i>{{ selectedItem.operator_namn }}
@@ -272,6 +365,28 @@
         </div>
       </div>
 
+      <!-- Checklista -->
+      <div *ngIf="selectedItem.checklista && selectedItem.checklista.length > 0" class="card detail-card mb-4">
+        <div class="card-header"><i class="fas fa-tasks me-2 text-info"></i>Checklista</div>
+        <div class="card-body">
+          <div *ngFor="let c of selectedItem.checklista" class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" [checked]="c.checked" disabled>
+            <label class="form-check-label" [class.text-success]="c.checked" [class.text-muted]="!c.checked">
+              {{ c.label }}
+              <i *ngIf="c.checked" class="fas fa-check ms-1 text-success"></i>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mal nasta skift -->
+      <div *ngIf="selectedItem.mal_nasta_skift" class="card detail-card mb-4">
+        <div class="card-header"><i class="fas fa-bullseye me-2 text-success"></i>Mal nasta skift</div>
+        <div class="card-body">
+          <p class="mb-0 preformatted">{{ selectedItem.mal_nasta_skift }}</p>
+        </div>
+      </div>
+
       <!-- Fritext-falt -->
       <div class="row g-4">
         <div class="col-12 col-md-6" *ngIf="selectedItem.problem_text">
@@ -282,7 +397,6 @@
             </div>
           </div>
         </div>
-
         <div class="col-12 col-md-6" *ngIf="selectedItem.pagaende_arbete">
           <div class="card detail-card">
             <div class="card-header"><i class="fas fa-wrench me-2 text-warning"></i>Pagaende arbete</div>
@@ -291,7 +405,6 @@
             </div>
           </div>
         </div>
-
         <div class="col-12 col-md-6" *ngIf="selectedItem.instruktioner">
           <div class="card detail-card">
             <div class="card-header"><i class="fas fa-tasks me-2 text-info"></i>Specialinstruktioner</div>
@@ -300,7 +413,6 @@
             </div>
           </div>
         </div>
-
         <div class="col-12 col-md-6" *ngIf="selectedItem.kommentar">
           <div class="card detail-card">
             <div class="card-header"><i class="fas fa-comment me-2 text-secondary"></i>Generell kommentar</div>
@@ -311,12 +423,10 @@
         </div>
       </div>
 
-      <!-- Tomt meddelande om inga fritextfalt -->
-      <div *ngIf="!selectedItem.problem_text && !selectedItem.pagaende_arbete && !selectedItem.instruktioner && !selectedItem.kommentar"
+      <div *ngIf="!selectedItem.problem_text && !selectedItem.pagaende_arbete && !selectedItem.instruktioner && !selectedItem.kommentar && !selectedItem.mal_nasta_skift"
            class="text-muted text-center py-4 mt-3">
         <i class="fas fa-info-circle me-2"></i>Inga fritextnoteringar for detta skift.
       </div>
-
     </div>
   </div>
 
@@ -374,6 +484,42 @@
 
         <hr class="border-secondary">
 
+        <!-- CHECKLISTA -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-3">
+            <i class="fas fa-tasks me-2"></i>Checklista
+            <span class="badge ms-2" [class.bg-success]="allChecked" [class.bg-secondary]="!allChecked">
+              {{ checklistaProgress }}%
+            </span>
+          </h6>
+          <div class="progress mb-3" style="height: 6px;">
+            <div class="progress-bar" [class.bg-success]="allChecked" [class.bg-info]="!allChecked"
+                 [style.width.%]="checklistaProgress"></div>
+          </div>
+          <div *ngFor="let c of checklista; let i = index" class="checklista-item mb-2" (click)="toggleChecklista(i)">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" [checked]="c.checked"
+                     (change)="toggleChecklista(i)" (click)="$event.stopPropagation()">
+              <label class="form-check-label" [class.checked-label]="c.checked">
+                {{ c.label }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-secondary">
+
+        <!-- Mal nasta skift -->
+        <div class="mb-4">
+          <h6 class="text-muted mb-3"><i class="fas fa-bullseye me-2"></i>Mal nasta skift</h6>
+          <textarea class="form-control dark-input" rows="3"
+                    placeholder="Produktionsmal, fokusomraden, prioriteringar for nasta skift..."
+                    [(ngModel)]="form.mal_nasta_skift" maxlength="5000"></textarea>
+          <div class="small text-muted mt-1">{{ form.mal_nasta_skift.length }}/5000</div>
+        </div>
+
+        <hr class="border-secondary">
+
         <!-- Fritextfalt -->
         <h6 class="text-muted mb-3"><i class="fas fa-pen me-2"></i>Overlamningsnoteringar</h6>
 
@@ -417,22 +563,38 @@
           <div class="small text-muted mt-1">{{ form.kommentar.length }}/5000</div>
         </div>
 
-        <div class="form-check mb-4">
-          <input class="form-check-input" type="checkbox" id="pagaendeCheck"
-                 [(ngModel)]="form.har_pagaende_problem">
-          <label class="form-check-label text-danger" for="pagaendeCheck">
-            <i class="fas fa-flag me-1"></i>Flagga som pagaende problem (visas i overblick)
-          </label>
+        <hr class="border-secondary">
+
+        <!-- Problemflaggning -->
+        <div class="mb-3">
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" id="pagaendeCheck"
+                   [(ngModel)]="form.har_pagaende_problem">
+            <label class="form-check-label text-danger" for="pagaendeCheck">
+              <i class="fas fa-flag me-1"></i>Flagga som pagaende problem (visas i overblick)
+            </label>
+          </div>
+
+          <div *ngIf="form.har_pagaende_problem" class="ms-4">
+            <label class="form-label small text-muted">Allvarlighetsgrad</label>
+            <select class="form-select form-select-sm dark-select" style="max-width: 200px;"
+                    [(ngModel)]="form.allvarlighetsgrad">
+              <option value="lag">Lag</option>
+              <option value="medel">Medel</option>
+              <option value="hog">Hog</option>
+              <option value="kritisk">Kritisk</option>
+            </select>
+          </div>
         </div>
 
         <!-- Knappar -->
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 mt-4">
           <button class="btn btn-primary" (click)="submitForm()" [disabled]="isSubmitting">
             <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
             <i *ngIf="!isSubmitting" class="fas fa-save me-1"></i>
             Spara overlamning
           </button>
-          <button class="btn btn-outline-secondary" (click)="backToList()" [disabled]="isSubmitting">
+          <button class="btn btn-outline-secondary" (click)="backToDashboard()" [disabled]="isSubmitting">
             Avbryt
           </button>
         </div>

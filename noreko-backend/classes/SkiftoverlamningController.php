@@ -6,20 +6,38 @@
  *
  * Endpoints via ?action=skiftoverlamning&run=XXX:
  *
- *   GET  run=list          — Lista överlämningar (filtrerad per skift_typ, operator_id, from, to)
- *   GET  run=detail&id=N   — Fullständig vy av en överlämning
- *   GET  run=shift-kpis    — Auto-hämta KPI:er för aktuellt/senaste skift
- *   GET  run=summary       — Sammanfattnings-KPI:er (senaste överlämning, antal vecka, snitt, pågående problem)
- *   GET  run=operators     — Lista operatörer (för filter-dropdown)
- *   POST run=create        — Skapa ny överlämning
+ *   GET  run=list              — Lista överlämningar (filtrerad per skift_typ, operator_id, from, to)
+ *   GET  run=detail&id=N       — Fullständig vy av en överlämning
+ *   GET  run=shift-kpis        — Auto-hämta KPI:er för aktuellt/senaste skift
+ *   GET  run=summary           — Sammanfattnings-KPI:er (senaste överlämning, antal vecka, snitt, pågående problem)
+ *   GET  run=operators         — Lista operatörer (för filter-dropdown)
+ *   GET  run=aktuellt-skift    — Info om pågående skift: operatör, starttid, antal IBC, OEE, kasserade
+ *   GET  run=skift-sammanfattning — Sammanfattning av förra skiftet: KPIer, händelser, avvikelser
+ *   GET  run=oppna-problem     — Lista öppna/pågående problem som behöver överlämnas
+ *   GET  run=checklista        — Hämta standard-checklistepunkter
+ *   GET  run=historik          — Lista senaste 10 överlämningar med tidsstämpel och innehåll
+ *   POST run=create            — Skapa ny överlämning
+ *   POST run=skapa-overlamning — POST: spara en överlämning med fritext, checklista, mål
  */
 class SkiftoverlamningController {
     private $pdo;
+
+    /** Standard-checklista som används vid nya överlämningar */
+    private const DEFAULT_CHECKLISTA = [
+        ['key' => 'stationer_kontrollerade', 'label' => 'Alla stationer kontrollerade',     'checked' => false],
+        ['key' => 'inga_stopp',              'label' => 'Inga pågående stopp',               'checked' => false],
+        ['key' => 'verktyg_inventerat',      'label' => 'Verktyg/material inventerat',        'checked' => false],
+        ['key' => 'avvikelser_noterade',     'label' => 'Avvikelser noterade',                'checked' => false],
+        ['key' => 'mal_satta',               'label' => 'Mål för nästa skift satta',          'checked' => false],
+        ['key' => 'rengoring_utford',        'label' => 'Rengöring utförd',                   'checked' => false],
+        ['key' => 'sakerhet_ok',             'label' => 'Säkerhetskontroll genomförd',         'checked' => false],
+    ];
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
         $this->ensureTable();
+        $this->ensureNewColumns();
     }
 
     public function handle(): void {
@@ -28,11 +46,16 @@ class SkiftoverlamningController {
 
         if ($method === 'GET') {
             switch ($run) {
-                case 'list':       $this->getList();      break;
-                case 'detail':     $this->getDetail();    break;
-                case 'shift-kpis': $this->getShiftKpis(); break;
-                case 'summary':    $this->getSummaryKpis(); break;
-                case 'operators':  $this->getOperators(); break;
+                case 'list':                $this->getList();              break;
+                case 'detail':              $this->getDetail();            break;
+                case 'shift-kpis':          $this->getShiftKpis();         break;
+                case 'summary':             $this->getSummaryKpis();       break;
+                case 'operators':           $this->getOperators();         break;
+                case 'aktuellt-skift':      $this->getAktuelltSkift();     break;
+                case 'skift-sammanfattning':$this->getSkiftSammanfattning(); break;
+                case 'oppna-problem':       $this->getOppnaProblem();      break;
+                case 'checklista':          $this->getChecklista();        break;
+                case 'historik':            $this->getHistorik();          break;
                 default:
                     $this->sendError('Okänd run-parameter', 404);
             }
@@ -40,11 +63,14 @@ class SkiftoverlamningController {
         }
 
         if ($method === 'POST') {
-            if ($run === 'create') {
-                $this->requireLogin();
-                $this->createHandover();
-            } else {
-                $this->sendError('Okänd run-parameter', 404);
+            switch ($run) {
+                case 'create':
+                case 'skapa-overlamning':
+                    $this->requireLogin();
+                    $this->createHandover();
+                    break;
+                default:
+                    $this->sendError('Okänd run-parameter', 404);
             }
             return;
         }
@@ -86,12 +112,12 @@ class SkiftoverlamningController {
     // =========================================================================
 
     private function sendSuccess(array $data): void {
-        echo json_encode(array_merge(['success' => true], $data));
+        echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $message]);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
     private function ensureTable(): void {
@@ -112,6 +138,25 @@ class SkiftoverlamningController {
         }
     }
 
+    private function ensureNewColumns(): void {
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.columns
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'skiftoverlamning_logg'
+                   AND column_name = 'checklista_json'"
+            )->fetchColumn();
+            if (!$check) {
+                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_skiftoverlamning_checklista.sql');
+                if ($sql) {
+                    $this->pdo->exec($sql);
+                }
+            }
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController ensureNewColumns: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Bestäm skifttyp baserat på timme.
      * dag=06-14, kväll=14-22, natt=22-06
@@ -121,6 +166,363 @@ class SkiftoverlamningController {
         if ($h >= 6 && $h < 14) return 'dag';
         if ($h >= 14 && $h < 22) return 'kvall';
         return 'natt';
+    }
+
+    /**
+     * Beräkna skiftets start- och sluttid baserat på skifttyp och datum.
+     */
+    private function skiftTider(string $typ, string $datum = null): array {
+        $datum = $datum ?: date('Y-m-d');
+        switch ($typ) {
+            case 'dag':
+                return ['start' => $datum . ' 06:00:00', 'slut' => $datum . ' 14:00:00'];
+            case 'kvall':
+                return ['start' => $datum . ' 14:00:00', 'slut' => $datum . ' 22:00:00'];
+            case 'natt':
+                $nextDay = date('Y-m-d', strtotime($datum . ' +1 day'));
+                return ['start' => $datum . ' 22:00:00', 'slut' => $nextDay . ' 06:00:00'];
+            default:
+                return ['start' => $datum . ' 06:00:00', 'slut' => $datum . ' 14:00:00'];
+        }
+    }
+
+    // =========================================================================
+    // GET run=aktuellt-skift
+    // Info om pågående skift: operatör, starttid, antal IBC, OEE, kasserade
+    // =========================================================================
+
+    private function getAktuelltSkift(): void {
+        try {
+            $skiftTyp = $this->detectSkiftTyp();
+            $tider = $this->skiftTider($skiftTyp);
+
+            // Hämta IBC-data för aktuellt skift
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
+                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade
+                FROM rebotling_ibc
+                WHERE datum BETWEEN :from_dt AND :to_dt
+            ");
+            $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
+            $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            $total    = (int)($ibc['total'] ?? 0);
+            $okAntal  = (int)($ibc['ok_antal'] ?? 0);
+            $kasserade = (int)($ibc['kasserade'] ?? 0);
+
+            // Beräkna tid som gått sedan skift-start
+            $startTs = strtotime($tider['start']);
+            $nu = time();
+            $tidGattMin = max(0, ($nu - $startTs) / 60);
+            $tidKvarMin = max(0, (strtotime($tider['slut']) - $nu) / 60);
+            $ibcPerH = $tidGattMin > 0 ? round($okAntal / ($tidGattMin / 60), 1) : 0.0;
+
+            // Drifttid från rebotling_onoff
+            $drifttidSek = 0;
+            try {
+                $dStmt = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(
+                        TIMESTAMPDIFF(SECOND,
+                            GREATEST(start_time, :from1),
+                            LEAST(COALESCE(stop_time, NOW()), :to1)
+                        )
+                    ), 0) AS drifttid_sek
+                    FROM rebotling_onoff
+                    WHERE start_time < :to2
+                      AND (stop_time IS NULL OR stop_time > :from2)
+                ");
+                $dStmt->execute([
+                    ':from1' => $tider['start'], ':to1' => $tider['slut'],
+                    ':from2' => $tider['start'], ':to2' => $tider['slut'],
+                ]);
+                $drifttidSek = max(0, (int)($dStmt->fetchColumn() ?? 0));
+            } catch (\PDOException $e) {
+                error_log('getAktuelltSkift drifttid: ' . $e->getMessage());
+            }
+
+            // OEE-beräkning
+            $planeradSek = 8 * 3600;
+            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0;
+            $prestanda = $drifttidSek > 0 ? min(1.0, ($total * 120) / $drifttidSek) : 0;
+            $kvalitet = $total > 0 ? ($okAntal / $total) : 0;
+            $oee = $tillganglighet * $prestanda * $kvalitet;
+
+            // Kolla om linjen körs just nu
+            $aktivNu = false;
+            try {
+                $aStmt = $this->pdo->query("SELECT COUNT(*) FROM rebotling_onoff WHERE start_time IS NOT NULL AND stop_time IS NULL");
+                $aktivNu = (int)($aStmt->fetchColumn() ?? 0) > 0;
+            } catch (\PDOException $e) {}
+
+            $this->sendSuccess([
+                'skift_typ'       => $skiftTyp,
+                'skift_typ_label' => $this->skiftTypLabel($skiftTyp),
+                'skift_start'     => $tider['start'],
+                'skift_slut'      => $tider['slut'],
+                'tid_gatt_min'    => round($tidGattMin),
+                'tid_kvar_min'    => round($tidKvarMin),
+                'ibc_totalt'      => $total,
+                'ibc_ok'          => $okAntal,
+                'kasserade'       => $kasserade,
+                'ibc_per_h'       => $ibcPerH,
+                'oee_pct'         => round($oee * 100, 1),
+                'drifttid_min'    => round($drifttidSek / 60),
+                'aktiv_nu'        => $aktivNu,
+                'operator'        => $this->currentUsername(),
+            ]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getAktuelltSkift: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta aktuellt skift', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=skift-sammanfattning
+    // Sammanfattning av förra skiftet: KPIer, händelser, avvikelser
+    // =========================================================================
+
+    private function getSkiftSammanfattning(): void {
+        try {
+            // Förra skiftet
+            $nuTyp = $this->detectSkiftTyp();
+            $idag = date('Y-m-d');
+            switch ($nuTyp) {
+                case 'dag':
+                    $forraTyp = 'natt';
+                    $forraDatum = date('Y-m-d', strtotime('-1 day'));
+                    break;
+                case 'kvall':
+                    $forraTyp = 'dag';
+                    $forraDatum = $idag;
+                    break;
+                case 'natt':
+                    $forraTyp = 'kvall';
+                    $forraDatum = $idag;
+                    break;
+                default:
+                    $forraTyp = 'dag';
+                    $forraDatum = $idag;
+            }
+
+            $tider = $this->skiftTider($forraTyp, $forraDatum);
+
+            // IBC-data
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
+                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade
+                FROM rebotling_ibc
+                WHERE datum BETWEEN :from_dt AND :to_dt
+            ");
+            $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
+            $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            $total    = (int)($ibc['total'] ?? 0);
+            $okAntal  = (int)($ibc['ok_antal'] ?? 0);
+            $kasserade = (int)($ibc['kasserade'] ?? 0);
+            $ibcPerH  = round($okAntal / 8, 1); // 8h skift
+
+            // Drifttid
+            $drifttidSek = 0;
+            try {
+                $dStmt = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(
+                        TIMESTAMPDIFF(SECOND,
+                            GREATEST(start_time, :from1),
+                            LEAST(COALESCE(stop_time, NOW()), :to1)
+                        )
+                    ), 0) AS drifttid_sek
+                    FROM rebotling_onoff
+                    WHERE start_time < :to2
+                      AND (stop_time IS NULL OR stop_time > :from2)
+                ");
+                $dStmt->execute([
+                    ':from1' => $tider['start'], ':to1' => $tider['slut'],
+                    ':from2' => $tider['start'], ':to2' => $tider['slut'],
+                ]);
+                $drifttidSek = max(0, (int)($dStmt->fetchColumn() ?? 0));
+            } catch (\PDOException $e) {
+                error_log('getSkiftSammanfattning drifttid: ' . $e->getMessage());
+            }
+
+            // OEE
+            $planeradSek = 8 * 3600;
+            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0;
+            $prestanda = $drifttidSek > 0 ? min(1.0, ($total * 120) / $drifttidSek) : 0;
+            $kvalitet = $total > 0 ? ($okAntal / $total) : 0;
+            $oee = $tillganglighet * $prestanda * $kvalitet;
+
+            $kassationsgrad = $total > 0 ? round(($kasserade / $total) * 100, 1) : 0;
+            $drifttidH = round($drifttidSek / 3600, 1);
+            $drifttidPct = round(($drifttidSek / $planeradSek) * 100, 1);
+
+            // Hämta ev. överlämning som gjordes för detta skift
+            $overlamning = null;
+            $olStmt = $this->pdo->prepare("
+                SELECT id, operator_namn, problem_text, pagaende_arbete, instruktioner, kommentar,
+                       har_pagaende_problem, checklista_json, mal_nasta_skift, skapad
+                FROM skiftoverlamning_logg
+                WHERE skift_typ = :typ AND datum = :datum
+                ORDER BY skapad DESC LIMIT 1
+            ");
+            $olStmt->execute([':typ' => $forraTyp, ':datum' => $forraDatum]);
+            $olRow = $olStmt->fetch(\PDO::FETCH_ASSOC);
+            if ($olRow) {
+                $overlamning = [
+                    'id'                   => (int)$olRow['id'],
+                    'operator_namn'        => $olRow['operator_namn'],
+                    'problem_text'         => $olRow['problem_text'],
+                    'pagaende_arbete'      => $olRow['pagaende_arbete'],
+                    'instruktioner'        => $olRow['instruktioner'],
+                    'kommentar'            => $olRow['kommentar'],
+                    'har_pagaende_problem' => (bool)$olRow['har_pagaende_problem'],
+                    'mal_nasta_skift'      => $olRow['mal_nasta_skift'],
+                    'skapad'               => $olRow['skapad'],
+                ];
+            }
+
+            // Mål (statiska målvärden)
+            $mal = [
+                'oee_mal' => 75.0,
+                'ibc_mal' => 200,
+                'kassation_mal' => 3.0,
+                'drifttid_mal' => 90.0,
+            ];
+
+            $this->sendSuccess([
+                'forra_skift_typ'       => $forraTyp,
+                'forra_skift_typ_label' => $this->skiftTypLabel($forraTyp),
+                'forra_datum'           => $forraDatum,
+                'tider'                 => $tider,
+                'ibc_totalt'            => $total,
+                'ibc_ok'                => $okAntal,
+                'kasserade'             => $kasserade,
+                'kassationsgrad_pct'    => $kassationsgrad,
+                'ibc_per_h'             => $ibcPerH,
+                'oee_pct'               => round($oee * 100, 1),
+                'drifttid_h'            => $drifttidH,
+                'drifttid_pct'          => $drifttidPct,
+                'mal'                   => $mal,
+                'overlamning'           => $overlamning,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getSkiftSammanfattning: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta skift-sammanfattning', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=oppna-problem
+    // Lista öppna/pågående problem som behöver överlämnas
+    // =========================================================================
+
+    private function getOppnaProblem(): void {
+        try {
+            $stmt = $this->pdo->query("
+                SELECT id, datum, skift_typ, operator_namn, problem_text, pagaende_arbete,
+                       instruktioner, allvarlighetsgrad, skapad
+                FROM skiftoverlamning_logg
+                WHERE har_pagaende_problem = 1
+                ORDER BY
+                    FIELD(allvarlighetsgrad, 'kritisk', 'hog', 'medel', 'lag') ASC,
+                    skapad DESC
+                LIMIT 20
+            ");
+            $items = [];
+            foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $items[] = [
+                    'id'                => (int)$r['id'],
+                    'datum'             => $r['datum'],
+                    'skift_typ'         => $r['skift_typ'],
+                    'skift_typ_label'   => $this->skiftTypLabel($r['skift_typ']),
+                    'operator_namn'     => $r['operator_namn'],
+                    'problem_text'      => $r['problem_text'],
+                    'pagaende_arbete'   => $r['pagaende_arbete'],
+                    'instruktioner'     => $r['instruktioner'],
+                    'allvarlighetsgrad' => $r['allvarlighetsgrad'] ?? 'medel',
+                    'skapad'            => $r['skapad'],
+                ];
+            }
+
+            $this->sendSuccess(['problem' => $items, 'antal' => count($items)]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getOppnaProblem: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta öppna problem', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=checklista
+    // Hämta standard-checklistepunkter
+    // =========================================================================
+
+    private function getChecklista(): void {
+        $this->sendSuccess(['checklista' => self::DEFAULT_CHECKLISTA]);
+    }
+
+    // =========================================================================
+    // GET run=historik
+    // Lista senaste 10 överlämningar med tidsstämpel och innehåll
+    // =========================================================================
+
+    private function getHistorik(): void {
+        try {
+            $limit = max(1, min(20, (int)($_GET['limit'] ?? 10)));
+
+            $stmt = $this->pdo->prepare("
+                SELECT l.id, l.operator_id, l.operator_namn, l.skift_typ, l.datum,
+                       l.ibc_totalt, l.ibc_per_h, l.stopptid_min, l.kassationer,
+                       l.problem_text, l.pagaende_arbete, l.instruktioner, l.kommentar,
+                       l.har_pagaende_problem, l.checklista_json, l.mal_nasta_skift,
+                       l.allvarlighetsgrad, l.skapad,
+                       COALESCE(u.username, l.operator_namn) AS operatör
+                FROM skiftoverlamning_logg l
+                LEFT JOIN users u ON l.operator_id = u.id
+                ORDER BY l.skapad DESC
+                LIMIT :lim
+            ");
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $items = [];
+            foreach ($rows as $r) {
+                $checklista = null;
+                if (!empty($r['checklista_json'])) {
+                    $checklista = json_decode($r['checklista_json'], true);
+                }
+
+                $items[] = [
+                    'id'                   => (int)$r['id'],
+                    'operator_id'          => (int)$r['operator_id'],
+                    'operator_namn'        => $r['operatör'] ?? $r['operator_namn'],
+                    'skift_typ'            => $r['skift_typ'],
+                    'skift_typ_label'      => $this->skiftTypLabel($r['skift_typ']),
+                    'datum'                => $r['datum'],
+                    'ibc_totalt'           => (int)$r['ibc_totalt'],
+                    'ibc_per_h'            => (float)$r['ibc_per_h'],
+                    'stopptid_min'         => (int)$r['stopptid_min'],
+                    'kassationer'          => (int)$r['kassationer'],
+                    'problem_text'         => $r['problem_text'],
+                    'pagaende_arbete'      => $r['pagaende_arbete'],
+                    'instruktioner'        => $r['instruktioner'],
+                    'kommentar'            => $r['kommentar'],
+                    'har_pagaende_problem' => (bool)$r['har_pagaende_problem'],
+                    'checklista'           => $checklista,
+                    'mal_nasta_skift'      => $r['mal_nasta_skift'],
+                    'allvarlighetsgrad'    => $r['allvarlighetsgrad'] ?? 'medel',
+                    'skapad'               => $r['skapad'],
+                ];
+            }
+
+            $this->sendSuccess(['items' => $items]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getHistorik: ' . $e->getMessage());
+            $this->sendError('Kunde inte hämta historik', 500);
+        }
     }
 
     // =========================================================================
@@ -133,21 +535,18 @@ class SkiftoverlamningController {
             $where  = [];
             $params = [];
 
-            // Filter: skift_typ
             $skiftTyp = trim($_GET['skift_typ'] ?? '');
             if (in_array($skiftTyp, ['dag', 'kvall', 'natt'], true)) {
                 $where[]  = 'l.skift_typ = ?';
                 $params[] = $skiftTyp;
             }
 
-            // Filter: operator_id
             $opId = isset($_GET['operator_id']) ? (int)$_GET['operator_id'] : 0;
             if ($opId > 0) {
                 $where[]  = 'l.operator_id = ?';
                 $params[] = $opId;
             }
 
-            // Filter: datum from-to
             $from = trim($_GET['from'] ?? '');
             $to   = trim($_GET['to'] ?? '');
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
@@ -164,19 +563,18 @@ class SkiftoverlamningController {
             $limit  = max(1, min(100, (int)($_GET['limit'] ?? 50)));
             $offset = max(0, (int)($_GET['offset'] ?? 0));
 
-            // Hämta totalt antal
             $countStmt = $this->pdo->prepare(
                 "SELECT COUNT(*) FROM skiftoverlamning_logg l {$whereSql}"
             );
             $countStmt->execute($params);
             $total = (int)$countStmt->fetchColumn();
 
-            // Hämta poster
             $stmt = $this->pdo->prepare(
                 "SELECT l.id, l.operator_id, l.operator_namn, l.skift_typ, l.datum,
                         l.ibc_totalt, l.ibc_per_h, l.stopptid_min, l.kassationer,
                         l.problem_text, l.pagaende_arbete, l.instruktioner, l.kommentar,
-                        l.har_pagaende_problem, l.skapad,
+                        l.har_pagaende_problem, l.checklista_json, l.mal_nasta_skift,
+                        l.allvarlighetsgrad, l.skapad,
                         COALESCE(u.username, l.operator_namn) AS operatör
                  FROM skiftoverlamning_logg l
                  LEFT JOIN users u ON l.operator_id = u.id
@@ -189,23 +587,31 @@ class SkiftoverlamningController {
 
             $items = [];
             foreach ($rows as $r) {
+                $checklista = null;
+                if (!empty($r['checklista_json'])) {
+                    $checklista = json_decode($r['checklista_json'], true);
+                }
+
                 $items[] = [
-                    'id'                  => (int)$r['id'],
-                    'operator_id'         => (int)$r['operator_id'],
-                    'operator_namn'       => $r['operatör'] ?? $r['operator_namn'],
-                    'skift_typ'           => $r['skift_typ'],
-                    'skift_typ_label'     => $this->skiftTypLabel($r['skift_typ']),
-                    'datum'               => $r['datum'],
-                    'ibc_totalt'          => (int)$r['ibc_totalt'],
-                    'ibc_per_h'           => (float)$r['ibc_per_h'],
-                    'stopptid_min'        => (int)$r['stopptid_min'],
-                    'kassationer'         => (int)$r['kassationer'],
-                    'problem_text'        => $r['problem_text'],
-                    'pagaende_arbete'     => $r['pagaende_arbete'],
-                    'instruktioner'       => $r['instruktioner'],
-                    'kommentar'           => $r['kommentar'],
-                    'har_pagaende_problem'=> (bool)$r['har_pagaende_problem'],
-                    'skapad'              => $r['skapad'],
+                    'id'                   => (int)$r['id'],
+                    'operator_id'          => (int)$r['operator_id'],
+                    'operator_namn'        => $r['operatör'] ?? $r['operator_namn'],
+                    'skift_typ'            => $r['skift_typ'],
+                    'skift_typ_label'      => $this->skiftTypLabel($r['skift_typ']),
+                    'datum'                => $r['datum'],
+                    'ibc_totalt'           => (int)$r['ibc_totalt'],
+                    'ibc_per_h'            => (float)$r['ibc_per_h'],
+                    'stopptid_min'         => (int)$r['stopptid_min'],
+                    'kassationer'          => (int)$r['kassationer'],
+                    'problem_text'         => $r['problem_text'],
+                    'pagaende_arbete'      => $r['pagaende_arbete'],
+                    'instruktioner'        => $r['instruktioner'],
+                    'kommentar'            => $r['kommentar'],
+                    'har_pagaende_problem' => (bool)$r['har_pagaende_problem'],
+                    'checklista'           => $checklista,
+                    'mal_nasta_skift'      => $r['mal_nasta_skift'],
+                    'allvarlighetsgrad'    => $r['allvarlighetsgrad'] ?? 'medel',
+                    'skapad'               => $r['skapad'],
                 ];
             }
 
@@ -247,24 +653,32 @@ class SkiftoverlamningController {
                 return;
             }
 
+            $checklista = null;
+            if (!empty($r['checklista_json'])) {
+                $checklista = json_decode($r['checklista_json'], true);
+            }
+
             $this->sendSuccess([
                 'item' => [
-                    'id'                  => (int)$r['id'],
-                    'operator_id'         => (int)$r['operator_id'],
-                    'operator_namn'       => $r['operatör'] ?? $r['operator_namn'],
-                    'skift_typ'           => $r['skift_typ'],
-                    'skift_typ_label'     => $this->skiftTypLabel($r['skift_typ']),
-                    'datum'               => $r['datum'],
-                    'ibc_totalt'          => (int)$r['ibc_totalt'],
-                    'ibc_per_h'           => (float)$r['ibc_per_h'],
-                    'stopptid_min'        => (int)$r['stopptid_min'],
-                    'kassationer'         => (int)$r['kassationer'],
-                    'problem_text'        => $r['problem_text'],
-                    'pagaende_arbete'     => $r['pagaende_arbete'],
-                    'instruktioner'       => $r['instruktioner'],
-                    'kommentar'           => $r['kommentar'],
-                    'har_pagaende_problem'=> (bool)$r['har_pagaende_problem'],
-                    'skapad'              => $r['skapad'],
+                    'id'                   => (int)$r['id'],
+                    'operator_id'          => (int)$r['operator_id'],
+                    'operator_namn'        => $r['operatör'] ?? $r['operator_namn'],
+                    'skift_typ'            => $r['skift_typ'],
+                    'skift_typ_label'      => $this->skiftTypLabel($r['skift_typ']),
+                    'datum'                => $r['datum'],
+                    'ibc_totalt'           => (int)$r['ibc_totalt'],
+                    'ibc_per_h'            => (float)$r['ibc_per_h'],
+                    'stopptid_min'         => (int)$r['stopptid_min'],
+                    'kassationer'          => (int)$r['kassationer'],
+                    'problem_text'         => $r['problem_text'],
+                    'pagaende_arbete'      => $r['pagaende_arbete'],
+                    'instruktioner'        => $r['instruktioner'],
+                    'kommentar'            => $r['kommentar'],
+                    'har_pagaende_problem' => (bool)$r['har_pagaende_problem'],
+                    'checklista'           => $checklista,
+                    'mal_nasta_skift'      => $r['mal_nasta_skift'],
+                    'allvarlighetsgrad'    => $r['allvarlighetsgrad'] ?? 'medel',
+                    'skapad'               => $r['skapad'],
                 ],
             ]);
         } catch (\PDOException $e) {
@@ -275,12 +689,10 @@ class SkiftoverlamningController {
 
     // =========================================================================
     // GET run=shift-kpis
-    // Hämtar automatiska KPI:er för det senaste/aktuella skiftet från rebotling_ibc
     // =========================================================================
 
     private function getShiftKpis(): void {
         try {
-            // Hämta senaste avslutade skiftet
             $stmt = $this->pdo->query(
                 "SELECT skiftraknare,
                         MAX(ibc_ok) AS ibc_ok,
@@ -313,7 +725,6 @@ class SkiftoverlamningController {
             $stopptid = max(0, $skiftMin - $runtime);
             $ibcPerH  = $runtime > 0 ? round($ibcOk / ($runtime / 60), 1) : 0.0;
 
-            // Bestäm skifttyp från starttid
             $startHour = (int)date('G', strtotime($row['skift_start']));
             if ($startHour >= 6 && $startHour < 14) $autoSkift = 'dag';
             elseif ($startHour >= 14 && $startHour < 22) $autoSkift = 'kvall';
@@ -342,13 +753,10 @@ class SkiftoverlamningController {
 
     // =========================================================================
     // GET run=summary
-    // Sammanfattnings-KPI:er: senaste överlämning, antal denna vecka,
-    // genomsnittlig produktion (senaste 10), pågående problem
     // =========================================================================
 
     private function getSummaryKpis(): void {
         try {
-            // 1. Senaste överlämningen
             $lastStmt = $this->pdo->query(
                 "SELECT id, skapad, operator_namn, skift_typ, datum
                  FROM skiftoverlamning_logg
@@ -356,7 +764,6 @@ class SkiftoverlamningController {
             );
             $last = $lastStmt->fetch(\PDO::FETCH_ASSOC);
 
-            // 2. Antal denna vecka (måndag–söndag)
             $weekStart = date('Y-m-d', strtotime('monday this week'));
             $weekStmt  = $this->pdo->prepare(
                 "SELECT COUNT(*) FROM skiftoverlamning_logg WHERE datum >= ?"
@@ -364,7 +771,6 @@ class SkiftoverlamningController {
             $weekStmt->execute([$weekStart]);
             $weekCount = (int)$weekStmt->fetchColumn();
 
-            // 3. Genomsnittlig produktion (senaste 10)
             $avgStmt = $this->pdo->query(
                 "SELECT AVG(ibc_totalt) AS snitt
                  FROM (SELECT ibc_totalt FROM skiftoverlamning_logg ORDER BY skapad DESC LIMIT 10) sub"
@@ -372,30 +778,29 @@ class SkiftoverlamningController {
             $avgRow = $avgStmt->fetch(\PDO::FETCH_ASSOC);
             $avgProduction = $avgRow && $avgRow['snitt'] !== null ? round((float)$avgRow['snitt'], 1) : 0;
 
-            // 4. Pågående problem (aktiva)
             $probStmt = $this->pdo->query(
                 "SELECT COUNT(*) FROM skiftoverlamning_logg WHERE har_pagaende_problem = 1"
             );
             $activeProblems = (int)$probStmt->fetchColumn();
 
-            // 5. Senaste pågående problem-detaljer
             $probDetailStmt = $this->pdo->query(
-                "SELECT id, datum, skift_typ, operator_namn, problem_text, pagaende_arbete
+                "SELECT id, datum, skift_typ, operator_namn, problem_text, pagaende_arbete, allvarlighetsgrad
                  FROM skiftoverlamning_logg
                  WHERE har_pagaende_problem = 1
-                 ORDER BY skapad DESC
+                 ORDER BY FIELD(allvarlighetsgrad, 'kritisk', 'hog', 'medel', 'lag') ASC, skapad DESC
                  LIMIT 5"
             );
             $activeItems = [];
             foreach ($probDetailStmt->fetchAll(\PDO::FETCH_ASSOC) as $r) {
                 $activeItems[] = [
-                    'id'              => (int)$r['id'],
-                    'datum'           => $r['datum'],
-                    'skift_typ'       => $r['skift_typ'],
-                    'skift_typ_label' => $this->skiftTypLabel($r['skift_typ']),
-                    'operator_namn'   => $r['operator_namn'],
-                    'problem_text'    => $r['problem_text'],
-                    'pagaende_arbete' => $r['pagaende_arbete'],
+                    'id'                => (int)$r['id'],
+                    'datum'             => $r['datum'],
+                    'skift_typ'         => $r['skift_typ'],
+                    'skift_typ_label'   => $this->skiftTypLabel($r['skift_typ']),
+                    'operator_namn'     => $r['operator_namn'],
+                    'problem_text'      => $r['problem_text'],
+                    'pagaende_arbete'   => $r['pagaende_arbete'],
+                    'allvarlighetsgrad' => $r['allvarlighetsgrad'] ?? 'medel',
                 ];
             }
 
@@ -445,9 +850,11 @@ class SkiftoverlamningController {
     }
 
     // =========================================================================
-    // POST run=create
+    // POST run=create / run=skapa-overlamning
     // Body: { skift_typ, datum, ibc_totalt, ibc_per_h, stopptid_min, kassationer,
-    //         problem_text, pagaende_arbete, instruktioner, kommentar, har_pagaende_problem }
+    //         problem_text, pagaende_arbete, instruktioner, kommentar,
+    //         har_pagaende_problem, allvarlighetsgrad,
+    //         checklista_json, mal_nasta_skift }
     // =========================================================================
 
     private function createHandover(): void {
@@ -455,19 +862,15 @@ class SkiftoverlamningController {
         $userId   = $this->currentUserId();
         $username = $this->currentUsername();
 
-        // Om username inte finns i session, hämta från DB
         if (!$username && $userId) {
             try {
                 $uStmt = $this->pdo->prepare('SELECT username FROM users WHERE id = ?');
                 $uStmt->execute([$userId]);
                 $uRow = $uStmt->fetch(\PDO::FETCH_ASSOC);
                 $username = $uRow['username'] ?? null;
-            } catch (\PDOException $e) {
-                // ignorera
-            }
+            } catch (\PDOException $e) {}
         }
 
-        // Validering
         $skiftTyp = $data['skift_typ'] ?? '';
         if (!in_array($skiftTyp, ['dag', 'kvall', 'natt'], true)) {
             $skiftTyp = $this->detectSkiftTyp();
@@ -487,14 +890,25 @@ class SkiftoverlamningController {
         $pagaendeArbete = isset($data['pagaende_arbete']) ? strip_tags(trim($data['pagaende_arbete'])) : null;
         $instruktioner  = isset($data['instruktioner'])   ? strip_tags(trim($data['instruktioner']))   : null;
         $kommentar      = isset($data['kommentar'])       ? strip_tags(trim($data['kommentar']))       : null;
+        $malNastaSkift  = isset($data['mal_nasta_skift']) ? strip_tags(trim($data['mal_nasta_skift'])) : null;
 
         $harPagaende = !empty($data['har_pagaende_problem']) ? 1 : 0;
 
+        $allvarlighetsgrad = $data['allvarlighetsgrad'] ?? 'medel';
+        if (!in_array($allvarlighetsgrad, ['lag', 'medel', 'hog', 'kritisk'], true)) {
+            $allvarlighetsgrad = 'medel';
+        }
+
+        // Checklista JSON
+        $checklistaJson = null;
+        if (isset($data['checklista']) && is_array($data['checklista'])) {
+            $checklistaJson = json_encode($data['checklista'], JSON_UNESCAPED_UNICODE);
+        }
+
         // Begränsa textlängder
-        if ($problemText && mb_strlen($problemText) > 5000) $problemText = mb_substr($problemText, 0, 5000);
-        if ($pagaendeArbete && mb_strlen($pagaendeArbete) > 5000) $pagaendeArbete = mb_substr($pagaendeArbete, 0, 5000);
-        if ($instruktioner && mb_strlen($instruktioner) > 5000) $instruktioner = mb_substr($instruktioner, 0, 5000);
-        if ($kommentar && mb_strlen($kommentar) > 5000) $kommentar = mb_substr($kommentar, 0, 5000);
+        foreach (['problemText', 'pagaendeArbete', 'instruktioner', 'kommentar', 'malNastaSkift'] as $var) {
+            if ($$var && mb_strlen($$var) > 5000) $$var = mb_substr($$var, 0, 5000);
+        }
 
         try {
             $stmt = $this->pdo->prepare(
@@ -502,8 +916,9 @@ class SkiftoverlamningController {
                     (operator_id, operator_namn, skift_typ, datum,
                      ibc_totalt, ibc_per_h, stopptid_min, kassationer,
                      problem_text, pagaende_arbete, instruktioner, kommentar,
-                     har_pagaende_problem, skapad)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
+                     checklista_json, mal_nasta_skift,
+                     har_pagaende_problem, allvarlighetsgrad, skapad)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
             );
             $stmt->execute([
                 $userId,
@@ -518,7 +933,10 @@ class SkiftoverlamningController {
                 $pagaendeArbete ?: null,
                 $instruktioner ?: null,
                 $kommentar ?: null,
+                $checklistaJson,
+                $malNastaSkift ?: null,
                 $harPagaende,
+                $allvarlighetsgrad,
             ]);
 
             $newId = (int)$this->pdo->lastInsertId();

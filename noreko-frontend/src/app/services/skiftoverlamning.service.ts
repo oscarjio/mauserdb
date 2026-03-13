@@ -7,6 +7,12 @@ const API = '/noreko-backend/api.php?action=skiftoverlamning';
 
 // --- Interfaces ---
 
+export interface ChecklistaItem {
+  key: string;
+  label: string;
+  checked: boolean;
+}
+
 export interface SkiftoverlamningItem {
   id: number;
   operator_id: number;
@@ -23,6 +29,9 @@ export interface SkiftoverlamningItem {
   instruktioner: string | null;
   kommentar: string | null;
   har_pagaende_problem: boolean;
+  checklista: ChecklistaItem[] | null;
+  mal_nasta_skift: string | null;
+  allvarlighetsgrad: string;
   skapad: string;
 }
 
@@ -78,6 +87,7 @@ export interface PagaendeProblem {
   operator_namn: string;
   problem_text: string;
   pagaende_arbete: string;
+  allvarlighetsgrad: string;
 }
 
 export interface SummaryResponse {
@@ -120,6 +130,118 @@ export interface CreatePayload {
   instruktioner: string;
   kommentar: string;
   har_pagaende_problem: boolean;
+  allvarlighetsgrad: string;
+  checklista: ChecklistaItem[];
+  mal_nasta_skift: string;
+}
+
+export interface AktuelltSkift {
+  skift_typ: string;
+  skift_typ_label: string;
+  skift_start: string;
+  skift_slut: string;
+  tid_gatt_min: number;
+  tid_kvar_min: number;
+  ibc_totalt: number;
+  ibc_ok: number;
+  kasserade: number;
+  ibc_per_h: number;
+  oee_pct: number;
+  drifttid_min: number;
+  aktiv_nu: boolean;
+  operator: string | null;
+}
+
+export interface AktuelltSkiftResponse {
+  success: boolean;
+  error?: string;
+  skift_typ: string;
+  skift_typ_label: string;
+  skift_start: string;
+  skift_slut: string;
+  tid_gatt_min: number;
+  tid_kvar_min: number;
+  ibc_totalt: number;
+  ibc_ok: number;
+  kasserade: number;
+  ibc_per_h: number;
+  oee_pct: number;
+  drifttid_min: number;
+  aktiv_nu: boolean;
+  operator: string | null;
+}
+
+export interface SkiftMal {
+  oee_mal: number;
+  ibc_mal: number;
+  kassation_mal: number;
+  drifttid_mal: number;
+}
+
+export interface SkiftSammanfattning {
+  forra_skift_typ: string;
+  forra_skift_typ_label: string;
+  forra_datum: string;
+  ibc_totalt: number;
+  ibc_ok: number;
+  kasserade: number;
+  kassationsgrad_pct: number;
+  ibc_per_h: number;
+  oee_pct: number;
+  drifttid_h: number;
+  drifttid_pct: number;
+  mal: SkiftMal;
+  overlamning: any | null;
+}
+
+export interface SkiftSammanfattningResponse {
+  success: boolean;
+  error?: string;
+  forra_skift_typ: string;
+  forra_skift_typ_label: string;
+  forra_datum: string;
+  ibc_totalt: number;
+  ibc_ok: number;
+  kasserade: number;
+  kassationsgrad_pct: number;
+  ibc_per_h: number;
+  oee_pct: number;
+  drifttid_h: number;
+  drifttid_pct: number;
+  mal: SkiftMal;
+  overlamning: any | null;
+}
+
+export interface OppnaProblemItem {
+  id: number;
+  datum: string;
+  skift_typ: string;
+  skift_typ_label: string;
+  operator_namn: string;
+  problem_text: string;
+  pagaende_arbete: string;
+  instruktioner: string;
+  allvarlighetsgrad: string;
+  skapad: string;
+}
+
+export interface OppnaProblemResponse {
+  success: boolean;
+  error?: string;
+  problem: OppnaProblemItem[];
+  antal: number;
+}
+
+export interface ChecklistaResponse {
+  success: boolean;
+  error?: string;
+  checklista: ChecklistaItem[];
+}
+
+export interface HistorikResponse {
+  success: boolean;
+  error?: string;
+  items: SkiftoverlamningItem[];
 }
 
 // --- Service ---
@@ -183,8 +305,43 @@ export class SkiftoverlamningService {
     );
   }
 
+  getAktuelltSkift(): Observable<AktuelltSkiftResponse> {
+    return this.http.get<AktuelltSkiftResponse>(`${API}&run=aktuellt-skift`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+    );
+  }
+
+  getSkiftSammanfattning(): Observable<SkiftSammanfattningResponse> {
+    return this.http.get<SkiftSammanfattningResponse>(`${API}&run=skift-sammanfattning`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, error: 'Natverksfel' } as any))
+    );
+  }
+
+  getOppnaProblem(): Observable<OppnaProblemResponse> {
+    return this.http.get<OppnaProblemResponse>(`${API}&run=oppna-problem`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, error: 'Natverksfel', problem: [], antal: 0 } as OppnaProblemResponse))
+    );
+  }
+
+  getChecklista(): Observable<ChecklistaResponse> {
+    return this.http.get<ChecklistaResponse>(`${API}&run=checklista`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, error: 'Natverksfel', checklista: [] } as ChecklistaResponse))
+    );
+  }
+
+  getHistorik(limit: number = 10): Observable<HistorikResponse> {
+    return this.http.get<HistorikResponse>(`${API}&run=historik&limit=${limit}`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, error: 'Natverksfel', items: [] } as HistorikResponse))
+    );
+  }
+
   create(payload: CreatePayload): Observable<CreateResponse> {
-    return this.http.post<CreateResponse>(`${API}&run=create`, payload, { withCredentials: true }).pipe(
+    return this.http.post<CreateResponse>(`${API}&run=skapa-overlamning`, payload, { withCredentials: true }).pipe(
       timeout(15000),
       catchError(() => of({ success: false, error: 'Natverksfel' } as CreateResponse))
     );
