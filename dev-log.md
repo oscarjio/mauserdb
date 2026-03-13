@@ -1,3 +1,34 @@
+## 2026-03-13 OEE-jamforelse per vecka — trendanalys for VD
+
+Ny sida `/rebotling/oee-jamforelse` — jamfor OEE vecka-for-vecka med trendpilar. VD:n ser direkt om OEE forbattras eller forsamras.
+
+- **Backend**: `classes/OeeJamforelseController.php` (action=`oee-jamforelse`)
+  - `run=weekly-oee` — OEE per vecka senaste N veckor (?veckor=12)
+  - OEE = Tillganglighet x Prestanda x Kvalitet
+    - Tillganglighet = drifttid (fran `rebotling_onoff`) / planerad tid (8h/arbetsdag)
+    - Prestanda = (totalIbc * 120s) / drifttid (max 100%)
+    - Kvalitet = godkanda (ok=1) / totalt (fran `rebotling_ibc`)
+  - Returnerar: aktuell vecka, forra veckan, forandring (pp), trendpil, plus komplett veckolista
+  - Registrerad i `api.php` med nyckel `oee-jamforelse`
+  - Inga nya DB-tabeller — anvander `rebotling_ibc` + `rebotling_onoff`
+
+- **Frontend**: `pages/rebotling/oee-jamforelse/`
+  - Angular standalone-komponent `OeeJamforelsePage`
+  - KPI-kort: aktuell vecka OEE, forra veckan OEE, forandring (trendpil), mal-OEE (85%)
+  - Linjediagram (Chart.js): OEE%, tillganglighet%, prestanda%, kvalitet% per vecka + mal-linje
+  - Veckovis tabell: veckonummer, OEE%, tillganglighet%, prestanda%, kvalitet%, producerade, forandring (fargad pil)
+  - Periodselektor: 8/12/26/52 veckor
+  - Aktuell vecka markerad i tabellen
+  - PDF-export via PdfExportButtonComponent
+  - Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil
+
+- **Service**: `services/oee-jamforelse.service.ts` — `getWeeklyOee(veckor)`
+- **Route**: `/rebotling/oee-jamforelse` (authGuard)
+- **Navigation**: tillagd i Rebotling-dropdown
+
+---
+
 ## 2026-03-13 Maskin-drifttid heatmap — visuell oversikt nar maskiner kor vs star stilla
 
 Ny sida `/rebotling/maskin-drifttid` — visar heatmap per timme/dag over maskindrifttid. VD:n ser pa 10 sekunder nar produktionen ar igang.
