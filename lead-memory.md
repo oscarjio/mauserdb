@@ -61,12 +61,12 @@ Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
 Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
 Session #96: Rebotling underhållslogg + Buggjakt — klara.
 Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — klara.
-Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — pågår.
+Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet (PÅGÅR #98)
-- [ ] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, flaskhalsar, prediktion (PÅGÅR #98)
+- [x] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet (klar #98)
+- [x] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, flaskhalsar, prediktion (klar #98)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
@@ -84,6 +84,6 @@ Worker 2 (Buggjakt #96): Systematisk granskning av kassationsanalys, skiftöverl
 Worker 1 (Rebotling produktionsmål-uppföljning): Ny sida — dagliga/veckovisa mål vs utfall, progress-bar per skift, vecko-chart, historik, målhantering. Backend: ProduktionsmalController + ny DB-tabell.
 Worker 2 (Stopporsak-dashboard): Ny sida — Pareto stopp-frekvens, stopptid per station, trend, per-orsak-tabell, detaljlista. Backend: StopporsakController.
 
-### 2026-03-13 — Session #98 (pågår)
+### 2026-03-13 — Session #98 (klar)
 Worker 1 (Operatörs-tidrapport): Ny sida — automatisk tidrapport från skiftschema, per-operatör-sammanfattning, arbetstid-chart, detaljlista, CSV-export. Backend: TidrapportController.
 Worker 2 (OEE-trendanalys förbättrad): Ny sida — OEE per station med breakdown, trendlinje med rullande snitt, flaskhalsidentifiering, period-jämförelse, prediktion. Backend: OeeTrendanalysController.
