@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [PÅGÅR] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör över tid, heatmap, tröskellarm (session #101)
-- [PÅGÅR] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet per station, utnyttjandegrad, bemanningsplanering (session #101)
+- [x] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör över tid, heatmap, tröskellarm (session #101)
+- [x] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet per station, utnyttjandegrad, bemanningsplanering (session #101)
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
 - [ ] **Rebotling energi/resursförbrukning** — koppla vatten/el/kemikalieförbrukning per IBC, visualisera kostnad per enhet

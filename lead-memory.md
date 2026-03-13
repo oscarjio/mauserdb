@@ -64,12 +64,12 @@ Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — k
 Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — klara.
 Session #99: Rebotling skiftjämförelse-rapport + Operatörs-ranking med bonus — klara.
 Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — klara.
-Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering — pågår.
+Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör, tröskellarm (#101)
-- [PÅGÅR] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet, utnyttjandegrad (#101)
+- [x] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör, tröskellarm (klar #101)
+- [x] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet, utnyttjandegrad (klar #101)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
@@ -87,6 +87,6 @@ Worker 2 (Operatörs-ranking med bonus): Ny sida — gamifierad ranking med poä
 Worker 1 (VD Executive Dashboard): Ny sida — alla kritiska KPI:er på en sida: OEE, produktion vs mål, aktiva operatörer, stopp just nu, top 3, stationsstatus, auto-refresh 30s. Backend: VdDashboardController.
 Worker 2 (Rebotling historisk sammanfattning): Ny sida — auto-genererad månads-/kvartalsrapport med text, KPI-jämförelse, trend, top operatörer, stationsöversikt, Pareto stopporsaker, print-CSS. Backend: HistoriskSammanfattningController.
 
-### 2026-03-13 — Session #101 (pågår)
+### 2026-03-13 — Session #101 (klar)
 Worker 1 (Rebotling kvalitetstrend-analys): Ny sida — kassationsrate per station/operatör över tid, heatmap station x vecka, tröskellarm med konfigurerbara nivåer. Backend: KvalitetstrendanalysController.
 Worker 2 (Rebotling kapacitetsplanering): Ny sida — teoretisk vs faktisk kapacitet per station, utnyttjandegrad-trend, bemanningsplanering, kapacitetssimulator. Backend: KapacitetsplaneringController.

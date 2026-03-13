@@ -8,11 +8,9 @@ import {
   KvalitetstrendanalysService,
   KtaOverviewData,
   StationTrendData,
-  StationTrendSeries,
   PerOperatorData,
   OperatorItem,
   AlarmData,
-  AlarmItem,
   HeatmapData,
 } from '../../../services/kvalitetstrendanalys.service';
 
