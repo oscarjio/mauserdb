@@ -5,11 +5,9 @@
 
 ## Förbättringar
 
-- [x] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + faktisk aktivitet, exporterbar CSV (klar #98)
-- [x] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, flaskhalsar, prediktion (klar #98)
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
 - [ ] **Rebotling energi/resursförbrukning** — koppla vatten/el/kemikalieförbrukning per IBC, visualisera kostnad per enhet
-- [ ] **Rebotling skiftjämförelse-rapport** — jämför produktivitet mellan skift (FM/EM/natt) med normaliserade KPI:er, identifiera best practices
-- [ ] **Rebotling operatörs-ranking med bonus** — gamifierad ranking-sida: poäng per producerad IBC, kvalitetsbonus, inga stopp-bonus, vecko/månadstoppen
+- [PÅGÅR] **Rebotling skiftjämförelse-rapport** — jämför produktivitet mellan skift (FM/EM/natt) med normaliserade KPI:er, identifiera best practices (session #99)
+- [PÅGÅR] **Rebotling operatörs-ranking med bonus** — gamifierad ranking-sida: poäng per producerad IBC, kvalitetsbonus, inga stopp-bonus, vecko/månadstoppen (session #99)
 - [ ] **Rebotling historisk sammanfattning** — månadsrapport/kvartalsrapport med auto-genererad text: "Mars: OEE 78%, +3% vs feb, flaskhals station 4"
