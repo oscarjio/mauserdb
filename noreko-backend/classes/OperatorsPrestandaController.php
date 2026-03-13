@@ -125,18 +125,6 @@ class OperatorsPrestandaController {
         return $result;
     }
 
-    /**
-     * Hämta alla aktiva operators id:n
-     */
-    private function getActiveOperatorIds(): array {
-        try {
-            $stmt = $this->pdo->query("SELECT number FROM operators WHERE active = 1");
-            return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
-        } catch (\PDOException $e) {
-            error_log('OperatorsPrestandaController::getActiveOperatorIds: ' . $e->getMessage());
-            return [];
-        }
-    }
 
     /**
      * Räkna IBC OK + EJ OK + drifttid per operatör från rebotling_skiftrapport.
@@ -404,7 +392,6 @@ class OperatorsPrestandaController {
 
         // Streak: antal dagar i rad med produktion
         $streak = 0;
-        $today  = new \DateTime();
         $sorted = array_reverse($daglig); // nyast först
         foreach ($sorted as $d) {
             if ($d['total_ibc'] > 0) $streak++;

@@ -189,9 +189,9 @@ class RebotlingTrendanalysController {
             echo json_encode([
                 'success' => true,
                 'data'    => [
-                    'oee'        => $this->tomTrendKort('OEE'),
-                    'produktion' => $this->tomTrendKort('Produktion'),
-                    'kassation'  => $this->tomTrendKort('Kassation'),
+                    'oee'        => $this->tomTrendKort(),
+                    'produktion' => $this->tomTrendKort(),
+                    'kassation'  => $this->tomTrendKort(),
                 ],
                 'timestamp' => date('Y-m-d H:i:s'),
             ]);
@@ -265,7 +265,7 @@ class RebotlingTrendanalysController {
         ]);
     }
 
-    private function tomTrendKort(string $namn): array {
+    private function tomTrendKort(): array {
         return [
             'nuvarande' => 0, 'slope' => 0, 'r2' => 0,
             'medel_7d'  => 0, 'medel_30d' => 0,
