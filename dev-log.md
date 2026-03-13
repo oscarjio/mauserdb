@@ -1,3 +1,36 @@
+## 2026-03-13 Maskinhistorik per station — detaljerad historikvy per maskin/station
+
+Ny sida `/rebotling/maskinhistorik` — VD och operatorer kan se historik, drifttid, stopp, OEE-trend och jamfora maskiner sinsemellan.
+
+- **Backend**: `classes/MaskinhistorikController.php` (action=`maskinhistorik`)
+  - `run=stationer` — lista unika stationer fran rebotling_ibc
+  - `run=station-kpi` — KPI:er for vald station + period (drifttid, IBC, OEE, kassation, cykeltid, tillganglighet)
+  - `run=station-drifttid` — daglig drifttid + IBC-produktion per dag for vald station
+  - `run=station-oee-trend` — daglig OEE med Tillganglighet/Prestanda/Kvalitet per dag
+  - `run=station-stopp` — senaste stopp fran rebotling_onoff (varaktighet, status, tidpunkter)
+  - `run=jamforelse` — alla stationer jamforda med OEE, produktion, kassation, drifttid, cykeltid — sorterad bast/samst
+  - OEE: T = drifttid/planerad, P = (IBC*120s)/drifttid (max 100%), K = godkanda/totalt
+  - Inga nya tabeller — anvander rebotling_ibc och rebotling_onoff
+  - Registrerad i api.php: `'maskinhistorik' => 'MaskinhistorikController'`
+
+- **Frontend**: `pages/rebotling/maskinhistorik/`
+  - Stationsknapp-vaeljare (dynamisk, haemtar unika stationer fran backend)
+  - 6 KPI-kort: drifttid, producerade IBC, OEE, kassationsgrad, snittcykeltid, tillganglighet
+  - Drifttids-graf (Chart.js kombinerat bar+linje): drifttid per dag + producerade IBC
+  - OEE-trend (Chart.js linjediagram): daglig OEE + T/P/K-delkomponenter
+  - Stopphistorik-tabell: senaste 20 stopp med start, stopp, varaktighet, status
+  - Jamforelsematris: alla stationer med OEE, T%, P%, K%, prod, kassation%, drifttid, cykeltid
+  - Periodselektor: 7d / 30d / 90d, dark theme, OnInit/OnDestroy + destroy$ + takeUntil
+
+- **Service**: `services/maskinhistorik.service.ts`
+  - `getStationer()`, `getStationKpi()`, `getStationDrifttid()`, `getStationOeeTrend()`, `getStationStopp()`, `getJamforelse()`
+
+- **Route**: `/rebotling/maskinhistorik` med authGuard
+- **Navigation**: Tillagd i Rebotling-dropdown under Skiftsammanstallning
+- **Bygg**: Lyckat (ng build OK)
+
+---
+
 ## 2026-03-13 Kassationskvot-alarm — automatisk overvakning och varning
 
 Ny sida `/rebotling/kassationskvot-alarm` — overvakar kassationsgraden i realtid och larmar nar troskelvarden overskrids.
