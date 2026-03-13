@@ -1,3 +1,22 @@
+## 2026-03-13 Rebotling prediktivt underhall
+
+Ny sida `/rebotling/prediktivt-underhall` — analyserar stopporsaks-monster, forutsager nasta stopp per station och rekommenderar forebyggande underhall.
+
+- **Backend**: `classes/PrediktivtUnderhallController.php`, registrerad i `api.php` som `prediktivt-underhall`
+  - `run=heatmap` — station x stopporsak-matris med antal och stopptid senaste 4 veckor, fargkodad (gron-gul-rod)
+  - `run=mtbf` — MTBF (Mean Time Between Failures) per station: medeltid mellan stopp, dagar sedan senaste stopp, riskbedomning (lag/medel/hog/kritisk), risk-kvot, MTBF-trend (sjunkande/stabil/okande)
+  - `run=trender` — veckovis stopptrend per station, 12 veckor tillbaka, data for line chart
+  - `run=rekommendationer` — auto-genererade: varningar (okande stoppfrekvens), atgardsforslag (lang stopptid), gron status (stabil drift), prioriteringslista
+- **Frontend**: Angular standalone-komponent med 4 flikar:
+  - MTBF & Risk: Stationskort med MTBF-dagar, risk-badge, progress-bar, trend-indikator
+  - Stopporsaks-heatmap: Tabell med fargkodade celler (station x orsak), legend
+  - Historisk trend: Chart.js line chart med stopp per station per vecka + summatabell
+  - Rekommendationer: KPI-badges, prioriterad lista med varningar/atgarder/ok-status
+  - Dark theme (#1a202c/#2d3748/#e2e8f0), auto-refresh var 5:e minut, OnDestroy-cleanup
+- **Datakallor**: rebotling_underhallslogg (primar), stopporsak_registreringar + stopporsak_kategorier (fallback)
+- **Meny**: Lank tillagd i Rebotling-dropdown ("Prediktivt underhall") efter Underhallsprognos
+- **Filer**: `PrediktivtUnderhallController.php`, `prediktivt-underhall.service.ts`, `prediktivt-underhall/` (ts + html + css), `api.php`, `app.routes.ts`, `menu.html`
+
 ## 2026-03-13 Rebotling operatorsGamification
 
 Ny sida `/rebotling/gamification` — gamification-system med poang, badges, milstolpar och leaderboard for operatorer.
