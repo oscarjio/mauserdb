@@ -1,0 +1,469 @@
+<div class="historisk-sammanfattning-page">
+  <div class="container-fluid py-4">
+
+    <!-- Header + Print -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <div>
+        <h2 class="page-title mb-0">
+          <i class="bi bi-file-earmark-bar-graph me-2" style="color:#4fd1c5"></i>
+          Historisk sammanfattning
+        </h2>
+        <p class="text-muted small mb-0 mt-1">Auto-genererad rapport for vald period</p>
+      </div>
+      <button class="btn btn-outline-light btn-sm no-print" (click)="printReport()">
+        <i class="bi bi-printer me-1"></i> Skriv ut rapport
+      </button>
+    </div>
+
+    <!-- Rapportvaljare -->
+    <div class="row mb-4 no-print">
+      <div class="col-md-3 col-sm-6 mb-2">
+        <label class="form-label small text-muted">Typ</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary"
+                [(ngModel)]="selectedTyp" (ngModelChange)="onTypChange()">
+          <option *ngFor="let t of typOptions" [value]="t.value">{{ t.label }}</option>
+        </select>
+      </div>
+      <div class="col-md-3 col-sm-6 mb-2">
+        <label class="form-label small text-muted">Period</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary"
+                [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()">
+          <option *ngFor="let p of periodOptions" [value]="p.value">{{ p.label }}</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loadingRapport" class="text-center py-5">
+      <div class="spinner-border text-info" role="status">
+        <span class="visually-hidden">Laddar...</span>
+      </div>
+      <p class="text-muted mt-2">Genererar rapport...</p>
+    </div>
+
+    <!-- Rapport content -->
+    <div *ngIf="rapport && !loadingRapport">
+
+      <!-- Sammanfattningstext -->
+      <div class="rapport-text-box mb-4">
+        <div class="d-flex align-items-center mb-2">
+          <i class="bi bi-journal-text me-2" style="color:#4fd1c5; font-size:1.3rem"></i>
+          <h5 class="mb-0">Sammanfattning</h5>
+        </div>
+        <p class="rapport-text mb-0">{{ rapport.rapport_text }}</p>
+      </div>
+
+      <!-- KPI-jamforelse -->
+      <h5 class="section-title mb-3">
+        <i class="bi bi-bar-chart me-2"></i>KPI-jamforelse: {{ rapport.period.label }} vs {{ rapport.period.prev_label }}
+      </h5>
+      <div class="row g-3 mb-4">
+        <!-- OEE -->
+        <div class="col-lg col-md-4 col-sm-6">
+          <div class="kpi-card">
+            <div class="kpi-label">OEE</div>
+            <div class="kpi-value">{{ rapport.current.oee_pct }}%</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.oee_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.oee_delta)"></i>
+              {{ abs(rapport.jamforelse.oee_delta) }}%
+            </div>
+            <div class="kpi-prev">Foreg: {{ rapport.previous.oee_pct }}%</div>
+          </div>
+        </div>
+        <!-- Total IBC -->
+        <div class="col-lg col-md-4 col-sm-6">
+          <div class="kpi-card">
+            <div class="kpi-label">Total IBC</div>
+            <div class="kpi-value">{{ formatNum(rapport.current.ibc_ok) }}</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.ibc_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.ibc_delta)"></i>
+              {{ abs(rapport.jamforelse.ibc_delta) }}
+            </div>
+            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous.ibc_ok) }}</div>
+          </div>
+        </div>
+        <!-- Snitt IBC/dag -->
+        <div class="col-lg col-md-4 col-sm-6">
+          <div class="kpi-card">
+            <div class="kpi-label">Snitt IBC/dag</div>
+            <div class="kpi-value">{{ rapport.current.snitt_ibc_per_dag }}</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.snitt_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.snitt_delta)"></i>
+              {{ abs(rapport.jamforelse.snitt_delta) }}
+            </div>
+            <div class="kpi-prev">Foreg: {{ rapport.previous.snitt_ibc_per_dag }}</div>
+          </div>
+        </div>
+        <!-- Stopptid -->
+        <div class="col-lg col-md-4 col-sm-6">
+          <div class="kpi-card">
+            <div class="kpi-label">Stopptid (min)</div>
+            <div class="kpi-value">{{ formatNum(rapport.current.stopptid_min) }}</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(-rapport.jamforelse.stopptid_delta)">
+              <i [class]="deltaIcon(-rapport.jamforelse.stopptid_delta)"></i>
+              {{ abs(rapport.jamforelse.stopptid_delta) }}
+            </div>
+            <div class="kpi-prev">Foreg: {{ formatNum(rapport.previous.stopptid_min) }}</div>
+          </div>
+        </div>
+        <!-- Kvalitet -->
+        <div class="col-lg col-md-4 col-sm-6">
+          <div class="kpi-card">
+            <div class="kpi-label">Kvalitet</div>
+            <div class="kpi-value">{{ rapport.current.kvalitet_pct }}%</div>
+            <div class="kpi-delta" [ngClass]="deltaClass(rapport.jamforelse.kvalitet_delta)">
+              <i [class]="deltaIcon(rapport.jamforelse.kvalitet_delta)"></i>
+              {{ abs(rapport.jamforelse.kvalitet_delta) }}%
+            </div>
+            <div class="kpi-prev">Foreg: {{ rapport.previous.kvalitet_pct }}%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trenddiagram -->
+      <div class="card dark-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>OEE & IBC per dag</h5>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loadingTrend" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-info"></div>
+          </div>
+          <div style="position:relative; height:350px;" *ngIf="!loadingTrend && trendData?.trend?.length">
+            <canvas id="trendChartCanvas"></canvas>
+          </div>
+          <div *ngIf="!loadingTrend && (!trendData?.trend?.length)" class="text-center text-muted py-4">
+            Ingen trenddata for perioden.
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 5 operatorer + Stationsoversikt -->
+      <div class="row g-3 mb-4">
+        <!-- Top 5 operatorer -->
+        <div class="col-lg-6">
+          <div class="card dark-card h-100">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-people me-2"></i>Top 5 operatorer</h5>
+            </div>
+            <div class="card-body p-0">
+              <div *ngIf="loadingOperatorer" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-info"></div>
+              </div>
+              <div *ngIf="!loadingOperatorer && operatorer.length === 0" class="text-center text-muted py-4">
+                Ingen operatorsdata.
+              </div>
+              <div class="table-responsive" *ngIf="!loadingOperatorer && operatorer.length > 0">
+                <table class="table table-dark table-sm table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Operator</th>
+                      <th class="text-end">IBC</th>
+                      <th class="text-end">OEE</th>
+                      <th class="text-end">Trend</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let op of operatorer">
+                      <td>
+                        <span class="rank-badge" [ngClass]="{
+                          'rank-gold': op.rank === 1,
+                          'rank-silver': op.rank === 2,
+                          'rank-bronze': op.rank === 3
+                        }">{{ op.rank }}</span>
+                      </td>
+                      <td>{{ op.namn }}</td>
+                      <td class="text-end">{{ formatNum(op.ibc_ok) }}</td>
+                      <td class="text-end">{{ op.oee_pct }}%</td>
+                      <td class="text-end" [ngClass]="trendClass(op.trend)">
+                        <i [class]="trendIcon(op.trend)"></i>
+                        <span *ngIf="op.ibc_delta !== 0">{{ op.ibc_delta > 0 ? '+' : '' }}{{ op.ibc_delta }}</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stationsoversikt -->
+        <div class="col-lg-6">
+          <div class="card dark-card h-100">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-building me-2"></i>Stationsoversikt</h5>
+            </div>
+            <div class="card-body p-0">
+              <div *ngIf="loadingStationer" class="text-center py-4">
+                <div class="spinner-border spinner-border-sm text-info"></div>
+              </div>
+              <div *ngIf="!loadingStationer && stationer.length === 0" class="text-center text-muted py-4">
+                Ingen stationsdata.
+              </div>
+              <div class="table-responsive" *ngIf="!loadingStationer && stationer.length > 0">
+                <table class="table table-dark table-sm table-hover mb-0">
+                  <thead>
+                    <tr>
+                      <th>Station</th>
+                      <th class="text-end">OEE</th>
+                      <th class="text-end">IBC</th>
+                      <th class="text-end">Stopptid</th>
+                      <th class="text-end">Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let st of stationer">
+                      <td>{{ st.station_namn }}</td>
+                      <td class="text-end">
+                        <span class="badge" [ngClass]="{
+                          'bg-success': st.oee_pct >= 70,
+                          'bg-warning text-dark': st.oee_pct >= 50 && st.oee_pct < 70,
+                          'bg-danger': st.oee_pct < 50
+                        }">{{ st.oee_pct }}%</span>
+                      </td>
+                      <td class="text-end">{{ formatNum(st.ibc_ok) }}</td>
+                      <td class="text-end">{{ formatNum(st.stopptid_min) }} min</td>
+                      <td class="text-end" [ngClass]="trendClass(st.trend)">
+                        <i [class]="trendIcon(st.trend)"></i>
+                        {{ st.oee_delta > 0 ? '+' : '' }}{{ st.oee_delta }}%
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stopporsaker Pareto -->
+      <div class="card dark-card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Stopporsaker (Pareto)</h5>
+          <span class="badge bg-secondary" *ngIf="stopporsakerTotalH > 0">Totalt: {{ stopporsakerTotalH }} h</span>
+        </div>
+        <div class="card-body">
+          <div *ngIf="loadingStopporsaker" class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-info"></div>
+          </div>
+          <div *ngIf="!loadingStopporsaker && stopporsaker.length === 0" class="text-center text-muted py-4">
+            Inga stopporsaker registrerade for perioden.
+          </div>
+          <div *ngIf="!loadingStopporsaker && stopporsaker.length > 0">
+            <div style="position:relative; height:300px;" class="mb-3">
+              <canvas id="paretoChartCanvas"></canvas>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-dark table-sm table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>Orsak</th>
+                    <th class="text-end">Antal</th>
+                    <th class="text-end">Stopptid</th>
+                    <th class="text-end">Andel</th>
+                    <th class="text-end">Kumulativ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let s of stopporsaker">
+                    <td>{{ s.orsak }}</td>
+                    <td class="text-end">{{ s.antal }}</td>
+                    <td class="text-end">{{ s.total_h }} h</td>
+                    <td class="text-end">{{ s.andel_pct }}%</td>
+                    <td class="text-end">{{ s.cumulative_pct }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /rapport content -->
+
+  </div>
+</div>
+
+<style>
+  .historisk-sammanfattning-page {
+    background-color: #1a202c;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+
+  .page-title {
+    color: #e2e8f0;
+    font-weight: 700;
+  }
+
+  .section-title {
+    color: #e2e8f0;
+    font-weight: 600;
+  }
+
+  /* Rapport text box */
+  .rapport-text-box {
+    background: #2d3748;
+    border: 1px solid #4fd1c5;
+    border-radius: 8px;
+    padding: 1.25rem;
+  }
+
+  .rapport-text {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: #e2e8f0;
+  }
+
+  /* KPI cards */
+  .kpi-card {
+    background: #2d3748;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.08);
+    height: 100%;
+  }
+
+  .kpi-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #a0aec0;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .kpi-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+
+  .kpi-delta {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+
+  .kpi-delta i {
+    font-size: 1.1rem;
+  }
+
+  .kpi-prev {
+    font-size: 0.7rem;
+    color: #718096;
+    margin-top: 2px;
+  }
+
+  /* Dark card */
+  .dark-card {
+    background: #2d3748 !important;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #e2e8f0;
+  }
+
+  .dark-card .card-header {
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    color: #e2e8f0;
+  }
+
+  .table-dark {
+    --bs-table-bg: transparent;
+    --bs-table-color: #e2e8f0;
+    --bs-table-hover-bg: rgba(255,255,255,0.04);
+  }
+
+  .table-dark th {
+    color: #a0aec0;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Rank badges */
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #4a5568;
+    color: #e2e8f0;
+  }
+
+  .rank-gold { background: #FFD700; color: #1a202c; }
+  .rank-silver { background: #C0C0C0; color: #1a202c; }
+  .rank-bronze { background: #CD7F32; color: #1a202c; }
+
+  /* Print CSS */
+  @media print {
+    .historisk-sammanfattning-page {
+      background: white !important;
+      color: black !important;
+    }
+
+    .no-print, .no-print * {
+      display: none !important;
+    }
+
+    .page-title, .section-title, h5 {
+      color: black !important;
+    }
+
+    .rapport-text-box {
+      background: #f8f9fa !important;
+      border-color: #333 !important;
+      color: black !important;
+    }
+
+    .rapport-text { color: black !important; }
+
+    .kpi-card {
+      background: #f8f9fa !important;
+      border: 1px solid #ccc !important;
+      color: black !important;
+    }
+
+    .kpi-label { color: #555 !important; }
+    .kpi-value { color: black !important; }
+    .kpi-prev { color: #666 !important; }
+
+    .dark-card {
+      background: white !important;
+      border: 1px solid #ccc !important;
+      color: black !important;
+    }
+
+    .dark-card .card-header {
+      background: #f0f0f0 !important;
+      border-bottom: 1px solid #ccc !important;
+      color: black !important;
+    }
+
+    .table-dark {
+      --bs-table-bg: white !important;
+      --bs-table-color: black !important;
+    }
+
+    .table-dark th { color: #333 !important; }
+    .table-dark td { color: black !important; }
+
+    .rank-badge { background: #ddd !important; color: black !important; }
+    .rank-gold { background: #FFD700 !important; }
+    .rank-silver { background: #C0C0C0 !important; }
+    .rank-bronze { background: #CD7F32 !important; }
+
+    nav, .sidebar, app-menu, app-header, .navbar {
+      display: none !important;
+    }
+
+    canvas {
+      max-height: 250px !important;
+    }
+  }
+</style>

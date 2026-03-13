@@ -1,3 +1,29 @@
+## 2026-03-13 Historisk sammanfattning — auto-genererad manads-/kvartalsrapport
+
+Ny sida `/rebotling/historisk-sammanfattning` — auto-genererad rapport med text, diagram och KPI-jamforelse for vald manad eller kvartal.
+
+- **Backend**: `classes/HistoriskSammanfattningController.php` + proxy `controllers/HistoriskSammanfattningController.php`, registrerad i `api.php` som `historisk-sammanfattning`
+  - `run=perioder` — lista tillgangliga manader/kvartal fran databasen
+  - `run=rapport` — huvudrapport med auto-genererad text, KPI:er (OEE, IBC, stopptid, kvalitet), jamforelse mot foregaende period, flaskhals-station, baste operator
+  - `run=trend` — OEE/IBC per dag inom vald period med 7d rullande snitt
+  - `run=operatorer` — top 5 operatorer med IBC, OEE, trend vs foregaende period
+  - `run=stationer` — per-station breakdown: OEE, IBC, stopptid, delta
+  - `run=stopporsaker` — Pareto stopporsaker med antal, stopptid, kumulativ procent
+  - Parametrar: `typ` (manad/kvartal), `period` (2026-03, Q1-2026)
+- **Frontend**: Standalone Angular component `pages/historisk-sammanfattning/` + `services/historisk-sammanfattning.service.ts`
+  - Rapportvaljare: dropdown for typ (manad/kvartal) + period
+  - Sammanfattningstext: auto-genererad rapport i stilig ruta med teal border
+  - 5 KPI-kort: OEE, Total IBC, Snitt IBC/dag, Stopptid, Kvalitet — med pilar och delta vs foregaende period
+  - Trenddiagram (Chart.js): OEE linje + 7d snitt + IBC bar, dual y-axis
+  - Top 5 operatorer tabell med rank-badges (guld/silver/brons)
+  - Stationsoversikt tabell med OEE-badges, stopptid, delta
+  - Pareto-diagram (Chart.js): kombinerad bar+line med stopporsaker och kumulativ %
+  - Print-knapp med @media print CSS: vit bakgrund, svart text, dolj navbar
+  - Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + chart.destroy()
+- Route: `/rebotling/historisk-sammanfattning` med authGuard
+- Meny: tillagd i Rebotling-dropdown med `bi-file-earmark-bar-graph` ikon
+
 ## 2026-03-13 VD Executive Dashboard — realtids-KPI:er pa en sida
 
 Ny sida `/rebotling/vd-dashboard` — VD Executive Dashboard med alla kritiska produktions-KPI:er synliga pa 10 sekunder.
