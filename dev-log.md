@@ -1,3 +1,37 @@
+## 2026-03-13 VD Veckorapport — automatisk veckosammanfattning + utskriftsvänlig rapport (session #92)
+
+Ny sida `/rebotling/vd-veckorapport` — automatisk veckosammanfattning för ledningen med KPI-jämförelse, trender, operatörsprestanda och stopporsaker.
+
+- **Backend**: `classes/VDVeckorapportController.php` (action=`vd-veckorapport`)
+  - `run=kpi-jamforelse` — OEE, produktion, kassation, drifttid: denna vecka vs förra veckan med diff och trend-indikator.
+  - `run=trender-anomalier` — linjär regression 7d + stdavvikelse-baserade anomaliidentifieringar (produktions- och kassationsavvikelser).
+  - `run=top-bottom-operatorer&period=7|14|30` — Top 3 / behöver stöd per OEE, baserat på rebotling_skiftrapport.
+  - `run=stopporsaker&period=N` — Rangordnade stopporsaker med total/medel/andel. Stöder stoppage_log med fallback till stopporsak_registreringar.
+  - `run=vecka-sammanfattning[&vecka=YYYY-WW]` — All data i ett anrop för utskriftsvyn. Stöder valfri vecka.
+  - Registrerad i api.php: `'vd-veckorapport' => 'VDVeckorapportController'`
+
+- **Frontend**: `pages/rebotling/vd-veckorapport/`
+  - KPI-jämförelse (4 kort): OEE/produktion/kassation/drifttid med trend-pilar och diff%
+  - Daglig produktionsgraf (Chart.js staplad + kassation-linje)
+  - Trender: lutning i IBC/dag och %/dag med riktnings-text (stiger/sjunker/stabil)
+  - Anomali-lista med färgkodning (positiv/varning/kritisk)
+  - Periodselektor (7/14/30 dagar) för operatörer och stopporsaker
+  - Top/Bottom operatörer med OEE-ranking
+  - Stopporsaker med progress-bars (Pareto-stil)
+  - Utskriftsvänlig overlay med print CSS: rapport-sida (A4), svart text på vit bakgrund, alla KPI-tabeller
+  - Dark theme, OnInit/OnDestroy + destroy$ + takeUntil, chart.destroy() i ngOnDestroy
+  - Service: `services/vd-veckorapport.service.ts` med fullständiga TypeScript-interfaces
+  - Route: `/rebotling/vd-veckorapport` (authGuard)
+  - Navigation: länk tillagd i Rebotling-dropdown i menu.html
+
+- **Buggjakt session #92**:
+  - Byggkoll: ng build kördes — inga errors i befintliga filer (endast warnings för ??-operator i feedback-analys.html)
+  - Memory leaks kontrollerade: operators-prestanda, rebotling-trendanalys, produktions-sla, kassationskvot-alarm — alla har korrekt OnDestroy + clearInterval
+  - Ny komponent fixad: KpiJamforelseData.jamforelse fick [key: string] index-signatur, KpiVarden-interface skapades för VeckaSammanfattningData
+  - Bygget rengjort: 0 errors efter fix
+
+---
+
 ## 2026-03-13 Operatörs-prestanda scatter-plot — hastighet vs kvalitet per operatör (session #91)
 
 Ny sida `/rebotling/operators-prestanda` — VD ser snabbt vem som är snabb och noggrann via XY-diagram.
