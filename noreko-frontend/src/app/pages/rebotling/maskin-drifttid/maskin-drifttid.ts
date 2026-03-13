@@ -173,7 +173,7 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
   // Tooltip
   // =============================================================
 
-  visaTooltip(event: MouseEvent, cell: HeatmapCell, rad: HeatmapRad): void {
+  visaTooltip(event: MouseEvent, cell: HeatmapCell, _rad: HeatmapRad): void {
     this.tooltipVisible = true;
     this.tooltipX = event.clientX + 12;
     this.tooltipY = event.clientY - 40;
