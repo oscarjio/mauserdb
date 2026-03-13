@@ -100,6 +100,7 @@
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/skiftrapport-sammanstallning"><i class="fas fa-clipboard-list me-2" style="color:#4fd1c5"></i>Skiftsammanstallning</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/maskinhistorik"><i class="fas fa-industry me-2" style="color:#9f7aea"></i>Maskinhistorik per station</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/kassationskvot-alarm"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Kassationskvot-alarm</a></li>
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/kapacitetsplanering"><i class="fas fa-chart-area me-2" style="color:#4fd1c5"></i>Kapacitetsplanering</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><hr class="dropdown-divider"></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="loggedIn && user?.role === 'admin'"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>

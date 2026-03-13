@@ -1,0 +1,282 @@
+<div class="container-fluid py-4" id="kapacitetsplanering-content">
+
+  <!-- Rubrik + Periodselektor -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-chart-area me-2" style="color:#4fd1c5"></i>Kapacitetsplanering
+    </h2>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-light mb-0 small">Period:</label>
+      <div class="btn-group btn-group-sm">
+        <button *ngFor="let alt of periodAlternativ"
+                class="btn"
+                [class.btn-info]="period === alt.varde"
+                [class.btn-outline-secondary]="period !== alt.varde"
+                (click)="byttPeriod(alt.varde)">
+          {{ alt.etikett }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       KPI-KORT — oversta raden
+       ============================================================ -->
+  <div *ngIf="loadingKpi" class="kp-loading py-3 mb-4">
+    <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar KPI...
+  </div>
+  <div *ngIf="errorKpi && !loadingKpi" class="kp-error py-3 mb-4">
+    <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda KPI-data
+  </div>
+
+  <div *ngIf="!loadingKpi && !errorKpi && kpiData" class="row g-3 mb-4">
+
+    <!-- Kapacitetsutnyttjande idag -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="kp-kpi-card">
+        <div class="kp-kpi-label">Utnyttjande idag</div>
+        <div class="kp-kpi-value" [style.color]="utnyttjandeFarg(kpiData.idag.utnyttjande_pct)">
+          {{ kpiData.idag.utnyttjande_pct }}%
+        </div>
+        <div class="kp-kpi-sub">{{ kpiData.idag.faktisk_idag }} / {{ kpiData.idag.teormax_idag }} IBC</div>
+      </div>
+    </div>
+
+    <!-- Faktisk vs teoretisk (period) -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="kp-kpi-card">
+        <div class="kp-kpi-label">Snitt per dag ({{ period }}d)</div>
+        <div class="kp-kpi-value" style="color:#63b3ed">{{ kpiData.period.snitt_per_dag }}</div>
+        <div class="kp-kpi-sub">max {{ kpiData.period.teormax_per_dag }} IBC/dag</div>
+      </div>
+    </div>
+
+    <!-- Flaskhals -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="kp-kpi-card">
+        <div class="kp-kpi-label">Flaskhals</div>
+        <div class="kp-kpi-value" style="color:#fc8181; font-size:1rem;">{{ kpiData.flaskhals.station }}</div>
+        <div class="kp-kpi-sub" style="font-size:0.7rem;">{{ kpiData.flaskhals.typ === 'cykeltid' ? 'Lang cykeltid' : 'Lag kapacitet' }}</div>
+      </div>
+    </div>
+
+    <!-- Cykeltid -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="kp-kpi-card">
+        <div class="kp-kpi-label">Snitt cykeltid</div>
+        <div class="kp-kpi-value"
+             [style.color]="kpiData.period.avg_cykeltid_sek > 150 ? '#fc8181' : kpiData.period.avg_cykeltid_sek > 0 ? '#68d391' : '#a0aec0'">
+          {{ kpiData.period.avg_cykeltid_sek > 0 ? (kpiData.period.avg_cykeltid_sek + 's') : '—' }}
+        </div>
+        <div class="kp-kpi-sub">optimal {{ kpiData.period.optimal_cykeltid_sek }}s</div>
+      </div>
+    </div>
+
+    <!-- Utnyttjandegrad snitt -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="kp-kpi-card">
+        <div class="kp-kpi-label">Utnyttjande snitt</div>
+        <div class="kp-kpi-value" [style.color]="utnyttjandeFarg(kpiData.period.utnyttjande_snitt_pct)">
+          {{ kpiData.period.utnyttjande_snitt_pct }}%
+        </div>
+        <div class="kp-kpi-sub">senaste {{ period }} dagar</div>
+      </div>
+    </div>
+
+    <!-- Prognos vecka -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="kp-kpi-card">
+        <div class="kp-kpi-label">Prognos (vecka)</div>
+        <div class="kp-kpi-value" style="color:#f6ad55">{{ kpiData.period.prognos_vecka }}</div>
+        <div class="kp-kpi-sub">baserat pa trend</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Flaskhals-detalj -->
+  <div *ngIf="!loadingKpi && !errorKpi && kpiData && kpiData.flaskhals.forklaring" class="kp-card mb-4">
+    <div class="kp-card-header">
+      <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Flaskhalsanalys
+    </div>
+    <div class="kp-card-body py-2">
+      <i class="fas fa-info-circle me-2" style="color:#63b3ed"></i>
+      <span class="text-light">{{ kpiData.flaskhals.forklaring }}</span>
+      <span *ngIf="kpiData.flaskhals.gap_pct && kpiData.flaskhals.gap_pct > 0"
+            class="ms-2 badge bg-danger">{{ kpiData.flaskhals.gap_pct }}% under genomsnitt</span>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       KAPACITETSDIAGRAM — senaste N dagar
+       ============================================================ -->
+  <div class="kp-card mb-4">
+    <div class="kp-card-header">
+      <i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>Kapacitetsdiagram — senaste {{ period }} dagar
+    </div>
+    <div class="kp-card-body">
+      <div *ngIf="loadingDaglig" class="kp-loading py-4">
+        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar kapacitetsdata...
+      </div>
+      <div *ngIf="errorDaglig && !loadingDaglig" class="kp-error py-3">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda kapacitetsdata
+      </div>
+      <div *ngIf="!loadingDaglig && !errorDaglig" class="chart-wrapper">
+        <canvas id="kapacitetsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       FLASKHALSSEKTIONEN — station-utnyttjande + stopporsaker + tid-fordelning
+       ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Station-utnyttjande: horisontellt stapeldiagram -->
+    <div class="col-12 col-lg-5">
+      <div class="kp-card h-100">
+        <div class="kp-card-header">
+          <i class="fas fa-industry me-2" style="color:#63b3ed"></i>Kapacitetsutnyttjande per station
+        </div>
+        <div class="kp-card-body">
+          <div *ngIf="loadingStation" class="kp-loading py-4">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+          </div>
+          <div *ngIf="errorStation && !loadingStation" class="kp-error py-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stationsdata
+          </div>
+          <div *ngIf="!loadingStation && !errorStation" class="chart-wrapper-sm">
+            <canvas id="stationChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stopporsaker: cirkeldiagram -->
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="kp-card h-100">
+        <div class="kp-card-header">
+          <i class="fas fa-stop-circle me-2" style="color:#fc8181"></i>Stopporsaker
+        </div>
+        <div class="kp-card-body">
+          <div *ngIf="loadingStopporsaker" class="kp-loading py-4">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+          </div>
+          <div *ngIf="errorStopporsaker && !loadingStopporsaker" class="kp-error py-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stopporsaker
+          </div>
+          <div *ngIf="!loadingStopporsaker && !errorStopporsaker">
+            <div *ngIf="stoppInfo" class="d-flex flex-wrap gap-2 mb-3">
+              <span class="kp-badge-info">
+                <i class="fas fa-clock me-1"></i>{{ stoppInfo.stopp_h }}h stopp
+              </span>
+              <span class="kp-badge-info">
+                <i class="fas fa-list me-1"></i>{{ stoppInfo.antal_stopp }} avbrott
+              </span>
+              <span class="kp-badge-info">
+                <i class="fas fa-hourglass-half me-1"></i>Snitt {{ stoppInfo.avg_stopp_min }}min
+              </span>
+            </div>
+            <div class="chart-wrapper-xs">
+              <canvas id="stopporsakChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tid-fordelning: stacked bar -->
+    <div class="col-12 col-md-6 col-lg-4">
+      <div class="kp-card h-100">
+        <div class="kp-card-header">
+          <i class="fas fa-clock me-2" style="color:#f6ad55"></i>Tid-fordelning per dag
+        </div>
+        <div class="kp-card-body">
+          <div *ngIf="loadingTidFordelning" class="kp-loading py-4">
+            <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar...
+          </div>
+          <div *ngIf="errorTidFordelning && !loadingTidFordelning" class="kp-error py-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda tid-fordelning
+          </div>
+          <div *ngIf="!loadingTidFordelning && !errorTidFordelning" class="chart-wrapper-sm">
+            <canvas id="tidFordelningChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       VECKO-OVERSIKT TABELL
+       ============================================================ -->
+  <div class="kp-card mb-4">
+    <div class="kp-card-header">
+      <i class="fas fa-calendar-week me-2" style="color:#9f7aea"></i>Veckoöversikt — senaste 12 veckor
+    </div>
+    <div class="kp-card-body p-0">
+      <div *ngIf="loadingVecko" class="kp-loading py-4 px-3">
+        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar veckodata...
+      </div>
+      <div *ngIf="errorVecko && !loadingVecko" class="kp-error py-3 px-3">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda veckodata
+      </div>
+
+      <div *ngIf="!loadingVecko && !errorVecko && veckoData.length > 0"
+           class="table-responsive">
+        <table class="table table-dark table-hover kp-table mb-0">
+          <thead>
+            <tr>
+              <th>Vecka</th>
+              <th>Period</th>
+              <th class="text-end">Produktion</th>
+              <th class="text-end">Max kapacitet</th>
+              <th class="text-end">Utnyttjande %</th>
+              <th class="text-center">Trend</th>
+              <th class="text-end">Basta dag</th>
+              <th class="text-end">Samsta dag</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let v of veckoData">
+              <td class="fw-semibold">
+                <span class="kp-vecka-badge">V{{ v.vecka }}</span>
+                <span class="text-muted ms-1 small">{{ v.ar }}</span>
+              </td>
+              <td class="text-muted small">{{ formatDatum(v.from_datum) }} — {{ formatDatum(v.to_datum) }}</td>
+              <td class="text-end fw-semibold">{{ v.total_ibc | number }}</td>
+              <td class="text-end text-muted">{{ v.max_kapacitet | number }}</td>
+              <td class="text-end">
+                <span class="kp-utnyttjande-badge" [ngClass]="utnyttjandeKlass(v.utnyttjande_pct)">
+                  {{ v.utnyttjande_pct }}%
+                </span>
+              </td>
+              <td class="text-center">
+                <i [class]="trendIkon(v.trend)"></i>
+              </td>
+              <td class="text-end small">
+                <span *ngIf="v.basta_dag; else ingenData">
+                  {{ formatDatum(v.basta_dag) }}
+                  <span class="text-success ms-1">({{ v.basta_dag_antal }})</span>
+                </span>
+                <ng-template #ingenData><span class="text-muted">—</span></ng-template>
+              </td>
+              <td class="text-end small">
+                <span *ngIf="v.samsta_dag">
+                  {{ formatDatum(v.samsta_dag) }}
+                  <span class="text-danger ms-1">({{ v.samsta_dag_antal }})</span>
+                </span>
+                <span *ngIf="!v.samsta_dag" class="text-muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div *ngIf="!loadingVecko && !errorVecko && veckoData.length === 0" class="py-4 text-center text-muted">
+        Ingen veckodata tillganglig
+      </div>
+    </div>
+  </div>
+
+</div>

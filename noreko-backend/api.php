@@ -201,6 +201,8 @@ $classNameMap = [
     'maskin-drifttid'               => 'MaskinDrifttidController',
     'maskinhistorik'                => 'MaskinhistorikController',
     'kassationskvotalarm'           => 'KassationskvotAlarmController',
+    'kapacitetsplanering'           => 'KapacitetsplaneringController',
+    'produktionsdashboard'          => 'ProduktionsDashboardController',
 ];
 
 $actionKey = strtolower($action);

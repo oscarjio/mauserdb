@@ -1,0 +1,209 @@
+/* ================================================================
+   Kapacitetsplanering — Dark Theme Styles
+   ================================================================ */
+
+/* ---- Sida ---- */
+#kapacitetsplanering-content {
+  background: #1a202c;
+  min-height: 100vh;
+  color: #e2e8f0;
+}
+
+.page-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ---- KPI-kort ---- */
+.kp-kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  height: 100%;
+  transition: box-shadow 0.2s;
+}
+
+.kp-kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.kp-kpi-label {
+  font-size: 0.72rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.kp-kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.kp-kpi-sub {
+  font-size: 0.72rem;
+  color: #718096;
+}
+
+/* ---- Cards ---- */
+.kp-card {
+  background: #2d3748;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.kp-card-header {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.kp-card-body {
+  padding: 16px;
+}
+
+/* ---- Grafer ---- */
+.chart-wrapper {
+  height: 300px;
+  position: relative;
+}
+
+.chart-wrapper-sm {
+  height: 240px;
+  position: relative;
+}
+
+.chart-wrapper-xs {
+  height: 200px;
+  position: relative;
+}
+
+/* ---- Laddning / Fel ---- */
+.kp-loading {
+  text-align: center;
+  color: #a0aec0;
+  font-size: 0.9rem;
+}
+
+.kp-error {
+  text-align: center;
+  color: #fc8181;
+  font-size: 0.9rem;
+}
+
+/* ---- Badges ---- */
+.kp-badge-info {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(99, 179, 237, 0.15);
+  color: #63b3ed;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+}
+
+.kp-vecka-badge {
+  background: rgba(159, 122, 234, 0.2);
+  color: #9f7aea;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ---- Utnyttjande badge ---- */
+.kp-utnyttjande-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.utnyttjande-hog {
+  background: rgba(104, 211, 145, 0.2);
+  color: #68d391;
+}
+
+.utnyttjande-medel {
+  background: rgba(246, 173, 85, 0.2);
+  color: #f6ad55;
+}
+
+.utnyttjande-lag {
+  background: rgba(252, 129, 129, 0.2);
+  color: #fc8181;
+}
+
+/* ---- Tabell ---- */
+.kp-table {
+  background: transparent;
+  font-size: 0.85rem;
+  margin-bottom: 0;
+}
+
+.kp-table thead th {
+  background: rgba(0, 0, 0, 0.25);
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 12px;
+  border-color: rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+}
+
+.kp-table tbody td {
+  padding: 9px 12px;
+  border-color: rgba(255, 255, 255, 0.04);
+  vertical-align: middle;
+  color: #e2e8f0;
+}
+
+.kp-table tbody tr:hover td {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ---- Period-knapp ---- */
+.btn-info {
+  background-color: #4fd1c5;
+  border-color: #4fd1c5;
+  color: #1a202c;
+}
+
+.btn-info:hover {
+  background-color: #38b2ac;
+  border-color: #38b2ac;
+  color: #1a202c;
+}
+
+.btn-outline-secondary {
+  border-color: #4a5568;
+  color: #a0aec0;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #4a5568;
+  color: #e2e8f0;
+}
+
+/* ---- Responsivt ---- */
+@media (max-width: 576px) {
+  .kp-kpi-value {
+    font-size: 1.3rem;
+  }
+  .page-title {
+    font-size: 1.15rem;
+  }
+  .chart-wrapper {
+    height: 220px;
+  }
+}

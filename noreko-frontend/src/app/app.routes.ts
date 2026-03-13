@@ -104,6 +104,7 @@ export const routes: Routes = [
       { path: 'rebotling/skiftrapport-sammanstallning', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/skiftrapport-sammanstallning/skiftrapport-sammanstallning').then(m => m.SkiftrapportSammanstallningPage) },
       { path: 'rebotling/maskinhistorik', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/maskinhistorik/maskinhistorik.component').then(m => m.MaskinhistorikPage) },
       { path: 'rebotling/kassationskvot-alarm', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kassationskvot-alarm/kassationskvot-alarm.component').then(m => m.KassationskvotAlarmPage) },
+      { path: 'rebotling/kapacitetsplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kapacitetsplanering/kapacitetsplanering.component').then(m => m.KapacitetsplaneringPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

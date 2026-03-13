@@ -1,3 +1,37 @@
+## 2026-03-13 Rebotling kapacitetsplanering — planerad vs faktisk kapacitet, flaskhalsanalys
+
+Ny sida `/rebotling/kapacitetsplanering` — planerad vs faktisk kapacitet per dag/vecka med flaskhalsidentifiering.
+
+- **Backend**: `classes/KapacitetsplaneringController.php` (action=`kapacitetsplanering`)
+  - `run=kpi` — samlade KPI:er: utnyttjande idag, faktisk/teoretisk kapacitet, flaskhalsstation, snitt cykeltid, prognostiserad veckokapacitet
+  - `run=daglig-kapacitet` — daglig faktisk prod + teoretisk max + ev. produktionsmal + outnyttjad kapacitet (senaste N dagar)
+  - `run=station-utnyttjande` — kapacitetsutnyttjande per station (%)
+  - `run=stopporsaker` — fordelning av stopptid kategoriserad efter varaktighet + idle-tid
+  - `run=tid-fordelning` — daglig fordelning: produktiv tid vs stopp vs idle per dag (stacked)
+  - `run=vecko-oversikt` — veckosammanstalning senaste 12 veckor med utnyttjande, trend, basta/samsta dag
+  - Teoretisk max: antal_stationer * 8h * (3600/120s) = 240 IBC/station/dag
+  - OEE-berakningar med optimal cykeltid 120s
+  - Anvander rebotling_ibc, rebotling_onoff, rebotling_produktionsmal (om den finns) — inga nya tabeller
+  - Registrerad i api.php: `'kapacitetsplanering' => 'KapacitetsplaneringController'`
+
+- **Service**: `services/kapacitetsplanering.service.ts` — 6 metoder med TypeScript-interfaces
+
+- **Frontend**: `pages/rebotling/kapacitetsplanering/`
+  - 5 KPI-kort: utnyttjande idag, snitt per dag, flaskhalsindikator, snitt cykeltid, prognos vecka
+  - Flaskhals-detaljpanel med forklaringstext + gap-procent
+  - Kapacitetsdiagram (Chart.js stacked bar + linjer): faktisk, outnyttjad, teoretisk max, planerat mal, genomsnitt
+  - Station-utnyttjande: horisontellt stapeldiagram med fargkodning (gron/gul/rod)
+  - Stopporsaker: doughnut-diagram med 4 kategorier (kort/medel/langt stopp + idle)
+  - Tid-fordelning: stacked bar per dag (produktiv/idle/stopp)
+  - Veckoversikt-tabell: 12 veckor, utnyttjande-badges med fargkodning, trend-pilar, basta/samsta dag
+  - Periodselektor: 7d / 30d / 90d
+  - Korrekt lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy()
+
+- **Route**: `rebotling/kapacitetsplanering` i app.routes.ts (canActivate: authGuard)
+- **Navigation**: ny menypost under Rebotling-dropdownen
+
+---
+
 ## 2026-03-13 Maskinhistorik per station — detaljerad historikvy per maskin/station
 
 Ny sida `/rebotling/maskinhistorik` — VD och operatorer kan se historik, drifttid, stopp, OEE-trend och jamfora maskiner sinsemellan.
