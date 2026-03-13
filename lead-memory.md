@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #97)*
+*Senast uppdaterad: 2026-03-13 (session #98)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -61,22 +61,20 @@ Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
 Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
 Session #96: Rebotling underhållslogg + Buggjakt — klara.
 Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — klara.
+Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall (klar #97)
-- [x] **Stopporsak-dashboard** — visuell översikt av alla stopp med Pareto (klar #97)
-- [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
-- [ ] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer
+- [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet (PÅGÅR #98)
+- [ ] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, flaskhalsar, prediktion (PÅGÅR #98)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
+- [ ] **Rebotling skiftjämförelse-rapport** — jämför FM/EM/natt-produktivitet
+- [ ] **Rebotling operatörs-ranking med bonus** — gamifierad ranking + poängsystem
+- [ ] **Rebotling historisk sammanfattning** — auto-genererad månads-/kvartalsrapport
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #94 (klar)
-Worker 1 (Kassationsorsak-analys): Pareto-diagram top-5/10 kassationsorsaker, drill-down per station/operatör, trendgraf, KPI-kort. Backend: KassationsanalysController.
-Worker 2 (Rebotling skiftöverlämning): Digital checklista vid skiftbyte — skift-sammanfattning, öppna problem, interaktiv checklista, fritextnoteringar, historik. Backend: SkiftoverlamningController + ny DB-tabell.
 
 ### 2026-03-13 — Session #96 (klar)
 Worker 1 (Rebotling underhållslogg): Ny sida — registrera underhåll per station, planerat/oplanerat, varaktighet, stopporsak-koppling, KPI-kort, bar chart. Backend: UnderhallsloggController + ny DB-tabell.
@@ -85,3 +83,7 @@ Worker 2 (Buggjakt #96): Systematisk granskning av kassationsanalys, skiftöverl
 ### 2026-03-13 — Session #97 (klar)
 Worker 1 (Rebotling produktionsmål-uppföljning): Ny sida — dagliga/veckovisa mål vs utfall, progress-bar per skift, vecko-chart, historik, målhantering. Backend: ProduktionsmalController + ny DB-tabell.
 Worker 2 (Stopporsak-dashboard): Ny sida — Pareto stopp-frekvens, stopptid per station, trend, per-orsak-tabell, detaljlista. Backend: StopporsakController.
+
+### 2026-03-13 — Session #98 (pågår)
+Worker 1 (Operatörs-tidrapport): Ny sida — automatisk tidrapport från skiftschema, per-operatör-sammanfattning, arbetstid-chart, detaljlista, CSV-export. Backend: TidrapportController.
+Worker 2 (OEE-trendanalys förbättrad): Ny sida — OEE per station med breakdown, trendlinje med rullande snitt, flaskhalsidentifiering, period-jämförelse, prediktion. Backend: OeeTrendanalysController.
