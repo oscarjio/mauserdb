@@ -1,3 +1,30 @@
+## 2026-03-13 Stopporsak-dashboard — visuell oversikt av alla produktionsstopp
+
+Ny sida `/rebotling/stopporsaker` — VD och operatorer far en komplett visuell oversikt av alla produktionsstopp pa Rebotling-linjen.
+
+- **Backend**: Ny `classes/StopporsakController.php` + proxy `controllers/StopporsakController.php`
+  - `run=sammanfattning` — KPI: antal stopp, total stopptid (h), snitt per stopp, vanligaste orsak, trend vs foregaende period
+  - `run=pareto` — top-10 orsaker med antal, andel%, kumulativ% (for Pareto-chart 80/20)
+  - `run=per-station` — stopptid grupperat per station (fran rebotling_underhallslogg + fallback)
+  - `run=trend` — antal stopp + stopptid per dag for linjediagram
+  - `run=orsaker-tabell` — alla orsaker med antal, tid, snitt, andel%, trend-jamforelse mot foregaende period
+  - `run=detaljer` — senaste 50 stopp med koppling till underhallslogg (om data finns)
+  - Registrerat i api.php som `stopporsak-dashboard`
+- **Frontend**: Ny Angular standalone component + service
+  - `stopporsaker.service.ts` — 6 endpoints med typer, timeout, catchError
+  - `stopporsaker.component.ts/.html` — dark theme, inline styles
+  - 4 KPI-kort (antal, total tid, snitt, vanligaste orsak) med trend-indikator
+  - Pareto-diagram (Chart.js): staplar + kumulativ linje, top-10
+  - Horisontellt stapeldiagram for stopptid per station
+  - Trend-linjediagram: antal stopp + stopptid per dag med dual y-axis
+  - Tabell per stopporsak: antal, tid, snitt, andel% med progress bar, trend-badge
+  - Expanderbar detaljlista med underhallskoppling
+  - Periodselektor: 7d / 14d / 30d / 90d
+  - Lifecycle: OnInit/OnDestroy, destroy$ + takeUntil, clearInterval, chart?.destroy() med try/catch
+- **Route**: `/rebotling/stopporsaker` med authGuard
+- **Meny**: Tillagd under Rebotling-dropdown efter Underhallslogg
+- **Datakallor**: stopporsak_registreringar, stopporsak_kategorier, rebotling_underhallslogg, users
+
 ## 2026-03-13 Rebotling underhallslogg — station-baserad underh. per station med KPI + chart
 
 Ny funktion pa `/rebotling/underhallslogg` — operatorer och VD kan registrera och se underhall per Rebotling-station (planerat vs oplanerat), kopplat till stopporsaker.

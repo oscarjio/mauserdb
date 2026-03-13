@@ -110,6 +110,8 @@ export const routes: Routes = [
       { path: 'rebotling/operators-prestanda', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operators-prestanda/operators-prestanda.component').then(m => m.OperatorsPrestandaPage) },
       { path: 'rebotling/stationsdetalj', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/stationsdetalj/stationsdetalj.component').then(m => m.RebotlingStationsdetaljPage) },
       { path: 'rebotling/vd-veckorapport', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/vd-veckorapport/vd-veckorapport.component').then(m => m.VdVeckorapportPage) },
+      { path: 'rebotling/stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/stopporsaker/stopporsaker.component').then(m => m.StopporsakerPage) },
+      { path: 'rebotling/produktionsmal-uppfoljning', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktionsmal/produktionsmal.component').then(m => m.RebotlingProduktionsmalPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
