@@ -1,0 +1,220 @@
+/* ============================================================
+   Skiftrapport-sammanstallning — Dark theme
+   ============================================================ */
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+/* ---- Datum-input ---- */
+
+.datum-input {
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  max-width: 180px;
+}
+
+.datum-input:focus {
+  background: #2d3748;
+  color: #e2e8f0;
+  border-color: #4fd1c5;
+  box-shadow: 0 0 0 0.2rem rgba(79, 209, 197, 0.25);
+}
+
+/* ---- Skiftkort ---- */
+
+.skift-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  height: 100%;
+}
+
+.skift-card-header {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem 1rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 4px solid #4fd1c5;
+  display: flex;
+  align-items: center;
+}
+
+.skift-card-body {
+  padding: 1rem;
+}
+
+.skift-metric {
+  text-align: center;
+  padding: 0.4rem 0;
+}
+
+.skift-metric-label {
+  color: #a0aec0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+.skift-metric-value {
+  color: #e2e8f0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* ---- Kassationsorsaker ---- */
+
+.kassationsorsak-lista {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 0.3rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.kassationsorsak-rad {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+  font-size: 0.8rem;
+  color: #e2e8f0;
+}
+
+.kassationsorsak-nr {
+  color: #a0aec0;
+  font-weight: 600;
+  min-width: 1.2rem;
+}
+
+.kassationsorsak-namn {
+  flex: 1;
+}
+
+.kassationsorsak-antal {
+  color: #fc8181;
+  font-weight: 600;
+}
+
+/* ---- Totalt-bar ---- */
+
+.totalt-bar {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+/* ---- Kort ---- */
+
+.sr-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.sr-card-header {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem 1rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.sr-card-body {
+  padding: 1rem;
+}
+
+.sr-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+/* ---- Chart ---- */
+
+.sr-chart-wrapper {
+  position: relative;
+  height: 340px;
+}
+
+/* ---- Loading / Error ---- */
+
+.sr-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  min-height: 60px;
+}
+
+.sr-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fc8181;
+  font-size: 0.9rem;
+  min-height: 60px;
+}
+
+/* ---- Tabell ---- */
+
+.sr-table {
+  font-size: 0.85rem;
+  margin-bottom: 0;
+  background: transparent;
+}
+
+.sr-table thead th {
+  background: rgba(0, 0, 0, 0.3);
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 0.6rem;
+  white-space: nowrap;
+}
+
+.sr-table thead tr.sub-header th {
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.68rem;
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.sr-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sr-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.sr-table tbody td {
+  color: #e2e8f0;
+  padding: 0.5rem 0.6rem;
+  vertical-align: middle;
+}

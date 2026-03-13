@@ -101,6 +101,7 @@ export const routes: Routes = [
       { path: 'rebotling/kassationsorsak', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kassationsorsak/kassationsorsak').then(m => m.KassationsorsakPage) },
       { path: 'rebotling/oee-jamforelse', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/oee-jamforelse/oee-jamforelse').then(m => m.OeeJamforelsePage) },
       { path: 'rebotling/maskin-drifttid', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/maskin-drifttid/maskin-drifttid').then(m => m.MaskinDrifttidPage) },
+      { path: 'rebotling/skiftrapport-sammanstallning', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/skiftrapport-sammanstallning/skiftrapport-sammanstallning').then(m => m.SkiftrapportSammanstallningPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

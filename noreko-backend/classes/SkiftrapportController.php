@@ -34,6 +34,18 @@ class SkiftrapportController {
                 $this->getShiftReportByOperator();
                 return;
             }
+            if ($run === 'daglig-sammanstallning') {
+                $this->getDagligSammanstallning();
+                return;
+            }
+            if ($run === 'veckosammanstallning') {
+                $this->getVeckosammanstallning();
+                return;
+            }
+            if ($run === 'skiftjamforelse') {
+                $this->getSkiftjamforelse();
+                return;
+            }
             $this->getSkiftrapporter();
         } elseif ($method === 'POST') {
             if (empty($_SESSION['user_id'])) {
@@ -768,6 +780,267 @@ class SkiftrapportController {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Kunde inte hämta skiftrapport per operatör']);
         }
+    }
+
+    // ================================================================
+    // Rebotling Skiftrapport-sammanstallning
+    // Skift: Dag 06-14, Kvall 14-22, Natt 22-06
+    // OEE = Tillganglighet x Prestanda x Kvalitet
+    // ================================================================
+
+    private const IDEAL_CYCLE_SEC = 120;
+    private const SKIFT_LANGD_SEK = 8 * 3600; // 8 timmar
+
+    /**
+     * Berakna skiftintervall for ett datum.
+     * Dag: 06:00-14:00, Kvall: 14:00-22:00, Natt: 22:00-06:00 (nasta dag)
+     */
+    private function getSkiftIntervall(string $datum): array {
+        return [
+            'dag'   => [$datum . ' 06:00:00', $datum . ' 14:00:00'],
+            'kvall' => [$datum . ' 14:00:00', $datum . ' 22:00:00'],
+            'natt'  => [$datum . ' 22:00:00', date('Y-m-d', strtotime($datum . ' +1 day')) . ' 06:00:00'],
+        ];
+    }
+
+    /**
+     * Berakna OEE + produktionsdata for ett tidsintervall (skift).
+     */
+    private function calcSkiftData(string $fromDt, string $toDt): array {
+        // 1) Drifttid fran rebotling_onoff
+        $drifttidSek = 0;
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT COALESCE(SUM(
+                    TIMESTAMPDIFF(SECOND,
+                        GREATEST(start_time, :from1),
+                        LEAST(COALESCE(stop_time, NOW()), :to1)
+                    )
+                ), 0) AS drifttid_sek
+                FROM rebotling_onoff
+                WHERE start_time < :to2
+                  AND (stop_time IS NULL OR stop_time > :from2)
+                  AND TIMESTAMPDIFF(SECOND,
+                        GREATEST(start_time, :from3),
+                        LEAST(COALESCE(stop_time, NOW()), :to3)
+                      ) > 0
+            ");
+            $stmt->execute([
+                ':from1' => $fromDt, ':to1' => $toDt,
+                ':from2' => $fromDt, ':to2' => $toDt,
+                ':from3' => $fromDt, ':to3' => $toDt,
+            ]);
+            $drifttidSek = max(0, (int)($stmt->fetchColumn() ?? 0));
+        } catch (\PDOException $e) {
+            error_log('calcSkiftData onoff: ' . $e->getMessage());
+        }
+
+        // 2) IBC-data fran rebotling_ibc
+        $totalIbc = 0;
+        $okIbc = 0;
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT COUNT(*) AS total, SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal
+                FROM rebotling_ibc
+                WHERE datum >= :from_dt AND datum < :to_dt
+            ");
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $totalIbc = (int)($row['total'] ?? 0);
+            $okIbc = (int)($row['ok_antal'] ?? 0);
+        } catch (\PDOException $e) {
+            error_log('calcSkiftData ibc: ' . $e->getMessage());
+        }
+
+        $kasserade = $totalIbc - $okIbc;
+
+        // 3) OEE-berakning
+        $tillganglighet = self::SKIFT_LANGD_SEK > 0 ? min(1.0, $drifttidSek / self::SKIFT_LANGD_SEK) : 0.0;
+        $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+        $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+        $oee = $tillganglighet * $prestanda * $kvalitet;
+
+        $stopptidH = max(0, (self::SKIFT_LANGD_SEK - $drifttidSek)) / 3600;
+
+        // 4) Top-3 kassationsorsaker
+        $topOrsaker = [];
+        try {
+            $stmtK = $this->pdo->prepare("
+                SELECT kt.namn AS orsak, COUNT(*) AS antal
+                FROM kassationsregistrering kr
+                JOIN kassationsorsak_typer kt ON kr.orsak_id = kt.id
+                WHERE kr.datum >= :from_dt AND kr.datum < :to_dt
+                GROUP BY kt.id, kt.namn
+                ORDER BY antal DESC
+                LIMIT 3
+            ");
+            $stmtK->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $topOrsaker = $stmtK->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            // kassationsregistrering kanske inte finns
+        }
+
+        return [
+            'producerade'        => $totalIbc,
+            'godkanda'           => $okIbc,
+            'kasserade'          => $kasserade,
+            'kassationsgrad_pct' => $totalIbc > 0 ? round(($kasserade / $totalIbc) * 100, 1) : 0,
+            'oee_pct'            => round($oee * 100, 1),
+            'tillganglighet_pct' => round($tillganglighet * 100, 1),
+            'prestanda_pct'      => round($prestanda * 100, 1),
+            'kvalitet_pct'       => round($kvalitet * 100, 1),
+            'drifttid_h'         => round($drifttidSek / 3600, 2),
+            'stopptid_h'         => round($stopptidH, 2),
+            'top_kassationsorsaker' => $topOrsaker,
+        ];
+    }
+
+    /**
+     * run=daglig-sammanstallning
+     * Hamtar skiftdata (dag/kvall/natt) for ett visst datum.
+     * ?datum=YYYY-MM-DD (default: idag)
+     */
+    private function getDagligSammanstallning(): void {
+        $datum = $_GET['datum'] ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            return;
+        }
+
+        $skift = $this->getSkiftIntervall($datum);
+        $resultat = [];
+        foreach ($skift as $namn => $intervall) {
+            $data = $this->calcSkiftData($intervall[0], $intervall[1]);
+            $data['skift'] = $namn;
+            $data['start'] = $intervall[0];
+            $data['slut'] = $intervall[1];
+            $resultat[] = $data;
+        }
+
+        // Totalt for dagen
+        $totProducerade = array_sum(array_column($resultat, 'producerade'));
+        $totKasserade = array_sum(array_column($resultat, 'kasserade'));
+        $totGodkanda = array_sum(array_column($resultat, 'godkanda'));
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'datum' => $datum,
+                'skift' => $resultat,
+                'totalt' => [
+                    'producerade' => $totProducerade,
+                    'godkanda' => $totGodkanda,
+                    'kasserade' => $totKasserade,
+                    'kassationsgrad_pct' => $totProducerade > 0 ? round(($totKasserade / $totProducerade) * 100, 1) : 0,
+                ],
+            ],
+            'timestamp' => date('Y-m-d H:i:s'),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * run=veckosammanstallning
+     * Sammanstallning per dag, senaste 7 dagarna.
+     */
+    private function getVeckosammanstallning(): void {
+        $dagar = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $datum = date('Y-m-d', strtotime("-{$i} days"));
+            $skift = $this->getSkiftIntervall($datum);
+            $dagData = [
+                'datum' => $datum,
+                'veckodag' => $this->veckodagNamn(date('N', strtotime($datum))),
+            ];
+            foreach ($skift as $namn => $intervall) {
+                $dagData[$namn] = $this->calcSkiftData($intervall[0], $intervall[1]);
+            }
+            // Dagstotalt
+            $dagTotProd = ($dagData['dag']['producerade'] ?? 0) + ($dagData['kvall']['producerade'] ?? 0) + ($dagData['natt']['producerade'] ?? 0);
+            $dagTotKass = ($dagData['dag']['kasserade'] ?? 0) + ($dagData['kvall']['kasserade'] ?? 0) + ($dagData['natt']['kasserade'] ?? 0);
+            $dagData['totalt_producerade'] = $dagTotProd;
+            $dagData['totalt_kasserade'] = $dagTotKass;
+            $dagData['totalt_oee_pct'] = 0;
+            if ($dagTotProd > 0) {
+                // Snitt-OEE av skiften
+                $oees = array_filter([
+                    $dagData['dag']['oee_pct'] ?? 0,
+                    $dagData['kvall']['oee_pct'] ?? 0,
+                    $dagData['natt']['oee_pct'] ?? 0,
+                ], fn($v) => $v > 0);
+                $dagData['totalt_oee_pct'] = count($oees) > 0 ? round(array_sum($oees) / count($oees), 1) : 0;
+            }
+            $dagar[] = $dagData;
+        }
+
+        echo json_encode([
+            'success' => true,
+            'data' => ['dagar' => $dagar],
+            'timestamp' => date('Y-m-d H:i:s'),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
+     * run=skiftjamforelse
+     * Jamfor skift dag/kvall/natt senaste N dagar (default 30).
+     */
+    private function getSkiftjamforelse(): void {
+        $antalDagar = max(7, min(90, intval($_GET['dagar'] ?? 30)));
+
+        $dagData = [];
+        $skiftTotaler = [
+            'dag'   => ['producerade' => 0, 'kasserade' => 0, 'godkanda' => 0, 'oee_sum' => 0, 'count' => 0],
+            'kvall' => ['producerade' => 0, 'kasserade' => 0, 'godkanda' => 0, 'oee_sum' => 0, 'count' => 0],
+            'natt'  => ['producerade' => 0, 'kasserade' => 0, 'godkanda' => 0, 'oee_sum' => 0, 'count' => 0],
+        ];
+
+        for ($i = $antalDagar - 1; $i >= 0; $i--) {
+            $datum = date('Y-m-d', strtotime("-{$i} days"));
+            $skift = $this->getSkiftIntervall($datum);
+            $dagEntry = ['datum' => $datum];
+
+            foreach ($skift as $namn => $intervall) {
+                $sd = $this->calcSkiftData($intervall[0], $intervall[1]);
+                $dagEntry[$namn . '_producerade'] = $sd['producerade'];
+                $dagEntry[$namn . '_oee_pct'] = $sd['oee_pct'];
+
+                $skiftTotaler[$namn]['producerade'] += $sd['producerade'];
+                $skiftTotaler[$namn]['kasserade'] += $sd['kasserade'];
+                $skiftTotaler[$namn]['godkanda'] += $sd['godkanda'];
+                if ($sd['producerade'] > 0) {
+                    $skiftTotaler[$namn]['oee_sum'] += $sd['oee_pct'];
+                    $skiftTotaler[$namn]['count']++;
+                }
+            }
+            $dagData[] = $dagEntry;
+        }
+
+        // Snitt per skift
+        $snitt = [];
+        foreach ($skiftTotaler as $namn => $t) {
+            $snitt[$namn] = [
+                'totalt_producerade' => $t['producerade'],
+                'totalt_kasserade' => $t['kasserade'],
+                'totalt_godkanda' => $t['godkanda'],
+                'snitt_oee_pct' => $t['count'] > 0 ? round($t['oee_sum'] / $t['count'], 1) : 0,
+                'snitt_producerade_per_dag' => $antalDagar > 0 ? round($t['producerade'] / $antalDagar, 1) : 0,
+            ];
+        }
+
+        echo json_encode([
+            'success' => true,
+            'data' => [
+                'antal_dagar' => $antalDagar,
+                'dagdata' => $dagData,
+                'snitt' => $snitt,
+            ],
+            'timestamp' => date('Y-m-d H:i:s'),
+        ], JSON_UNESCAPED_UNICODE);
+    }
+
+    private function veckodagNamn(int $dayOfWeek): string {
+        $namn = ['', 'Man', 'Tis', 'Ons', 'Tor', 'Fre', 'Lor', 'Son'];
+        return $namn[$dayOfWeek] ?? '';
     }
 
     private function fetchLopnummer(int $skiftraknare): array {
