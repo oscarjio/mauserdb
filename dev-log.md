@@ -1,3 +1,32 @@
+## 2026-03-13 Rebotling stationsdetalj-dashboard — drill-down per station (session #93)
+
+Ny sida `/rebotling/stationsdetalj` — VD kan klicka på en station och se fullständig drill-down med realtids-OEE, IBC-historik, stopphistorik och 30-dagars trendgraf.
+
+- **Backend**: `classes/RebotlingStationsdetaljController.php` (action=`rebotling-stationsdetalj`)
+  - `run=stationer` — lista unika stationer från rebotling_ibc
+  - `run=kpi-idag` — OEE, drifttid%, antal IBC idag, snittcykeltid (?station=X)
+  - `run=senaste-ibc` — senaste IBCer med tidsstämpel, resultat (OK/Kasserad), cykeltid (?station=X&limit=N)
+  - `run=stopphistorik` — stopphistorik från rebotling_onoff med varaktighet och status (?limit=N)
+  - `run=oee-trend` — OEE + delkomponenter per dag senaste N dagar (?station=X&dagar=30)
+  - `run=realtid-oee` — realtids-OEE senaste timmen + aktiv/stoppad-status (?station=X)
+  - Proxy: `controllers/RebotlingStationsdetaljController.php`
+  - Registrerad i api.php: `'rebotling-stationsdetalj' => 'RebotlingStationsdetaljController'`
+
+- **Frontend**: `pages/rebotling/stationsdetalj/`
+  - Stationsväljare: klickbara pill-knappar (desktop) + select-dropdown (mobil)
+  - Realtid-banner: aktiv/stoppad-status med pulsande grön/röd indikator + snabb-KPI (OEE, IBC/h, cykeltid, kasserade)
+  - KPI-kort idag: 4 kort — OEE%, Drifttid%, Antal IBC, Snittcykeltid — med progress-bars och mål
+  - OEE-delkomponenter: Tillgänglighet, Prestanda, Kvalitet med färgkodade progress-bars
+  - Trendgraf (Chart.js): OEE-linje + tillgänglighet/kvalitet streckat + IBC-staplar, periodselektor 7/14/30/60d
+  - IBC-lista: tidsstämpel, OK/kasserad-badge, cykeltid färgkodad (grön ≤120s, gul >180s)
+  - Stopphistorik: start/stopp-tider, varaktighet, pulsande "Pågående"-badge
+  - Dark theme (#1a202c bg, #2d3748 kort), OnInit/OnDestroy + destroy$ + takeUntil + clearInterval (30s polling)
+  - Service: `services/rebotling-stationsdetalj.service.ts` med fullständiga TypeScript-interfaces
+  - Route: `/rebotling/stationsdetalj` (authGuard)
+  - Navigation: länk "Stationsdetalj" tillagd i Rebotling-dropdown i menu.html
+
+---
+
 ## 2026-03-13 VD Veckorapport — automatisk veckosammanfattning + utskriftsvänlig rapport (session #92)
 
 Ny sida `/rebotling/vd-veckorapport` — automatisk veckosammanfattning för ledningen med KPI-jämförelse, trender, operatörsprestanda och stopporsaker.
