@@ -1,0 +1,355 @@
+<div class="stationsdetalj-wrapper">
+
+  <!-- Sidrubrik -->
+  <div class="page-header mb-4">
+    <h1 class="page-title">
+      <i class="fas fa-industry me-3" style="color:#4fd1c5"></i>
+      Rebotling Stationsdetalj
+    </h1>
+    <p class="page-subtitle">Drill-down per station — OEE, IBC-historik, stopp och trender</p>
+  </div>
+
+  <!-- ===== Stationsväljare ===== -->
+  <div class="station-panel mb-4">
+    <div class="station-panel-header">
+      <i class="fas fa-map-marker-alt me-2" style="color:#4fd1c5"></i>
+      Välj station
+    </div>
+    <div class="station-btn-row" *ngIf="!loadingStationer && !errorStationer">
+      <button
+        *ngFor="let s of stationer; trackBy: trackByIndex"
+        class="btn btn-station"
+        [class.btn-station-aktiv]="isAktivStation(s)"
+        (click)="valjStation(s)">
+        <i class="fas fa-circle me-1 station-dot"
+           [style.color]="isAktivStation(s) ? '#4fd1c5' : '#4a5568'"></i>
+        {{ s }}
+      </button>
+    </div>
+    <div *ngIf="loadingStationer" class="text-center py-3 text-muted">
+      <i class="fas fa-spinner fa-spin me-2"></i>Laddar stationer...
+    </div>
+    <div *ngIf="errorStationer" class="alert alert-danger m-2 py-2">
+      <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stationer
+      <button class="btn btn-sm btn-outline-danger ms-3" (click)="laddaStationer()">Försök igen</button>
+    </div>
+
+    <!-- Stationsdropdown för mobil -->
+    <div class="mt-2 d-md-none" *ngIf="stationer.length > 0">
+      <select class="form-select form-select-sm bg-dark text-light border-secondary"
+              [(ngModel)]="valdStation"
+              (change)="laddaAlltForStation()">
+        <option *ngFor="let s of stationer" [value]="s">{{ s }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div *ngIf="valdStation">
+
+    <!-- ===== REALTID-BANNER ===== -->
+    <div class="realtid-banner mb-4"
+         [class.realtid-aktiv]="realtidData?.aktiv_nu"
+         [class.realtid-stopp]="realtidData && !realtidData.aktiv_nu">
+      <div class="realtid-inner">
+        <div class="realtid-status">
+          <span class="status-dot"
+                [class.status-dot-on]="realtidData?.aktiv_nu"
+                [class.status-dot-off]="realtidData && !realtidData.aktiv_nu"></span>
+          <span class="status-text">
+            {{ realtidData?.aktiv_nu ? 'Station AKTIV' : (realtidData ? 'Station STOPPAD' : '—') }}
+          </span>
+          <span class="station-namn ms-3">{{ valdStation }}</span>
+        </div>
+        <div class="realtid-kpis" *ngIf="realtidData">
+          <div class="rt-kpi">
+            <span class="rt-kpi-label">OEE (1h)</span>
+            <span class="rt-kpi-value" [style.color]="oeeFarg(realtidData.oee_pct)">
+              {{ realtidData.oee_pct }}%
+            </span>
+          </div>
+          <div class="rt-kpi">
+            <span class="rt-kpi-label">IBC senaste h</span>
+            <span class="rt-kpi-value text-info">{{ realtidData.total_ibc }} st</span>
+          </div>
+          <div class="rt-kpi">
+            <span class="rt-kpi-label">Snittcykel</span>
+            <span class="rt-kpi-value text-light">{{ formatSekunder(realtidData.avg_cykeltid_sek) }}</span>
+          </div>
+          <div class="rt-kpi">
+            <span class="rt-kpi-label">Kasserade</span>
+            <span class="rt-kpi-value text-danger">{{ realtidData.kasserade_ibc }} st</span>
+          </div>
+        </div>
+        <div *ngIf="loadingRealtid && !realtidData" class="text-muted small">
+          <i class="fas fa-spinner fa-spin me-1"></i>Laddar realtid...
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== KPI-KORT (IDAG) ===== -->
+    <div class="section-rubrik mb-3">
+      <i class="fas fa-tachometer-alt me-2" style="color:#4299e1"></i>
+      KPI idag — {{ kpiData?.datum ?? '' }}
+    </div>
+
+    <div *ngIf="loadingKpi && !kpiData" class="loading-block mb-4">
+      <i class="fas fa-spinner fa-spin me-2"></i>Laddar KPI-data...
+    </div>
+
+    <div class="row g-3 mb-4" *ngIf="kpiData">
+
+      <!-- OEE -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-kort">
+          <div class="kpi-icon"><i class="fas fa-chart-pie" style="color:#4299e1"></i></div>
+          <div class="kpi-label">OEE</div>
+          <div class="kpi-value" [style.color]="oeeFarg(kpiData.oee_pct)">
+            {{ kpiData.oee_pct }}%
+          </div>
+          <div class="kpi-sub">Mål: 75%</div>
+          <div class="kpi-progress-bar mt-2">
+            <div class="kpi-progress-fill"
+                 [style.width.%]="kpiData.oee_pct"
+                 [style.background-color]="oeeFarg(kpiData.oee_pct)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drifttid % -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-kort">
+          <div class="kpi-icon"><i class="fas fa-clock" style="color:#48bb78"></i></div>
+          <div class="kpi-label">Drifttid idag</div>
+          <div class="kpi-value" [class]="oeeKlass(kpiData.drifttid_procent)">
+            {{ kpiData.drifttid_procent }}%
+          </div>
+          <div class="kpi-sub">{{ kpiData.drifttid_h }}h av {{ kpiData.planerad_h }}h</div>
+          <div class="kpi-progress-bar mt-2">
+            <div class="kpi-progress-fill"
+                 [style.width.%]="kpiData.drifttid_procent"
+                 [style.background-color]="oeeFarg(kpiData.drifttid_procent)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Antal IBC idag -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-kort">
+          <div class="kpi-icon"><i class="fas fa-boxes" style="color:#9f7aea"></i></div>
+          <div class="kpi-label">IBC idag</div>
+          <div class="kpi-value text-info">{{ kpiData.total_ibc }}</div>
+          <div class="kpi-sub">
+            <span class="text-success">{{ kpiData.ok_ibc }} ok</span>
+            &nbsp;/&nbsp;
+            <span class="text-danger">{{ kpiData.kasserade_ibc }} kasserade</span>
+          </div>
+          <div class="kpi-progress-bar mt-2">
+            <div class="kpi-progress-fill bg-success"
+                 [style.width.%]="kpiData.total_ibc > 0 ? (kpiData.ok_ibc / kpiData.total_ibc * 100) : 0"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Snittcykeltid -->
+      <div class="col-6 col-lg-3">
+        <div class="kpi-kort">
+          <div class="kpi-icon"><i class="fas fa-stopwatch" style="color:#ed8936"></i></div>
+          <div class="kpi-label">Snittcykeltid</div>
+          <div class="kpi-value text-warning">{{ formatSekunder(kpiData.avg_cykeltid_sek) }}</div>
+          <div class="kpi-sub">Ideal: 2m 00s</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- OEE-delkomponenter rad -->
+    <div class="row g-3 mb-4" *ngIf="kpiData">
+      <div class="col-12 col-md-4">
+        <div class="detalj-kort">
+          <div class="detalj-label"><i class="fas fa-calendar-check me-2 text-success"></i>Tillgänglighet</div>
+          <div class="detalj-value" [class]="oeeKlass(kpiData.tillganglighet_pct)">
+            {{ kpiData.tillganglighet_pct }}%
+          </div>
+          <div class="detalj-bar">
+            <div class="detalj-bar-fill"
+                 [style.width.%]="kpiData.tillganglighet_pct"
+                 style="background:#48bb78"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="detalj-kort">
+          <div class="detalj-label"><i class="fas fa-tachometer-alt me-2 text-info"></i>Prestanda</div>
+          <div class="detalj-value" [class]="oeeKlass(kpiData.prestanda_pct)">
+            {{ kpiData.prestanda_pct }}%
+          </div>
+          <div class="detalj-bar">
+            <div class="detalj-bar-fill"
+                 [style.width.%]="kpiData.prestanda_pct"
+                 style="background:#4299e1"></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="detalj-kort">
+          <div class="detalj-label"><i class="fas fa-star me-2 text-warning"></i>Kvalitet</div>
+          <div class="detalj-value" [class]="oeeKlass(kpiData.kvalitet_pct)">
+            {{ kpiData.kvalitet_pct }}%
+          </div>
+          <div class="detalj-bar">
+            <div class="detalj-bar-fill"
+                 [style.width.%]="kpiData.kvalitet_pct"
+                 style="background:#ed8936"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== OEE TRENDGRAF ===== -->
+    <div class="section-rubrik mb-3">
+      <i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>
+      OEE-trend per dag — {{ valdStation }}
+    </div>
+
+    <!-- Periodknappar -->
+    <div class="d-flex gap-2 mb-3 flex-wrap">
+      <button
+        *ngFor="let alt of trendAlternativ"
+        class="btn btn-sm btn-period"
+        [class.btn-period-aktiv]="trendDagar === alt.varde"
+        (click)="byttPeriod(alt.varde)">
+        {{ alt.etikett }}
+      </button>
+    </div>
+
+    <div class="chart-card mb-4">
+      <div *ngIf="loadingTrend" class="chart-loading">
+        <i class="fas fa-spinner fa-spin me-2"></i>Beräknar OEE-trend...
+      </div>
+      <div *ngIf="errorTrend" class="chart-error">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trenddata
+        <button class="btn btn-sm btn-outline-warning ms-3" (click)="laddaOeeTrend()">Försök igen</button>
+      </div>
+      <div *ngIf="!loadingTrend && !errorTrend && trendData.length === 0" class="chart-empty">
+        <i class="fas fa-chart-line me-2"></i>Ingen trenddata för {{ valdStation }}
+      </div>
+      <div class="chart-container" [class.d-none]="loadingTrend || errorTrend || trendData.length === 0">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- ===== SENASTE IBCer ===== -->
+    <div class="section-rubrik mb-3">
+      <i class="fas fa-list me-2" style="color:#9f7aea"></i>
+      Senaste IBCer — {{ valdStation }}
+    </div>
+
+    <div class="table-card mb-4">
+      <div *ngIf="loadingIbc && ibcLista.length === 0" class="loading-block">
+        <i class="fas fa-spinner fa-spin me-2"></i>Laddar IBC-lista...
+      </div>
+      <div *ngIf="errorIbc" class="alert alert-danger m-3 py-2">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda IBC-data
+      </div>
+      <div *ngIf="!loadingIbc && !errorIbc && ibcLista.length === 0" class="text-center text-muted py-4">
+        Inga IBCer hittade för {{ valdStation }}
+      </div>
+      <div class="table-responsive" *ngIf="ibcLista.length > 0">
+        <table class="table table-dark table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tidsstämpel</th>
+              <th>Resultat</th>
+              <th>Cykeltid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let ibc of ibcLista; let i = index; trackBy: trackByIndex"
+                [class.row-ok]="ibc.ok"
+                [class.row-kasserad]="!ibc.ok">
+              <td class="text-muted">{{ i + 1 }}</td>
+              <td>{{ formatDatum(ibc.datum) }}</td>
+              <td>
+                <span class="resultat-badge"
+                      [class.resultat-ok]="ibc.ok"
+                      [class.resultat-kasserad]="!ibc.ok">
+                  <i class="fas" [class.fa-check]="ibc.ok" [class.fa-times]="!ibc.ok" class="me-1"></i>
+                  {{ ibc.resultat }}
+                </span>
+              </td>
+              <td>
+                <span [class.text-warning]="ibc.cykeltid_sek > 180 && ibc.cykeltid_sek > 0"
+                      [class.text-success]="ibc.cykeltid_sek > 0 && ibc.cykeltid_sek <= 180">
+                  {{ ibc.cykeltid_fmt }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== STOPPHISTORIK ===== -->
+    <div class="section-rubrik mb-3">
+      <i class="fas fa-stop-circle me-2" style="color:#fc8181"></i>
+      Stopphistorik — linjeövergripande
+    </div>
+
+    <div class="table-card mb-4">
+      <div *ngIf="loadingStopp && stoppLista.length === 0" class="loading-block">
+        <i class="fas fa-spinner fa-spin me-2"></i>Laddar stopphistorik...
+      </div>
+      <div *ngIf="errorStopp" class="alert alert-danger m-3 py-2">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda stoppdata
+      </div>
+      <div *ngIf="!loadingStopp && !errorStopp && stoppLista.length === 0" class="text-center text-muted py-4">
+        Inga stopp hittade
+      </div>
+      <div class="table-responsive" *ngIf="stoppLista.length > 0">
+        <table class="table table-dark table-hover table-sm mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Start</th>
+              <th>Stopp</th>
+              <th>Varaktighet</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let stopp of stoppLista; let i = index; trackBy: trackByIndex"
+                [class.row-pagaende]="stopp.status === 'Pagaende'">
+              <td class="text-muted">{{ i + 1 }}</td>
+              <td>{{ formatDatum(stopp.start_time) }}</td>
+              <td>{{ stopp.stop_time ? formatDatum(stopp.stop_time) : '—' }}</td>
+              <td>
+                <span [class.text-danger]="stopp.varaktighet_min > 30"
+                      [class.text-warning]="stopp.varaktighet_min >= 10 && stopp.varaktighet_min <= 30"
+                      [class.text-success]="stopp.varaktighet_min < 10">
+                  {{ stopp.varaktighet_fmt }}
+                </span>
+              </td>
+              <td>
+                <span class="stopp-badge"
+                      [class.stopp-pagaende]="stopp.status === 'Pagaende'"
+                      [class.stopp-avslutat]="stopp.status === 'Avslutat'">
+                  <span class="stopp-dot me-1" *ngIf="stopp.status === 'Pagaende'"></span>
+                  {{ stopp.status }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /valdStation -->
+
+  <!-- Ingen station vald ännu -->
+  <div *ngIf="!valdStation && !loadingStationer" class="text-center text-muted py-5">
+    <i class="fas fa-hand-point-up fa-2x mb-3 d-block"></i>
+    Välj en station ovan för att se detaljer
+  </div>
+
+</div>
