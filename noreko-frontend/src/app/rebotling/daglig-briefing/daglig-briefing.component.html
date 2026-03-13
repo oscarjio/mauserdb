@@ -1,0 +1,190 @@
+<div class="briefing-container">
+  <!-- Header -->
+  <div class="briefing-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <div>
+      <h2 class="page-title mb-1">
+        <i class="fas fa-newspaper me-2" style="color:#4fd1c5"></i>Daglig Briefing
+      </h2>
+      <p class="text-muted mb-0" *ngIf="visatDatum">Rapport for {{ visatDatum }}</p>
+    </div>
+    <div class="d-flex align-items-center gap-2 no-print">
+      <select class="form-select form-select-sm datum-select" [(ngModel)]="datumVal" (ngModelChange)="onDatumChange()">
+        <option value="igar">Igar</option>
+        <option value="idag">Idag</option>
+        <option value="specifikt">Valj datum</option>
+      </select>
+      <input *ngIf="datumVal === 'specifikt'"
+             type="date"
+             class="form-control form-control-sm datum-input"
+             [(ngModel)]="specifiktDatum"
+             (ngModelChange)="onDatumChange()" />
+      <button class="btn btn-sm btn-outline-secondary" (click)="printReport()" title="Skriv ut">
+        <i class="fas fa-print"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Textsummering -->
+  <div class="summary-card mb-4" *ngIf="!loadingSammanfattning && !errorSammanfattning && sammanfattning">
+    <div class="summary-text">
+      <i class="fas fa-robot me-2" style="color:#4fd1c5"></i>{{ sammanfattning.summering }}
+    </div>
+  </div>
+
+  <!-- KPI-kort rad -->
+  <div class="row g-3 mb-4" *ngIf="!loadingSammanfattning && !errorSammanfattning && sammanfattning">
+    <!-- Produktion -->
+    <div class="col-lg-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-blue"><i class="fas fa-boxes"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Produktion</div>
+          <div class="kpi-value">{{ sammanfattning.total_ibc }}</div>
+          <div class="kpi-sub" [ngClass]="getMalClass(sammanfattning.mal_procent)">
+            {{ sammanfattning.mal_procent }}% av mal ({{ sammanfattning.dagsmal }})
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OEE -->
+    <div class="col-lg-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-green"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">OEE</div>
+          <div class="kpi-value" [ngClass]="getOeeClass(sammanfattning.oee_pct)">{{ sammanfattning.oee_pct }}%</div>
+          <div class="kpi-sub text-muted">Mal: {{ sammanfattning.oee_mal }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassation -->
+    <div class="col-lg-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-yellow"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Kassationsrate</div>
+          <div class="kpi-value" [ngClass]="getKassClass(sammanfattning.kassationsrate)">{{ sammanfattning.kassationsrate }}%</div>
+          <div class="kpi-sub text-muted">{{ sammanfattning.kasserade }} av {{ sammanfattning.total_ibc }} (troskel: {{ sammanfattning.kassation_troskel }}%)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stopp -->
+    <div class="col-lg-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon kpi-icon-red"><i class="fas fa-stop-circle"></i></div>
+        <div class="kpi-body">
+          <div class="kpi-label">Stoppminuter</div>
+          <div class="kpi-value">{{ sammanfattning.stopp_minuter }}</div>
+          <div class="kpi-sub text-muted" *ngIf="sammanfattning.basta_operator">
+            Bast: {{ sammanfattning.basta_operator.namn }} ({{ sammanfattning.basta_operator.total_ibc }} IBC)
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading KPI -->
+  <div class="row g-3 mb-4" *ngIf="loadingSammanfattning">
+    <div class="col-lg-3 col-sm-6" *ngFor="let i of [1,2,3,4]">
+      <div class="kpi-card skeleton-card">
+        <div class="skeleton-text" style="width:60%;height:14px;margin-bottom:8px"></div>
+        <div class="skeleton-text" style="width:40%;height:24px;margin-bottom:8px"></div>
+        <div class="skeleton-text" style="width:80%;height:12px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error KPI -->
+  <div class="alert alert-danger mb-4" *ngIf="errorSammanfattning">
+    <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda sammanfattning.
+  </div>
+
+  <!-- Andra raden: Stopporsaker + Bemanning + Veckotrend -->
+  <div class="row g-3 mb-4">
+    <!-- Top 3 stopporsaker -->
+    <div class="col-lg-4">
+      <div class="section-card">
+        <h5 class="section-title"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Top 3 stopporsaker</h5>
+        <div *ngIf="loadingStopp" class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="errorStopp" class="text-danger small">Kunde inte ladda stopporsaker.</div>
+        <div *ngIf="!loadingStopp && !errorStopp">
+          <div *ngIf="stopporsaker.length === 0" class="text-muted small">Inga registrerade stopp.</div>
+          <div class="stopp-item" *ngFor="let s of stopporsaker; let i = index">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="stopp-rank">{{ i + 1 }}.</span>
+              <span class="stopp-namn flex-grow-1 ms-2">{{ s.orsak }}</span>
+              <span class="stopp-min">{{ s.minuter }} min</span>
+              <span class="stopp-pct ms-2">{{ s.procent }}%</span>
+            </div>
+            <div class="progress stopp-progress">
+              <div class="progress-bar" [style.width.%]="s.procent"
+                   [ngClass]="{'bg-danger': i === 0, 'bg-warning': i === 1, 'bg-info': i === 2}"></div>
+            </div>
+          </div>
+          <div class="stopp-total mt-2" *ngIf="stoppTotalMin > 0">Totalt: {{ stoppTotalMin }} min</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bemanning -->
+    <div class="col-lg-4">
+      <div class="section-card">
+        <h5 class="section-title"><i class="fas fa-users me-2" style="color:#63b3ed"></i>Dagens bemanning</h5>
+        <div *ngIf="loadingBemanning" class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="errorBemanning" class="text-danger small">Kunde inte ladda bemanning.</div>
+        <div *ngIf="!loadingBemanning && !errorBemanning">
+          <div class="bemanning-count mb-2">{{ bemanningAntal }} operatorer aktiva idag</div>
+          <div *ngIf="operatorer.length === 0" class="text-muted small">Inga aktiva operatorer.</div>
+          <div class="operator-item" *ngFor="let op of operatorer">
+            <span class="op-namn"><i class="fas fa-user me-1" style="color:#a0aec0"></i>{{ op.namn }}</span>
+            <span class="op-ibc">{{ op.ibc_idag }} IBC</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Veckotrend sparkline -->
+    <div class="col-lg-4">
+      <div class="section-card">
+        <h5 class="section-title"><i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>Produktion senaste 7 dagar</h5>
+        <div *ngIf="loadingTrend" class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+        <div *ngIf="errorTrend" class="text-danger small">Kunde inte ladda veckotrend.</div>
+        <div *ngIf="!loadingTrend && !errorTrend" class="trend-chart-wrapper">
+          <canvas id="briefingTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stationsstatus -->
+  <div class="section-card mb-4">
+    <h5 class="section-title"><i class="fas fa-industry me-2" style="color:#9f7aea"></i>Stationsstatus</h5>
+    <div *ngIf="loadingStationer" class="text-center py-3"><div class="spinner-border spinner-border-sm text-secondary"></div></div>
+    <div *ngIf="errorStationer" class="text-danger small">Kunde inte ladda stationsstatus.</div>
+    <div *ngIf="!loadingStationer && !errorStationer" class="table-responsive">
+      <table class="table table-sm station-table mb-0">
+        <thead>
+          <tr>
+            <th>Station</th>
+            <th class="text-end">IBC</th>
+            <th class="text-end">OEE %</th>
+            <th class="text-center">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let st of stationer">
+            <td>{{ st.station_namn }}</td>
+            <td class="text-end">{{ st.total_ibc }}</td>
+            <td class="text-end" [ngClass]="getOeeClass(st.oee_pct)">{{ st.oee_pct }}%</td>
+            <td class="text-center">
+              <span class="status-badge" [ngClass]="getStatusClass(st.status)">{{ st.status }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

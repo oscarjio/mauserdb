@@ -215,6 +215,7 @@ $classNameMap = [
     'historisk-sammanfattning'       => 'HistoriskSammanfattningController',
     'kvalitetstrendanalys'           => 'KvalitetstrendanalysController',
     'statistik-overblick'            => 'StatistikOverblickController',
+    'daglig-briefing'                => 'DagligBriefingController',
 ];
 
 $actionKey = strtolower($action);

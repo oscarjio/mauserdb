@@ -1,3 +1,27 @@
+## 2026-03-13 Rebotling daglig briefing-rapport
+
+Ny sida `/rebotling/daglig-briefing` — VD:ns morgonrapport. Komplett sammanfattning av gardasgens resultat pa 10 sekunder.
+
+- **Backend**: `classes/DagligBriefingController.php`, registrerad i `api.php` som `daglig-briefing`
+  - `run=sammanfattning` — gardasgens KPI:er (produktion, OEE, kassation, stopp, basta operator) + autogenererad textsummering
+  - `run=stopporsaker` — top 3 stopporsaker med minuter och procent (Pareto)
+  - `run=stationsstatus` — station-tabell med OEE och status (OK/Varning/Kritisk)
+  - `run=veckotrend` — 7 dagars produktion for sparkline-graf
+  - `run=bemanning` — dagens aktiva operatorer
+  - Datum-filter: igar (default), idag, specifikt datum
+- **Frontend**: Angular standalone-komponent med:
+  - Autogenererad textsummering overst ("Gardasgen gick bra/daligt...")
+  - 4 KPI-kort: Produktion vs mal, OEE vs mal (65%), Kassation vs troskel (3%), Stoppminuter + basta operator
+  - Top 3 stopporsaker med progress-bars
+  - Dagens bemanning med IBC per operator
+  - Veckotrend-sparkline (Chart.js stapeldiagram, 7 dagar)
+  - Stationsstatus-tabell med OEE% och statusbadge
+  - Print-vanlig (print CSS)
+  - Auto-refresh var 5:e minut
+  - Dark theme (#1a202c/#2d3748/#e2e8f0)
+- **Meny**: Lank tillagd i Rebotling-dropdown ("Daglig briefing")
+- **Filer**: `DagligBriefingController.php` (classes + controllers proxy), `daglig-briefing.service.ts`, `daglig-briefing/` (ts + html + css), `api.php`, `app.routes.ts`, `menu.html`
+
 ## 2026-03-13 Rebotling skiftoverlamningsprotokoll
 
 Ny sida `/rebotling/skiftoverlamning` — digitalt skiftoverlamningsprotokoll for Rebotling-linjen. Avgaende skiftledare fyller i checklista och statusrapport som patradande skift kan lasa.
