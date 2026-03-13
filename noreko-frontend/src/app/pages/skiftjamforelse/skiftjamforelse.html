@@ -6,10 +6,10 @@
       <div>
         <h1 class="page-title">
           <i class="fas fa-exchange-alt me-2" style="color: #ed8936;"></i>
-          Skiftjämförelse
+          Skiftjamforelse — FM / EM / Natt
         </h1>
         <p class="page-subtitle text-muted">
-          Jämför dag-, kväll- och nattskift — IBC/h, kvalitet, stopptid och OEE
+          Jamfor produktivitet mellan skift med normaliserade KPI:er och identifiera best practices
         </p>
       </div>
       <div class="d-flex align-items-center gap-2">
@@ -19,174 +19,273 @@
       </div>
     </div>
 
-    <!-- Periodväljare -->
+    <!-- Periodvaljare -->
     <div class="period-selector mt-3">
       <button
         *ngFor="let p of perioder"
         class="btn btn-sm period-btn"
         [class.active]="selectedPeriod === p"
         (click)="setPeriod(p)">
-        {{ p === 7 ? '7 dagar' : p === 30 ? '30 dagar' : '90 dagar' }}
+        {{ p === 7 ? '7d' : p === 30 ? '30d' : '90d' }}
       </button>
-      <span class="text-muted small ms-2">{{ getPeriodLabel(selectedPeriod) }}</span>
+      <span class="text-muted small ms-2">{{ getPeriodLabel() }}</span>
     </div>
   </div>
 
   <!-- Laddning -->
-  <div class="text-center py-5" *ngIf="compLoading && !compLoaded">
+  <div class="text-center py-5" *ngIf="loading">
     <div class="spinner-border text-warning" role="status"></div>
-    <p class="text-muted mt-2">Hämtar skiftdata...</p>
+    <p class="text-muted mt-2">Hamtar skiftdata...</p>
   </div>
 
   <!-- Fel -->
-  <div class="alert alert-danger" *ngIf="compError && compLoaded">
+  <div class="alert alert-danger" *ngIf="error && !loading">
     <i class="fas fa-exclamation-triangle me-2"></i>
-    Kunde inte hämta skiftdata. Försök igen senare.
+    Kunde inte hamta skiftdata. Forsok igen senare.
   </div>
 
-  <!-- Huvudinnehåll -->
-  <ng-container *ngIf="compLoaded && compData && !compError">
-
-    <!-- Sammanfattningstext -->
-    <div class="summary-box mb-4" *ngIf="compData.sammanfattning">
-      <i class="fas fa-lightbulb me-2 text-warning"></i>
-      <span>{{ compData.sammanfattning }}</span>
-    </div>
-
-    <!-- 3 Skiftkort -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-4" *ngFor="let s of compData.skift">
-        <div class="skift-card" [class.skift-card-best]="s.ar_bast"
-             [style.border-color]="getSkiftColor(s.skift)">
-
-          <!-- Kortrubrik -->
-          <div class="skift-card-header" [style.color]="getSkiftColor(s.skift)">
-            <i [class]="getSkiftIcon(s.skift)" class="me-2"></i>
-            {{ s.label }}
-            <span class="bast-badge ms-2" *ngIf="s.ar_bast" title="Bästa skiftet">
-              <i class="fas fa-crown text-warning"></i>
-            </span>
-          </div>
-
-          <!-- Huvudmätetal: IBC/h -->
-          <div class="skift-main-kpi">
-            <span class="kpi-value" [ngClass]="getIbcHKlass(s.ibc_per_h)">
-              {{ s.ibc_per_h | number:'1.1-1' }}
-            </span>
-            <span class="kpi-unit">IBC/h</span>
-            <div class="kpi-diff" [ngClass]="getDiffKlass(s.diff_fran_snitt_pct)"
-                 *ngIf="s.diff_fran_snitt_pct !== 0">
-              {{ getDiffText(s.diff_fran_snitt_pct) }} vs snitt
-            </div>
-          </div>
-
-          <!-- Detaljmätetal -->
-          <div class="skift-metrics">
-            <div class="metric-row">
-              <span class="metric-label"><i class="fas fa-check-circle me-1 text-success"></i>Kvalitet</span>
-              <span class="metric-value" [ngClass]="getKvalitetKlass(s.kvalitet_pct)">
-                {{ s.kvalitet_pct | number:'1.1-1' }}%
-              </span>
-            </div>
-            <div class="metric-row">
-              <span class="metric-label"><i class="fas fa-chart-pie me-1 text-info"></i>OEE</span>
-              <span class="metric-value" [ngClass]="getOeeKlass(s.oee_pct)">
-                {{ s.oee_pct | number:'1.1-1' }}%
-              </span>
-            </div>
-            <div class="metric-row">
-              <span class="metric-label"><i class="fas fa-pause-circle me-1 text-danger"></i>Stopptid</span>
-              <span class="metric-value text-muted">{{ formatMinuter(s.stopptid_min) }}</span>
-            </div>
-            <div class="metric-row">
-              <span class="metric-label"><i class="fas fa-boxes me-1 text-success"></i>IBC OK</span>
-              <span class="metric-value text-light">{{ s.ibc_ok | number }}</span>
-            </div>
-            <div class="metric-row">
-              <span class="metric-label"><i class="fas fa-calendar-check me-1 text-muted"></i>Antal pass</span>
-              <span class="metric-value text-muted">{{ s.antal_pass }}</span>
-            </div>
-          </div>
-
-          <!-- Tillgänglighet-bar -->
-          <div class="mt-3">
-            <div class="d-flex justify-content-between small text-muted mb-1">
-              <span>Tillgänglighet</span>
-              <span>{{ s.tillganglighet_pct }}%</span>
-            </div>
-            <div class="progress progress-sm">
-              <div class="progress-bar"
-                   [style.width.%]="s.tillganglighet_pct"
-                   [style.background-color]="getSkiftColor(s.skift)"
-                   role="progressbar"></div>
-            </div>
-          </div>
-
-          <!-- Topp-operatörer (expanderbar) -->
-          <button class="btn btn-sm btn-outline-secondary w-100 mt-3 expand-btn"
-                  (click)="toggleOperatorer(s.skift)">
-            <i class="fas me-1" [class.fa-chevron-down]="!opExpanded[s.skift]" [class.fa-chevron-up]="opExpanded[s.skift]"></i>
-            {{ opExpanded[s.skift] ? 'Dölj' : 'Visa' }} topp-operatörer
-          </button>
-
-          <div class="op-list mt-2" *ngIf="opExpanded[s.skift]">
-            <div class="text-center text-muted small py-2" *ngIf="opLoading[s.skift]">
-              <div class="spinner-border spinner-border-sm me-1"></div> Laddar...
-            </div>
-            <ng-container *ngIf="!opLoading[s.skift] && opData[s.skift]">
-              <div class="op-row" *ngFor="let op of opData[s.skift]?.operatorer">
-                <span class="op-plats">{{ op.plats }}.</span>
-                <span class="op-namn">{{ op.operator_namn }}</span>
-                <span class="op-ibc text-success">{{ op.antal_ibc }} IBC</span>
-              </div>
-              <div class="text-muted small text-center py-1"
-                   *ngIf="(opData[s.skift]?.operatorer?.length ?? 0) === 0">
-                Ingen operatörsdata tillgänglig
-              </div>
-            </ng-container>
-          </div>
-
+  <!-- ============================================================ -->
+  <!-- 1. KPI-KORT (4 st) -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4" *ngIf="sammanfattning">
+    <!-- Mest produktiva idag -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #48bb78;"><i class="fas fa-trophy"></i></div>
+        <div class="kpi-label">Mest produktiva idag</div>
+        <div class="kpi-value" *ngIf="sammanfattning.mest_produktiva_idag">
+          {{ sammanfattning.mest_produktiva_idag.label }}
+        </div>
+        <div class="kpi-value text-muted" *ngIf="!sammanfattning.mest_produktiva_idag">-</div>
+        <div class="kpi-sub" *ngIf="sammanfattning.mest_produktiva_idag">
+          {{ sammanfattning.mest_produktiva_idag.ibc_per_h }} IBC/h
         </div>
       </div>
     </div>
 
-    <!-- Jämförelse-stapeldiagram -->
-    <div class="chart-card mb-4">
-      <h3 class="chart-title">
-        <i class="fas fa-chart-bar me-2 text-warning"></i>
-        Skiftjämförelse — IBC/h, Kvalitet, OEE
-      </h3>
-      <div class="chart-container" style="height: 300px;">
-        <canvas id="skiftBarChart"></canvas>
+    <!-- Snitt OEE per skift -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #63b3ed;"><i class="fas fa-chart-pie"></i></div>
+        <div class="kpi-label">Snitt OEE per skift</div>
+        <div class="kpi-value">
+          <span style="color:#3182ce">FM {{ sammanfattning.snitt_oee?.FM ?? 0 }}%</span>
+        </div>
+        <div class="kpi-sub">
+          <span style="color:#ed8936">EM {{ sammanfattning.snitt_oee?.EM ?? 0 }}%</span>
+          <span class="ms-2" style="color:#b794f4">Natt {{ sammanfattning.snitt_oee?.Natt ?? 0 }}%</span>
+        </div>
       </div>
     </div>
 
-  </ng-container>
+    <!-- Mest forbattrade -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #ed8936;"><i class="fas fa-arrow-up"></i></div>
+        <div class="kpi-label">Mest forbattrade skiftet</div>
+        <div class="kpi-value" *ngIf="sammanfattning.mest_forbattrad">
+          {{ sammanfattning.mest_forbattrad.label }}
+        </div>
+        <div class="kpi-value text-muted" *ngIf="!sammanfattning.mest_forbattrad">-</div>
+        <div class="kpi-sub" *ngIf="sammanfattning.mest_forbattrad">
+          <span [class]="sammanfattning.mest_forbattrad.delta >= 0 ? 'text-success' : 'text-danger'">
+            {{ sammanfattning.mest_forbattrad.delta >= 0 ? '+' : '' }}{{ sammanfattning.mest_forbattrad.delta }}% OEE
+          </span>
+        </div>
+      </div>
+    </div>
 
-  <!-- Trenddiagram -->
-  <div class="chart-card mb-4" *ngIf="trendLoaded && trendData">
-    <h3 class="chart-title">
-      <i class="fas fa-chart-line me-2 text-info"></i>
-      IBC/h-trend per skift (veckovis)
-    </h3>
-    <div class="chart-legend-note small text-muted mb-2">
-      <span style="color: #ecc94b;"><i class="fas fa-circle me-1"></i>Dagskift</span>
-      <span class="ms-3" style="color: #63b3ed;"><i class="fas fa-circle me-1"></i>Kvällsskift</span>
-      <span class="ms-3" style="color: #b794f4;"><i class="fas fa-circle me-1"></i>Nattskift</span>
-    </div>
-    <div class="chart-container" style="height: 280px;">
-      <canvas id="skiftTrendChart"></canvas>
-    </div>
-    <div class="text-muted small text-center mt-2"
-         *ngIf="(trendData.veckor?.length ?? 0) === 0">
-      Otillräcklig data för trenddiagram
+    <!-- Antal skift -->
+    <div class="col-md-3 col-sm-6">
+      <div class="kpi-card">
+        <div class="kpi-icon" style="color: #b794f4;"><i class="fas fa-calendar-check"></i></div>
+        <div class="kpi-label">Antal skift ({{ getPeriodLabel() }})</div>
+        <div class="kpi-value">{{ sammanfattning.antal_skift }}</div>
+        <div class="kpi-sub text-muted">registrerade pass</div>
+      </div>
     </div>
   </div>
 
-  <!-- Laddning trend -->
-  <div class="text-center py-3" *ngIf="trendLoading && !trendLoaded">
-    <div class="spinner-border spinner-border-sm text-info me-2"></div>
-    <span class="text-muted small">Hämtar trenddata...</span>
+  <!-- ============================================================ -->
+  <!-- 2. SKIFTJAMFORELSE-TABELL -->
+  <!-- ============================================================ -->
+  <div class="table-card mb-4" *ngIf="jamforelse?.skift">
+    <h3 class="section-title">
+      <i class="fas fa-table me-2 text-info"></i>
+      Skiftjamforelse — FM vs EM vs Natt
+    </h3>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Skift</th>
+            <th class="text-end">OEE %</th>
+            <th class="text-end">IBC (OK)</th>
+            <th class="text-end">Stopptid</th>
+            <th class="text-end">Kvalitet %</th>
+            <th class="text-end">Sn. cykeltid</th>
+            <th class="text-end">Tillganglighet %</th>
+            <th class="text-end">Prestanda %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of jamforelse?.skift">
+            <td>
+              <i [class]="getSkiftIcon(s.skift)" class="me-2" [style.color]="getSkiftColor(s.skift)"></i>
+              <strong [style.color]="getSkiftColor(s.skift)">{{ s.label }}</strong>
+            </td>
+            <td class="text-end" [ngClass]="getCellClass(s.oee_pct, 'oee_pct')">
+              <strong>{{ s.oee_pct }}%</strong>
+            </td>
+            <td class="text-end" [ngClass]="getCellClass(s.ibc_ok, 'ibc_ok')">
+              {{ s.ibc_ok | number }}
+            </td>
+            <td class="text-end" [ngClass]="getCellClass(s.stopptid_min, 'stopptid_min')">
+              {{ formatMinuter(s.stopptid_min) }}
+            </td>
+            <td class="text-end" [ngClass]="getCellClass(s.kvalitet_pct, 'kvalitet_pct')">
+              {{ s.kvalitet_pct }}%
+            </td>
+            <td class="text-end" [ngClass]="getCellClass(s.avg_cykeltid_sek, 'avg_cykeltid_sek')">
+              {{ s.avg_cykeltid_sek }}s
+            </td>
+            <td class="text-end">{{ s.tillganglighet_pct }}%</td>
+            <td class="text-end">{{ s.prestanda_pct }}%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend-row mt-2">
+      <span class="legend-item"><span class="legend-dot dot-best"></span> Bast</span>
+      <span class="legend-item"><span class="legend-dot dot-worst"></span> Samst</span>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 3. RADAR-CHART -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4" *ngIf="jamforelse?.radar">
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h3 class="section-title">
+          <i class="fas fa-spider me-2" style="color: #ed8936;"></i>
+          Radar — 5 axlar
+        </h3>
+        <p class="text-muted small mb-3">Tillganglighet, Prestanda, Kvalitet, Volym, Stabilitet</p>
+        <div class="chart-container" style="height: 350px;">
+          <canvas id="skiftRadarChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- 4. TREND-CHART -->
+    <!-- ============================================================ -->
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h3 class="section-title">
+          <i class="fas fa-chart-line me-2 text-info"></i>
+          OEE-trend per skift
+        </h3>
+        <div class="chart-legend-note small text-muted mb-2">
+          <span style="color: #3182ce;"><i class="fas fa-circle me-1"></i>FM</span>
+          <span class="ms-3" style="color: #ed8936;"><i class="fas fa-circle me-1"></i>EM</span>
+          <span class="ms-3" style="color: #b794f4;"><i class="fas fa-circle me-1"></i>Natt</span>
+        </div>
+        <div class="chart-container" style="height: 320px;">
+          <canvas id="skiftTrendOeeChart"></canvas>
+        </div>
+        <div class="text-muted small text-center mt-2"
+             *ngIf="trendData && (!trendData.trend || trendData.trend.length === 0)">
+          Otillracklig data for trenddiagram
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 5. BEST PRACTICES -->
+  <!-- ============================================================ -->
+  <div class="table-card mb-4" *ngIf="bestPractices?.practices?.length">
+    <h3 class="section-title">
+      <i class="fas fa-lightbulb me-2 text-warning"></i>
+      Best Practices — styrkor per skift
+    </h3>
+    <div class="row g-3">
+      <div class="col-md-4" *ngFor="let bp of bestPractices?.practices">
+        <div class="bp-card" [style.border-left-color]="getSkiftColor(bp.skift)">
+          <div class="bp-header">
+            <i [class]="getSkiftIcon(bp.skift)" class="me-2" [style.color]="getSkiftColor(bp.skift)"></i>
+            <strong [style.color]="getSkiftColor(bp.skift)">{{ bp.label }}</strong>
+            <span class="badge bg-dark ms-auto" [ngClass]="getOeeKlass(bp.oee_pct)">OEE {{ bp.oee_pct }}%</span>
+          </div>
+          <ul class="bp-insights">
+            <li *ngFor="let insight of bp.insights">
+              <i class="fas fa-check-circle me-1 text-success"></i>{{ insight }}
+            </li>
+          </ul>
+          <div class="bp-footer text-muted small" *ngIf="bp.basta_station">
+            <i class="fas fa-star text-warning me-1"></i>
+            Basta station: {{ bp.basta_station }}
+            <span *ngIf="bp.basta_station_oee"> (OEE {{ bp.basta_station_oee }}%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 6. DETALJTABELL -->
+  <!-- ============================================================ -->
+  <div class="table-card mb-4" *ngIf="detaljer?.detaljer?.length">
+    <h3 class="section-title">
+      <i class="fas fa-list-alt me-2 text-info"></i>
+      Detaljerad skiftlista
+      <span class="badge bg-secondary ms-2">{{ detaljer?.total }} poster</span>
+    </h3>
+    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+      <table class="table table-dark table-hover table-sm mb-0">
+        <thead class="sticky-top" style="z-index: 1;">
+          <tr>
+            <th class="sortable-th" (click)="sortDetaljer('datum')">
+              Datum <i [class]="getSortIcon('datum')" class="ms-1"></i>
+            </th>
+            <th class="sortable-th" (click)="sortDetaljer('skift')">
+              Skift <i [class]="getSortIcon('skift')" class="ms-1"></i>
+            </th>
+            <th class="sortable-th" (click)="sortDetaljer('station')">
+              Station <i [class]="getSortIcon('station')" class="ms-1"></i>
+            </th>
+            <th class="sortable-th" (click)="sortDetaljer('operator')">
+              Operator <i [class]="getSortIcon('operator')" class="ms-1"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortDetaljer('ibc_ok')">
+              IBC OK <i [class]="getSortIcon('ibc_ok')" class="ms-1"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortDetaljer('oee_pct')">
+              OEE % <i [class]="getSortIcon('oee_pct')" class="ms-1"></i>
+            </th>
+            <th class="text-end sortable-th" (click)="sortDetaljer('stopptid_min')">
+              Stopptid <i [class]="getSortIcon('stopptid_min')" class="ms-1"></i>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of getSortedDetaljer()">
+            <td>{{ d.datum }}</td>
+            <td>
+              <i [class]="getSkiftIcon(d.skift)" class="me-1" [style.color]="getSkiftColor(d.skift)"></i>
+              {{ d.skift_label }}
+            </td>
+            <td>{{ d.station }}</td>
+            <td>{{ d.operator }}</td>
+            <td class="text-end">{{ d.ibc_ok }}</td>
+            <td class="text-end" [ngClass]="getOeeKlass(d.oee_pct)">{{ d.oee_pct }}%</td>
+            <td class="text-end">{{ formatMinuter(d.stopptid_min) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </div>

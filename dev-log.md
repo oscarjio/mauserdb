@@ -1,3 +1,24 @@
+## 2026-03-13 Skiftjamforelse-rapport — FM/EM/Natt-jamforelse med radar, trend och best practices
+
+Uppgraderad sida `/rebotling/skiftjamforelse` — jamfor FM/EM/Natt-skift med normaliserade KPI:er.
+
+- **Backend**: Omskriven `classes/SkiftjamforelseController.php` med nya endpoints:
+  - `run=sammanfattning` — KPI-kort: mest produktiva skiftet idag, snitt OEE per skift, mest forbattrade skiftet, antal skift
+  - `run=jamforelse` — FM vs EM vs Natt tabell med OEE, IBC, stopptid, kvalitet, cykeltid + radardata (5 axlar: Tillganglighet, Prestanda, Kvalitet, Volym, Stabilitet)
+  - `run=trend` — OEE per skift per dag (FM bla, EM orange, Natt lila)
+  - `run=best-practices` — identifiera styrkor per skift och basta station
+  - `run=detaljer` — detaljlista alla skift med datum, skifttyp, station, operator, IBC, OEE, stopptid
+  - Bakatkompatiblilitet: gamla run-parametrar (shift-comparison, shift-trend, shift-operators) fungerar fortfarande
+- **Frontend**: Omskriven `pages/skiftjamforelse/` + `services/skiftjamforelse.service.ts`
+  - 4 KPI-kort (mest produktiva idag, snitt OEE per skift, mest forbattrade, antal skift)
+  - Jamforelsetabell FM vs EM vs Natt med fargkodning (gron=bast, rod=samst)
+  - Chart.js radar-chart med 5 axlar per skift
+  - Chart.js linjediagram OEE-trend per skift over tid
+  - Best Practices-sektion med insikter per skift
+  - Sortierbar detaljtabell med alla registrerade skift
+  - Periodselektor: 7d / 30d / 90d
+  - Dark theme, OnDestroy cleanup, chart.destroy()
+
 ## 2026-03-13 OEE Trendanalys — djupare OEE-analys med stationsjamforelse, flaskhalsar och prediktion
 
 Ny sida `/rebotling/oee-trendanalys` — djupare OEE-analys med stationsjamforelse, flaskhalsidentifiering, trendanalys och prediktion.

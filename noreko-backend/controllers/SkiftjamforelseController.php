@@ -1,44 +1,35 @@
 <?php
 /**
  * SkiftjamforelseController.php
- * Skiftjämförelse-dashboard — jämför dag/kväll/nattskift.
- * Hjälper VD att fördela resurser och identifiera svaga skift.
+ * Skiftjamforelse-rapport — jamfor FM/EM/Natt-skift med normaliserade KPI:er.
  *
  * Endpoints via ?action=skiftjamforelse&run=XXX:
- *   run=shift-comparison&period=7|30|90
- *       Aggregerar data per skift (dag/kväll/natt) för vald period.
- *       Returnerar per skift: totalt IBC OK, IBC/h, kvalitet%, total stopptid i min,
- *       antal skiftpass, OEE-snitt.
+ *   run=sammanfattning   — KPI-kort: mest produktiva skiftet, snitt-OEE per skift, trend, antal skift
+ *   run=jamforelse       — FM vs EM vs Natt tabell + radardata (5 axlar)
+ *   run=trend            — OEE per skift per dag senaste 30d
+ *   run=best-practices   — identifiera styrkor per skift och station
+ *   run=detaljer         — detaljlista alla skift
  *
- *   run=shift-trend&period=30
- *       Veckovis breakdown per skift de senaste veckorna (för trendgraf).
+ * Skiftdefinition:
+ *   FM   = 06:00-14:00
+ *   EM   = 14:00-22:00
+ *   Natt = 22:00-06:00
  *
- *   run=shift-operators&shift=dag|kvall|natt&period=30
- *       Topp-operatörer per skift.
- *
- * Auth: session_id krävs (401 om ej inloggad).
- *
- * Skiftdefinitioner:
- *   dag:   06:00–14:00
- *   kväll: 14:00–22:00
- *   natt:  22:00–06:00 (nästa dag)
- *
- * Tabeller: rebotling_ibc, rebotling_onoff, stopporsak_registreringar, operators
+ * Tabeller: rebotling_ibc, rebotling_onoff, rebotling_stationer,
+ *           stopporsak_registreringar, operators
  */
 class SkiftjamforelseController {
     private $pdo;
 
-    // Skiftdefinitioner (start-timme, slut-timme, 0-23)
     private const SKIFT = [
-        'dag'   => ['label' => 'Dagskift',    'start' => 6,  'end' => 14],
-        'kvall' => ['label' => 'Kvällsskift',  'start' => 14, 'end' => 22],
-        'natt'  => ['label' => 'Nattskift',    'start' => 22, 'end' => 6],
+        'FM'   => ['label' => 'FM-skiftet',    'start' => 6,  'end' => 14],
+        'EM'   => ['label' => 'EM-skiftet',    'start' => 14, 'end' => 22],
+        'Natt' => ['label' => 'Nattskiftet',   'start' => 22, 'end' => 6],
     ];
 
-    // OEE — teoretisk max IBC/h (60 = ett var 60:e sekund)
     private const TEORIETISK_MAX_IBC_H = 60.0;
-    // Planerad skifttid i minuter (8h)
     private const PLANERAD_MIN = 480;
+    private const IDEAL_CYCLE_SEC = 120;
 
     public function __construct() {
         global $pdo;
@@ -51,23 +42,29 @@ class SkiftjamforelseController {
         }
 
         if (empty($_SESSION['user_id'])) {
-            $this->sendError('Inloggning krävs', 401);
+            $this->sendError('Inloggning kravs', 401);
             return;
         }
 
         $run = trim($_GET['run'] ?? '');
 
         switch ($run) {
-            case 'shift-comparison': $this->getShiftComparison(); break;
-            case 'shift-trend':      $this->getShiftTrend();      break;
-            case 'shift-operators':  $this->getShiftOperators();  break;
+            case 'sammanfattning':  $this->sammanfattning();  break;
+            case 'jamforelse':      $this->jamforelse();      break;
+            case 'trend':           $this->trend();           break;
+            case 'best-practices':  $this->bestPractices();   break;
+            case 'detaljer':        $this->detaljer();        break;
+            // Backward-compat
+            case 'shift-comparison': $this->jamforelse();     break;
+            case 'shift-trend':      $this->trend();          break;
+            case 'shift-operators':  $this->bestPractices();  break;
             default:
-                $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
+                $this->sendError('Ogiltig run: ' . htmlspecialchars($run));
         }
     }
 
     // ================================================================
-    // HJÄLPFUNKTIONER
+    // HELPERS
     // ================================================================
 
     private function sendSuccess(array $data): void {
@@ -87,37 +84,30 @@ class SkiftjamforelseController {
         ]);
     }
 
-    private function getPeriod(): int {
-        $p = (int)($_GET['period'] ?? 30);
-        if (!in_array($p, [7, 30, 90], true)) {
-            return 30;
-        }
-        return $p;
+    private function getDays(): int {
+        $p = (int)($_GET['days'] ?? $_GET['period'] ?? 30);
+        if (in_array($p, [7, 30, 90], true)) return $p;
+        return max(1, min(365, $p));
     }
 
-    /**
-     * Returnerar ett WHERE-villkor (utan WHERE-nyckelord) som filtrerar
-     * en rad på ett timestamp-fält (t.ex. created_at) till ett visst skift.
-     *
-     * Dag:   HOUR(col) >= 6  AND HOUR(col) < 14
-     * Kväll: HOUR(col) >= 14 AND HOUR(col) < 22
-     * Natt:  HOUR(col) >= 22 OR  HOUR(col) < 6
-     */
     private function skiftTimewhere(string $skift, string $col): string {
         $def = self::SKIFT[$skift];
-        if ($skift === 'natt') {
+        if ($skift === 'Natt') {
             return "(HOUR({$col}) >= {$def['start']} OR HOUR({$col}) < {$def['end']})";
         }
         return "(HOUR({$col}) >= {$def['start']} AND HOUR({$col}) < {$def['end']})";
     }
 
+    private function skiftForHour(int $hour): string {
+        if ($hour >= 6 && $hour < 14) return 'FM';
+        if ($hour >= 14 && $hour < 22) return 'EM';
+        return 'Natt';
+    }
+
     /**
-     * Hämta produktionsdata (IBC OK, IBC ej OK, runtime_min) per skift för en period.
-     * Använder MAX(ibc_ok) per skiftraknare (kumulativ räknare).
+     * Hamta produktionsdata per skift for en period.
      */
     private function getProduktionPerSkift(string $fromDate, string $toDate): array {
-        // Vi grupperar per datum+skiftraknare och tar MAX av kumulativa räknare.
-        // Vi filtrerar på timme av created_at för att bestämma vilket skift det tillhör.
         $result = [];
 
         foreach (array_keys(self::SKIFT) as $skift) {
@@ -154,45 +144,46 @@ class SkiftjamforelseController {
             $ibcPerH   = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
             $kvalitet  = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
-            // OEE-beräkning
+            // OEE
             $planMinTotal   = $antalPass * self::PLANERAD_MIN;
             $tillganglighet = $planMinTotal > 0 ? min(1.0, $runtime / $planMinTotal) : 0.0;
             $prestanda      = $runtime > 0
                 ? min(1.0, ($ibcPerH / self::TEORIETISK_MAX_IBC_H))
                 : 0.0;
-            $kvalFaktor = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
-            $oee = round($tillganglighet * $prestanda * $kvalFaktor * 100, 1);
+            $kvalFaktor     = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+            $oee = $tillganglighet * $prestanda * $kvalFaktor;
+
+            // Genomsnittlig cykeltid
+            $avgCykelSek = ($ibcOk > 0 && $runtime > 0) ? round(($runtime * 60) / $ibcOk, 1) : 0;
 
             $result[$skift] = [
-                'skift'         => $skift,
-                'label'         => self::SKIFT[$skift]['label'],
-                'antal_pass'    => $antalPass,
-                'ibc_ok'        => $ibcOk,
-                'ibc_ej_ok'     => $ibcEjOk,
-                'ibc_total'     => $ibcTotal,
-                'runtime_min'   => $runtime,
-                'ibc_per_h'     => $ibcPerH,
-                'kvalitet_pct'  => $kvalitet,
-                'oee_pct'       => $oee,
+                'skift'              => $skift,
+                'label'              => self::SKIFT[$skift]['label'],
+                'antal_pass'         => $antalPass,
+                'ibc_ok'             => $ibcOk,
+                'ibc_ej_ok'          => $ibcEjOk,
+                'ibc_total'          => $ibcTotal,
+                'runtime_min'        => $runtime,
+                'ibc_per_h'          => $ibcPerH,
+                'kvalitet_pct'       => $kvalitet,
+                'oee_pct'            => round($oee * 100, 1),
                 'tillganglighet_pct' => round($tillganglighet * 100, 1),
+                'prestanda_pct'      => round($prestanda * 100, 1),
+                'avg_cykeltid_sek'   => $avgCykelSek,
             ];
         }
 
         return $result;
     }
 
-    /**
-     * Hämta total stopptid i minuter per skift för en period.
-     */
     private function getStopptidPerSkift(string $fromDate, string $toDate): array {
-        // Kontrollera att stopporsak_registreringar finns
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
             if (!$check || $check->rowCount() === 0) {
-                return ['dag' => 0, 'kvall' => 0, 'natt' => 0];
+                return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
             }
         } catch (\PDOException) {
-            return ['dag' => 0, 'kvall' => 0, 'natt' => 0];
+            return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
         }
 
         $stoppResult = [];
@@ -217,308 +208,478 @@ class SkiftjamforelseController {
         return $stoppResult;
     }
 
-    // ================================================================
-    // run=shift-comparison
-    // ================================================================
-
-    private function getShiftComparison(): void {
-        $period   = $this->getPeriod();
-        $toDate   = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$period} days"));
-
+    private function getStationer(): array {
         try {
-            $prod  = $this->getProduktionPerSkift($fromDate, $toDate);
-            $stopp = $this->getStopptidPerSkift($fromDate, $toDate);
+            $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            if (!empty($rows)) return $rows;
+        } catch (\Exception $e) {}
 
-            // Slå ihop stopptid
-            foreach (array_keys(self::SKIFT) as $skift) {
-                $prod[$skift]['stopptid_min'] = $stopp[$skift] ?? 0;
+        return [
+            ['id' => 1, 'namn' => 'Station 1'],
+            ['id' => 2, 'namn' => 'Station 2'],
+            ['id' => 3, 'namn' => 'Station 3'],
+            ['id' => 4, 'namn' => 'Station 4'],
+            ['id' => 5, 'namn' => 'Station 5'],
+        ];
+    }
+
+    // ================================================================
+    // run=sammanfattning
+    // ================================================================
+
+    private function sammanfattning(): void {
+        try {
+            $days    = $this->getDays();
+            $today   = date('Y-m-d');
+            $from    = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Dagens data
+            $dagensData = $this->getProduktionPerSkift($today, $today);
+
+            // Periodens data
+            $periodData = $this->getProduktionPerSkift($from, $today);
+            $stopp      = $this->getStopptidPerSkift($from, $today);
+            foreach (array_keys(self::SKIFT) as $s) {
+                $periodData[$s]['stopptid_min'] = $stopp[$s] ?? 0;
             }
 
-            // Beräkna vilket skift är bäst (IBC/h)
-            $basta     = null;
-            $bastaIbcH = -1;
-            foreach ($prod as $skift => $data) {
-                if ($data['ibc_per_h'] > $bastaIbcH) {
-                    $bastaIbcH = $data['ibc_per_h'];
-                    $basta = $skift;
+            // Mest produktiva idag
+            $mestProduktiv = null;
+            $maxIbcH = -1;
+            foreach ($dagensData as $skift => $d) {
+                if ($d['ibc_per_h'] > $maxIbcH) {
+                    $maxIbcH = $d['ibc_per_h'];
+                    $mestProduktiv = $skift;
                 }
             }
 
-            // Genomsnitt IBC/h
-            $snittIbcH = 0;
-            $antalMedData = 0;
-            foreach ($prod as $data) {
-                if ($data['ibc_per_h'] > 0) {
-                    $snittIbcH += $data['ibc_per_h'];
-                    $antalMedData++;
+            // Snitt OEE per skift
+            $snittOee = [];
+            foreach ($periodData as $skift => $d) {
+                $snittOee[$skift] = $d['oee_pct'];
+            }
+
+            // Trend: jamfor period mot foregaende period
+            $prevFrom = date('Y-m-d', strtotime("-{$days} days", strtotime($from)));
+            $prevTo   = date('Y-m-d', strtotime('-1 day', strtotime($from)));
+            $prevData = $this->getProduktionPerSkift($prevFrom, $prevTo);
+
+            $mestForbattrad = null;
+            $maxDelta = -999;
+            foreach ($periodData as $skift => $d) {
+                $prevOee = $prevData[$skift]['oee_pct'] ?? 0;
+                $delta = $d['oee_pct'] - $prevOee;
+                if ($delta > $maxDelta) {
+                    $maxDelta = $delta;
+                    $mestForbattrad = $skift;
                 }
             }
-            $snittIbcH = $antalMedData > 0 ? round($snittIbcH / $antalMedData, 2) : 0;
 
-            // Markera bästa skiftet och beräkna diff mot snitt
-            foreach ($prod as $skift => &$data) {
-                $data['ar_bast'] = ($skift === $basta);
-                $data['diff_fran_snitt_pct'] = $snittIbcH > 0
-                    ? round((($data['ibc_per_h'] - $snittIbcH) / $snittIbcH) * 100, 1)
-                    : 0.0;
+            // Totalt antal skift i perioden
+            $totalSkift = 0;
+            foreach ($periodData as $d) {
+                $totalSkift += $d['antal_pass'];
             }
-            unset($data);
-
-            // Auto-genererad sammanfattningstext
-            $summText = $this->genereraSammanfattning($prod, $basta, $snittIbcH);
 
             $this->sendSuccess([
-                'period'      => $period,
-                'from_date'   => $fromDate,
-                'to_date'     => $toDate,
-                'skift'       => array_values($prod),
-                'basta_skift' => $basta,
-                'snitt_ibc_h' => $snittIbcH,
-                'sammanfattning' => $summText,
+                'mest_produktiva_idag' => $mestProduktiv ? [
+                    'skift'    => $mestProduktiv,
+                    'label'    => self::SKIFT[$mestProduktiv]['label'],
+                    'ibc_per_h' => $dagensData[$mestProduktiv]['ibc_per_h'],
+                ] : null,
+                'snitt_oee' => $snittOee,
+                'mest_forbattrad' => $mestForbattrad ? [
+                    'skift' => $mestForbattrad,
+                    'label' => self::SKIFT[$mestForbattrad]['label'],
+                    'delta' => round($maxDelta, 1),
+                ] : null,
+                'antal_skift'  => $totalSkift,
+                'days'         => $days,
+                'from_date'    => $from,
+                'to_date'      => $today,
             ]);
 
         } catch (\Exception $e) {
-            error_log('SkiftjamforelseController::getShiftComparison: ' . $e->getMessage());
-            $this->sendError('Kunde inte hämta skiftjämförelse', 500);
+            error_log('SkiftjamforelseController::sammanfattning: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta sammanfattning', 500);
+        }
+    }
+
+    // ================================================================
+    // run=jamforelse
+    // ================================================================
+
+    private function jamforelse(): void {
+        try {
+            $days    = $this->getDays();
+            $today   = date('Y-m-d');
+            $from    = date('Y-m-d', strtotime("-{$days} days"));
+
+            $prod  = $this->getProduktionPerSkift($from, $today);
+            $stopp = $this->getStopptidPerSkift($from, $today);
+
+            foreach (array_keys(self::SKIFT) as $s) {
+                $prod[$s]['stopptid_min'] = $stopp[$s] ?? 0;
+            }
+
+            // Berakna radardata (5 axlar: Tillganglighet, Prestanda, Kvalitet, Volym, Stabilitet)
+            // Volym = normaliserad IBC/h (max = 100)
+            $maxIbcH = max(1, max(array_column($prod, 'ibc_per_h')));
+
+            // Stabilitet: vi beraknar per dag-variation for varje skift
+            $stabilitet = [];
+            foreach (array_keys(self::SKIFT) as $skift) {
+                $dagOee = [];
+                for ($i = $days - 1; $i >= 0; $i--) {
+                    $dag = date('Y-m-d', strtotime("-{$i} days"));
+                    $dayProd = $this->getProduktionPerSkiftSingleDay($dag, $skift);
+                    if ($dayProd['ibc_ok'] > 0) {
+                        $dagOee[] = $dayProd['oee_pct'];
+                    }
+                }
+                if (count($dagOee) >= 2) {
+                    $mean = array_sum($dagOee) / count($dagOee);
+                    $variance = 0;
+                    foreach ($dagOee as $v) {
+                        $variance += ($v - $mean) ** 2;
+                    }
+                    $variance /= count($dagOee);
+                    $stddev = sqrt($variance);
+                    // Lag stabilitet: 100 - stddev (capped 0-100)
+                    $stabilitet[$skift] = max(0, min(100, round(100 - $stddev * 2, 1)));
+                } else {
+                    $stabilitet[$skift] = 50;
+                }
+            }
+
+            $radarData = [];
+            foreach ($prod as $skift => $d) {
+                $radarData[$skift] = [
+                    'tillganglighet' => $d['tillganglighet_pct'],
+                    'prestanda'      => $d['prestanda_pct'],
+                    'kvalitet'       => $d['kvalitet_pct'],
+                    'volym'          => round(($d['ibc_per_h'] / $maxIbcH) * 100, 1),
+                    'stabilitet'     => $stabilitet[$skift],
+                ];
+            }
+
+            $this->sendSuccess([
+                'skift'      => array_values($prod),
+                'radar'      => $radarData,
+                'days'       => $days,
+                'from_date'  => $from,
+                'to_date'    => $today,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('SkiftjamforelseController::jamforelse: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta jamforelsedata', 500);
         }
     }
 
     /**
-     * Genererar en auto-text-sammanfattning för VD.
+     * Hamta OEE for ett enstaka skift pa en enstaka dag.
      */
-    private function genereraSammanfattning(array $prod, ?string $basta, float $snittIbcH): string {
-        if ($basta === null || $snittIbcH <= 0) {
-            return 'Otillräcklig data för att generera sammanfattning.';
-        }
+    private function getProduktionPerSkiftSingleDay(string $date, string $skift): array {
+        $timeCond = $this->skiftTimewhere($skift, 'created_at');
 
-        $bastaLabel  = self::SKIFT[$basta]['label'];
-        $bastaData   = $prod[$basta];
-        $diffPct     = abs($bastaData['diff_fran_snitt_pct']);
-        $bastaIbcH   = $bastaData['ibc_per_h'];
+        $stmt = $this->pdo->prepare(
+            "SELECT
+                COUNT(DISTINCT skiftraknare) AS antal_pass,
+                COALESCE(SUM(max_ok),    0) AS ibc_ok,
+                COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                COALESCE(SUM(max_runtime), 0) AS runtime_min
+             FROM (
+                SELECT
+                    skiftraknare,
+                    MAX(ibc_ok)      AS max_ok,
+                    MAX(ibc_ej_ok)   AS max_ej_ok,
+                    MAX(runtime_plc) AS max_runtime
+                FROM rebotling_ibc
+                WHERE DATE(created_at) = ?
+                  AND {$timeCond}
+                GROUP BY skiftraknare
+                HAVING COUNT(*) > 1
+             ) s"
+        );
+        $stmt->execute([$date]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        $delar = [];
-        $delar[] = "Bästa skiftet är {$bastaLabel} med {$bastaIbcH} IBC/h"
-            . ($diffPct > 0 ? " ({$diffPct}% högre än genomsnittet {$snittIbcH} IBC/h)." : ".");
+        $ibcOk    = (int)($row['ibc_ok']    ?? 0);
+        $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
+        $runtime  = (int)($row['runtime_min'] ?? 0);
+        $antalPass= (int)($row['antal_pass'] ?? 0);
+        $ibcTotal = $ibcOk + $ibcEjOk;
+        $ibcPerH  = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
+        $kvalitet = $ibcTotal > 0 ? round(($ibcOk / $ibcTotal) * 100, 1) : 0.0;
 
-        // Sämsta skiftet
-        $samstSkift    = null;
-        $samstaIbcH    = PHP_INT_MAX;
-        foreach ($prod as $skift => $data) {
-            if ($data['antal_pass'] > 0 && $data['ibc_per_h'] < $samstaIbcH) {
-                $samstaIbcH = $data['ibc_per_h'];
-                $samstSkift = $skift;
-            }
-        }
-        if ($samstSkift && $samstSkift !== $basta) {
-            $samstLabel = self::SKIFT[$samstSkift]['label'];
-            $delar[] = "{$samstLabel} presterar lägst med {$samstaIbcH} IBC/h — möjlighet till förbättring.";
-        }
+        $planMin   = $antalPass * self::PLANERAD_MIN;
+        $tillg     = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
+        $prest     = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+        $kvalFakt  = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+        $oee       = $tillg * $prest * $kvalFakt;
 
-        // Kvalitetsnota
-        $lagKvalitet = [];
-        foreach ($prod as $skift => $data) {
-            if ($data['antal_pass'] > 0 && $data['kvalitet_pct'] < 95) {
-                $lagKvalitet[] = self::SKIFT[$skift]['label'] . ' (' . $data['kvalitet_pct'] . '%)';
-            }
-        }
-        if (!empty($lagKvalitet)) {
-            $delar[] = 'Kvalitet under 95%: ' . implode(', ', $lagKvalitet) . '.';
-        }
-
-        return implode(' ', $delar);
+        return [
+            'ibc_ok'    => $ibcOk,
+            'ibc_total' => $ibcTotal,
+            'runtime_min' => $runtime,
+            'ibc_per_h' => $ibcPerH,
+            'oee_pct'   => round($oee * 100, 1),
+            'tillganglighet_pct' => round($tillg * 100, 1),
+            'prestanda_pct'      => round($prest * 100, 1),
+            'kvalitet_pct'       => $kvalitet,
+        ];
     }
 
     // ================================================================
-    // run=shift-trend
+    // run=trend
     // ================================================================
 
-    private function getShiftTrend(): void {
-        $period   = $this->getPeriod();
-        $toDate   = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$period} days"));
-
+    private function trend(): void {
         try {
-            // Hämta veckovis IBC/h per skift
-            // Veckonummer + år som label
-            $veckor = [];
+            $days  = $this->getDays();
+            $today = date('Y-m-d');
 
-            // Bygg en lista med veckor i perioden
-            $current = strtotime($fromDate);
-            $end     = strtotime($toDate);
+            $trendPoints = [];
 
-            while ($current <= $end) {
-                $vecka = (int)date('W', $current);
-                $ar    = (int)date('Y', $current);
-                $key   = $ar . '-W' . str_pad($vecka, 2, '0', STR_PAD_LEFT);
-
-                if (!isset($veckor[$key])) {
-                    $veckor[$key] = [
-                        'vecka'  => $key,
-                        'label'  => 'V' . $vecka,
-                        'dag'    => null,
-                        'kvall'  => null,
-                        'natt'   => null,
-                    ];
-                }
-                $current = strtotime('+1 day', $current);
-            }
-
-            // Hämta data per vecka+skift
-            foreach ($veckor as $vKey => &$vData) {
-                // Extrahera vecka+år
-                [$vAr, $vW] = explode('-W', $vKey);
-                $vArNum = (int)$vAr;
-
-                // Datum-intervall för veckan
-                $vStart = date('Y-m-d', strtotime("{$vArNum}-W{$vW}-1"));
-                $vEnd   = date('Y-m-d', strtotime("{$vArNum}-W{$vW}-7"));
+            for ($i = $days - 1; $i >= 0; $i--) {
+                $dag = date('Y-m-d', strtotime("-{$i} days"));
+                $point = ['datum' => $dag];
 
                 foreach (array_keys(self::SKIFT) as $skift) {
-                    $timeCond = $this->skiftTimewhere($skift, 'created_at');
+                    $dayData = $this->getProduktionPerSkiftSingleDay($dag, $skift);
+                    $point[$skift] = $dayData['ibc_ok'] > 0 ? $dayData['oee_pct'] : null;
+                }
 
+                $trendPoints[] = $point;
+            }
+
+            $this->sendSuccess([
+                'trend' => $trendPoints,
+                'days'  => $days,
+            ]);
+
+        } catch (\Exception $e) {
+            error_log('SkiftjamforelseController::trend: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta trenddata', 500);
+        }
+    }
+
+    // ================================================================
+    // run=best-practices
+    // ================================================================
+
+    private function bestPractices(): void {
+        try {
+            $days    = $this->getDays();
+            $today   = date('Y-m-d');
+            $from    = date('Y-m-d', strtotime("-{$days} days"));
+
+            $stationer = $this->getStationer();
+            $practices = [];
+
+            // For varje skift, hitta basta station
+            foreach (array_keys(self::SKIFT) as $skift) {
+                $timeCond = $this->skiftTimewhere($skift, 'created_at');
+                $skiftLabel = self::SKIFT[$skift]['label'];
+
+                $bastaStation = null;
+                $bastaOee = -1;
+                $lagstStopp = null;
+                $lagstStoppMin = PHP_INT_MAX;
+
+                foreach ($stationer as $st) {
+                    $sid = (int)$st['id'];
+                    $sNamn = $st['namn'];
+
+                    // Hamta station-specifik data
                     $stmt = $this->pdo->prepare(
                         "SELECT
-                            COALESCE(SUM(max_ok), 0)    AS ibc_ok,
-                            COALESCE(SUM(max_runtime), 0) AS runtime_min
+                            COALESCE(SUM(max_ok),    0) AS ibc_ok,
+                            COALESCE(SUM(max_ej_ok), 0) AS ibc_ej_ok,
+                            COALESCE(SUM(max_runtime), 0) AS runtime_min,
+                            COUNT(DISTINCT skiftraknare) AS antal_pass
                          FROM (
                             SELECT
+                                skiftraknare,
                                 MAX(ibc_ok)      AS max_ok,
+                                MAX(ibc_ej_ok)   AS max_ej_ok,
                                 MAX(runtime_plc) AS max_runtime
                             FROM rebotling_ibc
                             WHERE DATE(created_at) BETWEEN ? AND ?
                               AND {$timeCond}
+                              AND COALESCE(station_id, 1) = ?
                             GROUP BY skiftraknare
                             HAVING COUNT(*) > 1
                          ) s"
                     );
-                    $stmt->execute([$vStart, $vEnd]);
+                    $stmt->execute([$from, $today, $sid]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-                    $ibcOk   = (int)($row['ibc_ok']    ?? 0);
-                    $runtime = (int)($row['runtime_min'] ?? 0);
-                    $ibcPerH = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
+                    $ibcOk    = (int)($row['ibc_ok']    ?? 0);
+                    $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
+                    $runtime  = (int)($row['runtime_min'] ?? 0);
+                    $antalPass= (int)($row['antal_pass'] ?? 0);
+                    $ibcTotal = $ibcOk + $ibcEjOk;
+                    $ibcPerH  = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
 
-                    $vData[$skift] = $ibcPerH > 0 ? $ibcPerH : null;
+                    $planMin  = $antalPass * self::PLANERAD_MIN;
+                    $tillg    = $planMin > 0 ? min(1.0, $runtime / $planMin) : 0.0;
+                    $prest    = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                    $kvalFakt = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+                    $oee      = round($tillg * $prest * $kvalFakt * 100, 1);
+
+                    if ($ibcOk > 0 && $oee > $bastaOee) {
+                        $bastaOee = $oee;
+                        $bastaStation = $sNamn;
+                    }
                 }
-            }
-            unset($vData);
 
-            // Filtrera bort veckor utan data
-            $veckorMedData = array_filter($veckor, function($v) {
-                return $v['dag'] !== null || $v['kvall'] !== null || $v['natt'] !== null;
-            });
+                // Stopptid for skiftet
+                $stoppData = $this->getStopptidPerSkift($from, $today);
+                $stoppMin  = $stoppData[$skift] ?? 0;
+
+                $skiftData = $this->getProduktionPerSkift($from, $today)[$skift];
+
+                $insights = [];
+                if ($bastaStation && $bastaOee > 0) {
+                    $insights[] = "Bast pa {$bastaStation} (OEE {$bastaOee}%)";
+                }
+                if ($skiftData['kvalitet_pct'] >= 98) {
+                    $insights[] = "Utmarkt kvalitet ({$skiftData['kvalitet_pct']}%)";
+                }
+                if ($stoppMin < 30) {
+                    $insights[] = "Lag stopptid ({$stoppMin} min)";
+                }
+                if ($skiftData['ibc_per_h'] > 0) {
+                    $insights[] = "{$skiftData['ibc_per_h']} IBC/h";
+                }
+
+                $practices[] = [
+                    'skift'          => $skift,
+                    'label'          => $skiftLabel,
+                    'oee_pct'        => $skiftData['oee_pct'],
+                    'ibc_per_h'      => $skiftData['ibc_per_h'],
+                    'kvalitet_pct'   => $skiftData['kvalitet_pct'],
+                    'stopptid_min'   => $stoppMin,
+                    'basta_station'  => $bastaStation,
+                    'basta_station_oee' => $bastaOee > 0 ? $bastaOee : null,
+                    'insights'       => $insights,
+                ];
+            }
+
+            // Sortera efter OEE (hogst forst)
+            usort($practices, fn($a, $b) => $b['oee_pct'] <=> $a['oee_pct']);
 
             $this->sendSuccess([
-                'period'  => $period,
-                'veckor'  => array_values($veckorMedData),
+                'practices' => $practices,
+                'days'      => $days,
+                'from_date' => $from,
+                'to_date'   => $today,
             ]);
 
         } catch (\Exception $e) {
-            error_log('SkiftjamforelseController::getShiftTrend: ' . $e->getMessage());
-            $this->sendError('Kunde inte hämta skifttrenddata', 500);
+            error_log('SkiftjamforelseController::bestPractices: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta best practices', 500);
         }
     }
 
     // ================================================================
-    // run=shift-operators
+    // run=detaljer
     // ================================================================
 
-    private function getShiftOperators(): void {
-        $skift  = trim($_GET['shift'] ?? 'dag');
-        $period = $this->getPeriod();
-
-        if (!isset(self::SKIFT[$skift])) {
-            $this->sendError('Ogiltigt skift. Använd dag, kvall eller natt.');
-            return;
-        }
-
-        $toDate   = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$period} days"));
-        $timeCond = $this->skiftTimewhere($skift, 'created_at');
-
+    private function detaljer(): void {
         try {
-            // Hämta topp-operatörer baserat på antal IBC för valt skift och period
+            $days    = $this->getDays();
+            $today   = date('Y-m-d');
+            $from    = date('Y-m-d', strtotime("-{$days} days"));
+
+            // Hamta per skiftraknare: datum, skifttyp, station, operator, IBC, OEE, stopptid
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    op_num,
-                    COUNT(*)                 AS antal_ibc,
-                    ROUND(AVG(cycle_sek), 1) AS avg_cykeltid_sek
-                 FROM (
-                    SELECT op_num,
-                        TIMESTAMPDIFF(SECOND,
-                            LAG(datum) OVER (PARTITION BY skiftraknare ORDER BY datum),
-                            datum
-                        ) AS cycle_sek
-                    FROM (
-                        SELECT op1 AS op_num, datum, skiftraknare, created_at
-                        FROM rebotling_ibc
-                        WHERE DATE(created_at) BETWEEN :f1 AND :t1
-                          AND {$timeCond}
-                          AND op1 IS NOT NULL AND op1 > 0
-                        UNION ALL
-                        SELECT op2 AS op_num, datum, skiftraknare, created_at
-                        FROM rebotling_ibc
-                        WHERE DATE(created_at) BETWEEN :f2 AND :t2
-                          AND {$timeCond}
-                          AND op2 IS NOT NULL AND op2 > 0
-                        UNION ALL
-                        SELECT op3 AS op_num, datum, skiftraknare, created_at
-                        FROM rebotling_ibc
-                        WHERE DATE(created_at) BETWEEN :f3 AND :t3
-                          AND {$timeCond}
-                          AND op3 IS NOT NULL AND op3 > 0
-                    ) ops
-                 ) lagged
-                 WHERE cycle_sek >= 30 AND cycle_sek <= 1800
-                 GROUP BY op_num
-                 ORDER BY antal_ibc DESC
-                 LIMIT 5"
+                    skiftraknare,
+                    DATE(MIN(created_at)) AS datum,
+                    MIN(HOUR(created_at)) AS forsta_timme,
+                    COALESCE(MIN(station_id), 1) AS station_id,
+                    MAX(ibc_ok)      AS ibc_ok,
+                    MAX(ibc_ej_ok)   AS ibc_ej_ok,
+                    MAX(runtime_plc) AS runtime_min,
+                    MIN(NULLIF(op1, 0)) AS op_num
+                 FROM rebotling_ibc
+                 WHERE DATE(created_at) BETWEEN ? AND ?
+                 GROUP BY skiftraknare
+                 HAVING COUNT(*) > 1
+                 ORDER BY MIN(created_at) DESC
+                 LIMIT 500"
             );
-            $stmt->execute([
-                ':f1' => $fromDate, ':t1' => $toDate,
-                ':f2' => $fromDate, ':t2' => $toDate,
-                ':f3' => $fromDate, ':t3' => $toDate,
-            ]);
-            $opRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $stmt->execute([$from, $today]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            $operatorer = [];
-            if (!empty($opRows)) {
-                $opNums = array_column($opRows, 'op_num');
+            // Hamta stationsnamn
+            $stationer = $this->getStationer();
+            $stNamn = [];
+            foreach ($stationer as $s) {
+                $stNamn[(int)$s['id']] = $s['namn'];
+            }
+
+            // Hamta operatorsnamn
+            $opNums = array_unique(array_filter(array_column($rows, 'op_num')));
+            $names = [];
+            if (!empty($opNums)) {
                 $ph = implode(',', array_fill(0, count($opNums), '?'));
                 $nameStmt = $this->pdo->prepare(
                     "SELECT number, name FROM operators WHERE number IN ({$ph})"
                 );
-                $nameStmt->execute($opNums);
-                $names = [];
+                $nameStmt->execute(array_values($opNums));
                 foreach ($nameStmt->fetchAll(\PDO::FETCH_ASSOC) as $nr) {
                     $names[(int)$nr['number']] = $nr['name'];
                 }
+            }
 
-                foreach ($opRows as $i => $r) {
-                    $num = (int)$r['op_num'];
-                    $operatorer[] = [
-                        'plats'            => $i + 1,
-                        'operator_num'     => $num,
-                        'operator_namn'    => $names[$num] ?? "Operatör #{$num}",
-                        'antal_ibc'        => (int)$r['antal_ibc'],
-                        'avg_cykeltid_sek' => (float)$r['avg_cykeltid_sek'],
-                    ];
-                }
+            $detaljer = [];
+            foreach ($rows as $row) {
+                $ibcOk    = (int)($row['ibc_ok'] ?? 0);
+                $ibcEjOk  = (int)($row['ibc_ej_ok'] ?? 0);
+                $ibcTotal = $ibcOk + $ibcEjOk;
+                $runtime  = (int)($row['runtime_min'] ?? 0);
+                $ibcPerH  = $runtime > 0 ? round($ibcOk / ($runtime / 60), 2) : 0.0;
+
+                $tillg    = self::PLANERAD_MIN > 0 ? min(1.0, $runtime / self::PLANERAD_MIN) : 0.0;
+                $prest    = $runtime > 0 ? min(1.0, $ibcPerH / self::TEORIETISK_MAX_IBC_H) : 0.0;
+                $kvalFakt = $ibcTotal > 0 ? ($ibcOk / $ibcTotal) : 0.0;
+                $oee      = round($tillg * $prest * $kvalFakt * 100, 1);
+
+                $hour  = (int)$row['forsta_timme'];
+                $skift = $this->skiftForHour($hour);
+                $opNum = $row['op_num'] ? (int)$row['op_num'] : null;
+                $sid   = (int)$row['station_id'];
+
+                $detaljer[] = [
+                    'datum'        => $row['datum'],
+                    'skift'        => $skift,
+                    'skift_label'  => self::SKIFT[$skift]['label'],
+                    'station'      => $stNamn[$sid] ?? "Station {$sid}",
+                    'operator'     => $opNum ? ($names[$opNum] ?? "Op #{$opNum}") : '-',
+                    'ibc_ok'       => $ibcOk,
+                    'ibc_total'    => $ibcTotal,
+                    'oee_pct'      => $oee,
+                    'stopptid_min' => max(0, self::PLANERAD_MIN - $runtime),
+                    'runtime_min'  => $runtime,
+                ];
             }
 
             $this->sendSuccess([
-                'skift'       => $skift,
-                'label'       => self::SKIFT[$skift]['label'],
-                'period'      => $period,
-                'from_date'   => $fromDate,
-                'to_date'     => $toDate,
-                'operatorer'  => $operatorer,
+                'detaljer'  => $detaljer,
+                'days'      => $days,
+                'from_date' => $from,
+                'to_date'   => $today,
+                'total'     => count($detaljer),
             ]);
 
         } catch (\Exception $e) {
-            error_log('SkiftjamforelseController::getShiftOperators: ' . $e->getMessage());
-            $this->sendError('Kunde inte hämta operatörsdata', 500);
+            error_log('SkiftjamforelseController::detaljer: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta detaljer', 500);
         }
     }
 }

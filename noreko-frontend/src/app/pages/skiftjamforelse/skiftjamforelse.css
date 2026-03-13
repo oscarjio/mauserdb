@@ -1,4 +1,4 @@
-/* Skiftjämförelse-dashboard */
+/* Skiftjamforelse-rapport */
 
 .skiftjamforelse-wrapper {
   background-color: #1a202c;
@@ -18,7 +18,7 @@
   font-size: 0.9rem;
 }
 
-/* Periodväljare */
+/* Periodvaljare */
 .period-selector {
   display: flex;
   align-items: center;
@@ -48,154 +48,111 @@
   font-weight: 600;
 }
 
-/* Sammanfattningsbox */
-.summary-box {
+/* KPI-kort */
+.kpi-card {
   background-color: #2d3748;
   border: 1px solid #4a5568;
-  border-left: 4px solid #ed8936;
-  border-radius: 0.5rem;
-  padding: 0.875rem 1rem;
-  color: #e2e8f0;
-  font-size: 0.95rem;
-}
-
-/* Skiftkort */
-.skift-card {
-  background-color: #2d3748;
-  border: 1px solid #4a5568;
-  border-top: 3px solid #4a5568;
   border-radius: 0.75rem;
   padding: 1.25rem;
   height: 100%;
-  transition: box-shadow 0.2s ease;
+  text-align: center;
 }
 
-.skift-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+.kpi-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
-.skift-card-best {
-  box-shadow: 0 0 0 1px rgba(237, 137, 54, 0.4), 0 4px 16px rgba(237, 137, 54, 0.15);
-}
-
-.skift-card-header {
-  font-size: 1rem;
-  font-weight: 700;
+.kpi-label {
+  font-size: 0.8rem;
+  color: #a0aec0;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-}
-
-.bast-badge {
-  font-size: 0.9rem;
-}
-
-/* Huvud-KPI */
-.skift-main-kpi {
-  display: flex;
-  align-items: baseline;
-  gap: 0.25rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.25rem;
 }
 
 .kpi-value {
-  font-size: 2.5rem;
-  font-weight: 800;
-  line-height: 1;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #e2e8f0;
 }
 
-.kpi-unit {
+.kpi-sub {
+  font-size: 0.8rem;
+  color: #a0aec0;
+  margin-top: 0.25rem;
+}
+
+/* Sektionsrubriker */
+.section-title {
   font-size: 1rem;
-  color: #a0aec0;
-  margin-left: 0.25rem;
-}
-
-.kpi-diff {
-  font-size: 0.8rem;
   font-weight: 600;
-  width: 100%;
+  color: #e2e8f0;
+  margin-bottom: 1rem;
 }
 
-/* Mätetal-rader */
-.skift-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+/* Tabell-kort */
+.table-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
 }
 
-.metric-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  padding-bottom: 0.35rem;
-}
-
-.metric-label {
-  color: #a0aec0;
-}
-
-.metric-value {
-  font-weight: 600;
-}
-
-/* Progress-bar */
-.progress-sm {
-  height: 6px;
-  background-color: #4a5568;
-  border-radius: 3px;
-}
-
-/* Expandera-knapp */
-.expand-btn {
-  font-size: 0.8rem;
-  color: #a0aec0;
-  border-color: #4a5568;
-  transition: all 0.15s;
-}
-
-.expand-btn:hover {
-  background-color: #4a5568;
+.table-card .table {
+  background-color: transparent;
   color: #e2e8f0;
 }
 
-/* Operatörslista */
-.op-list {
+.table-card .table thead th {
   background-color: #1a202c;
-  border-radius: 0.375rem;
-  padding: 0.5rem;
-}
-
-.op-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.825rem;
-  padding: 0.25rem 0.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.op-plats {
   color: #a0aec0;
-  min-width: 1.25rem;
-}
-
-.op-namn {
-  flex: 1;
-  color: #e2e8f0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.op-ibc {
-  font-size: 0.75rem;
+  border-bottom: 2px solid #4a5568;
+  font-size: 0.8rem;
+  text-transform: uppercase;
   font-weight: 600;
 }
+
+.table-card .table tbody td {
+  border-color: rgba(255, 255, 255, 0.05);
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+/* Cell-fargkodning bast/samst */
+.cell-best {
+  color: #48bb78 !important;
+  font-weight: 700;
+}
+
+.cell-worst {
+  color: #fc8181 !important;
+  font-weight: 600;
+}
+
+/* Legend */
+.legend-row {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-best { background-color: #48bb78; }
+.dot-worst { background-color: #fc8181; }
 
 /* Diagram-kort */
 .chart-card {
@@ -203,13 +160,7 @@
   border: 1px solid #4a5568;
   border-radius: 0.75rem;
   padding: 1.25rem;
-}
-
-.chart-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #e2e8f0;
-  margin-bottom: 1rem;
+  height: 100%;
 }
 
 .chart-container {
@@ -220,6 +171,56 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+/* Best Practices-kort */
+.bp-card {
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  border-left: 4px solid #4a5568;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  height: 100%;
+}
+
+.bp-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.bp-insights {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem 0;
+}
+
+.bp-insights li {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  padding: 0.2rem 0;
+}
+
+.bp-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.5rem;
+}
+
+/* Sorterbara kolumnrubriker */
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s;
+}
+
+.sortable-th:hover {
+  color: #ed8936 !important;
+}
+
+.sticky-top {
+  position: sticky;
+  top: 0;
 }
 
 /* Responsiv */
@@ -233,6 +234,6 @@
   }
 
   .kpi-value {
-    font-size: 2rem;
+    font-size: 1.1rem;
   }
 }
