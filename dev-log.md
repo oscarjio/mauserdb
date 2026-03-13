@@ -1,3 +1,31 @@
+## 2026-03-13 Skiftraknare audit across rebotling tables
+
+Comprehensive audit of all code using `skiftraknare` across rebotling_ibc, rebotling_onoff, and rebotling_skiftrapport tables. 93 files reference skiftraknare.
+
+### Key findings — ALL CORRECT:
+- **SkiftrapportController.php** `getLopnummerForSkift()` + `getSkiftTider()`: Correctly searches downward (n, n-1, n-2), checks previous day, uses SAME skiftraknare in `rebotling_onoff WHERE skiftraknare = ?`, falls back to IBC cycle times if onoff missing.
+- **RebotlingAnalyticsController.php** `resolveSkiftTider()`: Same correct pattern — downward fallback, previous day check, skiftraknare-based onoff query, IBC cycle time fallback.
+- **RebotlingController.php** `getLiveStats()`: Gets current skiftraknare from latest rebotling_onoff row, uses it consistently for all queries. Correct for live data.
+- **SkiftoverlamningController.php**: Uses time-based queries (`WHERE datum BETWEEN`) on rebotling_onoff for current/live shift endpoints — acceptable since shift windows are fixed 8h.
+- **BonusController.php**, **SkiftjamforelseController.php**, **SkiftrapportExportController.php**: Use skiftraknare correctly for GROUP BY aggregation. No onoff time lookups needed.
+
+### Reported issue — NOT a bug:
+- `calcDrifttidSek` "Undefined method" on line 240 of SkiftoverlamningController.php: **Method IS defined** on line 202 and properly called with `$this->calcDrifttidSek()` on lines 278, 376, 1054. PHP lint passes. No fix needed.
+
+### No upward searches found:
+- Grep for `skiftraknare + 1` or `skiftraknare + 2` returned 0 matches — all fallbacks search downward only.
+
+### Conclusion: No fixes needed — skiftraknare logic is consistent and correct across all controllers.
+
+## 2026-03-13 Frontend API-endpoint audit
+
+Audit av alla frontend-sidor och services mot backend-controllers:
+- **Alla `run=` parametrar matchar** mellan Angular services och PHP backend controllers
+- **Controllers verifierade**: produktionspuls, narvaro, historik, news, cykeltid-heatmap, oee-benchmark, ranking-historik, produktionskalender, daglig-sammanfattning, feedback-analys, min-dag, skiftoverlamning
+- **Angular build**: inga kompileringsfel (bara CommonJS-varningar)
+- **Routing**: alla routes i `app.routes.ts` pekar pa existerande komponenter
+- **Slutsats**: inga missmatchningar hittade, allt korrekt
+
 ## 2026-03-13 Rebotling prediktivt underhall
 
 Ny sida `/rebotling/prediktivt-underhall` — analyserar stopporsaks-monster, forutsager nasta stopp per station och rekommenderar forebyggande underhall.
