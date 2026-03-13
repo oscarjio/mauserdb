@@ -1,3 +1,30 @@
+## 2026-03-13 Operatörs-prestanda scatter-plot — hastighet vs kvalitet per operatör (session #91)
+
+Ny sida `/rebotling/operators-prestanda` — VD ser snabbt vem som är snabb och noggrann via XY-diagram.
+
+- **Backend**: `classes/OperatorsPrestandaController.php` (action=`operatorsprestanda`)
+  - `run=scatter-data&period=7|30|90[&skift=dag|kvall|natt]` — Per operatör: antal IBC, kassationsgrad, medel_cykeltid, OEE, dagar_aktiv, skift_typ. Inkl. medelvärden för referenslinjer.
+  - `run=operator-detalj&operator_id=X` — Daglig produktion, kassation, cykeltid senaste 30d + streak, bästa/sämsta dag.
+  - `run=ranking&sort_by=ibc|kassation|oee|cykeltid&period=N` — Sorterad ranking-lista med rank-nummer.
+  - `run=teamjamforelse&period=N` — Medelvärden per skift (dag/kväll/natt): cykeltid, kassation, OEE, IBC/dag, bästa operatör.
+  - `run=utveckling&operator_id=X` — Veckovis trend 12 veckor med trend-indikator (forbattras/forsamras/neutral).
+  - Datakälla: `rebotling_skiftrapport` (op1/op2/op3, ibc_ok, ibc_ej_ok, drifttid) + `operators`
+  - Registrerad i api.php: `'operatorsprestanda' => 'OperatorsPrestandaController'`
+
+- **Frontend**: `pages/rebotling/operators-prestanda/`
+  - Filter-rad: periodselektor (7/30/90d) + skift-dropdown (Alla/Dag/Kväll/Natt)
+  - Scatter plot (Chart.js): X=cykeltid, Y=kvalitet, punktstorlek=antal IBC, färg=skift
+  - Referenslinjer + kvadrant-labels: Snabb & Noggrann, Långsam & Noggrann, Snabb & Slarvig, Behöver stöd
+  - Sorterbbar ranking-tabell: top 3 grön, bottom 3 röd (om >6 operatörer), klickbar rad
+  - Expanderbar detaljvy per operatör: daglig staplad graf + veckotrendgraf + nyckeltal (streak, bästa/sämsta dag)
+  - Skiftjämförelse: 3 kort (dag/kväll/natt) med KPI:er och bästa operatör per skift
+  - Dark theme, OnInit/OnDestroy + destroy$ + takeUntil, chart.destroy() i ngOnDestroy
+  - Service: `services/operators-prestanda.service.ts` med TypeScript-interfaces
+  - Route: `/rebotling/operators-prestanda` (authGuard)
+  - Navigation: länk tillagd i Rebotling-dropdown i menu.html
+
+---
+
 ## 2026-03-13 Rebotling trendanalys — automatisk trendidentifiering + VD-vy (session #90)
 
 Ny sida `/rebotling/rebotling-trendanalys` — VD-vy som pa 10 sekunder visar om trenden ar positiv eller negativ.
