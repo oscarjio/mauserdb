@@ -1,0 +1,304 @@
+<div class="op-prest-page">
+
+  <!-- ============================================================ -->
+  <!-- HEADER                                                       -->
+  <!-- ============================================================ -->
+  <div class="page-header mb-4">
+    <h1 class="page-title">
+      <i class="fas fa-users me-2" style="color:#63b3ed"></i>
+      Operatörs-prestanda
+    </h1>
+    <p class="page-subtitle">Hastighet vs kvalitet per operatör — identifiera snabba och noggranna</p>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- FILTER-RAD                                                   -->
+  <!-- ============================================================ -->
+  <div class="filter-rad mb-4">
+    <div class="filter-grupp">
+      <label class="filter-label">Period</label>
+      <div class="btn-group">
+        @for (alt of periodAlternativ; track alt.val) {
+          <button
+            class="btn btn-sm"
+            [class.btn-primary]="period === alt.val"
+            [class.btn-outline-secondary]="period !== alt.val"
+            (click)="onPeriodChange(alt.val)">
+            {{ alt.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="filter-grupp">
+      <label class="filter-label">Skift</label>
+      <select class="form-select form-select-sm skift-select"
+              [(ngModel)]="valtSkift"
+              (ngModelChange)="onSkiftChange($event)">
+        @for (alt of skiftAlternativ; track alt.val) {
+          <option [value]="alt.val">{{ alt.label }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SCATTER PLOT                                                  -->
+  <!-- ============================================================ -->
+  <div class="card mb-4">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <h5 class="mb-0"><i class="fas fa-chart-scatter me-2" style="color:#63b3ed"></i>Hastighet vs Kvalitet</h5>
+      <small class="text-muted">Punktstorlek = antal IBC | Färg = skift</small>
+    </div>
+    <div class="card-body">
+
+      @if (loadingScatter) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-info" role="status"></div>
+          <p class="mt-2 text-muted">Laddar scatter-data...</p>
+        </div>
+      } @else if (errorScatter) {
+        <div class="alert alert-danger">Kunde inte ladda scatter-data.</div>
+      } @else if (scatterData.length === 0) {
+        <div class="text-center py-5 text-muted">Ingen operatörsdata för vald period.</div>
+      } @else {
+        <!-- Kvadrant-förklaring -->
+        <div class="kvadrant-legend mb-3">
+          <span class="kvad-chip kvad-bra"><i class="fas fa-star me-1"></i>Snabb &amp; Noggrann</span>
+          <span class="kvad-chip kvad-langsamm">Långsam &amp; Noggrann</span>
+          <span class="kvad-chip kvad-slarvig">Snabb &amp; Slarvig</span>
+          <span class="kvad-chip kvad-stod"><i class="fas fa-hands-helping me-1"></i>Behöver stöd</span>
+        </div>
+
+        <div class="chart-container-scatter">
+          <canvas id="operatorsScatterChart"></canvas>
+        </div>
+
+        <!-- Skift-legend -->
+        <div class="skift-legend mt-3">
+          <span class="skift-dot" [style.background]="skiftFarg('dag')"></span>
+          <span class="me-3">Dagskift</span>
+          <span class="skift-dot" [style.background]="skiftFarg('kvall')"></span>
+          <span class="me-3">Kvällsskift</span>
+          <span class="skift-dot" [style.background]="skiftFarg('natt')"></span>
+          <span>Nattskift</span>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- RANKING-TABELL                                               -->
+  <!-- ============================================================ -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="fas fa-trophy me-2" style="color:#ecc94b"></i>Ranking — klicka på rad för detaljer</h5>
+    </div>
+    <div class="card-body p-0">
+      @if (loadingRanking) {
+        <div class="text-center py-4">
+          <div class="spinner-border text-warning spinner-border-sm" role="status"></div>
+          <span class="ms-2 text-muted">Laddar ranking...</span>
+        </div>
+      } @else if (errorRanking) {
+        <div class="alert alert-danger m-3">Kunde inte ladda ranking-data.</div>
+      } @else if (sortedRanking.length === 0) {
+        <div class="text-center py-4 text-muted">Ingen data att visa.</div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mb-0 ranking-table">
+            <thead>
+              <tr>
+                <th class="sortable" (click)="sortRanking('rank')">#  {{ sortIkon('rank') }}</th>
+                <th class="sortable" (click)="sortRanking('operator_namn')">Namn {{ sortIkon('operator_namn') }}</th>
+                <th class="sortable text-end" (click)="sortRanking('antal_ibc')">Antal IBC {{ sortIkon('antal_ibc') }}</th>
+                <th class="sortable text-end" (click)="sortRanking('medel_cykeltid')">Cykeltid {{ sortIkon('medel_cykeltid') }}</th>
+                <th class="sortable text-end" (click)="sortRanking('kassationsgrad')">Kassation {{ sortIkon('kassationsgrad') }}</th>
+                <th class="sortable text-end" (click)="sortRanking('oee')">OEE {{ sortIkon('oee') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (op of sortedRanking; track op.operator_id) {
+                <tr
+                  class="ranking-row {{ getRadFarg(op) }}"
+                  [class.rad-expanderad]="detaljOperator === op.operator_id"
+                  (click)="toggleDetalj(op)">
+                  <td>
+                    @if (op.rank === 1) {
+                      <span class="rank-badge rank-gold">{{ op.rank }}</span>
+                    } @else if (op.rank === 2) {
+                      <span class="rank-badge rank-silver">{{ op.rank }}</span>
+                    } @else if (op.rank === 3) {
+                      <span class="rank-badge rank-bronze">{{ op.rank }}</span>
+                    } @else {
+                      <span class="rank-badge rank-normal">{{ op.rank }}</span>
+                    }
+                  </td>
+                  <td>
+                    <i class="fas fa-chevron-{{ detaljOperator === op.operator_id ? 'down' : 'right' }} me-2 text-muted expand-icon"></i>
+                    {{ op.operator_namn }}
+                  </td>
+                  <td class="text-end fw-bold">{{ op.antal_ibc | number }}</td>
+                  <td class="text-end">{{ formatCykeltid(op.medel_cykeltid) }}</td>
+                  <td class="text-end" [style.color]="op.kassationsgrad > 5 ? '#fc8181' : op.kassationsgrad > 2 ? '#ecc94b' : '#48bb78'">
+                    {{ op.kassationsgrad.toFixed(1) }} %
+                  </td>
+                  <td class="text-end" [style.color]="op.oee >= 80 ? '#48bb78' : op.oee >= 60 ? '#ecc94b' : '#fc8181'">
+                    {{ op.oee.toFixed(1) }} %
+                  </td>
+                </tr>
+
+                <!-- Detaljvy (expanderbar) -->
+                @if (detaljOperator === op.operator_id) {
+                  <tr class="detalj-rad">
+                    <td colspan="6" class="p-0">
+                      <div class="detalj-container">
+
+                        @if (loadingDetalj || loadingUtveckling) {
+                          <div class="text-center py-3">
+                            <div class="spinner-border text-info spinner-border-sm" role="status"></div>
+                            <span class="ms-2 text-muted">Laddar detaljer...</span>
+                          </div>
+                        } @else {
+                          <div class="row g-3">
+
+                            <!-- Nyckeltal -->
+                            <div class="col-md-3">
+                              <div class="detalj-kpi-block">
+                                <h6 class="detalj-rubrik">Nyckeltal</h6>
+                                <div class="kpi-mini-list">
+                                  <div class="kpi-mini-item">
+                                    <span class="kpi-mini-label">Aktiva dagar i rad</span>
+                                    <span class="kpi-mini-val" style="color:#63b3ed">{{ detaljStreak }}</span>
+                                  </div>
+                                  @if (detaljBastaDag) {
+                                    <div class="kpi-mini-item">
+                                      <span class="kpi-mini-label">Bästa dag</span>
+                                      <span class="kpi-mini-val" style="color:#48bb78">{{ detaljBastaDag.datum }} ({{ detaljBastaDag.total_ibc }} IBC)</span>
+                                    </div>
+                                  }
+                                  @if (detaljSammstaDag) {
+                                    <div class="kpi-mini-item">
+                                      <span class="kpi-mini-label">Sämsta dag</span>
+                                      <span class="kpi-mini-val" style="color:#fc8181">{{ detaljSammstaDag.datum }} ({{ detaljSammstaDag.total_ibc }} IBC)</span>
+                                    </div>
+                                  }
+                                </div>
+                              </div>
+
+                              <!-- Veckotrend-indikator -->
+                              <div class="detalj-kpi-block mt-3">
+                                <h6 class="detalj-rubrik">12-veckors trend</h6>
+                                <div class="trend-indikator" [style.color]="trendFarg(utvecklingTrend)">
+                                  <span class="trend-ikon">{{ trendIkon(utvecklingTrend) }}</span>
+                                  @if (utvecklingTrend === 'forbattras') {
+                                    <span>Förbättras</span>
+                                  } @else if (utvecklingTrend === 'forsamras') {
+                                    <span>Försämras</span>
+                                  } @else {
+                                    <span>Stabil</span>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Dagligt diagram -->
+                            <div class="col-md-5">
+                              <h6 class="detalj-rubrik">Daglig produktion &amp; kassation (30d)</h6>
+                              @if (detaljDaglig.length > 0) {
+                                <div class="chart-container-detalj">
+                                  <canvas id="operatorDetaljChart"></canvas>
+                                </div>
+                              } @else {
+                                <div class="text-muted text-center py-3">Ingen daglig data.</div>
+                              }
+                            </div>
+
+                            <!-- Veckotrenddiagram -->
+                            <div class="col-md-4">
+                              <h6 class="detalj-rubrik">Veckovis trend (12 veckor)</h6>
+                              @if (utvecklingData.length > 0) {
+                                <div class="chart-container-detalj">
+                                  <canvas id="operatorUtvecklingChart"></canvas>
+                                </div>
+                              } @else {
+                                <div class="text-muted text-center py-3">Ingen veckodata.</div>
+                              }
+                            </div>
+
+                          </div>
+                        }
+
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SKIFTJÄMFÖRELSE                                              -->
+  <!-- ============================================================ -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="fas fa-people-arrows me-2" style="color:#ed8936"></i>Skiftjämförelse</h5>
+    </div>
+    <div class="card-body">
+      @if (loadingTeam) {
+        <div class="text-center py-4">
+          <div class="spinner-border text-warning spinner-border-sm" role="status"></div>
+          <span class="ms-2 text-muted">Laddar skiftdata...</span>
+        </div>
+      } @else if (errorTeam) {
+        <div class="alert alert-danger">Kunde inte ladda skiftdata.</div>
+      } @else {
+        <div class="row g-3">
+          @for (skift of teamData; track skift.skift) {
+            <div class="col-md-4">
+              <div class="skift-kort" [style.border-left-color]="teamSkiftFarg(skift.skift)">
+                <div class="skift-kort-header" [style.color]="teamSkiftFarg(skift.skift)">
+                  <i class="fas fa-clock me-2"></i>{{ skift.label }}
+                </div>
+                <div class="skift-kpi-grid">
+                  <div class="skift-kpi">
+                    <span class="skift-kpi-label">Medelcykeltid</span>
+                    <span class="skift-kpi-val">{{ formatCykeltid(skift.medel_cykeltid) }}</span>
+                  </div>
+                  <div class="skift-kpi">
+                    <span class="skift-kpi-label">Kassation</span>
+                    <span class="skift-kpi-val" [style.color]="skift.kassationsgrad > 5 ? '#fc8181' : skift.kassationsgrad > 2 ? '#ecc94b' : '#48bb78'">
+                      {{ skift.kassationsgrad.toFixed(1) }} %
+                    </span>
+                  </div>
+                  <div class="skift-kpi">
+                    <span class="skift-kpi-label">Snitt IBC/dag</span>
+                    <span class="skift-kpi-val">{{ skift.medel_per_dag | number:'1.0-0' }}</span>
+                  </div>
+                  <div class="skift-kpi">
+                    <span class="skift-kpi-label">OEE</span>
+                    <span class="skift-kpi-val" [style.color]="skift.oee >= 80 ? '#48bb78' : skift.oee >= 60 ? '#ecc94b' : '#fc8181'">
+                      {{ skift.oee.toFixed(1) }} %
+                    </span>
+                  </div>
+                </div>
+                @if (skift.basta_operator) {
+                  <div class="basta-op-rad">
+                    <i class="fas fa-star me-1" style="color:#ecc94b"></i>
+                    Bäste: <strong>{{ skift.basta_operator.operator_namn }}</strong>
+                    ({{ skift.basta_operator.antal_ibc_ok | number }} IBC)
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+</div>
