@@ -1,3 +1,28 @@
+## 2026-03-13 Rebotling kapacitetsplanering — utokad med bemanning, prognos, tabell, trend
+
+Utokad sida `/rebotling/kapacitetsplanering` med kapacitetsplanering, bemanningsmodell och prognos-simulator.
+
+- **Backend**: `classes/KapacitetsplaneringController.php` utokad med nya endpoints:
+  - `run=utnyttjandegrad-trend` — linjediagram med utnyttjandegrad per dag + mal-linje (85%)
+  - `run=kapacitetstabell` — detaljerad tabell per station: teor kap/h, faktisk kap/h, utnyttjande%, flaskhalsfaktor, trend
+  - `run=bemanning` — bemanningsplanering baserat pa orderbehov, historisk produktivitet per operator
+  - `run=prognos` — simulator: X timmar * Y operatorer = Z IBC, begransad av maskinkapacitet
+  - `run=config` — hamta kapacitet_config
+  - Befintliga endpoints utokade med period_filter (idag/vecka/manad)
+- **Migration**: `2026-03-13_kapacitet_config.sql` — tabell `kapacitet_config` med station_id, teoretisk_kapacitet_per_timme, mal_utnyttjandegrad_pct, ibc_per_operator_timme + seed-data for 6 stationer
+- **Frontend**: Angular standalone-komponent med:
+  - 4 KPI-kort: Total utnyttjandegrad, Flaskhals-station, Ledig kapacitet, Rekommenderad bemanning
+  - Kapacitetsoversikt per station — horisontellt stapeldiagram (teoretisk ljus, faktisk mork, utnyttjandegrad% ovanfor)
+  - Utnyttjandegrad-trend — linjediagram (Chart.js) med mal-linje vid 85%
+  - Bemanningsplanering — konfigurerbart orderbehov, beraknar operatorer per skift och per station
+  - Kapacitetstabell — detaljerad per station med flaskhalsfaktor och trend
+  - Prognos-simulator — "Om vi kor X timmar med Y operatorer, kan vi producera Z IBC"
+  - Period-filter: Idag / Vecka / Manad
+  - Auto-refresh var 60 sekunder
+- **Filer**: `KapacitetsplaneringController.php`, `kapacitetsplanering.service.ts`, `kapacitetsplanering/` (ts + html + css), `2026-03-13_kapacitet_config.sql`
+
+---
+
 ## 2026-03-13 Rebotling kvalitetstrend-analys
 
 Ny sida `/rebotling/kvalitetstrendanalys` — visualiserar kassationsrate per station/operator over tid med troskellarm for tidig avvikelseidentifiering.

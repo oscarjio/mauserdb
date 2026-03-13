@@ -1,31 +1,40 @@
 <?php
 /**
  * KapacitetsplaneringController.php
- * Rebotling kapacitetsplanering — planerad vs faktisk kapacitet, flaskhalsanalys.
+ * Rebotling kapacitetsplanering -- planerad vs faktisk kapacitet, flaskhalsanalys,
+ * bemanningsplanering, prognos-simulator.
  *
  * Endpoints via ?action=kapacitetsplanering&run=XXX:
- *   - run=kpi                — samlade KPI:er (kapacitetsutnyttjande, faktisk/teoretisk, flaskhals, cykeltider, prognos)
- *   - run=daglig-kapacitet   — daglig faktisk prod + teoretisk max + ev. mal, senaste N dagar (?period=30)
- *   - run=station-utnyttjande — kapacitetsutnyttjande per station
- *   - run=stopporsaker       — fordelning av stopptid per orsak/typ
- *   - run=tid-fordelning     — daglig fordelning: produktiv tid vs stopp vs idle per dag (?period=30)
- *   - run=vecko-oversikt     — veckosammanstalning senaste 12 veckor
+ *   - run=kpi                  -- samlade KPI:er (utnyttjandegrad, flaskhals, ledig kap, rek bemanning)
+ *   - run=daglig-kapacitet     -- daglig faktisk prod + teoretisk max + ev. mal (?period=30)
+ *   - run=station-utnyttjande  -- kapacitetsutnyttjande per station (horisontellt stapeldiagram)
+ *   - run=stopporsaker         -- fordelning av stopptid per orsak/typ
+ *   - run=tid-fordelning       -- daglig fordelning: produktiv tid vs stopp vs idle (?period=30)
+ *   - run=vecko-oversikt       -- veckosammanstalning senaste 12 veckor
+ *   - run=utnyttjandegrad-trend -- utnyttjandegrad per dag med mal-linje (Chart.js linjediagram)
+ *   - run=kapacitetstabell     -- detaljerad tabell per station
+ *   - run=bemanning            -- bemanningsplanering baserat pa orderbehov
+ *   - run=prognos              -- prognos-simulator (?timmar&operatorer)
+ *   - run=config               -- hamta kapacitet_config
  *
  * OEE: T = drifttid/planerad, P = (IBC*cykeltid)/drifttid, K = godkanda/totalt
  * Optimal cykeltid: 120 sekunder (2 min per IBC)
  * Teoretisk max: antal_stationer * planerad_drifttid * (3600/optimal_cykeltid)
  *
- * Tabeller: rebotling_ibc, rebotling_onoff, rebotling_produktionsmal (om finns)
+ * Tabeller: rebotling_ibc, rebotling_onoff, rebotling_produktionsmal (om finns), kapacitet_config
  */
 class KapacitetsplaneringController {
     private $pdo;
 
     private const OPTIMAL_CYKELTID_SEK = 120;   // 2 minuter per IBC
     private const PLANERAD_DRIFTTID_SEK = 8 * 3600; // 8 timmar per dag
+    private const DEFAULT_SKIFT_TIMMAR = 8;
+    private const DEFAULT_IBC_PER_OPERATOR_TIMME = 15;
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
+        $this->ensureConfigTable();
     }
 
     public function handle(): void {
@@ -41,12 +50,17 @@ class KapacitetsplaneringController {
         $run = trim($_GET['run'] ?? '');
 
         switch ($run) {
-            case 'kpi':                 $this->getKpi();                break;
-            case 'daglig-kapacitet':    $this->getDagligKapacitet();    break;
-            case 'station-utnyttjande': $this->getStationUtnyttjande(); break;
-            case 'stopporsaker':        $this->getStopporsaker();       break;
-            case 'tid-fordelning':      $this->getTidFordelning();      break;
-            case 'vecko-oversikt':      $this->getVeckoOversikt();      break;
+            case 'kpi':                   $this->getKpi();                  break;
+            case 'daglig-kapacitet':      $this->getDagligKapacitet();      break;
+            case 'station-utnyttjande':   $this->getStationUtnyttjande();   break;
+            case 'stopporsaker':          $this->getStopporsaker();         break;
+            case 'tid-fordelning':        $this->getTidFordelning();        break;
+            case 'vecko-oversikt':        $this->getVeckoOversikt();        break;
+            case 'utnyttjandegrad-trend': $this->getUtnyttjandegradTrend(); break;
+            case 'kapacitetstabell':      $this->getKapacitetstabell();     break;
+            case 'bemanning':            $this->getBemanning();             break;
+            case 'prognos':              $this->getPrognos();               break;
+            case 'config':               $this->getConfig();                break;
             default:
                 $this->sendError('Ogiltig run-parameter: ' . htmlspecialchars($run));
         }
@@ -71,6 +85,38 @@ class KapacitetsplaneringController {
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
         ], JSON_UNESCAPED_UNICODE);
+    }
+
+    private function ensureConfigTable(): void {
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'kapacitet_config'"
+            )->fetchColumn();
+            if (!$check) {
+                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_kapacitet_config.sql');
+                if ($sql) {
+                    $this->pdo->exec($sql);
+                }
+            }
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController ensureConfigTable: ' . $e->getMessage());
+        }
+    }
+
+    private function loadKapacitetConfig(): array {
+        try {
+            $stmt = $this->pdo->query(
+                "SELECT station_id, station_namn, teoretisk_kapacitet_per_timme,
+                        mal_utnyttjandegrad_pct, ibc_per_operator_timme
+                 FROM kapacitet_config WHERE aktiv = 1 ORDER BY station_id"
+            );
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController loadKapacitetConfig: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -141,7 +187,6 @@ class KapacitetsplaneringController {
             $val = $stmt->fetchColumn();
             return $val !== false ? (int)$val : null;
         } catch (\PDOException) {
-            // Tabellen kanske inte finns — ignorera
             return null;
         }
     }
@@ -170,54 +215,106 @@ class KapacitetsplaneringController {
         }
     }
 
+    /**
+     * Returnera datumgranser for period-filter (idag/vecka/manad).
+     */
+    private function getPeriodBounds(string $period): array {
+        $today = date('Y-m-d');
+        switch ($period) {
+            case 'vecka':
+                $dt = new \DateTime($today);
+                $dayOfWeek = (int)$dt->format('N');
+                $from = (clone $dt)->modify('-' . ($dayOfWeek - 1) . ' days')->format('Y-m-d');
+                $to = $today;
+                $dagar = $dayOfWeek;
+                break;
+            case 'manad':
+                $dt = new \DateTime($today);
+                $from = $dt->format('Y-m-01');
+                $to = $today;
+                $dagar = (int)$dt->format('j');
+                break;
+            default: // idag
+                $from = $today;
+                $to = $today;
+                $dagar = 1;
+                break;
+        }
+        return ['from' => $from, 'to' => $to, 'dagar' => $dagar];
+    }
+
     // ================================================================
-    // run=kpi — samlade KPI:er
+    // run=kpi -- samlade KPI:er
     // ================================================================
 
     private function getKpi(): void {
-        $today    = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime('-29 days'));
+        $periodFilter = trim($_GET['period_filter'] ?? 'idag');
+        $bounds = $this->getPeriodBounds($periodFilter);
+        $fromDate = $bounds['from'];
+        $toDate = $bounds['to'];
+        $dagar = $bounds['dagar'];
 
-        // Idag
-        $todayFromDt = $today . ' 00:00:00';
-        $todayToDt   = $today . ' 23:59:59';
+        $today = date('Y-m-d');
 
-        $drifttidIdagSek = $this->getDrifttidSek($todayFromDt, $todayToDt);
+        $fromDt = $fromDate . ' 00:00:00';
+        $toDt   = $toDate . ' 23:59:59';
+
+        $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
 
         try {
-            $stmtIdag = $this->pdo->prepare("
+            $stmtProd = $this->pdo->prepare("
                 SELECT
                     COUNT(*) AS total,
                     SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
                     COUNT(DISTINCT station) AS antal_stationer
                 FROM rebotling_ibc
-                WHERE DATE(datum) = :idag
+                WHERE DATE(datum) BETWEEN :from_date AND :to_date
             ");
-            $stmtIdag->execute([':idag' => $today]);
-            $radIdag = $stmtIdag->fetch(\PDO::FETCH_ASSOC);
+            $stmtProd->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $radProd = $stmtProd->fetch(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log('KapacitetsplaneringController::getKpi idag: ' . $e->getMessage());
-            $radIdag = ['total' => 0, 'ok_antal' => 0, 'antal_stationer' => 1];
+            error_log('KapacitetsplaneringController::getKpi prod: ' . $e->getMessage());
+            $radProd = ['total' => 0, 'ok_antal' => 0, 'antal_stationer' => 1];
         }
 
-        $antalStationerIdag = max(1, (int)($radIdag['antal_stationer'] ?? 1));
-        $faktiskIdag        = (int)($radIdag['total'] ?? 0);
+        $antalStationer = max(1, (int)($radProd['antal_stationer'] ?? 1));
+        $faktisk = (int)($radProd['total'] ?? 0);
 
-        // Teoretisk max per dag: stationer * planerad_drifttid * (3600/optimal_cykeltid)
-        $ibcPerTimme       = 3600 / self::OPTIMAL_CYKELTID_SEK;  // 30 IBC/h
-        $maxPerStation     = self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK; // 240 IBC/dag
-        $teorMaxIdag       = $antalStationerIdag * $maxPerStation;
+        // Teoretisk max
+        $ibcPerTimme = 3600 / self::OPTIMAL_CYKELTID_SEK;
+        $maxPerStationPerDag = self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK;
+        $teorMax = $antalStationer * $maxPerStationPerDag * $dagar;
 
-        // Kapacitetsutnyttjande idag
-        $utnyttjandeIdag = $teorMaxIdag > 0 ? min(100, round($faktiskIdag / $teorMaxIdag * 100, 1)) : 0.0;
+        // Kapacitetsutnyttjande
+        $utnyttjande = $teorMax > 0 ? min(100, round($faktisk / $teorMax * 100, 1)) : 0.0;
 
-        // Senaste 30 dagar — snittcykeltid
-        $avgCykeltid = $this->getAvgCykeltidSek($fromDate, $today);
+        // Ledig kapacitet
+        $ledigKapacitet = max(0, (int)$teorMax - $faktisk);
 
-        // Flaskhals — station med lagst produktion relativt genomsnitt
-        $flaskhals = $this->beraknaFlaskhals($today);
+        // Flaskhals
+        $flaskhals = $this->beraknaFlaskhals($toDate);
 
-        // Prognos vecka: genomsnitt per dag * 5 (man-fre)
+        // Genomsnittlig cykeltid
+        $avgCykeltid = $this->getAvgCykeltidSek($fromDate, $toDate);
+
+        // Rekommenderad bemanning baserat pa orderbehov
+        $config = $this->loadKapacitetConfig();
+        $ibcPerOpTimme = self::DEFAULT_IBC_PER_OPERATOR_TIMME;
+        if (!empty($config)) {
+            $sumIbcPerOp = 0;
+            foreach ($config as $c) {
+                $sumIbcPerOp += (float)$c['ibc_per_operator_timme'];
+            }
+            $ibcPerOpTimme = $sumIbcPerOp / count($config);
+        }
+        // Rek bemanning = antal operatorer som behovs for att na mal_utnyttjandegrad
+        $malProd = $teorMax * 0.85; // 85% utnyttjandegrad som standard
+        $rekBemanning = $ibcPerOpTimme > 0
+            ? (int)ceil($malProd / ($ibcPerOpTimme * self::DEFAULT_SKIFT_TIMMAR * $dagar))
+            : 0;
+
+        // Snitt per dag (senaste 30 dagar for referens)
+        $refFrom = date('Y-m-d', strtotime('-29 days'));
         try {
             $stmtTrend = $this->pdo->prepare("
                 SELECT AVG(dag_total) AS snitt FROM (
@@ -227,48 +324,49 @@ class KapacitetsplaneringController {
                     GROUP BY DATE(datum)
                 ) t
             ");
-            $stmtTrend->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $stmtTrend->execute([':from_date' => $refFrom, ':to_date' => $today]);
             $snittPerDag = (float)($stmtTrend->fetchColumn() ?? 0);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             $snittPerDag = 0.0;
         }
 
         $prognosVecka = round($snittPerDag * 5, 0);
 
-        // Antal aktiva stationer senaste 30 dagar
-        $antalStationer = $this->getAntalStationer($fromDate, $today);
-        $teorMaxPerDag  = $antalStationer * $maxPerStation;
-
         // Genomsnittligt utnyttjande senaste 30 dagar
-        $utnyttjandeSnitt = $teorMaxPerDag > 0 ? min(100, round($snittPerDag / $teorMaxPerDag * 100, 1)) : 0.0;
+        $antalStRef = $this->getAntalStationer($refFrom, $today);
+        $teorMaxRef = $antalStRef * $maxPerStationPerDag;
+        $utnyttjandeSnitt = $teorMaxRef > 0 ? min(100, round($snittPerDag / $teorMaxRef * 100, 1)) : 0.0;
 
         $this->sendSuccess([
             'idag' => [
-                'datum'                 => $today,
-                'faktisk_idag'          => $faktiskIdag,
-                'teormax_idag'          => (int)$teorMaxIdag,
-                'utnyttjande_pct'       => $utnyttjandeIdag,
-                'antal_stationer'       => $antalStationerIdag,
-                'drifttid_h'            => round($drifttidIdagSek / 3600, 1),
+                'datum'                 => $toDate,
+                'faktisk_idag'          => $faktisk,
+                'teormax_idag'          => (int)$teorMax,
+                'utnyttjande_pct'       => $utnyttjande,
+                'antal_stationer'       => $antalStationer,
+                'drifttid_h'            => round($drifttidSek / 3600, 1),
+                'ledig_kapacitet'       => $ledigKapacitet,
+                'rek_bemanning'         => $rekBemanning,
             ],
             'period' => [
-                'from_date'             => $fromDate,
+                'from_date'             => $refFrom,
                 'to_date'               => $today,
                 'snitt_per_dag'         => round($snittPerDag, 0),
-                'teormax_per_dag'       => (int)$teorMaxPerDag,
+                'teormax_per_dag'       => (int)$teorMaxRef,
                 'utnyttjande_snitt_pct' => $utnyttjandeSnitt,
-                'antal_stationer'       => $antalStationer,
+                'antal_stationer'       => $antalStRef,
                 'optimal_cykeltid_sek'  => self::OPTIMAL_CYKELTID_SEK,
                 'avg_cykeltid_sek'      => round($avgCykeltid, 1),
                 'ibc_per_timme_optimal' => $ibcPerTimme,
                 'prognos_vecka'         => (int)$prognosVecka,
             ],
             'flaskhals' => $flaskhals,
+            'period_filter' => $periodFilter,
         ]);
     }
 
     /**
-     * Beraknar flaskhals — vilken station/faktor begransar mest.
+     * Beraknar flaskhals -- vilken station/faktor begransar mest.
      */
     private function beraknaFlaskhals(string $datum): array {
         try {
@@ -292,13 +390,9 @@ class KapacitetsplaneringController {
                 return ['station' => 'Ingen data', 'typ' => 'data', 'forklaring' => 'Ingen produktion registrerad idag'];
             }
 
-            // Station med minst produktion = potentiell flaskhals
             $samst = $rader[0];
-
             $avgAll = array_sum(array_column($rader, 'antal')) / count($rader);
             $gapPct = $avgAll > 0 ? round((1 - (float)$samst['antal'] / $avgAll) * 100, 1) : 0.0;
-
-            // Kolla ocksa om genomsnittlig cykeltid ar hog
             $avgCykeltid = (float)($samst['avg_cykeltid'] ?? 0);
             $typ = 'kapacitet';
             if ($avgCykeltid > self::OPTIMAL_CYKELTID_SEK * 1.5) {
@@ -306,13 +400,13 @@ class KapacitetsplaneringController {
             }
 
             return [
-                'station'       => $samst['station'],
-                'typ'           => $typ,
-                'antal_idag'    => (int)$samst['antal'],
-                'snitt_alla'    => round($avgAll, 0),
-                'gap_pct'       => $gapPct,
-                'avg_cykeltid_sek' => round($avgCykeltid, 1),
-                'forklaring'    => $typ === 'cykeltid'
+                'station'           => $samst['station'],
+                'typ'               => $typ,
+                'antal_idag'        => (int)$samst['antal'],
+                'snitt_alla'        => round($avgAll, 0),
+                'gap_pct'           => $gapPct,
+                'avg_cykeltid_sek'  => round($avgCykeltid, 1),
+                'forklaring'        => $typ === 'cykeltid'
                     ? "Station {$samst['station']} har lang cykeltid ({$avgCykeltid}s vs optimal " . self::OPTIMAL_CYKELTID_SEK . "s)"
                     : "Station {$samst['station']} producerade {$samst['antal']} IBC vs snitt {$avgAll}",
             ];
@@ -323,7 +417,7 @@ class KapacitetsplaneringController {
     }
 
     // ================================================================
-    // run=daglig-kapacitet — daglig faktisk prod + teoretisk max
+    // run=daglig-kapacitet
     // ================================================================
 
     private function getDagligKapacitet(): void {
@@ -331,11 +425,9 @@ class KapacitetsplaneringController {
         $today  = new \DateTime();
         $result = [];
 
-        // Hamta genomsnitt over perioden for referenslinje
         $fromDateStr = (clone $today)->modify("-{$period} days")->format('Y-m-d');
         $toDateStr   = $today->format('Y-m-d');
 
-        // Genomsnitt
         try {
             $stmtSnitt = $this->pdo->prepare("
                 SELECT AVG(dag_total) AS snitt FROM (
@@ -355,39 +447,27 @@ class KapacitetsplaneringController {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
-
             $fromDt = $dagStr . ' 00:00:00';
             $toDt   = $dagStr . ' 23:59:59';
 
-            // Faktisk produktion
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT
-                        COUNT(*) AS total,
-                        COUNT(DISTINCT station) AS antal_stationer
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) = :dag
+                    SELECT COUNT(*) AS total, COUNT(DISTINCT station) AS antal_stationer
+                    FROM rebotling_ibc WHERE DATE(datum) = :dag
                 ");
                 $stmt->execute([':dag' => $dagStr]);
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $faktisk         = (int)($rad['total'] ?? 0);
-                $antalStationer  = max(1, (int)($rad['antal_stationer'] ?? 1));
+                $faktisk        = (int)($rad['total'] ?? 0);
+                $antalStationer = max(1, (int)($rad['antal_stationer'] ?? 1));
             } catch (\PDOException) {
                 $faktisk        = 0;
                 $antalStationer = 1;
             }
 
-            // Drifttid
             $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
-
-            // Teoretisk max: stationer * planerad_drifttid / optimal_cykeltid
-            $teorMax = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
-
-            // Planerat mal
-            $mal = $this->getProduktionsmal($dagStr);
-
-            // Outnyttjad kapacitet
-            $outnyttjad = max(0, (int)$teorMax - $faktisk);
+            $teorMax     = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
+            $mal         = $this->getProduktionsmal($dagStr);
+            $outnyttjad  = max(0, (int)$teorMax - $faktisk);
 
             $result[] = [
                 'datum'           => $dagStr,
@@ -411,13 +491,29 @@ class KapacitetsplaneringController {
     }
 
     // ================================================================
-    // run=station-utnyttjande — kapacitetsutnyttjande per station
+    // run=station-utnyttjande
     // ================================================================
 
     private function getStationUtnyttjande(): void {
-        $period   = max(7, min(365, (int)($_GET['period'] ?? 30)));
-        $today    = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$period} days"));
+        $periodFilter = trim($_GET['period_filter'] ?? '');
+        if ($periodFilter) {
+            $bounds = $this->getPeriodBounds($periodFilter);
+            $fromDate = $bounds['from'];
+            $today = $bounds['to'];
+            $period = $bounds['dagar'];
+        } else {
+            $period   = max(7, min(365, (int)($_GET['period'] ?? 30)));
+            $today    = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime("-{$period} days"));
+        }
+
+        // Hamta config for teoretisk kapacitet per station
+        $config = $this->loadKapacitetConfig();
+        $configMap = [];
+        foreach ($config as $c) {
+            $configMap[strtolower(trim($c['station_id']))] = $c;
+            $configMap[strtolower(trim($c['station_namn']))] = $c;
+        }
 
         try {
             $stmt = $this->pdo->prepare("
@@ -440,38 +536,51 @@ class KapacitetsplaneringController {
             return;
         }
 
-        // Drifttid (gemensam for hela anlaggningen)
         $drifttidSek = $this->getDrifttidSek($fromDate . ' 00:00:00', $today . ' 23:59:59');
-
-        $maxPerStation = (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK) * $period; // 240 * period
+        $defaultTeorPerTimme = 3600 / self::OPTIMAL_CYKELTID_SEK;
+        $timmarPeriod = $period * (self::PLANERAD_DRIFTTID_SEK / 3600);
 
         $stationer = [];
         foreach ($rader as $rad) {
             $total = (int)$rad['total_ibc'];
-            $utnyttjande = $maxPerStation > 0 ? min(100, round($total / $maxPerStation * 100, 1)) : 0.0;
+            $stationKey = strtolower(trim($rad['station']));
+
+            // Hamta teoretisk kap fran config om den finns
+            $teorPerTimme = $defaultTeorPerTimme;
+            $malPct = 85.0;
+            if (isset($configMap[$stationKey])) {
+                $teorPerTimme = (float)$configMap[$stationKey]['teoretisk_kapacitet_per_timme'];
+                $malPct = (float)$configMap[$stationKey]['mal_utnyttjandegrad_pct'];
+            }
+
+            $teorMax = $teorPerTimme * $timmarPeriod;
+            $utnyttjande = $teorMax > 0 ? min(100, round($total / $teorMax * 100, 1)) : 0.0;
+
             $stationer[] = [
-                'station'         => $rad['station'],
-                'total_ibc'       => $total,
-                'ok_ibc'          => (int)$rad['ok_ibc'],
-                'aktiva_dagar'    => (int)$rad['aktiva_dagar'],
-                'teor_max'        => (int)$maxPerStation,
-                'utnyttjande_pct' => $utnyttjande,
-                'kassationsgrad_pct' => $total > 0 ? round(($total - (int)$rad['ok_ibc']) / $total * 100, 1) : 0.0,
+                'station'              => $rad['station'],
+                'total_ibc'            => $total,
+                'ok_ibc'               => (int)$rad['ok_ibc'],
+                'aktiva_dagar'         => (int)$rad['aktiva_dagar'],
+                'teor_max'             => (int)$teorMax,
+                'teor_per_timme'       => $teorPerTimme,
+                'utnyttjande_pct'      => $utnyttjande,
+                'mal_pct'              => $malPct,
+                'kassationsgrad_pct'   => $total > 0 ? round(($total - (int)$rad['ok_ibc']) / $total * 100, 1) : 0.0,
             ];
         }
 
         $this->sendSuccess([
-            'period_dagar'   => $period,
-            'from_date'      => $fromDate,
-            'to_date'        => $today,
-            'drifttid_h'     => round($drifttidSek / 3600, 1),
-            'stationer'      => $stationer,
-            'antal_stationer'=> count($stationer),
+            'period_dagar'    => $period,
+            'from_date'       => $fromDate,
+            'to_date'         => $today,
+            'drifttid_h'      => round($drifttidSek / 3600, 1),
+            'stationer'       => $stationer,
+            'antal_stationer' => count($stationer),
         ]);
     }
 
     // ================================================================
-    // run=stopporsaker — fordelning av stopptid
+    // run=stopporsaker
     // ================================================================
 
     private function getStopporsaker(): void {
@@ -482,16 +591,10 @@ class KapacitetsplaneringController {
         $fromDt = $fromDate . ' 00:00:00';
         $toDt   = $today   . ' 23:59:59';
 
-        // Hamta total daglig tid (planerad)
         $planeradSek = $period * self::PLANERAD_DRIFTTID_SEK;
-
-        // Drifttid (maskin pa)
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
-
-        // Stopp-tid = planerad - drifttid
         $stoppSek = max(0, $planeradSek - $drifttidSek);
 
-        // Antal stopp-intervaller
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
@@ -513,24 +616,19 @@ class KapacitetsplaneringController {
             $stoppRad = ['antal_stopp' => 0, 'total_stopp_sek' => 0, 'avg_stopp_sek' => 0];
         }
 
-        // Simulera stopporsaks-fordelning baserat pa timing-monster
-        // (rebotling_onoff har ingen orsak-kolumn — vi kategoriserar efter varaktighet)
         try {
             $stmt2 = $this->pdo->prepare("
-                SELECT
-                    TIMESTAMPDIFF(SECOND, start_time, COALESCE(stop_time, NOW())) AS varaktighet_sek
+                SELECT TIMESTAMPDIFF(SECOND, start_time, COALESCE(stop_time, NOW())) AS varaktighet_sek
                 FROM rebotling_onoff
-                WHERE start_time >= :from_dt
-                  AND start_time < :to_dt
+                WHERE start_time >= :from_dt AND start_time < :to_dt
                 ORDER BY start_time
             ");
             $stmt2->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
             $stoppLista = $stmt2->fetchAll(\PDO::FETCH_COLUMN);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             $stoppLista = [];
         }
 
-        // Kategorisera stopp efter varaktighet
         $kategorier = [
             'Kort stopp (<5 min)'    => 0,
             'Medel stopp (5-30 min)' => 0,
@@ -547,7 +645,6 @@ class KapacitetsplaneringController {
             }
         }
 
-        // Lagg till idle-tid
         $idleSek = max(0, $stoppSek - (int)($stoppRad['total_stopp_sek'] ?? 0));
         $kategorier['Idle / ej registrerat'] = $idleSek;
 
@@ -555,9 +652,9 @@ class KapacitetsplaneringController {
         $totalKategoriserat = array_sum($kategorier);
         foreach ($kategorier as $namn => $sek) {
             $orsaker[] = [
-                'namn'    => $namn,
-                'sek'     => $sek,
-                'min'     => round($sek / 60, 1),
+                'namn'      => $namn,
+                'sek'       => $sek,
+                'min'       => round($sek / 60, 1),
                 'andel_pct' => $totalKategoriserat > 0 ? round($sek / $totalKategoriserat * 100, 1) : 0.0,
             ];
         }
@@ -576,7 +673,7 @@ class KapacitetsplaneringController {
     }
 
     // ================================================================
-    // run=tid-fordelning — daglig produktiv vs stopp vs idle
+    // run=tid-fordelning
     // ================================================================
 
     private function getTidFordelning(): void {
@@ -588,18 +685,14 @@ class KapacitetsplaneringController {
             $dag    = clone $today;
             $dag->modify("-{$i} days");
             $dagStr = $dag->format('Y-m-d');
-
             $fromDt = $dagStr . ' 00:00:00';
             $toDt   = $dagStr . ' 23:59:59';
 
             $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
             $planeradSek = self::PLANERAD_DRIFTTID_SEK;
 
-            // Produktiv tid = IBC * optimal_cykeltid (max drifttid)
             try {
-                $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS total FROM rebotling_ibc WHERE DATE(datum) = :dag
-                ");
+                $stmt = $this->pdo->prepare("SELECT COUNT(*) AS total FROM rebotling_ibc WHERE DATE(datum) = :dag");
                 $stmt->execute([':dag' => $dagStr]);
                 $antalIbc = (int)($stmt->fetchColumn() ?? 0);
             } catch (\PDOException) {
@@ -622,7 +715,6 @@ class KapacitetsplaneringController {
         }
 
         $fromDateStr = (clone $today)->modify("-{$period} days")->format('Y-m-d');
-
         $this->sendSuccess([
             'period_dagar' => $period,
             'from_date'    => $fromDateStr,
@@ -632,33 +724,28 @@ class KapacitetsplaneringController {
     }
 
     // ================================================================
-    // run=vecko-oversikt — veckosammanstallning senaste 12 veckor
+    // run=vecko-oversikt
     // ================================================================
 
     private function getVeckoOversikt(): void {
         $antalVeckor = 12;
         $today = new \DateTime();
-
         $result = [];
 
         for ($w = $antalVeckor - 1; $w >= 0; $w--) {
-            // Berakna veckostart (mandag) och veckoslut (sondag)
-            $veckoSlut   = clone $today;
+            $veckoSlut = clone $today;
             $veckoSlut->modify("-{$w} weeks");
-
-            // Ga till mandag i den veckan
-            $dayOfWeek = (int)$veckoSlut->format('N'); // 1=Mon 7=Sun
+            $dayOfWeek = (int)$veckoSlut->format('N');
             $mdag = clone $veckoSlut;
             $mdag->modify('-' . ($dayOfWeek - 1) . ' days');
             $fdag = clone $mdag;
-            $fdag->modify('+4 days'); // fredag
+            $fdag->modify('+4 days');
 
             $mondayStr = $mdag->format('Y-m-d');
             $fridayStr = $fdag->format('Y-m-d');
             $weekNum   = (int)$mdag->format('W');
             $yearNum   = (int)$mdag->format('Y');
 
-            // Produktion for veckan
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
@@ -687,43 +774,39 @@ class KapacitetsplaneringController {
 
             if (!$rad || (int)$rad['total_ibc'] === 0) {
                 $result[] = [
-                    'vecka'           => $weekNum,
-                    'ar'              => $yearNum,
-                    'from_datum'      => $mondayStr,
-                    'to_datum'        => $fridayStr,
-                    'total_ibc'       => 0,
-                    'max_kapacitet'   => 5 * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK), // 5 dagar
-                    'utnyttjande_pct' => 0.0,
-                    'trend'           => 'neutral',
-                    'basta_dag'       => null,
-                    'samsta_dag'      => null,
+                    'vecka' => $weekNum, 'ar' => $yearNum,
+                    'from_datum' => $mondayStr, 'to_datum' => $fridayStr,
+                    'total_ibc' => 0,
+                    'max_kapacitet' => 5 * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK),
+                    'utnyttjande_pct' => 0.0, 'trend' => 'neutral',
+                    'basta_dag' => null, 'samsta_dag' => null,
+                    'basta_dag_antal' => 0, 'samsta_dag_antal' => 0,
                 ];
                 continue;
             }
 
-            $totalIbc    = (int)$rad['total_ibc'];
+            $totalIbc     = (int)$rad['total_ibc'];
             $maxKapacitet = 5 * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
             $utnyttjande  = $maxKapacitet > 0 ? min(100, round($totalIbc / $maxKapacitet * 100, 1)) : 0.0;
 
             $result[] = [
-                'vecka'           => $weekNum,
-                'ar'              => $yearNum,
-                'from_datum'      => $mondayStr,
-                'to_datum'        => $fridayStr,
-                'total_ibc'       => $totalIbc,
-                'max_kapacitet'   => (int)$maxKapacitet,
-                'utnyttjande_pct' => $utnyttjande,
-                'trend'           => $utnyttjande >= 80 ? 'upp' : ($utnyttjande >= 60 ? 'neutral' : 'ned'),
-                'basta_dag'       => $rad['basta_datum'],
-                'samsta_dag'      => $rad['samsta_datum'],
-                'basta_dag_antal' => (int)($rad['basta_dag_antal'] ?? 0),
-                'samsta_dag_antal'=> (int)($rad['samsta_dag_antal'] ?? 0),
+                'vecka'            => $weekNum,
+                'ar'               => $yearNum,
+                'from_datum'       => $mondayStr,
+                'to_datum'         => $fridayStr,
+                'total_ibc'        => $totalIbc,
+                'max_kapacitet'    => (int)$maxKapacitet,
+                'utnyttjande_pct'  => $utnyttjande,
+                'trend'            => $utnyttjande >= 80 ? 'upp' : ($utnyttjande >= 60 ? 'neutral' : 'ned'),
+                'basta_dag'        => $rad['basta_datum'],
+                'samsta_dag'       => $rad['samsta_datum'],
+                'basta_dag_antal'  => (int)($rad['basta_dag_antal'] ?? 0),
+                'samsta_dag_antal' => (int)($rad['samsta_dag_antal'] ?? 0),
             ];
         }
 
-        // Berakna trend for varje vecka (jamfor med foregaende)
         for ($i = 1; $i < count($result); $i++) {
-            $foreg = $result[$i - 1]['total_ibc'];
+            $foreg   = $result[$i - 1]['total_ibc'];
             $aktuell = $result[$i]['total_ibc'];
             if ($foreg > 0) {
                 $result[$i]['trend'] = $aktuell > $foreg * 1.05 ? 'upp' : ($aktuell < $foreg * 0.95 ? 'ned' : 'neutral');
@@ -733,6 +816,336 @@ class KapacitetsplaneringController {
         $this->sendSuccess([
             'antal_veckor' => $antalVeckor,
             'veckor'       => $result,
+        ]);
+    }
+
+    // ================================================================
+    // run=utnyttjandegrad-trend -- linjediagram med mal-linje
+    // ================================================================
+
+    private function getUtnyttjandegradTrend(): void {
+        $period = max(7, min(365, (int)($_GET['period'] ?? 30)));
+        $today  = new \DateTime();
+        $result = [];
+
+        $config = $this->loadKapacitetConfig();
+        $malPct = 85.0;
+        if (!empty($config)) {
+            $sumMal = 0;
+            foreach ($config as $c) {
+                $sumMal += (float)$c['mal_utnyttjandegrad_pct'];
+            }
+            $malPct = round($sumMal / count($config), 1);
+        }
+
+        for ($i = $period - 1; $i >= 0; $i--) {
+            $dag    = clone $today;
+            $dag->modify("-{$i} days");
+            $dagStr = $dag->format('Y-m-d');
+
+            try {
+                $stmt = $this->pdo->prepare("
+                    SELECT COUNT(*) AS total, COUNT(DISTINCT station) AS antal_stationer
+                    FROM rebotling_ibc WHERE DATE(datum) = :dag
+                ");
+                $stmt->execute([':dag' => $dagStr]);
+                $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $faktisk        = (int)($rad['total'] ?? 0);
+                $antalStationer = max(1, (int)($rad['antal_stationer'] ?? 1));
+            } catch (\PDOException) {
+                $faktisk        = 0;
+                $antalStationer = 1;
+            }
+
+            $teorMax = $antalStationer * (self::PLANERAD_DRIFTTID_SEK / self::OPTIMAL_CYKELTID_SEK);
+            $utnyttjande = $teorMax > 0 ? round($faktisk / $teorMax * 100, 1) : 0.0;
+
+            $result[] = [
+                'datum'           => $dagStr,
+                'utnyttjande_pct' => $utnyttjande,
+                'faktisk'         => $faktisk,
+                'teor_max'        => (int)$teorMax,
+            ];
+        }
+
+        $this->sendSuccess([
+            'period_dagar' => $period,
+            'mal_pct'      => $malPct,
+            'dagdata'      => $result,
+        ]);
+    }
+
+    // ================================================================
+    // run=kapacitetstabell -- detaljerad tabell per station
+    // ================================================================
+
+    private function getKapacitetstabell(): void {
+        $periodFilter = trim($_GET['period_filter'] ?? '');
+        if ($periodFilter) {
+            $bounds = $this->getPeriodBounds($periodFilter);
+            $fromDate = $bounds['from'];
+            $today = $bounds['to'];
+            $dagar = $bounds['dagar'];
+        } else {
+            $dagar    = max(1, min(365, (int)($_GET['period'] ?? 30)));
+            $today    = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime("-{$dagar} days"));
+        }
+
+        $config = $this->loadKapacitetConfig();
+        $configMap = [];
+        foreach ($config as $c) {
+            $configMap[strtolower(trim($c['station_id']))] = $c;
+            $configMap[strtolower(trim($c['station_namn']))] = $c;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    station,
+                    COUNT(*) AS total_ibc,
+                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc,
+                    COUNT(DISTINCT DATE(datum)) AS aktiva_dagar
+                FROM rebotling_ibc
+                WHERE station IS NOT NULL AND station != ''
+                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                GROUP BY station
+                ORDER BY station
+            ");
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $today]);
+            $rader = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getKapacitetstabell: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta kapacitetstabell');
+            return;
+        }
+
+        // Hamta forsta halvan av perioden for trendberakning
+        $halfDagar = max(1, (int)floor($dagar / 2));
+        $halfDate = date('Y-m-d', strtotime("-{$halfDagar} days", strtotime($today)));
+
+        try {
+            $stmtHalf = $this->pdo->prepare("
+                SELECT station, COUNT(*) AS total_ibc
+                FROM rebotling_ibc
+                WHERE station IS NOT NULL AND station != ''
+                  AND DATE(datum) BETWEEN :from_date AND :half_date
+                GROUP BY station
+            ");
+            $stmtHalf->execute([':from_date' => $fromDate, ':half_date' => $halfDate]);
+            $halfData = $stmtHalf->fetchAll(\PDO::FETCH_ASSOC);
+            $halfMap = [];
+            foreach ($halfData as $h) {
+                $halfMap[strtolower(trim($h['station']))] = (int)$h['total_ibc'];
+            }
+        } catch (\PDOException) {
+            $halfMap = [];
+        }
+
+        $timmarPerDag = self::PLANERAD_DRIFTTID_SEK / 3600;
+        $defaultTeorPerTimme = 3600 / self::OPTIMAL_CYKELTID_SEK;
+
+        $tabellRader = [];
+        foreach ($rader as $rad) {
+            $stationKey = strtolower(trim($rad['station']));
+            $aktivaDagar = max(1, (int)$rad['aktiva_dagar']);
+            $total = (int)$rad['total_ibc'];
+
+            $teorPerTimme = $defaultTeorPerTimme;
+            $malPct = 85.0;
+            if (isset($configMap[$stationKey])) {
+                $teorPerTimme = (float)$configMap[$stationKey]['teoretisk_kapacitet_per_timme'];
+                $malPct = (float)$configMap[$stationKey]['mal_utnyttjandegrad_pct'];
+            }
+
+            $faktiskPerTimme = $aktivaDagar > 0 ? round($total / ($aktivaDagar * $timmarPerDag), 2) : 0;
+            $utnyttjande = $teorPerTimme > 0 ? round($faktiskPerTimme / $teorPerTimme * 100, 1) : 0;
+
+            // Flaskhalsfaktor: 1.0 = lika bra som basta; <1.0 = flaskhals
+            $bestPerTimme = 0;
+            foreach ($rader as $r) {
+                $rAktiva = max(1, (int)$r['aktiva_dagar']);
+                $rPerTimme = (int)$r['total_ibc'] / ($rAktiva * $timmarPerDag);
+                if ($rPerTimme > $bestPerTimme) $bestPerTimme = $rPerTimme;
+            }
+            $flaskhalsFaktor = $bestPerTimme > 0 ? round($faktiskPerTimme / $bestPerTimme, 2) : 1.0;
+
+            // Trend: jamfor forsta vs andra halvan
+            $halfTotal = $halfMap[$stationKey] ?? 0;
+            $secondHalf = $total - $halfTotal;
+            $trend = 'stabil';
+            if ($halfTotal > 0) {
+                $diff = ($secondHalf - $halfTotal) / $halfTotal;
+                if ($diff > 0.05) $trend = 'upp';
+                elseif ($diff < -0.05) $trend = 'ned';
+            }
+
+            $tabellRader[] = [
+                'station'            => $rad['station'],
+                'teor_kap_per_h'     => $teorPerTimme,
+                'faktisk_kap_per_h'  => $faktiskPerTimme,
+                'utnyttjande_pct'    => $utnyttjande,
+                'mal_pct'            => $malPct,
+                'flaskhals_faktor'   => $flaskhalsFaktor,
+                'trend'              => $trend,
+                'total_ibc'          => $total,
+                'ok_ibc'             => (int)$rad['ok_ibc'],
+                'aktiva_dagar'       => $aktivaDagar,
+            ];
+        }
+
+        $this->sendSuccess([
+            'from_date'  => $fromDate,
+            'to_date'    => $today,
+            'dagar'      => $dagar,
+            'stationer'  => $tabellRader,
+        ]);
+    }
+
+    // ================================================================
+    // run=bemanning -- bemanningsplanering
+    // ================================================================
+
+    private function getBemanning(): void {
+        $orderbehov = max(0, (int)($_GET['orderbehov'] ?? 500));
+        $periodFilter = trim($_GET['period_filter'] ?? 'idag');
+        $bounds = $this->getPeriodBounds($periodFilter);
+        $dagar = max(1, $bounds['dagar']);
+
+        $config = $this->loadKapacitetConfig();
+        $defaultIbcPerOpTimme = self::DEFAULT_IBC_PER_OPERATOR_TIMME;
+        $skiftTimmar = self::DEFAULT_SKIFT_TIMMAR;
+
+        // Hamta historisk produktivitet per operator
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) AS total_ibc,
+                    COUNT(DISTINCT operatornamn) AS unika_op,
+                    COUNT(DISTINCT DATE(datum)) AS prod_dagar
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                  AND operatornamn IS NOT NULL AND operatornamn != ''
+            ");
+            $stmt->execute();
+            $histRad = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $histIbc = (int)($histRad['total_ibc'] ?? 0);
+            $histOp  = max(1, (int)($histRad['unika_op'] ?? 1));
+            $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
+            $histIbcPerOpPerDag = $histIbc / ($histOp * $histDagar);
+        } catch (\PDOException) {
+            $histIbcPerOpPerDag = $defaultIbcPerOpTimme * $skiftTimmar;
+        }
+
+        $ibcPerOpPerDag = max(1, $histIbcPerOpPerDag);
+
+        // Antal operatorer som behovs totalt
+        $totalOpBehov = ceil($orderbehov / ($ibcPerOpPerDag * $dagar));
+
+        // Per skift (anta 2 skift)
+        $opPerSkift = ceil($totalOpBehov / 2);
+
+        // Per station: berakna vilka stationer som behover extra
+        $stationBemanning = [];
+        if (!empty($config)) {
+            $ibcPerStation = $orderbehov / max(1, count($config));
+            foreach ($config as $c) {
+                $stationIbcPerOp = max(1, (float)$c['ibc_per_operator_timme'] * $skiftTimmar * $dagar);
+                $opForStation = ceil($ibcPerStation / $stationIbcPerOp);
+                $stationBemanning[] = [
+                    'station'    => $c['station_namn'],
+                    'operatorer' => (int)$opForStation,
+                    'extra'      => $opForStation > 1,
+                ];
+            }
+        }
+
+        $this->sendSuccess([
+            'orderbehov'            => $orderbehov,
+            'period_filter'         => $periodFilter,
+            'dagar'                 => $dagar,
+            'ibc_per_op_per_dag'    => round($ibcPerOpPerDag, 1),
+            'total_operatorer'      => (int)$totalOpBehov,
+            'operatorer_per_skift'  => (int)$opPerSkift,
+            'antal_skift'           => 2,
+            'stationer'             => $stationBemanning,
+        ]);
+    }
+
+    // ================================================================
+    // run=prognos -- simulator
+    // ================================================================
+
+    private function getPrognos(): void {
+        $timmar     = max(1, min(24, (int)($_GET['timmar'] ?? 8)));
+        $operatorer = max(1, min(50, (int)($_GET['operatorer'] ?? 4)));
+
+        $config = $this->loadKapacitetConfig();
+        $antalStationer = !empty($config) ? count($config) : $this->getAntalStationer(
+            date('Y-m-d', strtotime('-30 days')), date('Y-m-d')
+        );
+
+        // Historisk produktivitet
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) AS total_ibc,
+                    COUNT(DISTINCT operatornamn) AS unika_op,
+                    COUNT(DISTINCT DATE(datum)) AS prod_dagar
+                FROM rebotling_ibc
+                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                  AND operatornamn IS NOT NULL AND operatornamn != ''
+            ");
+            $stmt->execute();
+            $histRad = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $histIbc = (int)($histRad['total_ibc'] ?? 0);
+            $histOp  = max(1, (int)($histRad['unika_op'] ?? 1));
+            $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
+            $ibcPerOpPerTimme = $histIbc / ($histOp * $histDagar * (self::PLANERAD_DRIFTTID_SEK / 3600));
+        } catch (\PDOException) {
+            $ibcPerOpPerTimme = self::DEFAULT_IBC_PER_OPERATOR_TIMME;
+        }
+
+        // Teoretisk max baserat pa stationer
+        $teorMaxPerTimme = 0;
+        if (!empty($config)) {
+            foreach ($config as $c) {
+                $teorMaxPerTimme += (float)$c['teoretisk_kapacitet_per_timme'];
+            }
+        } else {
+            $teorMaxPerTimme = $antalStationer * (3600 / self::OPTIMAL_CYKELTID_SEK);
+        }
+
+        $teorMaxTotal = $teorMaxPerTimme * $timmar;
+
+        // Berakna baserat pa operatorer
+        $opBaserad = round($ibcPerOpPerTimme * $operatorer * $timmar, 0);
+
+        // Begransas av maskinkapacitet
+        $prognos = min($opBaserad, $teorMaxTotal);
+        $begransadAv = $opBaserad <= $teorMaxTotal ? 'bemanning' : 'maskinkapacitet';
+
+        $this->sendSuccess([
+            'timmar'              => $timmar,
+            'operatorer'          => $operatorer,
+            'antal_stationer'     => $antalStationer,
+            'ibc_per_op_per_h'    => round($ibcPerOpPerTimme, 1),
+            'teor_max_per_h'      => round($teorMaxPerTimme, 0),
+            'teor_max_total'      => (int)$teorMaxTotal,
+            'op_baserad'          => (int)$opBaserad,
+            'prognos_ibc'         => (int)$prognos,
+            'begransad_av'        => $begransadAv,
+        ]);
+    }
+
+    // ================================================================
+    // run=config -- hamta kapacitet_config
+    // ================================================================
+
+    private function getConfig(): void {
+        $config = $this->loadKapacitetConfig();
+        $this->sendSuccess([
+            'config' => $config,
         ]);
     }
 }

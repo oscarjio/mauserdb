@@ -12,6 +12,10 @@ import {
   StoppOrsakRad,
   TidFordelningRad,
   VeckaRad,
+  UtnyttjandegradTrendRad,
+  KapacitetstabellRad,
+  BemanningData,
+  PrognosData,
 } from '../../../services/kapacitetsplanering.service';
 
 Chart.register(...registerables);
@@ -25,9 +29,17 @@ Chart.register(...registerables);
 })
 export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
-  // Period
-  period = 30;
+  // Period-filter: Idag / Vecka / Manad
+  periodFilter = 'idag';
   readonly periodAlternativ = [
+    { varde: 'idag',  etikett: 'Idag' },
+    { varde: 'vecka', etikett: 'Vecka' },
+    { varde: 'manad', etikett: 'Manad' },
+  ];
+
+  // Diagramperiod (dagar)
+  diagramPeriod = 30;
+  readonly diagramPeriodAlternativ = [
     { varde: 7,  etikett: '7 dagar' },
     { varde: 30, etikett: '30 dagar' },
     { varde: 90, etikett: '90 dagar' },
@@ -40,6 +52,10 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   loadingStopporsaker    = false;
   loadingTidFordelning   = false;
   loadingVecko           = false;
+  loadingTrend           = false;
+  loadingTabell          = false;
+  loadingBemanning       = false;
+  loadingPrognos         = false;
 
   // Error
   errorKpi             = false;
@@ -48,6 +64,10 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   errorStopporsaker    = false;
   errorTidFordelning   = false;
   errorVecko           = false;
+  errorTrend           = false;
+  errorTabell          = false;
+  errorBemanning       = false;
+  errorPrognos         = false;
 
   // Data
   kpiData: KpiData | null                   = null;
@@ -58,12 +78,28 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   stoppInfo: { planerad_h: number; drifttid_h: number; stopp_h: number; antal_stopp: number; avg_stopp_min: number } | null = null;
   tidFordelningData: TidFordelningRad[]     = [];
   veckoData: VeckaRad[]                     = [];
+  trendData: UtnyttjandegradTrendRad[]      = [];
+  trendMalPct = 85;
+  tabellData: KapacitetstabellRad[]         = [];
+  bemanningData: BemanningData | null       = null;
+  prognosData: PrognosData | null           = null;
+
+  // Bemanning input
+  orderbehovInput = 500;
+
+  // Prognos input
+  prognosTimmar = 8;
+  prognosOperatorer = 4;
 
   // Charts
   private kapacitetsChart: Chart | null     = null;
   private stationChart: Chart | null        = null;
   private stopporsakChart: Chart | null     = null;
   private tidFordelningChart: Chart | null  = null;
+  private trendChart: Chart | null          = null;
+
+  // Auto-refresh
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
 
   private destroy$ = new Subject<void>();
 
@@ -71,12 +107,22 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.laddaAllt();
+    // Auto-refresh var 60 sekunder
+    this.refreshInterval = setInterval(() => {
+      if (!this.destroy$.closed) {
+        this.laddaAllt();
+      }
+    }, 60000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
   }
 
   private destroyCharts(): void {
@@ -84,21 +130,35 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     try { this.stationChart?.destroy(); }       catch (_) {}
     try { this.stopporsakChart?.destroy(); }    catch (_) {}
     try { this.tidFordelningChart?.destroy(); } catch (_) {}
+    try { this.trendChart?.destroy(); }         catch (_) {}
     this.kapacitetsChart    = null;
     this.stationChart       = null;
     this.stopporsakChart    = null;
     this.tidFordelningChart = null;
+    this.trendChart         = null;
   }
 
   // ============================================================
   // Period
   // ============================================================
 
-  byttPeriod(p: number): void {
-    if (this.period === p) return;
-    this.period = p;
+  byttPeriodFilter(p: string): void {
+    if (this.periodFilter === p) return;
+    this.periodFilter = p;
+    this.laddaKpi();
+    this.laddaStation();
+    this.laddaTabell();
+    this.laddaBemanning();
+  }
+
+  byttDiagramPeriod(p: number): void {
+    if (this.diagramPeriod === p) return;
+    this.diagramPeriod = p;
     this.destroyCharts();
-    this.laddaAllt();
+    this.laddaDaglig();
+    this.laddaStopporsaker();
+    this.laddaTidFordelning();
+    this.laddaTrend();
   }
 
   laddaAllt(): void {
@@ -108,6 +168,9 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.laddaStopporsaker();
     this.laddaTidFordelning();
     this.laddaVecko();
+    this.laddaTrend();
+    this.laddaTabell();
+    this.laddaBemanning();
   }
 
   // ============================================================
@@ -119,7 +182,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.errorKpi   = false;
     this.kpiData    = null;
 
-    this.svc.getKpi()
+    this.svc.getKpi(this.periodFilter)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingKpi = false;
@@ -140,7 +203,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.errorDaglig   = false;
     this.dagligData    = [];
 
-    this.svc.getDagligKapacitet(this.period)
+    this.svc.getDagligKapacitet(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingDaglig = false;
@@ -266,7 +329,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   }
 
   // ============================================================
-  // Station-utnyttjande
+  // Station-utnyttjande (horisontellt stapeldiagram)
   // ============================================================
 
   laddaStation(): void {
@@ -274,7 +337,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.errorStation   = false;
     this.stationData    = [];
 
-    this.svc.getStationUtnyttjande(this.period)
+    this.svc.getStationUtnyttjande(this.diagramPeriod, this.periodFilter)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStation = false;
@@ -297,12 +360,12 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     if (!ctx) return;
 
     const labels = this.stationData.map(s => s.station);
+    const teorMax = this.stationData.map(s => s.teor_per_timme * 8); // per dag
+    const faktisk = this.stationData.map(s => {
+      const dagar = s.aktiva_dagar || 1;
+      return Math.round(s.total_ibc / dagar);
+    });
     const utnyttjande = this.stationData.map(s => s.utnyttjande_pct);
-    const colors = utnyttjande.map(v =>
-      v >= 80 ? 'rgba(104, 211, 145, 0.8)'
-      : v >= 60 ? 'rgba(246, 173, 85, 0.8)'
-      : 'rgba(252, 129, 129, 0.8)'
-    );
 
     this.stationChart = new Chart(ctx, {
       type: 'bar',
@@ -310,10 +373,18 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
         labels,
         datasets: [
           {
-            label: 'Kapacitetsutnyttjande %',
-            data: utnyttjande,
-            backgroundColor: colors,
-            borderColor: colors.map(c => c.replace('0.8', '1')),
+            label: 'Teoretisk kapacitet/dag',
+            data: teorMax,
+            backgroundColor: 'rgba(99, 179, 237, 0.3)',
+            borderColor: 'rgba(99, 179, 237, 0.6)',
+            borderWidth: 1,
+            borderRadius: 4,
+          },
+          {
+            label: 'Faktisk produktion/dag',
+            data: faktisk,
+            backgroundColor: 'rgba(79, 209, 197, 0.8)',
+            borderColor: '#4fd1c5',
             borderWidth: 1,
             borderRadius: 4,
           },
@@ -324,15 +395,122 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
+          },
           tooltip: {
             callbacks: {
-              label: (item) => ` ${item.raw}% kapacitetsutnyttjande`,
+              afterLabel: (item) => {
+                const idx = item.dataIndex;
+                return `Utnyttjandegrad: ${utnyttjande[idx]}%`;
+              },
             },
           },
         },
         scales: {
           x: {
+            beginAtZero: true,
+            ticks: { color: '#a0aec0', font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+            title: { display: true, text: 'IBC per dag', color: '#a0aec0', font: { size: 10 } },
+          },
+          y: {
+            ticks: { color: '#e2e8f0', font: { size: 11 } },
+            grid: { display: false },
+          },
+        },
+      },
+    });
+  }
+
+  // ============================================================
+  // Utnyttjandegrad-trend (linjediagram med mal-linje)
+  // ============================================================
+
+  laddaTrend(): void {
+    this.loadingTrend = true;
+    this.errorTrend   = false;
+    this.trendData    = [];
+
+    this.svc.getUtnyttjandegradTrend(this.diagramPeriod)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingTrend = false;
+        if (res?.success) {
+          this.trendData  = res.data.dagdata;
+          this.trendMalPct = res.data.mal_pct;
+          setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
+        } else {
+          this.errorTrend = true;
+        }
+      });
+  }
+
+  private byggTrendChart(): void {
+    try { this.trendChart?.destroy(); } catch (_) {}
+    this.trendChart = null;
+
+    const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
+    if (!canvas || this.trendData.length === 0) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const labels = this.trendData.map(d => d.datum.slice(5));
+    const utnyttjande = this.trendData.map(d => d.utnyttjande_pct);
+    const malLinje = this.trendData.map(() => this.trendMalPct);
+
+    this.trendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Utnyttjandegrad %',
+            data: utnyttjande,
+            borderColor: '#4fd1c5',
+            backgroundColor: 'rgba(79, 209, 197, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 1,
+            pointHoverRadius: 4,
+          },
+          {
+            label: `Mal (${this.trendMalPct}%)`,
+            data: malLinje,
+            borderColor: '#f6ad55',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            borderDash: [6, 3],
+            pointRadius: 0,
+            tension: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
+          },
+          tooltip: {
+            callbacks: {
+              label: (item) => ` ${item.dataset.label}: ${item.raw}%`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', maxRotation: 45, autoSkip: true, font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
             beginAtZero: true,
             max: 100,
             ticks: {
@@ -341,10 +519,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
               font: { size: 10 },
             },
             grid: { color: 'rgba(255,255,255,0.08)' },
-          },
-          y: {
-            ticks: { color: '#e2e8f0', font: { size: 11 } },
-            grid: { display: false },
+            title: { display: true, text: 'Utnyttjandegrad %', color: '#a0aec0', font: { size: 10 } },
           },
         },
       },
@@ -360,7 +535,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.errorStopporsaker   = false;
     this.stopporsakData      = [];
 
-    this.svc.getStopporsaker(this.period)
+    this.svc.getStopporsaker(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStopporsaker = false;
@@ -438,7 +613,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
     this.errorTidFordelning   = false;
     this.tidFordelningData    = [];
 
-    this.svc.getTidFordelning(this.period)
+    this.svc.getTidFordelning(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTidFordelning = false;
@@ -550,6 +725,77 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   }
 
   // ============================================================
+  // Kapacitetstabell
+  // ============================================================
+
+  laddaTabell(): void {
+    this.loadingTabell = true;
+    this.errorTabell   = false;
+    this.tabellData    = [];
+
+    this.svc.getKapacitetstabell(this.periodFilter)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingTabell = false;
+        if (res?.success) {
+          this.tabellData = res.data.stationer;
+        } else {
+          this.errorTabell = true;
+        }
+      });
+  }
+
+  // ============================================================
+  // Bemanning
+  // ============================================================
+
+  laddaBemanning(): void {
+    this.loadingBemanning = true;
+    this.errorBemanning   = false;
+    this.bemanningData    = null;
+
+    this.svc.getBemanning(this.orderbehovInput, this.periodFilter)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingBemanning = false;
+        if (res?.success) {
+          this.bemanningData = res.data;
+        } else {
+          this.errorBemanning = true;
+        }
+      });
+  }
+
+  uppdateraBemanning(): void {
+    this.laddaBemanning();
+  }
+
+  // ============================================================
+  // Prognos
+  // ============================================================
+
+  laddaPrognos(): void {
+    this.loadingPrognos = true;
+    this.errorPrognos   = false;
+    this.prognosData    = null;
+
+    this.svc.getPrognos(this.prognosTimmar, this.prognosOperatorer)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingPrognos = false;
+        if (res?.success) {
+          this.prognosData = res.data;
+        } else {
+          this.errorPrognos = true;
+        }
+      });
+  }
+
+  beraknaPrognos(): void {
+    this.laddaPrognos();
+  }
+
+  // ============================================================
   // Hjalpmetoder
   // ============================================================
 
@@ -572,7 +818,13 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   }
 
   formatDatum(datum: string | null): string {
-    if (!datum) return '—';
-    return datum.slice(5); // MM-DD
+    if (!datum) return '--';
+    return datum.slice(5);
+  }
+
+  flaskhalsFaktorKlass(faktor: number): string {
+    if (faktor >= 0.9) return 'utnyttjande-hog';
+    if (faktor >= 0.7) return 'utnyttjande-medel';
+    return 'utnyttjande-lag';
   }
 }

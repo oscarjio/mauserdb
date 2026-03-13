@@ -23,6 +23,8 @@ export interface KpiIdagData {
   utnyttjande_pct: number;
   antal_stationer: number;
   drifttid_h: number;
+  ledig_kapacitet: number;
+  rek_bemanning: number;
 }
 
 export interface KpiPeriodData {
@@ -42,6 +44,7 @@ export interface KpiData {
   idag: KpiIdagData;
   period: KpiPeriodData;
   flaskhals: FlaskhalsFaktor;
+  period_filter: string;
 }
 
 export interface DagligKapacitetRad {
@@ -69,7 +72,9 @@ export interface StationUtnyttjandeRad {
   ok_ibc: number;
   aktiva_dagar: number;
   teor_max: number;
+  teor_per_timme: number;
   utnyttjande_pct: number;
+  mal_pct: number;
   kassationsgrad_pct: number;
 }
 
@@ -138,6 +143,68 @@ export interface VeckoOversiktData {
   veckor: VeckaRad[];
 }
 
+export interface UtnyttjandegradTrendRad {
+  datum: string;
+  utnyttjande_pct: number;
+  faktisk: number;
+  teor_max: number;
+}
+
+export interface UtnyttjandegradTrendData {
+  period_dagar: number;
+  mal_pct: number;
+  dagdata: UtnyttjandegradTrendRad[];
+}
+
+export interface KapacitetstabellRad {
+  station: string;
+  teor_kap_per_h: number;
+  faktisk_kap_per_h: number;
+  utnyttjande_pct: number;
+  mal_pct: number;
+  flaskhals_faktor: number;
+  trend: string;
+  total_ibc: number;
+  ok_ibc: number;
+  aktiva_dagar: number;
+}
+
+export interface KapacitetstabellData {
+  from_date: string;
+  to_date: string;
+  dagar: number;
+  stationer: KapacitetstabellRad[];
+}
+
+export interface BemanningStation {
+  station: string;
+  operatorer: number;
+  extra: boolean;
+}
+
+export interface BemanningData {
+  orderbehov: number;
+  period_filter: string;
+  dagar: number;
+  ibc_per_op_per_dag: number;
+  total_operatorer: number;
+  operatorer_per_skift: number;
+  antal_skift: number;
+  stationer: BemanningStation[];
+}
+
+export interface PrognosData {
+  timmar: number;
+  operatorer: number;
+  antal_stationer: number;
+  ibc_per_op_per_h: number;
+  teor_max_per_h: number;
+  teor_max_total: number;
+  op_baserad: number;
+  prognos_ibc: number;
+  begransad_av: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -152,11 +219,11 @@ export class KapacitetsplaneringService {
 
   constructor(private http: HttpClient) {}
 
-  getKpi(): Observable<ApiResponse<KpiData> | null> {
-    return this.http.get<ApiResponse<KpiData>>(
-      `${this.api}&run=kpi`,
-      { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+  getKpi(periodFilter?: string): Observable<ApiResponse<KpiData> | null> {
+    let url = `${this.api}&run=kpi`;
+    if (periodFilter) url += `&period_filter=${periodFilter}`;
+    return this.http.get<ApiResponse<KpiData>>(url, { withCredentials: true })
+      .pipe(timeout(30000), catchError(() => of(null)));
   }
 
   getDagligKapacitet(period: number): Observable<ApiResponse<DagligKapacitetData> | null> {
@@ -166,11 +233,11 @@ export class KapacitetsplaneringService {
     ).pipe(timeout(30000), catchError(() => of(null)));
   }
 
-  getStationUtnyttjande(period: number): Observable<ApiResponse<StationUtnyttjandeData> | null> {
-    return this.http.get<ApiResponse<StationUtnyttjandeData>>(
-      `${this.api}&run=station-utnyttjande&period=${period}`,
-      { withCredentials: true }
-    ).pipe(timeout(30000), catchError(() => of(null)));
+  getStationUtnyttjande(period: number, periodFilter?: string): Observable<ApiResponse<StationUtnyttjandeData> | null> {
+    let url = `${this.api}&run=station-utnyttjande&period=${period}`;
+    if (periodFilter) url += `&period_filter=${periodFilter}`;
+    return this.http.get<ApiResponse<StationUtnyttjandeData>>(url, { withCredentials: true })
+      .pipe(timeout(30000), catchError(() => of(null)));
   }
 
   getStopporsaker(period: number): Observable<ApiResponse<StoppOrsakerData> | null> {
@@ -190,6 +257,34 @@ export class KapacitetsplaneringService {
   getVeckoOversikt(): Observable<ApiResponse<VeckoOversiktData> | null> {
     return this.http.get<ApiResponse<VeckoOversiktData>>(
       `${this.api}&run=vecko-oversikt`,
+      { withCredentials: true }
+    ).pipe(timeout(30000), catchError(() => of(null)));
+  }
+
+  getUtnyttjandegradTrend(period: number): Observable<ApiResponse<UtnyttjandegradTrendData> | null> {
+    return this.http.get<ApiResponse<UtnyttjandegradTrendData>>(
+      `${this.api}&run=utnyttjandegrad-trend&period=${period}`,
+      { withCredentials: true }
+    ).pipe(timeout(30000), catchError(() => of(null)));
+  }
+
+  getKapacitetstabell(periodFilter?: string): Observable<ApiResponse<KapacitetstabellData> | null> {
+    let url = `${this.api}&run=kapacitetstabell`;
+    if (periodFilter) url += `&period_filter=${periodFilter}`;
+    return this.http.get<ApiResponse<KapacitetstabellData>>(url, { withCredentials: true })
+      .pipe(timeout(30000), catchError(() => of(null)));
+  }
+
+  getBemanning(orderbehov: number, periodFilter?: string): Observable<ApiResponse<BemanningData> | null> {
+    let url = `${this.api}&run=bemanning&orderbehov=${orderbehov}`;
+    if (periodFilter) url += `&period_filter=${periodFilter}`;
+    return this.http.get<ApiResponse<BemanningData>>(url, { withCredentials: true })
+      .pipe(timeout(30000), catchError(() => of(null)));
+  }
+
+  getPrognos(timmar: number, operatorer: number): Observable<ApiResponse<PrognosData> | null> {
+    return this.http.get<ApiResponse<PrognosData>>(
+      `${this.api}&run=prognos&timmar=${timmar}&operatorer=${operatorer}`,
       { withCredentials: true }
     ).pipe(timeout(30000), catchError(() => of(null)));
   }
