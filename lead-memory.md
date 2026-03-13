@@ -58,12 +58,12 @@ Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning.
 Session #57-#93: Feature-utveckling löpande. Se lead-memory-archive.md för detaljer.
 Session #92: Rebotling stationsdetalj-dashboard + VD veckorapport + buggjakt — klara.
 Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
-Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — pågår.
+Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [ ] **Kassationsorsak-analys** — Pareto-diagram top-5 kassationsorsaker [PÅGÅR #94]
-- [ ] **Rebotling skiftöverlämning** — digital checklista vid skiftbyte [PÅGÅR #94]
+- [x] **Kassationsorsak-analys** — Pareto-diagram top-5 kassationsorsaker (klar #94)
+- [x] **Rebotling skiftöverlämning** — digital checklista vid skiftbyte (klar #94)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
@@ -79,6 +79,6 @@ Worker 2 (VD veckorapport + buggjakt): Veckosammanfattning med KPI-jämförelse 
 ### 2026-03-13 — Session #93 (klar)
 Rebotling stationsdetalj-dashboard rebotling — duplicerat/förbättrat från #92.
 
-### 2026-03-13 — Session #94 (pågår)
+### 2026-03-13 — Session #94 (klar)
 Worker 1 (Kassationsorsak-analys): Pareto-diagram top-5/10 kassationsorsaker, drill-down per station/operatör, trendgraf, KPI-kort. Backend: KassationsanalysController.
 Worker 2 (Rebotling skiftöverlämning): Digital checklista vid skiftbyte — skift-sammanfattning, öppna problem, interaktiv checklista, fritextnoteringar, historik. Backend: SkiftoverlamningController + ny DB-tabell.
