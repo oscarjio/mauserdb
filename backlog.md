@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [ ] **Rebotling daglig briefing-rapport** — automatisk morgonrapport: gårdagens resultat, dagens mål, bemanningsbehov (PÅGÅR session #103)
-- [ ] **Rebotling skiftöverlämningsprotokoll** — digital checklista vid skiftbyte: vad hände, vad behöver åtgärdas, statusrapport per station (PÅGÅR session #103)
+- [x] **Rebotling daglig briefing-rapport** — automatisk morgonrapport: gårdagens resultat, dagens mål, bemanningsbehov (session #103)
+- [x] **Rebotling skiftöverlämningsprotokoll** — digital checklista vid skiftbyte: vad hände, vad behöver åtgärdas, statusrapport per station (session #103)
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
 - [ ] **Rebotling energi/resursförbrukning** — koppla vatten/el/kemikalieförbrukning per IBC, visualisera kostnad per enhet
