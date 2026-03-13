@@ -1,3 +1,31 @@
+## 2026-03-13 OEE Trendanalys — djupare OEE-analys med stationsjamforelse, flaskhalsar och prediktion
+
+Ny sida `/rebotling/oee-trendanalys` — djupare OEE-analys med stationsjamforelse, flaskhalsidentifiering, trendanalys och prediktion.
+
+- **Backend**: `classes/OeeTrendanalysController.php` + proxy `controllers/OeeTrendanalysController.php`, registrerad i `api.php` som `oee-trendanalys`
+  - `run=sammanfattning` — KPI-kort: OEE idag, snitt 7d/30d, basta/samsta station, trend (upp/ner/stabil)
+  - `run=per-station` — OEE per station med breakdown (T/P/K), ranking, perioddelta med jamforelse mot foregaende period
+  - `run=trend` — OEE per dag med rullande 7d-snitt, per station eller totalt. Referenslinjer for World Class (85%)
+  - `run=flaskhalsar` — Top 5 stationer med lagst OEE, identifierar svagaste faktor (T/P/K), atgardsforslag, stopporsak-info
+  - `run=jamforelse` — Jamfor aktuell vs foregaende period: OEE-delta per station med fargkodning
+  - `run=prediktion` — Linjar regression baserad pa senaste 30d, prediktion 7d framat med R2-varde
+  - Datakallor: rebotling_onoff, rebotling_ibc, rebotling_stationer, stopporsak_registreringar
+- **Frontend**: Standalone Angular component `pages/oee-trendanalys/` + `services/oee-trendanalys.service.ts`
+  - 5 KPI-kort (OEE idag, snitt 7d, snitt 30d, basta station, samsta station) med trendpilar
+  - OEE per station — tabell med progress-bars for varje OEE-faktor, ranking-badges (#1 guld, #2 silver, #3 brons)
+  - Chart.js linjediagram: OEE-trend med rullande 7d-snitt (streckad gul), World Class-referenslinje
+  - Flaskhals-lista: top 5 med orsak-badge (tillganglighet/prestanda/kvalitet) och atgardsforslag
+  - Periodjamforelse: tabell med delta per station, fargkodning (gron=forbattrad, rod=forsamrad)
+  - Prediktions-diagram: historisk OEE + prediktionslinje (streckad lila) med rullande snitt
+  - Periodselektor: 7d / 30d / 90d
+  - Stationsfilter: alla / enskild station
+  - Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy() med try/catch
+- **Routing**: `/rebotling/oee-trendanalys` med authGuard
+- **Meny**: Tillagd under Rebotling-dropdown
+
+---
+
 ## 2026-03-13 Tidrapport — operatorstidrapport med skiftfordelning och CSV-export
 
 Ny sida `/rebotling/tidrapport` — automatiskt genererad tidrapport baserat pa skiftdata och faktisk aktivitet.

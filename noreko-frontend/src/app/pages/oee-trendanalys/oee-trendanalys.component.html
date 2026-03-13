@@ -1,0 +1,291 @@
+<div class="container-fluid py-4" style="background:#1a202c; min-height:100vh;">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="page-title mb-0">
+      <i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>OEE Trendanalys
+    </h1>
+    <div class="d-flex gap-2 align-items-center">
+      <select class="station-select" [(ngModel)]="selectedStation" (change)="onStationChange()">
+        <option [ngValue]="null">Alla stationer</option>
+        <option *ngFor="let s of stationsLista" [ngValue]="s.station_id">{{ s.station_namn }}</option>
+      </select>
+      <button *ngFor="let p of periodOptions"
+              class="period-btn"
+              [class.active]="period === p.days"
+              (click)="setPeriod(p.days)">
+        {{ p.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-label">OEE idag</div>
+        <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.oee_idag_pct }}%
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div class="kpi-sub" *ngIf="sammanfattning">
+          T: {{ sammanfattning.tillganglighet_idag_pct }}% | P: {{ sammanfattning.prestanda_idag_pct }}% | K: {{ sammanfattning.kvalitet_idag_pct }}%
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt 7 dagar</div>
+        <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.oee_7d_pct }}%
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt 30 dagar</div>
+        <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.oee_30d_pct }}%
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div class="kpi-sub" *ngIf="sammanfattning">
+          <span [class.kpi-trend-up]="sammanfattning.trend === 'up'"
+                [class.kpi-trend-down]="sammanfattning.trend === 'down'"
+                [class.kpi-trend-stable]="sammanfattning.trend === 'stable'">
+            <i [class]="getTrendIcon(sammanfattning.trend)"></i>
+            {{ getTrendText(sammanfattning.trend) }}
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-label">Basta station</div>
+        <div class="kpi-value" style="font-size:1.1rem" *ngIf="!loadingSammanfattning && sammanfattning?.basta_station">
+          {{ sammanfattning?.basta_station?.namn }}
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div class="kpi-sub" *ngIf="sammanfattning?.basta_station" style="color:#68d391">
+          {{ sammanfattning?.basta_station?.oee_pct }}% OEE
+        </div>
+        <div class="kpi-value" style="font-size:1rem" *ngIf="!loadingSammanfattning && !sammanfattning?.basta_station">-</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg">
+      <div class="kpi-card">
+        <div class="kpi-label">Samsta station</div>
+        <div class="kpi-value" style="font-size:1.1rem" *ngIf="!loadingSammanfattning && sammanfattning?.samsta_station">
+          {{ sammanfattning?.samsta_station?.namn }}
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+        <div class="kpi-sub" *ngIf="sammanfattning?.samsta_station" style="color:#fc8181">
+          {{ sammanfattning?.samsta_station?.oee_pct }}% OEE
+        </div>
+        <div class="kpi-value" style="font-size:1rem" *ngIf="!loadingSammanfattning && !sammanfattning?.samsta_station">-</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OEE-trend linjediagram -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="chart-card">
+        <h6 class="mb-3">
+          <i class="fas fa-chart-line me-2"></i>OEE-trend
+          <span *ngIf="trendData" style="color:#718096; font-weight:400; font-size:0.8rem">
+            — Snitt: {{ trendData.avg_oee }}% | Max: {{ trendData.max_oee }}% | Min: {{ trendData.min_oee }}%
+          </span>
+        </h6>
+        <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="chart-wrapper" *ngIf="!loadingTrend">
+          <canvas id="oeeTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OEE per station + Flaskhalsar -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-7">
+      <div class="chart-card">
+        <h6 class="mb-3"><i class="fas fa-industry me-2"></i>OEE per station</h6>
+        <div *ngIf="loadingStationer" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="table-dark-custom" *ngIf="!loadingStationer && stationerData?.stationer?.length">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Station</th>
+                <th>OEE</th>
+                <th>Tillg.</th>
+                <th>Prest.</th>
+                <th>Kval.</th>
+                <th class="text-end">Delta</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of stationerData!.stationer">
+                <td>
+                  <span class="ranking-badge"
+                        [class.ranking-1]="s.ranking === 1"
+                        [class.ranking-2]="s.ranking === 2"
+                        [class.ranking-3]="s.ranking === 3"
+                        [class.ranking-other]="s.ranking > 3">
+                    {{ s.ranking }}
+                  </span>
+                </td>
+                <td>{{ s.station_namn }}</td>
+                <td>
+                  <strong>{{ s.oee_pct }}%</strong>
+                  <div class="pct-bar mt-1">
+                    <div class="pct-bar-fill" [style.width.%]="s.oee_pct" [style.background]="getOeeColor(s.oee_pct)"></div>
+                  </div>
+                </td>
+                <td>
+                  <span style="font-size:0.8rem">{{ s.tillganglighet_pct }}%</span>
+                  <div class="pct-bar mt-1">
+                    <div class="pct-bar-fill" [style.width.%]="s.tillganglighet_pct" style="background:#63b3ed"></div>
+                  </div>
+                </td>
+                <td>
+                  <span style="font-size:0.8rem">{{ s.prestanda_pct }}%</span>
+                  <div class="pct-bar mt-1">
+                    <div class="pct-bar-fill" [style.width.%]="s.prestanda_pct" style="background:#b794f4"></div>
+                  </div>
+                </td>
+                <td>
+                  <span style="font-size:0.8rem">{{ s.kvalitet_pct }}%</span>
+                  <div class="pct-bar mt-1">
+                    <div class="pct-bar-fill" [style.width.%]="s.kvalitet_pct" style="background:#68d391"></div>
+                  </div>
+                </td>
+                <td class="text-end">
+                  <span [class.delta-positive]="s.delta_pct > 0.5"
+                        [class.delta-negative]="s.delta_pct < -0.5"
+                        [class.delta-neutral]="s.delta_pct >= -0.5 && s.delta_pct <= 0.5">
+                    <i [class]="getTrendIcon(s.trend)" class="me-1"></i>
+                    {{ s.delta_pct > 0 ? '+' : '' }}{{ s.delta_pct }}%
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div *ngIf="!loadingStationer && (!stationerData?.stationer?.length)" class="text-center py-3" style="color:#718096">
+          Inga stationsdata for perioden.
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-5">
+      <div class="chart-card">
+        <h6 class="mb-3"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Flaskhalsar</h6>
+        <div *ngIf="loadingFlaskhalsar" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div *ngIf="!loadingFlaskhalsar && flaskhalserData?.flaskhalsar?.length">
+          <div *ngFor="let f of flaskhalserData!.flaskhalsar; let i = index" class="flaskhals-card">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <strong>{{ f.station_namn }}</strong>
+                <span class="ms-2" style="color:#718096; font-size:0.8rem">OEE: {{ f.oee_pct }}%</span>
+              </div>
+              <span class="badge"
+                    [class.badge-tillganglighet]="f.orsak === 'tillganglighet'"
+                    [class.badge-prestanda]="f.orsak === 'prestanda'"
+                    [class.badge-kvalitet]="f.orsak === 'kvalitet'">
+                {{ getOrsakLabel(f.orsak) }} {{ f.orsak_pct }}%
+              </span>
+            </div>
+            <div style="font-size:0.8rem; color:#a0aec0" class="mb-1">
+              <i class="fas fa-lightbulb me-1" style="color:#ecc94b"></i>{{ f.atgardsforslag }}
+            </div>
+            <div *ngIf="f.stopp_info" style="font-size:0.75rem; color:#718096">
+              <i class="fas fa-stop-circle me-1" style="color:#fc8181"></i>{{ f.stopp_info }}
+            </div>
+            <div class="d-flex gap-3 mt-2" style="font-size:0.75rem; color:#718096">
+              <span>T: {{ f.tillganglighet_pct }}%</span>
+              <span>P: {{ f.prestanda_pct }}%</span>
+              <span>K: {{ f.kvalitet_pct }}%</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="!loadingFlaskhalsar && (!flaskhalserData?.flaskhalsar?.length)" class="text-center py-3" style="color:#718096">
+          Inga flaskhalsar identifierade.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Periodjamforelse -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="chart-card">
+        <h6 class="mb-3">
+          <i class="fas fa-exchange-alt me-2"></i>Periodjamforelse
+          <span *ngIf="jamforelseData" style="color:#718096; font-weight:400; font-size:0.8rem">
+            — Total OEE: {{ jamforelseData.period1.oee_pct }}% vs {{ jamforelseData.period2.oee_pct }}%
+            <span [class.delta-positive]="jamforelseData.total_delta > 0"
+                  [class.delta-negative]="jamforelseData.total_delta < 0"
+                  [class.delta-neutral]="jamforelseData.total_delta === 0">
+              ({{ jamforelseData.total_delta > 0 ? '+' : '' }}{{ jamforelseData.total_delta }}%)
+            </span>
+          </span>
+        </h6>
+        <div *ngIf="loadingJamforelse" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="table-dark-custom" *ngIf="!loadingJamforelse && jamforelseData?.stationer?.length">
+          <table class="table table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Station</th>
+                <th class="text-center">Period 1</th>
+                <th class="text-center">Period 2</th>
+                <th class="text-center">Delta</th>
+                <th>Detaljer (T/P/K)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let j of jamforelseData!.stationer">
+                <td>{{ j.station_namn }}</td>
+                <td class="text-center"><strong>{{ j.period1_oee }}%</strong></td>
+                <td class="text-center">{{ j.period2_oee }}%</td>
+                <td class="text-center">
+                  <span [class.delta-positive]="j.forbattrad"
+                        [class.delta-negative]="j.forsamrad"
+                        [class.delta-neutral]="!j.forbattrad && !j.forsamrad">
+                    {{ j.delta > 0 ? '+' : '' }}{{ j.delta }}%
+                  </span>
+                </td>
+                <td style="font-size:0.8rem; color:#a0aec0">
+                  T: {{ j.period1_t }}% ({{ j.period2_t }}%) |
+                  P: {{ j.period1_p }}% ({{ j.period2_p }}%) |
+                  K: {{ j.period1_k }}% ({{ j.period2_k }}%)
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div *ngIf="!loadingJamforelse && (!jamforelseData?.stationer?.length)" class="text-center py-3" style="color:#718096">
+          Inga jamforelsedata tillgangliga.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Prediktion -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="chart-card">
+        <h6 class="mb-3">
+          <i class="fas fa-crystal-ball me-2" style="color:#b794f4"></i>OEE-prediktion (kommande 7 dagar)
+          <span *ngIf="prediktionData" style="color:#718096; font-weight:400; font-size:0.8rem">
+            — Trend: {{ getTrendText(prediktionData.trend) }} | R2: {{ prediktionData.r2 }}
+          </span>
+        </h6>
+        <div *ngIf="loadingPrediktion" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="chart-wrapper" *ngIf="!loadingPrediktion">
+          <canvas id="prediktionChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
