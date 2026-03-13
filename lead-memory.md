@@ -88,12 +88,12 @@ Session #83: Historisk produktionsöversikt + Automatiska avvikelseLarm — klar
 Session #84: Rebotling sammanfattnings-dashboard + Produktionsflödesvy (Sankey) — klara.
 Session #85: Kassationsorsak per station + PDF-export alla rapporter — klara.
 Session #86: Rebotling OEE-jämförelse per vecka + Maskin-drifttid heatmap — klara.
-Session #87: Rebotling skiftrapport-sammanställning + Produktionsmål-dashboard — pågår.
+Session #87: Rebotling skiftrapport-sammanställning + Produktionsmål-dashboard — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **Rebotling skiftrapport-sammanställning** — daglig rapport per skift (#87)
-- [PÅGÅR] **Produktionsmål-dashboard** — sätt mål, visa progress + prognos (#87)
+- [x] **Rebotling skiftrapport-sammanställning** — daglig rapport per skift (klar #87)
+- [x] **Produktionsmål-dashboard** — sätt mål, visa progress + prognos (klar #87)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
@@ -103,7 +103,7 @@ Session #87: Rebotling skiftrapport-sammanställning + Produktionsmål-dashboard
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-13 — Session #87 (pågår)
+### 2026-03-13 — Session #87 (klar)
 Worker 1 (Skiftrapport-sammanställning): Daglig rapport per skift (dag/kväll/natt) — produktion, kassation, OEE, stopp per skift. Veckosammanställning + skiftjämförelse. Chart.js stapeldiagram + linjediagram. PDF-export. Backend: SkiftrapportController. Använder rebotling_ibc + rebotling_onoff.
 Worker 2 (Produktionsmål-dashboard): VD sätter vecko/månadsmål. Progress med doughnut-diagram. Prognos: "i nuvarande takt når ni målet [datum]" eller "behöver öka X%". Daglig produktion stapeldiagram + mål-linje. Historik-tabell. NY tabell: rebotling_produktionsmal. Backend: ProduktionsmalController.
 
