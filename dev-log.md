@@ -1,3 +1,46 @@
+## 2026-03-13 Produktions-dashboard ("Command Center") — samlad overblick pa EN skarm for VD
+
+Ny sida `/rebotling/produktions-dashboard` — VD-vy med hela produktionslaget pa en skarm, auto-refresh var 30s.
+
+- **Backend**: `classes/ProduktionsDashboardController.php` (action=`produktionsdashboard`)
+  - `run=oversikt` — alla KPI:er i ett anrop: dagens prod, OEE (T/P/K), kassationsgrad, drifttid, aktiva stationer, skiftinfo (namn/start/slut/kvarvarnade min), trender vs igar/forra veckan
+  - `run=vecko-produktion` — daglig produktion senaste 7 dagar + dagligt mal fran rebotling_produktionsmal om det finns
+  - `run=vecko-oee` — daglig OEE med T/P/K-delkomponenter senaste 7 dagar
+  - `run=stationer-status` — alla stationer: status (kor/stopp, aktivitet senaste 30 min), IBC idag, OEE idag, senaste IBC-tid
+  - `run=senaste-alarm` — senaste 5 stopp/alarm fran rebotling_onoff (start, stopp, varaktighet, status)
+  - `run=senaste-ibc` — senaste 10 producerade IBC (tid, station, ok/kasserad)
+  - OEE: T = drifttid/24h, P = (IBC*120s)/drifttid (max 100%), K = godkanda/totalt
+  - Skift: Dag 06-14, Kvall 14-22, Natt 22-06 (hanterar midnattsspann)
+  - Inga nya tabeller — anvander rebotling_ibc, rebotling_onoff, rebotling_produktionsmal (om den finns)
+  - Registrerad i api.php: `'produktionsdashboard' => 'ProduktionsDashboardController'`
+
+- **Frontend**: `pages/rebotling/produktions-dashboard/`
+  - Oversta raden: 6 KPI-kort med stora siffror + trendpilar
+    - Dagens produktion (antal IBC + trend vs igar)
+    - Aktuell OEE (% + T/P/K + trend vs forra veckan)
+    - Kassationsgrad (% + grön/gul/röd-fargkod)
+    - Drifttid idag (h + % av planerat + progress bar)
+    - Aktiva stationer (antal av totalt)
+    - Pagaende skift + kvarvarande tid
+  - Mitten: 2 grafer sida vid sida
+    - Vänster: Stapeldiagram produktion 7 dagar + ev. mallinje
+    - Höger: OEE-trend 7 dagar med T/P/K-linjer (Chart.js)
+  - Under graferna:
+    - Senaste 5 alarm/stopp (start, stopp, varaktighet, status Pagaende/Avslutat)
+    - Stationsstatus-tabell (station, kor/stopp, IBC idag, OEE%, senaste IBC-tid)
+    - Senaste 10 IBC (snabblista med tid, station, OK/Kasserad)
+  - Auto-refresh: polling var 30s, pulsanimation pa LIVE-indikatorn
+  - Dark theme, Bootstrap 5, OnInit/OnDestroy + destroy$ + takeUntil + clearInterval + chart?.destroy()
+
+- **Service**: `services/produktions-dashboard.service.ts`
+  - `getOversikt()`, `getVeckoProduktion()`, `getVeckoOee()`, `getStationerStatus()`, `getSenasteAlarm()`, `getSenasteIbc()`
+
+- **Route**: `/rebotling/produktions-dashboard` med authGuard
+- **Navigation**: Tillagd overst i Rebotling-dropdown (forst i listan)
+- **Bygg**: Lyckat (ng build OK, inga nya varningar)
+
+---
+
 ## 2026-03-13 Rebotling kapacitetsplanering — planerad vs faktisk kapacitet, flaskhalsanalys
 
 Ny sida `/rebotling/kapacitetsplanering` — planerad vs faktisk kapacitet per dag/vecka med flaskhalsidentifiering.

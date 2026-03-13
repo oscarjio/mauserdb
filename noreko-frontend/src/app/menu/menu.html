@@ -19,6 +19,7 @@
           <span class="badge bg-danger ms-1" *ngIf="loggedIn && urgentNoteCount > 0">{{ urgentNoteCount }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="rebotlingDropdown">
+          <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/produktions-dashboard"><i class="fas fa-tv me-2" style="color:#4fd1c5"></i>Produktions-dashboard</a></li>
           <li *ngIf="loggedIn"><a class="dropdown-item" routerLink="/rebotling/sammanfattning"><i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>Sammanfattning</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/andon"><i class="fas fa-tv me-2 text-success"></i>Andon-tavla</a></li>
           <li><a class="dropdown-item" routerLink="/rebotling/andon-board"><i class="fas fa-desktop me-2 text-info"></i>Fabriksskarm</a></li>
