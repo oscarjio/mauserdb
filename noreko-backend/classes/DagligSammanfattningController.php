@@ -190,6 +190,26 @@ class DagligSammanfattningController {
     }
 
     /**
+     * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
+     */
+    private function calcDrifttidSek(string $from, string $to): int {
+        $stmt = $this->pdo->prepare("
+            SELECT datum, running FROM rebotling_onoff
+            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+        ");
+        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sek = 0; $lastOn = null;
+        foreach ($rows as $r) {
+            $ts = strtotime($r['datum']);
+            if ((int)$r['running'] === 1) { if ($lastOn === null) $lastOn = $ts; }
+            else { if ($lastOn !== null) { $sek += max(0, $ts - $lastOn); $lastOn = null; } }
+        }
+        if ($lastOn !== null) $sek += max(0, min(time(), strtotime($to)) - $lastOn);
+        return $sek;
+    }
+
+    /**
      * Beräkna OEE för ett datum (baserat på rebotling_onoff).
      * Returnerar oee, tillganglighet, prestanda, kvalitet (alla som 0–1), drifttid_sek, stopptid_sek.
      */
@@ -197,44 +217,33 @@ class DagligSammanfattningController {
         $fromDt = $date . ' 00:00:00';
         $toDt   = $date . ' 23:59:59';
 
-        // Drifttid från rebotling_onoff
-        $onoffStmt = $this->pdo->prepare(
-            "SELECT
-                SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ) AS drifttid_sek
-             FROM rebotling_onoff
-             WHERE start_time < :to2
-               AND (stop_time IS NULL OR stop_time > :from2)
-               AND TIMESTAMPDIFF(SECOND,
-                     GREATEST(start_time, :from3),
-                     LEAST(COALESCE(stop_time, NOW()), :to3)
-                   ) > 0"
-        );
-        $onoffStmt->execute([
-            ':from1' => $fromDt, ':to1' => $toDt,
-            ':from2' => $fromDt, ':to2' => $toDt,
-            ':from3' => $fromDt, ':to3' => $toDt,
-        ]);
-        $drifttidSek = max(0, (int)($onoffStmt->fetchColumn() ?? 0));
+        // Drifttid från rebotling_onoff (datum + running kolumner)
+        $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid: 8h
         $schemaSek   = 8 * 3600;
         $stopptidSek = max(0, $schemaSek - $drifttidSek);
         $totalSek    = $schemaSek;
 
-        // IBC
+        // IBC via kumulativa PLC-fält
         $ibcStmt = $this->pdo->prepare(
-            "SELECT COUNT(*) AS total, SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal
-             FROM rebotling_ibc WHERE DATE(datum) = ?"
+            "SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                    COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+             FROM (
+                 SELECT skiftraknare,
+                        MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                 FROM rebotling_ibc
+                 WHERE DATE(datum) = ?
+                   AND skiftraknare IS NOT NULL
+                 GROUP BY skiftraknare
+             ) sub"
         );
         $ibcStmt->execute([$date]);
         $ibcRow   = $ibcStmt->fetch(PDO::FETCH_ASSOC);
-        $totalIbc = (int)($ibcRow['total']    ?? 0);
-        $okIbc    = (int)($ibcRow['ok_antal'] ?? 0);
+        $okIbc    = (int)($ibcRow['ok_antal']    ?? 0);
+        $ejOkIbc  = (int)($ibcRow['ej_ok_antal'] ?? 0);
+        $totalIbc = $okIbc + $ejOkIbc;
 
         // Faktorer
         $tillganglighet = $totalSek > 0 ? ($drifttidSek / $totalSek) : 0.0;

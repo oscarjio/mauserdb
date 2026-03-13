@@ -84,6 +84,42 @@ class OeeBenchmarkController {
     }
 
     /**
+     * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
+     * Itererar raderna och summerar tid mellan running=1 och running=0.
+     */
+    private function calcDrifttidSek(string $from, string $to): int {
+        $stmt = $this->pdo->prepare("
+            SELECT datum, running
+            FROM rebotling_onoff
+            WHERE datum BETWEEN :from_dt AND :to_dt
+            ORDER BY datum ASC
+        ");
+        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $drifttidSek = 0;
+        $lastOnTime = null;
+        foreach ($rows as $row) {
+            $ts = strtotime($row['datum']);
+            if ((int)$row['running'] === 1) {
+                if ($lastOnTime === null) {
+                    $lastOnTime = $ts;
+                }
+            } else {
+                if ($lastOnTime !== null) {
+                    $drifttidSek += max(0, $ts - $lastOnTime);
+                    $lastOnTime = null;
+                }
+            }
+        }
+        if ($lastOnTime !== null) {
+            $endTs = min(time(), strtotime($to));
+            $drifttidSek += max(0, $endTs - $lastOnTime);
+        }
+        return $drifttidSek;
+    }
+
+    /**
      * Beräkna OEE-faktorer för ett givet datumintervall.
      * Returnerar ['tillganglighet', 'prestanda', 'kvalitet', 'oee', 'drifttid_sek',
      *             'stopptid_sek', 'total_ibc', 'ok_ibc', 'schema_sek']
@@ -91,39 +127,12 @@ class OeeBenchmarkController {
     private function calcOeeForPeriod(string $fromDate, string $toDate): array {
         // ---- TILLGÄNGLIGHET ----
         // Summera drifttid (ON-perioder) från rebotling_onoff.
-        // Kolumner: start_time, stop_time (DATETIME). En rad = en ON-period.
-        // Om stop_time är NULL räknas perioden som pågående → använd NOW().
-        $sqlOnoff = "
-            SELECT
-                SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ) AS drifttid_sek
-            FROM rebotling_onoff
-            WHERE start_time < :to2
-              AND (stop_time IS NULL OR stop_time > :from2)
-              AND TIMESTAMPDIFF(SECOND,
-                    GREATEST(start_time, :from3),
-                    LEAST(COALESCE(stop_time, NOW()), :to3)
-                  ) > 0
-        ";
-
-        $stmtOnoff = $this->pdo->prepare($sqlOnoff);
-        $stmtOnoff->execute([
-            ':from1' => $fromDate . ' 00:00:00',
-            ':to1'   => $toDate   . ' 23:59:59',
-            ':from2' => $fromDate . ' 00:00:00',
-            ':to2'   => $toDate   . ' 23:59:59',
-            ':from3' => $fromDate . ' 00:00:00',
-            ':to3'   => $toDate   . ' 23:59:59',
-        ]);
-        $onoffRow    = $stmtOnoff->fetch(PDO::FETCH_ASSOC);
-        $drifttidSek = max(0, (int)($onoffRow['drifttid_sek'] ?? 0));
+        // Kolumner: datum (DATETIME), running (BOOLEAN). En rad = en statusändring.
+        $fromDt = $fromDate . ' 00:00:00';
+        $toDt   = $toDate   . ' 23:59:59';
+        $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid = antal dagar i perioden × 8 tim (en normalarbetsdag).
-        // Används för att beräkna stopptid när rebotling_onoff saknar explicit OFF-info.
         $fromTs    = strtotime($fromDate);
         $toTs      = strtotime($toDate);
         $dagCount  = max(1, (int)(($toTs - $fromTs) / 86400) + 1);
@@ -137,19 +146,27 @@ class OeeBenchmarkController {
         $tillganglighet = $totalSek > 0 ? ($drifttidSek / $totalSek) : 0.0;
 
         // ---- KVALITET ----
-        // ok = 1 → godkänd IBC
+        // Använd kumulativa PLC-fält ibc_ok / ibc_ej_ok per skiftraknare
         $sqlIbc = "
             SELECT
-                COUNT(*) AS total_ibc,
-                SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-            FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :from AND :to
+                COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+            FROM (
+                SELECT skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN :from AND :to
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare
+            ) sub
         ";
         $stmtIbc = $this->pdo->prepare($sqlIbc);
         $stmtIbc->execute([':from' => $fromDate, ':to' => $toDate]);
         $ibcRow   = $stmtIbc->fetch(PDO::FETCH_ASSOC);
-        $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
         $okIbc    = (int)($ibcRow['ok_ibc']    ?? 0);
+        $ejOkIbc  = (int)($ibcRow['ej_ok_ibc'] ?? 0);
+        $totalIbc = $okIbc + $ejOkIbc;
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
 
         // ---- PRESTANDA ----

@@ -79,30 +79,24 @@ class ProduktionsDashboardController {
 
     /**
      * Beraknar drifttid i sekunder fran rebotling_onoff for ett datumintervall.
+     * rebotling_onoff har datum + running (boolean), inte start_time/stop_time.
      */
     private function getDrifttidSek(string $fromDt, string $toDt): int {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ), 0) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
             ");
-            $stmt->execute([
-                ':from1' => $fromDt, ':to1' => $toDt,
-                ':from2' => $fromDt, ':to2' => $toDt,
-                ':from3' => $fromDt, ':to3' => $toDt,
-            ]);
-            return max(0, (int)($stmt->fetchColumn() ?? 0));
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $sek = 0; $lastOn = null;
+            foreach ($rows as $r) {
+                $ts = strtotime($r['datum']);
+                if ((int)$r['running'] === 1) { if ($lastOn === null) $lastOn = $ts; }
+                else { if ($lastOn !== null) { $sek += max(0, $ts - $lastOn); $lastOn = null; } }
+            }
+            if ($lastOn !== null) $sek += max(0, min(time(), strtotime($toDt)) - $lastOn);
+            return $sek;
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::getDrifttidSek: ' . $e->getMessage());
             return 0;
@@ -205,16 +199,22 @@ class ProduktionsDashboardController {
 
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal
-                FROM rebotling_ibc
-                WHERE datum BETWEEN :from AND :to
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN :from AND :to
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':from' => $fromDt, ':to' => $toDt]);
             $row     = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $total   = (int)($row['total']    ?? 0);
-            $okAntal = (int)($row['ok_antal'] ?? 0);
+            $okAntal = (int)($row['ok_antal']    ?? 0);
+            $total   = $okAntal + (int)($row['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboardController::calcOeeForPeriod: ' . $e->getMessage());
             $total   = 0;
@@ -254,16 +254,22 @@ class ProduktionsDashboardController {
         // --- Dagens produktion ---
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal
-                FROM rebotling_ibc
-                WHERE DATE(datum) = :idag
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :idag
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':idag' => $idag]);
             $radIdag   = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $ibcIdag   = (int)($radIdag['total']    ?? 0);
             $ibcOkIdag = (int)($radIdag['ok_antal'] ?? 0);
+            $ibcIdag   = $ibcOkIdag + (int)($radIdag['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboard::oversikt idag: ' . $e->getMessage());
             $ibcIdag = 0; $ibcOkIdag = 0;
@@ -501,12 +507,20 @@ class ProduktionsDashboardController {
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        COUNT(*) AS total,
-                        SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
-                        MAX(datum) AS senaste_datum
-                    FROM rebotling_ibc
-                    WHERE station = :station
-                      AND DATE(datum) = :idag
+                        COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                        COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal,
+                        MAX(senaste) AS senaste_datum
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok,
+                               MAX(datum) AS senaste
+                        FROM rebotling_ibc
+                        WHERE station = :station
+                          AND DATE(datum) = :idag
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) sub
                 ");
                 $stmt->execute([':station' => $station, ':idag' => $idag]);
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -515,8 +529,8 @@ class ProduktionsDashboardController {
                 $rad = ['total' => 0, 'ok_antal' => 0, 'senaste_datum' => null];
             }
 
-            $total       = (int)($rad['total']         ?? 0);
             $okAntal     = (int)($rad['ok_antal']      ?? 0);
+            $total       = $okAntal + (int)($rad['ej_ok_antal'] ?? 0);
             $senasteDatum = $rad['senaste_datum']       ?? null;
 
             // OEE for stationen idag (anvander maskinens drifttid)
@@ -560,22 +574,15 @@ class ProduktionsDashboardController {
 
     private function getSenasteAlarm(): void {
         try {
+            // rebotling_onoff har datum + running, hitta stopp-handelser (running=0)
             $stmt = $this->pdo->prepare("
                 SELECT
                     id,
-                    start_time,
-                    stop_time,
-                    CASE
-                        WHEN stop_time IS NOT NULL
-                        THEN TIMESTAMPDIFF(SECOND, start_time, stop_time)
-                        ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
-                    END AS varaktighet_sek,
-                    CASE
-                        WHEN stop_time IS NULL THEN 'Pagaende'
-                        ELSE 'Avslutat'
-                    END AS status
+                    datum,
+                    running
                 FROM rebotling_onoff
-                ORDER BY start_time DESC
+                WHERE running = 0
+                ORDER BY datum DESC
                 LIMIT 5
             ");
             $stmt->execute();
@@ -583,14 +590,13 @@ class ProduktionsDashboardController {
 
             $alarm = [];
             foreach ($rader as $rad) {
-                $varSek = (int)($rad['varaktighet_sek'] ?? 0);
                 $alarm[] = [
                     'id'              => (int)$rad['id'],
-                    'start_time'      => $rad['start_time'],
-                    'stop_time'       => $rad['stop_time'],
-                    'varaktighet_sek' => $varSek,
-                    'varaktighet_min' => round($varSek / 60, 1),
-                    'status'          => $rad['status'],
+                    'start_time'      => $rad['datum'],
+                    'stop_time'       => $rad['datum'],
+                    'varaktighet_sek' => 0,
+                    'varaktighet_min' => 0,
+                    'status'          => 'Avslutat',
                     'typ'             => 'stopp',
                 ];
             }
@@ -616,8 +622,9 @@ class ProduktionsDashboardController {
                     id,
                     datum,
                     station,
-                    ok,
-                    CASE WHEN ok = 1 THEN 'OK' ELSE 'Kasserad' END AS status_text
+                    COALESCE(ibc_ok, 0) AS ibc_ok,
+                    COALESCE(ibc_ej_ok, 0) AS ibc_ej_ok,
+                    lopnummer
                 FROM rebotling_ibc
                 ORDER BY datum DESC, id DESC
                 LIMIT 10
@@ -629,9 +636,9 @@ class ProduktionsDashboardController {
                 $ibc[] = [
                     'id'          => (int)$rad['id'],
                     'datum'       => $rad['datum'],
-                    'station'     => $rad['station'],
-                    'ok'          => (int)$rad['ok'],
-                    'status_text' => $rad['status_text'],
+                    'station'     => $rad['station'] ?? null,
+                    'ok'          => (int)$rad['ibc_ok'],
+                    'status_text' => ((int)$rad['ibc_ej_ok'] > 0) ? 'Kasserad' : 'OK',
                 ];
             }
 

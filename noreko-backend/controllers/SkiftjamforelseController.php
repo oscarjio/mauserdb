@@ -111,7 +111,7 @@ class SkiftjamforelseController {
         $result = [];
 
         foreach (array_keys(self::SKIFT) as $skift) {
-            $timeCond = $this->skiftTimewhere($skift, 'created_at');
+            $timeCond = $this->skiftTimewhere($skift, 'datum');
 
             $stmt = $this->pdo->prepare(
                 "SELECT
@@ -126,7 +126,7 @@ class SkiftjamforelseController {
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) BETWEEN ? AND ?
+                    WHERE DATE(datum) BETWEEN ? AND ?
                       AND {$timeCond}
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
@@ -382,7 +382,7 @@ class SkiftjamforelseController {
      * Hamta OEE for ett enstaka skift pa en enstaka dag.
      */
     private function getProduktionPerSkiftSingleDay(string $date, string $skift): array {
-        $timeCond = $this->skiftTimewhere($skift, 'created_at');
+        $timeCond = $this->skiftTimewhere($skift, 'datum');
 
         $stmt = $this->pdo->prepare(
             "SELECT
@@ -397,7 +397,7 @@ class SkiftjamforelseController {
                     MAX(ibc_ej_ok)   AS max_ej_ok,
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = ?
+                WHERE DATE(datum) = ?
                   AND {$timeCond}
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
@@ -481,7 +481,7 @@ class SkiftjamforelseController {
 
             // For varje skift, hitta basta station
             foreach (array_keys(self::SKIFT) as $skift) {
-                $timeCond = $this->skiftTimewhere($skift, 'created_at');
+                $timeCond = $this->skiftTimewhere($skift, 'datum');
                 $skiftLabel = self::SKIFT[$skift]['label'];
 
                 $bastaStation = null;
@@ -507,7 +507,7 @@ class SkiftjamforelseController {
                                 MAX(ibc_ej_ok)   AS max_ej_ok,
                                 MAX(runtime_plc) AS max_runtime
                             FROM rebotling_ibc
-                            WHERE DATE(created_at) BETWEEN ? AND ?
+                            WHERE DATE(datum) BETWEEN ? AND ?
                               AND {$timeCond}
                               AND COALESCE(station_id, 1) = ?
                             GROUP BY skiftraknare
@@ -599,18 +599,18 @@ class SkiftjamforelseController {
             $stmt = $this->pdo->prepare(
                 "SELECT
                     skiftraknare,
-                    DATE(MIN(created_at)) AS datum,
-                    MIN(HOUR(created_at)) AS forsta_timme,
+                    DATE(MIN(datum)) AS datum,
+                    MIN(HOUR(datum)) AS forsta_timme,
                     COALESCE(MIN(station_id), 1) AS station_id,
                     MAX(ibc_ok)      AS ibc_ok,
                     MAX(ibc_ej_ok)   AS ibc_ej_ok,
                     MAX(runtime_plc) AS runtime_min,
                     MIN(NULLIF(op1, 0)) AS op_num
                  FROM rebotling_ibc
-                 WHERE DATE(created_at) BETWEEN ? AND ?
+                 WHERE DATE(datum) BETWEEN ? AND ?
                  GROUP BY skiftraknare
                  HAVING COUNT(*) > 1
-                 ORDER BY MIN(created_at) DESC
+                 ORDER BY MIN(datum) DESC
                  LIMIT 500"
             );
             $stmt->execute([$from, $today]);

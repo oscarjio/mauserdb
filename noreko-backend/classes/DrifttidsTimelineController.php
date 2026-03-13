@@ -89,14 +89,12 @@ class DrifttidsTimelineController {
             $dayStart = $date . ' 00:00:00';
             $dayEnd   = $date . ' 23:59:59';
 
+            // rebotling_onoff har datum + running (boolean), inte start_time/stop_time
             $stmt = $this->pdo->prepare("
-                SELECT
-                    start_time,
-                    stop_time
+                SELECT datum, running
                 FROM rebotling_onoff
-                WHERE start_time < :day_end
-                  AND (stop_time IS NULL OR stop_time > :day_start)
-                ORDER BY start_time ASC
+                WHERE datum BETWEEN :day_start AND :day_end
+                ORDER BY datum ASC
             ");
             $stmt->execute([':day_start' => $dayStart, ':day_end' => $dayEnd]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -104,17 +102,29 @@ class DrifttidsTimelineController {
             $dayStartTs = strtotime($dayStart);
             $dayEndTs   = strtotime($dayEnd);
 
+            // Bygg ON-perioder fran running-data
+            $lastOnTs = null;
             foreach ($rows as $row) {
-                $startTs = max(strtotime($row['start_time']), $dayStartTs);
-                $stopTs  = $row['stop_time']
-                    ? min(strtotime($row['stop_time']), $dayEndTs)
-                    : $dayEndTs;
-
-                if ($stopTs > $startTs) {
-                    $periods[] = [
-                        'start_ts' => $startTs,
-                        'stop_ts'  => $stopTs,
-                    ];
+                $ts = strtotime($row['datum']);
+                if ((int)$row['running'] === 1) {
+                    if ($lastOnTs === null) {
+                        $lastOnTs = max($ts, $dayStartTs);
+                    }
+                } else {
+                    if ($lastOnTs !== null) {
+                        $stopTs = min($ts, $dayEndTs);
+                        if ($stopTs > $lastOnTs) {
+                            $periods[] = ['start_ts' => $lastOnTs, 'stop_ts' => $stopTs];
+                        }
+                        $lastOnTs = null;
+                    }
+                }
+            }
+            // Om linjen fortfarande kor vid dagens slut
+            if ($lastOnTs !== null) {
+                $stopTs = min(time(), $dayEndTs);
+                if ($stopTs > $lastOnTs) {
+                    $periods[] = ['start_ts' => $lastOnTs, 'stop_ts' => $stopTs];
                 }
             }
         } catch (\PDOException $e) {

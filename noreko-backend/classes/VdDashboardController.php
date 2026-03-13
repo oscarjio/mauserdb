@@ -97,58 +97,63 @@ class VdDashboardController {
     }
 
     /**
+     * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
+     */
+    private function calcDrifttidSek(string $from, string $to): int {
+        $stmt = $this->pdo->prepare("
+            SELECT datum, running FROM rebotling_onoff
+            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+        ");
+        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sek = 0; $lastOn = null;
+        foreach ($rows as $r) {
+            $ts = strtotime($r['datum']);
+            if ((int)$r['running'] === 1) { if ($lastOn === null) $lastOn = $ts; }
+            else { if ($lastOn !== null) { $sek += max(0, $ts - $lastOn); $lastOn = null; } }
+        }
+        if ($lastOn !== null) $sek += max(0, min(time(), strtotime($to)) - $lastOn);
+        return $sek;
+    }
+
+    /**
      * Berakna OEE for en given dag (totalt).
      */
     private function calcOeeForDay(string $date): array {
         $from = $date . ' 00:00:00';
         $to   = $date . ' 23:59:59';
 
-        // Drifttid
+        // Drifttid fran rebotling_onoff (datum + running kolumner)
         $drifttidSek = 0;
         try {
-            $sql = "
-                SELECT SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
-            ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            $drifttidSek = max(0, (int)($row['drifttid_sek'] ?? 0));
+            $drifttidSek = $this->calcDrifttidSek($from, $to);
         } catch (\Exception $e) {}
 
         $schemaSek = 8 * 3600;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
-        // IBC
+        // IBC via kumulativa PLC-fält
         $totalIbc = 0;
         $okIbc = 0;
         try {
             $sql = "
-                SELECT COUNT(*) AS total_ibc,
-                       SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) = :date
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':date' => $date]);
             $ibcRow = $stmt->fetch(PDO::FETCH_ASSOC);
-            $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
+            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
         } catch (\Exception $e) {}
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
@@ -295,26 +300,14 @@ class VdDashboardController {
                 }
             }
 
-            // Kolla aven rebotling_onoff for stoppade stationer
+            // Kolla om linjen ar stoppad via senaste rebotling_onoff-raden
             $stoppadeStationer = [];
             try {
-                $sql = "
-                    SELECT
-                        COALESCE(ro.station_id, 0) AS station_id,
-                        MAX(ro.stop_time) AS senaste_stopp
-                    FROM rebotling_onoff ro
-                    WHERE ro.stop_time IS NOT NULL
-                      AND ro.stop_time >= DATE_SUB(NOW(), INTERVAL 2 HOUR)
-                      AND NOT EXISTS (
-                          SELECT 1 FROM rebotling_onoff ro2
-                          WHERE ro2.station_id = ro.station_id
-                            AND ro2.stop_time IS NULL
-                            AND ro2.start_time > ro.stop_time
-                      )
-                    GROUP BY COALESCE(ro.station_id, 0)
-                ";
-                $stmt = $this->pdo->query($sql);
-                $stoppadeStationer = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $stmt = $this->pdo->query("SELECT running, datum FROM rebotling_onoff ORDER BY datum DESC LIMIT 1");
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row && !(int)$row['running']) {
+                    $stoppadeStationer[] = ['station_id' => 0, 'senaste_stopp' => $row['datum']];
+                }
             } catch (\Exception $e) {}
 
             $this->sendSuccess([
@@ -415,44 +408,39 @@ class VdDashboardController {
                     SELECT
                         COALESCE(station_id, 1) AS station_id,
                         COUNT(*) AS total_ibc,
-                        SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
+                        MAX(COALESCE(ibc_ok, 0)) AS ok_ibc,
+                        MAX(COALESCE(ibc_ej_ok, 0)) AS ej_ok_ibc
                     FROM rebotling_ibc
                     WHERE DATE(datum) = :today
-                    GROUP BY COALESCE(station_id, 1)
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY COALESCE(station_id, 1), skiftraknare
                 ";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today' => $today]);
+                // Aggregera per station (summera over skift)
                 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $ibcByStation[(int)$row['station_id']] = $row;
+                    $sid = (int)$row['station_id'];
+                    if (!isset($ibcByStation[$sid])) {
+                        $ibcByStation[$sid] = ['total_ibc' => 0, 'ok_ibc' => 0];
+                    }
+                    $ibcByStation[$sid]['ok_ibc']    += (int)$row['ok_ibc'];
+                    $ibcByStation[$sid]['total_ibc'] += (int)$row['ok_ibc'] + (int)$row['ej_ok_ibc'];
                 }
             } catch (\Exception $e) {}
 
-            // Hamta drifttid per station
-            $driftByStation = [];
+            // Hamta total drifttid (rebotling_onoff har datum + running, ej per station)
+            $totalDrifttidSek = 0;
             try {
-                $sql = "
-                    SELECT
-                        COALESCE(station_id, 1) AS station_id,
-                        SUM(TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )) AS drifttid_sek
-                    FROM rebotling_onoff
-                    WHERE start_time < :to2
-                      AND (stop_time IS NULL OR stop_time > :from2)
-                    GROUP BY COALESCE(station_id, 1)
-                ";
                 $from = $today . ' 00:00:00';
                 $to   = $today . ' 23:59:59';
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
-                    ':from1' => $from, ':to1' => $to,
-                    ':from2' => $from, ':to2' => $to,
-                ]);
-                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $driftByStation[(int)$row['station_id']] = max(0, (int)$row['drifttid_sek']);
-                }
+                $totalDrifttidSek = $this->calcDrifttidSek($from, $to);
             } catch (\Exception $e) {}
+            // Dela drifttid lika mellan stationer (onoff saknar station_id)
+            $driftByStation = [];
+            $stationCount = max(1, count($stationer));
+            foreach ($stationer as $s) {
+                $driftByStation[(int)$s['id']] = (int)($totalDrifttidSek / $stationCount);
+            }
 
             $results = [];
             foreach ($stationer as $s) {

@@ -1,3 +1,31 @@
+## 2026-03-13 Critical backend bug fixes: rebotling_onoff + rebotling_ibc column mismatches
+
+### Problem
+Many controllers used wrong column names for `rebotling_onoff` and `rebotling_ibc`:
+1. **rebotling_onoff**: PLC table uses `datum` + `running` (boolean per row), but 10+ controllers used non-existent `start_time`/`stop_time` columns
+2. **rebotling_ibc**: PLC table uses cumulative `ibc_ok`/`ibc_ej_ok` per skiftraknare, but many controllers referenced non-existent `ok` column
+3. **SkiftjamforelseController**: Used `created_at` instead of `datum` for rebotling_ibc queries
+
+### Fixed controllers (11 files)
+- **SkiftoverlamningController.php** — rewrote all 4 rebotling_onoff queries + 3 rebotling_ibc queries + added calcDrifttidSek helper
+- **OeeBenchmarkController.php** — rewrote calcOeeForPeriod with correct columns + added calcDrifttidSek
+- **SkiftjamforelseController.php** (classes/ + controllers/) — replaced all `created_at` with `datum`
+- **DagligSammanfattningController.php** — rewrote calcOee drifttid + IBC query + added calcDrifttidSek
+- **VdDashboardController.php** — rewrote calcOeeForDay, station OEE, stopped stations check + added calcDrifttidSek
+- **OeeTrendanalysController.php** — rewrote calcOeeForPeriod + calcOeePerStation + added calcDrifttidSek
+- **OeeJamforelseController.php** — rewrote calcOeeForRange + added calcDrifttidSek
+- **OeeWaterfallController.php** — rewrote drifttid + IBC queries + added calcDrifttidSek
+- **DrifttidsTimelineController.php** — rewrote timeline period building from running data
+- **ProduktionsDashboardController.php** — rewrote getDrifttidSek, calcOeeForPeriod, dashboard IBC, station status, alarm, senaste IBC
+
+### Pattern used
+- Drifttid: iterate `datum`/`running` rows, sum time between running=1 and running=0
+- IBC counts: `MAX(ibc_ok)` per skiftraknare, then `SUM()` across shifts
+- Running check: `SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1`
+
+### Remaining (lower priority)
+MaskinhistorikController, RebotlingStationsdetaljController, KapacitetsplaneringController, SkiftrapportController, DagligBriefingController, StatistikOverblickController, GamificationController, KassationsanalysController, ProduktionskalenderController still use `ok` column — these may need fixing in a follow-up.
+
 ## 2026-03-13 Skiftraknare audit across rebotling tables
 
 Comprehensive audit of all code using `skiftraknare` across rebotling_ibc, rebotling_onoff, and rebotling_skiftrapport tables. 93 files reference skiftraknare.

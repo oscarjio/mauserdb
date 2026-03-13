@@ -80,6 +80,23 @@ class OeeWaterfallController {
      * Beräkna OEE-faktorer och förluster för ett datumintervall.
      * Returnerar alla nyckeltal i sekunder + faktorer (0–1).
      */
+    private function calcDrifttidSek(string $from, string $to): int {
+        $stmt = $this->pdo->prepare("
+            SELECT datum, running FROM rebotling_onoff
+            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+        ");
+        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sek = 0; $lastOn = null;
+        foreach ($rows as $r) {
+            $ts = strtotime($r['datum']);
+            if ((int)$r['running'] === 1) { if ($lastOn === null) $lastOn = $ts; }
+            else { if ($lastOn !== null) { $sek += max(0, $ts - $lastOn); $lastOn = null; } }
+        }
+        if ($lastOn !== null) $sek += max(0, min(time(), strtotime($to)) - $lastOn);
+        return $sek;
+    }
+
     private function calcOeeSegments(string $fromDate, string $toDate): array {
         $fromTs   = strtotime($fromDate);
         $toTs     = strtotime($toDate);
@@ -88,36 +105,15 @@ class OeeWaterfallController {
         // -- Total tillgänglig tid (planerad drifttid) --
         $totalTillgangligSek = (int)round($dagCount * self::TILLGANGLIG_TID_PER_DAG_H * 3600);
 
-        // -- DRIFTTID från rebotling_onoff --
+        // -- DRIFTTID från rebotling_onoff (datum + running kolumner) --
         $drifttidSek = 0;
         try {
             $checkOnoff = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
             if ($checkOnoff && $checkOnoff->rowCount() > 0) {
-                $stmt = $this->pdo->prepare("
-                    SELECT SUM(
-                        TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )
-                    ) AS drifttid_sek
-                    FROM rebotling_onoff
-                    WHERE start_time < :to2
-                      AND (stop_time IS NULL OR stop_time > :from2)
-                      AND TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from3),
-                            LEAST(COALESCE(stop_time, NOW()), :to3)
-                          ) > 0
-                ");
-                $stmt->execute([
-                    ':from1' => $fromDate . ' 00:00:00',
-                    ':to1'   => $toDate   . ' 23:59:59',
-                    ':from2' => $fromDate . ' 00:00:00',
-                    ':to2'   => $toDate   . ' 23:59:59',
-                    ':from3' => $fromDate . ' 00:00:00',
-                    ':to3'   => $toDate   . ' 23:59:59',
-                ]);
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                $drifttidSek = max(0, (int)($row['drifttid_sek'] ?? 0));
+                $drifttidSek = $this->calcDrifttidSek(
+                    $fromDate . ' 00:00:00',
+                    $toDate   . ' 23:59:59'
+                );
             }
         } catch (\PDOException $e) {
             error_log('OeeWaterfallController::calcOeeSegments (rebotling_onoff): ' . $e->getMessage());
@@ -178,16 +174,22 @@ class OeeWaterfallController {
         $okIbc    = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    COUNT(*) AS total_ibc,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from AND :to
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from AND :to
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':from' => $fromDate, ':to' => $toDate]);
             $row      = $stmt->fetch(PDO::FETCH_ASSOC);
-            $totalIbc = (int)($row['total_ibc'] ?? 0);
             $okIbc    = (int)($row['ok_ibc']    ?? 0);
+            $totalIbc = $okIbc + (int)($row['ej_ok_ibc'] ?? 0);
         } catch (\PDOException $e) {
             error_log('OeeWaterfallController::calcOeeSegments (rebotling_ibc): ' . $e->getMessage());
         }

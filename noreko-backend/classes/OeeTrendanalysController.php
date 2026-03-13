@@ -107,34 +107,33 @@ class OeeTrendanalysController {
     }
 
     /**
+     * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
+     */
+    private function calcDrifttidSek(string $from, string $to): int {
+        $stmt = $this->pdo->prepare("
+            SELECT datum, running FROM rebotling_onoff
+            WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
+        ");
+        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $sek = 0; $lastOn = null;
+        foreach ($rows as $r) {
+            $ts = strtotime($r['datum']);
+            if ((int)$r['running'] === 1) { if ($lastOn === null) $lastOn = $ts; }
+            else { if ($lastOn !== null) { $sek += max(0, $ts - $lastOn); $lastOn = null; } }
+        }
+        if ($lastOn !== null) $sek += max(0, min(time(), strtotime($to)) - $lastOn);
+        return $sek;
+    }
+
+    /**
      * Berakna OEE for en period (totalt, inte per station).
      */
     private function calcOeeForPeriod(string $from, string $to): array {
-        // Drifttid
-        $sqlOnoff = "
-            SELECT
-                SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ) AS drifttid_sek
-            FROM rebotling_onoff
-            WHERE start_time < :to2
-              AND (stop_time IS NULL OR stop_time > :from2)
-              AND TIMESTAMPDIFF(SECOND,
-                    GREATEST(start_time, :from3),
-                    LEAST(COALESCE(stop_time, NOW()), :to3)
-                  ) > 0
-        ";
-        $stmt = $this->pdo->prepare($sqlOnoff);
-        $stmt->execute([
-            ':from1' => $from . ' 00:00:00', ':to1' => $to . ' 23:59:59',
-            ':from2' => $from . ' 00:00:00', ':to2' => $to . ' 23:59:59',
-            ':from3' => $from . ' 00:00:00', ':to3' => $to . ' 23:59:59',
-        ]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        $drifttidSek = max(0, (int)($row['drifttid_sek'] ?? 0));
+        // Drifttid fran rebotling_onoff (datum + running)
+        $fromDt = $from . ' 00:00:00';
+        $toDt   = $to   . ' 23:59:59';
+        $drifttidSek = $this->calcDrifttidSek($fromDt, $toDt);
 
         // Schemad tid
         $dagCount  = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
@@ -143,18 +142,25 @@ class OeeTrendanalysController {
 
         $tillganglighet = $schemaSek > 0 ? ($drifttidSek / $schemaSek) : 0.0;
 
-        // IBC
+        // IBC via kumulativa PLC-fält
         $sqlIbc = "
-            SELECT COUNT(*) AS total_ibc,
-                   SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-            FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :from AND :to
+            SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
+                   COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
+            FROM (
+                SELECT skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN :from AND :to
+                  AND skiftraknare IS NOT NULL
+                GROUP BY skiftraknare
+            ) sub
         ";
         $stmt = $this->pdo->prepare($sqlIbc);
         $stmt->execute([':from' => $from, ':to' => $to]);
         $ibcRow   = $stmt->fetch(PDO::FETCH_ASSOC);
-        $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
         $okIbc    = (int)($ibcRow['ok_ibc']    ?? 0);
+        $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
 
         $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
@@ -181,51 +187,43 @@ class OeeTrendanalysController {
         $stationer = $this->getStationer();
         $dagCount  = max(1, (int)((strtotime($to) - strtotime($from)) / 86400) + 1);
 
-        // Hamta IBC-data per station
+        // Hamta IBC-data per station via kumulativa PLC-fält
         $sqlIbc = "
             SELECT
                 COALESCE(station_id, 1) AS station_id,
-                COUNT(*) AS total_ibc,
-                SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-            FROM rebotling_ibc
-            WHERE DATE(datum) BETWEEN :from AND :to
-            GROUP BY COALESCE(station_id, 1)
+                SUM(shift_ok) AS ok_ibc,
+                SUM(shift_ej_ok) AS ej_ok_ibc
+            FROM (
+                SELECT station_id, skiftraknare,
+                       MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                       MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                FROM rebotling_ibc
+                WHERE DATE(datum) BETWEEN :from AND :to
+                  AND skiftraknare IS NOT NULL
+                GROUP BY COALESCE(station_id, 1), skiftraknare
+            ) sub
+            GROUP BY station_id
         ";
         $stmt = $this->pdo->prepare($sqlIbc);
         $stmt->execute([':from' => $from, ':to' => $to]);
         $ibcByStation = [];
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $row['total_ibc'] = (int)$row['ok_ibc'] + (int)$row['ej_ok_ibc'];
             $ibcByStation[(int)$row['station_id']] = $row;
         }
 
-        // Hamta drifttid per station (om det finns station_id i rebotling_onoff)
+        // Total drifttid (rebotling_onoff saknar station_id, dela lika)
         $driftByStation = [];
         try {
-            $sqlDrift = "
-                SELECT
-                    COALESCE(station_id, 1) AS station_id,
-                    SUM(
-                        TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )
-                    ) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
-                GROUP BY COALESCE(station_id, 1)
-            ";
-            $stmt = $this->pdo->prepare($sqlDrift);
-            $stmt->execute([
-                ':from1' => $from . ' 00:00:00', ':to1' => $to . ' 23:59:59',
-                ':from2' => $from . ' 00:00:00', ':to2' => $to . ' 23:59:59',
-                ':from3' => $from . ' 00:00:00', ':to3' => $to . ' 23:59:59',
-            ]);
-            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $fromDt = $from . ' 00:00:00';
+            $toDt   = $to   . ' 23:59:59';
+            $totalDrift = $this->calcDrifttidSek($fromDt, $toDt);
+            $stationCount = max(1, count($stationer));
+            foreach ($stationer as $s) {
+                $driftByStation[(int)$s['id']] = (int)($totalDrift / $stationCount);
+            }
+            // Dummy loop to match following code
+            foreach ([] as $row) {
                 $driftByStation[(int)$row['station_id']] = max(0, (int)$row['drifttid_sek']);
             }
         } catch (Exception $e) {

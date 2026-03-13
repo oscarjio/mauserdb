@@ -194,6 +194,44 @@ class SkiftoverlamningController {
         }
     }
 
+    /**
+     * Beräkna drifttid i sekunder från rebotling_onoff (datum + running kolumner).
+     * rebotling_onoff har en rad per statusändring med datum (DATETIME) och running (BOOLEAN).
+     * Itererar över raderna och summerar tid mellan running=1 och running=0.
+     */
+    private function calcDrifttidSek(string $from, string $to): int {
+        $stmt = $this->pdo->prepare("
+            SELECT datum, running
+            FROM rebotling_onoff
+            WHERE datum BETWEEN :from_dt AND :to_dt
+            ORDER BY datum ASC
+        ");
+        $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $drifttidSek = 0;
+        $lastOnTime = null;
+        foreach ($rows as $row) {
+            $ts = strtotime($row['datum']);
+            if ((int)$row['running'] === 1) {
+                if ($lastOnTime === null) {
+                    $lastOnTime = $ts;
+                }
+            } else {
+                if ($lastOnTime !== null) {
+                    $drifttidSek += max(0, $ts - $lastOnTime);
+                    $lastOnTime = null;
+                }
+            }
+        }
+        // Om linjen fortfarande kör vid periodens slut
+        if ($lastOnTime !== null) {
+            $endTs = min(time(), strtotime($to));
+            $drifttidSek += max(0, $endTs - $lastOnTime);
+        }
+        return $drifttidSek;
+    }
+
     // =========================================================================
     // GET run=aktuellt-skift
     // Info om pågående skift: operatör, starttid, antal IBC, OEE, kasserade
@@ -204,21 +242,28 @@ class SkiftoverlamningController {
             $skiftTyp = $this->detectSkiftTyp();
             $tider = $this->skiftTider($skiftTyp);
 
-            // Hämta IBC-data för aktuellt skift
+            // Hämta IBC-data för aktuellt skift via kumulativa PLC-fält
             $stmt = $this->pdo->prepare("
                 SELECT
                     COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
-                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade
-                FROM rebotling_ibc
-                WHERE datum BETWEEN :from_dt AND :to_dt
+                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN :from_dt AND :to_dt
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
             $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            $total    = (int)($ibc['total'] ?? 0);
-            $okAntal  = (int)($ibc['ok_antal'] ?? 0);
+            $okAntal   = (int)($ibc['ok_antal'] ?? 0);
             $kasserade = (int)($ibc['kasserade'] ?? 0);
+            $total     = $okAntal + $kasserade;
 
             // Beräkna tid som gått sedan skift-start
             $startTs = strtotime($tider['start']);
@@ -227,25 +272,10 @@ class SkiftoverlamningController {
             $tidKvarMin = max(0, (strtotime($tider['slut']) - $nu) / 60);
             $ibcPerH = $tidGattMin > 0 ? round($okAntal / ($tidGattMin / 60), 1) : 0.0;
 
-            // Drifttid från rebotling_onoff
+            // Drifttid från rebotling_onoff (datum + running kolumner)
             $drifttidSek = 0;
             try {
-                $dStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(
-                        TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )
-                    ), 0) AS drifttid_sek
-                    FROM rebotling_onoff
-                    WHERE start_time < :to2
-                      AND (stop_time IS NULL OR stop_time > :from2)
-                ");
-                $dStmt->execute([
-                    ':from1' => $tider['start'], ':to1' => $tider['slut'],
-                    ':from2' => $tider['start'], ':to2' => $tider['slut'],
-                ]);
-                $drifttidSek = max(0, (int)($dStmt->fetchColumn() ?? 0));
+                $drifttidSek = $this->calcDrifttidSek($tider['start'], $tider['slut']);
             } catch (\PDOException $e) {
                 error_log('getAktuelltSkift drifttid: ' . $e->getMessage());
             }
@@ -260,8 +290,9 @@ class SkiftoverlamningController {
             // Kolla om linjen körs just nu
             $aktivNu = false;
             try {
-                $aStmt = $this->pdo->query("SELECT COUNT(*) FROM rebotling_onoff WHERE start_time IS NOT NULL AND stop_time IS NULL");
-                $aktivNu = (int)($aStmt->fetchColumn() ?? 0) > 0;
+                $aStmt = $this->pdo->query("SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1");
+                $row = $aStmt->fetch(\PDO::FETCH_ASSOC);
+                $aktivNu = $row ? (bool)$row['running'] : false;
             } catch (\PDOException $e) {}
 
             $this->sendSuccess([
@@ -316,42 +347,33 @@ class SkiftoverlamningController {
 
             $tider = $this->skiftTider($forraTyp, $forraDatum);
 
-            // IBC-data
+            // IBC-data via kumulativa PLC-fält
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
-                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade
-                FROM rebotling_ibc
-                WHERE datum BETWEEN :from_dt AND :to_dt
+                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN :from_dt AND :to_dt
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
             $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            $total    = (int)($ibc['total'] ?? 0);
-            $okAntal  = (int)($ibc['ok_antal'] ?? 0);
+            $okAntal   = (int)($ibc['ok_antal'] ?? 0);
             $kasserade = (int)($ibc['kasserade'] ?? 0);
-            $ibcPerH  = round($okAntal / 8, 1); // 8h skift
+            $total     = $okAntal + $kasserade;
+            $ibcPerH   = round($okAntal / 8, 1); // 8h skift
 
             // Drifttid
             $drifttidSek = 0;
             try {
-                $dStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(
-                        TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )
-                    ), 0) AS drifttid_sek
-                    FROM rebotling_onoff
-                    WHERE start_time < :to2
-                      AND (stop_time IS NULL OR stop_time > :from2)
-                ");
-                $dStmt->execute([
-                    ':from1' => $tider['start'], ':to1' => $tider['slut'],
-                    ':from2' => $tider['start'], ':to2' => $tider['slut'],
-                ]);
-                $drifttidSek = max(0, (int)($dStmt->fetchColumn() ?? 0));
+                $drifttidSek = $this->calcDrifttidSek($tider['start'], $tider['slut']);
             } catch (\PDOException $e) {
                 error_log('getSkiftSammanfattning drifttid: ' . $e->getMessage());
             }
@@ -1003,42 +1025,33 @@ class SkiftoverlamningController {
             $skiftTyp = $this->detectSkiftTyp();
             $tider = $this->skiftTider($skiftTyp);
 
-            // IBC-data for aktuellt skift
+            // IBC-data for aktuellt skift via kumulativa PLC-fält
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
-                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade
-                FROM rebotling_ibc
-                WHERE datum BETWEEN :from_dt AND :to_dt
+                    COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                    COALESCE(SUM(shift_ej_ok), 0) AS kasserade
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN :from_dt AND :to_dt
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
             $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            $total    = (int)($ibc['total'] ?? 0);
-            $okAntal  = (int)($ibc['ok_antal'] ?? 0);
+            $okAntal   = (int)($ibc['ok_antal'] ?? 0);
             $kasserade = (int)($ibc['kasserade'] ?? 0);
+            $total     = $okAntal + $kasserade;
             $kassationPct = $total > 0 ? round(($kasserade / $total) * 100, 2) : 0;
 
-            // Drifttid fran rebotling_onoff
+            // Drifttid fran rebotling_onoff (datum + running kolumner)
             $drifttidSek = 0;
             try {
-                $dStmt = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(
-                        TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )
-                    ), 0) AS drifttid_sek
-                    FROM rebotling_onoff
-                    WHERE start_time < :to2
-                      AND (stop_time IS NULL OR stop_time > :from2)
-                ");
-                $dStmt->execute([
-                    ':from1' => $tider['start'], ':to1' => $tider['slut'],
-                    ':from2' => $tider['start'], ':to2' => $tider['slut'],
-                ]);
-                $drifttidSek = max(0, (int)($dStmt->fetchColumn() ?? 0));
+                $drifttidSek = $this->calcDrifttidSek($tider['start'], $tider['slut']);
             } catch (\PDOException $e) {
                 error_log('getSkiftdata drifttid: ' . $e->getMessage());
             }
@@ -1054,25 +1067,21 @@ class SkiftoverlamningController {
             $stoppAntal = 0;
             $stoppMinuter = 0;
             try {
-                // Antal perioder som slutade under skiftet (= stopp)
+                // Räkna stopp-perioder från running-data (running=0 rader)
                 $sStmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS antal,
-                           COALESCE(SUM(TIMESTAMPDIFF(MINUTE, stop_time, COALESCE(
-                               (SELECT MIN(o2.start_time) FROM rebotling_onoff o2 WHERE o2.start_time > rebotling_onoff.stop_time AND o2.start_time <= :to3),
-                               :to4
-                           ))), 0) AS minuter
+                    SELECT COUNT(*) AS antal
                     FROM rebotling_onoff
-                    WHERE stop_time BETWEEN :from3 AND :to5
+                    WHERE datum BETWEEN :from3 AND :to5
+                      AND running = 0
                 ");
                 $sStmt->execute([
                     ':from3' => $tider['start'],
-                    ':to3' => $tider['slut'],
-                    ':to4' => $tider['slut'],
                     ':to5' => $tider['slut'],
                 ]);
                 $stoppRow = $sStmt->fetch(\PDO::FETCH_ASSOC);
                 $stoppAntal = (int)($stoppRow['antal'] ?? 0);
-                $stoppMinuter = max(0, (int)($stoppRow['minuter'] ?? 0));
+                // Stopptid = planerad tid minus drifttid
+                $stoppMinuter = max(0, round(($planeradSek - $drifttidSek) / 60));
             } catch (\PDOException $e) {
                 // Enkel fallback: total schema minus drifttid
                 $stoppMinuter = max(0, round((($planeradSek - $drifttidSek) / 60)));
