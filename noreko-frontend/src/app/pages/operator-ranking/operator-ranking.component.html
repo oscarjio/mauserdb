@@ -1,0 +1,260 @@
+<div class="container-fluid py-4" style="background:#1a202c; min-height:100vh;">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <h1 class="page-title mb-0">
+      <i class="fas fa-trophy me-2" style="color:#FFD700"></i>Operatorsranking
+    </h1>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+      <button *ngFor="let p of periodOptions"
+              class="period-btn"
+              [class.active]="period === p.value"
+              (click)="setPeriod(p.value)">
+        {{ p.label }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Podium - Top 3 -->
+  <div class="podium-section mb-4" *ngIf="!loadingTopplista && topplistaData?.topplista?.length">
+    <div class="row justify-content-center g-3">
+      <!-- Silver - plats 2 -->
+      <div class="col-12 col-md-4 col-lg-3 order-md-1 order-2" *ngIf="topplistaData!.topplista.length >= 2">
+        <div class="podium-card podium-silver">
+          <div class="podium-medal">
+            <i class="fas fa-medal" style="color:#C0C0C0; font-size:1.5rem"></i>
+          </div>
+          <div class="podium-rank">#2</div>
+          <div class="podium-avatar" style="border-color:#C0C0C0; background:rgba(192,192,192,0.15)">
+            {{ getInitials(topplistaData!.topplista[1].operator_namn) }}
+          </div>
+          <div class="podium-name">{{ topplistaData!.topplista[1].operator_namn }}</div>
+          <div class="podium-poang">{{ topplistaData!.topplista[1].total_poang }}</div>
+          <div class="podium-label">poang</div>
+          <div class="podium-ibc">{{ topplistaData!.topplista[1].total_ibc }} IBC</div>
+        </div>
+      </div>
+      <!-- Guld - plats 1 -->
+      <div class="col-12 col-md-4 col-lg-3 order-md-2 order-1" *ngIf="topplistaData!.topplista.length >= 1">
+        <div class="podium-card podium-gold">
+          <div class="podium-medal">
+            <i class="fas fa-crown" style="color:#FFD700; font-size:2rem"></i>
+          </div>
+          <div class="podium-rank">#1</div>
+          <div class="podium-avatar podium-avatar-gold" style="border-color:#FFD700; background:rgba(255,215,0,0.15)">
+            {{ getInitials(topplistaData!.topplista[0].operator_namn) }}
+          </div>
+          <div class="podium-name">{{ topplistaData!.topplista[0].operator_namn }}</div>
+          <div class="podium-poang podium-poang-gold">{{ topplistaData!.topplista[0].total_poang }}</div>
+          <div class="podium-label">poang</div>
+          <div class="podium-ibc">{{ topplistaData!.topplista[0].total_ibc }} IBC</div>
+        </div>
+      </div>
+      <!-- Brons - plats 3 -->
+      <div class="col-12 col-md-4 col-lg-3 order-md-3 order-3" *ngIf="topplistaData!.topplista.length >= 3">
+        <div class="podium-card podium-bronze">
+          <div class="podium-medal">
+            <i class="fas fa-medal" style="color:#CD7F32; font-size:1.5rem"></i>
+          </div>
+          <div class="podium-rank">#3</div>
+          <div class="podium-avatar" style="border-color:#CD7F32; background:rgba(205,127,50,0.15)">
+            {{ getInitials(topplistaData!.topplista[2].operator_namn) }}
+          </div>
+          <div class="podium-name">{{ topplistaData!.topplista[2].operator_namn }}</div>
+          <div class="podium-poang">{{ topplistaData!.topplista[2].total_poang }}</div>
+          <div class="podium-label">poang</div>
+          <div class="podium-ibc">{{ topplistaData!.topplista[2].total_ibc }} IBC</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div *ngIf="loadingTopplista" class="text-center py-4 mb-4"><span class="loading-spinner"></span></div>
+  <div *ngIf="!loadingTopplista && (!topplistaData?.topplista?.length)" class="text-center py-3 mb-4" style="color:#718096">
+    Inga operatorer med produktion for perioden.
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Totalt producerade IBC</div>
+        <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.total_ibc }}
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Hogsta poang</div>
+        <div class="kpi-value" style="color:#FFD700" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.hogsta_poang }}
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Aktiva operatorer</div>
+        <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.antal_operatorer }}
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Genomsnittlig poang</div>
+        <div class="kpi-value" *ngIf="!loadingSammanfattning && sammanfattning">
+          {{ sammanfattning.avg_poang }}
+        </div>
+        <div *ngIf="loadingSammanfattning"><span class="loading-spinner"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Veckans / Manadens MVP -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="mvp-card" *ngIf="!loadingMvp && mvpData?.mvp">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">
+            <i class="fas fa-star me-2" style="color:#FFD700"></i>
+            {{ mvpTyp === 'vecka' ? 'Veckans' : 'Manadens' }} MVP
+          </h6>
+          <div class="d-flex gap-2">
+            <button class="period-btn" [class.active]="mvpTyp === 'vecka'" (click)="setMvpTyp('vecka')">Vecka</button>
+            <button class="period-btn" [class.active]="mvpTyp === 'manad'" (click)="setMvpTyp('manad')">Manad</button>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-4">
+          <div class="mvp-avatar">
+            {{ getInitials(mvpData!.mvp!.operator_namn) }}
+          </div>
+          <div class="flex-grow-1">
+            <div class="mvp-name">{{ mvpData!.mvp!.operator_namn }}</div>
+            <div class="d-flex gap-4 flex-wrap mt-2">
+              <div class="mvp-stat">
+                <span class="mvp-stat-value">{{ mvpData!.mvp!.total_poang }}</span>
+                <span class="mvp-stat-label">poang</span>
+              </div>
+              <div class="mvp-stat">
+                <span class="mvp-stat-value">{{ mvpData!.mvp!.total_ibc }}</span>
+                <span class="mvp-stat-label">IBC</span>
+              </div>
+              <div class="mvp-stat">
+                <span class="mvp-stat-value">{{ mvpData!.mvp!.ok_pct }}%</span>
+                <span class="mvp-stat-label">kvalitet</span>
+              </div>
+              <div class="mvp-stat" *ngIf="mvpData!.mvp!.streak > 0">
+                <span class="mvp-stat-value">{{ mvpData!.mvp!.streak }}d</span>
+                <span class="mvp-stat-label">streak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="loadingMvp" class="text-center py-3"><span class="loading-spinner"></span></div>
+    </div>
+  </div>
+
+  <!-- Rankingtabell -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="chart-card">
+        <h6 class="mb-3"><i class="fas fa-list-ol me-2"></i>Fullstandig ranking</h6>
+        <div *ngIf="loadingRanking" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="table-responsive" *ngIf="!loadingRanking && rankingData?.ranking?.length">
+          <table class="table table-sm mb-0 ranking-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Namn</th>
+                <th class="text-end">IBC</th>
+                <th class="text-end">Poang</th>
+                <th class="text-end">Kvalitetsbonus</th>
+                <th class="text-end">Tempo-bonus</th>
+                <th class="text-end">Stopp-bonus</th>
+                <th class="text-end">Total bonus</th>
+                <th class="text-center">Streak</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let op of rankingData!.ranking"
+                  [class.row-gold]="op.rank === 1"
+                  [class.row-silver]="op.rank === 2"
+                  [class.row-bronze]="op.rank === 3">
+                <td>
+                  <span class="rank-badge" [style.background]="getMedalBg(op.rank)" [style.color]="getMedalColor(op.rank)">
+                    {{ op.rank }}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="table-avatar" [style.border-color]="getMedalColor(op.rank)">
+                      {{ getInitials(op.operator_namn) }}
+                    </span>
+                    <span>{{ op.operator_namn }}</span>
+                  </div>
+                </td>
+                <td class="text-end">{{ op.total_ibc }}</td>
+                <td class="text-end"><strong class="poang-value">{{ op.total_poang }}</strong></td>
+                <td class="text-end">
+                  <span class="bonus-tag bonus-kvalitet" *ngIf="op.kvalitets_bonus > 0">+{{ op.kvalitets_bonus }}</span>
+                  <span *ngIf="op.kvalitets_bonus === 0" style="color:#718096">0</span>
+                </td>
+                <td class="text-end">
+                  <span class="bonus-tag bonus-tempo" *ngIf="op.tempo_bonus > 0">+{{ op.tempo_bonus }}</span>
+                  <span *ngIf="op.tempo_bonus === 0" style="color:#718096">0</span>
+                </td>
+                <td class="text-end">
+                  <span class="bonus-tag bonus-stopp" *ngIf="op.stopp_bonus > 0">+{{ op.stopp_bonus }}</span>
+                  <span *ngIf="op.stopp_bonus === 0" style="color:#718096">0</span>
+                </td>
+                <td class="text-end"><strong>{{ op.total_bonus }}</strong></td>
+                <td class="text-center">
+                  <span *ngIf="op.streak > 0" [style.color]="getStreakColor(op.streak)">
+                    <i [class]="getStreakEmoji(op.streak)" class="me-1"></i>{{ op.streak }}d
+                  </span>
+                  <span *ngIf="op.streak === 0" style="color:#718096">-</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div *ngIf="!loadingRanking && (!rankingData?.ranking?.length)" class="text-center py-3" style="color:#718096">
+          Ingen rankingdata for perioden.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Poangfordelning chart + Historik chart -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h6 class="mb-3"><i class="fas fa-chart-bar me-2"></i>Poangfordelning per operator</h6>
+        <div *ngIf="loadingPoangfordelning" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="chart-wrapper" *ngIf="!loadingPoangfordelning">
+          <canvas id="poangFordelningChart"></canvas>
+        </div>
+        <div *ngIf="!loadingPoangfordelning && (!poangfordelningData?.chart_data?.length)" class="text-center py-3" style="color:#718096">
+          Ingen data for diagrammet.
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="chart-card">
+        <h6 class="mb-3"><i class="fas fa-chart-line me-2"></i>Top 5 — poang senaste 30 dagar</h6>
+        <div *ngIf="loadingHistorik" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="chart-wrapper" *ngIf="!loadingHistorik">
+          <canvas id="historikChart"></canvas>
+        </div>
+        <div *ngIf="!loadingHistorik && (!historikData?.datasets?.length)" class="text-center py-3" style="color:#718096">
+          Ingen historikdata tillganglig.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

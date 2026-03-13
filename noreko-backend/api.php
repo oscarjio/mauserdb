@@ -210,6 +210,7 @@ $classNameMap = [
     'stopporsak-dashboard'          => 'StopporsakController',
     'tidrapport'                    => 'TidrapportController',
     'oee-trendanalys'               => 'OeeTrendanalysController',
+    'operator-ranking'              => 'OperatorRankingController',
 ];
 
 $actionKey = strtolower($action);

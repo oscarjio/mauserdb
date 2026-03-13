@@ -114,6 +114,7 @@ export const routes: Routes = [
       { path: 'rebotling/produktionsmal-uppfoljning', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktionsmal/produktionsmal.component').then(m => m.RebotlingProduktionsmalPage) },
       { path: 'rebotling/tidrapport', canActivate: [authGuard], loadComponent: () => import('./pages/tidrapport/tidrapport.component').then(m => m.TidrapportPage) },
       { path: 'rebotling/oee-trendanalys', canActivate: [authGuard], loadComponent: () => import('./pages/oee-trendanalys/oee-trendanalys.component').then(m => m.OeeTrendanalysPage) },
+      { path: 'rebotling/operator-ranking', canActivate: [authGuard], loadComponent: () => import('./pages/operator-ranking/operator-ranking.component').then(m => m.OperatorRankingPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

@@ -1,3 +1,31 @@
+## 2026-03-13 Operatorsranking — gamifierad ranking med poang, bonus och MVP
+
+Ny sida `/rebotling/operator-ranking` — gamifierad operatorsranking med poangsystem, bonuskategorier och motiverande element.
+
+- **Backend**: `classes/OperatorRankingController.php` + proxy `controllers/OperatorRankingController.php`, registrerad i `api.php` som `operator-ranking`
+  - `run=sammanfattning` — KPI-kort: total IBC, hogsta poang, antal operatorer, genomsnittlig poang
+  - `run=ranking` — fullstandig rankinglista med alla poangkategorier (produktion, kvalitet, tempo, stopp, streak)
+  - `run=topplista` — top 3 for podium-visning
+  - `run=poangfordelning` — chart-data for stacked horisontell bar chart per operator
+  - `run=historik` — poang per dag senaste 30d for top 5 operatorer (linjediagram)
+  - `run=mvp` — veckans/manadens MVP med toggle
+  - Poangsystem: 10p/IBC + kvalitetsbonus (max 50) + tempo-bonus (IBC/h vs snitt) + stopp-bonus (30/50p) + streak (+5p/dag)
+  - Datakallor: rebotling_ibc, rebotling_data, stopporsak_registreringar, users
+- **Frontend**: Standalone Angular component `pages/operator-ranking/` + `services/operator-ranking.service.ts`
+  - Podium: Top 3 med guld (#FFD700), silver (#C0C0C0), brons (#CD7F32) styling, profilinitialer, kronika/medalj-ikoner
+  - 4 KPI-kort: total IBC, hogsta poang, aktiva operatorer, snittpoang
+  - MVP-sektion: veckans/manadens MVP med highlight-ram, stjarna, toggle vecka/manad
+  - Rankingtabell: alla operatorer med rank-badge, avatar, IBC, poang, kvalitets/tempo/stopp-bonus, streak med eld/blixt-ikoner
+  - Poangfordelning-chart (Chart.js): stacked horisontell bar chart, fargkodad per kategori
+  - Historik-chart (Chart.js): linjediagram top 5 operatorer senaste 30d
+  - Periodselektor: Idag / Denna vecka / Denna manad / 30d
+  - Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy() med try/catch
+- **Routing**: `/rebotling/operator-ranking` med authGuard
+- **Meny**: Tillagd under Rebotling-dropdown med trophy-ikon
+
+---
+
 ## 2026-03-13 Skiftjamforelse-rapport — FM/EM/Natt-jamforelse med radar, trend och best practices
 
 Uppgraderad sida `/rebotling/skiftjamforelse` — jamfor FM/EM/Natt-skift med normaliserade KPI:er.
