@@ -63,12 +63,12 @@ Session #96: Rebotling underhållslogg + Buggjakt — klara.
 Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — klara.
 Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — klara.
 Session #99: Rebotling skiftjämförelse-rapport + Operatörs-ranking med bonus — klara.
-Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — pågår.
+Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [PÅGÅR] **VD Executive Dashboard** — alla kritiska KPI:er på en sida, 10-sekunders överblick (session #100)
-- [PÅGÅR] **Rebotling historisk sammanfattning** — auto-genererad månads-/kvartalsrapport (session #100)
+- [x] **VD Executive Dashboard** — alla kritiska KPI:er på en sida, 10-sekunders överblick (klar #100)
+- [x] **Rebotling historisk sammanfattning** — auto-genererad månads-/kvartalsrapport (klar #100)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
@@ -85,6 +85,6 @@ Worker 2 (OEE-trendanalys förbättrad): Ny sida — OEE per station med breakdo
 Worker 1 (Rebotling skiftjämförelse-rapport): Ny sida — FM/EM/Natt-jämförelse med radar-chart, trendanalys, best practices-identifiering. Backend: SkiftjamforelseController.
 Worker 2 (Operatörs-ranking med bonus): Ny sida — gamifierad ranking med poängsystem (produktion/kvalitet/tempo/stopp), podium top 3, MVP, streak-bonus. Backend: OperatorRankingController.
 
-### 2026-03-13 — Session #100 (pågår)
+### 2026-03-13 — Session #100 (klar)
 Worker 1 (VD Executive Dashboard): Ny sida — alla kritiska KPI:er på en sida: OEE, produktion vs mål, aktiva operatörer, stopp just nu, top 3, stationsstatus, auto-refresh 30s. Backend: VdDashboardController.
 Worker 2 (Rebotling historisk sammanfattning): Ny sida — auto-genererad månads-/kvartalsrapport med text, KPI-jämförelse, trend, top operatörer, stationsöversikt, Pareto stopporsaker, print-CSS. Backend: HistoriskSammanfattningController.
