@@ -217,7 +217,6 @@ class KassationskvotAlarmController {
         );
 
         // --- Idag (00:00 – nu) ---
-        $dagFrom = $today . ' 00:00:00';
         $dag = $this->beraknaKvot(
             "DATE(datum) = :today",
             [':today' => $today]

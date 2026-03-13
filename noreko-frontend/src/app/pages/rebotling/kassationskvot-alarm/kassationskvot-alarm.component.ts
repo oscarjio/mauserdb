@@ -11,7 +11,6 @@ import {
   TimvisTrendData,
   PerSkiftData,
   TopOrsakerData,
-  Troskel,
 } from '../../../services/kassationskvot-alarm.service';
 
 Chart.register(...registerables);
@@ -286,7 +285,7 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
           y: {
             beginAtZero: true,
             max: Math.max(15, (troskel.alarm_procent + 5)),
-            ticks: { color: '#a0aec0', callback: (v) => v + '%' },
+            ticks: { color: '#a0aec0', callback: (v: string | number) => v + '%' },
             grid: { color: 'rgba(255,255,255,0.08)' },
             title: { display: true, text: 'Kassationskvot (%)', color: '#a0aec0', font: { size: 11 } },
           },

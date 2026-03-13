@@ -300,7 +300,7 @@ class MaskinhistorikController {
                 ");
                 $stmt->execute([':station' => $station, ':dag' => $dagStr]);
                 $totalIbc = (int)($stmt->fetchColumn() ?? 0);
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 $totalIbc = 0;
             }
 

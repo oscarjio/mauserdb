@@ -223,7 +223,7 @@ export class MaskinhistorikPage implements OnInit, OnDestroy {
           y: {
             beginAtZero: true,
             position: 'left',
-            ticks: { color: '#a0aec0', callback: (v: any) => v + 'h' },
+            ticks: { color: '#a0aec0', callback: (v: string | number) => v + 'h' },
             grid: { color: 'rgba(255,255,255,0.08)' },
             title: { display: true, text: 'Drifttid (h)', color: '#a0aec0', font: { size: 10 } },
           },
