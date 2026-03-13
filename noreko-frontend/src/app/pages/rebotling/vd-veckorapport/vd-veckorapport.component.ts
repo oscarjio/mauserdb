@@ -71,7 +71,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.dagligChart?.destroy();
+    try { this.dagligChart?.destroy(); } catch (_) {}
     this.dagligChart = null;
   }
 

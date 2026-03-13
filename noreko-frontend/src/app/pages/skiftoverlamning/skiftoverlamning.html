@@ -28,6 +28,17 @@
   <!-- ================================================================== -->
   <div *ngIf="viewMode === 'dashboard'">
 
+    <!-- Laddar dashboard -->
+    <div *ngIf="isLoading" class="text-center py-4">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="text-muted mt-2 mb-0 small">Laddar dashboard...</p>
+    </div>
+
+    <!-- Felmeddelande -->
+    <div *ngIf="loadError" class="alert alert-danger mb-3" role="alert">
+      <i class="fas fa-exclamation-triangle me-2"></i>{{ loadError }}
+    </div>
+
     <!-- ---- SKIFT-STATUS-BANNER ---- -->
     <div class="shift-banner mb-4" *ngIf="aktuelltSkift">
       <div class="shift-banner-header">

@@ -1,3 +1,19 @@
+## 2026-03-13 Buggjakt — session #92-#95 kodgranskning och fixar
+
+Granskade alla nya features fran session #92-#95 och fixade foljande buggar:
+
+1. **vd-veckorapport.component.ts** — Lade till try/catch runt `dagligChart?.destroy()` i `ngOnDestroy()`. Utan detta kan Chart.js kasta undantag vid komponentrivning om chartet ar i ogiltigt tillstand.
+
+2. **VDVeckorapportController.php** — Fixade `session_start()` till `session_start(['read_and_close' => true])` med `session_status()`-check. Utan detta blockerar sessionen parallella requests fran samma anvandare, vilket orsakar langsammare laddning.
+
+3. **skiftoverlamning.ts** — Tog bort oanvand `interval`-import fran rxjs (anvander `setInterval` istallet). Minskad bundle-storlek.
+
+4. **skiftoverlamning.ts** — Lade till null-safe `?.`-operatorer pa alla `res.success`-kontroller (7 st): `loadAktuelltSkift`, `loadSkiftSammanfattning`, `loadOppnaProblem`, `loadSummary`, `loadDetail`, `loadAutoKpis`, `loadChecklista`, `submitForm`. Forhindrar krasch om service returnerar null vid natverksfel.
+
+5. **skiftoverlamning.ts + .html** — Lade till loading-spinner och felmeddelande for dashboard-vy. `isLoading`-flaggan satts vid `loadDashboard()` och aterstalls nar `loadSummary()` svarar. Gor att anvandaren ser att data laddas istallet for tom sida.
+
+---
+
 ## 2026-03-13 Rebotling skiftoverlamning — digital checklista vid skiftbyte (session #95)
 
 Ombyggd sida `/rebotling/skiftoverlamning` — digital checklista vid skiftbyte med realtids-status, KPI-jamforelse och interaktiv checklista.

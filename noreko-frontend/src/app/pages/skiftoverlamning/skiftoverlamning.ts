@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, interval } from 'rxjs';
+import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -112,6 +112,8 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
   // =========================================================================
 
   loadDashboard(): void {
+    this.isLoading = true;
+    this.loadError = '';
     this.loadAktuelltSkift();
     this.loadSkiftSammanfattning();
     this.loadOppnaProblem();
@@ -121,7 +123,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadAktuelltSkift(): void {
     this.svc.getAktuelltSkift().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+      if (res?.success) {
         this.aktuelltSkift = res;
         this.updateTidKvar();
       }
@@ -130,7 +132,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadSkiftSammanfattning(): void {
     this.svc.getSkiftSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+      if (res?.success) {
         this.skiftSammanfattning = res;
       }
     });
@@ -138,7 +140,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadOppnaProblem(): void {
     this.svc.getOppnaProblem().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+      if (res?.success) {
         this.oppnaProblem = res.problem;
       }
     });
@@ -146,19 +148,22 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadSummary(): void {
     this.svc.getSummary().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+      this.isLoading = false;
+      if (res?.success) {
         this.senaste = res.senaste_overlamning;
         this.antalVecka = res.antal_denna_vecka;
         this.snittProduktion = res.snitt_produktion_10;
         this.pagaendeAntal = res.pagaende_problem_antal;
         this.pagaendeProblems = res.pagaende_problem_lista;
+      } else {
+        this.loadError = 'Kunde inte ladda sammanfattningsdata.';
       }
     });
   }
 
   loadHistorik(): void {
     this.svc.getHistorik(10).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+      if (res?.success) {
         this.historikItems = res.items;
       }
     });
@@ -168,12 +173,12 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     this.isLoadingDetail = true;
     this.svc.getDetail(id).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.isLoadingDetail = false;
-      if (res.success && res.item) {
+      if (res?.success && res.item) {
         this.selectedItem = res.item;
         this.viewMode = 'detail';
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        this.toast.error(res.error ?? 'Kunde inte hamta detalj');
+        this.toast.error(res?.error ?? 'Kunde inte hamta detalj');
       }
     });
   }
@@ -182,7 +187,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
     this.isLoadingKpis = true;
     this.svc.getShiftKpis().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.isLoadingKpis = false;
-      if (res.success && res.kpis) {
+      if (res?.success && res.kpis) {
         this.autoKpis = res.kpis;
         this.form.ibc_totalt = res.kpis.ibc_totalt;
         this.form.ibc_per_h = res.kpis.ibc_per_h;
@@ -196,7 +201,7 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
   loadChecklista(): void {
     this.svc.getChecklista().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res.success) {
+      if (res?.success) {
         this.checklista = res.checklista.map(c => ({ ...c }));
         this.form.checklista = this.checklista;
       }
@@ -231,11 +236,11 @@ export class SkiftoverlamningPage implements OnInit, OnDestroy {
 
     this.svc.create(this.form).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.isSubmitting = false;
-      if (res.success) {
+      if (res?.success) {
         this.toast.success('Skiftoverlamning sparad!');
         this.backToDashboard();
       } else {
-        this.toast.error(res.error ?? 'Kunde inte spara');
+        this.toast.error(res?.error ?? 'Kunde inte spara');
       }
     });
   }

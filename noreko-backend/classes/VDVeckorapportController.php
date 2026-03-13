@@ -41,7 +41,9 @@ class VDVeckorapportController {
     }
 
     public function handle(): void {
-        session_start();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
