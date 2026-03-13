@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #98)*
+*Senast uppdaterad: 2026-03-13 (session #99)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -62,23 +62,21 @@ Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
 Session #96: Rebotling underhållslogg + Buggjakt — klara.
 Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — klara.
 Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — klara.
+Session #99: Rebotling skiftjämförelse-rapport + Operatörs-ranking med bonus — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet (klar #98)
-- [x] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, flaskhalsar, prediktion (klar #98)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
-- [ ] **Rebotling skiftjämförelse-rapport** — jämför FM/EM/natt-produktivitet
-- [ ] **Rebotling operatörs-ranking med bonus** — gamifierad ranking + poängsystem
+- [x] **Rebotling skiftjämförelse-rapport** — jämför FM/EM/natt-produktivitet (klar #99)
+- [x] **Rebotling operatörs-ranking med bonus** — gamifierad ranking + poängsystem (klar #99)
 - [ ] **Rebotling historisk sammanfattning** — auto-genererad månads-/kvartalsrapport
+- [ ] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör, tröskellarm
+- [ ] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet, utnyttjandegrad
+- [ ] **VD Executive Dashboard** — alla kritiska KPI:er på en sida, 10-sekunders överblick
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #96 (klar)
-Worker 1 (Rebotling underhållslogg): Ny sida — registrera underhåll per station, planerat/oplanerat, varaktighet, stopporsak-koppling, KPI-kort, bar chart. Backend: UnderhallsloggController + ny DB-tabell.
-Worker 2 (Buggjakt #96): Systematisk granskning av kassationsanalys, skiftöverlämning, stationsdetalj, VD-veckorapport — memory leaks, SQL injection, UX, dark theme.
 
 ### 2026-03-13 — Session #97 (klar)
 Worker 1 (Rebotling produktionsmål-uppföljning): Ny sida — dagliga/veckovisa mål vs utfall, progress-bar per skift, vecko-chart, historik, målhantering. Backend: ProduktionsmalController + ny DB-tabell.
@@ -87,3 +85,7 @@ Worker 2 (Stopporsak-dashboard): Ny sida — Pareto stopp-frekvens, stopptid per
 ### 2026-03-13 — Session #98 (klar)
 Worker 1 (Operatörs-tidrapport): Ny sida — automatisk tidrapport från skiftschema, per-operatör-sammanfattning, arbetstid-chart, detaljlista, CSV-export. Backend: TidrapportController.
 Worker 2 (OEE-trendanalys förbättrad): Ny sida — OEE per station med breakdown, trendlinje med rullande snitt, flaskhalsidentifiering, period-jämförelse, prediktion. Backend: OeeTrendanalysController.
+
+### 2026-03-13 — Session #99 (klar)
+Worker 1 (Rebotling skiftjämförelse-rapport): Ny sida — FM/EM/Natt-jämförelse med radar-chart, trendanalys, best practices-identifiering. Backend: SkiftjamforelseController.
+Worker 2 (Operatörs-ranking med bonus): Ny sida — gamifierad ranking med poängsystem (produktion/kvalitet/tempo/stopp), podium top 3, MVP, streak-bonus. Backend: OperatorRankingController.
