@@ -1,20 +1,41 @@
 <?php
 /**
- * UnderhallsloggController - Underhållslogg för maskiner
+ * UnderhallsloggController - Rebotling underhallslogg per station
  *
- * GET  ?action=underhallslogg&run=categories          → Lista underhållskategorier
- * POST ?action=underhallslogg&run=log                 → Logga ett underhållstillfälle
- * GET  ?action=underhallslogg&run=list                → Lista underhållsposter (med filtrering)
- * GET  ?action=underhallslogg&run=stats               → Sammanfattningsstatistik
- * POST ?action=underhallslogg&run=delete              → Ta bort en post (admin-only)
+ * Endpoints via ?action=underhallslogg&run=XXX:
+ *   GET  run=categories          -> Lista underhallskategorier (bakat compat)
+ *   GET  run=list                -> Lista underhallsposter (filtrerat days/type/category) [bakat compat]
+ *   GET  run=stats               -> Sammanfattningsstatistik [bakat compat]
+ *   POST run=log                 -> Logga underhall (gamla tabellen) [bakat compat]
+ *   POST run=delete              -> Ta bort en post (admin-only) [bakat compat]
+ *
+ *   GET  run=lista               -> Lista rebotling-underhall (station, typ, period)
+ *   GET  run=sammanfattning      -> KPI-kort: totalt denna manad, planerat/oplanerat ratio, snitt tid, station med mest
+ *   GET  run=per-station         -> Underhall grupperat per station
+ *   GET  run=manadschart         -> Planerat vs oplanerat per manad (senaste 6 man)
+ *   POST run=skapa               -> Registrera nytt rebotling-underhall
+ *   POST run=ta-bort             -> Ta bort rebotling-underhallspost
  */
 class UnderhallsloggController {
     private $pdo;
+
+    /** Rebotling-stationer */
+    private const STATIONER = [
+        1 => 'Station 1 - Avtappning',
+        2 => 'Station 2 - Hoglyckspolning',
+        3 => 'Station 3 - Invandlig tvatt',
+        4 => 'Station 4 - Utvandlig tvatt',
+        5 => 'Station 5 - Inspektion',
+        6 => 'Station 6 - Montering',
+        7 => 'Station 7 - Funktionstest',
+        8 => 'Station 8 - Palletering',
+    ];
 
     public function __construct() {
         global $pdo;
         $this->pdo = $pdo;
         $this->ensureTablesExist();
+        $this->ensureRebotlingTable();
     }
 
     public function handle() {
@@ -27,7 +48,7 @@ class UnderhallsloggController {
             }
         }
 
-        // Alla endpoints kräver inloggning
+        // Alla endpoints kraver inloggning
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
             echo json_encode(['success' => false, 'message' => 'Ej inloggad']);
@@ -37,27 +58,35 @@ class UnderhallsloggController {
         $run = trim($_GET['run'] ?? '');
 
         if ($method === 'GET') {
-            if ($run === 'categories') {
-                $this->getCategories();
-            } elseif ($run === 'list') {
-                $this->getList();
-            } elseif ($run === 'stats') {
-                $this->getStats();
-            } else {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig run-parameter']);
+            switch ($run) {
+                // Bakatkompatiblitet (gamla tabellen)
+                case 'categories': $this->getCategories(); return;
+                case 'list':       $this->getList();       return;
+                case 'stats':      $this->getStats();      return;
+
+                // Nya Rebotling-specifika endpoints
+                case 'lista':          $this->getLista();          return;
+                case 'sammanfattning': $this->getSammanfattning(); return;
+                case 'per-station':    $this->getPerStation();     return;
+                case 'manadschart':    $this->getManadsChart();    return;
+                case 'stationer':      $this->getStationer();      return;
+
+                default:
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Okand run-parameter']);
             }
             return;
         }
 
         if ($method === 'POST') {
-            if ($run === 'log') {
-                $this->logUnderhall();
-            } elseif ($run === 'delete') {
-                $this->deleteEntry();
-            } else {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig run-parameter']);
+            switch ($run) {
+                case 'log':     $this->logUnderhall(); return;
+                case 'delete':  $this->deleteEntry();  return;
+                case 'skapa':   $this->skapa();        return;
+                case 'ta-bort': $this->taBort();       return;
+                default:
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Okand run-parameter']);
             }
             return;
         }
@@ -65,6 +94,10 @@ class UnderhallsloggController {
         http_response_code(405);
         echo json_encode(['success' => false, 'message' => 'Ogiltig metod']);
     }
+
+    // =========================================================================
+    // Schema
+    // =========================================================================
 
     private function ensureTablesExist() {
         try {
@@ -91,10 +124,9 @@ class UnderhallsloggController {
                 PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-            // Seed standardkategorier om tabellen är tom
             $count = $this->pdo->query("SELECT COUNT(*) FROM underhall_kategorier")->fetchColumn();
             if ((int)$count === 0) {
-                $defaults = ['Mekaniskt', 'Elektriskt', 'Hydraulik', 'Pneumatik', 'Rengöring', 'Kalibrering', 'Annat'];
+                $defaults = ['Mekaniskt', 'Elektriskt', 'Hydraulik', 'Pneumatik', 'Rengoring', 'Kalibrering', 'Annat'];
                 $stmt = $this->pdo->prepare("INSERT INTO underhall_kategorier (namn) VALUES (?)");
                 foreach ($defaults as $namn) {
                     $stmt->execute([$namn]);
@@ -105,6 +137,381 @@ class UnderhallsloggController {
         }
     }
 
+    private function ensureRebotlingTable() {
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'rebotling_underhallslogg'"
+            )->fetchColumn();
+            if (!$check) {
+                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_underhallslogg.sql');
+                if ($sql) {
+                    $this->pdo->exec($sql);
+                }
+            }
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController ensureRebotlingTable: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
+    private function stationNamn(int $id): string {
+        return self::STATIONER[$id] ?? "Station {$id}";
+    }
+
+    private function sendSuccess(array $data): void {
+        echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
+    }
+
+    private function sendError(string $message, int $code = 400): void {
+        http_response_code($code);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
+    }
+
+    // =========================================================================
+    // GET run=stationer — lista rebotling-stationer
+    // =========================================================================
+
+    private function getStationer(): void {
+        $list = [];
+        foreach (self::STATIONER as $id => $namn) {
+            $list[] = ['id' => $id, 'namn' => $namn];
+        }
+        $this->sendSuccess(['stationer' => $list]);
+    }
+
+    // =========================================================================
+    // GET run=lista — lista rebotling-underhall
+    // Params: station, typ, from, to, limit
+    // =========================================================================
+
+    private function getLista(): void {
+        try {
+            $where  = [];
+            $params = [];
+
+            $station = isset($_GET['station']) ? (int)$_GET['station'] : 0;
+            if ($station > 0) {
+                $where[]  = 'station_id = ?';
+                $params[] = $station;
+            }
+
+            $typ = trim($_GET['typ'] ?? '');
+            if (in_array($typ, ['planerat', 'oplanerat'], true)) {
+                $where[]  = 'typ = ?';
+                $params[] = $typ;
+            }
+
+            $from = trim($_GET['from'] ?? '');
+            $to   = trim($_GET['to'] ?? '');
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
+                $where[]  = 'datum >= ?';
+                $params[] = $from . ' 00:00:00';
+            }
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                $where[]  = 'datum <= ?';
+                $params[] = $to . ' 23:59:59';
+            }
+
+            $whereSql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
+            $limit = max(1, min(200, (int)($_GET['limit'] ?? 50)));
+
+            $stmt = $this->pdo->prepare(
+                "SELECT id, station_id, typ, beskrivning, varaktighet_min, stopporsak,
+                        utford_av, datum, skapad
+                 FROM rebotling_underhallslogg
+                 {$whereSql}
+                 ORDER BY datum DESC
+                 LIMIT {$limit}"
+            );
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $items = [];
+            foreach ($rows as $r) {
+                $items[] = [
+                    'id'              => (int)$r['id'],
+                    'station_id'      => (int)$r['station_id'],
+                    'station_namn'    => $this->stationNamn((int)$r['station_id']),
+                    'typ'             => $r['typ'],
+                    'beskrivning'     => $r['beskrivning'],
+                    'varaktighet_min' => (int)$r['varaktighet_min'],
+                    'stopporsak'      => $r['stopporsak'],
+                    'utford_av'       => $r['utford_av'],
+                    'datum'           => $r['datum'],
+                    'skapad'          => $r['skapad'],
+                ];
+            }
+
+            $this->sendSuccess(['items' => $items, 'antal' => count($items)]);
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController getLista: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta underhallslista', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=sammanfattning — KPI-kort
+    // =========================================================================
+
+    private function getSammanfattning(): void {
+        try {
+            $monthStart = date('Y-m-01 00:00:00');
+
+            // Totalt denna manad
+            $stmt = $this->pdo->prepare(
+                "SELECT COUNT(*) AS totalt,
+                        COALESCE(SUM(varaktighet_min), 0) AS total_tid,
+                        COALESCE(SUM(CASE WHEN typ = 'planerat' THEN 1 ELSE 0 END), 0) AS planerat,
+                        COALESCE(SUM(CASE WHEN typ = 'oplanerat' THEN 1 ELSE 0 END), 0) AS oplanerat
+                 FROM rebotling_underhallslogg
+                 WHERE datum >= ?"
+            );
+            $stmt->execute([$monthStart]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            $totalt   = (int)$row['totalt'];
+            $totalTid = (int)$row['total_tid'];
+            $planerat = (int)$row['planerat'];
+            $oplanerat = (int)$row['oplanerat'];
+
+            // Snitt tid per underhall
+            $snittTid = $totalt > 0 ? round($totalTid / $totalt, 1) : 0;
+
+            // Planerat vs oplanerat ratio
+            $planeratPct  = $totalt > 0 ? round(($planerat / $totalt) * 100, 1) : 0;
+            $oplaneratPct = $totalt > 0 ? round(($oplanerat / $totalt) * 100, 1) : 0;
+
+            // Station med mest underhall denna manad
+            $topStmt = $this->pdo->prepare(
+                "SELECT station_id, COUNT(*) AS antal
+                 FROM rebotling_underhallslogg
+                 WHERE datum >= ?
+                 GROUP BY station_id
+                 ORDER BY antal DESC
+                 LIMIT 1"
+            );
+            $topStmt->execute([$monthStart]);
+            $topRow = $topStmt->fetch(\PDO::FETCH_ASSOC);
+
+            $topStation = null;
+            if ($topRow) {
+                $topStation = [
+                    'station_id'   => (int)$topRow['station_id'],
+                    'station_namn' => $this->stationNamn((int)$topRow['station_id']),
+                    'antal'        => (int)$topRow['antal'],
+                ];
+            }
+
+            $this->sendSuccess([
+                'totalt_denna_manad' => $totalt,
+                'total_tid_min'      => $totalTid,
+                'planerat_antal'     => $planerat,
+                'oplanerat_antal'    => $oplanerat,
+                'planerat_pct'       => $planeratPct,
+                'oplanerat_pct'      => $oplaneratPct,
+                'snitt_tid_min'      => $snittTid,
+                'top_station'        => $topStation,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController getSammanfattning: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta sammanfattning', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=per-station — underhall grupperat per station
+    // =========================================================================
+
+    private function getPerStation(): void {
+        try {
+            $days = max(1, min(365, (int)($_GET['days'] ?? 30)));
+            $since = date('Y-m-d H:i:s', strtotime("-{$days} days"));
+
+            $stmt = $this->pdo->prepare(
+                "SELECT station_id,
+                        COUNT(*) AS antal,
+                        COALESCE(SUM(varaktighet_min), 0) AS total_tid,
+                        COALESCE(SUM(CASE WHEN typ = 'planerat' THEN 1 ELSE 0 END), 0) AS planerat,
+                        COALESCE(SUM(CASE WHEN typ = 'oplanerat' THEN 1 ELSE 0 END), 0) AS oplanerat
+                 FROM rebotling_underhallslogg
+                 WHERE datum >= ?
+                 GROUP BY station_id
+                 ORDER BY antal DESC"
+            );
+            $stmt->execute([$since]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $stationer = [];
+            foreach ($rows as $r) {
+                $stationer[] = [
+                    'station_id'   => (int)$r['station_id'],
+                    'station_namn' => $this->stationNamn((int)$r['station_id']),
+                    'antal'        => (int)$r['antal'],
+                    'total_tid'    => (int)$r['total_tid'],
+                    'planerat'     => (int)$r['planerat'],
+                    'oplanerat'    => (int)$r['oplanerat'],
+                ];
+            }
+
+            $this->sendSuccess(['stationer' => $stationer, 'days' => $days]);
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController getPerStation: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta per-station-data', 500);
+        }
+    }
+
+    // =========================================================================
+    // GET run=manadschart — planerat vs oplanerat per manad (senaste 6 man)
+    // =========================================================================
+
+    private function getManadsChart(): void {
+        try {
+            $months = max(1, min(12, (int)($_GET['months'] ?? 6)));
+            $labels   = [];
+            $planerat = [];
+            $oplanerat = [];
+
+            for ($i = $months - 1; $i >= 0; $i--) {
+                $start = date('Y-m-01', strtotime("-{$i} months"));
+                $end   = date('Y-m-t 23:59:59', strtotime($start));
+                $label = date('Y-m', strtotime($start));
+
+                $stmt = $this->pdo->prepare(
+                    "SELECT
+                        COALESCE(SUM(CASE WHEN typ = 'planerat' THEN 1 ELSE 0 END), 0) AS p,
+                        COALESCE(SUM(CASE WHEN typ = 'oplanerat' THEN 1 ELSE 0 END), 0) AS o
+                     FROM rebotling_underhallslogg
+                     WHERE datum >= ? AND datum <= ?"
+                );
+                $stmt->execute([$start, $end]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+                $labels[]    = $label;
+                $planerat[]  = (int)$row['p'];
+                $oplanerat[] = (int)$row['o'];
+            }
+
+            $this->sendSuccess([
+                'labels'    => $labels,
+                'planerat'  => $planerat,
+                'oplanerat' => $oplanerat,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController getManadsChart: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta manadsdata', 500);
+        }
+    }
+
+    // =========================================================================
+    // POST run=skapa — registrera nytt rebotling-underhall
+    // =========================================================================
+
+    private function skapa(): void {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            if (!is_array($data)) {
+                $this->sendError('Ogiltig JSON-data');
+                return;
+            }
+
+            $stationId     = max(0, (int)($data['station_id'] ?? 0));
+            $typ           = $data['typ'] ?? '';
+            $beskrivning   = mb_substr(strip_tags(trim($data['beskrivning'] ?? '')), 0, 5000);
+            $varaktighetMin = max(0, (int)($data['varaktighet_min'] ?? 0));
+            $stopporsak    = mb_substr(strip_tags(trim($data['stopporsak'] ?? '')), 0, 255);
+            $utfordAv      = mb_substr(strip_tags(trim($data['utford_av'] ?? '')), 0, 100);
+            $datum         = trim($data['datum'] ?? '');
+
+            // Fallback: hamta username fran session
+            if (empty($utfordAv)) {
+                $utfordAv = $_SESSION['username'] ?? 'Okand';
+            }
+
+            if (!in_array($typ, ['planerat', 'oplanerat'], true)) {
+                $this->sendError('Typ maste vara planerat eller oplanerat');
+                return;
+            }
+
+            if ($varaktighetMin <= 0) {
+                $this->sendError('Varaktighet maste vara storre an 0');
+                return;
+            }
+
+            // Parsear datum
+            if (preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/', $datum)) {
+                $datum = date('Y-m-d H:i:s', strtotime($datum));
+            } elseif (preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
+                $datum = $datum . ' ' . date('H:i:s');
+            } else {
+                $datum = date('Y-m-d H:i:s');
+            }
+
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO rebotling_underhallslogg
+                    (station_id, typ, beskrivning, varaktighet_min, stopporsak, utford_av, datum)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $stationId,
+                $typ,
+                $beskrivning ?: null,
+                $varaktighetMin,
+                $stopporsak ?: null,
+                $utfordAv,
+                $datum,
+            ]);
+
+            $newId = (int)$this->pdo->lastInsertId();
+
+            $this->sendSuccess([
+                'id'      => $newId,
+                'message' => 'Underhall registrerat',
+            ]);
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController skapa: ' . $e->getMessage());
+            $this->sendError('Kunde inte spara underhall', 500);
+        }
+    }
+
+    // =========================================================================
+    // POST run=ta-bort — ta bort rebotling-underhallspost
+    // =========================================================================
+
+    private function taBort(): void {
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $id = (int)($data['id'] ?? 0);
+            if ($id <= 0) {
+                $this->sendError('Ogiltigt ID');
+                return;
+            }
+
+            $check = $this->pdo->prepare("SELECT id FROM rebotling_underhallslogg WHERE id = ?");
+            $check->execute([$id]);
+            if (!$check->fetch()) {
+                $this->sendError('Post hittades inte', 404);
+                return;
+            }
+
+            $stmt = $this->pdo->prepare("DELETE FROM rebotling_underhallslogg WHERE id = ?");
+            $stmt->execute([$id]);
+
+            $this->sendSuccess(['message' => 'Post borttagen']);
+        } catch (\PDOException $e) {
+            error_log('UnderhallsloggController taBort: ' . $e->getMessage());
+            $this->sendError('Kunde inte ta bort post', 500);
+        }
+    }
+
+    // =========================================================================
+    // Legacy endpoints (backward compatibility)
+    // =========================================================================
+
     private function getCategories() {
         try {
             $stmt = $this->pdo->query(
@@ -114,7 +521,7 @@ class UnderhallsloggController {
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController getCategories: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta kategorier']);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hamta kategorier']);
         }
     }
 
@@ -132,7 +539,6 @@ class UnderhallsloggController {
             $varaktighetMin = intval($data['varaktighet_min'] ?? 0);
             $kommentar      = mb_substr(strip_tags(trim($data['kommentar'] ?? '')), 0, 2000);
             $maskin         = mb_substr(strip_tags(trim($data['maskin'] ?? 'Rebotling')), 0, 100);
-            $userId         = intval($data['user_id'] ?? $_SESSION['user_id']);
 
             if (empty($kategori)) {
                 http_response_code(400);
@@ -142,13 +548,13 @@ class UnderhallsloggController {
 
             if (!in_array($typ, ['planerat', 'oplanerat'], true)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig typ — ange planerat eller oplanerat']);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig typ']);
                 return;
             }
 
             if ($varaktighetMin <= 0) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Varaktighet måste vara större än 0']);
+                echo json_encode(['success' => false, 'message' => 'Varaktighet maste vara storre an 0']);
                 return;
             }
 
@@ -210,7 +616,7 @@ class UnderhallsloggController {
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController getList: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta underhallslogg']);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hamta underhallslogg']);
         }
     }
 
@@ -218,7 +624,6 @@ class UnderhallsloggController {
         try {
             $days = max(1, min(365, intval($_GET['days'] ?? 30)));
 
-            // Totalt antal och tid
             $stmt = $this->pdo->prepare(
                 "SELECT COUNT(*) AS totalt_antal,
                         COALESCE(SUM(varaktighet_min), 0) AS total_tid_min,
@@ -230,20 +635,17 @@ class UnderhallsloggController {
             $stmt->execute([$days]);
             $totals = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            $totaltAntal   = (int)$totals['totalt_antal'];
-            $totalTidMin   = (int)$totals['total_tid_min'];
-            $planeratAntal = (int)$totals['planerat_antal'];
+            $totaltAntal    = (int)$totals['totalt_antal'];
+            $totalTidMin    = (int)$totals['total_tid_min'];
+            $planeratAntal  = (int)$totals['planerat_antal'];
             $oplaneratAntal = (int)$totals['oplanerat_antal'];
 
-            // Veckor i perioden
             $veckor = max(1, round($days / 7));
             $snittPerVecka = $totaltAntal > 0 ? round($totaltAntal / $veckor, 1) : 0;
 
-            // Procentandelar
             $planeratPct  = $totaltAntal > 0 ? round(($planeratAntal / $totaltAntal) * 100, 1) : 0;
             $oplaneratPct = $totaltAntal > 0 ? round(($oplaneratAntal / $totaltAntal) * 100, 1) : 0;
 
-            // Topp-kategorier
             $stmtKat = $this->pdo->prepare(
                 "SELECT kategori, COUNT(*) AS antal, SUM(varaktighet_min) AS total_min
                  FROM underhallslogg
@@ -256,7 +658,7 @@ class UnderhallsloggController {
             $topKategorier = $stmtKat->fetchAll(\PDO::FETCH_ASSOC);
 
             echo json_encode([
-                'success'       => true,
+                'success' => true,
                 'data' => [
                     'totalt_antal'    => $totaltAntal,
                     'total_tid_min'   => $totalTidMin,
@@ -271,7 +673,7 @@ class UnderhallsloggController {
         } catch (\PDOException $e) {
             error_log('UnderhallsloggController getStats: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Kunde inte hämta statistik']);
+            echo json_encode(['success' => false, 'message' => 'Kunde inte hamta statistik']);
         }
     }
 
@@ -280,7 +682,7 @@ class UnderhallsloggController {
             $role = $_SESSION['role'] ?? '';
             if ($role !== 'admin') {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Åtkomst nekad — kräver admin']);
+                echo json_encode(['success' => false, 'message' => 'Atkomst nekad — kraver admin']);
                 return;
             }
 

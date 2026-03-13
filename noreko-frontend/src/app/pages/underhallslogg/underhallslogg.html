@@ -2,289 +2,462 @@
   <div class="container-fluid py-4">
 
     <!-- Rubrik -->
-    <div class="row mb-4">
-      <div class="col">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div>
         <h2 class="page-title">
           <i class="fas fa-tools me-2 text-warning"></i>Underhallslogg
         </h2>
-        <p class="page-subtitle">Logga planerat och oplanerat underhall for maskiner</p>
+        <p class="page-subtitle">Registrera och folj upp underhall per station — planerat vs oplanerat</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button *ngIf="activeTab === 'rebotling' && loggedIn" class="btn-spara-sm" (click)="toggleForm()">
+          <i class="fas" [class.fa-plus]="!showForm" [class.fa-times]="showForm"></i>
+          {{ showForm ? 'Stang' : 'Registrera underhall' }}
+        </button>
+        <button class="btn-refresh" (click)="refreshAll()">
+          <i class="fas fa-sync-alt"></i>
+        </button>
       </div>
     </div>
 
-    <!-- Registreringsformular -->
-    <div class="row mb-4">
-      <div class="col-12 col-lg-6">
-        <div class="card-dark">
-          <div class="card-dark-header">
-            <i class="fas fa-plus-circle me-2 text-success"></i>Registrera underhall
+    <!-- Tabs -->
+    <div class="tab-bar mb-4">
+      <button class="tab-btn" [class.active]="activeTab === 'rebotling'" (click)="switchTab('rebotling')">
+        <i class="fas fa-industry me-1"></i>Rebotling-stationer
+      </button>
+      <button class="tab-btn" [class.active]="activeTab === 'general'" (click)="switchTab('general')">
+        <i class="fas fa-clipboard-list me-1"></i>Generell logg
+      </button>
+    </div>
+
+    <!-- ================================================================== -->
+    <!-- REBOTLING TAB                                                       -->
+    <!-- ================================================================== -->
+    <div *ngIf="activeTab === 'rebotling'">
+
+      <!-- KPI-kort (4 st) -->
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon text-info"><i class="fas fa-wrench"></i></div>
+            <div class="stat-value">{{ kpi?.totalt_denna_manad ?? 0 }}</div>
+            <div class="stat-label">Underhall denna manad</div>
           </div>
-          <div class="card-dark-body">
-
-            <div class="alert-success-msg" *ngIf="successMessage">
-              <i class="fas fa-check-circle me-2"></i>{{ successMessage }}
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon text-purple"><i class="fas fa-balance-scale"></i></div>
+            <div class="stat-value">
+              <span class="text-success small-pct">{{ kpi?.planerat_pct ?? 0 }}%</span>
+              <span class="stat-sep">/</span>
+              <span class="text-danger small-pct">{{ kpi?.oplanerat_pct ?? 0 }}%</span>
             </div>
-            <div class="alert-error-msg" *ngIf="errorMessage">
-              <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+            <div class="stat-label">Planerat / Oplanerat</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon text-warning"><i class="fas fa-clock"></i></div>
+            <div class="stat-value">{{ kpi ? formatTid(kpi.snitt_tid_min) : '0 min' }}</div>
+            <div class="stat-label">Snitt tid per underhall</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="stat-card">
+            <div class="stat-icon text-danger"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="stat-value stat-value-sm">{{ kpi?.top_station?.station_namn ?? '--' }}</div>
+            <div class="stat-label">
+              <span *ngIf="kpi?.top_station">{{ kpi!.top_station!.antal }} underhall</span>
+              <span *ngIf="!kpi?.top_station">Inget underhall</span>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Kategori -->
-            <div class="form-group mb-3">
-              <label class="form-label-dark">Kategori</label>
-              <select class="form-control-dark" [(ngModel)]="formKategori">
-                <option value="">-- Valj kategori --</option>
-                <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+      <!-- Registreringsformular (inline, visas vid klick) -->
+      <div *ngIf="showForm" class="card-dark mb-4">
+        <div class="card-dark-header">
+          <i class="fas fa-plus-circle me-2 text-success"></i>Registrera nytt underhall
+        </div>
+        <div class="card-dark-body">
+
+          <div class="alert-error-msg" *ngIf="errorMessage">
+            <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+          </div>
+
+          <div class="row g-3">
+            <!-- Station -->
+            <div class="col-12 col-md-4">
+              <label class="form-label-dark">Station</label>
+              <select class="form-control-dark" [(ngModel)]="formStationId">
+                <option [ngValue]="0">-- Valj station --</option>
+                <option *ngFor="let s of stationer" [ngValue]="s.id">{{ s.namn }}</option>
               </select>
             </div>
 
             <!-- Typ -->
-            <div class="form-group mb-3">
+            <div class="col-12 col-md-4">
               <label class="form-label-dark">Typ av underhall</label>
               <div class="radio-group">
                 <label class="radio-option" [class.selected]="formTyp === 'planerat'">
-                  <input type="radio" name="typ" value="planerat" [(ngModel)]="formTyp">
+                  <input type="radio" name="formTyp" value="planerat" [(ngModel)]="formTyp">
                   <i class="fas fa-calendar-check me-1 text-success"></i>Planerat
                 </label>
                 <label class="radio-option" [class.selected]="formTyp === 'oplanerat'">
-                  <input type="radio" name="typ" value="oplanerat" [(ngModel)]="formTyp">
+                  <input type="radio" name="formTyp" value="oplanerat" [(ngModel)]="formTyp">
                   <i class="fas fa-exclamation-triangle me-1 text-danger"></i>Oplanerat
                 </label>
               </div>
             </div>
 
+            <!-- Datum -->
+            <div class="col-12 col-md-4">
+              <label class="form-label-dark">Datum</label>
+              <input type="date" class="form-control-dark" [(ngModel)]="formDatum">
+            </div>
+
             <!-- Varaktighet -->
-            <div class="form-group mb-3">
+            <div class="col-12 col-md-3">
               <label class="form-label-dark">Varaktighet (minuter)</label>
-              <input
-                type="number"
-                class="form-control-dark"
-                [(ngModel)]="formVaraktighet"
-                placeholder="T.ex. 30"
-                min="1"
-                max="9999"
-              >
+              <input type="number" class="form-control-dark" [(ngModel)]="formVaraktighet" placeholder="T.ex. 30" min="1" max="9999">
             </div>
 
-            <!-- Maskin -->
-            <div class="form-group mb-3">
-              <label class="form-label-dark">Maskin</label>
-              <input
-                type="text"
-                class="form-control-dark"
-                [(ngModel)]="formMaskin"
-                placeholder="Rebotling"
-                maxlength="100"
-              >
+            <!-- Stopporsak -->
+            <div class="col-12 col-md-3">
+              <label class="form-label-dark">Stopporsak <span class="text-muted">(valfritt)</span></label>
+              <input type="text" class="form-control-dark" [(ngModel)]="formStopporsak" placeholder="T.ex. Lagerhaveri" maxlength="255">
             </div>
 
-            <!-- Kommentar -->
-            <div class="form-group mb-3">
-              <label class="form-label-dark">Kommentar <span class="text-muted">(valfritt)</span></label>
-              <textarea
-                class="form-control-dark"
-                [(ngModel)]="formKommentar"
-                rows="3"
-                placeholder="Beskriv vad som gjordes..."
-                maxlength="2000"
-              ></textarea>
+            <!-- Utford av -->
+            <div class="col-12 col-md-3">
+              <label class="form-label-dark">Utford av</label>
+              <input type="text" class="form-control-dark" [(ngModel)]="formUtfordAv" maxlength="100">
             </div>
 
-            <!-- Spara-knapp -->
-            <button
-              class="btn-spara"
-              (click)="spara()"
-              [disabled]="submitting"
-            >
-              <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2" role="status"></span>
+            <!-- Beskrivning -->
+            <div class="col-12">
+              <label class="form-label-dark">Beskrivning <span class="text-muted">(valfritt)</span></label>
+              <textarea class="form-control-dark" [(ngModel)]="formBeskrivning" rows="2" placeholder="Beskriv vad som gjordes..." maxlength="5000"></textarea>
+            </div>
+          </div>
+
+          <div class="mt-3">
+            <button class="btn-spara" (click)="spara()" [disabled]="submitting">
+              <span *ngIf="submitting" class="spinner-border spinner-border-sm me-2"></span>
               <i *ngIf="!submitting" class="fas fa-save me-2"></i>
               {{ submitting ? 'Sparar...' : 'Spara underhall' }}
             </button>
-
           </div>
         </div>
       </div>
 
-      <!-- Sammanfattningskort -->
-      <div class="col-12 col-lg-6">
-        <div class="row g-3">
-          <div class="col-6">
-            <div class="stat-card">
-              <div class="stat-icon text-info"><i class="fas fa-clipboard-list"></i></div>
-              <div class="stat-value">{{ stats?.totalt_antal ?? 0 }}</div>
-              <div class="stat-label">Totalt underhall</div>
-              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
-            </div>
+      <!-- Per-station tabell -->
+      <div class="card-dark mb-4" *ngIf="perStation.length > 0">
+        <div class="card-dark-header d-flex align-items-center gap-2">
+          <span><i class="fas fa-chart-bar me-2 text-info"></i>Underhall per station</span>
+          <select class="filter-select ms-auto" [(ngModel)]="perStationDays" (change)="onPerStationDaysChange()">
+            <option [value]="7">7 dagar</option>
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+        </div>
+        <div class="card-dark-body p-0">
+          <div class="table-responsive">
+            <table class="underhall-table">
+              <thead>
+                <tr>
+                  <th>Station</th>
+                  <th class="text-end">Antal</th>
+                  <th class="text-end">Total tid</th>
+                  <th class="text-end">Planerat</th>
+                  <th class="text-end">Oplanerat</th>
+                  <th style="width:35%">Fordelning</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of perStation">
+                  <td class="fw-500">{{ s.station_namn }}</td>
+                  <td class="text-end">{{ s.antal }}</td>
+                  <td class="text-end">{{ formatTid(s.total_tid) }}</td>
+                  <td class="text-end text-success">{{ s.planerat }}</td>
+                  <td class="text-end text-danger">{{ s.oplanerat }}</td>
+                  <td>
+                    <div class="progress-bar-outer">
+                      <div class="progress-bar-inner bg-success" [style.width.%]="s.antal > 0 ? (s.planerat / s.antal) * 100 : 0"></div>
+                      <div class="progress-bar-inner bg-danger" [style.width.%]="s.antal > 0 ? (s.oplanerat / s.antal) * 100 : 0"></div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="col-6">
-            <div class="stat-card">
-              <div class="stat-icon text-warning"><i class="fas fa-clock"></i></div>
-              <div class="stat-value">{{ stats ? formatTidmar(stats.total_tid_min) : '0 min' }}</div>
-              <div class="stat-label">Total tid</div>
-              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
-            </div>
+        </div>
+      </div>
+
+      <!-- Chart: Planerat vs oplanerat per manad -->
+      <div class="card-dark mb-4">
+        <div class="card-dark-header">
+          <i class="fas fa-chart-bar me-2 text-success"></i>Planerat vs Oplanerat per manad (senaste 6 man)
+        </div>
+        <div class="card-dark-body">
+          <div class="chart-container">
+            <canvas #manadChart></canvas>
           </div>
-          <div class="col-6">
-            <div class="stat-card">
-              <div class="stat-icon text-success"><i class="fas fa-chart-bar"></i></div>
-              <div class="stat-value">{{ stats?.snitt_per_vecka ?? 0 }}</div>
-              <div class="stat-label">Snitt per vecka</div>
-              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
-            </div>
+          <div *ngIf="!chartData || (chartData.planerat.length === 0)" class="text-center text-muted py-3">
+            <i class="fas fa-chart-bar me-2" style="opacity:0.3"></i>Ingen data att visa
           </div>
-          <div class="col-6">
-            <div class="stat-card">
-              <div class="stat-icon text-purple"><i class="fas fa-balance-scale"></i></div>
-              <div class="stat-value">
-                <span class="text-success">{{ stats?.planerat_pct ?? 0 }}%</span>
-                <span class="stat-sep">/</span>
-                <span class="text-danger">{{ stats?.oplanerat_pct ?? 0 }}%</span>
-              </div>
-              <div class="stat-label">Planerat / Oplanerat</div>
-              <div class="stat-period">senaste {{ statsDays }} dagarna</div>
-            </div>
+        </div>
+      </div>
+
+      <!-- Underhallslista (filtrerbar) -->
+      <div class="card-dark">
+        <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
+          <span><i class="fas fa-history me-2"></i>Underhallsposter</span>
+
+          <select class="filter-select" [(ngModel)]="filterStation" (change)="onFilterChange()">
+            <option [ngValue]="0">Alla stationer</option>
+            <option *ngFor="let s of stationer" [ngValue]="s.id">{{ s.namn }}</option>
+          </select>
+
+          <select class="filter-select" [(ngModel)]="filterTyp" (change)="onFilterChange()">
+            <option value="alla">Alla typer</option>
+            <option value="planerat">Planerat</option>
+            <option value="oplanerat">Oplanerat</option>
+          </select>
+
+          <input type="date" class="filter-input" [(ngModel)]="filterFrom" (change)="onFilterChange()" placeholder="Fran">
+          <input type="date" class="filter-input" [(ngModel)]="filterTo" (change)="onFilterChange()" placeholder="Till">
+
+          <button class="btn-export ms-auto" (click)="exportCSV()" [disabled]="items.length === 0">
+            <i class="fas fa-file-csv me-1"></i>CSV
+          </button>
+        </div>
+
+        <div class="card-dark-body">
+          <div *ngIf="loadingItems" class="text-center py-4">
+            <span class="spinner-border spinner-border-sm text-info me-2"></span>Laddar...
+          </div>
+
+          <div *ngIf="!loadingItems && items.length === 0" class="empty-state">
+            <i class="fas fa-clipboard text-muted"></i>
+            <p>Inga underhallsposter hittades.</p>
+          </div>
+
+          <div *ngIf="!loadingItems && items.length > 0" class="table-responsive">
+            <table class="underhall-table">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Station</th>
+                  <th>Typ</th>
+                  <th>Varaktighet</th>
+                  <th>Stopporsak</th>
+                  <th>Utford av</th>
+                  <th class="td-beskrivning-hdr">Beskrivning</th>
+                  <th *ngIf="loggedIn"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let post of items">
+                  <td class="td-datum">{{ formatDatum(post.datum) }}</td>
+                  <td class="fw-500">{{ post.station_namn }}</td>
+                  <td>
+                    <span class="badge-typ" [class.badge-planerat]="post.typ === 'planerat'" [class.badge-oplanerat]="post.typ === 'oplanerat'">
+                      {{ post.typ === 'planerat' ? 'Planerat' : 'Oplanerat' }}
+                    </span>
+                  </td>
+                  <td class="td-tid">{{ formatTid(post.varaktighet_min) }}</td>
+                  <td class="td-stopporsak">{{ post.stopporsak || '--' }}</td>
+                  <td class="td-operator">{{ post.utford_av || '--' }}</td>
+                  <td class="td-beskrivning">{{ post.beskrivning || '' }}</td>
+                  <td *ngIf="loggedIn" class="td-actions">
+                    <button class="btn-delete" (click)="taBort(post)" title="Ta bort">
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div *ngIf="!loadingItems && items.length > 0" class="historik-summering mt-3">
+            {{ items.length }} poster visas
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Fordelningsvy -->
-    <div class="row mb-4" *ngIf="stats && stats.totalt_antal > 0">
-      <div class="col-12">
-        <div class="card-dark">
-          <div class="card-dark-header">
-            <i class="fas fa-chart-pie me-2 text-info"></i>Fordelning
-            <select class="filter-select ms-3" [(ngModel)]="statsDays" (change)="onStatsDaysChange()">
-              <option [value]="7">7 dagar</option>
-              <option [value]="14">14 dagar</option>
-              <option [value]="30">30 dagar</option>
-              <option [value]="90">90 dagar</option>
-            </select>
-          </div>
-          <div class="card-dark-body">
-            <div class="row">
-              <!-- Planerat vs Oplanerat -->
-              <div class="col-12 col-md-5 mb-3 mb-md-0">
-                <h6 class="fordelning-title">Planerat vs Oplanerat</h6>
-                <div class="progress-bar-outer mb-2">
-                  <div class="progress-bar-inner bg-success" [style.width.%]="stats.planerat_pct"></div>
-                  <div class="progress-bar-inner bg-danger" [style.width.%]="stats.oplanerat_pct"></div>
-                </div>
-                <div class="d-flex justify-content-between fordelning-labels">
-                  <span><i class="fas fa-circle text-success me-1"></i>Planerat: {{ stats.planerat_antal }} ({{ stats.planerat_pct }}%)</span>
-                  <span><i class="fas fa-circle text-danger me-1"></i>Oplanerat: {{ stats.oplanerat_antal }} ({{ stats.oplanerat_pct }}%)</span>
+    <!-- ================================================================== -->
+    <!-- GENERAL TAB (Legacy)                                                -->
+    <!-- ================================================================== -->
+    <div *ngIf="activeTab === 'general'">
+
+      <div class="row mb-4">
+        <div class="col-12 col-lg-6">
+          <div class="card-dark">
+            <div class="card-dark-header">
+              <i class="fas fa-plus-circle me-2 text-success"></i>Registrera generellt underhall
+            </div>
+            <div class="card-dark-body">
+              <div class="alert-error-msg" *ngIf="errorMessage && activeTab === 'general'">
+                <i class="fas fa-exclamation-circle me-2"></i>{{ errorMessage }}
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label-dark">Kategori</label>
+                <select class="form-control-dark" [(ngModel)]="legacyFormKategori">
+                  <option value="">-- Valj kategori --</option>
+                  <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+                </select>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label-dark">Typ av underhall</label>
+                <div class="radio-group">
+                  <label class="radio-option" [class.selected]="legacyFormTyp === 'planerat'">
+                    <input type="radio" name="legacyTyp" value="planerat" [(ngModel)]="legacyFormTyp">
+                    <i class="fas fa-calendar-check me-1 text-success"></i>Planerat
+                  </label>
+                  <label class="radio-option" [class.selected]="legacyFormTyp === 'oplanerat'">
+                    <input type="radio" name="legacyTyp" value="oplanerat" [(ngModel)]="legacyFormTyp">
+                    <i class="fas fa-exclamation-triangle me-1 text-danger"></i>Oplanerat
+                  </label>
                 </div>
               </div>
 
-              <!-- Per kategori -->
-              <div class="col-12 col-md-7">
-                <h6 class="fordelning-title">Per kategori (antal)</h6>
-                <div *ngFor="let kat of stats.top_kategorier" class="kategori-bar mb-2">
-                  <div class="d-flex justify-content-between mb-1">
-                    <span class="kategori-bar-label">{{ kat.kategori }}</span>
-                    <span class="kategori-bar-value">{{ kat.antal }} st &middot; {{ formatTid(kat.total_min) }}</span>
-                  </div>
-                  <div class="progress-thin">
-                    <div class="progress-thin-inner" [style.width.%]="(kat.antal / maxKategoriAntal()) * 100"></div>
-                  </div>
+              <div class="form-group mb-3">
+                <label class="form-label-dark">Varaktighet (minuter)</label>
+                <input type="number" class="form-control-dark" [(ngModel)]="legacyFormVaraktighet" placeholder="T.ex. 30" min="1" max="9999">
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label-dark">Maskin</label>
+                <input type="text" class="form-control-dark" [(ngModel)]="legacyFormMaskin" placeholder="Rebotling" maxlength="100">
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="form-label-dark">Kommentar <span class="text-muted">(valfritt)</span></label>
+                <textarea class="form-control-dark" [(ngModel)]="legacyFormKommentar" rows="3" placeholder="Beskriv vad som gjordes..." maxlength="2000"></textarea>
+              </div>
+
+              <button class="btn-spara" (click)="sparaLegacy()" [disabled]="legacySubmitting">
+                <span *ngIf="legacySubmitting" class="spinner-border spinner-border-sm me-2"></span>
+                <i *ngIf="!legacySubmitting" class="fas fa-save me-2"></i>
+                {{ legacySubmitting ? 'Sparar...' : 'Spara underhall' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legacy stats -->
+        <div class="col-12 col-lg-6">
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="stat-card">
+                <div class="stat-icon text-info"><i class="fas fa-clipboard-list"></i></div>
+                <div class="stat-value">{{ stats?.totalt_antal ?? 0 }}</div>
+                <div class="stat-label">Totalt underhall</div>
+                <div class="stat-period">senaste {{ legacyFilterDays }} dagarna</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card">
+                <div class="stat-icon text-warning"><i class="fas fa-clock"></i></div>
+                <div class="stat-value">{{ stats ? formatTid(stats.total_tid_min) : '0 min' }}</div>
+                <div class="stat-label">Total tid</div>
+                <div class="stat-period">senaste {{ legacyFilterDays }} dagarna</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card">
+                <div class="stat-icon text-success"><i class="fas fa-chart-bar"></i></div>
+                <div class="stat-value">{{ stats?.snitt_per_vecka ?? 0 }}</div>
+                <div class="stat-label">Snitt per vecka</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="stat-card">
+                <div class="stat-icon text-purple"><i class="fas fa-balance-scale"></i></div>
+                <div class="stat-value">
+                  <span class="text-success">{{ stats?.planerat_pct ?? 0 }}%</span>
+                  <span class="stat-sep">/</span>
+                  <span class="text-danger">{{ stats?.oplanerat_pct ?? 0 }}%</span>
                 </div>
+                <div class="stat-label">Planerat / Oplanerat</div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Historiklista -->
-    <div class="row">
-      <div class="col-12">
-        <div class="card-dark">
-          <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
-            <span><i class="fas fa-history me-2"></i>Historik</span>
-
-            <!-- Filter -->
-            <select class="filter-select" [(ngModel)]="filterDays" (change)="onFilterChange()">
-              <option [value]="7">7 dagar</option>
-              <option [value]="14">14 dagar</option>
-              <option [value]="30">30 dagar</option>
-              <option [value]="90">90 dagar</option>
-            </select>
-
-            <select class="filter-select" [(ngModel)]="filterType" (change)="onFilterChange()">
-              <option value="all">Alla typer</option>
-              <option value="planerat">Planerat</option>
-              <option value="oplanerat">Oplanerat</option>
-            </select>
-
-            <select class="filter-select" [(ngModel)]="filterCategory" (change)="onFilterChange()">
-              <option value="all">Alla kategorier</option>
-              <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
-            </select>
-
-            <button class="btn-export ms-auto" (click)="exportCSV()" [disabled]="historik.length === 0">
-              <i class="fas fa-file-csv me-1"></i>Exportera CSV
-            </button>
+      <!-- Legacy historik -->
+      <div class="card-dark">
+        <div class="card-dark-header d-flex flex-wrap align-items-center gap-2">
+          <span><i class="fas fa-history me-2"></i>Historik</span>
+          <select class="filter-select" [(ngModel)]="legacyFilterDays" (change)="onLegacyFilterChange()">
+            <option [value]="7">7 dagar</option>
+            <option [value]="14">14 dagar</option>
+            <option [value]="30">30 dagar</option>
+            <option [value]="90">90 dagar</option>
+          </select>
+          <select class="filter-select" [(ngModel)]="legacyFilterType" (change)="onLegacyFilterChange()">
+            <option value="all">Alla typer</option>
+            <option value="planerat">Planerat</option>
+            <option value="oplanerat">Oplanerat</option>
+          </select>
+          <select class="filter-select" [(ngModel)]="legacyFilterCategory" (change)="onLegacyFilterChange()">
+            <option value="all">Alla kategorier</option>
+            <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+          </select>
+        </div>
+        <div class="card-dark-body">
+          <div *ngIf="loadingHistorik" class="text-center py-4">
+            <span class="spinner-border spinner-border-sm text-info me-2"></span>Laddar historik...
           </div>
-
-          <div class="card-dark-body">
-            <!-- Laddningsspinner -->
-            <div *ngIf="loadingHistorik" class="text-center py-4">
-              <span class="spinner-border spinner-border-sm text-info me-2"></span>Laddar historik...
-            </div>
-
-            <!-- Tom lista -->
-            <div *ngIf="!loadingHistorik && historik.length === 0" class="empty-state">
-              <i class="fas fa-clipboard text-muted"></i>
-              <p>Inga underhallsposter hittades for valt filter.</p>
-            </div>
-
-            <!-- Tabell -->
-            <div *ngIf="!loadingHistorik && historik.length > 0" class="table-responsive">
-              <table class="underhall-table">
-                <thead>
-                  <tr>
-                    <th>Datum</th>
-                    <th>Operatör</th>
-                    <th>Kategori</th>
-                    <th>Typ</th>
-                    <th>Varaktighet</th>
-                    <th>Maskin</th>
-                    <th>Kommentar</th>
-                    <th *ngIf="loggedIn && user?.role === 'admin'"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let post of historik">
-                    <td class="td-datum">{{ formatDatum(post.created_at) }}</td>
-                    <td class="td-operator">{{ post.operator_namn || 'Okand' }}</td>
-                    <td class="td-kategori">{{ post.kategori }}</td>
-                    <td class="td-typ">
-                      <span class="badge-typ" [class.badge-planerat]="post.typ === 'planerat'" [class.badge-oplanerat]="post.typ === 'oplanerat'">
-                        {{ post.typ === 'planerat' ? 'Planerat' : 'Oplanerat' }}
-                      </span>
-                    </td>
-                    <td class="td-tid">{{ formatTid(post.varaktighet_min) }}</td>
-                    <td class="td-maskin">{{ post.maskin }}</td>
-                    <td class="td-kommentar">{{ post.kommentar || '' }}</td>
-                    <td *ngIf="loggedIn && user?.role === 'admin'" class="td-actions">
-                      <button
-                        class="btn-delete"
-                        (click)="deletePost(post)"
-                        [disabled]="deletingId === post.id"
-                        title="Ta bort"
-                      >
-                        <span *ngIf="deletingId === post.id" class="spinner-border spinner-border-sm"></span>
-                        <i *ngIf="deletingId !== post.id" class="fas fa-trash-alt"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <!-- Summering -->
-            <div *ngIf="!loadingHistorik && historik.length > 0" class="historik-summering mt-3">
-              {{ historik.length }} poster &middot; Total tid: {{ formatTidmar(totalTidHistorik) }}
-            </div>
-
+          <div *ngIf="!loadingHistorik && historik.length === 0" class="empty-state">
+            <i class="fas fa-clipboard text-muted"></i>
+            <p>Inga underhallsposter hittades.</p>
+          </div>
+          <div *ngIf="!loadingHistorik && historik.length > 0" class="table-responsive">
+            <table class="underhall-table">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Operator</th>
+                  <th>Kategori</th>
+                  <th>Typ</th>
+                  <th>Varaktighet</th>
+                  <th>Maskin</th>
+                  <th>Kommentar</th>
+                  <th *ngIf="loggedIn && user?.role === 'admin'"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let post of historik">
+                  <td class="td-datum">{{ formatDatum(post.created_at) }}</td>
+                  <td class="td-operator">{{ post.operator_namn || 'Okand' }}</td>
+                  <td>{{ post.kategori }}</td>
+                  <td>
+                    <span class="badge-typ" [class.badge-planerat]="post.typ === 'planerat'" [class.badge-oplanerat]="post.typ === 'oplanerat'">
+                      {{ post.typ === 'planerat' ? 'Planerat' : 'Oplanerat' }}
+                    </span>
+                  </td>
+                  <td class="td-tid">{{ formatTid(post.varaktighet_min) }}</td>
+                  <td class="td-maskin">{{ post.maskin }}</td>
+                  <td class="td-kommentar">{{ post.kommentar || '' }}</td>
+                  <td *ngIf="loggedIn && user?.role === 'admin'" class="td-actions">
+                    <button class="btn-delete" (click)="deleteLegacy(post)" [disabled]="deletingId === post.id" title="Ta bort">
+                      <span *ngIf="deletingId === post.id" class="spinner-border spinner-border-sm"></span>
+                      <i *ngIf="deletingId !== post.id" class="fas fa-trash-alt"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div *ngIf="!loadingHistorik && historik.length > 0" class="historik-summering mt-3">
+            {{ historik.length }} poster &middot; Total tid: {{ formatTid(totalTidHistorik) }}
           </div>
         </div>
       </div>

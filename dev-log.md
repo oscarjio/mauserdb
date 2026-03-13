@@ -1,3 +1,33 @@
+## 2026-03-13 Rebotling underhallslogg — station-baserad underh. per station med KPI + chart
+
+Ny funktion pa `/rebotling/underhallslogg` — operatorer och VD kan registrera och se underhall per Rebotling-station (planerat vs oplanerat), kopplat till stopporsaker.
+
+- **Backend**: Utokade `classes/UnderhallsloggController.php` med nya endpoints (behallade legacy-endpoints):
+  - `run=lista` — lista rebotling-underhall (filtrerat pa station, typ, period)
+  - `run=sammanfattning` — KPI-kort: totalt denna manad, planerat/oplanerat ratio, snitt tid, top-station
+  - `run=per-station` — underhall grupperat per station med antal, total tid, planerat/oplanerat
+  - `run=manadschart` — planerat vs oplanerat per manad (senaste 6 man) for Chart.js
+  - `run=stationer` — lista rebotling-stationer
+  - `run=skapa` (POST) — registrera nytt underhall med station, typ, beskrivning, varaktighet, stopporsak
+  - `run=ta-bort` (POST) — ta bort underhallspost
+  - Proxy: `controllers/UnderhallsloggController.php` skapad
+
+- **Migration**: `noreko-backend/migrations/2026-03-13_underhallslogg.sql`
+  - Ny tabell `rebotling_underhallslogg`: id, station_id, typ ENUM('planerat','oplanerat'), beskrivning, varaktighet_min, stopporsak, utford_av, datum, skapad
+
+- **Frontend**: Ombyggd `pages/underhallslogg/` med tva flikar (Rebotling + Generell)
+  - 4 KPI-kort: totalt denna manad, planerat/oplanerat ratio, snitt tid per underhall, station med mest underhall
+  - Per-station tabell med antal, total tid, planerat/oplanerat-progress-bar
+  - Chart.js bar chart: planerat vs oplanerat per manad (senaste 6 manader)
+  - Registreringsformular (inline): station, typ, datum, varaktighet, stopporsak, utford_av, beskrivning
+  - Filtrerbar lista (senaste 50): station, typ, datumintervall
+  - CSV-export
+  - Service: `services/underhallslogg.service.ts` utokad med nya interfaces och endpoints
+  - Legacy-flik behalld for generell underhallslogg
+  - Navigation: redan tillagd i menyn under Rebotling
+
+---
+
 ## 2026-03-13 Buggjakt — session #92-#95 kodgranskning och fixar
 
 Granskade alla nya features fran session #92-#95 och fixade foljande buggar:
