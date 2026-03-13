@@ -1,17 +1,18 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, of } from 'rxjs';
-import { takeUntil, catchError, timeout } from 'rxjs/operators';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
-  RebotlingService,
-  KassationsOverviewData,
-  KassationOrsak,
-  KassationsByPeriodData,
-  KassationsDetailsData,
-  KassationsTrendRateData,
-} from '../../../services/rebotling.service';
+  KassationsanalysService,
+  SammanfattningData,
+  OrsakRad,
+  OrsakerTrendData,
+  StationRad,
+  OperatorRad,
+  DetaljIbc,
+} from '../../../services/kassationsanalys.service';
 
 Chart.register(...registerables);
 
@@ -23,45 +24,52 @@ Chart.register(...registerables);
   imports: [CommonModule, FormsModule],
 })
 export class KassationsanalysPage implements OnInit, OnDestroy {
+
   // -- Period --
   days = 30;
-  readonly dayOptions = [30, 90, 180, 365];
-  groupMode: 'week' | 'month' = 'week';
+  readonly dayOptions = [
+    { value: 7,  label: '7d' },
+    { value: 14, label: '14d' },
+    { value: 30, label: '30d' },
+    { value: 90, label: '90d' },
+  ];
+  trendGroup: 'day' | 'week' = 'day';
 
-  // -- Filter --
-  filterOrsak: number | null = null;
-  filterOperator = '';
-  orsakLista: { id: number; namn: string }[] = [];
-  operatorLista: string[] = [];
-
-  // -- Ladda --
-  loadingOverview = false;
-  loadingByCause = false;
-  loadingByPeriod = false;
-  loadingDetails = false;
+  // -- Laddning --
+  loadingSammanfattning = false;
+  loadingOrsaker = false;
   loadingTrend = false;
+  loadingStationer = false;
+  loadingOperatorer = false;
+  loadingDetaljer = false;
 
   // -- Fel --
-  errorOverview = false;
-  errorByCause = false;
-  errorByPeriod = false;
-  errorDetails = false;
+  errorSammanfattning = false;
+  errorOrsaker = false;
   errorTrend = false;
+  errorStationer = false;
+  errorOperatorer = false;
+  errorDetaljer = false;
 
   // -- Data --
-  overview: KassationsOverviewData | null = null;
-  orsaker: KassationOrsak[] = [];
-  byPeriodData: KassationsByPeriodData | null = null;
-  detailsData: KassationsDetailsData | null = null;
-  trendData: KassationsTrendRateData | null = null;
+  sammanfattning: SammanfattningData | null = null;
+  orsaker: OrsakRad[] = [];
+  orsakerTotal = 0;
+  trendData: OrsakerTrendData | null = null;
+  stationer: StationRad[] = [];
+  operatorer: OperatorRad[] = [];
+  detaljer: DetaljIbc[] = [];
+  detaljerTotal = 0;
+
+  // -- Detalj-expandering --
+  expandedRows: Set<number> = new Set();
 
   // -- Charts --
-  private stackedChart: Chart | null = null;
-  private doughnutChart: Chart | null = null;
+  private paretoChart: Chart | null = null;
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
 
-  constructor(private svc: RebotlingService) {}
+  constructor(private svc: KassationsanalysService) {}
 
   ngOnInit(): void {
     this.loadAll();
@@ -74,112 +82,69 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
   }
 
   private destroyCharts(): void {
-    try { this.stackedChart?.destroy(); } catch (_) {}
-    try { this.doughnutChart?.destroy(); } catch (_) {}
+    try { this.paretoChart?.destroy(); } catch (_) {}
     try { this.trendChart?.destroy(); } catch (_) {}
-    this.stackedChart = null;
-    this.doughnutChart = null;
+    this.paretoChart = null;
     this.trendChart = null;
   }
 
   // =================================================================
-  // Period / Filter
+  // Period
   // =================================================================
 
   onDaysChange(d: number): void {
+    if (this.days === d) return;
     this.days = d;
-    this.groupMode = d <= 90 ? 'week' : 'month';
-    this.filterOrsak = null;
-    this.filterOperator = '';
+    this.trendGroup = d <= 14 ? 'day' : (d <= 30 ? 'day' : 'week');
     this.loadAll();
   }
 
-  onGroupChange(g: 'week' | 'month'): void {
-    this.groupMode = g;
-    this.loadByPeriod();
-  }
-
-  onFilterChange(): void {
-    this.loadDetails();
-  }
-
-  // =================================================================
-  // Data
-  // =================================================================
-
-  loadAll(): void {
-    this.loadOverview();
-    this.loadByCause();
-    this.loadByPeriod();
-    this.loadDetails();
+  onTrendGroupChange(g: 'day' | 'week'): void {
+    this.trendGroup = g;
     this.loadTrend();
   }
 
-  loadOverview(): void {
-    this.loadingOverview = true;
-    this.errorOverview = false;
-    this.svc.getKassationsOverview(this.days)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+  // =================================================================
+  // Data loading
+  // =================================================================
+
+  loadAll(): void {
+    this.loadSammanfattning();
+    this.loadOrsaker();
+    this.loadTrend();
+    this.loadStationer();
+    this.loadOperatorer();
+    this.loadDetaljer();
+  }
+
+  loadSammanfattning(): void {
+    this.loadingSammanfattning = true;
+    this.errorSammanfattning = false;
+    this.svc.getSammanfattning()
+      .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
-        this.loadingOverview = false;
+        this.loadingSammanfattning = false;
         if (res?.success) {
-          this.overview = res.data;
+          this.sammanfattning = res.data;
         } else {
-          this.errorOverview = true;
+          this.errorSammanfattning = true;
         }
       });
   }
 
-  loadByCause(): void {
-    this.loadingByCause = true;
-    this.errorByCause = false;
-    this.svc.getKassationsByCause(this.days)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+  loadOrsaker(): void {
+    this.loadingOrsaker = true;
+    this.errorOrsaker = false;
+    this.svc.getOrsaker(this.days)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
-        this.loadingByCause = false;
+        this.loadingOrsaker = false;
         if (res?.success) {
           this.orsaker = res.data.orsaker ?? [];
-          setTimeout(() => { if (!this.destroy$.closed) this.buildDoughnutChart(); }, 0);
+          this.orsakerTotal = res.data.total ?? 0;
+          setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 0);
         } else {
-          this.errorByCause = true;
-          this.orsaker = [];
-        }
-      });
-  }
-
-  loadByPeriod(): void {
-    this.loadingByPeriod = true;
-    this.errorByPeriod = false;
-    this.svc.getKassationsByPeriod(this.days, this.groupMode)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingByPeriod = false;
-        if (res?.success) {
-          this.byPeriodData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildStackedChart(); }, 0);
-        } else {
-          this.errorByPeriod = true;
-          this.byPeriodData = null;
-        }
-      });
-  }
-
-  loadDetails(): void {
-    this.loadingDetails = true;
-    this.errorDetails = false;
-    const orsak = this.filterOrsak ?? undefined;
-    const op = this.filterOperator || undefined;
-    this.svc.getKassationsDetails(this.days, orsak, op)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingDetails = false;
-        if (res?.success) {
-          this.detailsData = res.data;
-          this.orsakLista = res.data.orsaker ?? [];
-          this.operatorLista = res.data.operatorer ?? [];
-        } else {
-          this.errorDetails = true;
-          this.detailsData = null;
+          this.errorOrsaker = true;
         }
       });
   }
@@ -187,8 +152,8 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
   loadTrend(): void {
     this.loadingTrend = true;
     this.errorTrend = false;
-    this.svc.getKassationsTrendRate(this.days)
-      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
+    this.svc.getOrsakerTrend(this.days, this.trendGroup)
+      .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
         if (res?.success) {
@@ -196,40 +161,112 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
           setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0);
         } else {
           this.errorTrend = true;
-          this.trendData = null;
+        }
+      });
+  }
+
+  loadStationer(): void {
+    this.loadingStationer = true;
+    this.errorStationer = false;
+    this.svc.getPerStation(this.days)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingStationer = false;
+        if (res?.success) {
+          this.stationer = res.data.stationer ?? [];
+        } else {
+          this.errorStationer = true;
+        }
+      });
+  }
+
+  loadOperatorer(): void {
+    this.loadingOperatorer = true;
+    this.errorOperatorer = false;
+    this.svc.getPerOperator(this.days)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingOperatorer = false;
+        if (res?.success) {
+          this.operatorer = res.data.operatorer ?? [];
+        } else {
+          this.errorOperatorer = true;
+        }
+      });
+  }
+
+  loadDetaljer(): void {
+    this.loadingDetaljer = true;
+    this.errorDetaljer = false;
+    this.expandedRows.clear();
+    this.svc.getDetaljer(this.days, 200)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingDetaljer = false;
+        if (res?.success) {
+          this.detaljer = res.data.ibc ?? [];
+          this.detaljerTotal = res.data.total ?? 0;
+        } else {
+          this.errorDetaljer = true;
         }
       });
   }
 
   // =================================================================
-  // Chart.js — Stacked bar (vecka/manad)
+  // Pareto-diagram (horisontella staplar + kumulativ linje)
   // =================================================================
 
-  private buildStackedChart(): void {
-    try { this.stackedChart?.destroy(); } catch (_) {}
-    this.stackedChart = null;
+  private buildParetoChart(): void {
+    try { this.paretoChart?.destroy(); } catch (_) {}
+    this.paretoChart = null;
 
-    const canvas = document.getElementById('kaStackedChart') as HTMLCanvasElement;
-    if (!canvas || !this.byPeriodData?.har_data) return;
+    const canvas = document.getElementById('kasParetoChart') as HTMLCanvasElement;
+    if (!canvas || this.orsaker.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { labels, datasets } = this.byPeriodData;
+    const top = this.orsaker.filter(o => o.antal > 0).slice(0, 10);
+    if (top.length === 0) return;
 
-    this.stackedChart = new Chart(ctx, {
+    const labels = top.map(o => o.namn);
+    const values = top.map(o => o.antal);
+    const cumPct = top.map(o => o.kumulativ_pct);
+
+    this.paretoChart = new Chart(ctx, {
       type: 'bar',
       data: {
         labels,
-        datasets: datasets.map(ds => ({
-          label: ds.label,
-          data: ds.data,
-          backgroundColor: ds.backgroundColor,
-          borderColor: ds.borderColor,
-          borderWidth: ds.borderWidth,
-          stack: 'kassationer',
-        })),
+        datasets: [
+          {
+            label: 'Antal kassationer',
+            data: values,
+            backgroundColor: values.map((_, i) => {
+              const pct = cumPct[i] ?? 0;
+              if (pct <= 80) return 'rgba(252,129,129,0.85)';
+              return 'rgba(160,174,192,0.5)';
+            }),
+            borderColor: 'rgba(252,129,129,1)',
+            borderWidth: 1,
+            yAxisID: 'yAntal',
+            order: 2,
+          },
+          {
+            label: 'Kumulativ %',
+            data: cumPct,
+            type: 'line' as any,
+            borderColor: '#63b3ed',
+            backgroundColor: 'transparent',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointBackgroundColor: '#63b3ed',
+            tension: 0.3,
+            yAxisID: 'yPct',
+            order: 1,
+          },
+        ],
       },
       options: {
+        indexAxis: 'x',
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
@@ -239,162 +276,99 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
             position: 'bottom',
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
-        },
-        scales: {
-          x: {
-            stacked: true,
-            ticks: { color: '#a0aec0', maxRotation: 45, autoSkip: true },
-            grid: { color: 'rgba(255,255,255,0.05)' },
-          },
-          y: {
-            stacked: true,
-            beginAtZero: true,
-            ticks: { color: '#a0aec0', stepSize: 1 },
-            grid: { color: 'rgba(255,255,255,0.08)' },
-            title: { display: true, text: 'Antal kassationer', color: '#a0aec0', font: { size: 11 } },
-          },
-        },
-      },
-    });
-  }
-
-  // =================================================================
-  // Chart.js — Doughnut (orsaksfordelning)
-  // =================================================================
-
-  private buildDoughnutChart(): void {
-    try { this.doughnutChart?.destroy(); } catch (_) {}
-    this.doughnutChart = null;
-
-    const canvas = document.getElementById('kaDoughnutChart') as HTMLCanvasElement;
-    if (!canvas || this.orsaker.length === 0) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const palette = [
-      '#fc8181', '#f6ad55', '#68d391', '#63b3ed', '#b794f6',
-      '#ecc94b', '#ed7979', '#81e6d9', '#f687b3', '#a0aec0',
-    ];
-
-    const top = this.orsaker.filter(o => o.antal > 0).slice(0, 8);
-    if (top.length === 0) return;
-
-    this.doughnutChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: top.map(o => o.namn),
-        datasets: [{
-          data: top.map(o => o.antal),
-          backgroundColor: top.map((_, i) => palette[i % palette.length]),
-          borderColor: '#2d3748',
-          borderWidth: 2,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '55%',
-        plugins: {
-          legend: {
-            display: true,
-            position: 'right',
-            labels: { color: '#e2e8f0', boxWidth: 12, padding: 10, font: { size: 11 } },
-          },
           tooltip: {
             callbacks: {
-              label: (item) => {
-                const total = top.reduce((s, o) => s + o.antal, 0);
-                const pct = total > 0 ? ((item.raw as number) / total * 100).toFixed(1) : '0';
-                return ` ${item.label}: ${item.raw} st (${pct}%)`;
+              label: (item: any) => {
+                if (item.dataset.yAxisID === 'yPct') return ` Kumulativ: ${item.raw}%`;
+                return ` Antal: ${item.raw} st`;
               },
             },
           },
         },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', font: { size: 10 }, maxRotation: 45 },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          yAntal: {
+            type: 'linear',
+            position: 'left',
+            beginAtZero: true,
+            ticks: { color: '#a0aec0', font: { size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.07)' },
+            title: { display: true, text: 'Antal', color: '#a0aec0', font: { size: 10 } },
+          },
+          yPct: {
+            type: 'linear',
+            position: 'right',
+            beginAtZero: true,
+            max: 100,
+            ticks: { color: '#a0aec0', font: { size: 10 }, callback: (v: any) => v + '%' },
+            grid: { display: false },
+            title: { display: true, text: 'Kumulativ %', color: '#a0aec0', font: { size: 10 } },
+          },
+        },
       },
     });
   }
 
   // =================================================================
-  // Chart.js — Trendgraf (kassationsgrad % + trendlinje)
+  // Trendgraf (linjediagram per orsak)
   // =================================================================
 
   private buildTrendChart(): void {
     try { this.trendChart?.destroy(); } catch (_) {}
     this.trendChart = null;
 
-    const canvas = document.getElementById('kaTrendChart') as HTMLCanvasElement;
+    const canvas = document.getElementById('kasTrendChart') as HTMLCanvasElement;
     if (!canvas || !this.trendData?.har_data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const { labels, rates, moving_avg, trendline } = this.trendData;
+    const { labels, datasets } = this.trendData;
 
-    const datasets: any[] = [
-      {
-        label: 'Kassationsgrad (%)',
-        data: rates,
-        borderColor: '#fc8181',
-        backgroundColor: 'rgba(252,129,129,0.15)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 3,
-        pointBackgroundColor: '#fc8181',
-        borderWidth: 2,
-      },
-      {
-        label: 'Glidande medel (4v)',
-        data: moving_avg,
-        borderColor: '#63b3ed',
-        borderDash: [5, 3],
-        fill: false,
-        tension: 0.3,
-        pointRadius: 0,
-        borderWidth: 2,
-      },
-    ];
+    const chartDatasets = datasets.map(ds => ({
+      label: ds.label,
+      data: ds.data,
+      borderColor: ds.borderColor,
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 2,
+      pointHoverRadius: 4,
+      tension: 0.3,
+      fill: false,
+    }));
 
-    if (trendline.length > 0) {
-      datasets.push({
-        label: 'Trendlinje',
-        data: trendline,
-        borderColor: '#a0aec0',
-        borderDash: [8, 4],
-        fill: false,
-        tension: 0,
-        pointRadius: 0,
-        borderWidth: 1.5,
-      });
-    }
+    const shortLabels = labels.map(l => {
+      if (l.length === 10) return l.slice(5);
+      return l;
+    });
 
     this.trendChart = new Chart(ctx, {
       type: 'line',
-      data: { labels, datasets },
+      data: { labels: shortLabels, datasets: chartDatasets },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
+        animation: false,
         plugins: {
           legend: {
             display: true,
             position: 'bottom',
             labels: { color: '#e2e8f0', boxWidth: 12, padding: 12, font: { size: 11 } },
           },
-          tooltip: {
-            callbacks: {
-              label: (item) => ` ${item.dataset.label}: ${item.raw}%`,
-            },
-          },
         },
         scales: {
           x: {
-            ticks: { color: '#a0aec0', maxRotation: 45, autoSkip: true },
+            ticks: { color: '#a0aec0', maxRotation: 45, autoSkip: true, font: { size: 10 } },
             grid: { color: 'rgba(255,255,255,0.05)' },
           },
           y: {
             beginAtZero: true,
-            ticks: { color: '#a0aec0', callback: (v) => v + '%' },
-            grid: { color: 'rgba(255,255,255,0.08)' },
-            title: { display: true, text: 'Kassationsgrad (%)', color: '#a0aec0', font: { size: 11 } },
+            ticks: { color: '#a0aec0', font: { size: 10 }, stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.07)' },
+            title: { display: true, text: 'Antal kassationer', color: '#a0aec0', font: { size: 10 } },
           },
         },
       },
@@ -404,6 +378,38 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
   // =================================================================
   // Hjalpmetoder
   // =================================================================
+
+  get kpiAndel(): number {
+    if (!this.sammanfattning) return 0;
+    const p = this.sammanfattning.perioder[this.days] ?? this.sammanfattning.perioder[30];
+    return p?.andel_pct ?? 0;
+  }
+
+  get kpiKasserade(): number {
+    if (!this.sammanfattning) return 0;
+    const p = this.sammanfattning.perioder[this.days] ?? this.sammanfattning.perioder[30];
+    return p?.kasserade ?? 0;
+  }
+
+  get kpiTrendDiff(): number {
+    if (!this.sammanfattning) return 0;
+    const p = this.sammanfattning.perioder[this.days] ?? this.sammanfattning.perioder[30];
+    return p?.diff_pct ?? 0;
+  }
+
+  get kpiTrend(): string {
+    if (!this.sammanfattning) return 'stable';
+    const p = this.sammanfattning.perioder[this.days] ?? this.sammanfattning.perioder[30];
+    return p?.trend ?? 'stable';
+  }
+
+  get kpiVarstaStation(): string {
+    return this.sammanfattning?.varsta_station?.station ?? '-';
+  }
+
+  get kpiVarstaStationPct(): number {
+    return this.sammanfattning?.varsta_station?.andel_pct ?? 0;
+  }
 
   trendIcon(trend: string): string {
     if (trend === 'up') return '\u25B2';
@@ -418,22 +424,40 @@ export class KassationsanalysPage implements OnInit, OnDestroy {
     return trend === 'up' ? up : down;
   }
 
-  rateColor(rate: number): string {
-    if (rate > 5) return '#fc8181';
-    if (rate > 2) return '#f6ad55';
+  rateColor(pct: number): string {
+    if (pct > 10) return '#fc8181';
+    if (pct > 5) return '#f6ad55';
     return '#68d391';
   }
 
-  formatKostnad(v: number): string {
-    if (v >= 1000000) return (v / 1000000).toFixed(1) + ' Mkr';
-    if (v >= 1000) return (v / 1000).toFixed(0) + ' tkr';
-    return v + ' kr';
+  stationRowClass(pct: number): string {
+    if (pct > 10) return 'kas-row-red';
+    if (pct > 5) return 'kas-row-yellow';
+    return 'kas-row-green';
   }
 
   formatDatum(d: string): string {
-    if (!d) return '';
-    const parts = d.split('-');
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
-    return d;
+    if (!d) return '-';
+    return d.replace('T', ' ').slice(0, 16);
+  }
+
+  toggleRow(id: number): void {
+    if (this.expandedRows.has(id)) {
+      this.expandedRows.delete(id);
+    } else {
+      this.expandedRows.add(id);
+    }
+  }
+
+  isExpanded(id: number): boolean {
+    return this.expandedRows.has(id);
+  }
+
+  trackByIndex(index: number): number {
+    return index;
+  }
+
+  trackById(index: number, item: any): number {
+    return item.id ?? index;
   }
 }

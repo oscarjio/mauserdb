@@ -41,13 +41,13 @@ export const routes: Routes = [
 
       // Authenticated routes
       { path: 'rebotling/min-dag', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/min-dag/min-dag').then(m => m.MinDagPage) },
-      { path: 'rebotling/kassationsanalys', loadComponent: () => import('./pages/rebotling/kassationsanalys/kassationsanalys').then(m => m.KassationsanalysPage) },
+      { path: 'rebotling/kassationsanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kassationsanalys/kassationsanalys').then(m => m.KassationsanalysPage) },
       { path: 'rebotling/cykeltid-heatmap', canActivate: [authGuard], loadComponent: () => import('./pages/cykeltid-heatmap/cykeltid-heatmap').then(m => m.CykeltidHeatmapComponent) },
       { path: 'rebotling/produkttyp-effektivitet', loadComponent: () => import('./pages/statistik-produkttyp-effektivitet/statistik-produkttyp-effektivitet').then(m => m.StatistikProduktTypEffektivitetComponent) },
       { path: 'rebotling/alerts', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling/alerts/alerts').then(m => m.AlertsPage) },
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'rebotling/overlamning', canActivate: [authGuard], loadComponent: () => import('./pages/shift-handover/shift-handover').then(m => m.ShiftHandoverPage) },
-      { path: 'rebotling/skiftoverlamning', loadComponent: () => import('./pages/skiftoverlamning/skiftoverlamning').then(m => m.SkiftoverlamningPage) },
+      { path: 'rebotling/skiftoverlamning', canActivate: [authGuard], loadComponent: () => import('./pages/skiftoverlamning/skiftoverlamning').then(m => m.SkiftoverlamningPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
       { path: 'rebotling/stopporsak-registrering', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-registrering/stopporsak-registrering').then(m => m.StopporsakRegistreringPage) },
       { path: 'rebotling/underhallslogg', canActivate: [authGuard], loadComponent: () => import('./pages/underhallslogg/underhallslogg').then(m => m.UnderhallsloggComponent) },

@@ -1,3 +1,30 @@
+## 2026-03-13 Kassationsanalys — forbattrad drill-down med Pareto, per-station och per-operator (session #94)
+
+Ombyggd sida `/rebotling/kassationsanalys` — fullstandig kassationsorsak-analys med Pareto-diagram, per-station/operator-tabeller och detaljlista.
+
+- **Backend**: Utokade `classes/KassationsanalysController.php` med nya endpoints:
+  - `run=sammanfattning` — KPI-data: kassationsandel, antal, trend per 7/30/90d, varsta station
+  - `run=orsaker` — grupperade kassationsorsaker med antal, andel, kumulativ %, trend vs foregaende period
+  - `run=orsaker-trend` — kassationsorsaker over tid (daglig/veckovis breakdown)
+  - `run=per-station` — kassationsandel per station fran rebotling_ibc (station, kasserade, totalt, andel%)
+  - `run=per-operator` — kassationsandel per operator med ranking
+  - `run=detaljer` — lista kasserade IBCer med tidsstampel, station, operator, orsak (kopplat via skiftraknare)
+
+- **Frontend**: `pages/rebotling/kassationsanalys/` — helt ombyggd:
+  - 4 KPI-kort: Kassationsandel%, Antal kasserade, Trend vs foreg. period, Varsta station
+  - Pareto-diagram (Chart.js): staplar top-10 orsaker + kumulativ linje (80/20), orsaks-tabell med trendpilar
+  - Trendgraf (Chart.js): linjediagram per orsak over tid, dag/vecka-valjare
+  - Per station-tabell: fargkodad (gron <5%, gul 5-10%, rod >10%), sorterad efter andel
+  - Per operator-tabell: ranking, kasserade, andel
+  - Expanderbar detaljlista: kasserade IBCer med tid, station, operator, orsak
+  - Periodselektor: 7d/14d/30d/90d
+  - Dark theme, OnInit/OnDestroy + destroy$ + takeUntil
+  - Ny dedicerad service: `services/kassationsanalys.service.ts`
+  - Route: `/rebotling/kassationsanalys` (authGuard)
+  - Navigationslank redan existerande i Rebotling-dropdown
+
+---
+
 ## 2026-03-13 Rebotling stationsdetalj-dashboard — drill-down per station (session #93)
 
 Ny sida `/rebotling/stationsdetalj` — VD kan klicka på en station och se fullständig drill-down med realtids-OEE, IBC-historik, stopphistorik och 30-dagars trendgraf.

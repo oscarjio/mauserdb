@@ -2,17 +2,17 @@
    Kassationsanalys — dark theme (MauserDB)
    ============================================================ */
 
-.ka-wrap {
+.kas-wrap {
   padding: 0 4px;
 }
 
 /* Header */
-.ka-icon-trash {
+.kas-icon-title {
   color: #fc8181;
   font-size: 1.15rem;
 }
 
-.ka-title {
+.kas-title {
   color: #e2e8f0;
   font-weight: 700;
   font-size: 1.05rem;
@@ -20,14 +20,14 @@
 }
 
 /* Kort */
-.ka-card {
+.kas-card {
   background: #2d3748;
   border-radius: 10px;
   border: 1px solid #4a5568;
   padding: 18px 16px;
 }
 
-.ka-card-label {
+.kas-card-label {
   color: #a0aec0;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -35,14 +35,14 @@
   margin-bottom: 4px;
 }
 
-.ka-card-value {
+.kas-card-value {
   font-size: 1.85rem;
   font-weight: 700;
   line-height: 1.1;
   margin-bottom: 2px;
 }
 
-.ka-card-value-sm {
+.kas-card-value-sm {
   font-size: 1.05rem;
   font-weight: 600;
   line-height: 1.2;
@@ -51,108 +51,125 @@
   white-space: nowrap;
 }
 
-.ka-card-sub {
+.kas-card-sub {
   font-size: 0.75rem;
+  color: #a0aec0;
 }
 
-.ka-card-muted {
-  color: #718096;
+.kas-trend-num {
+  font-size: 1.2rem;
+  margin-left: 4px;
 }
 
-.ka-spin {
+.kas-spin {
   padding: 10px 0;
 }
 
 /* Sektioner */
-.ka-section-title {
+.kas-section-title {
   color: #e2e8f0;
   font-weight: 600;
   font-size: 0.95rem;
 }
 
 /* Grafer */
-.ka-chart-wrap {
+.kas-chart-wrap {
   position: relative;
-  height: 320px;
-}
-
-.ka-chart-doughnut {
-  height: 280px;
+  height: 340px;
 }
 
 /* Tom / fel */
-.ka-empty {
+.kas-empty {
   text-align: center;
   padding: 32px 16px;
   color: #718096;
 }
 
-.ka-empty p {
+.kas-empty p {
   margin: 0;
   font-size: 0.9rem;
 }
 
-.ka-error {
+.kas-error {
   color: #fc8181;
   font-size: 0.85rem;
   padding: 8px 0;
 }
 
-/* Filter */
-.ka-filter-select {
-  background: #1a202c;
-  border: 1px solid #4a5568;
-  color: #e2e8f0;
-  font-size: 0.82rem;
-}
-
-.ka-filter-select:focus {
-  border-color: #63b3ed;
-  box-shadow: 0 0 0 0.15rem rgba(99,179,237,.25);
-}
-
-.ka-filter-select option {
-  background: #1a202c;
-  color: #e2e8f0;
-}
-
 /* Tabell */
-.ka-table {
+.kas-table {
   color: #e2e8f0;
   font-size: 0.82rem;
 }
 
-.ka-table thead tr {
+.kas-table thead tr {
   border-color: #4a5568;
   color: #a0aec0;
 }
 
-.ka-table tbody tr {
+.kas-table thead th {
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.kas-table tbody tr {
   border-color: #4a5568;
 }
 
-.ka-detail-row:hover {
+/* Pareto 80%-markering */
+.kas-pareto-80 {
+  background: rgba(252, 129, 129, 0.06);
+}
+
+/* Station-rader: fargkodade */
+.kas-row-green {
+  border-left: 3px solid #68d391;
+}
+
+.kas-row-yellow {
+  border-left: 3px solid #f6ad55;
+}
+
+.kas-row-red {
+  border-left: 3px solid #fc8181;
+  background: rgba(252, 129, 129, 0.04);
+}
+
+/* Detalj-lista */
+.kas-detail-row:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
-.ka-comment {
+.kas-expanded-row {
+  background: #1a202c;
+}
+
+.kas-expanded-content {
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  color: #a0aec0;
+}
+
+.kas-detail-label {
   color: #718096;
-  font-style: italic;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 /* Responsiv */
 @media (max-width: 576px) {
-  .ka-card-value {
+  .kas-card-value {
     font-size: 1.4rem;
   }
-  .ka-chart-wrap {
-    height: 250px;
+  .kas-chart-wrap {
+    height: 260px;
   }
-  .ka-chart-doughnut {
-    height: 220px;
+  .kas-trend-num {
+    font-size: 1rem;
   }
 }
