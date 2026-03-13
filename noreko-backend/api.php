@@ -203,6 +203,8 @@ $classNameMap = [
     'kassationskvotalarm'           => 'KassationskvotAlarmController',
     'kapacitetsplanering'           => 'KapacitetsplaneringController',
     'produktionsdashboard'          => 'ProduktionsDashboardController',
+    'rebotlingtrendanalys'          => 'RebotlingTrendanalysController',
+    'operatorsprestanda'            => 'OperatorsPrestandaController',
 ];
 
 $actionKey = strtolower($action);

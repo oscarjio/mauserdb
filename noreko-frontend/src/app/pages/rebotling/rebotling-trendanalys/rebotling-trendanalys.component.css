@@ -1,0 +1,329 @@
+/* ============================================================
+   Trendanalys — Dark theme
+   ============================================================ */
+
+.trendanalys-wrapper {
+  background: #1a202c;
+  min-height: 100vh;
+  padding: 1.5rem;
+  color: #e2e8f0;
+}
+
+/* ---- Sidhuvud ---- */
+.page-header {
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding-bottom: 1rem;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 0.25rem;
+}
+
+.page-subtitle {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ---- Mörkt kort (allmänt) ---- */
+.dark-card {
+  background: #2d3748;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  color: #e2e8f0;
+}
+
+.dark-card .card-header {
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 0.75rem 1rem;
+  border-radius: 10px 10px 0 0;
+}
+
+.card-titel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+/* ---- Trendkort ---- */
+.trend-card {
+  background: #2d3748;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: border-color 0.3s;
+  height: 100%;
+}
+
+.trend-card.border-warning {
+  border-color: #ecc94b !important;
+}
+
+.trend-card.border-critical {
+  border-color: #fc8181 !important;
+}
+
+.trend-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.trend-card-titel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ---- Alert-badge ---- */
+.alert-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  animation: pulse 1.5s infinite;
+}
+
+.badge-warning {
+  background: rgba(236,201,75,0.2);
+  color: #ecc94b;
+  border: 1px solid #ecc94b;
+}
+
+.badge-critical {
+  background: rgba(252,129,129,0.2);
+  color: #fc8181;
+  border: 1px solid #fc8181;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+/* ---- Trend-siffror ---- */
+.trend-card-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.trend-main-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.big-number {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  line-height: 1;
+}
+
+.unit {
+  font-size: 1rem;
+  color: #a0aec0;
+}
+
+.trend-pil {
+  font-size: 1.2rem;
+}
+
+.trend-up   { color: #48bb78 !important; }
+.trend-down { color: #fc8181 !important; }
+.trend-stable { color: #ecc94b !important; }
+
+.slope-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+}
+
+.medel-rad {
+  font-size: 0.78rem;
+  color: #a0aec0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.medel-etikett {
+  color: #718096;
+}
+
+.medel-varde {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+/* ---- Sparkline ---- */
+.sparkline-container {
+  position: relative;
+  height: 50px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(45,55,72,0.8);
+  color: #a0aec0;
+}
+
+/* ---- Huvudgraf ---- */
+.dataset-toggle {
+  background: transparent;
+  border: 1px solid;
+  opacity: 0.5;
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.dataset-toggle.active {
+  opacity: 1;
+  background: rgba(255,255,255,0.05);
+}
+
+.prognos-legend {
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding-top: 0.5rem;
+}
+
+/* ---- Vecko-tabell ---- */
+.vecko-tabell {
+  font-size: 0.82rem;
+}
+
+.vecko-tabell th {
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.6rem 0.75rem;
+  background: rgba(0,0,0,0.2);
+  border-color: rgba(255,255,255,0.07);
+}
+
+.vecko-tabell td {
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
+  border-color: rgba(255,255,255,0.05);
+  color: #e2e8f0;
+}
+
+.basta-rad td {
+  background: rgba(72,187,120,0.06) !important;
+}
+
+.samsta-rad td {
+  background: rgba(252,129,129,0.06) !important;
+}
+
+.vecka-cell {
+  white-space: nowrap;
+}
+
+.vecka-badge {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+}
+
+.badge-best {
+  background: rgba(72,187,120,0.2);
+  color: #48bb78;
+  border: 1px solid rgba(72,187,120,0.4);
+}
+
+.badge-worst {
+  background: rgba(252,129,129,0.2);
+  color: #fc8181;
+  border: 1px solid rgba(252,129,129,0.4);
+}
+
+/* ---- Anomalier ---- */
+.anomali-kort {
+  background: #1a202c;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid transparent;
+}
+
+.anomali-positiv {
+  border-left-color: #48bb78;
+}
+
+.anomali-negativ {
+  border-left-color: #fc8181;
+}
+
+.anomali-typ {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.anomali-datum {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.anomali-avv {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.anomali-varden {
+  font-size: 0.75rem;
+  color: #a0aec0;
+}
+
+.anomali-ikon {
+  font-size: 0.75rem;
+}
+
+/* ---- Alerts ---- */
+.alert-danger-dark {
+  background: rgba(252,129,129,0.1);
+  border: 1px solid rgba(252,129,129,0.3);
+  color: #fc8181;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* ---- Bootstrap table override ---- */
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-hover-bg: rgba(255,255,255,0.04);
+}
+
+/* ---- Responsivitet ---- */
+@media (max-width: 576px) {
+  .trendanalys-wrapper {
+    padding: 0.75rem;
+  }
+
+  .big-number {
+    font-size: 1.8rem;
+  }
+
+  .page-title {
+    font-size: 1.2rem;
+  }
+}

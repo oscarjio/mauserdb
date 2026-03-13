@@ -1,0 +1,311 @@
+<div class="trendanalys-wrapper">
+
+  <!-- Rubrik -->
+  <div class="page-header mb-4">
+    <h1 class="page-title">
+      <i class="fas fa-chart-line me-3" style="color:#4299e1"></i>
+      Rebotling Trendanalys
+    </h1>
+    <p class="page-subtitle">Automatisk identifiering av trender — OEE, produktion och kassation</p>
+  </div>
+
+  <!-- ========================================================
+       SEKTION 1: 3 STORA TRENDKORT
+       ======================================================== -->
+  <div class="row g-3 mb-4">
+
+    <!-- OEE-kort -->
+    <div class="col-12 col-md-4">
+      <div class="trend-card" [class.border-warning]="trenderData?.oee?.alert === 'warning'"
+           [class.border-critical]="trenderData?.oee?.alert === 'critical'">
+        <div class="trend-card-header">
+          <span class="trend-card-titel">OEE</span>
+          <span *ngIf="trenderData?.oee?.alert !== 'ok'" class="alert-badge"
+                [class.badge-warning]="trenderData?.oee?.alert === 'warning'"
+                [class.badge-critical]="trenderData?.oee?.alert === 'critical'">
+            {{ trenderData?.oee?.alert === 'critical' ? 'KRITISK' : 'VARNING' }}
+          </span>
+        </div>
+        <div class="trend-card-body">
+          <div class="trend-main-value">
+            <span class="big-number">{{ trenderData?.oee?.nuvarande ?? '—' }}</span>
+            <span class="unit">%</span>
+            <i *ngIf="trenderData?.oee"
+               [class]="trendPilKlass(trenderData!.oee)"
+               class="trend-pil ms-2"></i>
+          </div>
+          <div class="slope-text" *ngIf="trenderData?.oee"
+               [style.color]="slopeFarg(trenderData!.oee.slope)">
+            {{ formatSlope(trenderData!.oee.slope) }}
+          </div>
+          <div class="medel-rad mt-2">
+            <span class="medel-etikett">7d medel</span>
+            <span class="medel-varde">{{ trenderData?.oee?.medel_7d ?? '—' }}%</span>
+            <span class="medel-etikett ms-3">30d medel</span>
+            <span class="medel-varde">{{ trenderData?.oee?.medel_30d ?? '—' }}%</span>
+          </div>
+          <div class="sparkline-container mt-3">
+            <canvas id="sparkOee" height="50"></canvas>
+            <div *ngIf="loadingTrender" class="loading-overlay"><i class="fas fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produktion-kort -->
+    <div class="col-12 col-md-4">
+      <div class="trend-card" [class.border-warning]="trenderData?.produktion?.alert === 'warning'"
+           [class.border-critical]="trenderData?.produktion?.alert === 'critical'">
+        <div class="trend-card-header">
+          <span class="trend-card-titel">Produktion</span>
+          <span *ngIf="trenderData?.produktion?.alert !== 'ok'" class="alert-badge"
+                [class.badge-warning]="trenderData?.produktion?.alert === 'warning'"
+                [class.badge-critical]="trenderData?.produktion?.alert === 'critical'">
+            {{ trenderData?.produktion?.alert === 'critical' ? 'KRITISK' : 'VARNING' }}
+          </span>
+        </div>
+        <div class="trend-card-body">
+          <div class="trend-main-value">
+            <span class="big-number">{{ trenderData?.produktion?.nuvarande ?? '—' }}</span>
+            <span class="unit">IBC</span>
+            <i *ngIf="trenderData?.produktion"
+               [class]="trendPilKlass(trenderData!.produktion)"
+               class="trend-pil ms-2"></i>
+          </div>
+          <div class="slope-text" *ngIf="trenderData?.produktion"
+               [style.color]="slopeFarg(trenderData!.produktion.slope)">
+            {{ formatSlope(trenderData!.produktion.slope) }}
+          </div>
+          <div class="medel-rad mt-2">
+            <span class="medel-etikett">7d medel</span>
+            <span class="medel-varde">{{ trenderData?.produktion?.medel_7d ?? '—' }} IBC</span>
+            <span class="medel-etikett ms-3">30d medel</span>
+            <span class="medel-varde">{{ trenderData?.produktion?.medel_30d ?? '—' }} IBC</span>
+          </div>
+          <div class="sparkline-container mt-3">
+            <canvas id="sparkProd" height="50"></canvas>
+            <div *ngIf="loadingTrender" class="loading-overlay"><i class="fas fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kassation-kort -->
+    <div class="col-12 col-md-4">
+      <div class="trend-card" [class.border-warning]="trenderData?.kassation?.alert === 'warning'"
+           [class.border-critical]="trenderData?.kassation?.alert === 'critical'">
+        <div class="trend-card-header">
+          <span class="trend-card-titel">Kassation</span>
+          <span *ngIf="trenderData?.kassation?.alert !== 'ok'" class="alert-badge"
+                [class.badge-warning]="trenderData?.kassation?.alert === 'warning'"
+                [class.badge-critical]="trenderData?.kassation?.alert === 'critical'">
+            {{ trenderData?.kassation?.alert === 'critical' ? 'KRITISK' : 'VARNING' }}
+          </span>
+        </div>
+        <div class="trend-card-body">
+          <div class="trend-main-value">
+            <span class="big-number">{{ trenderData?.kassation?.nuvarande ?? '—' }}</span>
+            <span class="unit">%</span>
+            <!-- Kassation: uppåtpil är negativt, nedåtpil är positivt -->
+            <i *ngIf="trenderData?.kassation"
+               [class]="trendPilKlass(trenderData!.kassation, true)"
+               class="trend-pil ms-2"></i>
+          </div>
+          <div class="slope-text" *ngIf="trenderData?.kassation"
+               [style.color]="slopeFarg(trenderData!.kassation.slope, true)">
+            {{ formatSlope(trenderData!.kassation.slope) }}
+          </div>
+          <div class="medel-rad mt-2">
+            <span class="medel-etikett">7d medel</span>
+            <span class="medel-varde">{{ trenderData?.kassation?.medel_7d ?? '—' }}%</span>
+            <span class="medel-etikett ms-3">30d medel</span>
+            <span class="medel-varde">{{ trenderData?.kassation?.medel_30d ?? '—' }}%</span>
+          </div>
+          <div class="sparkline-container mt-3">
+            <canvas id="sparkKass" height="50"></canvas>
+            <div *ngIf="loadingTrender" class="loading-overlay"><i class="fas fa-spinner fa-spin"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================
+       SEKTION 2: HUVUDGRAF
+       ======================================================== -->
+  <div class="card dark-card mb-4">
+    <div class="card-header d-flex flex-wrap align-items-center gap-2">
+      <span class="card-titel me-auto">90-dagars historik &amp; prognos</span>
+
+      <!-- Dataset-toggle -->
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm dataset-toggle"
+                [class.active]="visaOee"
+                (click)="toggleDataset('oee')"
+                style="border-color:#4299e1; color:#4299e1">
+          <i class="fas fa-circle me-1" style="font-size:8px"></i>OEE
+        </button>
+        <button class="btn btn-sm dataset-toggle"
+                [class.active]="visaProduktion"
+                (click)="toggleDataset('produktion')"
+                style="border-color:#48bb78; color:#48bb78">
+          <i class="fas fa-circle me-1" style="font-size:8px"></i>Produktion
+        </button>
+        <button class="btn btn-sm dataset-toggle"
+                [class.active]="visaKassation"
+                (click)="toggleDataset('kassation')"
+                style="border-color:#fc8181; color:#fc8181">
+          <i class="fas fa-circle me-1" style="font-size:8px"></i>Kassation
+        </button>
+      </div>
+
+      <!-- Periodselektor -->
+      <div class="btn-group" role="group">
+        <button *ngFor="let p of periodAlternativ"
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="aktivPeriod === p.varde"
+                [class.btn-outline-secondary]="aktivPeriod !== p.varde"
+                (click)="byttPeriod(p.varde)">
+          {{ p.etikett }}
+        </button>
+      </div>
+    </div>
+    <div class="card-body p-3">
+      <div *ngIf="loadingHistorik" class="text-center py-5">
+        <i class="fas fa-spinner fa-spin fa-2x text-secondary"></i>
+        <p class="text-secondary mt-2">Laddar historik...</p>
+      </div>
+      <div *ngIf="errorHistorik" class="alert alert-danger-dark">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda historik
+      </div>
+      <div *ngIf="!loadingHistorik && !errorHistorik" style="height:380px; position:relative;">
+        <canvas id="huvudChart"></canvas>
+      </div>
+      <!-- Prognos-legend -->
+      <div *ngIf="prognosData && prognosData.dagar.length > 0" class="prognos-legend mt-2">
+        <i class="fas fa-info-circle me-1" style="color:#a0aec0"></i>
+        <span style="color:#a0aec0; font-size:12px">
+          Skuggad zon = prognos +7 dagar baserat på senaste 14 dagars trend.
+          OEE om 7d: <strong style="color:#4299e1">{{ prognosData.oee }}%</strong>
+          &nbsp;|&nbsp;Produktion: <strong style="color:#48bb78">{{ prognosData.produktion | number:'1.0-0' }} IBC</strong>
+          &nbsp;|&nbsp;Kassation: <strong style="color:#fc8181">{{ prognosData.kassation }}%</strong>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SEKTION 3: VECKOSAMMANFATTNING
+       ======================================================== -->
+  <div class="card dark-card mb-4">
+    <div class="card-header">
+      <span class="card-titel">Veckosammanfattning (senaste 12 veckor)</span>
+    </div>
+    <div class="card-body p-0">
+      <div *ngIf="loadingVecko" class="text-center py-4">
+        <i class="fas fa-spinner fa-spin fa-2x text-secondary"></i>
+      </div>
+      <div *ngIf="errorVecko" class="alert alert-danger-dark m-3">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda veckodata
+      </div>
+      <div *ngIf="!loadingVecko && !errorVecko" class="table-responsive">
+        <table class="table table-dark table-hover table-sm mb-0 vecko-tabell">
+          <thead>
+            <tr>
+              <th>Vecka</th>
+              <th class="text-end">Produktion</th>
+              <th class="text-end">vs förra</th>
+              <th class="text-end">OEE %</th>
+              <th class="text-end">vs förra</th>
+              <th class="text-end">Kassation %</th>
+              <th class="text-end">vs förra</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rad of veckoData"
+                [class.basta-rad]="rad.basta_oee"
+                [class.samsta-rad]="rad.samsta_oee">
+              <td class="vecka-cell">
+                {{ veckaRubrik(rad) }}
+                <span *ngIf="rad.basta_oee"   class="vecka-badge badge-best ms-1">Bäst OEE</span>
+                <span *ngIf="rad.samsta_oee"  class="vecka-badge badge-worst ms-1">Sämst OEE</span>
+                <span *ngIf="rad.basta_produktion && !rad.basta_oee"  class="vecka-badge badge-best ms-1">Bäst prod</span>
+                <span *ngIf="rad.samsta_produktion && !rad.samsta_oee" class="vecka-badge badge-worst ms-1">Sämst prod</span>
+              </td>
+              <td class="text-end">{{ rad.produktion }}</td>
+              <td class="text-end" [class]="diffPilKlass(rad.prod_diff_pct)">
+                {{ diffPil(rad.prod_diff_pct) }}{{ rad.prod_diff_pct !== null ? '%' : '' }}
+              </td>
+              <td class="text-end">{{ rad.oee }}%</td>
+              <td class="text-end" [class]="diffPilKlass(rad.oee_diff_pct)">
+                {{ diffPil(rad.oee_diff_pct) }}{{ rad.oee_diff_pct !== null ? '%' : '' }}
+              </td>
+              <td class="text-end">{{ rad.kassation }}%</td>
+              <td class="text-end" [class]="diffPilKlass(rad.kass_diff_pct, true)">
+                {{ diffPil(rad.kass_diff_pct, true) }}{{ rad.kass_diff_pct !== null ? 'pp' : '' }}
+              </td>
+            </tr>
+            <tr *ngIf="veckoData.length === 0">
+              <td colspan="7" class="text-center text-secondary py-3">Ingen data tillgänglig</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================
+       SEKTION 4: ANOMALIER
+       ======================================================== -->
+  <div class="card dark-card mb-4">
+    <div class="card-header">
+      <span class="card-titel">
+        <i class="fas fa-exclamation-circle me-2" style="color:#ecc94b"></i>
+        Avvikande dagar (±2 standardavvikelser, senaste 30 dagar)
+      </span>
+    </div>
+    <div class="card-body p-3">
+      <div *ngIf="loadingAnomalier" class="text-center py-4">
+        <i class="fas fa-spinner fa-spin fa-2x text-secondary"></i>
+      </div>
+      <div *ngIf="errorAnomalier" class="alert alert-danger-dark">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda anomalier
+      </div>
+      <div *ngIf="!loadingAnomalier && !errorAnomalier">
+        <div *ngIf="anomalierData.length === 0" class="text-center text-secondary py-3">
+          <i class="fas fa-check-circle fa-2x mb-2 d-block" style="color:#48bb78"></i>
+          Inga avvikande dagar identifierade — produktionen är stabil
+        </div>
+        <div class="row g-2">
+          <div *ngFor="let a of anomalierData" class="col-12 col-md-6 col-lg-4">
+            <div class="anomali-kort" [class]="avvikelseKlass(a)">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="anomali-typ">{{ a.typ }}</span>
+                  <span class="anomali-datum ms-2">{{ a.datum }}</span>
+                </div>
+                <span class="anomali-avv" [style.color]="a.positivt ? '#48bb78' : '#fc8181'">
+                  {{ a.avvikelse > 0 ? '+' : '' }}{{ a.avvikelse.toFixed(1) }}σ
+                </span>
+              </div>
+              <div class="anomali-varden mt-1">
+                <span>Värde: <strong>{{ a.varde }}{{ a.enhet }}</strong></span>
+                <span class="ms-3">Medel: {{ a.medel }}{{ a.enhet }}</span>
+              </div>
+              <div class="anomali-ikon mt-1">
+                <i *ngIf="a.positivt"  class="fas fa-arrow-up"   style="color:#48bb78"></i>
+                <i *ngIf="!a.positivt" class="fas fa-arrow-down" style="color:#fc8181"></i>
+                <span class="ms-1" style="font-size:11px; color:#a0aec0">
+                  {{ a.positivt ? 'Positivt avvikande' : 'Negativt avvikande' }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

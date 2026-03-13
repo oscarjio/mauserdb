@@ -106,6 +106,8 @@ export const routes: Routes = [
       { path: 'rebotling/kassationskvot-alarm', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kassationskvot-alarm/kassationskvot-alarm.component').then(m => m.KassationskvotAlarmPage) },
       { path: 'rebotling/produktions-dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktions-dashboard/produktions-dashboard.component').then(m => m.ProduktionsDashboardPage) },
       { path: 'rebotling/kapacitetsplanering', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kapacitetsplanering/kapacitetsplanering.component').then(m => m.KapacitetsplaneringPage) },
+      { path: 'rebotling/rebotling-trendanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/rebotling-trendanalys/rebotling-trendanalys.component').then(m => m.RebotlingTrendanalysPage) },
+      { path: 'rebotling/operators-prestanda', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operators-prestanda/operators-prestanda.component').then(m => m.OperatorsPrestandaPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },
