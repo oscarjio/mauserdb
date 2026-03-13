@@ -1,3 +1,36 @@
+## 2026-03-13 Skiftrapport-sammanstallning — daglig rapport per skift
+
+Ny sida `/rebotling/skiftrapport-sammanstallning` — automatisk daglig rapport per skift (Dag/Kvall/Natt) med produktion, kassation, OEE, stopptid.
+
+- **Backend**: Tre nya `run`-endpoints i `classes/SkiftrapportController.php` (action=`skiftrapport`)
+  - `run=daglig-sammanstallning` — data per skift (Dag 06-14, Kvall 14-22, Natt 22-06) for valt datum
+    - Per skift: producerade, kasserade, kassationsgrad, OEE (tillganglighet x prestanda x kvalitet), stopptid, drifttid
+    - OEE: Tillganglighet = drifttid/8h, Prestanda = (totalIBC*120s)/drifttid (max 100%), Kvalitet = godkanda/totalt
+    - Top-3 kassationsorsaker per skift (fran kassationsregistrering + kassationsorsak_typer)
+  - `run=veckosammanstallning` — sammanstallning per dag, senaste 7 dagarna
+  - `run=skiftjamforelse` — jamfor dag/kvall/natt senaste N dagar (default 30) med snitt-OEE och totalproduktion
+  - Data fran `rebotling_ibc` + `rebotling_onoff` — inga nya tabeller
+
+- **Frontend**: `pages/rebotling/skiftrapport-sammanstallning/`
+  - Datumvaljare (default idag)
+  - 3 skiftkort med produktion, kassation, kassationsgrad, OEE, stopptid, drifttid
+  - Top-3 kassationsorsaker per skift
+  - Dagstotalt-bar
+  - Stapeldiagram (Chart.js): produktion + kassation per skift
+  - Veckosammanstallning: tabell dag/kvall/natt per dag, 7 dagar
+  - Skiftjamforelse: linjediagram OEE per skifttyp over 30 dagar
+  - Snitt-kort per skift (30 dagar)
+  - PDF-export via PdfExportButtonComponent
+  - Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text
+
+- **Service**: `services/skiftrapport-sammanstallning.service.ts`
+  - `getDagligSammanstallning(datum)`, `getVeckosammanstallning()`, `getSkiftjamforelse(dagar)`
+
+- **Route**: `/rebotling/skiftrapport-sammanstallning` med authGuard
+- **Navigation**: Tillagd i Rebotling-dropdown i menyn
+
+---
+
 ## 2026-03-13 Produktionsmal-dashboard — VD-dashboard for malsattning och progress
 
 Ombyggd sida `/rebotling/produktionsmal` — VD kan satta vecko/manadsmal for produktion och se progress i realtid med cirkeldiagram + prognos.
