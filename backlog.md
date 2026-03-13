@@ -5,10 +5,11 @@
 
 ## Förbättringar
 
+- [PÅGÅR] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör över tid, heatmap, tröskellarm (session #101)
+- [PÅGÅR] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet per station, utnyttjandegrad, bemanningsplanering (session #101)
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
 - [ ] **Rebotling energi/resursförbrukning** — koppla vatten/el/kemikalieförbrukning per IBC, visualisera kostnad per enhet
-- [x] **Rebotling historisk sammanfattning** — månadsrapport/kvartalsrapport med auto-genererad text: "Mars: OEE 78%, +3% vs feb, flaskhals station 4"
-- [ ] **Rebotling kvalitetstrend-analys** — visualisera kassationsrate per station/operatör över tid, identifiera kvalitetsavvikelser tidigt med tröskellarm
-- [ ] **Rebotling kapacitetsplanering** — beräkna teoretisk vs faktisk kapacitet per station, visa utnyttjandegrad, planera bemanning baserat på orderbehov
-- [x] **VD Executive Dashboard** — en enda sida med alla kritiska KPI:er: OEE, produktion idag vs mål, aktiva operatörer, stopp just nu, top 3 operatörer — allt VD behöver på 10 sekunder
+- [ ] **Rebotling skiftöverlämningsprotokoll** — digital checklista vid skiftbyte: vad hände, vad behöver åtgärdas, statusrapport per station
+- [ ] **Rebotling operatörs-dashboard** — personlig vy för operatören: min produktion idag, mitt tempo vs snitt, min bonus hittills, mina stopp
+- [ ] **Statistiksida sammanslagen överblick** — en enkel sida med produktion/vecka, OEE/vecka, kassation/vecka i tre grafer — VD:s go-to för "hur går det?"

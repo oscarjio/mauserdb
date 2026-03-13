@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #100)*
+*Senast uppdaterad: 2026-03-13 (session #101)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -64,22 +64,20 @@ Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — k
 Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — klara.
 Session #99: Rebotling skiftjämförelse-rapport + Operatörs-ranking med bonus — klara.
 Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — klara.
+Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **VD Executive Dashboard** — alla kritiska KPI:er på en sida, 10-sekunders överblick (klar #100)
-- [x] **Rebotling historisk sammanfattning** — auto-genererad månads-/kvartalsrapport (klar #100)
+- [PÅGÅR] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör, tröskellarm (#101)
+- [PÅGÅR] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet, utnyttjandegrad (#101)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
-- [ ] **Rebotling kvalitetstrend-analys** — kassationsrate per station/operatör, tröskellarm
-- [ ] **Rebotling kapacitetsplanering** — teoretisk vs faktisk kapacitet, utnyttjandegrad
+- [ ] **Rebotling skiftöverlämningsprotokoll** — digital checklista vid skiftbyte
+- [ ] **Rebotling operatörs-dashboard** — personlig vy för operatören
+- [ ] **Statistiksida sammanslagen överblick** — produktion/OEE/kassation per vecka
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #98 (klar)
-Worker 1 (Operatörs-tidrapport): Ny sida — automatisk tidrapport från skiftschema, per-operatör-sammanfattning, arbetstid-chart, detaljlista, CSV-export. Backend: TidrapportController.
-Worker 2 (OEE-trendanalys förbättrad): Ny sida — OEE per station med breakdown, trendlinje med rullande snitt, flaskhalsidentifiering, period-jämförelse, prediktion. Backend: OeeTrendanalysController.
 
 ### 2026-03-13 — Session #99 (klar)
 Worker 1 (Rebotling skiftjämförelse-rapport): Ny sida — FM/EM/Natt-jämförelse med radar-chart, trendanalys, best practices-identifiering. Backend: SkiftjamforelseController.
@@ -88,3 +86,7 @@ Worker 2 (Operatörs-ranking med bonus): Ny sida — gamifierad ranking med poä
 ### 2026-03-13 — Session #100 (klar)
 Worker 1 (VD Executive Dashboard): Ny sida — alla kritiska KPI:er på en sida: OEE, produktion vs mål, aktiva operatörer, stopp just nu, top 3, stationsstatus, auto-refresh 30s. Backend: VdDashboardController.
 Worker 2 (Rebotling historisk sammanfattning): Ny sida — auto-genererad månads-/kvartalsrapport med text, KPI-jämförelse, trend, top operatörer, stationsöversikt, Pareto stopporsaker, print-CSS. Backend: HistoriskSammanfattningController.
+
+### 2026-03-13 — Session #101 (pågår)
+Worker 1 (Rebotling kvalitetstrend-analys): Ny sida — kassationsrate per station/operatör över tid, heatmap station x vecka, tröskellarm med konfigurerbara nivåer. Backend: KvalitetstrendanalysController.
+Worker 2 (Rebotling kapacitetsplanering): Ny sida — teoretisk vs faktisk kapacitet per station, utnyttjandegrad-trend, bemanningsplanering, kapacitetssimulator. Backend: KapacitetsplaneringController.
