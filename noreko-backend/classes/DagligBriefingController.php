@@ -112,49 +112,53 @@ class DagligBriefingController {
         $from = $date . ' 00:00:00';
         $to   = $date . ' 23:59:59';
 
+        // rebotling_onoff: datum (DATETIME), running (BOOLEAN)
         $drifttidSek = 0;
         try {
-            $sql = "
-                SELECT SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
-            ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $drifttidSek = max(0, (int)($row['drifttid_sek'] ?? 0));
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prevTime = null;
+            $prevRunning = null;
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+                if ($prevTime !== null && $prevRunning === 1) {
+                    $drifttidSek += ($ts - $prevTime);
+                }
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+            $drifttidSek = max(0, $drifttidSek);
         } catch (\Exception $e) {}
 
         $schemaSek = self::SCHEMA_SEK_PER_DAG;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
+        // rebotling_ibc: MAX(ibc_ok) per skiftraknare, then SUM
         $totalIbc = 0;
         $okIbc = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS total_ibc,
-                       SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) = :date
+                SELECT
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                    GROUP BY skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([':date' => $date]);
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
+            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
         } catch (\Exception $e) {}
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
@@ -249,25 +253,31 @@ class DagligBriefingController {
 
             $malProcent = $dagsmal > 0 ? round(($totalIbc / $dagsmal) * 100, 1) : 0;
 
-            // Basta operator
+            // Basta operator (rebotling_ibc uses op1/op2/op3 columns)
             $bastaOperator = null;
             try {
                 $sql = "
-                    SELECT
-                        ri.user_id,
-                        COALESCE(u.username, CONCAT('Operator ', ri.user_id)) AS operator_namn,
-                        COUNT(*) AS total_ibc
-                    FROM rebotling_ibc ri
-                    LEFT JOIN users u ON ri.user_id = u.id
-                    WHERE DATE(ri.datum) = :date
-                      AND ri.user_id IS NOT NULL
-                      AND ri.user_id > 0
-                    GROUP BY ri.user_id, u.username
+                    SELECT op, SUM(cnt) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
+                    FROM (
+                        SELECT op1 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :date1 AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY op1
+                        UNION ALL
+                        SELECT op2 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :date2 AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY op2
+                        UNION ALL
+                        SELECT op3 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :date3 AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY op3
+                    ) AS sub
+                    LEFT JOIN operators o ON o.number = sub.op
+                    GROUP BY op, o.name
                     ORDER BY total_ibc DESC
                     LIMIT 1
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':date' => $datum]);
+                $stmt->execute([':date1' => $datum, ':date2' => $datum, ':date3' => $datum]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) {
                     $bastaOperator = [
@@ -400,88 +410,39 @@ class DagligBriefingController {
     private function stationsstatus(): void {
         try {
             $datum = $this->getDatum();
-            $stationer = $this->getStationer();
             $schemaSek = self::SCHEMA_SEK_PER_DAG;
 
-            // IBC per station
-            $ibcByStation = [];
-            try {
-                $sql = "
-                    SELECT
-                        COALESCE(station_id, 1) AS station_id,
-                        COUNT(*) AS total_ibc,
-                        SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
-                    GROUP BY COALESCE(station_id, 1)
-                ";
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':date' => $datum]);
-                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                    $ibcByStation[(int)$row['station_id']] = $row;
-                }
-            } catch (\Exception $e) {}
+            // rebotling_ibc has no station column — show single line
+            $oee = $this->calcOeeForDay($datum);
+            $totalIbc = $oee['total_ibc'];
+            $okIbc = $oee['ok_ibc'];
+            $drifttidSek = $oee['drifttid_sek'];
 
-            // Drifttid per station
-            $driftByStation = [];
-            try {
-                $from = $datum . ' 00:00:00';
-                $to   = $datum . ' 23:59:59';
-                $sql = "
-                    SELECT
-                        COALESCE(station_id, 1) AS station_id,
-                        SUM(TIMESTAMPDIFF(SECOND,
-                            GREATEST(start_time, :from1),
-                            LEAST(COALESCE(stop_time, NOW()), :to1)
-                        )) AS drifttid_sek
-                    FROM rebotling_onoff
-                    WHERE start_time < :to2
-                      AND (stop_time IS NULL OR stop_time > :from2)
-                    GROUP BY COALESCE(station_id, 1)
-                ";
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
-                    ':from1' => $from, ':to1' => $to,
-                    ':from2' => $from, ':to2' => $to,
-                ]);
-                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                    $driftByStation[(int)$row['station_id']] = max(0, (int)$row['drifttid_sek']);
-                }
-            } catch (\Exception $e) {}
+            $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
+            $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
+            $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
+            $oeeVal = $tillganglighet * $prestanda * $kvalitet;
+            $oeePct = round($oeeVal * 100, 1);
 
-            $results = [];
-            foreach ($stationer as $s) {
-                $sid = (int)$s['id'];
-                $ibc = $ibcByStation[$sid] ?? null;
-                $totalIbc = $ibc ? (int)$ibc['total_ibc'] : 0;
-                $okIbc    = $ibc ? (int)$ibc['ok_ibc'] : 0;
-                $drifttidSek = $driftByStation[$sid] ?? 0;
+            if ($totalIbc === 0) {
+                $status = 'Ingen data';
+            } elseif ($oeePct >= self::OEE_MAL) {
+                $status = 'OK';
+            } elseif ($oeePct >= 40) {
+                $status = 'Varning';
+            } else {
+                $status = 'Kritisk';
+            }
 
-                $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
-                $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
-                $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
-                $oee = $tillganglighet * $prestanda * $kvalitet;
-                $oeePct = round($oee * 100, 1);
-
-                // Status baserat pa OEE-trosklar
-                if ($totalIbc === 0) {
-                    $status = 'Ingen data';
-                } elseif ($oeePct >= self::OEE_MAL) {
-                    $status = 'OK';
-                } elseif ($oeePct >= 40) {
-                    $status = 'Varning';
-                } else {
-                    $status = 'Kritisk';
-                }
-
-                $results[] = [
-                    'station_id'   => $sid,
-                    'station_namn' => $s['namn'],
+            $results = [
+                [
+                    'station_id'   => 1,
+                    'station_namn' => 'Rebotling',
                     'total_ibc'    => $totalIbc,
                     'oee_pct'      => $oeePct,
                     'status'       => $status,
-                ];
-            }
+                ],
+            ];
 
             $this->sendSuccess([
                 'datum'     => $datum,
@@ -540,27 +501,33 @@ class DagligBriefingController {
             $today = date('Y-m-d');
             $operatorer = [];
 
-            // Operatorer som producerat idag
+            // Operatorer som producerat idag (rebotling_ibc uses op1/op2/op3)
             try {
                 $sql = "
-                    SELECT DISTINCT
-                        ri.user_id,
-                        COALESCE(u.username, CONCAT('Operator ', ri.user_id)) AS namn,
-                        COUNT(*) AS ibc_idag
-                    FROM rebotling_ibc ri
-                    LEFT JOIN users u ON ri.user_id = u.id
-                    WHERE DATE(ri.datum) = :today
-                      AND ri.user_id IS NOT NULL
-                      AND ri.user_id > 0
-                    GROUP BY ri.user_id, u.username
+                    SELECT op, SUM(cnt) AS ibc_idag, COALESCE(o.name, CONCAT('Operator ', op)) AS namn
+                    FROM (
+                        SELECT op1 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY op1
+                        UNION ALL
+                        SELECT op2 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY op2
+                        UNION ALL
+                        SELECT op3 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY op3
+                    ) AS sub
+                    LEFT JOIN operators o ON o.number = sub.op
+                    GROUP BY op, o.name
                     ORDER BY ibc_idag DESC
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today' => $today]);
+                $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                 $operatorer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 foreach ($operatorer as &$op) {
-                    $op['user_id'] = (int)$op['user_id'];
+                    $op['user_id'] = (int)$op['op'];
                     $op['ibc_idag'] = (int)$op['ibc_idag'];
                 }
                 unset($op);

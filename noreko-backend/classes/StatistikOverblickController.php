@@ -90,17 +90,21 @@ class StatistikOverblickController {
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        COUNT(*) AS total,
-                        SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc,
-                        SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
+                        COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
+                    FROM (
+                        SELECT skiftraknare, DATE(datum) AS dag,
+                               MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_skift
                 ");
                 $stmt->execute([':from_date' => $from30, ':to_date' => $today]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $totalIbc = (int)($row['total'] ?? 0);
                 $okIbc = (int)($row['ok_ibc'] ?? 0);
                 $kasserade = (int)($row['kasserade'] ?? 0);
+                $totalIbc = $okIbc + $kasserade;
             } catch (\Exception $e) {
                 error_log('StatistikOverblickController::getKpi ibc: ' . $e->getMessage());
             }
@@ -124,15 +128,20 @@ class StatistikOverblickController {
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        COUNT(*) AS total,
-                        SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
+                        COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
+                    FROM (
+                        SELECT skiftraknare, DATE(datum) AS dag,
+                               MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_skift
                 ");
                 $stmt->execute([':from_date' => $prevFrom, ':to_date' => $prevTo]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $prevTotalIbc = (int)($row['total'] ?? 0);
                 $prevKasserade = (int)($row['kasserade'] ?? 0);
+                $prevTotalIbc = (int)($row['ok_ibc'] ?? 0) + $prevKasserade;
             } catch (\Exception $e) {}
 
             $prevKassationsrate = $prevTotalIbc > 0 ? round(($prevKasserade / $prevTotalIbc) * 100, 2) : 0;
@@ -278,12 +287,21 @@ class StatistikOverblickController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    YEARWEEK(datum, 1) AS yearweek,
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 1 ELSE 0 END) AS kasserade
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                GROUP BY YEARWEEK(datum, 1)
+                    yearweek,
+                    SUM(max_ibc_ok) AS ok_total,
+                    SUM(max_ibc_ej_ok) AS kasserade
+                FROM (
+                    SELECT
+                        YEARWEEK(datum, 1) AS yearweek,
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY yearweek
                 ORDER BY yearweek ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -294,8 +312,9 @@ class StatistikOverblickController {
             foreach ($rows as $row) {
                 $weekNum = (int)substr($row['yearweek'], -2);
                 $labels[] = 'V' . $weekNum;
-                $total = (int)$row['total'];
-                $kass = (int)$row['kasserade'];
+                $ok = (int)($row['ok_total'] ?? 0);
+                $kass = (int)($row['kasserade'] ?? 0);
+                $total = $ok + $kass;
                 $values[] = $total > 0 ? round(($kass / $total) * 100, 2) : 0;
             }
 
@@ -332,49 +351,53 @@ class StatistikOverblickController {
         $from = $date . ' 00:00:00';
         $to   = $date . ' 23:59:59';
 
+        // rebotling_onoff: datum (DATETIME), running (BOOLEAN)
         $drifttidSek = 0;
         try {
-            $sql = "
-                SELECT SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
-            ";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([
-                ':from1' => $from, ':to1' => $to,
-                ':from2' => $from, ':to2' => $to,
-                ':from3' => $from, ':to3' => $to,
-            ]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $drifttidSek = max(0, (int)($row['drifttid_sek'] ?? 0));
+            $stmt = $this->pdo->prepare("
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
+            ");
+            $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prevTime = null;
+            $prevRunning = null;
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+                if ($prevTime !== null && $prevRunning === 1) {
+                    $drifttidSek += ($ts - $prevTime);
+                }
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+            $drifttidSek = max(0, $drifttidSek);
         } catch (\Exception $e) {}
 
         $schemaSek = self::SCHEMA_SEK_PER_DAG;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
 
+        // rebotling_ibc: MAX per skiftraknare, then SUM
         $totalIbc = 0;
         $okIbc = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS total_ibc,
-                       SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) = :date
+                SELECT
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :date
+                    GROUP BY skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([':date' => $date]);
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $totalIbc = (int)($ibcRow['total_ibc'] ?? 0);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
+            $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
         } catch (\Exception $e) {}
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;

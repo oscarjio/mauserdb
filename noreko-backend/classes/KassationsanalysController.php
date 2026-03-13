@@ -1110,36 +1110,7 @@ class KassationsanalysController {
      * Hitta stationen med hogst kassationsandel.
      */
     private function getVarstaStation(int $days): ?array {
-        $toDate   = date('Y-m-d');
-        $fromDate = date('Y-m-d', strtotime("-{$days} days"));
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    station,
-                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade,
-                    COUNT(*) AS totalt,
-                    ROUND(SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) / COUNT(*) * 100, 1) AS andel_pct
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND datum BETWEEN :from_date AND :to_date
-                GROUP BY station
-                HAVING totalt > 0
-                ORDER BY andel_pct DESC
-                LIMIT 1
-            ");
-            $stmt->execute([':from_date' => $fromDate . ' 00:00:00', ':to_date' => $toDate . ' 23:59:59']);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            if ($row) {
-                return [
-                    'station'   => $row['station'],
-                    'kasserade' => (int)$row['kasserade'],
-                    'totalt'    => (int)$row['totalt'],
-                    'andel_pct' => (float)$row['andel_pct'],
-                ];
-            }
-        } catch (\PDOException $e) {
-            error_log('KassationsanalysController::getVarstaStation: ' . $e->getMessage());
-        }
+        // rebotling_ibc has no station column — return null
         return null;
     }
 
@@ -1333,33 +1304,39 @@ class KassationsanalysController {
         $toDate   = date('Y-m-d');
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
+        // rebotling_ibc has no station column — return single line aggregate
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    station,
-                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS godkanda,
-                    COUNT(*) AS totalt,
-                    ROUND(SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) / COUNT(*) * 100, 1) AS andel_pct
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND datum BETWEEN :from_date AND :to_date
-                GROUP BY station
-                ORDER BY andel_pct DESC
+                    COALESCE(SUM(max_ibc_ok), 0) AS godkanda,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS kasserade
+                FROM (
+                    SELECT skiftraknare, DATE(datum) AS dag,
+                           MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([
                 ':from_date' => $fromDate . ' 00:00:00',
                 ':to_date'   => $toDate . ' 23:59:59',
             ]);
-            $stationer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $godkanda = (int)($row['godkanda'] ?? 0);
+            $kasserade = (int)($row['kasserade'] ?? 0);
+            $totalt = $godkanda + $kasserade;
+            $andel = $totalt > 0 ? round($kasserade / $totalt * 100, 1) : 0.0;
 
-            foreach ($stationer as &$s) {
-                $s['kasserade']  = (int)$s['kasserade'];
-                $s['godkanda']   = (int)$s['godkanda'];
-                $s['totalt']     = (int)$s['totalt'];
-                $s['andel_pct']  = (float)$s['andel_pct'];
-            }
-            unset($s);
+            $stationer = [
+                [
+                    'station'    => 'Rebotling',
+                    'kasserade'  => $kasserade,
+                    'godkanda'   => $godkanda,
+                    'totalt'     => $totalt,
+                    'andel_pct'  => $andel,
+                ],
+            ];
 
             $this->sendSuccess([
                 'days'      => $days,
@@ -1381,17 +1358,19 @@ class KassationsanalysController {
         $fromDate = date('Y-m-d', strtotime("-{$days} days"));
 
         try {
-            // Hamta alla IBC-rader med operatorsinfo i perioden
+            // rebotling_ibc: ibc_ok/ibc_ej_ok are cumulative per skiftraknare
+            // Aggregate per operator using op1/op2/op3
             $stmt = $this->pdo->prepare("
                 SELECT
-                    i.ok,
+                    i.ibc_ok,
+                    i.ibc_ej_ok,
                     o1.name AS op1_namn,
                     o2.name AS op2_namn,
                     o3.name AS op3_namn
                 FROM rebotling_ibc i
-                LEFT JOIN operators o1 ON o1.id = i.op1
-                LEFT JOIN operators o2 ON o2.id = i.op2
-                LEFT JOIN operators o3 ON o3.id = i.op3
+                LEFT JOIN operators o1 ON o1.number = i.op1
+                LEFT JOIN operators o2 ON o2.number = i.op2
+                LEFT JOIN operators o3 ON o3.number = i.op3
                 WHERE i.datum BETWEEN :from_date AND :to_date
                   AND (i.op1 IS NOT NULL OR i.op2 IS NOT NULL OR i.op3 IS NOT NULL)
             ");
@@ -1401,17 +1380,17 @@ class KassationsanalysController {
             ]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-            // Aggregera per operator
+            // Each row has cumulative ibc_ok/ibc_ej_ok — count rows per operator
             $opData = [];
             foreach ($rows as $row) {
-                $ok = (int)$row['ok'];
+                $ejOk = (int)($row['ibc_ej_ok'] ?? 0);
                 $ops = array_filter([$row['op1_namn'], $row['op2_namn'], $row['op3_namn']]);
                 foreach ($ops as $opName) {
                     if (!isset($opData[$opName])) {
                         $opData[$opName] = ['totalt' => 0, 'kasserade' => 0];
                     }
                     $opData[$opName]['totalt']++;
-                    if ($ok === 0) $opData[$opName]['kasserade']++;
+                    if ($ejOk > 0) $opData[$opName]['kasserade']++;
                 }
             }
 
@@ -1428,10 +1407,8 @@ class KassationsanalysController {
                 ];
             }
 
-            // Sortera efter andel DESC
             usort($result, fn($a, $b) => $b['andel_pct'] <=> $a['andel_pct']);
 
-            // Lagg till ranking
             foreach ($result as $i => &$r) {
                 $r['ranking'] = $i + 1;
             }
@@ -1460,19 +1437,19 @@ class KassationsanalysController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    i.id,
                     i.datum,
-                    i.station,
-                    i.ok,
                     i.skiftraknare,
+                    i.ibc_ok,
+                    i.ibc_ej_ok,
+                    i.lopnummer,
                     o1.name AS op1_namn,
                     o2.name AS op2_namn,
                     o3.name AS op3_namn
                 FROM rebotling_ibc i
-                LEFT JOIN operators o1 ON o1.id = i.op1
-                LEFT JOIN operators o2 ON o2.id = i.op2
-                LEFT JOIN operators o3 ON o3.id = i.op3
-                WHERE i.ok = 0
+                LEFT JOIN operators o1 ON o1.number = i.op1
+                LEFT JOIN operators o2 ON o2.number = i.op2
+                LEFT JOIN operators o3 ON o3.number = i.op3
+                WHERE i.ibc_ej_ok > 0
                   AND i.datum BETWEEN :from_date AND :to_date
                 ORDER BY i.datum DESC
                 LIMIT :lim

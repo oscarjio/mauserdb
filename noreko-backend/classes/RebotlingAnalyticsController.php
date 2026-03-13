@@ -58,19 +58,28 @@ class RebotlingAnalyticsController {
         $cykelDatum = $ibcRow['cykel_datum'] ?? null;
 
         // Steg 3: Använd SAMMA skifträknare i rebotling_onoff för start/stopp
+        // Första running=1 = maskinstart, sista running=0 = maskinstopp
         $skiftStart = null;
         $skiftSlut  = null;
         try {
             $onStmt = $this->pdo->prepare(
-                "SELECT MIN(datum) AS first_start, MAX(datum) AS last_stop
-                 FROM rebotling_onoff
-                 WHERE skiftraknare = ?"
+                "SELECT
+                    (SELECT MIN(datum) FROM rebotling_onoff WHERE skiftraknare = ? AND running = 1) AS first_start,
+                    (SELECT MAX(datum) FROM rebotling_onoff WHERE skiftraknare = ? AND running = 0) AS last_stop"
             );
-            $onStmt->execute([$foundSkiftraknare]);
+            $onStmt->execute([$foundSkiftraknare, $foundSkiftraknare]);
             $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
             if ($onRow) {
                 $skiftStart = $onRow['first_start'] ?? null;
                 $skiftSlut  = $onRow['last_stop'] ?? null;
+            }
+            // Om inget running=0 finns (maskin lämnades på), fallback till MAX(datum)
+            if (!$skiftSlut && $skiftStart) {
+                $maxStmt = $this->pdo->prepare(
+                    "SELECT MAX(datum) AS last FROM rebotling_onoff WHERE skiftraknare = ?"
+                );
+                $maxStmt->execute([$foundSkiftraknare]);
+                $skiftSlut = $maxStmt->fetchColumn() ?: null;
             }
         } catch (Exception $e) {}
 
@@ -4119,18 +4128,18 @@ class RebotlingAnalyticsController {
             $skiftraknare = count($skiftraknareList) > 0 ? array_key_first($skiftraknareList) : null;
 
             if ($skiftraknare) {
+                // Sök enbart på skifträknare (ej datumfilter) — hanterar dag-efter-scenariot
                 $hourlyStmt = $this->pdo->prepare("
                     SELECT
                         HOUR(datum) AS timme,
                         COUNT(*)    AS antal,
                         MAX(COALESCE(ibc_ok, 0)) - MIN(COALESCE(ibc_ok, 0)) AS ibc_diff
                     FROM rebotling_ibc
-                    WHERE DATE(datum) = :date
-                      AND skiftraknare = :skift
+                    WHERE skiftraknare = :skift
                     GROUP BY HOUR(datum)
                     ORDER BY HOUR(datum)
                 ");
-                $hourlyStmt->execute(['date' => $date, 'skift' => $skiftraknare]);
+                $hourlyStmt->execute(['skift' => $skiftraknare]);
                 $hourlyData = $hourlyStmt->fetchAll(PDO::FETCH_ASSOC);
             }
 

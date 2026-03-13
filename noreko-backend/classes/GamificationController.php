@@ -107,34 +107,46 @@ class GamificationController {
     private function getOperatorIbcData(string $from, string $to): array {
         $operators = [];
 
+        // rebotling_ibc uses op1/op2/op3, not user_id
+        // Aggregate IBC counts per operator from all 3 op columns
         try {
             $sql = "
-                SELECT
-                    COALESCE(ri.user_id, 0) AS user_id,
-                    COALESCE(u.username, CONCAT('Operator ', ri.user_id)) AS operator_namn,
-                    COUNT(*) AS total_ibc,
-                    SUM(CASE WHEN ri.ok = 1 THEN 1 ELSE 0 END) AS ok_ibc
-                FROM rebotling_ibc ri
-                LEFT JOIN users u ON ri.user_id = u.id
-                WHERE DATE(ri.datum) BETWEEN :from AND :to
-                  AND ri.user_id IS NOT NULL
-                  AND ri.user_id > 0
-                GROUP BY ri.user_id, u.username
+                SELECT op_id, COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
+                       SUM(cnt) AS total_ibc
+                FROM (
+                    SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND op1 > 0
+                    GROUP BY op1
+                    UNION ALL
+                    SELECT op2 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND op2 > 0
+                    GROUP BY op2
+                    UNION ALL
+                    SELECT op3 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND op3 > 0
+                    GROUP BY op3
+                ) AS sub
+                LEFT JOIN operators o ON o.number = sub.op_id
+                GROUP BY op_id, o.name
                 ORDER BY total_ibc DESC
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from, ':to' => $to]);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $uid = (int)$row['user_id'];
+                $uid = (int)$row['op_id'];
                 $operators[$uid] = [
                     'user_id'       => $uid,
                     'operator_namn' => $row['operator_namn'],
                     'total_ibc'     => (int)$row['total_ibc'],
-                    'ok_ibc'        => (int)$row['ok_ibc'],
+                    'ok_ibc'        => (int)$row['total_ibc'], // all counted as ok here
                 ];
             }
         } catch (\PDOException $e) {
-            // kolumnen user_id kanske saknas
+            // op columns might not exist
         }
 
         // Fallback: rebotling_data
@@ -294,15 +306,20 @@ class GamificationController {
             $streak = 0;
             try {
                 $sql = "
-                    SELECT DATE(datum) AS dag, COUNT(*) AS ibc_count
-                    FROM rebotling_ibc
-                    WHERE user_id = :uid
-                      AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY DATE(datum)
-                    ORDER BY dag DESC
+                    SELECT dag, SUM(cnt) AS ibc_count FROM (
+                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE op1 = :uid1 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY DATE(datum)
+                        UNION ALL
+                        SELECT DATE(datum), COUNT(*) FROM rebotling_ibc
+                        WHERE op2 = :uid2 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY DATE(datum)
+                        UNION ALL
+                        SELECT DATE(datum), COUNT(*) FROM rebotling_ibc
+                        WHERE op3 = :uid3 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY DATE(datum)
+                    ) AS sub
+                    GROUP BY dag ORDER BY dag DESC
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':uid' => $op['user_id']]);
+                $stmt->execute([':uid1' => $op['user_id'], ':uid2' => $op['user_id'], ':uid3' => $op['user_id']]);
                 $dagData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 foreach ($dagData as $d) {
@@ -328,18 +345,24 @@ class GamificationController {
         $badges = [];
 
         // ---- Centurion: 100 IBC pa en dag ----
+        // rebotling_ibc uses op1/op2/op3, not user_id
         try {
             $sql = "
-                SELECT DATE(datum) AS dag, COUNT(*) AS cnt
-                FROM rebotling_ibc
-                WHERE user_id = :uid
-                GROUP BY DATE(datum)
-                HAVING cnt >= 100
-                ORDER BY dag DESC
-                LIMIT 1
+                SELECT dag, SUM(cnt) AS total_cnt FROM (
+                    SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE op1 = :uid1 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    UNION ALL
+                    SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE op2 = :uid2 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                    UNION ALL
+                    SELECT DATE(datum) AS dag, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE op3 = :uid3 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY) GROUP BY DATE(datum)
+                ) AS sub
+                GROUP BY dag HAVING total_cnt >= 100
+                ORDER BY dag DESC LIMIT 1
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':uid' => $userId]);
+            $stmt->execute([':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if ($row) {
                 $badges[] = [
@@ -354,20 +377,28 @@ class GamificationController {
             }
         } catch (\PDOException $e) {}
 
-        // ---- Perfektionist: 0% kassation pa ett skift (minst 10 IBC) ----
+        // ---- Perfektionist: badge based on overall quality (simplified) ----
+        // With cumulative ibc_ok/ibc_ej_ok, we check days with 0 ej_ok
         try {
             $sql = "
-                SELECT DATE(datum) AS dag, COUNT(*) AS total,
-                       SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_count
-                FROM rebotling_ibc
-                WHERE user_id = :uid
-                GROUP BY DATE(datum)
-                HAVING total >= 10 AND ok_count = total
-                ORDER BY dag DESC
-                LIMIT 1
+                SELECT dag FROM (
+                    SELECT DATE(datum) AS dag,
+                           SUM(max_ok) AS total_ok, SUM(max_ej_ok) AS total_ej_ok
+                    FROM (
+                        SELECT DATE(datum) AS d, skiftraknare,
+                               MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+                          AND (op1 = :uid1 OR op2 = :uid2 OR op3 = :uid3)
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_skift
+                    GROUP BY DATE(datum)
+                    HAVING total_ok >= 10 AND total_ej_ok = 0
+                ) AS days_ok
+                ORDER BY dag DESC LIMIT 1
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':uid' => $userId]);
+            $stmt->execute([':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             if ($row) {
                 $badges[] = [
@@ -385,15 +416,16 @@ class GamificationController {
         // ---- Maratonlopare: 5 dagar i rad med produktion ----
         try {
             $sql = "
-                SELECT DATE(datum) AS dag
-                FROM rebotling_ibc
-                WHERE user_id = :uid
-                  AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
-                GROUP BY DATE(datum)
+                SELECT dag FROM (
+                    SELECT DATE(datum) AS dag FROM rebotling_ibc
+                    WHERE (op1 = :uid1 OR op2 = :uid2 OR op3 = :uid3)
+                      AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                    GROUP BY DATE(datum)
+                ) AS sub
                 ORDER BY dag DESC
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':uid' => $userId]);
+            $stmt->execute([':uid1' => $userId, ':uid2' => $userId, ':uid3' => $userId]);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $maxStreak = 0;
@@ -462,26 +494,33 @@ class GamificationController {
             } catch (\PDOException $e) {}
         }
 
-        // ---- Teamspelare: basta skiftet sammanlagt (vecka) ----
+        // ---- Teamspelare: basta operatoren sammanlagt (vecka) ----
         try {
             $mondayThisWeek = date('Y-m-d', strtotime('monday this week'));
             $today = date('Y-m-d');
 
-            // Hamta total IBC per user for veckan, kolla om denna user ar topp
             $sql = "
-                SELECT user_id, COUNT(*) AS total_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from AND :to
-                  AND user_id IS NOT NULL AND user_id > 0
-                GROUP BY user_id
-                ORDER BY total_ibc DESC
-                LIMIT 1
+                SELECT op_id, SUM(cnt) AS total_ibc FROM (
+                    SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND op1 > 0 GROUP BY op1
+                    UNION ALL
+                    SELECT op2, COUNT(*) FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND op2 > 0 GROUP BY op2
+                    UNION ALL
+                    SELECT op3, COUNT(*) FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND op3 > 0 GROUP BY op3
+                ) AS sub
+                GROUP BY op_id ORDER BY total_ibc DESC LIMIT 1
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $mondayThisWeek, ':to' => $today]);
+            $stmt->execute([
+                ':from1' => $mondayThisWeek, ':to1' => $today,
+                ':from2' => $mondayThisWeek, ':to2' => $today,
+                ':from3' => $mondayThisWeek, ':to3' => $today,
+            ]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            if ($row && (int)$row['user_id'] === $userId) {
+            if ($row && (int)$row['op_id'] === $userId) {
                 $badges[] = [
                     'id'          => 'teamspelare',
                     'namn'        => 'Teamspelare',
@@ -696,9 +735,17 @@ class GamificationController {
 
         $totalIbc = 0;
         try {
-            $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM rebotling_ibc WHERE user_id = ?");
-            $stmt->execute([$userId]);
-            $totalIbc = (int)$stmt->fetchColumn();
+            $stmt = $this->pdo->prepare("
+                SELECT SUM(cnt) AS total FROM (
+                    SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE op1 = ?
+                    UNION ALL
+                    SELECT COUNT(*) FROM rebotling_ibc WHERE op2 = ?
+                    UNION ALL
+                    SELECT COUNT(*) FROM rebotling_ibc WHERE op3 = ?
+                ) AS sub
+            ");
+            $stmt->execute([$userId, $userId, $userId]);
+            $totalIbc = (int)($stmt->fetchColumn() ?? 0);
         } catch (\PDOException $e) {}
 
         $result = [];

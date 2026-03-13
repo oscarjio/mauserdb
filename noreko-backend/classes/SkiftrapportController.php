@@ -501,35 +501,26 @@ class SkiftrapportController {
             // Fallback: om inga (eller för få) giltiga löpnummer, sök närliggande skifträknare
             // Scenarion: skiftrapport sparad dag efter (datum=10) men PLC-cykler ligger på dag 09
             // PLC räknar upp → data under föregående räknarvärde (nedåt)
+            // Söker utan datumfilter — skifträknare är tillräckligt unikt
             if (count($nums) <= 1) {
-                $datum = isset($_GET['datum']) ? $_GET['datum'] : null;
-                if ($datum && preg_match('/^\d{4}-\d{2}-\d{2}/', $datum)) {
-                    $datumPrefix = substr($datum, 0, 10);
-                    $prevDay = date('Y-m-d', strtotime($datumPrefix . ' -1 day'));
-
-                    // Sök nedåt (lägre skifträknare), både aktuellt datum OCH dagen innan
-                    $stmt = $this->pdo->prepare(
-                        "SELECT skiftraknare, COUNT(DISTINCT lopnummer) as cnt
-                         FROM rebotling_ibc
-                         WHERE skiftraknare BETWEEN ? AND ?
-                         AND (DATE(datum) = ? OR DATE(datum) = ?)
-                         AND lopnummer > 0 AND lopnummer < 998
-                         GROUP BY skiftraknare
-                         ORDER BY cnt DESC
-                         LIMIT 1"
-                    );
-                    $stmt->execute([
-                        $skiftraknare - 2,
-                        $skiftraknare - 1,
-                        $datumPrefix,
-                        $prevDay
-                    ]);
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($row && intval($row['cnt']) > count($nums)) {
-                        $usedSkiftraknare = intval($row['skiftraknare']);
-                        $nums = $this->fetchLopnummer($usedSkiftraknare);
-                        $fallbackUsed = true;
-                    }
+                $stmt = $this->pdo->prepare(
+                    "SELECT skiftraknare, COUNT(DISTINCT lopnummer) as cnt
+                     FROM rebotling_ibc
+                     WHERE skiftraknare BETWEEN ? AND ?
+                     AND lopnummer > 0 AND lopnummer < 998
+                     GROUP BY skiftraknare
+                     ORDER BY cnt DESC
+                     LIMIT 1"
+                );
+                $stmt->execute([
+                    $skiftraknare - 2,
+                    $skiftraknare - 1
+                ]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row && intval($row['cnt']) > count($nums)) {
+                    $usedSkiftraknare = intval($row['skiftraknare']);
+                    $nums = $this->fetchLopnummer($usedSkiftraknare);
+                    $fallbackUsed = true;
                 }
             }
 
@@ -597,19 +588,28 @@ class SkiftrapportController {
         $cykelDatum = $ibcStmt->fetchColumn() ?: null;
 
         // Steg 3: Använd samma skifträknare i rebotling_onoff
-        // MIN(datum) = första start, MAX(datum) = sista stopp
+        // Första running=1 = maskinstart, sista running=0 = maskinstopp
         $startTid = null;
         $slutTid  = null;
         try {
             $onStmt = $this->pdo->prepare(
-                "SELECT MIN(datum) AS first_start, MAX(datum) AS last_stop
-                 FROM rebotling_onoff WHERE skiftraknare = ?"
+                "SELECT
+                    (SELECT MIN(datum) FROM rebotling_onoff WHERE skiftraknare = ? AND running = 1) AS first_start,
+                    (SELECT MAX(datum) FROM rebotling_onoff WHERE skiftraknare = ? AND running = 0) AS last_stop"
             );
-            $onStmt->execute([$foundSkiftraknare]);
+            $onStmt->execute([$foundSkiftraknare, $foundSkiftraknare]);
             $onRow = $onStmt->fetch(PDO::FETCH_ASSOC);
             if ($onRow) {
                 $startTid = $onRow['first_start'] ?? null;
                 $slutTid  = $onRow['last_stop'] ?? null;
+            }
+            // Om inget running=0 finns (maskin lämnades på), fallback till MAX(datum) oavsett
+            if (!$slutTid && $startTid) {
+                $maxStmt = $this->pdo->prepare(
+                    "SELECT MAX(datum) AS last FROM rebotling_onoff WHERE skiftraknare = ?"
+                );
+                $maxStmt->execute([$foundSkiftraknare]);
+                $slutTid = $maxStmt->fetchColumn() ?: null;
             }
         } catch (Exception $e) {}
 
@@ -836,47 +836,52 @@ class SkiftrapportController {
      * Berakna OEE + produktionsdata for ett tidsintervall (skift).
      */
     private function calcSkiftData(string $fromDt, string $toDt): array {
-        // 1) Drifttid fran rebotling_onoff
+        // 1) Drifttid fran rebotling_onoff (datum + running columns)
         $drifttidSek = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ), 0) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
             ");
-            $stmt->execute([
-                ':from1' => $fromDt, ':to1' => $toDt,
-                ':from2' => $fromDt, ':to2' => $toDt,
-                ':from3' => $fromDt, ':to3' => $toDt,
-            ]);
-            $drifttidSek = max(0, (int)($stmt->fetchColumn() ?? 0));
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prevTime = null;
+            $prevRunning = null;
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+                if ($prevTime !== null && $prevRunning === 1) {
+                    $drifttidSek += ($ts - $prevTime);
+                }
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+            $drifttidSek = max(0, $drifttidSek);
         } catch (\PDOException $e) {
             error_log('calcSkiftData onoff: ' . $e->getMessage());
         }
 
-        // 2) IBC-data fran rebotling_ibc
+        // 2) IBC-data fran rebotling_ibc (MAX per skiftraknare, then SUM)
         $totalIbc = 0;
         $okIbc = 0;
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS total, SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal
-                FROM rebotling_ibc
-                WHERE datum >= :from_dt AND datum < :to_dt
+                SELECT
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE datum >= :from_dt AND datum < :to_dt
+                    GROUP BY skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $totalIbc = (int)($row['total'] ?? 0);
             $okIbc = (int)($row['ok_antal'] ?? 0);
+            $totalIbc = $okIbc + (int)($row['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
             error_log('calcSkiftData ibc: ' . $e->getMessage());
         }

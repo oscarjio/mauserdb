@@ -120,50 +120,43 @@ class KapacitetsplaneringController {
     }
 
     /**
-     * Hamtar antal unika aktiva stationer for ett datumintervall.
+     * Hamtar antal stationer — rebotling_ibc har ingen station-kolumn, returnera 1.
      */
     private function getAntalStationer(string $fromDate, string $toDate): int {
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT station) AS antal
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
-            ");
-            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
-            return max(1, (int)($stmt->fetchColumn() ?? 1));
-        } catch (\PDOException $e) {
-            error_log('KapacitetsplaneringController::getAntalStationer: ' . $e->getMessage());
-            return 1;
-        }
+        return 1;
     }
 
     /**
      * Beraknar total drifttid (sek) fran rebotling_onoff for ett intervall.
+     * rebotling_onoff has columns: datum (DATETIME), running (BOOLEAN).
      */
     private function getDrifttidSek(string $fromDt, string $toDt): int {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ), 0) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
             ");
-            $stmt->execute([
-                ':from1' => $fromDt, ':to1' => $toDt,
-                ':from2' => $fromDt, ':to2' => $toDt,
-                ':from3' => $fromDt, ':to3' => $toDt,
-            ]);
-            return max(0, (int)($stmt->fetchColumn() ?? 0));
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $drifttid = 0;
+            $prevTime = null;
+            $prevRunning = null;
+
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+
+                if ($prevTime !== null && $prevRunning === 1) {
+                    $drifttid += ($ts - $prevTime);
+                }
+
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+
+            return max(0, $drifttid);
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getDrifttidSek: ' . $e->getMessage());
             return 0;
@@ -199,7 +192,7 @@ class KapacitetsplaneringController {
             $stmt = $this->pdo->prepare("
                 SELECT AVG(diff_sek) AS avg_sek FROM (
                     SELECT TIMESTAMPDIFF(SECOND,
-                        LAG(datum) OVER (PARTITION BY station ORDER BY datum),
+                        LAG(datum) OVER (ORDER BY datum),
                         datum
                     ) AS diff_sek
                     FROM rebotling_ibc
@@ -264,21 +257,28 @@ class KapacitetsplaneringController {
         try {
             $stmtProd = $this->pdo->prepare("
                 SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
-                    COUNT(DISTINCT station) AS antal_stationer
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmtProd->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             $radProd = $stmtProd->fetch(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getKpi prod: ' . $e->getMessage());
-            $radProd = ['total' => 0, 'ok_antal' => 0, 'antal_stationer' => 1];
+            $radProd = ['ok_antal' => 0, 'ej_ok_antal' => 0];
         }
 
-        $antalStationer = max(1, (int)($radProd['antal_stationer'] ?? 1));
-        $faktisk = (int)($radProd['total'] ?? 0);
+        $antalStationer = 1; // rebotling_ibc has no station column
+        $faktisk = (int)($radProd['ok_antal'] ?? 0) + (int)($radProd['ej_ok_antal'] ?? 0);
 
         // Teoretisk max
         $ibcPerTimme = 3600 / self::OPTIMAL_CYKELTID_SEK;
@@ -366,49 +366,44 @@ class KapacitetsplaneringController {
     }
 
     /**
-     * Beraknar flaskhals -- vilken station/faktor begransar mest.
+     * Beraknar flaskhals — rebotling_ibc har ingen station-kolumn.
+     * Returnerar enkel produktionssammanfattning for dagen.
      */
     private function beraknaFlaskhals(string $datum): array {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    station,
-                    COUNT(*) AS antal,
-                    AVG(TIMESTAMPDIFF(SECOND,
-                        LAG(datum) OVER (PARTITION BY station ORDER BY datum),
-                        datum
-                    )) AS avg_cykeltid
-                FROM rebotling_ibc
-                WHERE DATE(datum) = :datum
-                GROUP BY station
-                ORDER BY antal ASC
+                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :datum
+                    GROUP BY skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([':datum' => $datum]);
-            $rader = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-            if (empty($rader)) {
-                return ['station' => 'Ingen data', 'typ' => 'data', 'forklaring' => 'Ingen produktion registrerad idag'];
+            $totalOk = (int)($row['total_ok'] ?? 0);
+            $totalEjOk = (int)($row['total_ej_ok'] ?? 0);
+            $total = $totalOk + $totalEjOk;
+
+            if ($total === 0) {
+                return ['station' => 'Rebotling', 'typ' => 'data', 'forklaring' => 'Ingen produktion registrerad idag'];
             }
 
-            $samst = $rader[0];
-            $avgAll = array_sum(array_column($rader, 'antal')) / count($rader);
-            $gapPct = $avgAll > 0 ? round((1 - (float)$samst['antal'] / $avgAll) * 100, 1) : 0.0;
-            $avgCykeltid = (float)($samst['avg_cykeltid'] ?? 0);
-            $typ = 'kapacitet';
-            if ($avgCykeltid > self::OPTIMAL_CYKELTID_SEK * 1.5) {
-                $typ = 'cykeltid';
-            }
+            $kassationsGrad = $total > 0 ? round($totalEjOk / $total * 100, 1) : 0;
+            $typ = $kassationsGrad > 5 ? 'kvalitet' : 'kapacitet';
 
             return [
-                'station'           => $samst['station'],
+                'station'           => 'Rebotling',
                 'typ'               => $typ,
-                'antal_idag'        => (int)$samst['antal'],
-                'snitt_alla'        => round($avgAll, 0),
-                'gap_pct'           => $gapPct,
-                'avg_cykeltid_sek'  => round($avgCykeltid, 1),
-                'forklaring'        => $typ === 'cykeltid'
-                    ? "Station {$samst['station']} har lang cykeltid ({$avgCykeltid}s vs optimal " . self::OPTIMAL_CYKELTID_SEK . "s)"
-                    : "Station {$samst['station']} producerade {$samst['antal']} IBC vs snitt {$avgAll}",
+                'antal_idag'        => $total,
+                'ok_idag'           => $totalOk,
+                'ej_ok_idag'        => $totalEjOk,
+                'kassationsgrad_pct'=> $kassationsGrad,
+                'forklaring'        => "Produktion idag: {$totalOk} ok, {$totalEjOk} ej ok ({$kassationsGrad}% kassation)",
             ];
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::beraknaFlaskhals: ' . $e->getMessage());
@@ -452,13 +447,19 @@ class KapacitetsplaneringController {
 
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS total, COUNT(DISTINCT station) AS antal_stationer
-                    FROM rebotling_ibc WHERE DATE(datum) = :dag
+                    SELECT
+                        COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                        COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    FROM (
+                        SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        FROM rebotling_ibc WHERE DATE(datum) = :dag
+                        GROUP BY skiftraknare
+                    ) AS per_skift
                 ");
                 $stmt->execute([':dag' => $dagStr]);
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $faktisk        = (int)($rad['total'] ?? 0);
-                $antalStationer = max(1, (int)($rad['antal_stationer'] ?? 1));
+                $faktisk        = (int)($rad['ok_antal'] ?? 0) + (int)($rad['ej_ok_antal'] ?? 0);
+                $antalStationer = 1;
             } catch (\PDOException) {
                 $faktisk        = 0;
                 $antalStationer = 1;
@@ -515,21 +516,26 @@ class KapacitetsplaneringController {
             $configMap[strtolower(trim($c['station_namn']))] = $c;
         }
 
+        // rebotling_ibc has no station column — aggregate as single line
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    station,
-                    COUNT(*) AS total_ibc,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc,
-                    COUNT(DISTINCT DATE(datum)) AS aktiva_dagar
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
-                GROUP BY station
-                ORDER BY total_ibc DESC
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc,
+                    COUNT(DISTINCT dag) AS aktiva_dagar
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $rader = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getStationUtnyttjande: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta station-utnyttjande');
@@ -540,34 +546,29 @@ class KapacitetsplaneringController {
         $defaultTeorPerTimme = 3600 / self::OPTIMAL_CYKELTID_SEK;
         $timmarPeriod = $period * (self::PLANERAD_DRIFTTID_SEK / 3600);
 
-        $stationer = [];
-        foreach ($rader as $rad) {
-            $total = (int)$rad['total_ibc'];
-            $stationKey = strtolower(trim($rad['station']));
+        $okIbc = (int)($rad['ok_ibc'] ?? 0);
+        $ejOkIbc = (int)($rad['ej_ok_ibc'] ?? 0);
+        $total = $okIbc + $ejOkIbc;
 
-            // Hamta teoretisk kap fran config om den finns
-            $teorPerTimme = $defaultTeorPerTimme;
-            $malPct = 85.0;
-            if (isset($configMap[$stationKey])) {
-                $teorPerTimme = (float)$configMap[$stationKey]['teoretisk_kapacitet_per_timme'];
-                $malPct = (float)$configMap[$stationKey]['mal_utnyttjandegrad_pct'];
-            }
+        $teorPerTimme = $defaultTeorPerTimme;
+        $malPct = 85.0;
 
-            $teorMax = $teorPerTimme * $timmarPeriod;
-            $utnyttjande = $teorMax > 0 ? min(100, round($total / $teorMax * 100, 1)) : 0.0;
+        $teorMax = $teorPerTimme * $timmarPeriod;
+        $utnyttjande = $teorMax > 0 ? min(100, round($total / $teorMax * 100, 1)) : 0.0;
 
-            $stationer[] = [
-                'station'              => $rad['station'],
+        $stationer = [
+            [
+                'station'              => 'Rebotling',
                 'total_ibc'            => $total,
-                'ok_ibc'               => (int)$rad['ok_ibc'],
-                'aktiva_dagar'         => (int)$rad['aktiva_dagar'],
+                'ok_ibc'               => $okIbc,
+                'aktiva_dagar'         => (int)($rad['aktiva_dagar'] ?? 0),
                 'teor_max'             => (int)$teorMax,
                 'teor_per_timme'       => $teorPerTimme,
                 'utnyttjande_pct'      => $utnyttjande,
                 'mal_pct'              => $malPct,
-                'kassationsgrad_pct'   => $total > 0 ? round(($total - (int)$rad['ok_ibc']) / $total * 100, 1) : 0.0,
-            ];
-        }
+                'kassationsgrad_pct'   => $total > 0 ? round($ejOkIbc / $total * 100, 1) : 0.0,
+            ],
+        ];
 
         $this->sendSuccess([
             'period_dagar'    => $period,
@@ -595,39 +596,47 @@ class KapacitetsplaneringController {
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
         $stoppSek = max(0, $planeradSek - $drifttidSek);
 
+        // rebotling_onoff: datum (DATETIME), running (BOOLEAN)
+        // Calculate stop durations from running state transitions
+        $totalStoppSek = 0;
+        $antalStopp = 0;
+        $stoppLista = [];
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    COUNT(*) AS antal_stopp,
-                    COALESCE(SUM(
-                        TIMESTAMPDIFF(SECOND, start_time, COALESCE(stop_time, NOW()))
-                    ), 0) AS total_stopp_sek,
-                    AVG(
-                        TIMESTAMPDIFF(SECOND, start_time, COALESCE(stop_time, NOW()))
-                    ) AS avg_stopp_sek
-                FROM rebotling_onoff
-                WHERE start_time >= :from_dt
-                  AND start_time < :to_dt
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
             ");
             $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
-            $stoppRad = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $prevTime = null;
+            $prevRunning = null;
+            $currentStoppStart = null;
+
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+
+                if ($prevTime !== null && $prevRunning === 0) {
+                    $stoppDuration = $ts - $prevTime;
+                    if ($running === 1) {
+                        // Stopp ended
+                        $totalStoppSek += $stoppDuration;
+                        $stoppLista[] = $stoppDuration;
+                        $antalStopp++;
+                    }
+                }
+
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
         } catch (\PDOException $e) {
-            error_log('KapacitetsplaneringController::getStopporsaker stopp: ' . $e->getMessage());
-            $stoppRad = ['antal_stopp' => 0, 'total_stopp_sek' => 0, 'avg_stopp_sek' => 0];
+            error_log('KapacitetsplaneringController::getStopporsaker: ' . $e->getMessage());
         }
 
-        try {
-            $stmt2 = $this->pdo->prepare("
-                SELECT TIMESTAMPDIFF(SECOND, start_time, COALESCE(stop_time, NOW())) AS varaktighet_sek
-                FROM rebotling_onoff
-                WHERE start_time >= :from_dt AND start_time < :to_dt
-                ORDER BY start_time
-            ");
-            $stmt2->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
-            $stoppLista = $stmt2->fetchAll(\PDO::FETCH_COLUMN);
-        } catch (\PDOException) {
-            $stoppLista = [];
-        }
+        $avgStoppSek = $antalStopp > 0 ? $totalStoppSek / $antalStopp : 0;
+        $stoppRad = ['antal_stopp' => $antalStopp, 'total_stopp_sek' => $totalStoppSek, 'avg_stopp_sek' => $avgStoppSek];
 
         $kategorier = [
             'Kort stopp (<5 min)'    => 0,
@@ -692,7 +701,14 @@ class KapacitetsplaneringController {
             $planeradSek = self::PLANERAD_DRIFTTID_SEK;
 
             try {
-                $stmt = $this->pdo->prepare("SELECT COUNT(*) AS total FROM rebotling_ibc WHERE DATE(datum) = :dag");
+                $stmt = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(max_ok + max_ej_ok), 0) AS total
+                    FROM (
+                        SELECT skiftraknare, MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
+                        FROM rebotling_ibc WHERE DATE(datum) = :dag
+                        GROUP BY skiftraknare
+                    ) AS per_skift
+                ");
                 $stmt->execute([':dag' => $dagStr]);
                 $antalIbc = (int)($stmt->fetchColumn() ?? 0);
             } catch (\PDOException) {
@@ -845,13 +861,19 @@ class KapacitetsplaneringController {
 
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS total, COUNT(DISTINCT station) AS antal_stationer
-                    FROM rebotling_ibc WHERE DATE(datum) = :dag
+                    SELECT
+                        COALESCE(SUM(max_ibc_ok), 0) AS ok_antal,
+                        COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_antal
+                    FROM (
+                        SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                        FROM rebotling_ibc WHERE DATE(datum) = :dag
+                        GROUP BY skiftraknare
+                    ) AS per_skift
                 ");
                 $stmt->execute([':dag' => $dagStr]);
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
-                $faktisk        = (int)($rad['total'] ?? 0);
-                $antalStationer = max(1, (int)($rad['antal_stationer'] ?? 1));
+                $faktisk        = (int)($rad['ok_antal'] ?? 0) + (int)($rad['ej_ok_antal'] ?? 0);
+                $antalStationer = 1;
             } catch (\PDOException) {
                 $faktisk        = 0;
                 $antalStationer = 1;
@@ -899,21 +921,34 @@ class KapacitetsplaneringController {
             $configMap[strtolower(trim($c['station_namn']))] = $c;
         }
 
+        // rebotling_ibc has no station column — aggregate as single line
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    station,
-                    COUNT(*) AS total_ibc,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_ibc,
-                    COUNT(DISTINCT DATE(datum)) AS aktiva_dagar
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
-                GROUP BY station
-                ORDER BY station
+                    COALESCE(SUM(max_ibc_ok), 0) AS ok_ibc,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS ej_ok_ibc,
+                    COUNT(DISTINCT dag) AS aktiva_dagar
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $today]);
-            $rader = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $aggRow = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $rader = [
+                [
+                    'station' => 'Rebotling',
+                    'total_ibc' => (int)($aggRow['ok_ibc'] ?? 0) + (int)($aggRow['ej_ok_ibc'] ?? 0),
+                    'ok_ibc' => (int)($aggRow['ok_ibc'] ?? 0),
+                    'aktiva_dagar' => (int)($aggRow['aktiva_dagar'] ?? 0),
+                ],
+            ];
         } catch (\PDOException $e) {
             error_log('KapacitetsplaneringController::getKapacitetstabell: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta kapacitetstabell');
@@ -926,18 +961,18 @@ class KapacitetsplaneringController {
 
         try {
             $stmtHalf = $this->pdo->prepare("
-                SELECT station, COUNT(*) AS total_ibc
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                  AND DATE(datum) BETWEEN :from_date AND :half_date
-                GROUP BY station
+                SELECT
+                    COALESCE(SUM(max_ibc_ok) + SUM(max_ibc_ej_ok), 0) AS total_ibc
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok, MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :half_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmtHalf->execute([':from_date' => $fromDate, ':half_date' => $halfDate]);
-            $halfData = $stmtHalf->fetchAll(\PDO::FETCH_ASSOC);
-            $halfMap = [];
-            foreach ($halfData as $h) {
-                $halfMap[strtolower(trim($h['station']))] = (int)$h['total_ibc'];
-            }
+            $halfRow = $stmtHalf->fetch(\PDO::FETCH_ASSOC);
+            $halfMap = ['rebotling' => (int)($halfRow['total_ibc'] ?? 0)];
         } catch (\PDOException) {
             $halfMap = [];
         }
@@ -1020,19 +1055,21 @@ class KapacitetsplaneringController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COUNT(*) AS total_ibc,
-                    COUNT(DISTINCT operatornamn) AS unika_op,
-                    COUNT(DISTINCT DATE(datum)) AS prod_dagar
-                FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                  AND operatornamn IS NOT NULL AND operatornamn != ''
+                    COALESCE(SUM(max_ok + max_ej_ok), 0) AS total_ibc,
+                    COUNT(DISTINCT dag) AS prod_dagar
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute();
             $histRad = $stmt->fetch(\PDO::FETCH_ASSOC);
             $histIbc = (int)($histRad['total_ibc'] ?? 0);
-            $histOp  = max(1, (int)($histRad['unika_op'] ?? 1));
             $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
-            $histIbcPerOpPerDag = $histIbc / ($histOp * $histDagar);
+            $histIbcPerOpPerDag = $histIbc / $histDagar;
         } catch (\PDOException) {
             $histIbcPerOpPerDag = $defaultIbcPerOpTimme * $skiftTimmar;
         }
@@ -1089,19 +1126,22 @@ class KapacitetsplaneringController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COUNT(*) AS total_ibc,
-                    COUNT(DISTINCT operatornamn) AS unika_op,
-                    COUNT(DISTINCT DATE(datum)) AS prod_dagar
-                FROM rebotling_ibc
-                WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                  AND operatornamn IS NOT NULL AND operatornamn != ''
+                    COALESCE(SUM(max_ok + max_ej_ok), 0) AS total_ibc,
+                    COUNT(DISTINCT dag) AS prod_dagar
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(ibc_ok) AS max_ok, MAX(ibc_ej_ok) AS max_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $stmt->execute();
             $histRad = $stmt->fetch(\PDO::FETCH_ASSOC);
             $histIbc = (int)($histRad['total_ibc'] ?? 0);
             $histOp  = max(1, (int)($histRad['unika_op'] ?? 1));
             $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
-            $ibcPerOpPerTimme = $histIbc / ($histOp * $histDagar * (self::PLANERAD_DRIFTTID_SEK / 3600));
+            $ibcPerOpPerTimme = $histIbc / ($histDagar * (self::PLANERAD_DRIFTTID_SEK / 3600));
         } catch (\PDOException) {
             $ibcPerOpPerTimme = self::DEFAULT_IBC_PER_OPERATOR_TIMME;
         }

@@ -1,22 +1,23 @@
 <?php
 /**
  * RebotlingStationsdetaljController.php
- * Stationsdetalj-dashboard — drill-down per rebotling-station för VD-vy.
+ * Stationsdetalj-dashboard — drill-down for rebotling-linjen.
  *
  * Endpoints via ?action=rebotling-stationsdetalj&run=XXX:
- *   - run=stationer           -> lista unika stationer
- *   - run=kpi-idag            -> KPI-kort för idag: OEE, drifttid%, antal IBC, snittcykeltid (?station=X)
- *   - run=senaste-ibc         -> senaste IBCer med tidsstämpel, resultat, cykeltid (?station=X&limit=N)
- *   - run=stopphistorik       -> stopphistorik per station (?station=X&limit=N)
- *   - run=oee-trend           -> OEE per dag senaste 30 dagar per station (?station=X&dagar=30)
- *   - run=realtid-oee         -> realtids-OEE för vald station (senaste timmen) (?station=X)
+ *   - run=stationer           -> lista (single entry — rebotling har ingen station-kolumn)
+ *   - run=kpi-idag            -> KPI-kort for idag: OEE, drifttid%, antal IBC, snittcykeltid
+ *   - run=senaste-ibc         -> senaste skiftraknare med ibc_ok/ibc_ej_ok (?limit=N)
+ *   - run=stopphistorik       -> driftstatus fran rebotling_onoff (?limit=N)
+ *   - run=oee-trend           -> OEE per dag senaste 30 dagar (?dagar=30)
+ *   - run=realtid-oee         -> realtids-OEE (senaste timmen)
  *
- * OEE = Tillgänglighet × Prestanda × Kvalitet
- *   Tillgänglighet = drifttid / planerad tid (8h/dag)
- *   Prestanda      = (antal_IBC × IDEAL_CYCLE_SEC) / drifttid (max 100%)
- *   Kvalitet       = godkända / totalt
+ * OEE = Tillganglighet x Prestanda x Kvalitet
+ *   Tillganglighet = drifttid / planerad tid (8h/dag)
+ *   Prestanda      = (antal_IBC * IDEAL_CYCLE_SEC) / drifttid (max 100%)
+ *   Kvalitet       = ibc_ok / (ibc_ok + ibc_ej_ok)
  *
- * Tabeller: rebotling_ibc, rebotling_onoff — INGA nya tabeller skapas
+ * rebotling_ibc columns: datum, lopnummer, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, rasttime, op1, op2, op3
+ * rebotling_onoff columns: datum, running
  */
 class RebotlingStationsdetaljController {
     private $pdo;
@@ -75,31 +76,36 @@ class RebotlingStationsdetaljController {
     }
 
     /**
-     * Hämtar total drifttid (sek) från rebotling_onoff för ett givet tidsintervall.
+     * Hamtar total drifttid (sek) fran rebotling_onoff for ett givet tidsintervall.
+     * rebotling_onoff has columns: datum (DATETIME), running (BOOLEAN).
      */
     private function getDrifttidSek(string $fromDt, string $toDt): int {
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COALESCE(SUM(
-                    TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from1),
-                        LEAST(COALESCE(stop_time, NOW()), :to1)
-                    )
-                ), 0) AS drifttid_sek
-                FROM rebotling_onoff
-                WHERE start_time < :to2
-                  AND (stop_time IS NULL OR stop_time > :from2)
-                  AND TIMESTAMPDIFF(SECOND,
-                        GREATEST(start_time, :from3),
-                        LEAST(COALESCE(stop_time, NOW()), :to3)
-                      ) > 0
+                SELECT datum, running FROM rebotling_onoff
+                WHERE datum >= :from_dt AND datum <= :to_dt
+                ORDER BY datum ASC
             ");
-            $stmt->execute([
-                ':from1' => $fromDt, ':to1' => $toDt,
-                ':from2' => $fromDt, ':to2' => $toDt,
-                ':from3' => $fromDt, ':to3' => $toDt,
-            ]);
-            return max(0, (int)($stmt->fetchColumn() ?? 0));
+            $stmt->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $drifttid = 0;
+            $prevTime = null;
+            $prevRunning = null;
+
+            foreach ($rows as $row) {
+                $ts = strtotime($row['datum']);
+                $running = (int)$row['running'];
+
+                if ($prevTime !== null && $prevRunning === 1) {
+                    $drifttid += ($ts - $prevTime);
+                }
+
+                $prevTime = $ts;
+                $prevRunning = $running;
+            }
+
+            return max(0, $drifttid);
         } catch (\PDOException $e) {
             error_log('RebotlingStationsdetaljController::getDrifttidSek: ' . $e->getMessage());
             return 0;
@@ -107,68 +113,62 @@ class RebotlingStationsdetaljController {
     }
 
     /**
-     * Beräknar OEE-komponenter för en station och ett datumintervall.
+     * Hamta IBC-data for ett datumintervall.
+     * Uses MAX(ibc_ok) per skiftraknare then SUM over skift.
      */
-    private function calcOee(string $station, string $fromDt, string $toDt): array {
+    private function getIbcData(string $fromDate, string $toDate): array {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COALESCE(SUM(max_ibc_ok), 0) AS total_ok,
+                    COALESCE(SUM(max_ibc_ej_ok), 0) AS total_ej_ok
+                FROM (
+                    SELECT
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+            ");
+            $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $ok = (int)($row['total_ok'] ?? 0);
+            $ejOk = (int)($row['total_ej_ok'] ?? 0);
+            return ['ok' => $ok, 'ej_ok' => $ejOk, 'total' => $ok + $ejOk];
+        } catch (\PDOException $e) {
+            error_log('RebotlingStationsdetaljController::getIbcData: ' . $e->getMessage());
+            return ['ok' => 0, 'ej_ok' => 0, 'total' => 0];
+        }
+    }
+
+    /**
+     * Beraknar OEE-komponenter for ett datumintervall.
+     */
+    private function calcOee(string $fromDt, string $toDt): array {
         $drifttidSek = $this->getDrifttidSek($fromDt, $toDt);
 
-        // Beräkna planerad tid (antal sekunder från fromDt till toDt, max 8h per dag)
+        // Berakna planerad tid
         $fromDate = substr($fromDt, 0, 10);
         $toDate   = substr($toDt,   0, 10);
         $d = new \DateTime($fromDate);
         $end = new \DateTime($toDate);
         $dagar = 0;
         while ($d <= $end) {
-            if ((int)$d->format('N') <= 5) $dagar++; // mån-fre
+            if ((int)$d->format('N') <= 5) $dagar++;
             $d->modify('+1 day');
         }
-        // För intra-dag räknas faktisk tid om fromDt och toDt är samma dag
         if ($fromDate === $toDate) {
             $planeradSek = self::SCHEMA_SEK_PER_DAG;
         } else {
             $planeradSek = max(1, $dagar) * self::SCHEMA_SEK_PER_DAG;
         }
 
-        // IBC-data för stationen
-        try {
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    COUNT(*) AS total,
-                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal
-                FROM rebotling_ibc
-                WHERE station = :station
-                  AND datum BETWEEN :from_dt AND :to_dt
-            ");
-            $stmt->execute([':station' => $station, ':from_dt' => $fromDt, ':to_dt' => $toDt]);
-            $row     = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $total   = (int)($row['total']    ?? 0);
-            $okAntal = (int)($row['ok_antal'] ?? 0);
-        } catch (\PDOException $e) {
-            error_log('RebotlingStationsdetaljController::calcOee ibc: ' . $e->getMessage());
-            $total   = 0;
-            $okAntal = 0;
-        }
-
-        // Genomsnittlig cykeltid
-        try {
-            $ctStmt = $this->pdo->prepare("
-                SELECT AVG(diff_sek) AS avg_sek FROM (
-                    SELECT TIMESTAMPDIFF(SECOND,
-                        LAG(datum) OVER (PARTITION BY station ORDER BY datum),
-                        datum
-                    ) AS diff_sek
-                    FROM rebotling_ibc
-                    WHERE station = :station
-                      AND datum BETWEEN :from_dt AND :to_dt
-                ) t
-                WHERE diff_sek > 0 AND diff_sek < 3600
-            ");
-            $ctStmt->execute([':station' => $station, ':from_dt' => $fromDt, ':to_dt' => $toDt]);
-            $avgCykeltid = (float)($ctStmt->fetchColumn() ?? 0);
-        } catch (\PDOException $e) {
-            error_log('RebotlingStationsdetaljController::calcOee cykeltid: ' . $e->getMessage());
-            $avgCykeltid = 0;
-        }
+        $ibcData = $this->getIbcData($fromDate, $toDate);
+        $total   = $ibcData['total'];
+        $okAntal = $ibcData['ok'];
 
         $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0.0;
         $prestanda = $drifttidSek > 0
@@ -189,54 +189,35 @@ class RebotlingStationsdetaljController {
             'ok_ibc'             => $okAntal,
             'kasserade_ibc'      => $total - $okAntal,
             'kassationsgrad_pct' => $total > 0 ? round(($total - $okAntal) / $total * 100, 1) : 0.0,
-            'avg_cykeltid_sek'   => round($avgCykeltid, 1),
+            'avg_cykeltid_sek'   => 0,
         ];
     }
 
     // ================================================================
-    // run=stationer — lista unika stationer
+    // run=stationer — lista
     // ================================================================
 
     private function getStationer(): void {
-        try {
-            $stmt = $this->pdo->query("
-                SELECT DISTINCT station
-                FROM rebotling_ibc
-                WHERE station IS NOT NULL AND station != ''
-                ORDER BY station
-            ");
-            $stationer = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-            $this->sendSuccess(['stationer' => $stationer]);
-        } catch (\PDOException $e) {
-            error_log('RebotlingStationsdetaljController::getStationer: ' . $e->getMessage());
-            $this->sendError('Kunde inte hamta stationer');
-        }
+        $this->sendSuccess(['stationer' => ['Rebotling']]);
     }
 
     // ================================================================
-    // run=kpi-idag — KPI-kort för idag per station
+    // run=kpi-idag — KPI-kort for idag
     // ================================================================
 
     private function getKpiIdag(): void {
-        $station = trim($_GET['station'] ?? '');
-        if ($station === '') {
-            $this->sendError('Parameter station kravs');
-            return;
-        }
-
         $idag    = date('Y-m-d');
         $fromDt  = $idag . ' 00:00:00';
         $toDt    = $idag . ' 23:59:59';
 
-        $oee = $this->calcOee($station, $fromDt, $toDt);
+        $oee = $this->calcOee($fromDt, $toDt);
 
-        // Beräkna drifttid% av planerad (8h)
         $drifttidProcent = $oee['planerad_h'] > 0
             ? round($oee['drifttid_h'] / $oee['planerad_h'] * 100, 1)
             : 0.0;
 
         $this->sendSuccess([
-            'station'            => $station,
+            'station'            => $_GET['station'] ?? 'Rebotling',
             'datum'              => $idag,
             'oee_pct'            => $oee['oee_pct'],
             'tillganglighet_pct' => $oee['tillganglighet_pct'],
@@ -254,58 +235,44 @@ class RebotlingStationsdetaljController {
     }
 
     // ================================================================
-    // run=senaste-ibc — senaste IBCer med tidsstämpel, resultat, cykeltid
+    // run=senaste-ibc — senaste skiftraknare med ibc_ok/ibc_ej_ok
     // ================================================================
 
     private function getSenasteIbc(): void {
-        $station = trim($_GET['station'] ?? '');
         $limit   = max(5, min(100, (int)($_GET['limit'] ?? 20)));
 
-        if ($station === '') {
-            $this->sendError('Parameter station kravs');
-            return;
-        }
-
         try {
-            // Hämta senaste IBCer med beräknad cykeltid (diff mot föregående)
             $stmt = $this->pdo->prepare("
                 SELECT
-                    id,
-                    station,
                     datum,
-                    ok,
-                    TIMESTAMPDIFF(SECOND,
-                        LAG(datum) OVER (PARTITION BY station ORDER BY datum),
-                        datum
-                    ) AS cykeltid_sek
+                    skiftraknare,
+                    ibc_ok,
+                    ibc_ej_ok,
+                    bur_ej_ok,
+                    lopnummer,
+                    op1, op2, op3
                 FROM rebotling_ibc
-                WHERE station = :station
                 ORDER BY datum DESC
                 LIMIT :lim
             ");
-            $stmt->bindValue(':station', $station, \PDO::PARAM_STR);
             $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
             $stmt->execute();
             $rader = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $result = [];
             foreach ($rader as $rad) {
-                $cykeltid = (int)($rad['cykeltid_sek'] ?? 0);
-                // Ignorera orimliga cykeltider (>1h eller negativa)
-                if ($cykeltid < 0 || $cykeltid > 3600) $cykeltid = 0;
-
                 $result[] = [
-                    'id'          => (int)$rad['id'],
-                    'datum'       => $rad['datum'],
-                    'ok'          => (bool)$rad['ok'],
-                    'resultat'    => $rad['ok'] ? 'OK' : 'Kasserad',
-                    'cykeltid_sek'=> $cykeltid,
-                    'cykeltid_fmt'=> $cykeltid > 0 ? gmdate('i:s', $cykeltid) : '—',
+                    'datum'        => $rad['datum'],
+                    'skiftraknare' => (int)$rad['skiftraknare'],
+                    'ibc_ok'       => (int)$rad['ibc_ok'],
+                    'ibc_ej_ok'    => (int)$rad['ibc_ej_ok'],
+                    'bur_ej_ok'    => (int)$rad['bur_ej_ok'],
+                    'lopnummer'    => (int)$rad['lopnummer'],
                 ];
             }
 
             $this->sendSuccess([
-                'station' => $station,
+                'station' => $_GET['station'] ?? 'Rebotling',
                 'ibc'     => $result,
                 'antal'   => count($result),
             ]);
@@ -316,56 +283,36 @@ class RebotlingStationsdetaljController {
     }
 
     // ================================================================
-    // run=stopphistorik — stopphistorik (från rebotling_onoff)
+    // run=stopphistorik — driftstatus (fran rebotling_onoff)
     // ================================================================
 
     private function getStopphistorik(): void {
         $limit = max(5, min(100, (int)($_GET['limit'] ?? 20)));
 
-        // rebotling_onoff saknar station-kolumn — visar generella stopp för linjen
         try {
             $stmt = $this->pdo->prepare("
-                SELECT
-                    id,
-                    start_time,
-                    stop_time,
-                    CASE
-                        WHEN stop_time IS NOT NULL
-                        THEN TIMESTAMPDIFF(SECOND, start_time, stop_time)
-                        ELSE TIMESTAMPDIFF(SECOND, start_time, NOW())
-                    END AS varaktighet_sek,
-                    CASE
-                        WHEN stop_time IS NULL THEN 'Pagaende'
-                        ELSE 'Avslutat'
-                    END AS status
+                SELECT datum, running
                 FROM rebotling_onoff
-                ORDER BY start_time DESC
+                ORDER BY datum DESC
                 LIMIT :lim
             ");
             $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
             $stmt->execute();
-            $stopp = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $result = [];
-            foreach ($stopp as $rad) {
-                $varSek = max(0, (int)($rad['varaktighet_sek'] ?? 0));
+            foreach ($rows as $rad) {
                 $result[] = [
-                    'id'              => (int)$rad['id'],
-                    'start_time'      => $rad['start_time'],
-                    'stop_time'       => $rad['stop_time'],
-                    'varaktighet_sek' => $varSek,
-                    'varaktighet_min' => round($varSek / 60, 1),
-                    'varaktighet_fmt' => $varSek >= 3600
-                        ? sprintf('%dh %02dm', intdiv($varSek, 3600), intdiv($varSek % 3600, 60))
-                        : sprintf('%dm %02ds', intdiv($varSek, 60), $varSek % 60),
-                    'status'          => $rad['status'],
+                    'datum'   => $rad['datum'],
+                    'running' => (bool)$rad['running'],
+                    'status'  => (int)$rad['running'] ? 'Drift' : 'Stopp',
                 ];
             }
 
             $this->sendSuccess([
                 'stopp' => $result,
                 'antal' => count($result),
-                'notat' => 'rebotling_onoff saknar station-kolumn — visar linjeövergripande stopp',
+                'notat' => 'rebotling_onoff visar driftstatus (datum + running)',
             ]);
         } catch (\PDOException $e) {
             error_log('RebotlingStationsdetaljController::getStopphistorik: ' . $e->getMessage());
@@ -374,17 +321,11 @@ class RebotlingStationsdetaljController {
     }
 
     // ================================================================
-    // run=oee-trend — OEE per dag senaste N dagar för vald station
+    // run=oee-trend — OEE per dag senaste N dagar
     // ================================================================
 
     private function getOeeTrend(): void {
-        $station = trim($_GET['station'] ?? '');
         $dagar   = max(7, min(90, (int)($_GET['dagar'] ?? 30)));
-
-        if ($station === '') {
-            $this->sendError('Parameter station kravs');
-            return;
-        }
 
         $toDate = new \DateTime();
         $result = [];
@@ -396,7 +337,7 @@ class RebotlingStationsdetaljController {
             $fromDt = $dagStr . ' 00:00:00';
             $toDt   = $dagStr . ' 23:59:59';
 
-            $oee = $this->calcOee($station, $fromDt, $toDt);
+            $oee = $this->calcOee($fromDt, $toDt);
 
             $result[] = [
                 'datum'              => $dagStr,
@@ -410,23 +351,17 @@ class RebotlingStationsdetaljController {
         }
 
         $this->sendSuccess([
-            'station' => $station,
+            'station' => $_GET['station'] ?? 'Rebotling',
             'dagar'   => $dagar,
             'trend'   => $result,
         ]);
     }
 
     // ================================================================
-    // run=realtid-oee — OEE för senaste timmen (realtid)
+    // run=realtid-oee — OEE for senaste timmen (realtid)
     // ================================================================
 
     private function getRealtidOee(): void {
-        $station = trim($_GET['station'] ?? '');
-        if ($station === '') {
-            $this->sendError('Parameter station kravs');
-            return;
-        }
-
         $now    = new \DateTime();
         $from1h = clone $now;
         $from1h->modify('-1 hour');
@@ -434,21 +369,23 @@ class RebotlingStationsdetaljController {
         $fromDt = $from1h->format('Y-m-d H:i:s');
         $toDt   = $now->format('Y-m-d H:i:s');
 
-        $oee = $this->calcOee($station, $fromDt, $toDt);
+        $oee = $this->calcOee($fromDt, $toDt);
 
-        // Kolla om stationen är aktiv just nu (pågående ON-period)
+        // Kolla om linjen ar aktiv just nu (senaste posten i rebotling_onoff)
+        $aktiv = false;
         try {
             $stmt = $this->pdo->query("
-                SELECT COUNT(*) FROM rebotling_onoff
-                WHERE start_time IS NOT NULL AND stop_time IS NULL
+                SELECT running FROM rebotling_onoff
+                ORDER BY datum DESC LIMIT 1
             ");
-            $aktiv = (int)($stmt->fetchColumn() ?? 0) > 0;
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $aktiv = $row && (int)$row['running'] === 1;
         } catch (\PDOException) {
             $aktiv = false;
         }
 
         $this->sendSuccess([
-            'station'            => $station,
+            'station'            => $_GET['station'] ?? 'Rebotling',
             'from_dt'            => $fromDt,
             'to_dt'              => $toDt,
             'aktiv_nu'           => $aktiv,
