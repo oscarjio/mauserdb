@@ -5,11 +5,14 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
-  MyStatsService,
-  MyStatsData,
-  MyTrendData,
-  MyAchievementsData,
-} from '../../services/my-stats.service';
+  OperatorPersonalDashboardService,
+  OperatorItem,
+  MinProduktionData,
+  MittTempoData,
+  MinBonusData,
+  MinaStoppData,
+  MinVeckotrendData,
+} from '../../services/operator-personal-dashboard.service';
 import { AuthService } from '../../services/auth.service';
 
 Chart.register(...registerables);
@@ -23,241 +26,277 @@ Chart.register(...registerables);
 })
 export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
 
-  // -- Period --
-  period: 7 | 30 | 90 = 30;
-  readonly periodOptions: { value: 7 | 30 | 90; label: string }[] = [
-    { value: 7,  label: '7 dagar' },
-    { value: 30, label: '30 dagar' },
-    { value: 90, label: '90 dagar' },
-  ];
-
-  // -- Laddning --
-  loadingStats        = false;
-  loadingTrend        = false;
-  loadingAchievements = false;
-
-  // -- Fel --
-  errorStats        = false;
-  errorTrend        = false;
-  errorAchievements = false;
-  errorStatsMsg     = '';
+  // -- Operatörsval --
+  operatorer: OperatorItem[] = [];
+  selectedOp: number = 0;
+  loadingOps = false;
 
   // -- Data --
-  stats: MyStatsData | null = null;
-  trend: MyTrendData | null = null;
-  achievements: MyAchievementsData | null = null;
+  produktion: MinProduktionData | null = null;
+  tempo: MittTempoData | null = null;
+  bonus: MinBonusData | null = null;
+  stopp: MinaStoppData | null = null;
+  veckotrend: MinVeckotrendData | null = null;
 
-  // -- Dagens datum --
-  get todayLabel(): string {
-    return new Date().toLocaleDateString('sv-SE', {
-      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-    });
-  }
+  // -- Laddning --
+  loadingProduktion = false;
+  loadingTempo = false;
+  loadingBonus = false;
+  loadingStopp = false;
+  loadingTrend = false;
 
-  // -- Inloggad användare --
-  operatorNamn = '';
-
-  // -- Chart --
-  private trendChart: Chart | null = null;
+  // -- Charts --
+  private produktionChart: Chart | null = null;
+  private veckotrendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private refreshTimer: ReturnType<typeof setInterval> | null = null;
+
+  Math = Math; // Expose Math to template
 
   constructor(
-    private svc: MyStatsService,
+    private svc: OperatorPersonalDashboardService,
     private auth: AuthService,
   ) {}
 
   ngOnInit(): void {
+    this.loadOperatorer();
+
+    // Försök sätta operator från inloggad användare
     this.auth.user$.pipe(takeUntil(this.destroy$)).subscribe(user => {
-      this.operatorNamn = user?.name || user?.username || 'Operatör';
+      if (user?.operator_id && this.selectedOp === 0) {
+        this.selectedOp = user.operator_id;
+        if (this.operatorer.length > 0) {
+          this.loadAll();
+        }
+      }
     });
-    this.loadAll();
+
+    // Auto-refresh var 60:e sekund
+    this.refreshTimer = setInterval(() => {
+      if (this.selectedOp > 0) this.loadAll();
+    }, 60000);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    this.destroyChart();
+    this.destroyCharts();
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
   }
 
-  private destroyChart(): void {
-    try { this.trendChart?.destroy(); } catch (_) {}
-    this.trendChart = null;
-  }
-
-  // =================================================================
-  // Periodväljare
-  // =================================================================
-
-  onPeriodChange(p: 7 | 30 | 90): void {
-    this.period = p;
-    this.loadAll();
+  private destroyCharts(): void {
+    try { this.produktionChart?.destroy(); } catch (_) {}
+    this.produktionChart = null;
+    try { this.veckotrendChart?.destroy(); } catch (_) {}
+    this.veckotrendChart = null;
   }
 
   // =================================================================
-  // Data-laddning
+  // Operatörsval
+  // =================================================================
+
+  loadOperatorer(): void {
+    this.loadingOps = true;
+    this.svc.getOperatorer()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingOps = false;
+        if (res?.success) {
+          this.operatorer = res.operatorer;
+          // Autoselect om vi redan har operator_id
+          if (this.selectedOp > 0 && this.operatorer.some(o => o.op_id === this.selectedOp)) {
+            this.loadAll();
+          }
+        }
+      });
+  }
+
+  onOperatorChange(): void {
+    if (this.selectedOp > 0) {
+      this.loadAll();
+    }
+  }
+
+  // =================================================================
+  // Ladda all data
   // =================================================================
 
   loadAll(): void {
-    this.loadStats();
-    this.loadTrend();
-    this.loadAchievements();
+    this.loadProduktion();
+    this.loadTempo();
+    this.loadBonus();
+    this.loadStopp();
+    this.loadVeckotrend();
   }
 
-  loadStats(): void {
-    this.loadingStats = true;
-    this.errorStats   = false;
-    this.errorStatsMsg = '';
-
-    this.svc.getMyStats(this.period)
+  loadProduktion(): void {
+    this.loadingProduktion = true;
+    this.svc.getMinProduktion(this.selectedOp)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
-        this.loadingStats = false;
-        if (res?.success) {
-          this.stats = res.data;
-          if (this.stats.operator_namn) {
-            this.operatorNamn = this.stats.operator_namn;
-          }
-        } else {
-          this.errorStats = true;
-          if (!res) {
-            this.errorStatsMsg = 'Kunde inte nå servern.';
-          } else {
-            this.errorStatsMsg = 'Inget operatörsnummer kopplat — gå till inställningarna och koppla ditt operator-ID.';
-          }
-          this.stats = null;
-        }
+        this.loadingProduktion = false;
+        this.produktion = res?.success ? res : null;
+        setTimeout(() => { if (!this.destroy$.closed) this.buildProduktionChart(); }, 50);
       });
   }
 
-  loadTrend(): void {
-    this.loadingTrend = true;
-    this.errorTrend   = false;
-    this.destroyChart();
+  loadTempo(): void {
+    this.loadingTempo = true;
+    this.svc.getMittTempo(this.selectedOp)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingTempo = false;
+        this.tempo = res?.success ? res : null;
+      });
+  }
 
-    const p: 30 | 90 = this.period === 7 ? 30 : (this.period as 30 | 90);
-    this.svc.getMyTrend(p)
+  loadBonus(): void {
+    this.loadingBonus = true;
+    this.svc.getMinBonus(this.selectedOp)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingBonus = false;
+        this.bonus = res?.success ? res : null;
+      });
+  }
+
+  loadStopp(): void {
+    this.loadingStopp = true;
+    this.svc.getMinaStopp(this.selectedOp)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.loadingStopp = false;
+        this.stopp = res?.success ? res : null;
+      });
+  }
+
+  loadVeckotrend(): void {
+    this.loadingTrend = true;
+    this.svc.getMinVeckotrend(this.selectedOp)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingTrend = false;
-        if (res?.success) {
-          this.trend = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0);
-        } else {
-          this.errorTrend = true;
-          this.trend = null;
-        }
-      });
-  }
-
-  loadAchievements(): void {
-    this.loadingAchievements = true;
-    this.errorAchievements   = false;
-
-    this.svc.getMyAchievements()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingAchievements = false;
-        if (res?.success) {
-          this.achievements = res.data;
-        } else {
-          this.errorAchievements = true;
-          this.achievements = null;
-        }
+        this.veckotrend = res?.success ? res : null;
+        setTimeout(() => { if (!this.destroy$.closed) this.buildVeckotrendChart(); }, 50);
       });
   }
 
   // =================================================================
-  // Chart.js — IBC/h trend (din linje + teamsnitt)
+  // Chart.js — Produktion per timme (stapeldiagram)
   // =================================================================
 
-  private buildTrendChart(): void {
-    this.destroyChart();
-    const canvas = document.getElementById('trendChart') as HTMLCanvasElement;
-    if (!canvas || !this.trend) return;
+  private buildProduktionChart(): void {
+    try { this.produktionChart?.destroy(); } catch (_) {}
+    this.produktionChart = null;
+
+    const canvas = document.getElementById('produktionTimmeChart') as HTMLCanvasElement;
+    if (!canvas || !this.produktion) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const labels = this.trend.dates.map(d => {
-      const dt = new Date(d + 'T12:00:00');
-      return dt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'numeric' });
-    });
-
-    this.trendChart = new Chart(ctx, {
-      type: 'line',
+    this.produktionChart = new Chart(ctx, {
+      type: 'bar',
       data: {
-        labels,
-        datasets: [
-          {
-            label: 'Din IBC/h',
-            data: this.trend.my_ibc_per_h,
-            borderColor: '#63b3ed',
-            backgroundColor: 'rgba(99,179,237,0.12)',
-            pointBackgroundColor: '#63b3ed',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            borderWidth: 2,
-            tension: 0.3,
-            fill: true,
-          },
-          {
-            label: 'Teamsnitt IBC/h',
-            data: this.trend.team_ibc_per_h,
-            borderColor: '#f6ad55',
-            backgroundColor: 'rgba(246,173,85,0.06)',
-            pointBackgroundColor: '#f6ad55',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 3,
-            borderWidth: 2,
-            borderDash: [5, 4],
-            tension: 0.3,
-            fill: false,
-          } as any,
-        ],
+        labels: this.produktion.timmar,
+        datasets: [{
+          label: 'IBC',
+          data: this.produktion.ibc_per_timme,
+          backgroundColor: this.produktion.ibc_per_timme.map(v =>
+            v > 0 ? 'rgba(99, 179, 237, 0.8)' : 'rgba(74, 85, 104, 0.3)'
+          ),
+          borderColor: 'rgba(99, 179, 237, 1)',
+          borderWidth: 1,
+          borderRadius: 4,
+        }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
         plugins: {
-          legend: {
-            display: true,
-            position: 'bottom',
-            labels: {
-              color: '#e2e8f0',
-              boxWidth: 12,
-              padding: 16,
-              font: { size: 12 },
-            },
-          },
+          legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (item: any) => ` ${item.dataset.label}: ${(item.raw as number).toFixed(1)} IBC/h`,
+              label: (item: any) => `${item.raw} IBC`,
             },
           },
         },
         scales: {
           x: {
-            ticks: {
-              color: '#a0aec0',
-              maxRotation: 45,
-              font: { size: 10 },
-              maxTicksLimit: 20,
-            },
+            ticks: { color: '#a0aec0', font: { size: 10 } },
             grid: { color: 'rgba(255,255,255,0.05)' },
           },
           y: {
             beginAtZero: true,
-            ticks: {
-              color: '#a0aec0',
-              font: { size: 11 },
-              callback: (v: any) => `${v}`,
+            ticks: { color: '#a0aec0', font: { size: 11 }, stepSize: 1 },
+            grid: { color: 'rgba(255,255,255,0.08)' },
+          },
+        },
+      },
+    });
+  }
+
+  // =================================================================
+  // Chart.js — Veckotrend (linjediagram)
+  // =================================================================
+
+  private buildVeckotrendChart(): void {
+    try { this.veckotrendChart?.destroy(); } catch (_) {}
+    this.veckotrendChart = null;
+
+    const canvas = document.getElementById('veckotrendChart') as HTMLCanvasElement;
+    if (!canvas || !this.veckotrend) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const labels = this.veckotrend.dates.map(d => {
+      const dt = new Date(d + 'T12:00:00');
+      return dt.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'numeric' });
+    });
+
+    this.veckotrendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'IBC per dag',
+          data: this.veckotrend.values,
+          borderColor: '#63b3ed',
+          backgroundColor: 'rgba(99, 179, 237, 0.15)',
+          pointBackgroundColor: '#63b3ed',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 5,
+          borderWidth: 3,
+          tension: 0.3,
+          fill: true,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (item: any) => `${item.raw} IBC`,
             },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#a0aec0', font: { size: 11 } },
+            grid: { color: 'rgba(255,255,255,0.05)' },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: '#a0aec0', font: { size: 11 } },
             grid: { color: 'rgba(255,255,255,0.08)' },
             title: {
               display: true,
-              text: 'IBC / timme',
+              text: 'Antal IBC',
               color: '#a0aec0',
               font: { size: 11 },
             },
@@ -271,86 +310,60 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   // Hjälpmetoder — visning
   // =================================================================
 
-  get ibcPerHColor(): string {
-    if (!this.stats) return '#e2e8f0';
-    const v = this.stats.snitt_ibc_per_h;
-    if (v >= 18) return '#68d391';
-    if (v >= 12) return '#f6e05e';
+  get todayLabel(): string {
+    return new Date().toLocaleDateString('sv-SE', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
+
+  get operatorNamn(): string {
+    if (this.produktion?.operator_namn) return this.produktion.operator_namn;
+    const op = this.operatorer.find(o => o.op_id === this.selectedOp);
+    return op?.namn || 'Operatör';
+  }
+
+  get tempoColor(): string {
+    if (!this.tempo) return '#e2e8f0';
+    if (this.tempo.procent_vs_snitt >= 110) return '#68d391';
+    if (this.tempo.procent_vs_snitt >= 90) return '#f6e05e';
     return '#fc8181';
   }
 
-  get kvalitetColor(): string {
-    if (!this.stats || this.stats.kvalitet_pct === null) return '#a0aec0';
-    const v = this.stats.kvalitet_pct;
-    if (v >= 95) return '#68d391';
-    if (v >= 85) return '#f6e05e';
+  get tempoLabel(): string {
+    if (!this.tempo) return '';
+    if (this.tempo.procent_vs_snitt >= 110) return 'Over snittet!';
+    if (this.tempo.procent_vs_snitt >= 90) return 'Nara snittet';
+    return 'Under snittet';
+  }
+
+  get gaugeRotation(): number {
+    if (!this.tempo) return -90;
+    const pct = Math.min(200, Math.max(0, this.tempo.procent_vs_snitt));
+    return -90 + (pct / 200) * 180;
+  }
+
+  get bonusColor(): string {
+    if (!this.bonus) return '#e2e8f0';
+    if (this.bonus.total_poang >= 200) return '#68d391';
+    if (this.bonus.total_poang >= 100) return '#f6e05e';
     return '#fc8181';
   }
 
-  /** Jämförelseprocentandel din IBC/h vs teamsnitt (0–200%) för progressbar */
-  get myIbcBarPct(): number {
-    if (!this.stats || this.stats.team_snitt_ibc_per_h === 0) return 0;
-    return Math.min(200, Math.round(this.stats.snitt_ibc_per_h / this.stats.team_snitt_ibc_per_h * 100));
+  formatTime(sek: number): string {
+    if (sek < 60) return `${sek}s`;
+    const min = Math.floor(sek / 60);
+    const s = sek % 60;
+    if (min < 60) return `${min}m ${s}s`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return `${h}h ${m}m`;
   }
 
-  get teamIbcBarPct(): number { return 100; }
-
-  get myKvalitetBarPct(): number {
-    if (!this.stats || this.stats.kvalitet_pct === null) return 0;
-    return Math.min(100, Math.round(this.stats.kvalitet_pct));
+  get harProduktionData(): boolean {
+    return !!(this.produktion && this.produktion.total_ibc > 0);
   }
 
-  get teamKvalitetBarPct(): number {
-    if (!this.stats || this.stats.team_snitt_kvalitet === null) return 0;
-    return Math.min(100, Math.round(this.stats.team_snitt_kvalitet));
-  }
-
-  get forbattringColor(): string {
-    if (!this.achievements) return '#a0aec0';
-    switch (this.achievements.forbattring_direction) {
-      case 'upp':   return '#68d391';
-      case 'ner':   return '#fc8181';
-      default:      return '#a0aec0';
-    }
-  }
-
-  get forbattringIcon(): string {
-    if (!this.achievements) return 'fa-minus';
-    switch (this.achievements.forbattring_direction) {
-      case 'upp':   return 'fa-arrow-up';
-      case 'ner':   return 'fa-arrow-down';
-      default:      return 'fa-minus';
-    }
-  }
-
-  get forbattringText(): string {
-    if (!this.achievements) return '—';
-    const pct = this.achievements.forbattring_pct;
-    const sign = pct > 0 ? '+' : '';
-    return `${sign}${pct.toFixed(1)}%`;
-  }
-
-  formatDate(d: string | null): string {
-    if (!d) return '—';
-    const dt = new Date(d + 'T12:00:00');
-    if (isNaN(dt.getTime())) return d;
-    return dt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
-  }
-
-  rankingLabel(rank: number, total: number): string {
-    if (total === 0) return '—';
-    return `#${rank} av ${total}`;
-  }
-
-  get rankingColor(): string {
-    if (!this.stats || this.stats.total_ops === 0) return '#a0aec0';
-    const pct = this.stats.ranking / this.stats.total_ops;
-    if (pct <= 0.25) return '#f6e05e';   // topp 25% = guld
-    if (pct <= 0.5)  return '#68d391';   // topp 50% = grön
-    return '#a0aec0';
-  }
-
-  get harTrendData(): boolean {
-    return !!(this.trend && this.trend.my_ibc_per_h.some(v => v > 0));
+  get harVeckotrendData(): boolean {
+    return !!(this.veckotrend && this.veckotrend.values.some(v => v > 0));
   }
 }

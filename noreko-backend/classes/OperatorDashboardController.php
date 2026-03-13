@@ -32,6 +32,13 @@ class OperatorDashboardController {
             case 'weekly':  $this->getWeekly();  break;
             case 'history': $this->getHistory(); break;
             case 'summary': $this->getSummary(); break;
+            // --- Personligt operatörs-dashboard ---
+            case 'operatorer':       $this->getOperatorer();       break;
+            case 'min-produktion':   $this->getMinProduktion();    break;
+            case 'mitt-tempo':       $this->getMittTempo();        break;
+            case 'min-bonus':        $this->getMinBonus();         break;
+            case 'mina-stopp':       $this->getMinaStopp();        break;
+            case 'min-veckotrend':   $this->getMinVeckotrend();    break;
             default:
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Okänd metod']);
@@ -588,6 +595,511 @@ class OperatorDashboardController {
             error_log('OperatorDashboardController getSummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta sammanfattning']);
+        }
+    }
+
+    // ================================================================
+    // PERSONLIGT OPERATÖRS-DASHBOARD — NYA ENDPOINTS
+    // ================================================================
+
+    /**
+     * Hämta lista med alla operatörer (för dropdown).
+     */
+    private function getOperatorer(): void {
+        try {
+            $stmt = $this->pdo->query(
+                "SELECT number, name FROM operators WHERE active = 1 ORDER BY name ASC"
+            );
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Fallback: om operators-tabell inte har 'active'-kolumn
+            if (empty($rows)) {
+                $stmt = $this->pdo->query(
+                    "SELECT number, name FROM operators ORDER BY name ASC"
+                );
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+
+            $ops = [];
+            foreach ($rows as $r) {
+                $ops[] = [
+                    'op_id' => (int)$r['number'],
+                    'namn'  => $r['name'],
+                ];
+            }
+
+            echo json_encode(['success' => true, 'operatorer' => $ops]);
+        } catch (Exception $e) {
+            error_log('OperatorDashboardController getOperatorer: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+        }
+    }
+
+    /**
+     * Min produktion idag — antal IBC + per timme (stapeldiagram-data).
+     * ?run=min-produktion&op=<op_num>
+     */
+    private function getMinProduktion(): void {
+        try {
+            $opNum = (int)($_GET['op'] ?? 0);
+            if ($opNum <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                return;
+            }
+
+            $today = date('Y-m-d');
+
+            // Hämta IBC per timme idag för denna operatör
+            $sql = "
+                SELECT
+                    HOUR(datum) AS timme,
+                    skiftraknare,
+                    MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                FROM (
+                    SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
+                    WHERE op1 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    UNION ALL
+                    SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
+                    WHERE op2 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    UNION ALL
+                    SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
+                    WHERE op3 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                ) AS u
+                GROUP BY HOUR(datum), skiftraknare
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':op' => $opNum, ':today' => $today]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Aggregera: summera MAX per skifträknare, per timme
+            $perTimme = [];
+            foreach ($rows as $r) {
+                $h = (int)$r['timme'];
+                if (!isset($perTimme[$h])) $perTimme[$h] = 0;
+                $perTimme[$h] += (int)$r['shift_ibc'];
+            }
+
+            // Bygg 24-timmars array
+            $timmar = [];
+            $ibcPerTimme = [];
+            $totalIbc = 0;
+            for ($h = 5; $h <= 23; $h++) {
+                $timmar[] = sprintf('%02d:00', $h);
+                $val = $perTimme[$h] ?? 0;
+                $ibcPerTimme[] = $val;
+                $totalIbc += $val;
+            }
+
+            // Hämta operatörsnamn
+            $nameMap = $this->getNamnMap([$opNum]);
+            $namn = $nameMap[$opNum] ?? ('Operatör #' . $opNum);
+
+            echo json_encode([
+                'success'       => true,
+                'total_ibc'     => $totalIbc,
+                'operator_namn' => $namn,
+                'timmar'        => $timmar,
+                'ibc_per_timme' => $ibcPerTimme,
+                'datum'         => $today,
+            ]);
+        } catch (Exception $e) {
+            error_log('OperatorDashboardController getMinProduktion: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta produktion']);
+        }
+    }
+
+    /**
+     * Mitt tempo vs snitt — min IBC/h jämfört med genomsnitt.
+     * ?run=mitt-tempo&op=<op_num>
+     */
+    private function getMittTempo(): void {
+        try {
+            $opNum = (int)($_GET['op'] ?? 0);
+            if ($opNum <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                return;
+            }
+
+            $today = date('Y-m-d');
+
+            // Min IBC/h idag
+            $sqlMin = "
+                SELECT
+                    SUM(shift_ibc)     AS total_ibc,
+                    SUM(shift_runtime) AS total_runtime_s
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM (
+                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op1 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op2 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op3 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    ) AS u
+                    GROUP BY skiftraknare
+                ) AS per_shift
+            ";
+            $stmt = $this->pdo->prepare($sqlMin);
+            $stmt->execute([':op' => $opNum, ':today' => $today]);
+            $myRow = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+            $myIbc = (int)($myRow['total_ibc'] ?? 0);
+            $myRuntime = (float)($myRow['total_runtime_s'] ?? 0);
+            $myIbcPerH = ($myRuntime > 0) ? round($myIbc * 3600.0 / $myRuntime, 1) : 0;
+
+            // Snitt för alla operatörer idag
+            $sqlAll = "
+                SELECT
+                    op_num,
+                    SUM(shift_ibc)     AS total_ibc,
+                    SUM(shift_runtime) AS total_runtime_s
+                FROM (
+                    SELECT op_num, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM (
+                        SELECT op1 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op1 IS NOT NULL AND op1 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT op2 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op2 IS NOT NULL AND op2 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT op3 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op3 IS NOT NULL AND op3 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    ) AS u
+                    GROUP BY op_num, skiftraknare
+                ) AS per_shift
+                GROUP BY op_num
+            ";
+            $stmtAll = $this->pdo->prepare($sqlAll);
+            $stmtAll->execute([':today' => $today]);
+            $allRows = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+
+            $sumRates = 0.0;
+            $countOps = 0;
+            foreach ($allRows as $ar) {
+                $r = (float)$ar['total_runtime_s'];
+                $i = (int)$ar['total_ibc'];
+                if ($r > 0 && $i > 0) {
+                    $sumRates += ($i * 3600.0 / $r);
+                    $countOps++;
+                }
+            }
+            $snittIbcPerH = ($countOps > 0) ? round($sumRates / $countOps, 1) : 0;
+
+            // Procent jämfört med snitt
+            $procentVsSnitt = ($snittIbcPerH > 0) ? round(($myIbcPerH / $snittIbcPerH) * 100, 0) : 0;
+
+            echo json_encode([
+                'success'          => true,
+                'min_ibc_per_h'    => $myIbcPerH,
+                'snitt_ibc_per_h'  => $snittIbcPerH,
+                'procent_vs_snitt' => $procentVsSnitt,
+                'antal_operatorer' => $countOps,
+                'datum'            => $today,
+            ]);
+        } catch (Exception $e) {
+            error_log('OperatorDashboardController getMittTempo: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta tempo']);
+        }
+    }
+
+    /**
+     * Min bonus hittills — beräknad bonus med breakdown.
+     * ?run=min-bonus&op=<op_num>
+     *
+     * Bonuslogik (från OperatorRankingController):
+     *   Produktionspoäng: 10 per IBC
+     *   Kvalitetsbonus:   (% godkända - 90) x 5, max 50
+     *   Tempo-bonus:      Om IBC/h > snitt → (IBC/h - snitt) x 20
+     *   Stopp-bonus:      0 stopp → 50p, stopptid < 10% → 30p
+     */
+    private function getMinBonus(): void {
+        try {
+            $opNum = (int)($_GET['op'] ?? 0);
+            if ($opNum <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                return;
+            }
+
+            $today = date('Y-m-d');
+
+            // Hämta min produktion idag (kumulativt korrekt)
+            $sqlProd = "
+                SELECT
+                    SUM(shift_ibc)     AS total_ibc,
+                    SUM(shift_ok)      AS ok_ibc,
+                    SUM(shift_runtime) AS total_runtime_s
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
+                           MAX(COALESCE(ibc_ok, 0))      AS shift_ok,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM (
+                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op1 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op2 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op3 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    ) AS u
+                    GROUP BY skiftraknare
+                ) AS ps
+            ";
+            $stmt = $this->pdo->prepare($sqlProd);
+            $stmt->execute([':op' => $opNum, ':today' => $today]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+            $totalIbc  = (int)($row['total_ibc'] ?? 0);
+            $okIbc     = (int)($row['ok_ibc'] ?? 0);
+            $runtimeS  = (float)($row['total_runtime_s'] ?? 0);
+
+            // Produktionspoäng
+            $produktionsPoang = $totalIbc * 10;
+
+            // Kvalitetsbonus
+            $okPct = ($totalIbc > 0) ? ($okIbc / $totalIbc * 100) : 0;
+            $kvalitetsBonus = max(0, min(50, ($okPct - 90) * 5));
+
+            // IBC/h
+            $ibcPerH = ($runtimeS > 0) ? ($totalIbc * 3600.0 / $runtimeS) : 0;
+
+            // Snitt IBC/h alla idag
+            $sqlAll = "
+                SELECT
+                    op_num,
+                    SUM(shift_ibc) AS total_ibc,
+                    SUM(shift_runtime) AS total_runtime_s
+                FROM (
+                    SELECT op_num, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM (
+                        SELECT op1 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op1 IS NOT NULL AND op1 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT op2 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op2 IS NOT NULL AND op2 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT op3 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op3 IS NOT NULL AND op3 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    ) AS u
+                    GROUP BY op_num, skiftraknare
+                ) AS per_shift
+                GROUP BY op_num
+            ";
+            $stmtAll = $this->pdo->prepare($sqlAll);
+            $stmtAll->execute([':today' => $today]);
+            $allRows = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
+
+            $sumRates = 0.0;
+            $countOps = 0;
+            foreach ($allRows as $ar) {
+                $r = (float)$ar['total_runtime_s'];
+                $i = (int)$ar['total_ibc'];
+                if ($r > 0 && $i > 0) {
+                    $sumRates += ($i * 3600.0 / $r);
+                    $countOps++;
+                }
+            }
+            $avgIbcPerH = ($countOps > 0) ? ($sumRates / $countOps) : 0;
+
+            // Tempo-bonus
+            $tempoBonus = 0;
+            if ($ibcPerH > $avgIbcPerH && $avgIbcPerH > 0) {
+                $tempoBonus = round(($ibcPerH - $avgIbcPerH) * 20, 1);
+            }
+
+            // Stopp-bonus — kolla stopporsak_registreringar
+            $antalStopp = 0;
+            $stopptidSek = 0;
+            try {
+                $sqlStopp = "
+                    SELECT COUNT(*) AS cnt,
+                           COALESCE(SUM(TIMESTAMPDIFF(SECOND, start_time, COALESCE(end_time, NOW()))), 0) AS sek
+                    FROM stopporsak_registreringar
+                    WHERE operator_id = :op AND DATE(start_time) = :today
+                ";
+                $stStopp = $this->pdo->prepare($sqlStopp);
+                $stStopp->execute([':op' => $opNum, ':today' => $today]);
+                $stoppRow = $stStopp->fetch(PDO::FETCH_ASSOC);
+                $antalStopp = (int)($stoppRow['cnt'] ?? 0);
+                $stopptidSek = max(0, (int)($stoppRow['sek'] ?? 0));
+            } catch (Exception $e) {
+                // tabellen kanske saknas — ignorera
+            }
+
+            $skiftSek = 8 * 3600;
+            $stoppBonus = 0;
+            if ($antalStopp === 0 && $totalIbc > 0) {
+                $stoppBonus = 50;
+            } elseif ($skiftSek > 0 && ($stopptidSek / $skiftSek) < 0.10) {
+                $stoppBonus = 30;
+            }
+
+            $totalBonus = round($kvalitetsBonus + $tempoBonus + $stoppBonus, 1);
+            $totalPoang = round($produktionsPoang + $totalBonus, 1);
+
+            echo json_encode([
+                'success'            => true,
+                'total_poang'        => $totalPoang,
+                'produktions_poang'  => $produktionsPoang,
+                'kvalitets_bonus'    => round($kvalitetsBonus, 1),
+                'tempo_bonus'        => round($tempoBonus, 1),
+                'stopp_bonus'        => $stoppBonus,
+                'total_bonus'        => $totalBonus,
+                'total_ibc'          => $totalIbc,
+                'ok_pct'             => round($okPct, 1),
+                'ibc_per_h'          => round($ibcPerH, 1),
+                'snitt_ibc_per_h'    => round($avgIbcPerH, 1),
+                'antal_stopp'        => $antalStopp,
+                'datum'              => $today,
+            ]);
+        } catch (Exception $e) {
+            error_log('OperatorDashboardController getMinBonus: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bonus']);
+        }
+    }
+
+    /**
+     * Mina stopp idag — lista med stopporsaker och tid.
+     * ?run=mina-stopp&op=<op_num>
+     */
+    private function getMinaStopp(): void {
+        try {
+            $opNum = (int)($_GET['op'] ?? 0);
+            if ($opNum <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                return;
+            }
+
+            $today = date('Y-m-d');
+            $stopp = [];
+            $totalSek = 0;
+
+            try {
+                $sql = "
+                    SELECT
+                        sr.id,
+                        COALESCE(sr.orsak, sr.stopporsak, 'Okänd') AS orsak,
+                        sr.start_time,
+                        sr.end_time,
+                        TIMESTAMPDIFF(SECOND, sr.start_time, COALESCE(sr.end_time, NOW())) AS varaktighet_sek
+                    FROM stopporsak_registreringar sr
+                    WHERE sr.operator_id = :op
+                      AND DATE(sr.start_time) = :today
+                    ORDER BY sr.start_time DESC
+                ";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([':op' => $opNum, ':today' => $today]);
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                    $sek = max(0, (int)$r['varaktighet_sek']);
+                    $totalSek += $sek;
+                    $stopp[] = [
+                        'id'              => (int)$r['id'],
+                        'orsak'           => $r['orsak'],
+                        'start_time'      => $r['start_time'],
+                        'end_time'        => $r['end_time'],
+                        'varaktighet_sek' => $sek,
+                        'varaktighet_min' => round($sek / 60, 1),
+                    ];
+                }
+            } catch (Exception $e) {
+                // tabellen kanske saknas
+            }
+
+            echo json_encode([
+                'success'        => true,
+                'stopp'          => $stopp,
+                'antal_stopp'    => count($stopp),
+                'total_stopptid_sek' => $totalSek,
+                'total_stopptid_min' => round($totalSek / 60, 1),
+                'datum'          => $today,
+            ]);
+        } catch (Exception $e) {
+            error_log('OperatorDashboardController getMinaStopp: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopp']);
+        }
+    }
+
+    /**
+     * Min veckotrend — daglig produktion senaste 7 dagar.
+     * ?run=min-veckotrend&op=<op_num>
+     */
+    private function getMinVeckotrend(): void {
+        try {
+            $opNum = (int)($_GET['op'] ?? 0);
+            if ($opNum <= 0) {
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                return;
+            }
+
+            $today = date('Y-m-d');
+            $fromDate = date('Y-m-d', strtotime('-6 days'));
+
+            $sql = "
+                SELECT dag, SUM(shift_ibc) AS dag_ibc
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
+                    FROM (
+                        SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
+                        WHERE op1 = :op AND DATE(datum) BETWEEN :from AND :to AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
+                        WHERE op2 = :op AND DATE(datum) BETWEEN :from AND :to AND skiftraknare IS NOT NULL
+                        UNION ALL
+                        SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
+                        WHERE op3 = :op AND DATE(datum) BETWEEN :from AND :to AND skiftraknare IS NOT NULL
+                    ) AS u
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_shift
+                GROUP BY dag
+                ORDER BY dag ASC
+            ";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([':op' => $opNum, ':from' => $fromDate, ':to' => $today]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $dagMap = [];
+            foreach ($rows as $r) {
+                $dagMap[$r['dag']] = (int)$r['dag_ibc'];
+            }
+
+            $dates = [];
+            $values = [];
+            $cur = strtotime($fromDate);
+            $end = strtotime($today);
+            while ($cur <= $end) {
+                $d = date('Y-m-d', $cur);
+                $dates[] = $d;
+                $values[] = $dagMap[$d] ?? 0;
+                $cur = strtotime('+1 day', $cur);
+            }
+
+            echo json_encode([
+                'success' => true,
+                'dates'   => $dates,
+                'values'  => $values,
+                'from'    => $fromDate,
+                'to'      => $today,
+            ]);
+        } catch (Exception $e) {
+            error_log('OperatorDashboardController getMinVeckotrend: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckotrend']);
         }
     }
 }

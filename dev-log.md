@@ -1,3 +1,27 @@
+## 2026-03-13 Rebotling operatörs-dashboard — personlig vy med produktion, tempo, bonus, stopp, veckotrend
+
+Ombyggd sida `/rebotling/operator-dashboard` — personligt operatörs-dashboard med motiverande design.
+
+- **Backend**: `classes/OperatorDashboardController.php` utokad med 6 nya endpoints:
+  - `run=operatorer` — lista alla operatorer for dropdown
+  - `run=min-produktion` — antal IBC idag + stapeldiagram per timme
+  - `run=mitt-tempo` — min IBC/h vs genomsnitt alla operatorer (gauge-data)
+  - `run=min-bonus` — beraknad bonus med breakdown (produktion, kvalitet, tempo, stopp)
+  - `run=mina-stopp` — lista stopporsaker med varaktighet idag
+  - `run=min-veckotrend` — daglig produktion senaste 7 dagar
+- **Frontend**: Angular standalone-komponent (ombyggd) med:
+  - Operatorsval via dropdown (hamtar lista fran DB)
+  - Min produktion idag — stort tal + stapeldiagram per timme (Chart.js)
+  - Mitt tempo vs snitt — SVG-gauge med nal, gront/rott beroende pa prestation
+  - Min bonus hittills — totalpoang + breakdown i 4 kort (produktion, kvalitet, tempo, stopp)
+  - Mina stopp idag — lista med stopporsaker, varaktighet, tidsintervall
+  - Min veckotrend — linjediagram (Chart.js) med daglig IBC senaste 7 dagar
+  - Auto-refresh var 60:e sekund
+  - Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+- **Filer**: `OperatorDashboardController.php` (utokad), `operator-personal-dashboard.service.ts` (ny), `operator-personal-dashboard/` (ts + html + css, ombyggd), `controllers/OperatorDashboardController.php` (ny proxy)
+
+---
+
 ## 2026-03-13 Rebotling kapacitetsplanering — utokad med bemanning, prognos, tabell, trend
 
 Utokad sida `/rebotling/kapacitetsplanering` med kapacitetsplanering, bemanningsmodell och prognos-simulator.
