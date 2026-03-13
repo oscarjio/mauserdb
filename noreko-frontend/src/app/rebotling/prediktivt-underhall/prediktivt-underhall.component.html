@@ -1,0 +1,257 @@
+<div class="pu-container">
+  <!-- Header -->
+  <div class="pu-header d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+    <div>
+      <h2 class="page-title mb-1">
+        <i class="fas fa-brain me-2" style="color:#9f7aea"></i>Prediktivt underhall
+      </h2>
+      <p class="text-muted mb-0">Stopporsaks-monsteranalys, MTBF och underhallsrekommendationer</p>
+    </div>
+    <button class="btn btn-sm btn-outline-secondary" (click)="loadAll()" title="Uppdatera">
+      <i class="fas fa-sync-alt"></i> Uppdatera
+    </button>
+  </div>
+
+  <!-- Flikar -->
+  <ul class="nav nav-tabs pu-tabs mb-4">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="aktivFlik === 'mtbf'" (click)="bytFlik('mtbf')">
+        <i class="fas fa-heartbeat me-1"></i>MTBF &amp; Risk
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="aktivFlik === 'heatmap'" (click)="bytFlik('heatmap')">
+        <i class="fas fa-th me-1"></i>Stopporsaks-heatmap
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="aktivFlik === 'trender'" (click)="bytFlik('trender')">
+        <i class="fas fa-chart-line me-1"></i>Historisk trend
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="aktivFlik === 'rekom'" (click)="bytFlik('rekom')">
+        <i class="fas fa-clipboard-list me-1"></i>Rekommendationer
+        <span class="badge bg-danger ms-1" *ngIf="antalVarningar > 0">{{ antalVarningar }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <!-- ============================================================ -->
+  <!-- MTBF & Risk -->
+  <!-- ============================================================ -->
+  <div *ngIf="aktivFlik === 'mtbf'">
+    <div class="text-center py-4" *ngIf="loadingMtbf">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="text-muted mt-2">Laddar MTBF-data...</p>
+    </div>
+    <div class="alert alert-danger" *ngIf="errorMtbf && !loadingMtbf">
+      <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda MTBF-data.
+    </div>
+    <div *ngIf="!loadingMtbf && !errorMtbf && mtbfStationer.length > 0">
+      <div class="row g-3">
+        <div class="col-xl-3 col-lg-4 col-md-6" *ngFor="let station of mtbfStationer">
+          <div class="mtbf-card" [style.border]="getRiskCardBorder(station.risk)">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="station-namn">{{ station.station_namn }}</div>
+              <span class="risk-badge" [ngClass]="getRiskBadgeClass(station.risk)">
+                {{ getRiskLabel(station.risk) }}
+              </span>
+            </div>
+
+            <div class="mtbf-stats">
+              <div class="mtbf-stat">
+                <span class="stat-label">MTBF</span>
+                <span class="stat-value">{{ station.mtbf_dagar }} dagar</span>
+              </div>
+              <div class="mtbf-stat">
+                <span class="stat-label">Sedan senaste stopp</span>
+                <span class="stat-value">{{ station.dagar_sedan_stopp }} dagar</span>
+              </div>
+              <div class="mtbf-stat">
+                <span class="stat-label">Antal stopp (90d)</span>
+                <span class="stat-value">{{ station.antal_stopp }}</span>
+              </div>
+            </div>
+
+            <!-- Risk-progress -->
+            <div class="risk-progress-container mt-2">
+              <div class="risk-progress-bar"
+                   [style.width.%]="getRiskProgressWidth(station)"
+                   [style.backgroundColor]="getRiskProgressColor(station)">
+              </div>
+            </div>
+            <div class="d-flex justify-content-between mt-1">
+              <small class="text-muted">Risk: {{ station.risk_kvot }}x</small>
+              <small [class]="getMtbfTrendIcon(station.mtbf_trend)" [title]="getMtbfTrendLabel(station.mtbf_trend)">
+                <i [class]="getMtbfTrendIcon(station.mtbf_trend)"></i>
+                {{ getMtbfTrendLabel(station.mtbf_trend) }}
+              </small>
+            </div>
+
+            <div class="senaste-stopp mt-2" *ngIf="station.senaste_stopp">
+              <small class="text-muted">
+                <i class="fas fa-clock me-1"></i>Senaste stopp: {{ station.senaste_stopp }}
+              </small>
+            </div>
+            <div class="senaste-stopp mt-2" *ngIf="!station.senaste_stopp">
+              <small class="text-success">
+                <i class="fas fa-check-circle me-1"></i>Inga stopp registrerade
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!loadingMtbf && !errorMtbf && mtbfStationer.length === 0" class="text-center py-4 text-muted">
+      Ingen MTBF-data tillganglig.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Stopporsaks-heatmap -->
+  <!-- ============================================================ -->
+  <div *ngIf="aktivFlik === 'heatmap'">
+    <div class="text-center py-4" *ngIf="loadingHeatmap">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="text-muted mt-2">Laddar heatmap...</p>
+    </div>
+    <div class="alert alert-danger" *ngIf="errorHeatmap && !loadingHeatmap">
+      <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda heatmap-data.
+    </div>
+    <div *ngIf="!loadingHeatmap && !errorHeatmap && heatmapMatris.length > 0">
+      <p class="text-muted mb-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Stopporsaker per station, senaste 4 veckor. Fargintensitet visar frekvens.
+      </p>
+      <div class="table-responsive">
+        <table class="table table-dark heatmap-table">
+          <thead>
+            <tr>
+              <th class="station-header">Station</th>
+              <th *ngFor="let orsak of heatmapOrsaker" class="orsak-header">{{ orsak }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of heatmapMatris">
+              <td class="station-cell">{{ row.station_namn }}</td>
+              <td *ngFor="let cell of row.celler"
+                  class="heatmap-cell"
+                  [style.backgroundColor]="getHeatmapColor(cell.antal)"
+                  [style.color]="getHeatmapTextColor(cell.antal)"
+                  [title]="cell.orsak + ': ' + cell.antal + ' stopp, ' + cell.total_min + ' min'">
+                <span class="cell-antal" *ngIf="cell.antal > 0">{{ cell.antal }}</span>
+                <span class="cell-antal cell-zero" *ngIf="cell.antal === 0">-</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="heatmap-legend d-flex gap-3 mt-2">
+        <span><span class="legend-box" style="background:rgba(72,187,120,0.2)"></span> Lag (0-15%)</span>
+        <span><span class="legend-box" style="background:rgba(236,201,75,0.25)"></span> Lagmedel (15-40%)</span>
+        <span><span class="legend-box" style="background:rgba(236,201,75,0.5)"></span> Medel (40-70%)</span>
+        <span><span class="legend-box" style="background:rgba(245,101,101,0.7)"></span> Hog (70-100%)</span>
+      </div>
+    </div>
+    <div *ngIf="!loadingHeatmap && !errorHeatmap && heatmapMatris.length === 0" class="text-center py-4 text-muted">
+      Ingen heatmap-data tillganglig.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Historisk trend -->
+  <!-- ============================================================ -->
+  <div *ngIf="aktivFlik === 'trender'">
+    <div class="text-center py-4" *ngIf="loadingTrender">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="text-muted mt-2">Laddar trenddata...</p>
+    </div>
+    <div class="alert alert-danger" *ngIf="errorTrender && !loadingTrender">
+      <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda trenddata.
+    </div>
+    <div *ngIf="!loadingTrender && !errorTrender && trendStationer.length > 0">
+      <p class="text-muted mb-3">
+        <i class="fas fa-info-circle me-1"></i>
+        Antal stopp per station per vecka, senaste 12 veckor.
+      </p>
+      <div class="trend-chart-container">
+        <canvas id="prediktivtTrendChart"></canvas>
+      </div>
+
+      <!-- Summatabell -->
+      <div class="table-responsive mt-4">
+        <table class="table table-dark table-sm trend-summary-table">
+          <thead>
+            <tr>
+              <th>Station</th>
+              <th class="text-end">Totalt stopp</th>
+              <th class="text-end">Snitt/vecka</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let station of trendStationer">
+              <td>{{ station.station_namn }}</td>
+              <td class="text-end">{{ station.totalt }}</td>
+              <td class="text-end">{{ (station.totalt / (trendVeckonycklar.length || 1)).toFixed(1) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div *ngIf="!loadingTrender && !errorTrender && trendStationer.length === 0" class="text-center py-4 text-muted">
+      Ingen trenddata tillganglig.
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Rekommendationer -->
+  <!-- ============================================================ -->
+  <div *ngIf="aktivFlik === 'rekom'">
+    <div class="text-center py-4" *ngIf="loadingRekom">
+      <div class="spinner-border text-info" role="status"></div>
+      <p class="text-muted mt-2">Laddar rekommendationer...</p>
+    </div>
+    <div class="alert alert-danger" *ngIf="errorRekom && !loadingRekom">
+      <i class="fas fa-exclamation-circle me-2"></i>Kunde inte ladda rekommendationer.
+    </div>
+    <div *ngIf="!loadingRekom && !errorRekom && rekommendationer.length > 0">
+      <!-- KPI badges -->
+      <div class="d-flex gap-3 mb-4 flex-wrap">
+        <div class="rekom-kpi" *ngIf="antalVarningar > 0">
+          <i class="fas fa-exclamation-triangle me-1" style="color:#fc8181"></i>
+          {{ antalVarningar }} varning{{ antalVarningar !== 1 ? 'ar' : '' }}
+        </div>
+        <div class="rekom-kpi" *ngIf="antalAtgarder > 0">
+          <i class="fas fa-wrench me-1" style="color:#f6ad55"></i>
+          {{ antalAtgarder }} atgardsforslag
+        </div>
+        <div class="rekom-kpi" *ngIf="antalOk > 0">
+          <i class="fas fa-check-circle me-1" style="color:#48bb78"></i>
+          {{ antalOk }} stationer OK
+        </div>
+      </div>
+
+      <!-- Lista -->
+      <div class="rekom-list">
+        <div class="rekom-item" *ngFor="let r of rekommendationer"
+             [style.borderLeft]="'4px solid ' + getRekomBorderColor(r.typ)">
+          <div class="d-flex align-items-start gap-3">
+            <i [class]="getRekomIcon(r.typ)" [style.color]="getRekomIconColor(r.typ)" style="font-size:1.3rem;margin-top:2px"></i>
+            <div>
+              <div class="rekom-msg">{{ r.meddelande }}</div>
+              <div class="rekom-meta mt-1" *ngIf="r.station_namn">
+                <span class="badge bg-secondary me-2">{{ r.station_namn }}</span>
+                <span class="badge bg-info me-2" *ngIf="r.orsak">{{ r.orsak }}</span>
+                <span class="badge bg-danger" *ngIf="r.okning_pct > 0">+{{ r.okning_pct }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div *ngIf="!loadingRekom && !errorRekom && rekommendationer.length === 0" class="text-center py-4 text-muted">
+      Inga rekommendationer just nu — allt ser bra ut!
+    </div>
+  </div>
+</div>

@@ -1,0 +1,258 @@
+:host {
+  display: block;
+}
+
+.pu-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Tabs */
+.pu-tabs {
+  border-bottom: 2px solid #4a5568;
+}
+.pu-tabs .nav-link {
+  color: #a0aec0;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+.pu-tabs .nav-link:hover {
+  color: #e2e8f0;
+  border-bottom-color: #4a5568;
+}
+.pu-tabs .nav-link.active {
+  color: #4fd1c5;
+  border-bottom-color: #4fd1c5;
+  background: transparent;
+}
+
+/* ---- MTBF Cards ---- */
+.mtbf-card {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 20px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  height: 100%;
+}
+.mtbf-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.station-namn {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.risk-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-kritisk {
+  background: rgba(245, 101, 101, 0.2);
+  color: #fc8181;
+  border: 1px solid #fc8181;
+}
+.badge-hog {
+  background: rgba(246, 173, 85, 0.2);
+  color: #f6ad55;
+  border: 1px solid #f6ad55;
+}
+.badge-medel {
+  background: rgba(236, 201, 75, 0.2);
+  color: #ecc94b;
+  border: 1px solid #ecc94b;
+}
+.badge-lag {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
+}
+
+.mtbf-stats {
+  margin-top: 12px;
+}
+.mtbf-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.mtbf-stat:last-child {
+  border-bottom: none;
+}
+.stat-label {
+  color: #a0aec0;
+  font-size: 0.82rem;
+}
+.stat-value {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.risk-progress-container {
+  height: 6px;
+  background: #1a202c;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.risk-progress-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.senaste-stopp {
+  font-size: 0.82rem;
+}
+
+/* ---- Heatmap ---- */
+.heatmap-table {
+  background: #1a202c;
+  font-size: 0.85rem;
+}
+.heatmap-table th {
+  background: #2d3748;
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  padding: 10px 8px;
+}
+.station-header {
+  min-width: 180px;
+}
+.orsak-header {
+  text-align: center;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.station-cell {
+  color: #e2e8f0;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #2d3748 !important;
+}
+.heatmap-cell {
+  text-align: center;
+  font-weight: 600;
+  padding: 8px 6px;
+  transition: all 0.15s;
+  cursor: default;
+  min-width: 50px;
+}
+.heatmap-cell:hover {
+  filter: brightness(1.2);
+}
+.cell-antal {
+  font-size: 0.9rem;
+}
+.cell-zero {
+  opacity: 0.4;
+}
+
+.heatmap-legend {
+  font-size: 0.8rem;
+  color: #a0aec0;
+}
+.legend-box {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+/* ---- Trend Chart ---- */
+.trend-chart-container {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 20px;
+  height: 400px;
+}
+
+.trend-summary-table {
+  background: #2d3748;
+  font-size: 0.88rem;
+}
+.trend-summary-table th {
+  color: #a0aec0;
+  font-weight: 600;
+  border-bottom-color: #4a5568;
+}
+.trend-summary-table td {
+  color: #e2e8f0;
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+/* ---- Rekommendationer ---- */
+.rekom-kpi {
+  background: #2d3748;
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.rekom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rekom-item {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 16px 20px;
+  transition: transform 0.15s;
+}
+.rekom-item:hover {
+  transform: translateX(4px);
+}
+.rekom-msg {
+  color: #e2e8f0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.rekom-meta {
+  font-size: 0.82rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .pu-container {
+    padding: 16px 8px;
+  }
+  .pu-tabs .nav-link {
+    font-size: 0.82rem;
+    padding: 8px 10px;
+  }
+  .trend-chart-container {
+    height: 280px;
+  }
+  .heatmap-table {
+    font-size: 0.78rem;
+  }
+}

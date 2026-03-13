@@ -1,3 +1,21 @@
+## 2026-03-13 Rebotling operatorsGamification
+
+Ny sida `/rebotling/gamification` — gamification-system med poang, badges, milstolpar och leaderboard for operatorer.
+
+- **Backend**: `classes/GamificationController.php`, registrerad i `api.php` som `gamification`
+  - `run=leaderboard&period=dag|vecka|manad` — ranking med poangberakning: IBC x kvalitetsfaktor (1 - kassationsrate) x stoppbonus-multiplikator
+  - `run=badges&operator_id=X` — 5 badges: Centurion (100 IBC/dag), Perfektionist (0% kassation), Maratonlopare (5d streak), Stoppjagare (minst stopp), Teamspelare (basta vecka)
+  - `run=min-profil` — inloggad operators rank, poang, streak, badges och milstolpar (100-10000 IBC progression)
+  - `run=overview` — VD:ns engagemangsoversikt med KPI:er, badge-statistik, streak-data och top 3
+- **Frontend**: Angular standalone-komponent med 3 flikar:
+  - Leaderboard: Podium (guld/silver/brons), rankingtabell med kvalitet/stopp/poang/streak, periodvaljare (dag/vecka/manad)
+  - Min profil: Profilkort med rank/poang/streak, badge-galleri (uppnadda/lasta), milstolpar med progressbars
+  - VD-vy: 4 KPI-kort, engagemangsstatistik, top 3 denna vecka
+  - Dark theme, auto-refresh var 2:a minut, OnDestroy-cleanup
+- **Migration**: `noreko-backend/migrations/2026-03-13_gamification.sql` (gamification_badges + gamification_milstolpar)
+- **Meny**: Lank tillagd i Rebotling-dropdown ("Gamification")
+- **Filer**: `GamificationController.php`, `gamification.service.ts`, `gamification/` (ts + html + css), `api.php`, `app.routes.ts`, `menu.html`
+
 ## 2026-03-13 Rebotling daglig briefing-rapport
 
 Ny sida `/rebotling/daglig-briefing` — VD:ns morgonrapport. Komplett sammanfattning av gardasgens resultat pa 10 sekunder.
