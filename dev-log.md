@@ -1,3 +1,33 @@
+## 2026-03-13 Maskin-drifttid heatmap — visuell oversikt nar maskiner kor vs star stilla
+
+Ny sida `/rebotling/maskin-drifttid` — visar heatmap per timme/dag over maskindrifttid. VD:n ser pa 10 sekunder nar produktionen ar igang.
+
+- **Backend**: `classes/MaskinDrifttidController.php` (action=`maskin-drifttid`)
+  - `run=heatmap` — timvis produktion per dag fran `rebotling_ibc` (COUNT per timme per dag)
+  - `run=kpi` — Total drifttid denna vecka, snitt daglig drifttid, basta/samsta dag
+  - `run=dag-detalj` — detaljerad timvis vy for specifik dag
+  - `run=stationer` — lista tillgangliga maskiner/stationer
+  - Drifttid beraknas: timmar med minst 1 IBC = aktiv, annars stopp
+  - Arbetstid: 06:00-22:00
+
+- **Frontend**: `pages/rebotling/maskin-drifttid/` (NY katalog)
+  - Standalone Angular-komponent `MaskinDrifttidPage`
+  - Heatmap-grid: X=timmar (06-22), Y=dagar. Fargkodning: gron=hog prod, gul=lag, rod=stopp, gra=utanfor arbetstid
+  - 4 KPI-kort: Drifttid denna vecka, Snitt daglig drifttid, Basta dag, Samsta dag
+  - Periodselektor: 7/14/30/90 dagar
+  - Maskinfilter: dropdown (alla/inspektion/tvatt/fyllning/etikettering/slutkontroll)
+  - Tooltip: hover pa cell visar exakt antal IBC + maskinstatus
+  - Dagsammanfattning: klicka pa rad for detaljerad timvy med stapelbar
+  - Ren HTML/CSS heatmap (div-grid, inga Chart.js)
+  - PDF-export via PdfExportButtonComponent
+  - Dark theme, OnDestroy + destroy$ + takeUntil
+
+- **Service**: `services/maskin-drifttid.service.ts` (NY)
+- **Route**: `/rebotling/maskin-drifttid` (authGuard)
+- **Navigation**: tillagd i Rebotling-dropdown i menyn
+
+---
+
 ## 2026-03-12 PDF-export — generell rapport-export for alla statistiksidor
 
 Generell PDF-export-funktion tillagd. VD:n kan klicka "Exportera PDF" pa statistiksidorna och fa en snygg PDF.

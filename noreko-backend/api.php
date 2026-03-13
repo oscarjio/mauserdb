@@ -197,6 +197,8 @@ $classNameMap = [
     'rebotling-sammanfattning'     => 'RebotlingSammanfattningController',
     'produktionsflode'             => 'ProduktionsflodeController',
     'kassationsorsak-per-station'  => 'KassationsorsakPerStationController',
+    'oee-jamforelse'               => 'OeeJamforelseController',
+    'maskin-drifttid'               => 'MaskinDrifttidController',
 ];
 
 $actionKey = strtolower($action);

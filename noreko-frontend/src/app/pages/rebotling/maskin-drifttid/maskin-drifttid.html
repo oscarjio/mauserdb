@@ -1,0 +1,272 @@
+<div class="container-fluid py-4" id="maskin-drifttid-content">
+
+  <!-- Rubrik + kontroller -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-th me-2" style="color:#48bb78"></i>Maskin-drifttid heatmap
+    </h2>
+    <div class="d-flex align-items-center flex-wrap gap-3">
+      <!-- Maskinfilter -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-light mb-0 small">Maskin:</label>
+        <select class="form-select form-select-sm mdt-select"
+                [(ngModel)]="valdStation"
+                (change)="byttStation()">
+          <option *ngFor="let s of stationer" [value]="s.id">{{ s.namn }}</option>
+        </select>
+      </div>
+      <!-- Periodselektor -->
+      <div class="d-flex align-items-center gap-2">
+        <label class="text-light mb-0 small">Period:</label>
+        <div class="btn-group btn-group-sm">
+          <button *ngFor="let alt of dagarAlternativ"
+                  class="btn"
+                  [class.btn-info]="dagar === alt.varde"
+                  [class.btn-outline-secondary]="dagar !== alt.varde"
+                  (click)="byttPeriod(alt.varde)">
+            {{ alt.etikett }}
+          </button>
+        </div>
+      </div>
+      <!-- PDF-export -->
+      <app-pdf-export-button
+        targetElementId="maskin-drifttid-content"
+        filename="maskin-drifttid"
+        title="Maskin-drifttid heatmap">
+      </app-pdf-export-button>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4">
+    <!-- Drifttid denna vecka -->
+    <div class="col-6 col-md-3">
+      <div class="mdt-kpi-card">
+        <div class="mdt-kpi-label">Drifttid denna vecka</div>
+        <ng-container *ngIf="!loadingKpi && kpiData; else laddaKpi1">
+          <div class="mdt-kpi-value" style="color:#48bb78">{{ kpiData.vecka_drifttid_str }}</div>
+          <div class="mdt-kpi-sub">{{ kpiData.vecka_ibc }} IBC producerade</div>
+        </ng-container>
+        <ng-template #laddaKpi1>
+          <div class="mdt-kpi-value text-muted">&mdash;</div>
+          <div class="mdt-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+    <!-- Snitt daglig drifttid -->
+    <div class="col-6 col-md-3">
+      <div class="mdt-kpi-card">
+        <div class="mdt-kpi-label">Snitt daglig drifttid</div>
+        <ng-container *ngIf="!loadingKpi && kpiData; else laddaKpi2">
+          <div class="mdt-kpi-value"
+               [style.color]="drifttidFarg(kpiData.snitt_pct)">
+            {{ kpiData.snitt_str }}
+          </div>
+          <div class="mdt-kpi-sub">{{ kpiData.snitt_pct }}% av {{ kpiData.max_timmar_per_dag }}h</div>
+        </ng-container>
+        <ng-template #laddaKpi2>
+          <div class="mdt-kpi-value text-muted">&mdash;</div>
+          <div class="mdt-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+    <!-- Basta dag -->
+    <div class="col-6 col-md-3">
+      <div class="mdt-kpi-card">
+        <div class="mdt-kpi-label">Basta dag</div>
+        <ng-container *ngIf="!loadingKpi && kpiData; else laddaKpi3">
+          <div class="mdt-kpi-value" style="color:#48bb78; font-size:1.2rem">
+            {{ formatDatum(kpiData.basta_dag) }}
+          </div>
+          <div class="mdt-kpi-sub">{{ kpiData.basta_dag_timmar }}h drifttid</div>
+        </ng-container>
+        <ng-template #laddaKpi3>
+          <div class="mdt-kpi-value text-muted">&mdash;</div>
+          <div class="mdt-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+    <!-- Samsta dag -->
+    <div class="col-6 col-md-3">
+      <div class="mdt-kpi-card">
+        <div class="mdt-kpi-label">Samsta dag</div>
+        <ng-container *ngIf="!loadingKpi && kpiData; else laddaKpi4">
+          <div class="mdt-kpi-value" style="color:#fc8181; font-size:1.2rem">
+            {{ formatDatum(kpiData.samsta_dag) }}
+          </div>
+          <div class="mdt-kpi-sub">{{ kpiData.samsta_dag_timmar }}h drifttid</div>
+        </ng-container>
+        <ng-template #laddaKpi4>
+          <div class="mdt-kpi-value text-muted">&mdash;</div>
+          <div class="mdt-kpi-sub">Laddar...</div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fargforklaring -->
+  <div class="mdt-legend mb-3">
+    <span class="mdt-legend-item">
+      <span class="mdt-legend-dot" style="background:#48bb78"></span>Hog produktion
+    </span>
+    <span class="mdt-legend-item">
+      <span class="mdt-legend-dot" style="background:#ecc94b"></span>Lag produktion
+    </span>
+    <span class="mdt-legend-item">
+      <span class="mdt-legend-dot" style="background:#fc8181"></span>Stopp / Inaktiv
+    </span>
+    <span class="mdt-legend-item">
+      <span class="mdt-legend-dot" style="background:#4a5568"></span>Utanfor arbetstid
+    </span>
+  </div>
+
+  <!-- Heatmap -->
+  <div class="mdt-card mb-4">
+    <div class="mdt-card-header">
+      <i class="fas fa-th me-2" style="color:#48bb78"></i>Drifttid per timme
+      <span class="mdt-badge ms-2" *ngIf="heatmapData">
+        {{ heatmapData.from_date | date:'d/M' }} &ndash; {{ heatmapData.to_date | date:'d/M' }}
+      </span>
+    </div>
+    <div class="mdt-card-body p-0">
+      <!-- Loading -->
+      <div *ngIf="loadingHeatmap" class="mdt-loading p-4">
+        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar heatmap...
+      </div>
+      <!-- Error -->
+      <div *ngIf="errorHeatmap && !loadingHeatmap" class="mdt-error p-4">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda heatmap-data
+      </div>
+      <!-- Heatmap Grid -->
+      <div *ngIf="!loadingHeatmap && !errorHeatmap && heatmapData" class="mdt-heatmap-container">
+        <!-- Header (timmar) -->
+        <div class="mdt-heatmap-row mdt-heatmap-header">
+          <div class="mdt-heatmap-label-dag">&nbsp;</div>
+          <div class="mdt-heatmap-label-veckodag">&nbsp;</div>
+          <div class="mdt-heatmap-cell-header"
+               *ngFor="let h of heatmapData.timmar">
+            {{ h < 10 ? '0' + h : h }}
+          </div>
+          <div class="mdt-heatmap-summary-header">IBC</div>
+          <div class="mdt-heatmap-summary-header">Drift%</div>
+        </div>
+        <!-- Data-rader -->
+        <div class="mdt-heatmap-row"
+             *ngFor="let rad of heatmapData.rader; trackBy: trackByDatum"
+             [class.mdt-row-selected]="isSelectedRow(rad.datum)"
+             (click)="valjDag(rad.datum)"
+             style="cursor:pointer">
+          <div class="mdt-heatmap-label-dag">{{ rad.datum_kort }}</div>
+          <div class="mdt-heatmap-label-veckodag">{{ rad.veckodag }}</div>
+          <div class="mdt-heatmap-cell"
+               *ngFor="let cell of rad.celler; trackBy: trackByTimme"
+               [style.background-color]="cellBgFarg(cell.status)"
+               [style.opacity]="cellOpacity(cell)"
+               (mouseenter)="visaTooltip($event, cell, rad)"
+               (mousemove)="flyttaTooltip($event)"
+               (mouseleave)="gomTooltip()">
+          </div>
+          <div class="mdt-heatmap-summary">{{ rad.total_ibc }}</div>
+          <div class="mdt-heatmap-summary"
+               [style.color]="drifttidFarg(rad.drifttid_pct)">
+            {{ rad.drifttid_pct }}%
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dagsammanfattning -->
+  <div class="mdt-card" *ngIf="valdDag">
+    <div class="mdt-card-header">
+      <i class="fas fa-calendar-day me-2" style="color:#63b3ed"></i>Dagsammanfattning
+      <span class="mdt-badge ms-2" *ngIf="dagDetalj">
+        {{ dagDetalj.veckodag }} {{ dagDetalj.datum_kort }}
+      </span>
+      <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="valdDag = null; dagDetalj = null">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <div class="mdt-card-body">
+      <!-- Loading -->
+      <div *ngIf="loadingDetalj" class="mdt-loading">
+        <div class="spinner-border text-info spinner-border-sm me-2"></div>Laddar dagdetaljer...
+      </div>
+      <!-- Error -->
+      <div *ngIf="errorDetalj && !loadingDetalj" class="mdt-error">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda dagdetaljer
+      </div>
+      <!-- Detaljer -->
+      <div *ngIf="!loadingDetalj && !errorDetalj && dagDetalj">
+        <!-- Mini KPIs -->
+        <div class="row g-3 mb-3">
+          <div class="col-4">
+            <div class="mdt-mini-kpi">
+              <div class="mdt-mini-kpi-label">Total IBC</div>
+              <div class="mdt-mini-kpi-value">{{ dagDetalj.total_ibc }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="mdt-mini-kpi">
+              <div class="mdt-mini-kpi-label">Aktiva timmar</div>
+              <div class="mdt-mini-kpi-value">{{ dagDetalj.aktiva_timmar }} / {{ dagDetalj.max_timmar }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="mdt-mini-kpi">
+              <div class="mdt-mini-kpi-label">Drifttid%</div>
+              <div class="mdt-mini-kpi-value" [style.color]="drifttidFarg(dagDetalj.drifttid_pct)">
+                {{ dagDetalj.drifttid_pct }}%
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Timdetaljer tabell -->
+        <div class="table-responsive">
+          <table class="table table-dark table-hover mdt-table mb-0">
+            <thead>
+              <tr>
+                <th>Timme</th>
+                <th class="text-end">Antal IBC</th>
+                <th>Status</th>
+                <th>Aktivitet</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let t of dagDetalj.timmar">
+                <td>{{ t.timme_str }}</td>
+                <td class="text-end">{{ t.antal }}</td>
+                <td>
+                  <span class="mdt-status-badge"
+                        [style.background]="cellBgFarg(t.status)"
+                        [style.color]="t.status === 'lag' ? '#1a202c' : '#fff'">
+                    {{ statusText(t.status) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="mdt-bar-wrapper">
+                    <div class="mdt-bar"
+                         [style.width.%]="t.antal > 0 ? (t.antal > 20 ? 100 : (t.antal / 20) * 100) : 0"
+                         [style.background]="cellBgFarg(t.status)">
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="mdt-tooltip"
+       *ngIf="tooltipVisible"
+       [style.left.px]="tooltipX"
+       [style.top.px]="tooltipY">
+    <div class="mdt-tooltip-timme">{{ tooltipTimme }}</div>
+    <div class="mdt-tooltip-antal">{{ tooltipAntal }} IBC</div>
+    <div class="mdt-tooltip-status">{{ tooltipStatus }}</div>
+  </div>
+
+</div>

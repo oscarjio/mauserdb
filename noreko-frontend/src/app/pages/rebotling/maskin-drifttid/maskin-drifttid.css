@@ -1,0 +1,408 @@
+/* ============================================================
+   Maskin-drifttid heatmap — Dark theme
+   ============================================================ */
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+/* ---- KPI-kort ---- */
+
+.mdt-kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  height: 100%;
+}
+
+.mdt-kpi-label {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.mdt-kpi-value {
+  color: #e2e8f0;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 0.3rem;
+}
+
+.mdt-kpi-sub {
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+/* ---- Kort ---- */
+
+.mdt-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.mdt-card-header {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.75rem 1rem;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.mdt-card-body {
+  padding: 1rem;
+}
+
+.mdt-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+/* ---- Legend ---- */
+
+.mdt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.mdt-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.mdt-legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* ---- Heatmap Grid ---- */
+
+.mdt-heatmap-container {
+  overflow-x: auto;
+  padding: 0.75rem;
+}
+
+.mdt-heatmap-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 2px;
+  min-height: 28px;
+}
+
+.mdt-heatmap-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mdt-row-selected {
+  background: rgba(99, 179, 237, 0.1) !important;
+  outline: 1px solid rgba(99, 179, 237, 0.3);
+  border-radius: 3px;
+}
+
+.mdt-heatmap-header {
+  margin-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.mdt-heatmap-label-dag {
+  width: 45px;
+  min-width: 45px;
+  font-size: 0.72rem;
+  color: #a0aec0;
+  text-align: right;
+  padding-right: 4px;
+  flex-shrink: 0;
+}
+
+.mdt-heatmap-label-veckodag {
+  width: 30px;
+  min-width: 30px;
+  font-size: 0.7rem;
+  color: #718096;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.mdt-heatmap-cell-header {
+  width: 32px;
+  min-width: 32px;
+  text-align: center;
+  font-size: 0.65rem;
+  color: #718096;
+  flex-shrink: 0;
+}
+
+.mdt-heatmap-cell {
+  width: 32px;
+  min-width: 32px;
+  height: 24px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.mdt-heatmap-cell:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
+  z-index: 10;
+  position: relative;
+}
+
+.mdt-heatmap-summary {
+  width: 48px;
+  min-width: 48px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #e2e8f0;
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.mdt-heatmap-summary-header {
+  width: 48px;
+  min-width: 48px;
+  text-align: center;
+  font-size: 0.65rem;
+  color: #718096;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* ---- Tooltip ---- */
+
+.mdt-tooltip {
+  position: fixed;
+  z-index: 9999;
+  background: #1a202c;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  min-width: 120px;
+}
+
+.mdt-tooltip-timme {
+  color: #a0aec0;
+  font-size: 0.7rem;
+  margin-bottom: 0.15rem;
+}
+
+.mdt-tooltip-antal {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.mdt-tooltip-status {
+  color: #718096;
+  font-size: 0.72rem;
+}
+
+/* ---- Mini KPI ---- */
+
+.mdt-mini-kpi {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0.4rem;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.mdt-mini-kpi-label {
+  color: #a0aec0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
+.mdt-mini-kpi-value {
+  color: #e2e8f0;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* ---- Tabell ---- */
+
+.mdt-table {
+  font-size: 0.875rem;
+  margin-bottom: 0;
+  background: transparent;
+}
+
+.mdt-table thead th {
+  background: rgba(0, 0, 0, 0.3);
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.6rem 1rem;
+  white-space: nowrap;
+}
+
+.mdt-table tbody tr {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mdt-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mdt-table tbody td {
+  color: #e2e8f0;
+  padding: 0.6rem 1rem;
+  vertical-align: middle;
+}
+
+/* ---- Status badge ---- */
+
+.mdt-status-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+/* ---- Activity bar ---- */
+
+.mdt-bar-wrapper {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mdt-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* ---- Loading / Error ---- */
+
+.mdt-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  min-height: 60px;
+}
+
+.mdt-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fc8181;
+  font-size: 0.9rem;
+  min-height: 60px;
+}
+
+/* ---- Select ---- */
+
+.mdt-select {
+  background: #1a202c;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+  min-width: 160px;
+}
+
+.mdt-select:focus {
+  background: #1a202c;
+  color: #e2e8f0;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+.mdt-select option {
+  background: #2d3748;
+  color: #e2e8f0;
+}
+
+/* ---- Knappar ---- */
+
+.btn-outline-secondary {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #a0aec0;
+}
+
+.btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
+}
+
+.btn-info {
+  background-color: #3182ce;
+  border-color: #3182ce;
+  color: #fff;
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 768px) {
+  .mdt-heatmap-cell {
+    width: 22px;
+    min-width: 22px;
+    height: 18px;
+  }
+
+  .mdt-heatmap-cell-header {
+    width: 22px;
+    min-width: 22px;
+    font-size: 0.55rem;
+  }
+
+  .mdt-heatmap-label-dag {
+    width: 38px;
+    min-width: 38px;
+    font-size: 0.65rem;
+  }
+
+  .mdt-heatmap-label-veckodag {
+    width: 24px;
+    min-width: 24px;
+    font-size: 0.6rem;
+  }
+
+  .mdt-heatmap-summary {
+    width: 36px;
+    min-width: 36px;
+    font-size: 0.65rem;
+  }
+
+  .mdt-heatmap-summary-header {
+    width: 36px;
+    min-width: 36px;
+    font-size: 0.55rem;
+  }
+}
