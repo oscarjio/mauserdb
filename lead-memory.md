@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #94)*
+*Senast uppdaterad: 2026-03-13 (session #96)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -59,22 +59,19 @@ Session #57-#93: Feature-utveckling löpande. Se lead-memory-archive.md för det
 Session #92: Rebotling stationsdetalj-dashboard + VD veckorapport + buggjakt — klara.
 Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
 Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
+Session #96: Rebotling underhållslogg + Buggjakt — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Kassationsorsak-analys** — Pareto-diagram top-5 kassationsorsaker (klar #94)
-- [x] **Rebotling skiftöverlämning** — digital checklista vid skiftbyte (klar #94)
+- [PÅGÅR] **Rebotling underhållslogg** — registrera underhåll per station (#96)
+- [PÅGÅR] **Buggjakt #96** — granska + fixa buggar senaste features (#96)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
-- [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
+- [ ] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall
+- [ ] **Stopporsak-dashboard** — visuell översikt av alla stopp med Pareto
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
-- [ ] **Operatörs-schemaöversikt** — veckovis schemavy med bemanningsgrad
-- [ ] **Rebotling underhållslogg** — registrera underhåll per station
+- [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #92 (klar)
-Worker 1 (Rebotling stationsdetalj-dashboard): Klickbar stationsvy — drill-down per station med realtids-OEE, senaste IBCer, stopphistorik, KPI-kort, trendgraf 30d. Backend: RebotlingStationsdetaljController.
-Worker 2 (VD veckorapport + buggjakt): Veckosammanfattning med KPI-jämförelse vecka-för-vecka, trender, anomalier, top/bottom operatörer, stopporsaker, utskriftsvänlig.
 
 ### 2026-03-13 — Session #93 (klar)
 Rebotling stationsdetalj-dashboard rebotling — duplicerat/förbättrat från #92.
@@ -82,3 +79,7 @@ Rebotling stationsdetalj-dashboard rebotling — duplicerat/förbättrat från #
 ### 2026-03-13 — Session #94 (klar)
 Worker 1 (Kassationsorsak-analys): Pareto-diagram top-5/10 kassationsorsaker, drill-down per station/operatör, trendgraf, KPI-kort. Backend: KassationsanalysController.
 Worker 2 (Rebotling skiftöverlämning): Digital checklista vid skiftbyte — skift-sammanfattning, öppna problem, interaktiv checklista, fritextnoteringar, historik. Backend: SkiftoverlamningController + ny DB-tabell.
+
+### 2026-03-13 — Session #96 (pågår)
+Worker 1 (Rebotling underhållslogg): Ny sida — registrera underhåll per station, planerat/oplanerat, varaktighet, stopporsak-koppling, KPI-kort, bar chart. Backend: UnderhallsloggController + ny DB-tabell.
+Worker 2 (Buggjakt #96): Systematisk granskning av kassationsanalys, skiftöverlämning, stationsdetalj, VD-veckorapport — memory leaks, SQL injection, UX, dark theme.

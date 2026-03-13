@@ -5,11 +5,11 @@
 
 ## Förbättringar
 
-- [x] **Kassationsorsak-analys** — drill-down: varför kasseras IBCer? Pareto-diagram top-5 orsaker (klar #94)
-- [x] **Rebotling skiftöverlämning** — digital checklista vid skiftbyte: vad hände, pågående problem, mål nästa skift (klar #94)
+- [PÅGÅR] **Rebotling underhållslogg** — registrera underhåll per station, planerat vs oplanerat, kopplat till stopporsaker (session #96)
+- [PÅGÅR] **Buggjakt #96** — granska + fixa buggar i kassationsanalys, skiftöverlämning, stationsdetalj, VD-veckorapport (session #96)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + faktisk aktivitet, exporterbar CSV/PDF
-- [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
+- [ ] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall, progress-bar per skift, historisk måluppfyllnad
+- [ ] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, identifiera flaskhalsar, prediktion baserat på trend
+- [ ] **Stopporsak-dashboard** — visuell översikt av alla stopp: frekvens, varaktighet, Pareto, koppling till underhåll
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
-- [ ] **Operatörs-schemaöversikt** — veckovis schemavy med drag-drop skiftbyte, bemanningsgrad per skift
-- [ ] **Energi- och resursöversikt** — uppskattad energiförbrukning per IBC, vatten/kemikalieförbrukning om data finns
-- [ ] **Rebotling underhållslogg** — registrera underhåll per station, planerat vs oplanerat, kopplat till stopporsaker
+- [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
