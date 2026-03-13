@@ -1,0 +1,251 @@
+<div class="tr-wrapper">
+
+  <!-- SIDHUVUD -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+      <h1 class="page-title">
+        <i class="fas fa-clock me-2" style="color: #63b3ed;"></i>
+        Tidrapport
+      </h1>
+      <p class="page-subtitle text-muted mb-0">
+        Arbetstider, skiftfordelning och operatorsstatistik
+      </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <button *ngFor="let p of periodOptions"
+              class="period-btn"
+              [class.active]="period === p.value"
+              (click)="setPeriod(p.value)">
+        {{ p.label }}
+      </button>
+      <button class="period-btn" [class.active]="period === 'anpassat'" (click)="toggleAnpassat()">
+        Anpassat
+      </button>
+    </div>
+  </div>
+
+  <!-- Anpassat datumintervall -->
+  <div class="row g-3 mb-4" *ngIf="period === 'anpassat'">
+    <div class="col-auto">
+      <label class="form-label" style="color:#a0aec0; font-size:0.8rem;">Fran</label>
+      <input type="date" class="form-control form-control-sm form-control-dark"
+             [(ngModel)]="customFrom" (change)="loadAll()">
+    </div>
+    <div class="col-auto">
+      <label class="form-label" style="color:#a0aec0; font-size:0.8rem;">Till</label>
+      <input type="date" class="form-control form-control-sm form-control-dark"
+             [(ngModel)]="customTo" (change)="loadAll()">
+    </div>
+  </div>
+
+  <!-- KPI-KORT -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Total arbetstid</div>
+        <div class="kpi-value" style="color: #63b3ed;" *ngIf="!sammanfattningLoading">
+          {{ sammanfattning?.total_timmar ?? 0 }}
+        </div>
+        <div *ngIf="sammanfattningLoading" class="text-center py-2">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="kpi-unit">timmar</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Antal skift</div>
+        <div class="kpi-value" style="color: #48bb78;" *ngIf="!sammanfattningLoading">
+          {{ sammanfattning?.antal_skift ?? 0 }}
+        </div>
+        <div *ngIf="sammanfattningLoading" class="text-center py-2">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="kpi-unit">registrerade</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Snitt per skift</div>
+        <div class="kpi-value" style="color: #ecc94b;" *ngIf="!sammanfattningLoading">
+          {{ sammanfattning?.snitt_per_skift ?? 0 }}
+        </div>
+        <div *ngIf="sammanfattningLoading" class="text-center py-2">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="kpi-unit">timmar</div>
+      </div>
+    </div>
+    <div class="col-6 col-lg-3">
+      <div class="kpi-card">
+        <div class="kpi-label">Mest aktiv operator</div>
+        <div class="kpi-value" style="font-size:1.1rem; color: #f6ad55;" *ngIf="!sammanfattningLoading">
+          {{ sammanfattning?.mest_aktiv || 'Inga data' }}
+        </div>
+        <div *ngIf="sammanfattningLoading" class="text-center py-2">
+          <span class="loading-spinner"></span>
+        </div>
+        <div class="kpi-unit" *ngIf="sammanfattning?.mest_aktiv_timmar">
+          {{ sammanfattning!.mest_aktiv_timmar }} timmar
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="sammanfattningError" class="alert" style="background:rgba(252,92,101,0.15); border:1px solid #fc5c65; color:#e2e8f0;" role="alert">
+    <i class="fas fa-exclamation-circle me-1"></i> Kunde inte ladda sammanfattning. Kontrollera inloggning.
+  </div>
+
+  <!-- OPERATOR-TABELL -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card-dark p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="section-title mb-0">
+            <i class="fas fa-users me-2" style="color:#63b3ed"></i>Per operator
+          </h6>
+          <span style="color:#718096; font-size:0.8rem" *ngIf="operatorData">
+            {{ operatorData.total }} operatorer
+          </span>
+        </div>
+        <div *ngIf="operatorLoading" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="table-dark-custom" *ngIf="!operatorLoading && operatorData?.operatorer?.length">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Operator</th>
+                  <th class="text-end">Skift</th>
+                  <th class="text-end">Total tid</th>
+                  <th class="text-end">Snitt/skift</th>
+                  <th class="text-center" style="min-width:150px">Fordelning (FM / EM / Natt)</th>
+                  <th class="text-end">Senaste</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let op of operatorData!.operatorer">
+                  <td>
+                    <i class="fas fa-user-circle me-1" style="color:#63b3ed"></i>
+                    {{ op.namn }}
+                  </td>
+                  <td class="text-end">{{ op.antal_skift }}</td>
+                  <td class="text-end"><strong>{{ op.total_timmar }}h</strong></td>
+                  <td class="text-end">{{ op.snitt_per_skift }}h</td>
+                  <td>
+                    <div class="shift-bar mb-1">
+                      <div class="shift-bar-fm" [style.width.%]="op.formiddag_pct"></div>
+                      <div class="shift-bar-em" [style.width.%]="op.eftermiddag_pct"></div>
+                      <div class="shift-bar-natt" [style.width.%]="op.natt_pct"></div>
+                    </div>
+                    <div class="d-flex justify-content-between" style="font-size:0.7rem; color:#718096">
+                      <span style="color:#63b3ed">FM {{ op.formiddag_pct }}%</span>
+                      <span style="color:#f6ad55">EM {{ op.eftermiddag_pct }}%</span>
+                      <span style="color:#9f7aea">N {{ op.natt_pct }}%</span>
+                    </div>
+                  </td>
+                  <td class="text-end" style="color:#718096; font-size:0.8rem">
+                    {{ formatDatum(op.senaste_skift) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div *ngIf="!operatorLoading && (!operatorData?.operatorer?.length)" class="text-center py-3" style="color:#718096">
+          Inga operatorsdata for perioden.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VECKO-CHART -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card-dark p-3">
+        <h6 class="section-title mb-3">
+          <i class="fas fa-chart-bar me-2" style="color:#48bb78"></i>Arbetstid per dag (senaste 4 veckorna)
+        </h6>
+        <div *ngIf="veckoLoading" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="chart-container" *ngIf="!veckoLoading">
+          <canvas id="tidrapportVeckoChart"></canvas>
+        </div>
+        <div *ngIf="!veckoLoading && (!veckodata?.datasets?.length)" class="text-center py-3" style="color:#718096">
+          Inga data for diagrammet.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALJLISTA -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card-dark p-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+          <h6 class="section-title mb-0">
+            <i class="fas fa-list me-2" style="color:#4fd1c5"></i>Detaljerade skiftregistreringar
+            <span *ngIf="detaljerData" style="color:#718096; font-weight:400; font-size:0.8rem">
+              ({{ detaljerData.total }} st)
+            </span>
+          </h6>
+          <div class="d-flex gap-2 align-items-center">
+            <select class="form-select form-select-sm form-select-dark"
+                    [(ngModel)]="filterOperatorId"
+                    (change)="loadDetaljer()"
+                    style="width:auto; min-width:150px">
+              <option [ngValue]="0">Alla operatorer</option>
+              <option *ngFor="let op of operatorData?.operatorer ?? []" [ngValue]="op.user_id">
+                {{ op.namn }}
+              </option>
+            </select>
+            <button class="btn btn-sm btn-export" (click)="exportCsv()">
+              <i class="fas fa-file-csv me-1"></i>Exportera CSV
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="detaljerLoading" class="text-center py-4"><span class="loading-spinner"></span></div>
+        <div class="table-dark-custom" *ngIf="!detaljerLoading && detaljerData?.detaljer?.length">
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Datum</th>
+                  <th>Operator</th>
+                  <th>Start</th>
+                  <th>Slut</th>
+                  <th>Station</th>
+                  <th class="text-end">Producerat</th>
+                  <th class="text-end">Timmar</th>
+                  <th class="text-center">Skift</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let d of detaljerData!.detaljer">
+                  <td>{{ formatDatum(d.datum) }}</td>
+                  <td>
+                    <i class="fas fa-user me-1" style="color:#63b3ed; font-size:0.75rem"></i>
+                    {{ d.operator_namn }}
+                  </td>
+                  <td style="color:#718096">{{ formatTid(d.start_time) }}</td>
+                  <td style="color:#718096">{{ formatTid(d.end_time) }}</td>
+                  <td>{{ d.station }}</td>
+                  <td class="text-end">{{ d.antal }}</td>
+                  <td class="text-end"><strong>{{ d.timmar }}h</strong></td>
+                  <td class="text-center">
+                    <span class="badge" [ngClass]="skiftBadgeClass(d.skift_typ)">
+                      {{ skiftLabel(d.skift_typ) }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div *ngIf="!detaljerLoading && (!detaljerData?.detaljer?.length)" class="text-center py-3" style="color:#718096">
+          Inga registreringar for perioden.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

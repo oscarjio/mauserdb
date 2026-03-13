@@ -208,6 +208,8 @@ $classNameMap = [
     'rebotling-stationsdetalj'      => 'RebotlingStationsdetaljController',
     'vd-veckorapport'               => 'VDVeckorapportController',
     'stopporsak-dashboard'          => 'StopporsakController',
+    'tidrapport'                    => 'TidrapportController',
+    'oee-trendanalys'               => 'OeeTrendanalysController',
 ];
 
 $actionKey = strtolower($action);

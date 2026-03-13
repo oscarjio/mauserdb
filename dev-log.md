@@ -1,3 +1,28 @@
+## 2026-03-13 Tidrapport — operatorstidrapport med skiftfordelning och CSV-export
+
+Ny sida `/rebotling/tidrapport` — automatiskt genererad tidrapport baserat pa skiftdata och faktisk aktivitet.
+
+- **Backend**: `classes/TidrapportController.php` registrerad i `api.php` som `tidrapport`
+  - `run=sammanfattning` — KPI: total arbetstid, antal skift, snitt/skift, mest aktiv operator
+  - `run=per-operator` — operatorslista: antal skift, total tid, snitt, fordelning FM/EM/Natt med procentuell breakdown
+  - `run=veckodata` — arbetstimmar per dag per operator senaste 4 veckorna (Chart.js stackad stapeldiagram)
+  - `run=detaljer` — detaljlista alla skiftregistreringar med start/slut, station, antal, timmar, skifttyp
+  - `run=export-csv` — CSV-nedladdning med BOM for Excel-kompatibilitet, semikolon-separator
+  - Periodselektor: vecka, manad, 30d, anpassat datumintervall
+  - Adaptiv datakalla: rebotling_data -> skift_log -> stopporsak_registreringar (fallback-kedja)
+- **Frontend**: Standalone Angular component `pages/tidrapport/` + `services/tidrapport.service.ts`
+  - 4 KPI-kort (total tid, antal skift, snitt/skift, mest aktiv operator)
+  - Operatorstabell med skiftfordelning-bars (FM bla, EM orange, Natt lila)
+  - Chart.js stackad stapeldiagram for arbetstid per dag
+  - Detaljlista med filter per operator och periodselektor
+  - CSV-export knapp
+  - Dark theme (#1a202c bg, #2d3748 cards, #e2e8f0 text)
+  - Lifecycle: OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy() med try/catch
+- **Routing**: `/rebotling/tidrapport` med authGuard
+- **Meny**: Tillagd under Rebotling-dropdown
+
+---
+
 ## 2026-03-13 Produktionsmal-uppfoljning — dagliga/veckovisa produktionsmal vs faktiskt utfall
 
 Ny sida `/rebotling/produktionsmal-uppfoljning` — visar dagliga och veckovisa produktionsmal mot faktiskt utfall med skiftvis breakdown och stationsdata.
