@@ -216,6 +216,8 @@ $classNameMap = [
     'kvalitetstrendanalys'           => 'KvalitetstrendanalysController',
     'statistik-overblick'            => 'StatistikOverblickController',
     'daglig-briefing'                => 'DagligBriefingController',
+    'gamification'                   => 'GamificationController',
+    'prediktivt-underhall'           => 'PrediktivtUnderhallController',
 ];
 
 $actionKey = strtolower($action);

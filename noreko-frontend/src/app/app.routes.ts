@@ -119,6 +119,8 @@ export const routes: Routes = [
       { path: 'rebotling/historisk-sammanfattning', canActivate: [authGuard], loadComponent: () => import('./pages/historisk-sammanfattning/historisk-sammanfattning.component').then(m => m.HistoriskSammanfattningPage) },
       { path: 'rebotling/kvalitetstrendanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitetstrendanalys/kvalitetstrendanalys').then(m => m.KvalitetstrendanalysPage) },
       { path: 'rebotling/daglig-briefing', canActivate: [authGuard], loadComponent: () => import('./rebotling/daglig-briefing/daglig-briefing.component').then(m => m.DagligBriefingPage) },
+      { path: 'rebotling/gamification', canActivate: [authGuard], loadComponent: () => import('./rebotling/gamification/gamification.component').then(m => m.GamificationPage) },
+      { path: 'rebotling/prediktivt-underhall', canActivate: [authGuard], loadComponent: () => import('./rebotling/prediktivt-underhall/prediktivt-underhall.component').then(m => m.PrediktivtUnderhallPage) },
 
       // Statistik
       { path: 'statistik/overblick', canActivate: [authGuard], loadComponent: () => import('./pages/statistik-overblick/statistik-overblick.component').then(m => m.StatistikOverblickPage) },
