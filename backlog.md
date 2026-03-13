@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [ ] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall, progress-bar per skift, historisk måluppfyllnad [PÅGÅR]
-- [ ] **Stopporsak-dashboard** — visuell översikt av alla stopp: frekvens, varaktighet, Pareto, koppling till underhåll [PÅGÅR]
+- [x] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall, progress-bar per skift, historisk måluppfyllnad (klar #97)
+- [x] **Stopporsak-dashboard** — visuell översikt av alla stopp: frekvens, varaktighet, Pareto, koppling till underhåll (klar #97)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + faktisk aktivitet, exporterbar CSV/PDF
 - [ ] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer, identifiera flaskhalsar, prediktion baserat på trend
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning

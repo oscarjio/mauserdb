@@ -60,12 +60,12 @@ Session #92: Rebotling stationsdetalj-dashboard + VD veckorapport + buggjakt —
 Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
 Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
 Session #96: Rebotling underhållslogg + Buggjakt — klara.
-Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — pågår.
+Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [ ] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall [PÅGÅR #97]
-- [ ] **Stopporsak-dashboard** — visuell översikt av alla stopp med Pareto [PÅGÅR #97]
+- [x] **Rebotling produktionsmål-uppföljning** — dagliga/veckovisa mål vs utfall (klar #97)
+- [x] **Stopporsak-dashboard** — visuell översikt av alla stopp med Pareto (klar #97)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Rebotling OEE-trendanalys förbättrad** — jämför OEE mellan stationer
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
@@ -82,6 +82,6 @@ Worker 2 (Rebotling skiftöverlämning): Digital checklista vid skiftbyte — sk
 Worker 1 (Rebotling underhållslogg): Ny sida — registrera underhåll per station, planerat/oplanerat, varaktighet, stopporsak-koppling, KPI-kort, bar chart. Backend: UnderhallsloggController + ny DB-tabell.
 Worker 2 (Buggjakt #96): Systematisk granskning av kassationsanalys, skiftöverlämning, stationsdetalj, VD-veckorapport — memory leaks, SQL injection, UX, dark theme.
 
-### 2026-03-13 — Session #97 (pågår)
+### 2026-03-13 — Session #97 (klar)
 Worker 1 (Rebotling produktionsmål-uppföljning): Ny sida — dagliga/veckovisa mål vs utfall, progress-bar per skift, vecko-chart, historik, målhantering. Backend: ProduktionsmalController + ny DB-tabell.
 Worker 2 (Stopporsak-dashboard): Ny sida — Pareto stopp-frekvens, stopptid per station, trend, per-orsak-tabell, detaljlista. Backend: StopporsakController.
