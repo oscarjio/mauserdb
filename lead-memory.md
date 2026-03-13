@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #87)*
+*Senast uppdaterad: 2026-03-13 (session #88)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -54,64 +54,30 @@ IBC-tvätteri (1000L plasttankar i metallbur). Systemet ger VD realtidsöverblic
 
 ## Bug Hunt Status
 
-Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning:
-formularvalidering, error states, subscribe-läckor, responsiv design, timezone, dead code,
-chart.js lifecycle, export, PHP-robusthet, auth/session, data-konsistens, CSS/UX,
-race conditions, accessibility, null safety, HTTP timeout/catchError.
-Session #57: Underhållslogg + Cykeltids-heatmap per timme — klara.
-Session #58: OEE-benchmark + Skiftrapport PDF — klara.
-Session #59: Operatörsranking historik + Operatörs-feedback analys — klara.
-Session #60: Daglig sammanfattning + Produktionskalender — klara.
-Session #61: Målhistorik-analys + Skiftjämförelse-dashboard — klara.
-Session #62: Underhållsprognos + Kvalitetstrend per operatör — klara.
-Session #63: Stopporsak-trendanalys + Energi/effektivitetsvy — klara.
-Session #64: Produktionsmål vs utfall + Maskinutnyttjandegrad — klara.
-Session #65: Realtids-produktionstakt + Kassationsanalys — klara.
-Session #66: Andon-board/fabriksskärm + Veckorapport-generator — klara.
-Session #67: Operatörsportal + Alarm-historik dashboard — klara.
-Session #68: Produktions-heatmap + Stopporsak Pareto-diagram — klara.
-Session #69: VD:s morgonrapport + OEE-waterfall/brygga — klara.
-Session #70: Drifttids-timeline + Skiftvis produktionsjämförelse — klara.
-Session #71: Kassationsorsak-drill-down + Produktionspuls realtids-ticker — klara.
-Session #72: Första-timme-analys + Operatörs-personligt dashboard — klara.
-Session #73: Produktionsprognos + Stopporsak per operatör — klara.
-Session #74: Operatörs-onboarding tracker + Skiftöverlämningslogg — klara.
-Session #75: Operatörsjämförelse sida-vid-sida + Produktionseffektivitet per timme — klara.
-Session #76: Snabbkommandon/favoritvy + Kvalitetsanalys trendbrott-detektion — klara.
-Session #77: Statistik-dashboard sammanfattning + Maskinunderhåll serviceintervall — klara.
-Session #78: Batch-spårning + Kassationsorsak-statistik — klara.
-Session #79: Skiftplanering + Produktions-SLA/måluppfyllnad — klara.
-Session #80: Stopptidsanalys per maskin + Produktionskostnad per IBC — klara.
-Session #81: Rebotling maskin-OEE per station + Operatörsbonus-kalkylator — klara.
-Session #82: Leveransplanering + Kvalitetscertifikat per batch — klara.
-Session #83: Historisk produktionsöversikt + Automatiska avvikelseLarm — klara.
-Session #84: Rebotling sammanfattnings-dashboard + Produktionsflödesvy (Sankey) — klara.
-Session #85: Kassationsorsak per station + PDF-export alla rapporter — klara.
-Session #86: Rebotling OEE-jämförelse per vecka + Maskin-drifttid heatmap — klara.
-Session #87: Rebotling skiftrapport-sammanställning + Produktionsmål-dashboard — klara.
+Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning.
+Session #57-#88: Feature-utveckling löpande. Se lead-memory-archive.md för detaljer.
+Session #88: Maskinhistorik per station + Kassationskvot-alarm — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Rebotling skiftrapport-sammanställning** — daglig rapport per skift (klar #87)
-- [x] **Produktionsmål-dashboard** — sätt mål, visa progress + prognos (klar #87)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Operatörs-schemaöversikt** — veckovis schemavy med bemanningsgrad
-- [ ] **Maskinhistorik per station** — detaljerad vy per maskin: drifttid, stopp, OEE-trend
-- [ ] **Kassationskvot-alarm** — varning vid hög kassationsgrad
+- [ ] **Rebotling kapacitetsplanering** — planerad vs faktisk kapacitet, flaskhalsar
+- [ ] **Operatörs-prestanda scatter-plot** — hastighet vs kvalitet per operatör
+- [ ] **Produktions-dashboard startsida** — samlad "command center" för VD
 
 ## BESLUTSDAGBOK (senaste 3)
+
+### 2026-03-13 — Session #88 (klar)
+Worker 1 (Maskinhistorik per station): Detaljerad vy per maskin/station — stationsväljare, 6 KPI-kort, drifttids-graf (bar+linje), OEE-trenddiagram med delkomponenter, stopphistorik-tabell, jämförelsematris alla stationer. Periodselektor 7/30/90d. Backend: MaskinhistorikController (6 endpoints). Använder rebotling_ibc + rebotling_onoff.
+Worker 2 (Kassationskvot-alarm): Realtidsövervakning kassationsgrad med färgkodade KPI-kort (grön/gul/röd), puls-animation vid alarm. 24h trendgraf med tröskellinjer. Per-skift-vy 7 dagar. Alarm-historik. Top-5 orsaker. Tröskelinställning (VD). Auto-polling 60s. NY tabell: rebotling_kassationsalarminst. Backend: KassationskvotAlarmController.
 
 ### 2026-03-13 — Session #87 (klar)
 Worker 1 (Skiftrapport-sammanställning): Daglig rapport per skift (dag/kväll/natt) — produktion, kassation, OEE, stopp per skift. Veckosammanställning + skiftjämförelse. Chart.js stapeldiagram + linjediagram. PDF-export. Backend: SkiftrapportController. Använder rebotling_ibc + rebotling_onoff.
 Worker 2 (Produktionsmål-dashboard): VD sätter vecko/månadsmål. Progress med doughnut-diagram. Prognos: "i nuvarande takt når ni målet [datum]" eller "behöver öka X%". Daglig produktion stapeldiagram + mål-linje. Historik-tabell. NY tabell: rebotling_produktionsmal. Backend: ProduktionsmalController.
 
 ### 2026-03-13 — Session #86 (klar)
-Worker 1 (OEE-jämförelse per vecka): Veckovis OEE-jämförelse med trendpilar. KPI-kort (aktuell vs förra veckan), linjediagram 12 veckor, tabell med OEE/tillgänglighet/prestanda/kvalitet per vecka. Periodselektor 8-52 veckor. Målindikator. Använder befintlig rebotling_ibc. Backend: OeeJamforelseController.
-Worker 2 (Maskin-drifttid heatmap): Visuell heatmap — timmar × dagar, färgkodad (grön/gul/röd/grå). KPI-kort drifttid. Maskinfilter + periodselektor. Tooltip + dagsammanfattning vid klick. Ren HTML/CSS-grid. Använder befintlig rebotling_ibc. Backend: MaskinDrifttidController.
-
-### 2026-03-12 — Session #85 (klar)
-Worker 1 (Kassationsorsak per station): Drill-down per station — vilka stationer kasserar mest och varför. Stapeldiagram per station, top-5-orsaker, trendgraf per dag, detaljerad tabell. Periodselektor + stationsfilter. Använder befintlig rebotling_ibc. Backend: KassationsorsakController.
-Worker 2 (PDF-export alla rapporter): Generell PDF-export med html2canvas + jsPDF. Återanvändbar service + knapp-komponent. Läggs till på sammanfattning, historisk produktion, avvikelselarm, produktionsflöde.
-
+Worker 1 (OEE-jämförelse per vecka): Veckovis OEE-jämförelse med trendpilar. KPI-kort, linjediagram 12 veckor, tabell per vecka. Periodselektor 8-52 veckor. Backend: OeeJamforelseController.
+Worker 2 (Maskin-drifttid heatmap): Visuell heatmap timmar × dagar, färgkodad. KPI-kort drifttid. Maskinfilter + periodselektor. Backend: MaskinDrifttidController.

@@ -9,5 +9,8 @@
 - [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Operatörs-schemaöversikt** — veckovis schemavy med drag-drop skiftbyte, bemanningsgrad per skift
-- [ ] **Maskinhistorik per station** — detaljerad vy per maskin: drifttid, stopp, senaste service, OEE-trend, jämför maskiner sinsemellan
-- [ ] **Kassationskvot-alarm** — automatisk varning när kassationsgraden överstiger tröskelvärde (t.ex. >5%) per skift eller timme
+- [x] **Maskinhistorik per station** — detaljerad vy per maskin: drifttid, stopp, OEE-trend, jämför maskiner sinsemellan (klar #88)
+- [x] **Kassationskvot-alarm** — automatisk varning vid hög kassationsgrad per skift/timme (klar #88)
+- [ ] **Rebotling kapacitetsplanering** — visa planerad vs faktisk kapacitet per dag/vecka, identifiera flaskhalsar
+- [ ] **Operatörs-prestanda scatter-plot** — XY-diagram: hastighet vs kvalitet per operatör, identifiera förbättringsområden
+- [ ] **Produktions-dashboard startsida** — samlad "command center"-vy för VD: 4-6 viktigaste KPI:er, senaste alarm, trendpilar, allt på EN skärm
