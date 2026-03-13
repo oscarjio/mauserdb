@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #90)*
+*Senast uppdaterad: 2026-03-13 (session #92)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -55,18 +55,20 @@ IBC-tvätteri (1000L plasttankar i metallbur). Systemet ger VD realtidsöverblic
 ## Bug Hunt Status
 
 Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning.
-Session #57-#90: Feature-utveckling löpande. Se lead-memory-archive.md för detaljer.
-Session #90: Rebotling trendanalys + Operatörs-prestanda scatter-plot — klara.
+Session #57-#91: Feature-utveckling löpande. Se lead-memory-archive.md för detaljer.
+Session #91: Operatörs-prestanda scatter-plot klar (duplicerat commit från #90).
+Session #92: Rebotling stationsdetalj-dashboard + VD veckorapport + buggjakt — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
+- [x] **Rebotling stationsdetalj-dashboard** — drill-down per station med realtids-OEE (klar #92)
+- [x] **VD veckorapport** — veckosammanfattning med KPI-jämförelse, utskriftsvänlig (klar #92)
 - [ ] **Operatörs-tidrapport** — automatisk tidrapport baserat på skiftschema + aktivitet
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Operatörs-schemaöversikt** — veckovis schemavy med bemanningsgrad
-- [ ] **Energi- och resursöversikt** — uppskattad förbrukning per IBC
-- [ ] **Rebotling stationsdetalj-dashboard** — drill-down per station med realtids-OEE
-- [ ] **VD veckorapport auto-mail** — automatisk veckosammanfattning PDF
+- [ ] **Rebotling skiftöverlämning** — digital checklista vid skiftbyte
+- [ ] **Kassationsorsak-analys** — Pareto-diagram top-5 kassationsorsaker
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -78,6 +80,6 @@ Worker 2 (Operatörs-prestanda scatter-plot): Scatter plot hastighet vs kvalitet
 Worker 1 (Produktions-dashboard startsida): "Command center" for VD — 6 KPI-kort med trendpilar, 2 Chart.js-grafer, alarm-lista, stationsstatus-tabell, senaste IBC. Auto-polling 30s. Backend: ProduktionsDashboardController (6 endpoints).
 Worker 2 (Rebotling kapacitetsplanering): Planerad vs faktisk kapacitet — 5 KPI-kort, kapacitetsdiagram, stationsutnyttjande, stopporsaker, tid-fordelning. Vecko-oversikt 12v. Backend: KapacitetsplaneringController (6 endpoints).
 
-### 2026-03-13 — Session #88 (klar)
-Worker 1 (Maskinhistorik per station): Detaljerad vy per maskin/station — stationsväljare, 6 KPI-kort, drifttids-graf, OEE-trenddiagram, stopphistorik-tabell, jämförelsematris. Backend: MaskinhistorikController (6 endpoints).
-Worker 2 (Kassationskvot-alarm): Realtidsövervakning kassationsgrad med färgkodade KPI-kort, puls-animation, trendgraf, per-skift-vy, tröskelinställning. NY tabell: rebotling_kassationsalarminst. Backend: KassationskvotAlarmController.
+### 2026-03-13 — Session #92 (klar)
+Worker 1 (Rebotling stationsdetalj-dashboard): Klickbar stationsvy — drill-down per station med realtids-OEE, senaste IBCer, stopphistorik, KPI-kort, trendgraf 30d. Backend: RebotlingStationsdetaljController.
+Worker 2 (VD veckorapport + buggjakt): Veckosammanfattning med KPI-jämförelse vecka-för-vecka, trender, anomalier, top/bottom operatörer, stopporsaker, utskriftsvänlig. Dessutom systematisk buggjakt: memory leaks, byggfel, lifecycle-problem.

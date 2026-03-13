@@ -504,7 +504,7 @@ class VDVeckorapportController {
                     ];
                 }, $rows);
             }
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // Tabell kan saknas — returnera tom lista
         }
 
@@ -536,7 +536,7 @@ class VDVeckorapportController {
                     'andel_pct' => $total > 0 ? round($tid / $total * 100, 1) : 0,
                 ];
             }, $rows);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [];
         }
     }
@@ -659,7 +659,7 @@ class VDVeckorapportController {
                     'antal_skift'    => (int)$r['antal_skift'],
                 ];
             }, $rows);
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [];
         }
     }
@@ -717,7 +717,7 @@ class VDVeckorapportController {
                 }
             }
             return $anomalier;
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [];
         }
     }

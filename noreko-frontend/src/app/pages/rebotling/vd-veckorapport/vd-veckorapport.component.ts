@@ -12,9 +12,7 @@ import {
   TopBottomData,
   StopporsakerData,
   VeckaSammanfattningData,
-  OperatorKpi,
   Stopporsak,
-  Anomali,
 } from '../../../services/vd-veckorapport.service';
 
 Chart.register(...registerables);
