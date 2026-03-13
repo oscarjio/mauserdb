@@ -67,12 +67,12 @@ Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — kl
 Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering — klara.
 Session #102: Statistiksida sammanslagen överblick + Rebotling operatörs-dashboard — klara.
 Session #103: Rebotling daglig briefing-rapport + Rebotling skiftöverlämningsprotokoll — klara.
-Session #104: Rebotling operatörs-gamification + Rebotling prediktivt underhåll — pågår.
+Session #104: Rebotling operatörs-gamification + Rebotling prediktivt underhåll — klara.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [ ] **Rebotling operatörs-gamification** — poängsystem, badges, leaderboard (PÅGÅR #104)
-- [ ] **Rebotling prediktivt underhåll** — MTBF, stopporsaks-mönster, riskbedömning (PÅGÅR #104)
+- [x] **Rebotling operatörs-gamification** — poängsystem, badges, leaderboard (klar #104)
+- [x] **Rebotling prediktivt underhåll** — MTBF, stopporsaks-mönster, riskbedömning (klar #104)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
@@ -90,6 +90,6 @@ Worker 2 (Rebotling operatörs-dashboard): Ny sida — personlig vy: min produkt
 Worker 1 (Rebotling daglig briefing-rapport): Ny sida — automatisk morgonrapport: gårdagens resultat, bemanningsstatus, top stopporsaker, stationsstatus, veckotrend-sparkline, autogenererad textsummering. Backend: DagligBriefingController.
 Worker 2 (Rebotling skiftöverlämningsprotokoll): Ny sida — digital checklista vid skiftbyte: auto-populerad skiftdata + manuell checklista + fritekstkommentarer + historik. Ny DB-tabell. Backend: SkiftoverlamningController.
 
-### 2026-03-13 — Session #104 (pågår)
+### 2026-03-13 — Session #104 (klar)
 Worker 1 (Rebotling operatörs-gamification): Ny sida — poängsystem baserat på produktion×kvalitet, badges (Centurion, Perfektionist, Stoppjägare, etc.), leaderboard dag/vecka/månad, personlig profil. Backend: GamificationController.
 Worker 2 (Rebotling prediktivt underhåll): Ny sida — stopporsaks-heatmap (station×orsak), MTBF per station, riskbedömning (Låg→Kritisk), underhållsrekommendationer, 12v trendgraf. Backend: PrediktivtUnderhallController.

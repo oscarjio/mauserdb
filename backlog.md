@@ -5,8 +5,8 @@
 
 ## Förbättringar
 
-- [ ] **Rebotling operatörs-gamification** — poängsystem, badges, milstolpar, leaderboard med opt-in (PÅGÅR session #104)
-- [ ] **Rebotling prediktivt underhåll** — analysera stopporsaks-mönster, förutsäg nästa stopp per station, MTBF (PÅGÅR session #104)
+- [x] **Rebotling operatörs-gamification** — poängsystem, badges, milstolpar, leaderboard med opt-in (session #104)
+- [x] **Rebotling prediktivt underhåll** — analysera stopporsaks-mönster, förutsäg nästa stopp per station, MTBF (session #104)
 - [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
 - [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
 - [ ] **Rebotling energi/resursförbrukning** — koppla vatten/el/kemikalieförbrukning per IBC, visualisera kostnad per enhet
