@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-13 (session #103)*
+*Senast uppdaterad: 2026-03-13 (session #104)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -67,23 +67,20 @@ Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — kl
 Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering — klara.
 Session #102: Statistiksida sammanslagen överblick + Rebotling operatörs-dashboard — klara.
 Session #103: Rebotling daglig briefing-rapport + Rebotling skiftöverlämningsprotokoll — klara.
+Session #104: Rebotling operatörs-gamification + Rebotling prediktivt underhåll — pågår.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
-- [x] **Rebotling daglig briefing-rapport** — automatisk morgonrapport (klar #103)
-- [x] **Rebotling skiftöverlämningsprotokoll** — digital checklista vid skiftbyte (klar #103)
+- [ ] **Rebotling operatörs-gamification** — poängsystem, badges, leaderboard (PÅGÅR #104)
+- [ ] **Rebotling prediktivt underhåll** — MTBF, stopporsaks-mönster, riskbedömning (PÅGÅR #104)
 - [ ] **Dashboards favoritlayout** — VD:s anpassningsbara startsida
 - [ ] **Realtids-notifikationer** — push-notiser vid kritiska händelser
 - [ ] **Rebotling energi/resursförbrukning** — vatten/el/kemikalier per IBC
-- [ ] **Rebotling prediktivt underhåll** — förutsäg stopp, rekommendera förebyggande underhåll
-- [ ] **Rebotling operatörs-gamification** — poängsystem, badges, milstolpar
 - [ ] **Rebotling leveransplanering** — koppla produktion till kundordrar
+- [ ] **Rebotling avvikelsehantering** — rapportera/spåra avvikelser med eskalering
+- [ ] **Rebotling batch-spårning** — spåra IBC genom hela processen
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #101 (klar)
-Worker 1 (Rebotling kvalitetstrend-analys): Ny sida — kassationsrate per station/operatör över tid, heatmap station x vecka, tröskellarm med konfigurerbara nivåer. Backend: KvalitetstrendanalysController.
-Worker 2 (Rebotling kapacitetsplanering): Ny sida — teoretisk vs faktisk kapacitet per station, utnyttjandegrad-trend, bemanningsplanering, kapacitetssimulator. Backend: KapacitetsplaneringController.
 
 ### 2026-03-13 — Session #102 (klar)
 Worker 1 (Statistiksida sammanslagen överblick): Ny sida — VD:s go-to: produktion/OEE/kassation per vecka i tre grafer + 4 KPI-kort + period-filter. Backend: StatistikOverblickController.
@@ -92,3 +89,7 @@ Worker 2 (Rebotling operatörs-dashboard): Ny sida — personlig vy: min produkt
 ### 2026-03-13 — Session #103 (klar)
 Worker 1 (Rebotling daglig briefing-rapport): Ny sida — automatisk morgonrapport: gårdagens resultat, bemanningsstatus, top stopporsaker, stationsstatus, veckotrend-sparkline, autogenererad textsummering. Backend: DagligBriefingController.
 Worker 2 (Rebotling skiftöverlämningsprotokoll): Ny sida — digital checklista vid skiftbyte: auto-populerad skiftdata + manuell checklista + fritekstkommentarer + historik. Ny DB-tabell. Backend: SkiftoverlamningController.
+
+### 2026-03-13 — Session #104 (pågår)
+Worker 1 (Rebotling operatörs-gamification): Ny sida — poängsystem baserat på produktion×kvalitet, badges (Centurion, Perfektionist, Stoppjägare, etc.), leaderboard dag/vecka/månad, personlig profil. Backend: GamificationController.
+Worker 2 (Rebotling prediktivt underhåll): Ny sida — stopporsaks-heatmap (station×orsak), MTBF per station, riskbedömning (Låg→Kritisk), underhållsrekommendationer, 12v trendgraf. Backend: PrediktivtUnderhallController.
