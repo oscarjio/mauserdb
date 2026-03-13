@@ -534,7 +534,8 @@ class SkiftrapportController {
             }
 
             // Hämta start- och stopptid för skiftet från rebotling_ibc
-            $skiftTider = $this->getSkiftTider($usedSkiftraknare);
+            $datum = isset($_GET['datum']) ? substr($_GET['datum'], 0, 10) : null;
+            $skiftTider = $this->getSkiftTider($usedSkiftraknare, $datum);
 
             $response = [
                 'success'      => true,
@@ -562,8 +563,13 @@ class SkiftrapportController {
      * Hämta start/stopptid för ett skift.
      * 1) Hitta rätt skifträknare i rebotling_ibc (original, n-1, n-2)
      * 2) Använd SAMMA skifträknare i rebotling_onoff för start/stopp
+     * 3) Fallback: cykeltider från rebotling_ibc
+     * 4) Fallback: estimera från runtime_plc om allt annat saknas
+     *
+     * @param int         $skiftraknare  Skifträknare att söka
+     * @param string|null $datum         Rapportens datum (YYYY-MM-DD), för runtime-fallback
      */
-    private function getSkiftTider(int $skiftraknare): array {
+    private function getSkiftTider(int $skiftraknare, ?string $datum = null): array {
         // Steg 1: Hitta rätt skifträknare i rebotling_ibc (fallback nedåt)
         $foundSkiftraknare = null;
         foreach ([$skiftraknare, $skiftraknare - 1, $skiftraknare - 2] as $testId) {
@@ -617,6 +623,29 @@ class SkiftrapportController {
             $fallRow = $fallStmt->fetch(PDO::FETCH_ASSOC);
             if (!$startTid) $startTid = $fallRow['f'] ?? null;
             if (!$slutTid)  $slutTid  = $fallRow['l'] ?? null;
+        }
+
+        // Fallback: estimera från runtime_plc om fortfarande saknas
+        // Beräkna: start = rapportdatum + 06:00, stop = start + runtime minuter
+        if ((!$startTid || !$slutTid) && $datum) {
+            try {
+                $rtStmt = $this->pdo->prepare(
+                    "SELECT MAX(COALESCE(runtime_plc, 0)) AS runtime_min
+                     FROM rebotling_ibc WHERE skiftraknare = ?"
+                );
+                $rtStmt->execute([$foundSkiftraknare]);
+                $runtimeMin = (int)($rtStmt->fetchColumn() ?? 0);
+                if ($runtimeMin > 0) {
+                    $baseDate = substr($datum, 0, 10);
+                    // Använd 06:00 som default skiftstart
+                    if (!$startTid) {
+                        $startTid = $baseDate . ' 06:00:00';
+                    }
+                    if (!$slutTid) {
+                        $slutTid = date('Y-m-d H:i:s', strtotime($startTid) + ($runtimeMin * 60));
+                    }
+                }
+            } catch (Exception $e) {}
         }
 
         return [

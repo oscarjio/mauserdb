@@ -20,19 +20,20 @@ class RebotlingAnalyticsController {
         }
 
         // Steg 1: Hitta rätt skifträknare i rebotling_ibc (original + fallback nedåt)
+        // Sök UTAN datumfilter först (skifträknare är tillräckligt unikt),
+        // med datumfilter som sekundärt fallback (hanterar dag-efter-scenariot)
         $prevDay = date('Y-m-d', strtotime($date . ' -1 day'));
         $foundSkiftraknare = null;
 
         foreach (array_keys($skiftraknareList) as $sk) {
-            // Testa original, sedan n-1, n-2
+            // Testa original, sedan n-1, n-2 — utan datumfilter
             foreach ([(int)$sk, (int)$sk - 1, (int)$sk - 2] as $testId) {
                 $chk = $this->pdo->prepare(
                     "SELECT COUNT(*) as cnt FROM rebotling_ibc
                      WHERE skiftraknare = ?
-                     AND (DATE(datum) = ? OR DATE(datum) = ?)
                      AND lopnummer > 0 AND lopnummer < 998"
                 );
-                $chk->execute([$testId, $date, $prevDay]);
+                $chk->execute([$testId]);
                 $cnt = (int)$chk->fetchColumn();
                 if ($cnt > 0) {
                     $foundSkiftraknare = $testId;
@@ -57,7 +58,6 @@ class RebotlingAnalyticsController {
         $cykelDatum = $ibcRow['cykel_datum'] ?? null;
 
         // Steg 3: Använd SAMMA skifträknare i rebotling_onoff för start/stopp
-        // Första running=1 = linjens starttid, sista running=0 = linjens stopptid
         $skiftStart = null;
         $skiftSlut  = null;
         try {
@@ -85,6 +85,27 @@ class RebotlingAnalyticsController {
             $fallRow = $fallStmt->fetch(PDO::FETCH_ASSOC);
             if (!$skiftStart) $skiftStart = $fallRow['first_cycle'] ?? null;
             if (!$skiftSlut)  $skiftSlut  = $fallRow['last_cycle'] ?? null;
+        }
+
+        // Fallback: estimera från runtime_plc om fortfarande saknas
+        if ((!$skiftStart || !$skiftSlut) && $date) {
+            try {
+                $rtStmt = $this->pdo->prepare(
+                    "SELECT MAX(COALESCE(runtime_plc, 0)) AS runtime_min
+                     FROM rebotling_ibc WHERE skiftraknare = ?"
+                );
+                $rtStmt->execute([$foundSkiftraknare]);
+                $runtimeMin = (int)($rtStmt->fetchColumn() ?? 0);
+                if ($runtimeMin > 0) {
+                    $baseDate = substr($date, 0, 10);
+                    if (!$skiftStart) {
+                        $skiftStart = $baseDate . ' 06:00:00';
+                    }
+                    if (!$skiftSlut) {
+                        $skiftSlut = date('Y-m-d H:i:s', strtotime($skiftStart) + ($runtimeMin * 60));
+                    }
+                }
+            } catch (Exception $e) {}
         }
 
         return ['start' => $skiftStart, 'slut' => $skiftSlut, 'cykel_datum' => $cykelDatum];

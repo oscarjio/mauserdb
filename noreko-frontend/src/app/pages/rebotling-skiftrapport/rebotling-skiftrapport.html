@@ -780,15 +780,30 @@
                             <i class="fas fa-clock text-info me-2"></i>
                             <span class="text-info fw-semibold">Skifttider</span>
                           </div>
-                          <div class="d-flex gap-4">
+                          <div class="d-flex flex-wrap gap-4">
                             <div>
                               <span class="text-muted small">Start: </span>
-                              <span class="fw-bold">{{ skiftTiderMap[report.id].start ? (skiftTiderMap[report.id].start | date:'HH:mm':'':'sv') : '–' }}</span>
+                              <span class="fw-bold">{{ skiftTiderMap[report.id].start ? (skiftTiderMap[report.id].start | date:'yyyy-MM-dd HH:mm':'':'sv') : '–' }}</span>
                             </div>
                             <div>
                               <span class="text-muted small">Stopp: </span>
-                              <span class="fw-bold">{{ skiftTiderMap[report.id].slut ? (skiftTiderMap[report.id].slut | date:'HH:mm':'':'sv') : '–' }}</span>
+                              <span class="fw-bold">{{ skiftTiderMap[report.id].slut ? (skiftTiderMap[report.id].slut | date:'yyyy-MM-dd HH:mm':'':'sv') : '–' }}</span>
                             </div>
+                            <div *ngIf="report.drifttid != null">
+                              <span class="text-muted small">Drifttid: </span>
+                              <span class="fw-bold">{{ formatDrifttid(report.drifttid) }}</span>
+                            </div>
+                            <div *ngIf="report.rasttime != null && report.rasttime > 0">
+                              <span class="text-muted small">Rasttid: </span>
+                              <span class="fw-bold">{{ report.rasttime }} min</span>
+                            </div>
+                          </div>
+                          <div *ngIf="skiftTiderMap[report.id].cykel_datum" class="mt-1">
+                            <span class="text-muted small">Cykeldatum: </span>
+                            <span class="fw-bold">{{ skiftTiderMap[report.id].cykel_datum }}</span>
+                            <span *ngIf="skiftTiderMap[report.id].cykel_datum !== (report.datum | date:'yyyy-MM-dd')" class="badge bg-warning text-dark ms-2 small">
+                              <i class="fas fa-exclamation-triangle me-1"></i>Skiljer sig fr&#229;n rapportdatum
+                            </span>
                           </div>
                           <div *ngIf="skiftTiderMap[report.id].fallback" class="mt-1">
                             <span class="badge bg-warning text-dark small">
@@ -1013,6 +1028,42 @@
                                   </ng-container>
                                   <span *ngIf="shiftSummaryData.delta_vs_prev == null">–</span>
                                 </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- Skifttider -->
+                          <div class="card print-card mb-3" *ngIf="shiftSummaryData.skift_start || shiftSummaryData.skift_slut || shiftSummaryData.drifttid || shiftSummaryData.cykel_datum">
+                            <div class="card-header py-2">
+                              <i class="fas fa-clock me-2"></i>Tider
+                            </div>
+                            <div class="card-body py-2">
+                              <div class="d-flex flex-wrap gap-4">
+                                <div *ngIf="shiftSummaryData.skift_start">
+                                  <span class="text-muted small">Starttid: </span>
+                                  <span class="fw-bold">{{ shiftSummaryData.skift_start | date:'yyyy-MM-dd HH:mm':'':'sv' }}</span>
+                                </div>
+                                <div *ngIf="shiftSummaryData.skift_slut">
+                                  <span class="text-muted small">Stopptid: </span>
+                                  <span class="fw-bold">{{ shiftSummaryData.skift_slut | date:'yyyy-MM-dd HH:mm':'':'sv' }}</span>
+                                </div>
+                                <div *ngIf="shiftSummaryData.drifttid">
+                                  <span class="text-muted small">Drifttid: </span>
+                                  <span class="fw-bold">{{ formatDrifttid(shiftSummaryData.drifttid) }}</span>
+                                </div>
+                                <div *ngIf="shiftSummaryData.rasttime">
+                                  <span class="text-muted small">Rasttid: </span>
+                                  <span class="fw-bold">{{ shiftSummaryData.rasttime }} min</span>
+                                </div>
+                              </div>
+                              <div *ngIf="shiftSummaryData.cykel_datum && shiftSummaryData.cykel_datum !== shiftSummaryData.date" class="mt-2">
+                                <span class="badge bg-warning text-dark">
+                                  <i class="fas fa-exclamation-triangle me-1"></i>Cykeldatum: {{ shiftSummaryData.cykel_datum }} (rapport daterad {{ shiftSummaryData.date }})
+                                </span>
+                              </div>
+                              <div *ngIf="shiftSummaryData.cykel_datum && shiftSummaryData.cykel_datum === shiftSummaryData.date" class="mt-1">
+                                <span class="text-muted small">Cykeldatum: </span>
+                                <span class="fw-bold">{{ shiftSummaryData.cykel_datum }}</span>
                               </div>
                             </div>
                           </div>
