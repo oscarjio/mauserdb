@@ -1,3 +1,25 @@
+## 2026-03-13 Rebotling skiftoverlamningsprotokoll
+
+Ny sida `/rebotling/skiftoverlamning` — digitalt skiftoverlamningsprotokoll for Rebotling-linjen. Avgaende skiftledare fyller i checklista och statusrapport som patradande skift kan lasa.
+
+- **Databas**: Ny tabell `rebotling_skiftoverlamning` med individuella checklistkolumner, produktionsdata, kommentarfalt
+  - Migration: `noreko-backend/migrations/2026-03-13_skiftoverlamning.sql`
+- **Backend**: Utokad `classes/SkiftoverlamningController.php` med 4 nya endpoints:
+  - `run=skiftdata` — auto-hamta produktionsdata (IBC, OEE, stopp, kassation) for aktuellt skift
+  - `run=spara` (POST) — spara overlamningsprotokoll med checklista och kommentarer
+  - `run=protokoll-historik` — lista senaste 10 protokoll fran nya tabellen
+  - `run=protokoll-detalj` — hamta specifikt protokoll
+- **Frontend**: Ny Angular standalone-komponent `SkiftoverlamningProtokollPage`:
+  - Skiftsammanfattning med KPI-kort (produktion, OEE, stopp, kassation) auto-populerade
+  - 6-punkts checklista med progress-indikator
+  - 3 fritekst-textareas (handelser, atgarder, ovrigt)
+  - Bekraftelsedialog vid submit
+  - Historik-lista med expanderbara rader (accordion)
+  - Dark theme (#1a202c/#2d3748/#e2e8f0)
+- **Filer**: `rebotling/skiftoverlamning/` (komponent), `rebotling/skiftoverlamning.service.ts`, `app.routes.ts`, `menu.html`
+
+---
+
 ## 2026-03-13 Statistik overblick — VD:ns sammanslagen oversiktssida
 
 Ny sida `/statistik/overblick` — enkel, ren oversikt med tre grafer och fyra KPI-kort. VD:ns go-to-sida for "hur gar det?".

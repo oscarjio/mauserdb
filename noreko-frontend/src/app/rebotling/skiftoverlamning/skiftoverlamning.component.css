@@ -1,0 +1,217 @@
+/* ============================================================
+   Skiftoverlamningsprotokoll — morkt tema
+   ============================================================ */
+
+.page-container {
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+/* ---- Section-kort ---- */
+.section-card {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.5rem;
+  color: #e2e8f0;
+}
+
+.section-card .card-header {
+  background: #374151;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+  padding: 0.75rem 1.25rem;
+}
+
+.section-card .card-body {
+  padding: 1.25rem;
+}
+
+/* ---- KPI-kort ---- */
+.kpi-card {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  text-align: center;
+  height: 100%;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #a0aec0;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 0.2rem;
+}
+
+.kpi-sub {
+  font-size: 0.78rem;
+  color: #718096;
+}
+
+/* ---- Checklista ---- */
+.checklista-item {
+  background: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 0.4rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.checklista-item:hover {
+  border-color: #4299e1;
+  background: #2d3748;
+}
+
+.checklista-item .form-check {
+  margin-bottom: 0;
+}
+
+.checklista-item .form-check-label {
+  cursor: pointer;
+  color: #e2e8f0;
+  transition: color 0.2s;
+}
+
+.checked-label {
+  color: #48bb78 !important;
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.form-check-input {
+  background-color: #1a202c;
+  border-color: #4a5568;
+}
+
+.form-check-input:checked {
+  background-color: #48bb78;
+  border-color: #48bb78;
+}
+
+/* ---- Dark inputs ---- */
+.dark-input {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.dark-input:focus {
+  background: #1a202c;
+  border-color: #4299e1;
+  color: #e2e8f0;
+  box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
+}
+
+.form-label {
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+/* ---- Bekraftelsedialog ---- */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.confirm-dialog {
+  background: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 0.75rem;
+  padding: 1.5rem 2rem;
+  max-width: 440px;
+  width: 90%;
+  color: #e2e8f0;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Historik-rader ---- */
+.historik-row {
+  border-left: 3px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.historik-row:hover {
+  border-left-color: #4299e1;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.expanded-detail {
+  background: #1a202c;
+  border-top: 1px solid #4a5568;
+}
+
+.mini-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mini-stat-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a0aec0;
+}
+
+.mini-stat-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.preformatted {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e2e8f0;
+  line-height: 1.5;
+}
+
+/* ---- Progress ---- */
+.progress {
+  background-color: #1a202c;
+  border-radius: 3px;
+}
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 1rem;
+  }
+
+  .kpi-value {
+    font-size: 1.4rem;
+  }
+}

@@ -47,7 +47,7 @@ export const routes: Routes = [
       { path: 'rebotling/alerts', canActivate: [adminGuard], loadComponent: () => import('./pages/rebotling/alerts/alerts').then(m => m.AlertsPage) },
       { path: 'min-bonus', canActivate: [authGuard], loadComponent: () => import('./pages/my-bonus/my-bonus').then(m => m.MyBonusPage) },
       { path: 'rebotling/overlamning', canActivate: [authGuard], loadComponent: () => import('./pages/shift-handover/shift-handover').then(m => m.ShiftHandoverPage) },
-      { path: 'rebotling/skiftoverlamning', canActivate: [authGuard], loadComponent: () => import('./pages/skiftoverlamning/skiftoverlamning').then(m => m.SkiftoverlamningPage) },
+      { path: 'rebotling/skiftoverlamning', canActivate: [authGuard], loadComponent: () => import('./rebotling/skiftoverlamning/skiftoverlamning.component').then(m => m.SkiftoverlamningProtokollPage) },
       { path: 'stopporsaker', canActivate: [authGuard], loadComponent: () => import('./pages/stoppage-log/stoppage-log').then(m => m.StoppageLogPage) },
       { path: 'rebotling/stopporsak-registrering', canActivate: [authGuard], loadComponent: () => import('./pages/stopporsak-registrering/stopporsak-registrering').then(m => m.StopporsakRegistreringPage) },
       { path: 'rebotling/underhallslogg', canActivate: [authGuard], loadComponent: () => import('./pages/underhallslogg/underhallslogg').then(m => m.UnderhallsloggComponent) },
@@ -118,6 +118,7 @@ export const routes: Routes = [
       { path: 'rebotling/vd-dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/vd-dashboard/vd-dashboard.component').then(m => m.VdDashboardPage) },
       { path: 'rebotling/historisk-sammanfattning', canActivate: [authGuard], loadComponent: () => import('./pages/historisk-sammanfattning/historisk-sammanfattning.component').then(m => m.HistoriskSammanfattningPage) },
       { path: 'rebotling/kvalitetstrendanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitetstrendanalys/kvalitetstrendanalys').then(m => m.KvalitetstrendanalysPage) },
+      { path: 'rebotling/daglig-briefing', canActivate: [authGuard], loadComponent: () => import('./rebotling/daglig-briefing/daglig-briefing.component').then(m => m.DagligBriefingPage) },
 
       // Statistik
       { path: 'statistik/overblick', canActivate: [authGuard], loadComponent: () => import('./pages/statistik-overblick/statistik-overblick.component').then(m => m.StatistikOverblickPage) },

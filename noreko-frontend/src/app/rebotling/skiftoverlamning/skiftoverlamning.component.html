@@ -1,0 +1,356 @@
+<div class="page-container">
+
+  <!-- SIDHUVUD -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="page-title mb-1">
+        <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftoverlamningsprotokoll
+      </h1>
+      <p class="text-muted mb-0 small">Digital checklista och statusrapport vid skiftbyte</p>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" (click)="loadSkiftdata(); loadHistorik()">
+      <i class="fas fa-sync-alt me-1"></i>Uppdatera
+    </button>
+  </div>
+
+  <!-- LADDAR -->
+  <div *ngIf="isLoading" class="text-center py-4">
+    <div class="spinner-border text-info" role="status"></div>
+    <p class="text-muted mt-2 mb-0 small">Hamtar skiftdata...</p>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 1. SKIFTSAMMANFATTNING (auto-populerad)                            -->
+  <!-- ================================================================== -->
+  <div *ngIf="skiftdata" class="card section-card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="fas fa-chart-bar me-2 text-info"></i>Aktuellt skift
+        <span class="badge ms-2" [ngClass]="skiftBadgeClass(skiftdata.skift_typ)">
+          {{ skiftdata.skift_typ_label }}
+        </span>
+        <span class="text-muted small ms-2">{{ formatDate(skiftdata.skift_datum) }}</span>
+      </h5>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Produktion</div>
+            <div class="kpi-value text-success">{{ skiftdata.produktion_antal }}</div>
+            <div class="kpi-sub">IBC</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">OEE</div>
+            <div class="kpi-value" [class.text-success]="skiftdata.oee_procent >= 75"
+                 [class.text-warning]="skiftdata.oee_procent >= 50 && skiftdata.oee_procent < 75"
+                 [class.text-danger]="skiftdata.oee_procent < 50">
+              {{ skiftdata.oee_procent }}%
+            </div>
+            <div class="kpi-sub">av skiftet</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Antal stopp</div>
+            <div class="kpi-value text-warning">{{ skiftdata.stopp_antal }}</div>
+            <div class="kpi-sub">{{ skiftdata.stopp_minuter }} min totalt</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-4 col-lg">
+          <div class="kpi-card">
+            <div class="kpi-label">Kassation</div>
+            <div class="kpi-value" [class.text-danger]="skiftdata.kassation_procent > 3"
+                 [class.text-success]="skiftdata.kassation_procent <= 3">
+              {{ skiftdata.kassation_procent }}%
+            </div>
+            <div class="kpi-sub">av total</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 2. CHECKLISTA (manuell)                                            -->
+  <!-- ================================================================== -->
+  <div class="card section-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="fas fa-tasks me-2 text-info"></i>Checklista
+      </h5>
+      <span class="badge" [class.bg-success]="checklistaCount === 6" [class.bg-secondary]="checklistaCount < 6">
+        {{ checklistaCount }}/6
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="progress mb-3" style="height: 6px;">
+        <div class="progress-bar" [class.bg-success]="checklistaCount === 6" [class.bg-info]="checklistaCount < 6"
+             [style.width.%]="(checklistaCount / 6) * 100"></div>
+      </div>
+
+      <div class="checklista-item mb-2" (click)="checklista.rengoring = !checklista.rengoring">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" [checked]="checklista.rengoring"
+                 (change)="checklista.rengoring = !checklista.rengoring" (click)="$event.stopPropagation()">
+          <label class="form-check-label" [class.checked-label]="checklista.rengoring">
+            Alla stationer rengjorda
+          </label>
+        </div>
+      </div>
+
+      <div class="checklista-item mb-2" (click)="checklista.verktyg = !checklista.verktyg">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" [checked]="checklista.verktyg"
+                 (change)="checklista.verktyg = !checklista.verktyg" (click)="$event.stopPropagation()">
+          <label class="form-check-label" [class.checked-label]="checklista.verktyg">
+            Verktyg pa ratt plats
+          </label>
+        </div>
+      </div>
+
+      <div class="checklista-item mb-2" (click)="checklista.kemikalier = !checklista.kemikalier">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" [checked]="checklista.kemikalier"
+                 (change)="checklista.kemikalier = !checklista.kemikalier" (click)="$event.stopPropagation()">
+          <label class="form-check-label" [class.checked-label]="checklista.kemikalier">
+            Kemikaliepafyllning kontrollerad
+          </label>
+        </div>
+      </div>
+
+      <div class="checklista-item mb-2" (click)="checklista.avvikelser = !checklista.avvikelser">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" [checked]="checklista.avvikelser"
+                 (change)="checklista.avvikelser = !checklista.avvikelser" (click)="$event.stopPropagation()">
+          <label class="form-check-label" [class.checked-label]="checklista.avvikelser">
+            Avvikelser rapporterade
+          </label>
+        </div>
+      </div>
+
+      <div class="checklista-item mb-2" (click)="checklista.sakerhet = !checklista.sakerhet">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" [checked]="checklista.sakerhet"
+                 (change)="checklista.sakerhet = !checklista.sakerhet" (click)="$event.stopPropagation()">
+          <label class="form-check-label" [class.checked-label]="checklista.sakerhet">
+            Sakerhetskontroll utford
+          </label>
+        </div>
+      </div>
+
+      <div class="checklista-item mb-2" (click)="checklista.material = !checklista.material">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" [checked]="checklista.material"
+                 (change)="checklista.material = !checklista.material" (click)="$event.stopPropagation()">
+          <label class="form-check-label" [class.checked-label]="checklista.material">
+            Logistik/material kontrollerat
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 3. FRITEKSTKOMMENTARER                                             -->
+  <!-- ================================================================== -->
+  <div class="card section-card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="fas fa-pen me-2 text-info"></i>Kommentarer</h5>
+    </div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label">
+          <i class="fas fa-exclamation-circle text-warning me-1"></i>Vad hande under skiftet?
+        </label>
+        <textarea class="form-control dark-input" rows="3"
+                  placeholder="Beskriv vad som hande under skiftet, viktiga handelser, incidenter..."
+                  [(ngModel)]="kommentarHande" maxlength="5000"></textarea>
+        <div class="small text-muted mt-1">{{ kommentarHande.length }}/5000</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">
+          <i class="fas fa-wrench text-danger me-1"></i>Vad behover atgardas?
+        </label>
+        <textarea class="form-control dark-input" rows="3"
+                  placeholder="Beskriv vad som behover fixas, repareras, foljas upp..."
+                  [(ngModel)]="kommentarAtgarda" maxlength="5000"></textarea>
+        <div class="small text-muted mt-1">{{ kommentarAtgarda.length }}/5000</div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">
+          <i class="fas fa-info-circle text-secondary me-1"></i>Ovrigt att tanka pa
+        </label>
+        <textarea class="form-control dark-input" rows="3"
+                  placeholder="Ovrig information till nasta skift..."
+                  [(ngModel)]="kommentarOvrigt" maxlength="5000"></textarea>
+        <div class="small text-muted mt-1">{{ kommentarOvrigt.length }}/5000</div>
+      </div>
+
+      <!-- Submit -->
+      <div class="d-flex gap-2 mt-4">
+        <button class="btn btn-primary" (click)="onSubmitClick()" [disabled]="isSubmitting || !skiftdata">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!isSubmitting" class="fas fa-save me-1"></i>
+          Spara protokoll
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEKRAFTELSEDIALOG -->
+  <div *ngIf="showConfirm" class="confirm-overlay" (click)="cancelSubmit()">
+    <div class="confirm-dialog" (click)="$event.stopPropagation()">
+      <h5 class="mb-3"><i class="fas fa-question-circle me-2 text-warning"></i>Bekrafta</h5>
+      <p class="mb-3">Ar du saker pa att du vill spara skiftoverlamningsprotokollet?</p>
+      <div class="mb-3">
+        <div class="small text-muted">
+          Checklista: {{ checklistaCount }}/6 avklarade<br>
+          <span *ngIf="kommentarHande">Kommentar om handelser: Ja</span>
+          <span *ngIf="!kommentarHande">Kommentar om handelser: Nej</span>
+        </div>
+      </div>
+      <div class="d-flex gap-2 justify-content-end">
+        <button class="btn btn-outline-secondary btn-sm" (click)="cancelSubmit()">Avbryt</button>
+        <button class="btn btn-primary btn-sm" (click)="confirmSubmit()" [disabled]="isSubmitting">
+          <i class="fas fa-check me-1"></i>Ja, spara
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================== -->
+  <!-- 4. HISTORIK                                                        -->
+  <!-- ================================================================== -->
+  <div class="card section-card mb-4">
+    <div class="card-header">
+      <h5 class="mb-0">
+        <i class="fas fa-history me-2 text-secondary"></i>Tidigare overlamningar
+        <span class="badge bg-secondary ms-2">{{ historikItems.length }}</span>
+      </h5>
+    </div>
+    <div class="card-body p-0" *ngIf="historikItems.length > 0">
+      <div *ngFor="let item of historikItems" class="historik-row">
+        <div class="d-flex justify-content-between align-items-center p-3 clickable-row"
+             (click)="toggleHistorikItem(item.id)">
+          <div class="d-flex align-items-center gap-3 flex-wrap">
+            <span class="badge" [ngClass]="skiftBadgeClass(item.skift_typ)">{{ skiftLabel(item.skift_typ) }}</span>
+            <span class="text-light">{{ formatDate(item.skift_datum) }}</span>
+            <span class="text-muted small">{{ item.operator_namn }}</span>
+          </div>
+          <div class="d-flex align-items-center gap-3">
+            <span class="text-success small">{{ item.produktion_antal }} IBC</span>
+            <span class="text-info small">{{ item.oee_procent }}% OEE</span>
+            <span class="badge bg-secondary">{{ checklistaCountFor(item) }}/6</span>
+            <i class="fas" [class.fa-chevron-down]="expandedItemId !== item.id"
+               [class.fa-chevron-up]="expandedItemId === item.id"></i>
+          </div>
+        </div>
+
+        <!-- Expanderad detalj -->
+        <div *ngIf="expandedItemId === item.id && selectedDetail" class="expanded-detail p-3">
+          <div class="row g-3 mb-3">
+            <div class="col-6 col-md-3">
+              <div class="mini-stat">
+                <span class="mini-stat-label">Produktion</span>
+                <span class="mini-stat-value text-success">{{ selectedDetail.produktion_antal }} IBC</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="mini-stat">
+                <span class="mini-stat-label">OEE</span>
+                <span class="mini-stat-value text-info">{{ selectedDetail.oee_procent }}%</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="mini-stat">
+                <span class="mini-stat-label">Stopp</span>
+                <span class="mini-stat-value text-warning">{{ selectedDetail.stopp_antal }} ({{ selectedDetail.stopp_minuter }} min)</span>
+              </div>
+            </div>
+            <div class="col-6 col-md-3">
+              <div class="mini-stat">
+                <span class="mini-stat-label">Kassation</span>
+                <span class="mini-stat-value" [class.text-danger]="selectedDetail.kassation_procent > 3"
+                      [class.text-success]="selectedDetail.kassation_procent <= 3">{{ selectedDetail.kassation_procent }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="text-muted small mb-2">Checklista</h6>
+          <div class="row g-2 mb-3">
+            <div class="col-6 col-md-4">
+              <span [class.text-success]="selectedDetail.checklista_rengoring" [class.text-muted]="!selectedDetail.checklista_rengoring">
+                <i class="fas me-1" [class.fa-check-circle]="selectedDetail.checklista_rengoring" [class.fa-times-circle]="!selectedDetail.checklista_rengoring"></i>
+                Rengoring
+              </span>
+            </div>
+            <div class="col-6 col-md-4">
+              <span [class.text-success]="selectedDetail.checklista_verktyg" [class.text-muted]="!selectedDetail.checklista_verktyg">
+                <i class="fas me-1" [class.fa-check-circle]="selectedDetail.checklista_verktyg" [class.fa-times-circle]="!selectedDetail.checklista_verktyg"></i>
+                Verktyg
+              </span>
+            </div>
+            <div class="col-6 col-md-4">
+              <span [class.text-success]="selectedDetail.checklista_kemikalier" [class.text-muted]="!selectedDetail.checklista_kemikalier">
+                <i class="fas me-1" [class.fa-check-circle]="selectedDetail.checklista_kemikalier" [class.fa-times-circle]="!selectedDetail.checklista_kemikalier"></i>
+                Kemikalier
+              </span>
+            </div>
+            <div class="col-6 col-md-4">
+              <span [class.text-success]="selectedDetail.checklista_avvikelser" [class.text-muted]="!selectedDetail.checklista_avvikelser">
+                <i class="fas me-1" [class.fa-check-circle]="selectedDetail.checklista_avvikelser" [class.fa-times-circle]="!selectedDetail.checklista_avvikelser"></i>
+                Avvikelser
+              </span>
+            </div>
+            <div class="col-6 col-md-4">
+              <span [class.text-success]="selectedDetail.checklista_sakerhet" [class.text-muted]="!selectedDetail.checklista_sakerhet">
+                <i class="fas me-1" [class.fa-check-circle]="selectedDetail.checklista_sakerhet" [class.fa-times-circle]="!selectedDetail.checklista_sakerhet"></i>
+                Sakerhet
+              </span>
+            </div>
+            <div class="col-6 col-md-4">
+              <span [class.text-success]="selectedDetail.checklista_material" [class.text-muted]="!selectedDetail.checklista_material">
+                <i class="fas me-1" [class.fa-check-circle]="selectedDetail.checklista_material" [class.fa-times-circle]="!selectedDetail.checklista_material"></i>
+                Material
+              </span>
+            </div>
+          </div>
+
+          <div *ngIf="selectedDetail.kommentar_hande" class="mb-2">
+            <strong class="small text-warning">Vad hande:</strong>
+            <p class="small preformatted mb-1">{{ selectedDetail.kommentar_hande }}</p>
+          </div>
+          <div *ngIf="selectedDetail.kommentar_atgarda" class="mb-2">
+            <strong class="small text-danger">Atgardas:</strong>
+            <p class="small preformatted mb-1">{{ selectedDetail.kommentar_atgarda }}</p>
+          </div>
+          <div *ngIf="selectedDetail.kommentar_ovrigt" class="mb-2">
+            <strong class="small text-secondary">Ovrigt:</strong>
+            <p class="small preformatted mb-1">{{ selectedDetail.kommentar_ovrigt }}</p>
+          </div>
+
+          <div *ngIf="!selectedDetail.kommentar_hande && !selectedDetail.kommentar_atgarda && !selectedDetail.kommentar_ovrigt"
+               class="text-muted small">
+            Inga kommentarer for detta skift.
+          </div>
+
+          <div class="text-muted small mt-2">
+            <i class="fas fa-clock me-1"></i>Skapad: {{ formatDateTime(selectedDetail.skapad) }}
+          </div>
+        </div>
+
+        <hr class="m-0 border-secondary">
+      </div>
+    </div>
+    <div *ngIf="historikItems.length === 0" class="text-center text-muted py-4">
+      <i class="fas fa-clipboard fa-2x mb-2 d-block" style="opacity:0.3"></i>
+      Inga tidigare protokoll.
+    </div>
+  </div>
+
+</div>

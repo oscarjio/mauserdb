@@ -38,6 +38,7 @@ class SkiftoverlamningController {
         $this->pdo = $pdo;
         $this->ensureTable();
         $this->ensureNewColumns();
+        $this->ensureProtokollTable();
     }
 
     public function handle(): void {
@@ -56,6 +57,9 @@ class SkiftoverlamningController {
                 case 'oppna-problem':       $this->getOppnaProblem();      break;
                 case 'checklista':          $this->getChecklista();        break;
                 case 'historik':            $this->getHistorik();          break;
+                case 'skiftdata':           $this->getSkiftdata();         break;
+                case 'protokoll-historik':   $this->getProtokollHistorik(); break;
+                case 'protokoll-detalj':    $this->getProtokollDetalj();   break;
                 default:
                     $this->sendError('Okänd run-parameter', 404);
             }
@@ -68,6 +72,10 @@ class SkiftoverlamningController {
                 case 'skapa-overlamning':
                     $this->requireLogin();
                     $this->createHandover();
+                    break;
+                case 'spara':
+                    $this->requireLogin();
+                    $this->sparaProtokoll();
                     break;
                 default:
                     $this->sendError('Okänd run-parameter', 404);
@@ -957,10 +965,288 @@ class SkiftoverlamningController {
 
     private function skiftTypLabel(string $typ): string {
         switch ($typ) {
-            case 'dag':   return 'Dag (06–14)';
-            case 'kvall': return 'Kväll (14–22)';
-            case 'natt':  return 'Natt (22–06)';
+            case 'dag':   return 'Dag (06-14)';
+            case 'kvall': return 'Kvall (14-22)';
+            case 'natt':  return 'Natt (22-06)';
             default:      return $typ;
         }
+    }
+
+    // =========================================================================
+    // Rebotling skiftoverlamningsprotokoll (ny tabell: rebotling_skiftoverlamning)
+    // =========================================================================
+
+    private function ensureProtokollTable(): void {
+        try {
+            $check = $this->pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                   AND table_name = 'rebotling_skiftoverlamning'"
+            )->fetchColumn();
+            if (!$check) {
+                $sql = file_get_contents(__DIR__ . '/../migrations/2026-03-13_skiftoverlamning.sql');
+                if ($sql) {
+                    $this->pdo->exec($sql);
+                }
+            }
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController ensureProtokollTable: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * GET run=skiftdata
+     * Auto-hamta produktionsdata for aktuellt skift fran rebotling_ibc och rebotling_onoff
+     */
+    private function getSkiftdata(): void {
+        try {
+            $skiftTyp = $this->detectSkiftTyp();
+            $tider = $this->skiftTider($skiftTyp);
+
+            // IBC-data for aktuellt skift
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN ok = 1 THEN 1 ELSE 0 END) AS ok_antal,
+                    SUM(CASE WHEN ok = 0 THEN 1 ELSE 0 END) AS kasserade
+                FROM rebotling_ibc
+                WHERE datum BETWEEN :from_dt AND :to_dt
+            ");
+            $stmt->execute([':from_dt' => $tider['start'], ':to_dt' => $tider['slut']]);
+            $ibc = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            $total    = (int)($ibc['total'] ?? 0);
+            $okAntal  = (int)($ibc['ok_antal'] ?? 0);
+            $kasserade = (int)($ibc['kasserade'] ?? 0);
+            $kassationPct = $total > 0 ? round(($kasserade / $total) * 100, 2) : 0;
+
+            // Drifttid fran rebotling_onoff
+            $drifttidSek = 0;
+            try {
+                $dStmt = $this->pdo->prepare("
+                    SELECT COALESCE(SUM(
+                        TIMESTAMPDIFF(SECOND,
+                            GREATEST(start_time, :from1),
+                            LEAST(COALESCE(stop_time, NOW()), :to1)
+                        )
+                    ), 0) AS drifttid_sek
+                    FROM rebotling_onoff
+                    WHERE start_time < :to2
+                      AND (stop_time IS NULL OR stop_time > :from2)
+                ");
+                $dStmt->execute([
+                    ':from1' => $tider['start'], ':to1' => $tider['slut'],
+                    ':from2' => $tider['start'], ':to2' => $tider['slut'],
+                ]);
+                $drifttidSek = max(0, (int)($dStmt->fetchColumn() ?? 0));
+            } catch (\PDOException $e) {
+                error_log('getSkiftdata drifttid: ' . $e->getMessage());
+            }
+
+            // OEE-berakning
+            $planeradSek = 8 * 3600;
+            $tillganglighet = $planeradSek > 0 ? ($drifttidSek / $planeradSek) : 0;
+            $prestanda = $drifttidSek > 0 ? min(1.0, ($total * 120) / $drifttidSek) : 0;
+            $kvalitet = $total > 0 ? ($okAntal / $total) : 0;
+            $oee = round($tillganglighet * $prestanda * $kvalitet * 100, 2);
+
+            // Rakning av stopp (perioder dar linjen var av)
+            $stoppAntal = 0;
+            $stoppMinuter = 0;
+            try {
+                // Antal perioder som slutade under skiftet (= stopp)
+                $sStmt = $this->pdo->prepare("
+                    SELECT COUNT(*) AS antal,
+                           COALESCE(SUM(TIMESTAMPDIFF(MINUTE, stop_time, COALESCE(
+                               (SELECT MIN(o2.start_time) FROM rebotling_onoff o2 WHERE o2.start_time > rebotling_onoff.stop_time AND o2.start_time <= :to3),
+                               :to4
+                           ))), 0) AS minuter
+                    FROM rebotling_onoff
+                    WHERE stop_time BETWEEN :from3 AND :to5
+                ");
+                $sStmt->execute([
+                    ':from3' => $tider['start'],
+                    ':to3' => $tider['slut'],
+                    ':to4' => $tider['slut'],
+                    ':to5' => $tider['slut'],
+                ]);
+                $stoppRow = $sStmt->fetch(\PDO::FETCH_ASSOC);
+                $stoppAntal = (int)($stoppRow['antal'] ?? 0);
+                $stoppMinuter = max(0, (int)($stoppRow['minuter'] ?? 0));
+            } catch (\PDOException $e) {
+                // Enkel fallback: total schema minus drifttid
+                $stoppMinuter = max(0, round((($planeradSek - $drifttidSek) / 60)));
+            }
+
+            $this->sendSuccess([
+                'skift_datum'      => date('Y-m-d'),
+                'skift_typ'        => $skiftTyp,
+                'skift_typ_label'  => $this->skiftTypLabel($skiftTyp),
+                'skift_start'      => $tider['start'],
+                'skift_slut'       => $tider['slut'],
+                'produktion_antal' => $total,
+                'oee_procent'      => $oee,
+                'stopp_antal'      => $stoppAntal,
+                'stopp_minuter'    => $stoppMinuter,
+                'kassation_procent' => $kassationPct,
+            ]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getSkiftdata: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta skiftdata', 500);
+        }
+    }
+
+    /**
+     * POST run=spara
+     * Spara nytt skiftoverlamningsprotokoll i rebotling_skiftoverlamning
+     */
+    private function sparaProtokoll(): void {
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
+        $userId = $this->currentUserId();
+
+        $skiftDatum = $data['skift_datum'] ?? date('Y-m-d');
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $skiftDatum)) {
+            $skiftDatum = date('Y-m-d');
+        }
+
+        $skiftTyp = $data['skift_typ'] ?? '';
+        if (!in_array($skiftTyp, ['dag', 'kvall', 'natt'], true)) {
+            $skiftTyp = $this->detectSkiftTyp();
+        }
+
+        $produktionAntal  = max(0, (int)($data['produktion_antal'] ?? 0));
+        $oeeProcent       = max(0, min(100, round((float)($data['oee_procent'] ?? 0), 2)));
+        $stoppAntal       = max(0, (int)($data['stopp_antal'] ?? 0));
+        $stoppMinuter     = max(0, (int)($data['stopp_minuter'] ?? 0));
+        $kassationProcent = max(0, min(100, round((float)($data['kassation_procent'] ?? 0), 2)));
+
+        $checkRengoring   = !empty($data['checklista_rengoring']) ? 1 : 0;
+        $checkVerktyg     = !empty($data['checklista_verktyg']) ? 1 : 0;
+        $checkKemikalier  = !empty($data['checklista_kemikalier']) ? 1 : 0;
+        $checkAvvikelser  = !empty($data['checklista_avvikelser']) ? 1 : 0;
+        $checkSakerhet    = !empty($data['checklista_sakerhet']) ? 1 : 0;
+        $checkMaterial    = !empty($data['checklista_material']) ? 1 : 0;
+
+        $kommentarHande   = isset($data['kommentar_hande'])   ? strip_tags(trim(mb_substr($data['kommentar_hande'], 0, 5000)))   : null;
+        $kommentarAtgarda = isset($data['kommentar_atgarda']) ? strip_tags(trim(mb_substr($data['kommentar_atgarda'], 0, 5000))) : null;
+        $kommentarOvrigt  = isset($data['kommentar_ovrigt'])  ? strip_tags(trim(mb_substr($data['kommentar_ovrigt'], 0, 5000)))  : null;
+
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO rebotling_skiftoverlamning
+                    (skift_datum, skift_typ, operator_id,
+                     produktion_antal, oee_procent, stopp_antal, stopp_minuter, kassation_procent,
+                     checklista_rengoring, checklista_verktyg, checklista_kemikalier,
+                     checklista_avvikelser, checklista_sakerhet, checklista_material,
+                     kommentar_hande, kommentar_atgarda, kommentar_ovrigt, skapad)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            ");
+            $stmt->execute([
+                $skiftDatum, $skiftTyp, $userId,
+                $produktionAntal, $oeeProcent, $stoppAntal, $stoppMinuter, $kassationProcent,
+                $checkRengoring, $checkVerktyg, $checkKemikalier,
+                $checkAvvikelser, $checkSakerhet, $checkMaterial,
+                $kommentarHande ?: null, $kommentarAtgarda ?: null, $kommentarOvrigt ?: null,
+            ]);
+
+            $newId = (int)$this->pdo->lastInsertId();
+            $this->sendSuccess([
+                'id'      => $newId,
+                'message' => 'Skiftoverlamningsprotokoll sparat',
+            ]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController sparaProtokoll: ' . $e->getMessage());
+            $this->sendError('Kunde inte spara protokoll', 500);
+        }
+    }
+
+    /**
+     * GET run=protokoll-historik
+     * Lista senaste 10 skiftoverlamningsprotokoll fran rebotling_skiftoverlamning
+     */
+    private function getProtokollHistorik(): void {
+        try {
+            $limit = max(1, min(20, (int)($_GET['limit'] ?? 10)));
+
+            $stmt = $this->pdo->prepare("
+                SELECT s.*, COALESCE(u.username, CONCAT('Operator #', s.operator_id)) AS operator_namn
+                FROM rebotling_skiftoverlamning s
+                LEFT JOIN users u ON s.operator_id = u.id
+                ORDER BY s.skapad DESC
+                LIMIT :lim
+            ");
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $items = [];
+            foreach ($rows as $r) {
+                $items[] = $this->formatProtokollRow($r);
+            }
+
+            $this->sendSuccess(['items' => $items]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getProtokollHistorik: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta protokollhistorik', 500);
+        }
+    }
+
+    /**
+     * GET run=protokoll-detalj&id=N
+     * Hamta ett specifikt skiftoverlamningsprotokoll
+     */
+    private function getProtokollDetalj(): void {
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) {
+            $this->sendError('id kravs');
+            return;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT s.*, COALESCE(u.username, CONCAT('Operator #', s.operator_id)) AS operator_namn
+                FROM rebotling_skiftoverlamning s
+                LEFT JOIN users u ON s.operator_id = u.id
+                WHERE s.id = ?
+            ");
+            $stmt->execute([$id]);
+            $r = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+            if (!$r) {
+                $this->sendError('Protokoll hittades inte', 404);
+                return;
+            }
+
+            $this->sendSuccess(['item' => $this->formatProtokollRow($r)]);
+        } catch (\PDOException $e) {
+            error_log('SkiftoverlamningController getProtokollDetalj: ' . $e->getMessage());
+            $this->sendError('Kunde inte hamta protokoll', 500);
+        }
+    }
+
+    private function formatProtokollRow(array $r): array {
+        return [
+            'id'                    => (int)$r['id'],
+            'skift_datum'           => $r['skift_datum'],
+            'skift_typ'             => $r['skift_typ'],
+            'skift_typ_label'       => $this->skiftTypLabel($r['skift_typ']),
+            'operator_id'           => (int)($r['operator_id'] ?? 0),
+            'operator_namn'         => $r['operator_namn'] ?? '--',
+            'produktion_antal'      => (int)$r['produktion_antal'],
+            'oee_procent'           => (float)$r['oee_procent'],
+            'stopp_antal'           => (int)$r['stopp_antal'],
+            'stopp_minuter'         => (int)$r['stopp_minuter'],
+            'kassation_procent'     => (float)$r['kassation_procent'],
+            'checklista_rengoring'  => (bool)$r['checklista_rengoring'],
+            'checklista_verktyg'    => (bool)$r['checklista_verktyg'],
+            'checklista_kemikalier' => (bool)$r['checklista_kemikalier'],
+            'checklista_avvikelser' => (bool)$r['checklista_avvikelser'],
+            'checklista_sakerhet'   => (bool)$r['checklista_sakerhet'],
+            'checklista_material'   => (bool)$r['checklista_material'],
+            'kommentar_hande'       => $r['kommentar_hande'],
+            'kommentar_atgarda'     => $r['kommentar_atgarda'],
+            'kommentar_ovrigt'      => $r['kommentar_ovrigt'],
+            'skapad'                => $r['skapad'],
+        ];
     }
 }
