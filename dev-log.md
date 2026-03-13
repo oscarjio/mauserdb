@@ -1,3 +1,10 @@
+## 2026-03-13 Fix shift time display and day-after scenario for skiftrapporter
+
+- Backend `resolveSkiftTider()`: Removed restrictive date filter (DATE(datum) = ? OR DATE(datum) = ?) that could miss cycle data when report saved multiple days after shift. Now searches by skiftraknare only (unique enough).
+- Backend: Added `runtime_plc` fallback in both `getSkiftTider()` and `resolveSkiftTider()` — estimates start/stop from runtime when onoff and ibc cycle times are unavailable.
+- Frontend expanded view: Changed time display from HH:mm to full yyyy-MM-dd HH:mm (critical for day-after scenario). Added cykel_datum display with mismatch warning badge. Added inline drifttid + rasttid.
+- Frontend shift summary popup: Added missing time-row card with starttid, stopptid, drifttid, rasttid, and cykel_datum with date mismatch indicator.
+
 ## 2026-03-13 Critical backend bug fixes: rebotling_onoff + rebotling_ibc column mismatches
 
 ### Problem
