@@ -1,3 +1,28 @@
+## 2026-03-13 Rebotling trendanalys — automatisk trendidentifiering + VD-vy (session #90)
+
+Ny sida `/rebotling/rebotling-trendanalys` — VD-vy som pa 10 sekunder visar om trenden ar positiv eller negativ.
+
+- **Backend**: `classes/RebotlingTrendanalysController.php` (action=`rebotlingtrendanalys`)
+  - `run=trender` — Linjar regression senaste 30 dagar for OEE, produktion, kassation. Returnerar slope, nuvarande varde, 7d/30d medel, trend-riktning (up/down/stable), alert-niva (ok/warning/critical). Warning: slope < -0.5/dag, Critical: slope < -1/dag.
+  - `run=daglig-historik` — 90 dagars daglig historik med OEE, produktion, kassation + 7-dagars glidande medelvarden
+  - `run=veckosammanfattning` — 12 veckors sammanfattning: produktion, OEE, kassation per vecka + diff mot foregaende vecka, markering av basta/samsta vecka
+  - `run=anomalier` — dagar som avviker >2 standardavvikelser fran medel senaste 30d, fargkodade positiv/negativ
+  - `run=prognos` — linjar framskrivning 7 dagar framat baserat pa 14-dagars trend
+  - OEE: T=drifttid/planerad_tid, P=(antal*120s)/drifttid, K=godkanda/total
+  - Registrerad i api.php: `'rebotlingtrendanalys' => 'RebotlingTrendanalysController'`
+
+- **Frontend**: `pages/rebotling/rebotling-trendanalys/`
+  - Sektion 1: 3 stora trendkort (OEE/Produktion/Kassation) med stort tal, trendpil, slope/dag, 7d/30d medel, sparkline 14 dagar, pulserande alert-badge vid warning/critical
+  - Sektion 2: Huvudgraf — 90 dagars linjediagram med 3 togglebara dataset (OEE=bla, Produktion=gron, Kassation=rod), 7d MA-linje (streckad), trendlinje (linjar regression, mer streckad), prognos-zon 7 dagar framat (skuggad), periodselektor 30d/60d/90d
+  - Sektion 3: Veckosammanfattning 12 veckor — tabell med diff-pilar och basta/samsta-markering
+  - Sektion 4: Anomalier — fargkodade kort for avvikande dagar, visar varde vs medel + sigma-avvikelse
+  - Auto-polling var 60s, full OnDestroy-cleanup (destroy$, clearInterval, chart.destroy())
+  - Service: `services/rebotling-trendanalys.service.ts`
+  - Route: `/rebotling/rebotling-trendanalys` (authGuard)
+  - Navigation: tillagd i Rebotling-dropdown i menu.html
+
+---
+
 ## 2026-03-13 Produktions-dashboard ("Command Center") — samlad overblick pa EN skarm for VD
 
 Ny sida `/rebotling/produktions-dashboard` — VD-vy med hela produktionslaget pa en skarm, auto-refresh var 30s.
