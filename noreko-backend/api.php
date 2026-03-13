@@ -199,6 +199,8 @@ $classNameMap = [
     'kassationsorsak-per-station'  => 'KassationsorsakPerStationController',
     'oee-jamforelse'               => 'OeeJamforelseController',
     'maskin-drifttid'               => 'MaskinDrifttidController',
+    'maskinhistorik'                => 'MaskinhistorikController',
+    'kassationskvotalarm'           => 'KassationskvotAlarmController',
 ];
 
 $actionKey = strtolower($action);

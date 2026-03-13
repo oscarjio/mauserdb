@@ -1,0 +1,360 @@
+<div class="container-fluid py-4">
+
+  <!-- Rubrik -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Kassationskvot-alarm
+    </h2>
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-muted small">
+        <i class="fas fa-sync-alt me-1"></i>Uppdateras var 60:e sekund
+      </span>
+      <button class="btn btn-sm btn-outline-info" (click)="laddaAll()">
+        <i class="fas fa-refresh me-1"></i>Uppdatera nu
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- KPI-KORT: Aktuell kassationskvot                             -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4">
+    <ng-container *ngIf="!loadingAktuell && aktuellData; else laddaKpiBlock">
+
+      <!-- Senaste timmen -->
+      <div class="col-12 col-md-4">
+        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.senaste_timme.farg)">
+          <div class="kpi-icon">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="kpi-label">Senaste timmen</div>
+          <div class="kpi-value">{{ aktuellData.senaste_timme.kvot_pct | number:'1.1-2' }}%</div>
+          <div class="kpi-sub">
+            {{ aktuellData.senaste_timme.kasserade }} kasserade / {{ aktuellData.senaste_timme.totalt }} totalt
+          </div>
+          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.senaste_timme.farg)">
+            <span *ngIf="aktuellData.senaste_timme.farg === 'rod'" class="pulse-rod">ALARM</span>
+            <span *ngIf="aktuellData.senaste_timme.farg === 'gul'" class="pulse-gul">VARNING</span>
+            <span *ngIf="aktuellData.senaste_timme.farg === 'gron'">OK</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Aktuellt skift -->
+      <div class="col-12 col-md-4">
+        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.aktuellt_skift.farg)">
+          <div class="kpi-icon">
+            <i class="fas fa-user-clock"></i>
+          </div>
+          <div class="kpi-label">Aktuellt skift</div>
+          <div class="kpi-value">{{ aktuellData.aktuellt_skift.kvot_pct | number:'1.1-2' }}%</div>
+          <div class="kpi-sub">
+            {{ skiftNamn[aktuellData.aktuellt_skift.skift_namn] || aktuellData.aktuellt_skift.skift_namn }}
+          </div>
+          <div class="kpi-sub text-muted small">
+            {{ aktuellData.aktuellt_skift.kasserade }} kasserade / {{ aktuellData.aktuellt_skift.totalt }} totalt
+          </div>
+          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.aktuellt_skift.farg)">
+            <span *ngIf="aktuellData.aktuellt_skift.farg === 'rod'" class="pulse-rod">ALARM</span>
+            <span *ngIf="aktuellData.aktuellt_skift.farg === 'gul'" class="pulse-gul">VARNING</span>
+            <span *ngIf="aktuellData.aktuellt_skift.farg === 'gron'">OK</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Idag -->
+      <div class="col-12 col-md-4">
+        <div class="kpi-card" [ngClass]="fargKlass(aktuellData.idag.farg)">
+          <div class="kpi-icon">
+            <i class="fas fa-calendar-day"></i>
+          </div>
+          <div class="kpi-label">Idag</div>
+          <div class="kpi-value">{{ aktuellData.idag.kvot_pct | number:'1.1-2' }}%</div>
+          <div class="kpi-sub">
+            {{ aktuellData.idag.kasserade }} kasserade / {{ aktuellData.idag.totalt }} totalt
+          </div>
+          <div class="kpi-status-dot" [ngClass]="fargKlass(aktuellData.idag.farg)">
+            <span *ngIf="aktuellData.idag.farg === 'rod'" class="pulse-rod">ALARM</span>
+            <span *ngIf="aktuellData.idag.farg === 'gul'" class="pulse-gul">VARNING</span>
+            <span *ngIf="aktuellData.idag.farg === 'gron'">OK</span>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+    <ng-template #laddaKpiBlock>
+      <div class="col-12">
+        <div class="card-dark text-center py-4" *ngIf="loadingAktuell">
+          <i class="fas fa-spinner fa-spin me-2 text-info"></i>Laddar aktuell kvot…
+        </div>
+        <div class="alert alert-danger" *ngIf="errorAktuell">
+          <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda aktuell kassationskvot.
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Tröskelinst + Trend-graf (rad)                               -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Kassationstrend 24h -->
+    <div class="col-12 col-lg-8">
+      <div class="card-dark">
+        <div class="card-dark-header">
+          <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Kassationskvot per timme — senaste 24h
+        </div>
+        <div class="card-dark-body">
+          <div *ngIf="loadingTrend" class="text-center py-3">
+            <i class="fas fa-spinner fa-spin text-info me-2"></i>Laddar…
+          </div>
+          <div *ngIf="errorTrend" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda trend.
+          </div>
+          <div *ngIf="!loadingTrend && trendData" style="height:280px; position:relative">
+            <canvas id="kassationsTrendChart"></canvas>
+          </div>
+          <div *ngIf="!loadingTrend && trendData && trendData.trend.length === 0" class="text-center text-muted py-3">
+            Ingen data senaste 24h
+          </div>
+          <!-- Troskelfargforklaring -->
+          <div *ngIf="trendData" class="d-flex gap-3 mt-2 justify-content-center small">
+            <span><span class="legend-dot gron-dot"></span>Under varning (&lt;{{ trendData.troskel.varning_procent }}%)</span>
+            <span><span class="legend-dot gul-dot"></span>Varning ({{ trendData.troskel.varning_procent }}–{{ trendData.troskel.alarm_procent }}%)</span>
+            <span><span class="legend-dot rod-dot"></span>Alarm (&gt;{{ trendData.troskel.alarm_procent }}%)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Troskelinst -->
+    <div class="col-12 col-lg-4">
+      <div class="card-dark h-100">
+        <div class="card-dark-header">
+          <i class="fas fa-sliders-h me-2" style="color:#ecc94b"></i>Troskelinstallning
+        </div>
+        <div class="card-dark-body">
+          <ng-container *ngIf="aktuellData">
+            <div class="mb-3 p-2 rounded" style="background:#1a202c">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="text-muted small">Nuvarande varning:</span>
+                <span class="text-warning fw-bold">{{ aktuellData.troskel.varning_procent }}%</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted small">Nuvarande alarm:</span>
+                <span class="text-danger fw-bold">{{ aktuellData.troskel.alarm_procent }}%</span>
+              </div>
+            </div>
+          </ng-container>
+          <form (ngSubmit)="sparaTroskel()" novalidate>
+            <div class="mb-2">
+              <label class="form-label small text-warning" for="varningTroskel">
+                <i class="fas fa-exclamation-circle me-1"></i>Varning (%)
+              </label>
+              <input type="number" id="varningTroskel" class="form-control form-control-sm"
+                     [(ngModel)]="troskelForm.varning" name="varning"
+                     min="0.1" max="99" step="0.5" required />
+              <small class="text-muted">Gul varning – standard 3%</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-danger" for="alarmTroskel">
+                <i class="fas fa-bell me-1"></i>Alarm (%)
+              </label>
+              <input type="number" id="alarmTroskel" class="form-control form-control-sm"
+                     [(ngModel)]="troskelForm.alarm" name="alarm"
+                     min="0.1" max="99" step="0.5" required />
+              <small class="text-muted">Rod alarm – standard 5%</small>
+            </div>
+            <div class="alert alert-success py-1 px-2 mb-2 small" *ngIf="sparaTroskelMeddelande">
+              <i class="fas fa-check me-1"></i>{{ sparaTroskelMeddelande }}
+            </div>
+            <div class="alert alert-danger py-1 px-2 mb-2 small" *ngIf="sparaTroskelFel">
+              <i class="fas fa-times me-1"></i>{{ sparaTroskelFel }}
+            </div>
+            <button class="btn btn-sm btn-warning w-100" type="submit" [disabled]="sparaTroskelLoading">
+              <i class="fas fa-save me-1"></i>{{ sparaTroskelLoading ? 'Sparar…' : 'Spara troskelvarden' }}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Per-skift-vy: senaste 7 dagar                                -->
+  <!-- ============================================================ -->
+  <div class="card-dark mb-4">
+    <div class="card-dark-header">
+      <i class="fas fa-table me-2" style="color:#9f7aea"></i>Kassationskvot per skift — senaste 7 dagarna
+    </div>
+    <div class="card-dark-body">
+      <div *ngIf="loadingPerSkift" class="text-center py-3">
+        <i class="fas fa-spinner fa-spin text-info me-2"></i>Laddar…
+      </div>
+      <div *ngIf="errorPerSkift" class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda per-skift-data.
+      </div>
+      <ng-container *ngIf="!loadingPerSkift && perSkiftData">
+        <div class="table-responsive">
+          <table class="table table-dark table-hover table-sm mb-0">
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th class="text-center" style="color:#f6ad55">
+                  <i class="fas fa-sun me-1"></i>Dag (06-14)
+                </th>
+                <th class="text-center" style="color:#63b3ed">
+                  <i class="fas fa-cloud-moon me-1"></i>Kvall (14-22)
+                </th>
+                <th class="text-center" style="color:#9f7aea">
+                  <i class="fas fa-moon me-1"></i>Natt (22-06)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let dag of perSkiftData.dagar">
+                <td class="text-light">{{ dag.datum }}</td>
+                <td class="text-center">
+                  <ng-container *ngIf="dag.dag; else ingenData">
+                    <span class="kvot-badge" [ngClass]="'kvot-' + dag.dag.farg">
+                      {{ dag.dag.kvot_pct | number:'1.1-2' }}%
+                    </span>
+                    <div class="text-muted" style="font-size:0.7rem">{{ dag.dag.kasserade }}/{{ dag.dag.totalt }}</div>
+                  </ng-container>
+                </td>
+                <td class="text-center">
+                  <ng-container *ngIf="dag.kvall; else ingenData">
+                    <span class="kvot-badge" [ngClass]="'kvot-' + dag.kvall.farg">
+                      {{ dag.kvall.kvot_pct | number:'1.1-2' }}%
+                    </span>
+                    <div class="text-muted" style="font-size:0.7rem">{{ dag.kvall.kasserade }}/{{ dag.kvall.totalt }}</div>
+                  </ng-container>
+                </td>
+                <td class="text-center">
+                  <ng-container *ngIf="dag.natt; else ingenData">
+                    <span class="kvot-badge" [ngClass]="'kvot-' + dag.natt.farg">
+                      {{ dag.natt.kvot_pct | number:'1.1-2' }}%
+                    </span>
+                    <div class="text-muted" style="font-size:0.7rem">{{ dag.natt.kasserade }}/{{ dag.natt.totalt }}</div>
+                  </ng-container>
+                </td>
+              </tr>
+              <tr *ngIf="perSkiftData.dagar.length === 0">
+                <td colspan="4" class="text-center text-muted">Ingen data de senaste 7 dagarna</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #ingenData>
+          <span class="text-muted">—</span>
+        </ng-template>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- Alarm-historik + Top kassationsorsaker (rad)                 -->
+  <!-- ============================================================ -->
+  <div class="row g-3 mb-4">
+
+    <!-- Alarm-historik -->
+    <div class="col-12 col-lg-7">
+      <div class="card-dark h-100">
+        <div class="card-dark-header">
+          <i class="fas fa-history me-2" style="color:#fc8181"></i>Alarm-historik — senaste 30 dagarna
+          <span class="badge bg-danger ms-2" *ngIf="historikData && historikData.antal > 0">
+            {{ historikData.antal }}
+          </span>
+        </div>
+        <div class="card-dark-body">
+          <div *ngIf="loadingHistorik" class="text-center py-3">
+            <i class="fas fa-spinner fa-spin text-info me-2"></i>Laddar…
+          </div>
+          <div *ngIf="errorHistorik" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda alarm-historik.
+          </div>
+          <ng-container *ngIf="!loadingHistorik && historikData">
+            <div *ngIf="historikData.historik.length === 0" class="text-center text-success py-3">
+              <i class="fas fa-check-circle me-2"></i>Inga alarm senaste 30 dagarna
+            </div>
+            <div class="table-responsive" *ngIf="historikData.historik.length > 0">
+              <table class="table table-dark table-hover table-sm mb-0">
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Skift</th>
+                    <th class="text-end">Kvot</th>
+                    <th class="text-end">Kasserade</th>
+                    <th class="text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let h of historikData.historik">
+                    <td class="text-light">{{ h.datum }}</td>
+                    <td>
+                      <span [style.color]="skiftFarg(h.skift_namn)">
+                        <i class="fas fa-circle me-1" style="font-size:0.6rem"></i>
+                        {{ skiftNamn[h.skift_namn] || h.skift_namn }}
+                      </span>
+                    </td>
+                    <td class="text-end fw-bold" [ngClass]="h.status === 'alarm' ? 'text-danger' : 'text-warning'">
+                      {{ h.kvot_pct | number:'1.1-2' }}%
+                    </td>
+                    <td class="text-end text-muted">{{ h.kasserade }}/{{ h.totalt }}</td>
+                    <td class="text-center">
+                      <span class="badge" [ngClass]="statusBadge(h.status)">
+                        {{ statusText(h.status) }}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top kassationsorsaker vid alarm -->
+    <div class="col-12 col-lg-5">
+      <div class="card-dark h-100">
+        <div class="card-dark-header">
+          <i class="fas fa-list-ol me-2" style="color:#f6ad55"></i>Top-5 kassationsorsaker vid alarm
+        </div>
+        <div class="card-dark-body">
+          <div *ngIf="loadingOrsaker" class="text-center py-3">
+            <i class="fas fa-spinner fa-spin text-info me-2"></i>Laddar…
+          </div>
+          <div *ngIf="errorOrsaker" class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>Kunde inte ladda orsaker.
+          </div>
+          <ng-container *ngIf="!loadingOrsaker && orsakerData">
+            <div *ngIf="orsakerData.orsaker.length === 0" class="text-center text-muted py-3">
+              Inga kassationsorsaker vid alarm-perioder
+            </div>
+            <ng-container *ngIf="orsakerData.orsaker.length > 0">
+              <div class="mb-2 text-muted small">
+                Baserat pa {{ orsakerData.alarm_skift_antal }} skift med overskridna troskelvarden
+              </div>
+              <div *ngFor="let o of orsakerData.orsaker; let i = index" class="orsak-row mb-2">
+                <div class="d-flex justify-content-between mb-1">
+                  <span class="text-light">
+                    <span class="badge bg-secondary me-2">{{ i + 1 }}</span>{{ o.orsak }}
+                  </span>
+                  <span class="text-warning fw-bold">{{ o.antal }}</span>
+                </div>
+                <div class="progress" style="height:6px">
+                  <div class="progress-bar bg-warning"
+                       [style.width.%]="orsakBredd(o.antal)"
+                       role="progressbar"></div>
+                </div>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

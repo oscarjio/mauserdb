@@ -1,0 +1,213 @@
+// Kassationskvot-alarm — Dark theme styles
+
+// ================================================================
+// KPI-KORT
+// ================================================================
+.kpi-card {
+  background: #2d3748;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease;
+  position: relative;
+  overflow: hidden;
+
+  &.kpi-gron {
+    border-color: #68d391;
+  }
+  &.kpi-gul {
+    border-color: #f6ad55;
+  }
+  &.kpi-rod {
+    border-color: #fc8181;
+    animation: alarmPulse 2s infinite;
+  }
+}
+
+@keyframes alarmPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(252, 129, 129, 0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(252, 129, 129, 0); }
+}
+
+.kpi-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+  color: #a0aec0;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.3rem;
+}
+
+.kpi-value {
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  line-height: 1.1;
+  margin-bottom: 0.3rem;
+}
+
+.kpi-sub {
+  color: #a0aec0;
+  font-size: 0.82rem;
+  margin-bottom: 0.4rem;
+}
+
+.kpi-status-dot {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-top: 0.5rem;
+
+  &.kpi-gron { color: #68d391; }
+  &.kpi-gul  { color: #f6ad55; }
+  &.kpi-rod  { color: #fc8181; }
+}
+
+.pulse-rod {
+  animation: textPulse 1s infinite;
+}
+@keyframes textPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.pulse-gul {
+  animation: textPulse 1.5s infinite;
+}
+
+// ================================================================
+// CARD-DARK (gemensamt med resten av appen)
+// ================================================================
+.card-dark {
+  background: #2d3748;
+  border-radius: 8px;
+  color: #e2e8f0;
+}
+
+.card-dark-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+}
+
+.card-dark-body {
+  padding: 1rem;
+}
+
+// ================================================================
+// KVOT-BADGE
+// ================================================================
+.kvot-badge {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+
+  &.kvot-gron {
+    background: rgba(104, 211, 145, 0.15);
+    color: #68d391;
+  }
+  &.kvot-gul {
+    background: rgba(246, 173, 85, 0.15);
+    color: #f6ad55;
+  }
+  &.kvot-rod {
+    background: rgba(252, 129, 129, 0.15);
+    color: #fc8181;
+  }
+}
+
+// ================================================================
+// STATUS-BADGE (alarm-historik)
+// ================================================================
+.badge-rod {
+  background-color: #fc8181 !important;
+  color: #1a202c !important;
+}
+
+.badge-gul {
+  background-color: #f6ad55 !important;
+  color: #1a202c !important;
+}
+
+// ================================================================
+// LEGEND-DOTS (trend-graf)
+// ================================================================
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+
+  &.gron-dot { background: #68d391; }
+  &.gul-dot  { background: #f6ad55; }
+  &.rod-dot  { background: #fc8181; }
+}
+
+// ================================================================
+// ORSAK-RADER
+// ================================================================
+.orsak-row {
+  .progress {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+}
+
+// ================================================================
+// TABELLER
+// ================================================================
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-color: #e2e8f0;
+  --bs-table-hover-bg: rgba(255, 255, 255, 0.05);
+  --bs-table-border-color: rgba(255, 255, 255, 0.08);
+
+  thead th {
+    color: #a0aec0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  td {
+    font-size: 0.88rem;
+    vertical-align: middle;
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+}
+
+// ================================================================
+// FORMULARKONTROLLER
+// ================================================================
+.form-control {
+  background: #1a202c;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+
+  &:focus {
+    background: #1a202c;
+    border-color: #4299e1;
+    color: #e2e8f0;
+    box-shadow: 0 0 0 0.2rem rgba(66, 153, 225, 0.25);
+  }
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}

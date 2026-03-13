@@ -1,3 +1,38 @@
+## 2026-03-13 Kassationskvot-alarm — automatisk overvakning och varning
+
+Ny sida `/rebotling/kassationskvot-alarm` — overvakar kassationsgraden i realtid och larmar nar troskelvarden overskrids.
+
+- **Backend**: `classes/KassationskvotAlarmController.php` (action=`kassationskvotalarm`)
+  - `run=aktuell-kvot` — kassationsgrad senaste timmen, aktuellt skift, idag med fargkodning (gron/gul/rod)
+  - `run=alarm-historik` — alla skiftraknare senaste 30 dagar dar kvoten oversteg troskeln
+  - `run=troskel-hamta` — hamta nuvarande installningar
+  - `run=troskel-spara` (POST) — spara nya troskelvarden
+  - `run=timvis-trend` — kassationskvot per timme senaste 24h
+  - `run=per-skift` — kassationsgrad per skift senaste 7 dagar
+  - `run=top-orsaker` — top-5 kassationsorsaker vid alarm-perioder
+  - Anvander rebotling_ibc + kassationsregistrering + kassationsorsak_typer
+  - Skiftdefinitioner: Dag 06-14, Kvall 14-22, Natt 22-06
+
+- **Migration**: `migrations/2026-03-13_kassationsalarminst.sql`
+  - Ny tabell `rebotling_kassationsalarminst` (id, varning_procent, alarm_procent, skapad_av, skapad_datum)
+  - Standardinstallning: varning 3%, alarm 5%
+
+- **Service**: `services/kassationskvot-alarm.service.ts`
+  - 7 metoder: getAktuellKvot, getAlarmHistorik, getTroskel, sparaTroskel, getTimvisTrend, getPerSkift, getTopOrsaker
+
+- **Frontend**: `pages/rebotling/kassationskvot-alarm/`
+  - 3 KPI-kort (senaste timmen / aktuellt skift / idag) med pulsande rod-animation vid alarm
+  - Kassationstrend-graf (Chart.js) — linjekvot per timme 24h med horisontella trosklar
+  - Troskelinst — formularet sparar nya varning/alarm-procent (POST)
+  - Per-skift-tabell: dag/kvall/natt senaste 7 dagarna med fargkodade kvot-badges
+  - Alarm-historik: tabell med alla skift som overskridit troskel (status ALARM/VARNING)
+  - Top-5 kassationsorsaker vid alarm-perioder (staplar)
+  - Auto-polling var 60:e sekund med isFetching-guard per endpoint
+  - OnInit/OnDestroy + destroy$ + takeUntil + chart?.destroy()
+
+- **Route**: `/rebotling/kassationskvot-alarm` med authGuard
+- **Navigation**: Tillagd sist i Rebotling-dropdown (fore admin-divider)
+
 ## 2026-03-13 Skiftrapport-sammanstallning — daglig rapport per skift
 
 Ny sida `/rebotling/skiftrapport-sammanstallning` — automatisk daglig rapport per skift (Dag/Kvall/Natt) med produktion, kassation, OEE, stopptid.
