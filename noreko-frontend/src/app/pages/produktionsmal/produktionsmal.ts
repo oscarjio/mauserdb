@@ -1,15 +1,16 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 
 import {
   ProduktionsmalService,
-  SummaryData,
-  DailyData,
-  DailyRow,
+  ProgressData,
+  MalHistorikRad,
 } from '../../services/produktionsmal.service';
+import { PdfExportButtonComponent } from '../../components/pdf-export-button/pdf-export-button.component';
 
 Chart.register(...registerables);
 
@@ -18,46 +19,44 @@ Chart.register(...registerables);
   selector: 'app-produktionsmal',
   templateUrl: './produktionsmal.html',
   styleUrls: ['./produktionsmal.css'],
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule, PdfExportButtonComponent],
 })
 export class ProduktionsmalComponent implements OnInit, OnDestroy {
   Math = Math;
 
-  // ---- Perioder ----
-  selectedDays: 7 | 14 | 30 | 90 = 30;
-  perioder: { val: 7 | 14 | 30 | 90; label: string }[] = [
-    { val: 7,  label: '7 dagar'  },
-    { val: 14, label: '14 dagar' },
-    { val: 30, label: '30 dagar' },
-    { val: 90, label: '90 dagar' },
-  ];
-
   // ---- Laddningsstate ----
-  summaryLoading = false;
-  summaryLoaded  = false;
-  summaryError   = false;
-  dailyLoading   = false;
-  dailyLoaded    = false;
-  dailyError     = false;
+  progressLoading = false;
+  progressError = false;
+  historikLoading = false;
+  historikError = false;
+  sparLoading = false;
+  sparMeddelande = '';
+  sparFel = '';
 
   // ---- Data ----
-  summaryData: SummaryData | null = null;
-  dailyData: DailyData | null     = null;
+  progress: ProgressData | null = null;
+  historik: MalHistorikRad[] = [];
 
-  lastRefreshed: Date | null = null;
+  // ---- Formularet ----
+  formTyp: 'vecka' | 'manad' = 'vecka';
+  formAntal: number | null = null;
+  formStartdatum = '';
 
-  private destroy$    = new Subject<void>();
-  private kumChart: Chart | null = null;
+  // ---- Charts ----
+  private doughnutChart: Chart | null = null;
+  private barChart: Chart | null = null;
+  private destroy$ = new Subject<void>();
   private chartTimer: ReturnType<typeof setTimeout> | null = null;
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private service: ProduktionsmalService) {}
 
   ngOnInit(): void {
-    this.loadAll();
+    this.formStartdatum = this.todayStr();
+    this.laddaAllt();
     // Auto-refresh var 5:e minut
     this.refreshTimer = setInterval(() => {
-      if (!this.destroy$.closed) this.loadAll();
+      if (!this.destroy$.closed) this.laddaAllt();
     }, 300000);
   }
 
@@ -66,120 +65,203 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
-    this.destroyChart();
+    this.destroyCharts();
   }
 
-  private destroyChart(): void {
-    try { this.kumChart?.destroy(); } catch (_) {}
-    this.kumChart = null;
+  private destroyCharts(): void {
+    try { this.doughnutChart?.destroy(); } catch (_) {}
+    try { this.barChart?.destroy(); } catch (_) {}
+    this.doughnutChart = null;
+    this.barChart = null;
   }
 
   // ================================================================
-  // DATA LOADING
+  // DATA
   // ================================================================
 
-  setPeriod(days: 7 | 14 | 30 | 90): void {
-    if (this.selectedDays === days) return;
-    this.selectedDays = days;
-    this.dailyLoaded  = false;
-    this.dailyData    = null;
-    this.loadDaily();
+  private laddaAllt(): void {
+    this.laddaProgress();
+    this.laddaHistorik();
   }
 
-  private loadAll(): void {
-    this.loadSummary();
-    this.loadDaily();
-  }
-
-  private loadSummary(): void {
-    if (this.summaryLoading) return;
-    this.summaryLoading = true;
-    this.summaryError   = false;
-
-    this.service.getSummary()
+  laddaProgress(): void {
+    this.progressLoading = true;
+    this.progressError = false;
+    this.service.getProgress()
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
-        this.summaryLoading = false;
-        this.summaryLoaded  = true;
+        this.progressLoading = false;
         if (res?.success) {
-          this.summaryData  = res.data;
-          this.summaryError = false;
-        } else {
-          this.summaryData  = null;
-          this.summaryError = true;
-        }
-        this.lastRefreshed = new Date();
-      });
-  }
-
-  private loadDaily(): void {
-    if (this.dailyLoading) return;
-    this.dailyLoading = true;
-    this.dailyError   = false;
-
-    this.service.getDaily(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.dailyLoading = false;
-        this.dailyLoaded  = true;
-        if (res?.success) {
-          this.dailyData  = res.data;
-          this.dailyError = false;
+          this.progress = res.data;
           if (this.chartTimer) clearTimeout(this.chartTimer);
           this.chartTimer = setTimeout(() => {
-            if (!this.destroy$.closed) this.renderKumChart();
-          }, 150);
+            if (!this.destroy$.closed) {
+              this.renderDoughnut();
+              this.renderBarChart();
+            }
+          }, 100);
         } else {
-          this.dailyData  = null;
-          this.dailyError = true;
+          this.progress = null;
+          this.progressError = true;
+        }
+      });
+  }
+
+  laddaHistorik(): void {
+    this.historikLoading = true;
+    this.historikError = false;
+    this.service.getMalHistorik(12)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.historikLoading = false;
+        if (res?.success) {
+          this.historik = res.data.historik;
+        } else {
+          this.historik = [];
+          this.historikError = true;
+        }
+      });
+  }
+
+  sparaMal(): void {
+    if (!this.formAntal || this.formAntal <= 0 || !this.formStartdatum) {
+      this.sparFel = 'Fyll i alla falt korrekt.';
+      return;
+    }
+    this.sparLoading = true;
+    this.sparFel = '';
+    this.sparMeddelande = '';
+
+    this.service.sattMal(this.formTyp, this.formAntal, this.formStartdatum)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(res => {
+        this.sparLoading = false;
+        if (res?.success) {
+          this.sparMeddelande = 'Malet sparades!';
+          this.sparFel = '';
+          this.laddaAllt();
+        } else {
+          this.sparFel = res?.error || 'Kunde inte spara malet.';
         }
       });
   }
 
   // ================================================================
-  // CHART: Kumulativ måluppfyllnad
+  // CHARTS
   // ================================================================
 
-  private renderKumChart(): void {
-    this.destroyChart();
+  private renderDoughnut(): void {
+    try { this.doughnutChart?.destroy(); } catch (_) {}
+    this.doughnutChart = null;
 
-    const canvas = document.getElementById('kumMalChart') as HTMLCanvasElement;
-    if (!canvas || !this.dailyData) return;
+    const canvas = document.getElementById('progressDoughnut') as HTMLCanvasElement;
+    if (!canvas || !this.progress?.har_mal) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    const { daily } = this.dailyData;
+    const producerat = this.progress.producerat;
+    const mal = this.progress.mal?.mal_antal || 1;
+    const aterstaar = Math.max(0, mal - producerat);
+    const procent = this.progress.procent;
 
-    // Filtrera bort dagar utan mål (t.ex. helger med mål=0)
-    const labels    = daily.map(r => this.formatDatumKort(r.datum));
-    const kumMal    = daily.map(r => r.kum_mal);
-    const kumFakt   = daily.map(r => r.kum_faktiskt);
+    const mainColor = procent >= 90 ? '#48bb78' : procent >= 70 ? '#ecc94b' : '#fc5c65';
 
-    this.kumChart = new Chart(canvas, {
-      type: 'line',
+    this.doughnutChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Producerat', 'Aterstar'],
+        datasets: [{
+          data: [Math.min(producerat, mal), aterstaar],
+          backgroundColor: [mainColor, '#4a5568'],
+          borderColor: ['transparent', 'transparent'],
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '75%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#2d3748',
+            titleColor: '#e2e8f0',
+            bodyColor: '#a0aec0',
+            callbacks: {
+              label: (item: any) => {
+                const val = item.raw as number;
+                return ` ${item.label}: ${val.toLocaleString('sv-SE')} IBC`;
+              },
+            },
+          },
+        },
+      } as any,
+      plugins: [{
+        id: 'centerText',
+        afterDraw(chart: Chart) {
+          const { ctx: c, width, height } = chart;
+          if (!c) return;
+          c.save();
+          c.textAlign = 'center';
+          c.textBaseline = 'middle';
+          const cx = width / 2;
+          const cy = height / 2;
+          c.fillStyle = mainColor;
+          c.font = 'bold 2.5rem system-ui';
+          c.fillText(`${procent}%`, cx, cy - 10);
+          c.fillStyle = '#a0aec0';
+          c.font = '0.85rem system-ui';
+          c.fillText(`${producerat.toLocaleString('sv-SE')} / ${mal.toLocaleString('sv-SE')}`, cx, cy + 20);
+          c.restore();
+        },
+      }],
+    });
+  }
+
+  private renderBarChart(): void {
+    try { this.barChart?.destroy(); } catch (_) {}
+    this.barChart = null;
+
+    const canvas = document.getElementById('dagligBarChart') as HTMLCanvasElement;
+    if (!canvas || !this.progress?.har_mal || !this.progress.daglig_produktion?.length) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const daglig = this.progress.daglig_produktion;
+    const malPerDag = this.progress.mal_per_dag;
+
+    const labels = daglig.map(d => {
+      const dt = new Date(d.datum);
+      return dt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'numeric' });
+    });
+    const values = daglig.map(d => d.antal);
+    const malLine = daglig.map(() => malPerDag);
+
+    const barColors = values.map(v => v >= malPerDag ? '#48bb78' : '#fc8181');
+
+    this.barChart = new Chart(ctx, {
+      type: 'bar',
       data: {
         labels,
         datasets: [
           {
-            label: 'Kumulativt mal',
-            data: kumMal,
-            borderColor: '#a0aec0',
-            backgroundColor: 'transparent',
-            fill: false,
-            tension: 0.1,
-            pointRadius: 0,
-            borderWidth: 2,
-            borderDash: [8, 4],
+            label: 'Produktion',
+            data: values,
+            backgroundColor: barColors,
+            borderRadius: 4,
+            barPercentage: 0.7,
           },
           {
-            label: 'Kumulativ produktion',
-            data: kumFakt,
-            borderColor: '#48bb78',
-            backgroundColor: 'rgba(72,187,120,0.10)',
-            fill: true,
-            tension: 0.2,
-            pointRadius: 2,
-            pointBackgroundColor: '#48bb78',
-            borderWidth: 2.5,
-          },
+            label: `Mal/dag (${malPerDag})`,
+            data: malLine,
+            type: 'line',
+            borderColor: '#f6ad55',
+            borderWidth: 2,
+            borderDash: [6, 3],
+            pointRadius: 0,
+            fill: false,
+            tension: 0,
+          } as any,
         ],
       },
       options: {
@@ -188,7 +270,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
-            labels: { color: '#a0aec0', font: { size: 12 }, usePointStyle: true },
+            labels: { color: '#a0aec0', font: { size: 11 }, usePointStyle: true },
           },
           tooltip: {
             backgroundColor: '#2d3748',
@@ -197,22 +279,16 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
             borderColor: '#4a5568',
             borderWidth: 1,
             callbacks: {
-              label: ctx => {
-                const v = ctx.parsed.y;
-                if (v === null || v === undefined) return '';
-                return ` ${ctx.dataset.label}: ${v.toLocaleString('sv-SE')} IBC`;
+              label: (item) => {
+                const v = item.raw as number;
+                return ` ${item.dataset.label}: ${v.toLocaleString('sv-SE')} IBC`;
               },
             },
           },
         },
         scales: {
           x: {
-            ticks: {
-              color: '#a0aec0',
-              font: { size: 10 },
-              maxTicksLimit: 15,
-              maxRotation: 45,
-            },
+            ticks: { color: '#a0aec0', font: { size: 10 }, maxRotation: 45 },
             grid: { color: 'rgba(255,255,255,0.05)' },
           },
           y: {
@@ -225,7 +301,7 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
             grid: { color: 'rgba(255,255,255,0.07)' },
             title: {
               display: true,
-              text: 'Kumulativ IBC',
+              text: 'IBC',
               color: '#718096',
               font: { size: 11 },
             },
@@ -236,75 +312,46 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
   }
 
   // ================================================================
-  // HJÄLPMETODER FÖR TEMPLATE
+  // HJALPMETODER
   // ================================================================
 
-  getStatusKlass(status: string): string {
-    switch (status) {
-      case 'ahead':    return 'status-ahead';
-      case 'on_track': return 'status-on-track';
-      case 'behind':   return 'status-behind';
-      default:         return '';
-    }
+  todayStr(): string {
+    return new Date().toISOString().split('T')[0];
   }
 
-  getStatusText(status: string): string {
-    switch (status) {
-      case 'ahead':    return 'Fore mal';
-      case 'on_track': return 'I fas';
-      case 'behind':   return 'Efter mal';
-      default:         return '';
-    }
-  }
-
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case 'ahead':    return 'fa-check-circle';
-      case 'on_track': return 'fa-minus-circle';
-      case 'behind':   return 'fa-exclamation-circle';
-      default:         return 'fa-question-circle';
-    }
-  }
-
-  getProgressBarColor(pct: number): string {
-    if (pct >= 90) return '#48bb78';
-    if (pct >= 70) return '#ecc94b';
-    return '#fc5c65';
-  }
-
-  getRowColorClass(pct: number): string {
-    if (pct >= 90) return 'row-green';
-    if (pct >= 70) return 'row-yellow';
-    return 'row-red';
-  }
-
-  formatDatum(datum: string | null): string {
+  formatDatum(datum: string): string {
     if (!datum) return '-';
     const d = new Date(datum);
-    if (isNaN(d.getTime())) return '-';
+    if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  formatDatumKort(datum: string): string {
-    const d = new Date(datum);
-    if (isNaN(d.getTime())) return datum;
-    return d.toLocaleDateString('sv-SE', { month: 'numeric', day: 'numeric' });
-  }
-
-  formatNumber(n: number | null): string {
+  formatNumber(n: number | null | undefined): string {
     if (n === null || n === undefined) return '-';
     return n.toLocaleString('sv-SE');
   }
 
-  get dagligaRader(): DailyRow[] {
-    if (!this.dailyData) return [];
-    // Bara dagar med mal > 0 eller produktion > 0, senast forst
-    return [...this.dailyData.daily]
-      .filter(r => r.mal > 0 || r.faktiskt > 0)
-      .reverse();
+  typLabel(typ: string): string {
+    return typ === 'vecka' ? 'Vecka' : 'Manad';
   }
 
-  isLoading(): boolean {
-    return this.summaryLoading || this.dailyLoading;
+  prognosFargKlass(): string {
+    if (!this.progress) return '';
+    if (this.progress.prognos_farg === 'gron') return 'prognos-gron';
+    if (this.progress.prognos_farg === 'rod') return 'prognos-rod';
+    return '';
+  }
+
+  progressColor(): string {
+    if (!this.progress) return '#a0aec0';
+    const p = this.progress.procent;
+    if (p >= 90) return '#48bb78';
+    if (p >= 70) return '#ecc94b';
+    return '#fc5c65';
+  }
+
+  historikRadFarg(rad: MalHistorikRad): string {
+    if (!rad.avslutad) return '';
+    return rad.uppnadd ? 'row-green' : 'row-red';
   }
 }

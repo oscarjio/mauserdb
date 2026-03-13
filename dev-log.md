@@ -1,3 +1,35 @@
+## 2026-03-13 Produktionsmal-dashboard — VD-dashboard for malsattning och progress
+
+Ombyggd sida `/rebotling/produktionsmal` — VD kan satta vecko/manadsmal for produktion och se progress i realtid med cirkeldiagram + prognos.
+
+- **Backend**: `classes/ProduktionsmalController.php` (action=`produktionsmal`)
+  - `run=aktuellt-mal` — hamta aktivt mal (vecka/manad) baserat pa dagens datum
+  - `run=progress` — aktuell progress: producerade hittills, mal, procent, prognos, daglig produktion
+    - Prognos: snitt produktion/arbetsdag extrapolerat till periodens slut
+    - Gron: "I nuvarande takt nar ni X IBC — pa god vag!"
+    - Rod: "Behover oka fran X till Y IBC/dag (Z% okning)"
+  - `run=satt-mal` — spara nytt mal (POST: typ, antal, startdatum)
+  - `run=mal-historik` — historiska mal med utfall, uppnadd ja/nej, differens
+  - Legacy endpoints (`summary`, `daily`, `weekly`) bevarade for bakatkompabilitet
+  - Ny tabell `rebotling_produktionsmal` (id, typ, mal_antal, start_datum, slut_datum, skapad_av, skapad_datum)
+  - SQL-migrering: `migrations/2026-03-13_produktionsmal.sql`
+
+- **Frontend**: `pages/produktionsmal/`
+  - Malsattnings-formularet: typ (vecka/manad), antal IBC, startdatum, spara-knapp
+  - Stort cirkeldiagram (doughnut): progress mot mal med procenttext i mitten
+  - KPI-kort: Producerat hittills, Aterstar, Dagar kvar, Snitt per dag
+  - Prognos-ruta: gron/rod beroende pa om malet nas i nuvarande takt
+  - Daglig produktion stapeldiagram: varje dag i perioden + mallinje
+  - Historik-tabell: typ, period, mal, utfall, uppfyllnad%, uppnadd, differens
+  - PDF-export via PdfExportButtonComponent
+  - Dark theme: #1a202c bg, #2d3748 cards, #e2e8f0 text
+
+- **Service**: `services/produktionsmal.service.ts`
+  - `getAktuelltMal()`, `getProgress()`, `sattMal()`, `getMalHistorik()`
+  - Legacy-metoder bevarade
+
+---
+
 ## 2026-03-13 OEE-jamforelse per vecka — trendanalys for VD
 
 Ny sida `/rebotling/oee-jamforelse` — jamfor OEE vecka-for-vecka med trendpilar. VD:n ser direkt om OEE forbattras eller forsamras.
