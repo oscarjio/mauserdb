@@ -213,6 +213,7 @@ $classNameMap = [
     'operator-ranking'              => 'OperatorRankingController',
     'vd-dashboard'                  => 'VdDashboardController',
     'historisk-sammanfattning'       => 'HistoriskSammanfattningController',
+    'kvalitetstrendanalys'           => 'KvalitetstrendanalysController',
 ];
 
 $actionKey = strtolower($action);

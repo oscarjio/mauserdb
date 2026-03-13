@@ -1,0 +1,253 @@
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="page-title mb-0">
+      <i class="fas fa-chart-area me-2" style="color:#fc8181"></i>Kvalitetstrend-analys
+    </h2>
+    <div class="d-flex align-items-center gap-2">
+      <label class="text-light me-1 mb-0">Period:</label>
+      <select class="form-select form-select-sm period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
+        <option *ngFor="let p of periodOptions" [value]="p">{{ p }} dagar</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI-kort -->
+  <div class="row g-3 mb-4" *ngIf="overview && !loadingOverview">
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-label">Total kassationsrate</div>
+        <div class="kpi-value">{{ overview.total_rate }}%</div>
+        <div class="kpi-sub">{{ overview.total_kasserade }} av {{ overview.total_producerade }} IBC</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-label">Samsta station</div>
+        <div class="kpi-value text-danger" *ngIf="overview.worst_station">{{ overview.worst_station_rate }}%</div>
+        <div class="kpi-value text-muted" *ngIf="!overview.worst_station">--</div>
+        <div class="kpi-sub">{{ overview.worst_station || 'Inga data' }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-label">Samsta operator</div>
+        <div class="kpi-value text-danger" *ngIf="overview.worst_operator">{{ overview.worst_operator_rate }}%</div>
+        <div class="kpi-value text-muted" *ngIf="!overview.worst_operator">--</div>
+        <div class="kpi-sub">{{ overview.worst_operator || 'Inga data' }}</div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="kpi-card">
+        <div class="kpi-label">Trend vs foregaende</div>
+        <div class="kpi-value">
+          <i [class]="getTrendIcon(overview.trend_direction)" class="me-2"></i>
+          <span [class.text-danger]="overview.trend_direction === 'up'"
+                [class.text-success]="overview.trend_direction === 'down'">
+            {{ overview.trend_diff > 0 ? '+' : '' }}{{ overview.trend_diff }}%
+          </span>
+        </div>
+        <div class="kpi-sub">Foregaende: {{ overview.prev_rate }}%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading overview -->
+  <div class="row g-3 mb-4" *ngIf="loadingOverview">
+    <div class="col-12 text-center py-4">
+      <div class="spinner-border text-info" role="status"><span class="visually-hidden">Laddar...</span></div>
+    </div>
+  </div>
+  <div *ngIf="errorOverview" class="alert alert-danger mb-4">Kunde inte hamta oversiktsdata.</div>
+
+  <!-- Station trend diagram -->
+  <div class="chart-card mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <h5 class="card-title mb-0">Kassationsrate per station over tid</h5>
+    </div>
+    <!-- Station checkboxar -->
+    <div class="station-checkboxes mb-3" *ngIf="trendData?.series?.length">
+      <span class="me-2 text-muted small">Stationer:</span>
+      <div class="form-check form-check-inline" *ngFor="let s of trendData!.series; let i = index">
+        <input class="form-check-input" type="checkbox" [id]="'st_' + s.station_id"
+               [(ngModel)]="stationChecked[s.station_id]" (change)="onStationToggle()">
+        <label class="form-check-label station-label" [for]="'st_' + s.station_id"
+               [style.color]="stationChecked[s.station_id] ? stationColors[i % stationColors.length] : '#4a5568'">
+          {{ s.station }}
+        </label>
+      </div>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="stationTrendChart"></canvas>
+    </div>
+    <div *ngIf="loadingTrend" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+    <div *ngIf="errorTrend" class="text-danger small mt-2">Kunde inte hamta trenddata.</div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Operator tabell -->
+    <div class="col-lg-7">
+      <div class="table-card">
+        <h5 class="card-title mb-3">Kassationsrate per operator</h5>
+        <div *ngIf="loadingOperators" class="text-center py-4">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div *ngIf="errorOperators" class="text-danger small">Kunde inte hamta operatorsdata.</div>
+        <div class="table-responsive" *ngIf="operatorData && !loadingOperators">
+          <table class="table table-dark table-sm mb-0">
+            <thead>
+              <tr>
+                <th class="sortable" (click)="sortOperators('op_namn')">
+                  Operator <i [class]="getSortIcon('op_namn')"></i>
+                </th>
+                <th class="text-end sortable" (click)="sortOperators('total')">
+                  Producerade <i [class]="getSortIcon('total')"></i>
+                </th>
+                <th class="text-end sortable" (click)="sortOperators('kasserade')">
+                  Kasserade <i [class]="getSortIcon('kasserade')"></i>
+                </th>
+                <th class="text-end sortable" (click)="sortOperators('rate')">
+                  Rate % <i [class]="getSortIcon('rate')"></i>
+                </th>
+                <th class="text-end sortable" (click)="sortOperators('avvikelse')">
+                  Avvikelse <i [class]="getSortIcon('avvikelse')"></i>
+                </th>
+                <th class="text-center">Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let op of sortedOperators">
+                <td>{{ op.op_namn }}</td>
+                <td class="text-end">{{ op.total }}</td>
+                <td class="text-end">{{ op.kasserade }}</td>
+                <td class="text-end" [class.text-danger]="op.rate > criticalThreshold"
+                    [class.text-warning]="op.rate > warningThreshold && op.rate <= criticalThreshold">
+                  {{ op.rate }}%
+                </td>
+                <td class="text-end">
+                  <span [class.text-danger]="op.avvikelse > 0" [class.text-success]="op.avvikelse < 0">
+                    {{ op.avvikelse > 0 ? '+' : '' }}{{ op.avvikelse }}%
+                  </span>
+                </td>
+                <td class="text-center">
+                  <i [class]="getTrendIcon(op.trend_dir)"></i>
+                  <span class="ms-1 small" *ngIf="op.trend_diff !== null"
+                        [class.text-danger]="op.trend_dir === 'up'"
+                        [class.text-success]="op.trend_dir === 'down'">
+                    {{ op.trend_diff !== null ? (op.trend_diff > 0 ? '+' : '') + op.trend_diff + '%' : '' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="text-muted small mt-2">Snittrate: {{ operatorData!.avg_rate }}%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Troskellarm-sektion -->
+    <div class="col-lg-5">
+      <div class="alarm-card">
+        <h5 class="card-title mb-3">
+          <i class="fas fa-bell me-2" style="color:#f6ad55"></i>Troskellarm
+        </h5>
+        <div class="threshold-config mb-3">
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label small text-muted mb-1">Varning vid (%)</label>
+              <input type="number" class="form-control form-control-sm threshold-input"
+                     [(ngModel)]="warningThreshold" (change)="loadAlarm()" min="0" max="100" step="0.5">
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted mb-1">Kritisk vid (%)</label>
+              <input type="number" class="form-control form-control-sm threshold-input"
+                     [(ngModel)]="criticalThreshold" (change)="loadAlarm()" min="0" max="100" step="0.5">
+            </div>
+          </div>
+        </div>
+        <div *ngIf="loadingAlarm" class="text-center py-3">
+          <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+        </div>
+        <div *ngIf="errorAlarm" class="text-danger small">Kunde inte hamta larmdata.</div>
+        <div *ngIf="alarmData && !loadingAlarm">
+          <div class="d-flex gap-2 mb-3">
+            <span class="badge bg-danger">{{ alarmData.critical_count }} kritiska</span>
+            <span class="badge bg-warning text-dark">{{ alarmData.warning_count }} varningar</span>
+          </div>
+          <div class="alarm-list" *ngIf="alarmData.alarms.length > 0">
+            <div class="alarm-item" *ngFor="let a of alarmData.alarms"
+                 [class.alarm-critical]="a.niva === 'kritisk'"
+                 [class.alarm-warning]="a.niva === 'varning'">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <span [class]="getTypBadge(a.typ)" class="me-2">{{ a.typ === 'station' ? 'Station' : 'Operator' }}</span>
+                  <strong>{{ a.namn }}</strong>
+                </div>
+                <div>
+                  <span [class]="getAlarmBadgeClass(a.niva)">{{ a.rate }}%</span>
+                </div>
+              </div>
+              <div class="small text-muted mt-1">
+                {{ a.kasserade }} kasserade av {{ a.total }} ({{ a.niva }})
+              </div>
+            </div>
+          </div>
+          <div *ngIf="alarmData.alarms.length === 0" class="text-success text-center py-3">
+            <i class="fas fa-check-circle me-2"></i>Inga aktiva larm
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heatmap -->
+  <div class="heatmap-card mb-4">
+    <h5 class="card-title mb-3">
+      <i class="fas fa-th me-2" style="color:#68d391"></i>Kassationsrate — Station + Vecka
+    </h5>
+    <div *ngIf="loadingHeatmap" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+    </div>
+    <div *ngIf="errorHeatmap" class="text-danger small">Kunde inte hamta heatmap-data.</div>
+    <div class="table-responsive" *ngIf="heatmapData && !loadingHeatmap && heatmapData.weeks.length > 0">
+      <table class="table table-dark table-sm heatmap-table mb-0">
+        <thead>
+          <tr>
+            <th class="heatmap-header-station">Station</th>
+            <th *ngFor="let w of heatmapData.weeks" class="text-center heatmap-header">{{ w.label }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of heatmapData.rows">
+            <td class="heatmap-station-name">{{ row.station }}</td>
+            <td *ngFor="let cell of row.cells; let j = index" class="text-center heatmap-cell"
+                [style.backgroundColor]="getHeatmapColor(cell)"
+                [style.color]="getHeatmapTextColor(cell)"
+                [title]="cell !== null ? row.station + ' ' + heatmapData!.weeks[j].label + ': ' + cell + '%' : 'Inga data'">
+              {{ cell !== null ? cell + '%' : '-' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="heatmap-legend mt-2 d-flex align-items-center gap-1">
+        <span class="small text-muted me-2">Fargskala:</span>
+        <span class="heatmap-legend-item" style="background:#276749">0-1%</span>
+        <span class="heatmap-legend-item" style="background:#38a169">1-2%</span>
+        <span class="heatmap-legend-item" style="background:#68d391; color:#1a202c">2-3%</span>
+        <span class="heatmap-legend-item" style="background:#ecc94b; color:#1a202c">3-4%</span>
+        <span class="heatmap-legend-item" style="background:#dd6b20">4-5%</span>
+        <span class="heatmap-legend-item" style="background:#e53e3e">5-7%</span>
+        <span class="heatmap-legend-item" style="background:#9b2c2c">7%+</span>
+      </div>
+    </div>
+    <div *ngIf="heatmapData && heatmapData.weeks.length === 0 && !loadingHeatmap" class="text-muted text-center py-3">
+      Inga data for vald period.
+    </div>
+  </div>
+
+  <!-- Auto-refresh indikator -->
+  <div class="text-muted small text-end">
+    <i class="fas fa-sync-alt me-1"></i>Auto-uppdateras var 60:e sekund
+  </div>
+</div>

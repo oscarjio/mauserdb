@@ -117,6 +117,7 @@ export const routes: Routes = [
       { path: 'rebotling/operator-ranking', canActivate: [authGuard], loadComponent: () => import('./pages/operator-ranking/operator-ranking.component').then(m => m.OperatorRankingPage) },
       { path: 'rebotling/vd-dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/vd-dashboard/vd-dashboard.component').then(m => m.VdDashboardPage) },
       { path: 'rebotling/historisk-sammanfattning', canActivate: [authGuard], loadComponent: () => import('./pages/historisk-sammanfattning/historisk-sammanfattning.component').then(m => m.HistoriskSammanfattningPage) },
+      { path: 'rebotling/kvalitetstrendanalys', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitetstrendanalys/kvalitetstrendanalys').then(m => m.KvalitetstrendanalysPage) },
 
       // Admin routes
       { path: 'oversikt', canActivate: [adminGuard], loadComponent: () => import('./pages/executive-dashboard/executive-dashboard').then(m => m.ExecutiveDashboardPage) },

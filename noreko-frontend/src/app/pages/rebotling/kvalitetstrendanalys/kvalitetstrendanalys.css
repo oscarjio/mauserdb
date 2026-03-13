@@ -1,0 +1,244 @@
+:host {
+  display: block;
+  color: #e2e8f0;
+}
+
+.page-title {
+  color: #e2e8f0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.period-select {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+  width: 130px;
+}
+
+/* KPI kort */
+.kpi-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  text-align: center;
+  border: 1px solid #4a5568;
+}
+
+.kpi-label {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.kpi-value {
+  color: #e2e8f0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.kpi-sub {
+  color: #718096;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+/* Chart */
+.chart-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 350px;
+}
+
+.card-title {
+  color: #e2e8f0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Station checkboxes */
+.station-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.station-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.form-check-input {
+  background-color: #4a5568;
+  border-color: #4a5568;
+}
+
+.form-check-input:checked {
+  background-color: #4299e1;
+  border-color: #4299e1;
+}
+
+/* Tables */
+.table-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+  height: 100%;
+}
+
+.table-dark {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #4a5568;
+}
+
+.table-dark thead th {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom-width: 2px;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable:hover {
+  color: #e2e8f0 !important;
+}
+
+/* Alarm */
+.alarm-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+  height: 100%;
+}
+
+.threshold-config {
+  background: #1a202c;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+}
+
+.threshold-input {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4a5568;
+}
+
+.threshold-input:focus {
+  background-color: #2d3748;
+  color: #e2e8f0;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 0.15rem rgba(66, 153, 225, 0.25);
+}
+
+.alarm-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.alarm-item {
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+  background: #1a202c;
+  border-left: 3px solid transparent;
+}
+
+.alarm-critical {
+  border-left-color: #e53e3e;
+}
+
+.alarm-warning {
+  border-left-color: #ecc94b;
+}
+
+/* Heatmap */
+.heatmap-card {
+  background: #2d3748;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  border: 1px solid #4a5568;
+}
+
+.heatmap-table {
+  --bs-table-bg: transparent;
+  --bs-table-border-color: #4a5568;
+}
+
+.heatmap-header-station {
+  color: #a0aec0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  min-width: 100px;
+}
+
+.heatmap-header {
+  color: #a0aec0;
+  font-size: 0.75rem;
+  min-width: 60px;
+}
+
+.heatmap-station-name {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.heatmap-cell {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.3rem !important;
+  transition: opacity 0.2s;
+  cursor: default;
+}
+
+.heatmap-cell:hover {
+  opacity: 0.85;
+}
+
+.heatmap-legend {
+  flex-wrap: wrap;
+}
+
+.heatmap-legend-item {
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* Responsiv */
+@media (max-width: 768px) {
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+  .chart-wrapper {
+    height: 250px;
+  }
+  .heatmap-header {
+    min-width: 45px;
+    font-size: 0.65rem;
+  }
+  .heatmap-cell {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.15rem !important;
+  }
+}
