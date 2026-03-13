@@ -1,3 +1,21 @@
+## 2026-03-13 Rebotling kvalitetstrend-analys
+
+Ny sida `/rebotling/kvalitetstrendanalys` — visualiserar kassationsrate per station/operator over tid med troskellarm for tidig avvikelseidentifiering.
+
+- **Backend**: `classes/KvalitetstrendanalysController.php`, registrerad i `api.php` som `kvalitetstrendanalys`
+  - `run=overview` — 4 KPI:er: total kassationsrate, samsta station (namn + rate), samsta operator (namn + rate), trend vs foregaende period
+  - `run=per-station-trend` — daglig kassationsrate per station, for linjediagram med checkboxfilter
+  - `run=per-operator` — sorterbar tabell med operatorsnamn, total produktion, kasserade, kassationsrate%, avvikelse fran snitt, trendpil
+  - `run=alarm` — konfigurerbara troskelvarden (varning/kritisk), lista med aktiva larm for stationer/operatorer som overskrider troskeln
+  - `run=heatmap` — station+vecka-matris med kassationsrate som fargintensitet (gron till rod)
+- **Frontend**: Angular standalone-komponent med Chart.js linjediagram, sorterbar tabell, heatmap-matris
+  - Period-filter: 7d / 30d / 90d / 365d
+  - Auto-refresh var 60 sekund
+  - Dark theme
+- **Filer**: `KvalitetstrendanalysController.php`, `kvalitetstrendanalys.service.ts`, `kvalitetstrendanalys/` (ts + html + css), route i `app.routes.ts`, meny i `menu.html`
+
+---
+
 ## 2026-03-13 Historisk sammanfattning — auto-genererad manads-/kvartalsrapport
 
 Ny sida `/rebotling/historisk-sammanfattning` — auto-genererad rapport med text, diagram och KPI-jamforelse for vald manad eller kvartal.
