@@ -108,6 +108,13 @@ export class RebotlingService {
     );
   }
 
+  getDriftstoppStatus(): Observable<any> {
+    return this.http.get<any>(
+      '/noreko-backend/api.php?action=rebotling&run=driftstopp',
+      { withCredentials: true }
+    );
+  }
+
   getRastStatus(): Observable<RastStatusResponse> {
     return this.http.get<RastStatusResponse>(
       '/noreko-backend/api.php?action=rebotling&run=rast',

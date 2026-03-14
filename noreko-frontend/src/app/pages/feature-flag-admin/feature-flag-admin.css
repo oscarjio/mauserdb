@@ -1,0 +1,87 @@
+.page-title {
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.text-muted-custom {
+  color: #a0aec0;
+}
+
+.dark-card {
+  background-color: #2d3748;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+}
+
+.dark-card .card-header {
+  background-color: #2d3748;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.table-dark {
+  --bs-table-bg: #2d3748;
+  --bs-table-hover-bg: #374151;
+  --bs-table-border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.table-dark th {
+  color: #a0aec0;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom-width: 2px;
+}
+
+.feature-key {
+  color: #63b3ed;
+  font-size: 0.85rem;
+  background-color: rgba(99, 179, 237, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.role-select {
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.role-select:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+.form-check-input:checked {
+  background-color: #48bb78;
+  border-color: #48bb78;
+}
+
+.form-check-input {
+  cursor: pointer;
+  background-color: #4a5568;
+  border-color: #718096;
+}
+
+.disabled-row {
+  opacity: 0.5;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.alert-success {
+  background-color: rgba(72, 187, 120, 0.15);
+  border-color: #48bb78;
+  color: #68d391;
+}
+
+.alert-danger {
+  background-color: rgba(252, 129, 129, 0.15);
+  border-color: #fc8181;
+  color: #feb2b2;
+}

@@ -32,7 +32,7 @@ class StatusController {
 
         try {
             global $pdo;
-            $stmt = $pdo->prepare("SELECT username, email, admin, operator_id FROM users WHERE id = ?");
+            $stmt = $pdo->prepare("SELECT username, email, admin, operator_id, role FROM users WHERE id = ?");
             $stmt->execute([$userId]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -45,13 +45,16 @@ class StatusController {
                 return;
             }
 
+            // Använd role-kolumnen om den finns, annars fallback till admin-kolumnen
+            $role = $user['role'] ?? (($user['admin'] == 1) ? 'admin' : 'user');
+
             echo json_encode([
                 'loggedIn' => true,
                 'user' => [
                     'id' => $userId,
                     'username' => $user['username'],
                     'email' => $user['email'] ?? null,
-                    'role' => ($user['admin'] == 1) ? 'admin' : 'user',
+                    'role' => $role,
                     'operator_id' => $user['operator_id'] ? (int)$user['operator_id'] : null
                 ]
             ]);

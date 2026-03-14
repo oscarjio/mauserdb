@@ -668,6 +668,36 @@ class Rebotling {
                 error_log("handleCommand: Löpnummer ändrat – current lopnummer uppdaterat till $nyttLopnummer");
                 break;
 
+            case 3:
+                // Driftstopp PÅ
+                $skiftraknare = $this->getCurrentSkiftraknare();
+                try {
+                    $stmt = $this->db->prepare('
+                        INSERT INTO rebotling_driftstopp (datum, driftstopp_status, skiftraknare)
+                        VALUES (NOW(), 1, :skiftraknare)
+                    ');
+                    $stmt->execute(['skiftraknare' => $skiftraknare]);
+                    error_log("handleCommand: Driftstopp PÅ, skiftraknare=$skiftraknare");
+                } catch (Exception $e) {
+                    error_log("handleCommand: Driftstopp PÅ fel: " . $e->getMessage());
+                }
+                break;
+
+            case 4:
+                // Driftstopp AV
+                $skiftraknare = $this->getCurrentSkiftraknare();
+                try {
+                    $stmt = $this->db->prepare('
+                        INSERT INTO rebotling_driftstopp (datum, driftstopp_status, skiftraknare)
+                        VALUES (NOW(), 0, :skiftraknare)
+                    ');
+                    $stmt->execute(['skiftraknare' => $skiftraknare]);
+                    error_log("handleCommand: Driftstopp AV, skiftraknare=$skiftraknare");
+                } catch (Exception $e) {
+                    error_log("handleCommand: Driftstopp AV fel: " . $e->getMessage());
+                }
+                break;
+
             default:
                 error_log("handleCommand: Okänt kommando D4015=$kommando, ignorerar.");
                 break;
@@ -686,6 +716,20 @@ class Rebotling {
         } catch (Exception $e) {
             error_log("Rebotling handleCycle: kunde inte nolla D4014: " . $e->getMessage());
         }
+    }
+
+    /**
+     * Hämta aktuell skifträknare från rebotling_onoff.
+     */
+    private function getCurrentSkiftraknare(): ?int {
+        $stmt = $this->db->prepare('
+            SELECT skiftraknare FROM rebotling_onoff
+            WHERE skiftraknare IS NOT NULL
+            ORDER BY datum DESC LIMIT 1
+        ');
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? (int)$row['skiftraknare'] : null;
     }
 
     /**

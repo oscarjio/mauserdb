@@ -8,6 +8,18 @@
     <span class="ms-3 rast-time-badge">{{ rastTimeLabel }} idag</span>
   </div>
 
+  <!-- Driftstopp-banner -->
+  <div class="driftstopp-banner text-center py-3" *ngIf="onDriftstopp">
+    <div class="d-flex align-items-center justify-content-center">
+      <i class="fas fa-exclamation-triangle fa-2x me-3 driftstopp-pulse"></i>
+      <div>
+        <h4 class="mb-0 fw-bold">DRIFTSTOPP</h4>
+        <span class="driftstopp-time">{{ driftstoppTimeLabel }} idag ({{ driftstoppCountToday }} stopp)</span>
+      </div>
+      <i class="fas fa-exclamation-triangle fa-2x ms-3 driftstopp-pulse"></i>
+    </div>
+  </div>
+
   <div class="freshness-indicator" [class]="freshnessClass">
     <span class="freshness-dot"></span>
     <span class="freshness-text">{{ freshnessLabel }}</span>

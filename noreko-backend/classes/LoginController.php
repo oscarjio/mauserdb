@@ -48,7 +48,7 @@ class LoginController {
         }
 
         try {
-            $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id FROM users WHERE username = ?");
+            $stmt = $pdo->prepare("SELECT id, username, email, password, admin, operator_id, role FROM users WHERE username = ?");
             $stmt->execute([$username]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -68,7 +68,7 @@ class LoginController {
                 // Set session
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = ($user['admin'] == 1) ? 'admin' : 'user';
+                $_SESSION['role'] = $user['role'] ?? (($user['admin'] == 1) ? 'admin' : 'user');
                 $_SESSION['email'] = $user['email'] ?? null;
                 $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
 

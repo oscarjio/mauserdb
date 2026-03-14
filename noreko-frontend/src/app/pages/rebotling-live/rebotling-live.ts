@@ -70,6 +70,20 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     return `${m} min`;
   }
 
+  // Driftstopp
+  onDriftstopp: boolean = false;
+  driftstoppMinutesToday: number = 0;
+  driftstoppCountToday: number = 0;
+  private isFetchingDriftstopp = false;
+  private driftstoppIntervalId: any;
+
+  get driftstoppTimeLabel(): string {
+    const h = Math.floor(this.driftstoppMinutesToday / 60);
+    const m = Math.round(this.driftstoppMinutesToday % 60);
+    if (h > 0) return `${h} h ${m} min`;
+    return `${m} min`;
+  }
+
   // OEE
   oee: number | null = null;
   oeeAvailability: number = 0;
@@ -126,16 +140,21 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
     this.rastIntervalId = setInterval(() => {
       this.fetchRastStatus();
     }, 10000);
+    this.driftstoppIntervalId = setInterval(() => {
+      this.fetchDriftstoppStatus();
+    }, 10000);
     this.fetchLiveStats();
     this.fetchLineStatus();
     this.fetchOEE();
     this.fetchRastStatus();
+    this.fetchDriftstoppStatus();
   }
 
   ngOnDestroy() {
     clearInterval(this.intervalId);
     clearInterval(this.oeeIntervalId);
     clearInterval(this.rastIntervalId);
+    clearInterval(this.driftstoppIntervalId);
   }
 
   private updateDataAge() {
@@ -232,6 +251,25 @@ export class RebotlingLivePage implements OnInit, OnDestroy {
           this.onRast = res.data.on_rast;
           this.rastMinutesToday = res.data.rast_minutes_today;
           this.rastCountToday = res.data.rast_count_today;
+        }
+      });
+  }
+
+  private fetchDriftstoppStatus() {
+    if (this.isFetchingDriftstopp) return;
+    this.isFetchingDriftstopp = true;
+    this.rebotlingService
+      .getDriftstoppStatus()
+      .pipe(
+        timeout(5000),
+        catchError(() => of(null)),
+        finalize(() => { this.isFetchingDriftstopp = false; })
+      )
+      .subscribe((res: any) => {
+        if (res && res.success && res.data) {
+          this.onDriftstopp = res.data.on_driftstopp;
+          this.driftstoppMinutesToday = res.data.driftstopp_minutes_today;
+          this.driftstoppCountToday = res.data.driftstopp_count_today;
         }
       });
   }

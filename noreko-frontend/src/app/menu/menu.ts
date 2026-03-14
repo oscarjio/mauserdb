@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { AuthService, AuthUser } from '../services/auth.service';
 import { AlertsService } from '../services/alerts.service';
+import { FeatureFlagService } from '../services/feature-flag.service';
 import { forkJoin, catchError, of, timeout, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -62,13 +63,14 @@ export class Menu implements OnInit, OnDestroy {
     private router: Router,
     public auth: AuthService,
     private http: HttpClient,
-    private alertsService: AlertsService
+    private alertsService: AlertsService,
+    public ff: FeatureFlagService
   ) {
     const saved = localStorage.getItem('selectedMenu');
     if (saved) this.selectedMenu = saved;
     this.auth.loggedIn$.pipe(takeUntil(this.destroy$)).subscribe(val => {
       this.loggedIn = val;
-      if (val && this.user?.role === 'admin') {
+      if (val && (this.user?.role === 'admin' || this.user?.role === 'developer')) {
         this.loadVpnStatus();
         this.loadCertExpiryCount();
         this.startAlertsPolling();
@@ -100,7 +102,7 @@ export class Menu implements OnInit, OnDestroy {
       if (val?.operator_id) {
         this.profileForm.operatorId = String(val.operator_id);
       }
-      if (val?.role === 'admin' && this.loggedIn) {
+      if ((val?.role === 'admin' || val?.role === 'developer') && this.loggedIn) {
         this.loadVpnStatus();
         this.loadCertExpiryCount();
         this.startAlertsPolling();
@@ -119,7 +121,7 @@ export class Menu implements OnInit, OnDestroy {
     import('bootstrap/js/dist/dropdown');
 
     this.loadLineStatus();
-    if (this.loggedIn && this.user?.role === 'admin') {
+    if (this.loggedIn && (this.user?.role === 'admin' || this.user?.role === 'developer')) {
       this.loadVpnStatus();
       this.loadCertExpiryCount();
     }
@@ -170,7 +172,7 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   private loadAlertsCount(): void {
-    if (!this.loggedIn || this.user?.role !== 'admin') return;
+    if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) return;
     this.http.get<any>('/noreko-backend/api.php?action=alerts&run=active', { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
@@ -205,7 +207,7 @@ export class Menu implements OnInit, OnDestroy {
   }
 
   loadCertExpiryCount(): void {
-    if (!this.loggedIn || this.user?.role !== 'admin') return;
+    if (!this.loggedIn || (this.user?.role !== 'admin' && this.user?.role !== 'developer')) return;
     this.http.get<{ success?: boolean; count?: number }>('/noreko-backend/api.php?action=certification&run=expiry-count', { withCredentials: true })
       .pipe(timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {

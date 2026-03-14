@@ -37,12 +37,35 @@ export const adminGuard: CanActivateFn = (route, state) => {
       combineLatestWith(auth.user$.pipe(take(1)))
     )),
     map(([loggedIn, user]) => {
-      if (user?.role === 'admin') return true;
+      if (user?.role === 'admin' || user?.role === 'developer') return true;
       if (!loggedIn) {
         // Ej inloggad — skicka till login med returnUrl
         router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
       } else {
-        // Inloggad men ej admin — skicka till startsidan
+        // Inloggad men ej admin/developer — skicka till startsidan
+        router.navigate(['/']);
+      }
+      return false;
+    })
+  );
+};
+
+export const developerGuard: CanActivateFn = (route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  return auth.initialized$.pipe(
+    filter(init => init === true),
+    take(1),
+    switchMap(() => auth.loggedIn$.pipe(
+      take(1),
+      combineLatestWith(auth.user$.pipe(take(1)))
+    )),
+    map(([loggedIn, user]) => {
+      if (user?.role === 'developer') return true;
+      if (!loggedIn) {
+        router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+      } else {
         router.navigate(['/']);
       }
       return false;

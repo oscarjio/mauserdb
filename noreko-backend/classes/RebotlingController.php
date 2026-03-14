@@ -148,6 +148,8 @@ class RebotlingController {
                 $this->getRunningStatus();
             } elseif ($action === 'rast') {
                 $this->getRastStatus();
+            } elseif ($action === 'driftstopp') {
+                $this->getDriftstoppStatus();
             } elseif ($action === 'statistics') {
                 $this->getStatistics();
             } elseif ($action === 'day-stats') {
@@ -682,6 +684,92 @@ class RebotlingController {
             error_log('getRastStatus error: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus']);
+        }
+    }
+
+    /**
+     * GET /api.php?action=rebotling&run=driftstopp
+     *
+     * Hämtar aktuell driftstoppstatus och beräknar total driftstopptid idag.
+     * Speglar getRastStatus() men läser från rebotling_driftstopp.
+     * Driftstopptid ska INTE räknas som produktionstid.
+     */
+    private function getDriftstoppStatus() {
+        try {
+            $this->pdo->exec("
+                CREATE TABLE IF NOT EXISTS `rebotling_driftstopp` (
+                    `id` INT NOT NULL AUTO_INCREMENT,
+                    `datum` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    `driftstopp_status` TINYINT(1) NOT NULL DEFAULT 0,
+                    `skiftraknare` INT DEFAULT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `idx_datum` (`datum`),
+                    KEY `idx_skiftraknare` (`skiftraknare`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ");
+
+            $tz = new DateTimeZone('Europe/Stockholm');
+            $now = new DateTime('now', $tz);
+            $todayStr = $now->format('Y-m-d');
+
+            $stmt = $this->pdo->prepare("
+                SELECT id, datum, driftstopp_status, skiftraknare
+                FROM rebotling_driftstopp
+                WHERE DATE(datum) = :today
+                ORDER BY datum ASC
+            ");
+            $stmt->execute(['today' => $todayStr]);
+            $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $totalMinutes = 0;
+            $stoppStart = null;
+            $currentlyOnStopp = false;
+
+            foreach ($events as $event) {
+                if ((int)$event['driftstopp_status'] === 1 && $stoppStart === null) {
+                    $stoppStart = new DateTime($event['datum'], $tz);
+                    $currentlyOnStopp = true;
+                } elseif ((int)$event['driftstopp_status'] === 0 && $stoppStart !== null) {
+                    $end = new DateTime($event['datum'], $tz);
+                    $diff = $stoppStart->diff($end);
+                    $minutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                    $totalMinutes += max(0, (int)round($minutes));
+                    $stoppStart = null;
+                    $currentlyOnStopp = false;
+                }
+            }
+
+            if ($stoppStart !== null) {
+                $diff = $stoppStart->diff($now);
+                $minutesOpen = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
+                $minutesOpen = max(0, (int)round($minutesOpen));
+                if ($minutesOpen <= 480) {
+                    $currentlyOnStopp = true;
+                    $totalMinutes += $minutesOpen;
+                } else {
+                    $currentlyOnStopp = false;
+                }
+            }
+
+            $latestEvent = !empty($events) ? end($events) : null;
+
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'on_driftstopp'            => $currentlyOnStopp,
+                    'driftstopp_minutes_today'  => round($totalMinutes, 1),
+                    'driftstopp_count_today'    => count(array_filter($events, fn($e) => (int)$e['driftstopp_status'] === 1)),
+                    'last_event'               => $latestEvent ? $latestEvent['datum'] : null,
+                    'events'                   => array_map(fn($e) => [
+                        'datum'              => $e['datum'],
+                        'driftstopp_status'  => (int)$e['driftstopp_status']
+                    ], $events)
+                ]
+            ]);
+        } catch (Exception $e) {
+            error_log('getDriftstoppStatus error: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta driftstoppstatus']);
         }
     }
 
