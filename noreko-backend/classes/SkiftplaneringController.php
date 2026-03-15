@@ -28,6 +28,9 @@ class SkiftplaneringController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run    = trim($_GET['run'] ?? '');
 
+        // Alla endpoints kräver inloggning
+        $this->requireLogin();
+
         if ($method === 'GET') {
             switch ($run) {
                 case 'overview':      $this->getOverview();     break;
@@ -42,7 +45,6 @@ class SkiftplaneringController {
         }
 
         if ($method === 'POST') {
-            $this->requireLogin();
             switch ($run) {
                 case 'assign':   $this->assignOperator();   break;
                 case 'unassign': $this->unassignOperator(); break;
@@ -118,10 +120,10 @@ class SkiftplaneringController {
      */
     private function getOperatorName(int $id): string {
         try {
-            $stmt = $this->pdo->prepare("SELECT namn FROM operators WHERE id = ?");
+            $stmt = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
             $stmt->execute([$id]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            return $row ? $row['namn'] : 'Operatör #' . $id;
+            return $row ? $row['name'] : 'Operatör #' . $id;
         } catch (\PDOException) {
             return 'Operatör #' . $id;
         }
@@ -284,11 +286,11 @@ class SkiftplaneringController {
                 $placeholders = implode(',', array_fill(0, count($operatorIds), '?'));
                 try {
                     $opStmt = $this->pdo->prepare(
-                        "SELECT id, namn FROM operators WHERE id IN ($placeholders)"
+                        "SELECT id, name FROM operators WHERE id IN ($placeholders)"
                     );
                     $opStmt->execute(array_values($operatorIds));
                     while ($op = $opStmt->fetch(\PDO::FETCH_ASSOC)) {
-                        $operatorNames[(int)$op['id']] = $op['namn'];
+                        $operatorNames[(int)$op['id']] = $op['name'];
                     }
                 } catch (\PDOException) {
                     // operators-tabellen kanske inte finns
@@ -662,7 +664,7 @@ class SkiftplaneringController {
             $operatorer = [];
             try {
                 $stmt = $this->pdo->query(
-                    "SELECT id, namn FROM operators ORDER BY namn ASC"
+                    "SELECT id, name AS namn FROM operators ORDER BY name ASC"
                 );
                 $operatorer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\PDOException) {

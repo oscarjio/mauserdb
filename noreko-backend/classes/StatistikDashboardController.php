@@ -47,7 +47,7 @@ class StatistikDashboardController {
             case 'daily-table':       $this->getDailyTable();        break;
             case 'status-indicator':  $this->getStatusIndicator();   break;
             default:
-                $this->sendError('Okänt run-värde: ' . $run);
+                $this->sendError('Okänt run-värde: ' . htmlspecialchars($run));
         }
     }
 
@@ -562,7 +562,7 @@ class StatistikDashboardController {
             $stoppMinuter = 0;
             try {
                 $stmtS = $this->pdo->prepare("
-                    SELECT COALESCE(SUM(duration_min), 0) AS total_min
+                    SELECT COALESCE(SUM(duration_minutes), 0) AS total_min
                     FROM stoppage_log
                     WHERE DATE(start_time) = :datum
                 ");

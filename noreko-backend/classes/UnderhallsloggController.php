@@ -484,6 +484,13 @@ class UnderhallsloggController {
 
     private function taBort(): void {
         try {
+            // Kraver admin-roll (konsekvent med deleteEntry)
+            $role = $_SESSION['role'] ?? '';
+            if ($role !== 'admin') {
+                $this->sendError('Atkomst nekad — kraver admin', 403);
+                return;
+            }
+
             $data = json_decode(file_get_contents('php://input'), true);
             $id = (int)($data['id'] ?? 0);
             if ($id <= 0) {

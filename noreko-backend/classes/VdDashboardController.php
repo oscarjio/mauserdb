@@ -183,15 +183,18 @@ class VdDashboardController {
             // Aktiva operatorer idag
             $aktivaOperatorer = 0;
             try {
+                // rebotling_ibc has op1/op2/op3 (operator numbers), not user_id
                 $sql = "
-                    SELECT COUNT(DISTINCT user_id) AS cnt
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) = :today
-                      AND user_id IS NOT NULL
-                      AND user_id > 0
+                    SELECT COUNT(DISTINCT op_id) AS cnt FROM (
+                        SELECT op1 AS op_id FROM rebotling_ibc WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
+                        UNION
+                        SELECT op2 AS op_id FROM rebotling_ibc WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
+                        UNION
+                        SELECT op3 AS op_id FROM rebotling_ibc WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
+                    ) AS sub
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today' => $today]);
+                $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                 $aktivaOperatorer = (int)$stmt->fetchColumn();
             } catch (\Exception) {}
 
@@ -275,13 +278,11 @@ class VdDashboardController {
                     $sql = "
                         SELECT
                             sr.id,
-                            COALESCE(sr.station_id, 1) AS station_id,
-                            COALESCE(rs.namn, CONCAT('Station ', COALESCE(sr.station_id, 1))) AS station_namn,
-                            COALESCE(sk.namn, sr.orsak, 'Okand orsak') AS orsak,
+                            COALESCE(sk.namn, 'Okand orsak') AS orsak,
+                            sr.linje AS station_namn,
                             sr.start_time,
                             TIMESTAMPDIFF(MINUTE, sr.start_time, NOW()) AS varaktighet_min
                         FROM stopporsak_registreringar sr
-                        LEFT JOIN rebotling_stationer rs ON sr.station_id = rs.id
                         LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                         WHERE sr.end_time IS NULL
                           AND sr.start_time >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
@@ -291,7 +292,6 @@ class VdDashboardController {
                     $aktivaStopp = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                     foreach ($aktivaStopp as &$s) {
-                        $s['station_id'] = (int)$s['station_id'];
                         $s['varaktighet_min'] = (int)$s['varaktighet_min'];
                     }
                     unset($s);

@@ -1,3 +1,47 @@
+## 2026-03-15 Session #110 Worker A — backend-buggjakt (11 controllers, batch 3 del 2)
+
+### Granskade controllers (proxy-filer i controllers/):
+1. RebotlingStationsdetaljController.php — proxy, OK
+2. SkiftplaneringController.php — proxy, OK (buggar i classes/)
+3. StatistikDashboardController.php — proxy, OK (buggar i classes/)
+4. StatistikOverblickController.php — proxy, OK (buggar i classes/)
+5. StopporsakController.php — proxy, OK
+6. StopporsakOperatorController.php — proxy, OK
+7. StopptidsanalysController.php — proxy, OK
+8. UnderhallsloggController.php — proxy, OK (buggar i classes/)
+9. ProduktionspulsController.php — proxy, OK (buggar i classes/)
+10. VdDashboardController.php — proxy, OK (buggar i classes/)
+11. SkiftjamforelseController.php — inline logik, granskad OK
+
+### Fixade buggar (12 st i 6 class-filer):
+
+**ProduktionspulsController.php (4 buggar)**
+1. `rebotling_onoff` anvande `start_time`/`stop_time` kolumner som inte existerar — fixat till `datum`/`running`
+2. `stopporsak_registreringar` anvande `orsak` kolumn som inte existerar — fixat med JOIN till `stopporsak_kategorier`
+3. `stoppage_log` anvande `reason` kolumn som inte existerar — fixat med JOIN till `stoppage_reasons`
+4. `live-kpi` driftstatus anvande `start_time`/`stop_time` pa `rebotling_onoff` — fixat till `datum`/`running`
+
+**SkiftplaneringController.php (3 buggar)**
+5. `operators`-tabellen frågades med `namn` kolumn som inte finns — fixat till `name`
+6. GET-endpoints (overview, schedule, capacity, operators, shift-detail) saknade auth-kontroll — fixat
+7. `getOperators()` frågade `namn` och sorterade pa `namn` — fixat till `name` med alias
+
+**StatistikDashboardController.php (2 buggar)**
+8. `stoppage_log` frågades med `duration_min` — fixat till `duration_minutes`
+9. XSS: `$run` skrevs utan `htmlspecialchars` i default-case — fixat
+
+**VdDashboardController.php (2 buggar)**
+10. `rebotling_ibc` frågades med `user_id` kolumn som inte finns — fixat till `op1`/`op2`/`op3` UNION
+11. `stopporsak_registreringar` frågades med `station_id` och `orsak` kolumner som inte finns — fixat
+
+**UnderhallsloggController.php (1 bugg)**
+12. `taBort()` saknade admin-rollkontroll (medan legacy `deleteEntry()` hade det) — fixat
+
+**StatistikOverblickController.php (1 bugg)**
+13. `getProduktion()` anvande `COUNT(*)` for IBC-rakkning — fixat till MAX per skiftraknare (konsekvent med ovriga endpoints)
+
+---
+
 ## 2026-03-15 Session #110 Worker B — frontend-buggjakt (services + chart.js + imports + streaks)
 
 ### Område 1: Services utan error handling — GRANSKAD OK

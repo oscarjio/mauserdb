@@ -114,9 +114,9 @@ class ProduktionspulsController {
             $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare("
-                    SELECT start_time, stop_time
+                    SELECT datum, running
                     FROM rebotling_onoff
-                    ORDER BY start_time DESC
+                    ORDER BY datum DESC
                     LIMIT :lim
                 ");
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
@@ -124,22 +124,20 @@ class ProduktionspulsController {
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
-                    // Start-handelse (linjen startad)
-                    if ($row['start_time']) {
+                    $isRunning = (int)($row['running'] ?? 0);
+                    if ($isRunning) {
                         $events[] = [
                             'type'   => 'onoff',
-                            'time'   => $row['start_time'],
+                            'time'   => $row['datum'],
                             'label'  => 'Linjen startad',
                             'detail' => 'Rebotling-linjen satt i drift',
                             'color'  => 'success',
                             'icon'   => 'fas fa-play-circle',
                         ];
-                    }
-                    // Stopp-handelse (linjen stoppad)
-                    if ($row['stop_time']) {
+                    } else {
                         $events[] = [
                             'type'   => 'onoff',
-                            'time'   => $row['stop_time'],
+                            'time'   => $row['datum'],
                             'label'  => 'Linjen stoppad',
                             'detail' => 'Rebotling-linjen stannad',
                             'color'  => 'warning',
@@ -157,9 +155,10 @@ class ProduktionspulsController {
             $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare("
-                    SELECT start_time, end_time, orsak, kommentar
-                    FROM stopporsak_registreringar
-                    ORDER BY start_time DESC
+                    SELECT sr.start_time, sr.end_time, COALESCE(sk.namn, 'Okand orsak') AS orsak, sr.kommentar
+                    FROM stopporsak_registreringar sr
+                    LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                    ORDER BY sr.start_time DESC
                     LIMIT :lim
                 ");
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
@@ -196,10 +195,11 @@ class ProduktionspulsController {
             $check = $this->pdo->query("SHOW TABLES LIKE 'stoppage_log'");
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare("
-                    SELECT start_time, end_time, reason, duration_minutes
-                    FROM stoppage_log
-                    WHERE duration_minutes > 0
-                    ORDER BY start_time DESC
+                    SELECT sl.start_time, sl.end_time, COALESCE(sr.name, 'Okand orsak') AS reason, sl.duration_minutes
+                    FROM stoppage_log sl
+                    LEFT JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                    WHERE sl.duration_minutes > 0
+                    ORDER BY sl.start_time DESC
                     LIMIT :lim
                 ");
                 $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
@@ -281,26 +281,18 @@ class ProduktionspulsController {
             $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->query("
-                    SELECT start_time, stop_time
+                    SELECT datum, running
                     FROM rebotling_onoff
-                    ORDER BY start_time DESC
+                    ORDER BY datum DESC
                     LIMIT 1
                 ");
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($row) {
-                    if ($row['stop_time'] === null) {
-                        // Linjen kor fortfarande
-                        $driftstatus = [
-                            'running' => true,
-                            'sedan'   => $row['start_time'],
-                        ];
-                    } else {
-                        // Linjen ar stoppad
-                        $driftstatus = [
-                            'running' => false,
-                            'sedan'   => $row['stop_time'],
-                        ];
-                    }
+                    $isRunning = (int)($row['running'] ?? 0);
+                    $driftstatus = [
+                        'running' => (bool)$isRunning,
+                        'sedan'   => $row['datum'],
+                    ];
                 }
             }
         } catch (\PDOException $e) {
@@ -313,18 +305,18 @@ class ProduktionspulsController {
             $check = $this->pdo->query("SHOW TABLES LIKE 'rebotling_onoff'");
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->query("
-                    SELECT stop_time
+                    SELECT datum
                     FROM rebotling_onoff
-                    WHERE stop_time IS NOT NULL
-                    ORDER BY stop_time DESC
+                    WHERE running = 0
+                    ORDER BY datum DESC
                     LIMIT 1
                 ");
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($row && $row['stop_time']) {
-                    $minuter = round((time() - strtotime($row['stop_time'])) / 60);
+                if ($row && $row['datum']) {
+                    $minuter = round((time() - strtotime($row['datum'])) / 60);
                     $senasteStopp = [
                         'minuter'       => max(0, (int)$minuter),
-                        'senaste_stopp' => $row['stop_time'],
+                        'senaste_stopp' => $row['datum'],
                     ];
                 }
             }

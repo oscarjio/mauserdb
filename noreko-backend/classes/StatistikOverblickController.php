@@ -191,12 +191,21 @@ class StatistikOverblickController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    YEARWEEK(datum, 1) AS yearweek,
-                    MIN(DATE(datum)) AS week_start,
-                    COUNT(*) AS total_ibc
-                FROM rebotling_ibc
-                WHERE DATE(datum) BETWEEN :from_date AND :to_date
-                GROUP BY YEARWEEK(datum, 1)
+                    yearweek,
+                    MIN(dag) AS week_start,
+                    COALESCE(SUM(max_ibc_ok + max_ibc_ej_ok), 0) AS total_ibc
+                FROM (
+                    SELECT
+                        YEARWEEK(datum, 1) AS yearweek,
+                        DATE(datum) AS dag,
+                        skiftraknare,
+                        MAX(ibc_ok) AS max_ibc_ok,
+                        MAX(ibc_ej_ok) AS max_ibc_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY YEARWEEK(datum, 1), DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY yearweek
                 ORDER BY yearweek ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
