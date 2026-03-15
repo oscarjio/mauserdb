@@ -6,7 +6,7 @@ import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import { environment } from '../../../environments/environment';
-import { localToday, localDateStr } from '../../utils/date-utils';
+import { localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 Chart.defaults.color = '#e2e8f0';
