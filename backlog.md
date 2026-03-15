@@ -7,13 +7,11 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **Buggjakt: Batch 3 controllers del 2 (9 st)** — RebotlingStationsdetalj, Skiftplanering, StatistikDashboard, StatistikOverblick, Stopporsak, StopporsakOperator, Stopptidsanalys, Underhallslogg, Produktionspuls
-- [ ] **Buggjakt: OperatorRanking streaks** — verifiera calcStreaks() med riktig data
-- [ ] **Buggjakt: PHP error_reporting + logging** — granska att alla controllers loggar fel konsekvent
-- [ ] **Buggjakt: Services utan error handling** — granska frontend services som saknar catchError/retry
-- [ ] **Buggjakt: Chart.js memory** — verifiera att alla chart-instanser destroyas korrekt i OnDestroy
-- [ ] **Buggjakt: Unused imports cleanup** — ta bort oanvanda parseLocalDate/localToday imports som Worker B kan ha lamnat
-- [ ] **Buggjakt: VdDashboard + SkiftjamforelseController granskning** — dessa 2 har inte granskats i batch 3
+- [ ] **Buggjakt: Batch 4 (8 controllers/)** — AlarmHistorik, HistoriskSammanfattning, Kassationsanalys, OperatorOnboarding, OperatorRanking, Produktionsmal, ProduktionsPrognos, Veckorapport
+- [ ] **Buggjakt: classes/ audit del 1** — systematisk granskning av classes/-mappen, borja med storsta filerna (116 filer totalt)
+- [ ] **Buggjakt: api.php + auth-kontroller** — verifiera att alla endpoints kraver korrekt auth, rate limiting, CORS
+- [ ] **Buggjakt: Frontend template null-safety** — sok efter template-bindningar som kan krascha vid null/undefined
+- [ ] **Buggjakt: PHP logging konsistens** — granska att alla controllers loggar fel konsekvent
 
 ## Parkerade features (ta inte dessa nu)
 
