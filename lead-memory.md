@@ -68,16 +68,17 @@ Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering �
 Session #102: Statistiksida sammanslagen överblick + Rebotling operatörs-dashboard — klara.
 Session #103: Rebotling daglig briefing-rapport + Rebotling skiftöverlämningsprotokoll — klara.
 Session #104: Rebotling operatörs-gamification + Rebotling prediktivt underhåll — klara.
-Session #105: BUGGJAKT — backend ibc_ok-kolumnfix i remaining controllers + frontend subscription-läckor.
+Session #105: BUGGJAKT — 4 backend SQL-buggar fixade (RankingHistorik, OperatorRanking, Produktionsmal, VdDashboard) + 3 frontend error-handling-buggar fixade (vd-dashboard, gamification, skiftoverlamning). 41 frontend components auditerade utan subscription-läckor.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [ ] **Buggjakt: ibc_ok-kolumn remaining controllers** (pågår #105)
-- [ ] **Buggjakt: Frontend subscription-läckor** (pågår #105)
+- [x] **Buggjakt: ibc_ok-kolumn** — klar #105 (4 buggar fixade)
+- [x] **Buggjakt: Frontend subscription-läckor** — klar #105 (3 error-handling buggar fixade)
 - [ ] **Buggjakt: Auth & session**
 - [ ] **Buggjakt: OEE-beräkningar verifiering**
 - [ ] **Buggjakt: API-endpoints manuell test**
+- [ ] **Buggjakt: Unused variables cleanup**
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -89,6 +90,6 @@ Worker 2 (Skiftöverlämningsprotokoll): Digital checklista vid skiftbyte. Backe
 Worker 1 (Operatörs-gamification): Poängsystem, badges, leaderboard. Backend: GamificationController.
 Worker 2 (Prediktivt underhåll): MTBF, stopporsaks-heatmap, riskbedömning. Backend: PrediktivtUnderhallController.
 
-### 2026-03-15 — Session #105 (pågår)
-Worker A (Backend buggjakt): Fixa ibc_ok-kolumnfel i 7 remaining controllers (MaskinhistorikController, RebotlingStationsdetaljController, KapacitetsplaneringController, SkiftrapportController, DagligBriefingController, StatistikOverblickController, GamificationController) + övriga SQL-buggar.
-Worker B (Frontend buggjakt): Granska subscription-läckor, template-buggar, felaktig datahantering i nya components (gamification, prediktivt-underhall, daglig-briefing, skiftoverlamning, operator-dashboard, vd-dashboard).
+### 2026-03-15 — Session #105 (klar)
+Worker A (Backend buggjakt): 7 remaining controllers granskade — redan korrekta. Hittade 4 RIKTIGA SQL-buggar i RankingHistorikController (SUM(ok)→COUNT), OperatorRankingController (ri.user_id→op1/op2/op3 UNION), ProduktionsmalController (WHERE ok=1→MAX(ibc_ok)), VdDashboardController (topOperatorer ri.user_id→UNION ALL).
+Worker B (Frontend buggjakt): 41 components auditerade — 0 subscription-läckor. Fixade 3 error-handling-buggar: vd-dashboard (6 HTTP utan catchError + saknad isFetching), gamification (3 HTTP utan catchError), skiftoverlamning (isLoading fastnar forever).
