@@ -7,16 +7,14 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
+- [WIP] **Buggjakt: Batch 2 controllers (10 st)** — Worker A #108 granskar Kassationsanalys, Veckorapport, Heatmap, Pareto, OeeWaterfall, Morgonrapport, DrifttidsTimeline, ProduktionsPuls, ForstaTimmeAnalys, MyStats
+- [WIP] **Buggjakt: 6 endpoints saknade tabeller + frontend logikbuggar** — Worker B #108 curl-testar + granskar berakningar i components
+- [WIP] **Buggjakt: Unused vars i 3 controllers** — Worker A #108 fixar SkiftjamforelseController, GamificationController, SkiftoverlamningController
 - [ ] **Buggjakt: OperatorRanking streaks** — verifiera calcStreaks() med riktig data
-- [ ] **Buggjakt: 6 endpoints med saknade tabeller** — prediktivt-underhall, skiftoverlamning, rebotling, operators, news, bonus
-- [ ] **Buggjakt: Unused vars i 3 controllers** — SkiftjamforelseController ($today, $lagstStopp, $lagstStoppMin, IDEAL_CYCLE_SEC), GamificationController ($role), SkiftoverlamningController (deprecated nullable param)
-- [ ] **Buggjakt: Nyare controllers (batch 2)** — 20+ ogranskade: Kassationsanalys, Veckorapport, Heatmap, Pareto, OeeWaterfall, Morgonrapport, DrifttidsTimeline, ProduktionsPuls, ForstaTimmeAnalys, MyStats
-- [x] **Buggjakt: PHP catch($e) cleanup** — 119 oanvanda $e fixade i 49 filer
-- [x] **Buggjakt: DST datum-buggar** — 2 buggar fixade (GamificationController streak, PrediktivtUnderhall MTBF)
-- [x] **Buggjakt: SkiftoverlamningController auth** — GET-endpoints saknade requireLogin(), fixat
-- [x] **Buggjakt: Frontend subscription leaks** — alla 42 components OK, inga lacker
-- [x] **Buggjakt: Frontend trackBy** — ~270 ngFor utan trackBy fixade (prestandabugg vid polling)
-- [x] **Buggjakt: Chart.js memory leaks** — alla 32 components med Chart.js har chart?.destroy()
+- [ ] **Buggjakt: Batch 3 controllers (18 st)** — AlarmHistorik, DagligBriefing, Favoriter, HistoriskSammanfattning, KassationsDrilldown, KvalitetsTrendbrott, OeeTrendanalys, OperatorDashboard, OperatorOnboarding, ProduktionsPrognos, RebotlingStationsdetalj, Skiftplanering, StatistikDashboard, StatistikOverblick, Stopporsak, StopporsakOperator, Stopptidsanalys, Underhallslogg
+- [ ] **Buggjakt: Frontend berakningar** — verifiera OEE/bonus/procent-formler i alla components mot backend-formler (konsistens)
+- [ ] **Buggjakt: API-routes audit** — verifiera att alla frontend-anrop matchar backend-routes (404-risk)
+- [ ] **Buggjakt: PHP error_reporting + logging** — granska att alla controllers loggar fel konsekvent
 
 ## Parkerade features (ta inte dessa nu)
 

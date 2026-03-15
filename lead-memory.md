@@ -60,22 +60,19 @@ Session #102-#104: Features (statistik-överblick, daglig briefing, gamification
 Session #105: BUGGJAKT — 4 SQL-buggar + 3 error-handling-buggar fixade. 41 frontend components auditerade.
 Session #106: BUGGJAKT — 8 backend-buggar (2 säkerhet, 1 OEE, 5 query/unused) + 4 frontend-buggar + 12 API-endpoints testade + 3 unused vars fixade av lead.
 Session #107: BUGGJAKT — Worker A: 119 catch($e) cleanup, 2 DST-buggar, 1 auth-bugg (SkiftoverlamningController). Worker B: ~270 trackBy fixade, subscription/Chart.js audit OK. Totalt: 122 fixar + 270 trackBy.
+Session #108: BUGGJAKT — Worker A: Batch 2 controllers (10 st) + unused vars (3 controllers). Worker B: 6 endpoint-verifieringar + frontend logikbuggar.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [ ] **Buggjakt: Verifiera OperatorRanking streaks med riktig data**
-- [ ] **Buggjakt: 6 endpoints saknar DB-tabeller**
-- [ ] **Buggjakt: Unused vars i SkiftjamforelseController, GamificationController, SkiftoverlamningController**
-- [ ] **Buggjakt: 20+ ogranskade controllers (batch 2)**
-- [ ] **Buggjakt: Verifiera OperatorRanking streaks med riktig data**
-- [ ] **Buggjakt: 6 endpoints saknar DB-tabeller**
+- [WIP] **Buggjakt: Batch 2 controllers (10 st) + unused vars (3 controllers)**
+- [WIP] **Buggjakt: 6 endpoints + frontend logikbuggar**
+- [ ] **Buggjakt: OperatorRanking streaks — verifiera med riktig data**
+- [ ] **Buggjakt: Batch 3 controllers (18 st)**
+- [ ] **Buggjakt: Frontend beräkningar vs backend konsistens**
+- [ ] **Buggjakt: API-routes audit (404-risk)**
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-15 — Session #105 (klar)
-Worker A (Backend buggjakt): 4 SQL-buggar i RankingHistorik, OperatorRanking, Produktionsmal, VdDashboard.
-Worker B (Frontend buggjakt): 3 error-handling-buggar i vd-dashboard, gamification, skiftoverlamning.
 
 ### 2026-03-15 — Session #106 (klar)
 Worker A (Backend auth+OEE+unused): 2 säkerhetsbuggar, 1 OEE-bugg, 2 query-buggar, 1 saknad return, 2 unused vars.
@@ -84,3 +81,7 @@ Worker B (Frontend templates+API-test): 1 template-bugg, 3 unused imports. 12 en
 ### 2026-03-15 — Session #107 (klar)
 Worker A: 119 catch($e) -> catch(\Exception) i 49 filer. 2 DST-buggar (streak/MTBF). 1 auth-bugg (SkiftoverlamningController GET utan requireLogin).
 Worker B: ~270 ngFor trackBy fixade (prestandabugg). Subscription/Chart.js audit OK (inga lacker). Services OK.
+
+### 2026-03-15 — Session #108 (pågår)
+Worker A: Granskar 10 batch-2-controllers + fixar unused vars i 3 controllers.
+Worker B: Curl-testar 6 endpoints + granskar frontend-beräkningar i 8 components.
