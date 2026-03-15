@@ -1013,7 +1013,6 @@ class ProduktionsmalController {
         $weeks = max(4, min(52, (int)($_GET['weeks'] ?? 12)));
         try {
             $weekdayGoals = $this->getWeekdayGoals();
-            $toDate = date('Y-m-d', strtotime('sunday this week'));
             $fromDate = date('Y-m-d', strtotime("-{$weeks} weeks monday"));
             $factual = $this->getFactualIbcByDate($fromDate, date('Y-m-d'));
 

@@ -1,3 +1,10 @@
+## 2026-03-15 Session #106 Lead — unused variable cleanup
+
+### Fixade 3 oanvanda PHP-variabler (diagnostics cleanup)
+1. **ProduktionsmalController.php** — `$toDate` tilldelad men aldrig anvand i `getWeekly()`. Borttagen.
+2. **ProduktionskalenderController.php** — `$mal` parameter i `buildMonthlySummary()` aldrig anvand i funktionskroppen. Borttagen fran bade anrop och signatur.
+3. **RankingHistorikController.php** — `$count` oanvand i foreach-loop i `calcRankings()`. Bytt till `array_keys()`.
+
 ## 2026-03-15 Session #106 Worker B — Frontend buggjakt + Template-fix + API-test
 
 ### Del 1: vd-dashboard unused imports

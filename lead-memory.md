@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-15 (session #105)*
+*Senast uppdaterad: 2026-03-15 (session #106)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -55,41 +55,30 @@ IBC-tvätteri (1000L plasttankar i metallbur). Systemet ger VD realtidsöverblic
 ## Bug Hunt Status
 
 Bug Hunts #1-#50 genomförda. Kodbasen har genomgått systematisk granskning.
-Session #57-#93: Feature-utveckling löpande. Se lead-memory-archive.md för detaljer.
-Session #92: Rebotling stationsdetalj-dashboard + VD veckorapport + buggjakt — klara.
-Session #93: Rebotling stationsdetalj-dashboard rebotling klar.
-Session #94: Kassationsorsak-analys + Rebotling skiftöverlämning — klara.
-Session #96: Rebotling underhållslogg + Buggjakt — klara.
-Session #97: Rebotling produktionsmål-uppföljning + Stopporsak-dashboard — klara.
-Session #98: Operatörs-tidrapport + OEE-trendanalys förbättrad — klara.
-Session #99: Rebotling skiftjämförelse-rapport + Operatörs-ranking med bonus — klara.
-Session #100: VD Executive Dashboard + Rebotling historisk sammanfattning — klara.
-Session #101: Rebotling kvalitetstrend-analys + Rebotling kapacitetsplanering — klara.
-Session #102: Statistiksida sammanslagen överblick + Rebotling operatörs-dashboard — klara.
-Session #103: Rebotling daglig briefing-rapport + Rebotling skiftöverlämningsprotokoll — klara.
-Session #104: Rebotling operatörs-gamification + Rebotling prediktivt underhåll — klara.
-Session #105: BUGGJAKT — 4 backend SQL-buggar fixade (RankingHistorik, OperatorRanking, Produktionsmal, VdDashboard) + 3 frontend error-handling-buggar fixade (vd-dashboard, gamification, skiftoverlamning). 41 frontend components auditerade utan subscription-läckor.
+Session #57-#101: Feature-utveckling löpande. Se lead-memory-archive.md för detaljer.
+Session #102-#104: Features (statistik-överblick, daglig briefing, gamification, prediktivt underhåll).
+Session #105: BUGGJAKT — 4 SQL-buggar + 3 error-handling-buggar fixade. 41 frontend components auditerade.
+Session #106: BUGGJAKT — 8 backend-buggar (2 säkerhet, 1 OEE, 5 query/unused) + 4 frontend-buggar + 12 API-endpoints testade + 3 unused vars fixade av lead.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [x] **Buggjakt: ibc_ok-kolumn** — klar #105 (4 buggar fixade)
-- [x] **Buggjakt: Frontend subscription-läckor** — klar #105 (3 error-handling buggar fixade)
-- [ ] **Buggjakt: Auth & session**
-- [ ] **Buggjakt: OEE-beräkningar verifiering**
-- [ ] **Buggjakt: API-endpoints manuell test**
-- [ ] **Buggjakt: Unused variables cleanup**
+- [ ] **Buggjakt: Verifiera OperatorRanking streaks med riktig data**
+- [ ] **Buggjakt: 6 endpoints saknar DB-tabeller**
+- [ ] **Buggjakt: PHP catch($e) cleanup**
+- [ ] **Buggjakt: Edge cases i datum-hantering**
+- [ ] **Buggjakt: Frontend responsivitet**
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #103 (klar)
-Worker 1 (Daglig briefing-rapport): Morgonrapport med gårdagens resultat, stopporsaker, stationsstatus. Backend: DagligBriefingController.
-Worker 2 (Skiftöverlämningsprotokoll): Digital checklista vid skiftbyte. Backend: SkiftoverlamningController.
 
 ### 2026-03-13 — Session #104 (klar)
 Worker 1 (Operatörs-gamification): Poängsystem, badges, leaderboard. Backend: GamificationController.
 Worker 2 (Prediktivt underhåll): MTBF, stopporsaks-heatmap, riskbedömning. Backend: PrediktivtUnderhallController.
 
 ### 2026-03-15 — Session #105 (klar)
-Worker A (Backend buggjakt): 7 remaining controllers granskade — redan korrekta. Hittade 4 RIKTIGA SQL-buggar i RankingHistorikController (SUM(ok)→COUNT), OperatorRankingController (ri.user_id→op1/op2/op3 UNION), ProduktionsmalController (WHERE ok=1→MAX(ibc_ok)), VdDashboardController (topOperatorer ri.user_id→UNION ALL).
-Worker B (Frontend buggjakt): 41 components auditerade — 0 subscription-läckor. Fixade 3 error-handling-buggar: vd-dashboard (6 HTTP utan catchError + saknad isFetching), gamification (3 HTTP utan catchError), skiftoverlamning (isLoading fastnar forever).
+Worker A (Backend buggjakt): 4 SQL-buggar i RankingHistorik, OperatorRanking, Produktionsmal, VdDashboard.
+Worker B (Frontend buggjakt): 3 error-handling-buggar i vd-dashboard, gamification, skiftoverlamning.
+
+### 2026-03-15 — Session #106 (klar)
+Worker A (Backend auth+OEE+unused): 2 säkerhetsbuggar (login.php/admin.php hårdkodade credentials), 1 OEE-bugg (ProduktionskalenderController tillgänglighet=1.0), 2 OperatorRanking query-buggar (calcStreaks+historik user_id), 1 RankingHistorik saknad return, 2 unused vars.
+Worker B (Frontend templates+API-test): 1 prediktivt-underhall [class]-bugg, 3 unused imports (FormsModule, type-imports). 12 endpoints testade — 6 OK, 6 saknar tabeller. Skapade db_config.php + migration (operator_id).

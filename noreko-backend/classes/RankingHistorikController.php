@@ -142,7 +142,7 @@ class RankingHistorikController {
         arsort($productionMap); // Störst produktion = bäst placering
         $rankings = [];
         $rank = 1;
-        foreach ($productionMap as $op => $count) {
+        foreach (array_keys($productionMap) as $op) {
             $rankings[(int)$op] = $rank;
             $rank++;
         }

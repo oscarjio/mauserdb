@@ -227,7 +227,7 @@ class ProduktionskalenderController {
         }
 
         // Månadssammanfattning
-        $summary = $this->buildMonthlySummary($dagData, $mål);
+        $summary = $this->buildMonthlySummary($dagData);
 
         // Veckodata (snitt + trend)
         $veckoData = $this->buildVeckoData($dagData, $year, $month);
@@ -244,7 +244,7 @@ class ProduktionskalenderController {
         ]);
     }
 
-    private function buildMonthlySummary(array $dagData, int $mål): array {
+    private function buildMonthlySummary(array $dagData): array {
         if (empty($dagData)) {
             return [
                 'totalt_ibc'     => 0,
