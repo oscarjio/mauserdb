@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-15 (session #106)*
+*Senast uppdaterad: 2026-03-15 (session #107)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -59,26 +59,29 @@ Session #57-#101: Feature-utveckling löpande. Se lead-memory-archive.md för de
 Session #102-#104: Features (statistik-överblick, daglig briefing, gamification, prediktivt underhåll).
 Session #105: BUGGJAKT — 4 SQL-buggar + 3 error-handling-buggar fixade. 41 frontend components auditerade.
 Session #106: BUGGJAKT — 8 backend-buggar (2 säkerhet, 1 OEE, 5 query/unused) + 4 frontend-buggar + 12 API-endpoints testade + 3 unused vars fixade av lead.
+Session #107: BUGGJAKT — Worker A: catch($e) cleanup + datum edge cases + djupgranskning controllers. Worker B: subscription leak audit + template null-safety + responsivitet + service-granskning.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 - [ ] **Buggjakt: Verifiera OperatorRanking streaks med riktig data**
 - [ ] **Buggjakt: 6 endpoints saknar DB-tabeller**
-- [ ] **Buggjakt: PHP catch($e) cleanup**
-- [ ] **Buggjakt: Edge cases i datum-hantering**
-- [ ] **Buggjakt: Frontend responsivitet**
+- [>] **Buggjakt: PHP catch($e) cleanup** (Worker A #107)
+- [>] **Buggjakt: Edge cases i datum-hantering** (Worker A #107)
+- [>] **Buggjakt: Frontend subscriptions + templates** (Worker B #107)
+- [ ] **Buggjakt: 20+ ogranskade controllers (batch 2)**
+- [ ] **Buggjakt: Chart.js memory leaks**
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-13 — Session #104 (klar)
-Worker 1 (Operatörs-gamification): Poängsystem, badges, leaderboard. Backend: GamificationController.
-Worker 2 (Prediktivt underhåll): MTBF, stopporsaks-heatmap, riskbedömning. Backend: PrediktivtUnderhallController.
 
 ### 2026-03-15 — Session #105 (klar)
 Worker A (Backend buggjakt): 4 SQL-buggar i RankingHistorik, OperatorRanking, Produktionsmal, VdDashboard.
 Worker B (Frontend buggjakt): 3 error-handling-buggar i vd-dashboard, gamification, skiftoverlamning.
 
 ### 2026-03-15 — Session #106 (klar)
-Worker A (Backend auth+OEE+unused): 2 säkerhetsbuggar (login.php/admin.php hårdkodade credentials), 1 OEE-bugg (ProduktionskalenderController tillgänglighet=1.0), 2 OperatorRanking query-buggar (calcStreaks+historik user_id), 1 RankingHistorik saknad return, 2 unused vars.
-Worker B (Frontend templates+API-test): 1 prediktivt-underhall [class]-bugg, 3 unused imports (FormsModule, type-imports). 12 endpoints testade — 6 OK, 6 saknar tabeller. Skapade db_config.php + migration (operator_id).
+Worker A (Backend auth+OEE+unused): 2 säkerhetsbuggar, 1 OEE-bugg, 2 query-buggar, 1 saknad return, 2 unused vars.
+Worker B (Frontend templates+API-test): 1 template-bugg, 3 unused imports. 12 endpoints testade. db_config.php + migration.
+
+### 2026-03-15 — Session #107 (pagar)
+Worker A (Backend catch/datum/controllers): catch($e) cleanup, datum edge cases, djupgranskning av DagligBriefing, StatistikOverblick, Skiftoverlamning, PrediktivtUnderhall, Gamification m.fl.
+Worker B (Frontend subscriptions/templates/services): subscription leak audit, template null-safety, responsivitet, service error handling.

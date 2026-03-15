@@ -1,26 +1,24 @@
 # Worker Backlog — MauserDB
 
-*Lead-agenten fyller på. Workers plockar uppgifter härifrån.*
-*Håll 5-10 öppna items. Markera med [x] när klart.*
+*Lead-agenten fyller pa. Workers plockar uppgifter harifran.*
+*Hall 5-10 oppna items. Markera med [x] nar klart.*
 
 ## PRIORITET: BUGGJAKT (2026-03-15)
 
-Ägaren har bett oss fokusera på att hitta och fixa buggar. Inga nya features.
+Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Buggjakt: Auth & session** — login.php/admin.php hade hårdkodade credentials utan auth, ersatta med 410 Gone. CORS, bcrypt, sessions OK.
-- [x] **Buggjakt: OEE-beräkningar** — 6 controllers granskade. ProduktionskalenderController hade tillgänglighet hårdkodad till 1.0 — fixad.
-- [x] **Buggjakt: API-endpoints manuell test** — 12 endpoints testade med curl. 6 fungerar, 6 kräver saknade DB-tabeller. SQL injection/XSS skyddat.
-- [x] **Buggjakt: Unused variables** — $toDate, $mål, $count, FormsModule, oanvända type-imports — alla fixade.
-- [x] **Buggjakt: Frontend template-fel** — prediktivt-underhall [class]-bugg fixad, oanvända imports i gamification/prediktivt-underhall fixade.
-- [ ] **Buggjakt: OperatorRanking streaks** — calcStreaks() använde user_id på rebotling_ibc, fixat till UNION ALL — verifiera med riktig data
-- [ ] **Buggjakt: 6 endpoints med saknade tabeller** — prediktivt-underhall, skiftoverlamning, rebotling, operators, news, bonus — kräver DB-tabeller
-- [ ] **Buggjakt: PHP catch($e) cleanup** — 12 catch-block med oanvända $e i 4 controllers — byt till catch(Exception) (PHP 8+)
-- [ ] **Buggjakt: Edge cases i datum-hantering** — granska controllers som gör datum-jämförelser, verifiera tidszoner, DST, årsskiften
-- [ ] **Buggjakt: Frontend responsivitet** — testa alla sidor i mobil-vy, fixa overflow/layout-problem
+- [ ] **Buggjakt: OperatorRanking streaks** — calcStreaks() anvande user_id pa rebotling_ibc, fixat till UNION ALL — verifiera med riktig data
+- [ ] **Buggjakt: 6 endpoints med saknade tabeller** — prediktivt-underhall, skiftoverlamning, rebotling, operators, news, bonus — kraver DB-tabeller
+- [>] **Buggjakt: PHP catch($e) cleanup** — 12 catch-block med oanvanda $e i controllers (Worker A #107)
+- [>] **Buggjakt: Edge cases i datum-hantering** — tidszoner, DST, arsskiften i controllers (Worker A #107)
+- [>] **Buggjakt: Frontend subscription leaks** — audit alla components for takeUntil/destroy$ (Worker B #107)
+- [>] **Buggjakt: Frontend template null-safety + responsivitet** — saknad ?. navigation, overflow (Worker B #107)
+- [ ] **Buggjakt: Nyare controllers (batch 2)** — 20+ controllers ogranskade: Kassationsanalys, Veckorapport, Heatmap, Pareto, OeeWaterfall, Morgonrapport, DrifttidsTimeline, ProduktionsPuls, ForstaTimmeAnalys, MyStats
+- [ ] **Buggjakt: Chart.js memory leaks** — verifiera chart?.destroy() i alla components med grafer
 
 ## Parkerade features (ta inte dessa nu)
 
 - [ ] Dashboards favoritlayout
 - [ ] Realtids-notifikationer
-- [ ] Rebotling energi/resursförbrukning
-- [ ] Rebotling batch-spårning
+- [ ] Rebotling energi/resursforbrukning
+- [ ] Rebotling batch-sparning
