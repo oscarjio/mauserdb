@@ -83,7 +83,7 @@
             </div>
             <div class="d-flex justify-content-between mt-1">
               <small class="text-muted">Risk: {{ station.risk_kvot }}x</small>
-              <small [class]="getMtbfTrendIcon(station.mtbf_trend)" [title]="getMtbfTrendLabel(station.mtbf_trend)">
+              <small class="text-muted" [title]="getMtbfTrendLabel(station.mtbf_trend)">
                 <i [class]="getMtbfTrendIcon(station.mtbf_trend)"></i>
                 {{ getMtbfTrendLabel(station.mtbf_trend) }}
               </small>

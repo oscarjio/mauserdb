@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
@@ -19,7 +18,7 @@ Chart.register(...registerables);
   selector: 'app-prediktivt-underhall',
   templateUrl: './prediktivt-underhall.component.html',
   styleUrls: ['./prediktivt-underhall.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
 })
 export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   // Loading

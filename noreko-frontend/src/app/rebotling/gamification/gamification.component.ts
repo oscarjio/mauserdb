@@ -1,17 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import {
   GamificationService,
-  LeaderboardEntry,
   LeaderboardData,
-  Badge,
-  BadgesData,
   MinProfilData,
   OverviewData,
-  Milstolpe,
 } from '../gamification.service';
 
 @Component({
@@ -19,7 +14,7 @@ import {
   selector: 'app-gamification',
   templateUrl: './gamification.component.html',
   styleUrls: ['./gamification.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
 })
 export class GamificationPage implements OnInit, OnDestroy {
 
