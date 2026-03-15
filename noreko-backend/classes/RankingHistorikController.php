@@ -309,6 +309,7 @@ class RankingHistorikController {
 
             $this->sendSuccess([
                 'andringar'       => $andringar,
+                'storst_klattare' => $storstKlattare,
             ]);
 
         } catch (Exception $e) {

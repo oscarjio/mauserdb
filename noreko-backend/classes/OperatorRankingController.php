@@ -363,18 +363,32 @@ class OperatorRankingController {
 
         foreach ($ranking as &$op) {
             // Hamta daglig IBC for denna operator senaste 30 dagar
+            // Operatorer identifieras via op1/op2/op3-kolumner, inte user_id
             $streak = 0;
             try {
                 $sql = "
-                    SELECT DATE(datum) AS dag, COUNT(*) AS ibc_count
-                    FROM rebotling_ibc
-                    WHERE user_id = :uid
-                      AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY DATE(datum)
+                    SELECT dag, SUM(cnt) AS ibc_count
+                    FROM (
+                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt
+                        FROM rebotling_ibc
+                        WHERE op1 = :uid1 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        GROUP BY DATE(datum)
+                        UNION ALL
+                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt
+                        FROM rebotling_ibc
+                        WHERE op2 = :uid2 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        GROUP BY DATE(datum)
+                        UNION ALL
+                        SELECT DATE(datum) AS dag, COUNT(*) AS cnt
+                        FROM rebotling_ibc
+                        WHERE op3 = :uid3 AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                        GROUP BY DATE(datum)
+                    ) AS combined
+                    GROUP BY dag
                     ORDER BY dag DESC
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':uid' => $op['user_id']]);
+                $stmt->execute([':uid1' => $op['user_id'], ':uid2' => $op['user_id'], ':uid3' => $op['user_id']]);
                 $dagData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 // Daglig poang-grans = snittet / antal dagar normaliserat
@@ -535,29 +549,53 @@ class OperatorRankingController {
                 $operatorNames[$op['user_id']] = $op['operator_namn'];
             }
 
-            // Hamta daglig IBC per operator
+            // Hamta daglig IBC per operator via op1/op2/op3
             $historik = [];
             $placeholders = implode(',', array_fill(0, count($userIds), '?'));
 
             try {
                 $sql = "
-                    SELECT
-                        DATE(datum) AS dag,
-                        user_id,
-                        COUNT(*) AS total_ibc
-                    FROM rebotling_ibc
-                    WHERE user_id IN ({$placeholders})
-                      AND DATE(datum) BETWEEN ? AND ?
-                    GROUP BY DATE(datum), user_id
+                    SELECT dag, op_id, SUM(cnt) AS total_ibc
+                    FROM (
+                        SELECT DATE(datum) AS dag, op1 AS op_id, COUNT(*) AS cnt
+                        FROM rebotling_ibc
+                        WHERE op1 IN ({$placeholders})
+                          AND DATE(datum) BETWEEN ? AND ?
+                          AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY DATE(datum), op1
+
+                        UNION ALL
+
+                        SELECT DATE(datum) AS dag, op2 AS op_id, COUNT(*) AS cnt
+                        FROM rebotling_ibc
+                        WHERE op2 IN ({$placeholders})
+                          AND DATE(datum) BETWEEN ? AND ?
+                          AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY DATE(datum), op2
+
+                        UNION ALL
+
+                        SELECT DATE(datum) AS dag, op3 AS op_id, COUNT(*) AS cnt
+                        FROM rebotling_ibc
+                        WHERE op3 IN ({$placeholders})
+                          AND DATE(datum) BETWEEN ? AND ?
+                          AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY DATE(datum), op3
+                    ) AS combined
+                    GROUP BY dag, op_id
                     ORDER BY dag ASC
                 ";
-                $params = array_merge($userIds, [$from30, $to]);
+                $params = array_merge(
+                    $userIds, [$from30, $to],
+                    $userIds, [$from30, $to],
+                    $userIds, [$from30, $to]
+                );
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute($params);
 
                 foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $dag = $row['dag'];
-                    $uid = (int)$row['user_id'];
+                    $uid = (int)$row['op_id'];
                     if (!isset($historik[$dag])) {
                         $historik[$dag] = [];
                     }

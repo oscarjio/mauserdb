@@ -435,10 +435,11 @@ class ProduktionskalenderController {
         // Drifttid / stopptid från rebotling_onoff
         $drift = $this->getDrifttid($date);
 
-        // OEE (förenklad beräkning)
+        // OEE-beräkning: Tillgänglighet × Prestanda × Kvalitet
         $oee = null;
-        if ($drift['drifttid'] > 0 && $ibcH !== null) {
-            $tillgänglighet = 1.0; // använd drifttid/planerad tid om tillgänglig
+        $totalTid = $drift['drifttid'] + $drift['stopptid'];
+        if ($totalTid > 0 && $ibcH !== null) {
+            $tillgänglighet = $drift['drifttid'] / $totalTid;
             $prestanda      = min(1.0, $ibcH / 60); // anta mål 60 IBC/h
             $kvalitetsFaktor = ($ibcOk + $ibcEjOk) > 0 ? $ibcOk / ($ibcOk + $ibcEjOk) : 0;
             $oee = round($tillgänglighet * $prestanda * $kvalitetsFaktor * 100, 1);

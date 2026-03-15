@@ -1,20 +1,9 @@
 <?php
-// admin.php - Hanterar administration av logins
-
-// Exempel: GET/POST för att lista, lägga till eller ta bort användare
-$method = $_SERVER['REQUEST_METHOD'];
-
-if ($method === 'GET') {
-    // Returnera lista på användare (hårdkodat exempel)
-    echo json_encode([
-        ['username' => 'admin'],
-        ['username' => 'user1']
-    ]);
-} elseif ($method === 'POST') {
-    // Lägg till ny användare (exempel)
-    $data = json_decode(file_get_contents('php://input'), true);
-    // Här kan du lägga till kod för att spara användaren
-    echo json_encode(['success' => true, 'message' => 'Användare tillagd', 'user' => $data]);
-} else {
-    echo json_encode(['error' => 'Ogiltig metod']);
-}
+// admin.php - LEGACY STUB, all admin traffic goes through api.php?action=admin
+// This file is kept to prevent 404 but does NOT expose any admin functionality.
+header('Content-Type: application/json; charset=utf-8');
+http_response_code(410);
+echo json_encode([
+    'success' => false,
+    'message' => 'Denna endpoint ar borttagen. Anvand api.php?action=admin istallet.'
+]);

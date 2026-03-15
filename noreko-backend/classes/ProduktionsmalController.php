@@ -708,7 +708,6 @@ class ProduktionsmalController {
 
             $weekdayGoals = $this->getWeekdayGoals();
             $dagMal = $this->getDailyGoal($today, $weekdayGoals);
-            $totalDagUtfall = 0;
 
             // Hamta total dagens utfall for procentberakning
             $dagFactual = $this->getFactualIbcByDate($today, $today);
@@ -826,8 +825,6 @@ class ProduktionsmalController {
 
             if ($typ === 'dag') {
                 // Uppdatera rebotling_weekday_goals for alla vardagar
-                // Eller satt specifikt dagsmal
-                $wd = (int)date('N', strtotime($giltigFran));
                 $stmt = $this->pdo->prepare("
                     INSERT INTO rebotling_weekday_goals (weekday, daily_goal)
                     VALUES (:wd, :goal)

@@ -1,14 +1,9 @@
 <?php
-// login.php - Hanterar inloggning
-
-// Exempel: POST { username, password }
-$data = json_decode(file_get_contents('php://input'), true);
-$username = $data['username'] ?? '';
-$password = $data['password'] ?? '';
-
-// Här kan du lägga till riktig användarvalidering mot databas
-if ($username === 'admin' && $password === 'admin123') {
-    echo json_encode(['success' => true, 'message' => 'Inloggning lyckades']);
-} else {
-    echo json_encode(['success' => false, 'message' => 'Felaktigt användarnamn eller lösenord']);
-}
+// login.php - LEGACY STUB, all login traffic goes through api.php?action=login
+// This file is kept to prevent 404 but does NOT process logins.
+header('Content-Type: application/json; charset=utf-8');
+http_response_code(410);
+echo json_encode([
+    'success' => false,
+    'message' => 'Denna endpoint ar borttagen. Anvand api.php?action=login istallet.'
+]);
