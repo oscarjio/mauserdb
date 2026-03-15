@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
 import {
@@ -25,6 +25,7 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
   isLoading = false;
   isSubmitting = false;
   showConfirm = false;
+  errorSkiftdata = false;
 
   // Skiftsammanfattning (auto-populerad)
   skiftdata: SkiftdataResponse | null = null;
@@ -73,16 +74,23 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
 
   loadSkiftdata(): void {
     this.isLoading = true;
-    this.svc.getSkiftdata().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.errorSkiftdata = false;
+    this.svc.getSkiftdata().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       this.isLoading = false;
       if (res?.success) {
         this.skiftdata = res;
+      } else {
+        this.errorSkiftdata = true;
       }
     });
   }
 
   loadHistorik(): void {
-    this.svc.getHistorik(10).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getHistorik(10).pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       if (res?.success) {
         this.historikItems = res.items;
       }

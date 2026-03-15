@@ -1,3 +1,31 @@
+## 2026-03-15 Frontend Angular bugfix: error handling + race condition guards
+
+### Audited components (subscription leaks, template bugs, error handling)
+Systematically reviewed all 41 component files and 169 .ts page files for:
+- Subscription leaks (subscribe without takeUntil) -- **none found**, all clean
+- setInterval/setTimeout without cleanup in ngOnDestroy -- **none found**, all clean
+- Chart.js charts without .destroy() -- **none found**, all clean
+- console.log in production -- **none found**
+- Missing error handling on HTTP calls -- **3 components found and fixed**
+
+### Bugs found and fixed
+
+1. **vd-dashboard.component.ts** -- 6 HTTP calls without catchError/timeout. On network failure the loading spinner would spin forever. Also no isFetching guard, so the 30-second polling could create overlapping requests. Fixed: added timeout(15000), catchError, isFetching guard, and errorMessage state with retry button in template.
+
+2. **gamification.component.ts** -- 3 HTTP calls (leaderboard, profil, overview) without catchError/timeout. On network failure loading flags could get stuck. Fixed: added timeout(15000), catchError, and error state flags (errorLeaderboard, errorProfil, errorOverview).
+
+3. **skiftoverlamning.component.ts** -- loadSkiftdata() and loadHistorik() without catchError/timeout. On network failure isLoading stays true forever. Fixed: added timeout(15000), catchError, errorSkiftdata flag, and error UI with retry button in template.
+
+### Files changed
+- noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.ts
+- noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.html
+- noreko-frontend/src/app/rebotling/gamification/gamification.component.ts
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.ts
+- noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.html
+
+### Build verified
+ng build passed with no errors (only pre-existing CommonJS warnings).
+
 ## 2026-03-15 Fix remaining ok-column and user_id bugs in 4 controllers
 
 ### Audit results

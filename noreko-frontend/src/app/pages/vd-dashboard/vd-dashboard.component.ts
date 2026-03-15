@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   VdDashboardService,
@@ -31,9 +31,11 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   veckotrend: VeckotrendData | null = null;
   skiftstatus: SkiftstatusData | null = null;
 
-  // Loading
+  // Loading / Error
   loading = true;
   lastUpdate = '';
+  errorMessage = '';
+  private isFetching = false;
 
   // Charts
   private trendChart: Chart | null = null;
@@ -59,35 +61,56 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
-    this.svc.getOversikt().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res?.success) this.oversikt = res.data;
+    if (this.isFetching) return;
+    this.isFetching = true;
+    this.errorMessage = '';
+
+    this.svc.getOversikt().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
+      this.isFetching = false;
       this.loading = false;
-      this.lastUpdate = new Date().toLocaleTimeString('sv-SE');
+      if (res?.success) {
+        this.oversikt = res.data;
+        this.lastUpdate = new Date().toLocaleTimeString('sv-SE');
+      } else if (!this.oversikt) {
+        this.errorMessage = 'Kunde inte hamta produktionsdata';
+      }
     });
 
-    this.svc.getStoppNu().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getStoppNu().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       if (res?.success) this.stoppNu = res.data;
     });
 
-    this.svc.getTopOperatorer().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getTopOperatorer().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       if (res?.success) this.topOperatorer = res.data;
     });
 
-    this.svc.getStationOee().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getStationOee().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       if (res?.success) {
         this.stationOee = res.data;
         setTimeout(() => this.renderStationChart(), 100);
       }
     });
 
-    this.svc.getVeckotrend().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getVeckotrend().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       if (res?.success) {
         this.veckotrend = res.data;
         setTimeout(() => this.renderTrendChart(), 100);
       }
     });
 
-    this.svc.getSkiftstatus().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getSkiftstatus().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       if (res?.success) this.skiftstatus = res.data;
     });
   }

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import {
   GamificationService,
   LeaderboardEntry,
@@ -38,6 +38,11 @@ export class GamificationPage implements OnInit, OnDestroy {
   loadingLeaderboard = false;
   loadingProfil = false;
   loadingOverview = false;
+
+  // Error
+  errorLeaderboard = false;
+  errorProfil = false;
+  errorOverview = false;
 
   // Data
   leaderboardData: LeaderboardData | null = null;
@@ -128,25 +133,46 @@ export class GamificationPage implements OnInit, OnDestroy {
 
   private loadLeaderboard(): void {
     this.loadingLeaderboard = true;
-    this.svc.getLeaderboard(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.errorLeaderboard = false;
+    this.svc.getLeaderboard(this.period).pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       this.loadingLeaderboard = false;
-      if (res?.success) this.leaderboardData = res.data;
+      if (res?.success) {
+        this.leaderboardData = res.data;
+      } else {
+        this.errorLeaderboard = true;
+      }
     });
   }
 
   loadProfil(): void {
     this.loadingProfil = true;
-    this.svc.getMinProfil().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.errorProfil = false;
+    this.svc.getMinProfil().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       this.loadingProfil = false;
-      if (res?.success) this.profilData = res.data;
+      if (res?.success) {
+        this.profilData = res.data;
+      } else {
+        this.errorProfil = true;
+      }
     });
   }
 
   loadOverview(): void {
     this.loadingOverview = true;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.errorOverview = false;
+    this.svc.getOverview().pipe(
+      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
+    ).subscribe(res => {
       this.loadingOverview = false;
-      if (res?.success) this.overviewData = res.data;
+      if (res?.success) {
+        this.overviewData = res.data;
+      } else {
+        this.errorOverview = true;
+      }
     });
   }
 }

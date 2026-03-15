@@ -14,9 +14,18 @@
   </div>
 
   <!-- LADDAR -->
-  <div *ngIf="isLoading" class="text-center py-4">
+  <div *ngIf="isLoading && !errorSkiftdata" class="text-center py-4">
     <div class="spinner-border text-info" role="status"></div>
     <p class="text-muted mt-2 mb-0 small">Hamtar skiftdata...</p>
+  </div>
+
+  <!-- FEL -->
+  <div *ngIf="errorSkiftdata && !skiftdata" class="text-center py-4">
+    <i class="fas fa-exclamation-triangle text-danger" style="font-size:1.5rem"></i>
+    <p class="text-danger mt-2 mb-2 small">Kunde inte hamta skiftdata</p>
+    <button class="btn btn-outline-secondary btn-sm" (click)="loadSkiftdata()">
+      <i class="fas fa-sync-alt me-1"></i>Forsok igen
+    </button>
   </div>
 
   <!-- ================================================================== -->

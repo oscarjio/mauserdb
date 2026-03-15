@@ -19,11 +19,20 @@
   </div>
 
   <!-- Loading -->
-  <div *ngIf="loading && !oversikt" class="text-center py-5">
+  <div *ngIf="loading && !oversikt && !errorMessage" class="text-center py-5">
     <div class="spinner-border" style="color:#4fd1c5; width:3rem; height:3rem;" role="status">
       <span class="visually-hidden">Laddar...</span>
     </div>
     <p class="mt-3" style="color:#a0aec0;">Hamtar produktionsdata...</p>
+  </div>
+
+  <!-- Felmeddelande -->
+  <div *ngIf="errorMessage && !oversikt" class="text-center py-5">
+    <i class="bi bi-exclamation-triangle" style="font-size:2.5rem; color:#fc8181;"></i>
+    <p class="mt-3" style="color:#fc8181;">{{ errorMessage }}</p>
+    <button class="btn btn-sm" style="background:#2d3748; color:#e2e8f0; border:1px solid #4a5568;" (click)="loadAll()">
+      <i class="bi bi-arrow-repeat me-1"></i>Forsok igen
+    </button>
   </div>
 
   <!-- ============================================================ -->
