@@ -772,10 +772,6 @@ class GamificationController {
 
     private function overview(): void {
         try {
-            // Kolla om admin
-            $role = $_SESSION['role'] ?? '';
-            // Tillat aven vanliga anvandare att se overview
-
             $from = date('Y-m-d', strtotime('monday this week'));
             $to = date('Y-m-d');
             $leaderboard = $this->calcLeaderboard($from, $to);

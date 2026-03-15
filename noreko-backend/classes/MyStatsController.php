@@ -50,7 +50,7 @@ class MyStatsController {
             case 'my-stats':        $this->getMyStats();        break;
             case 'my-trend':        $this->getMyTrend();        break;
             case 'my-achievements': $this->getMyAchievements(); break;
-            default:                $this->sendError('Ogiltig run: ' . $run); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 
@@ -459,10 +459,6 @@ class MyStatsController {
 
         try {
             // ---- Karriär-total (all-time) ----
-            // Använd ett brett datumintervall för "all-time"
-            $farBack  = '2000-01-01';
-
-            // Karriär-total
             $sqlTotal = "
                 SELECT COALESCE(SUM(shift_ibc), 0) AS karriar_total
                 FROM (

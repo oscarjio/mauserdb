@@ -45,7 +45,7 @@ class ForstaTimmeAnalysController {
         switch ($run) {
             case 'analysis': $this->getAnalysis(); break;
             case 'trend':    $this->getTrend();    break;
-            default:         $this->sendError('Ogiltig run: ' . $run); break;
+            default:         $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 

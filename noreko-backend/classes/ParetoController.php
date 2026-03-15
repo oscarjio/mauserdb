@@ -158,7 +158,6 @@ class ParetoController {
         $rawData = $this->collectStopData($fromDate, $toDate);
 
         // Sortera fallande efter total stopptid
-        arsort($rawData); // sorterar pa valfritt - maste sortera pa minutes
         uasort($rawData, fn($a, $b) => $b['minutes'] - $a['minutes']);
 
         $totalMinutes = array_sum(array_column($rawData, 'minutes'));

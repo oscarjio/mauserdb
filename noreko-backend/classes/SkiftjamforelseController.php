@@ -29,7 +29,6 @@ class SkiftjamforelseController {
 
     private const TEORIETISK_MAX_IBC_H = 60.0;
     private const PLANERAD_MIN = 480;
-    private const IDEAL_CYCLE_SEC = 120;
 
     public function __construct() {
         global $pdo;
@@ -486,8 +485,6 @@ class SkiftjamforelseController {
 
                 $bastaStation = null;
                 $bastaOee = -1;
-                $lagstStopp = null;
-                $lagstStoppMin = PHP_INT_MAX;
 
                 foreach ($stationer as $st) {
                     $sid = (int)$st['id'];

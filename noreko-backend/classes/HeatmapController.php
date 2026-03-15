@@ -112,7 +112,7 @@ class HeatmapController {
                 SELECT
                     DATE(datum)  AS date,
                     HOUR(datum)  AS hour,
-                    SUM(shift_ibc) AS count
+                    SUM(shift_ibc) AS ibc_count
                 FROM (
                     SELECT
                         datum,
@@ -124,7 +124,7 @@ class HeatmapController {
                     GROUP BY DATE(datum), HOUR(datum), skiftraknare
                 ) AS per_hour_shift
                 GROUP BY DATE(datum), HOUR(datum)
-                HAVING count > 0
+                HAVING ibc_count > 0
                 ORDER BY date ASC, hour ASC
             ");
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
@@ -135,7 +135,7 @@ class HeatmapController {
                 $matrix[] = [
                     'date'  => $r['date'],
                     'hour'  => (int)$r['hour'],
-                    'count' => (int)$r['count'],
+                    'count' => (int)$r['ibc_count'],
                 ];
             }
 

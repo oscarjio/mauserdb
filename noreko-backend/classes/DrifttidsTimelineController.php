@@ -185,16 +185,17 @@ class DrifttidsTimelineController {
             if ($check && $check->rowCount() > 0) {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        start_time,
-                        end_time,
-                        orsak,
-                        kommentar,
-                        operator_id
-                    FROM stopporsak_registreringar
-                    WHERE DATE(start_time) = :date
-                      AND end_time IS NOT NULL
-                      AND TIMESTAMPDIFF(MINUTE, start_time, end_time) > 0
-                    ORDER BY start_time ASC
+                        sr.start_time,
+                        sr.end_time,
+                        sk.namn AS orsak,
+                        sr.kommentar,
+                        sr.operator_id
+                    FROM stopporsak_registreringar sr
+                    LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
+                    WHERE DATE(sr.start_time) = :date
+                      AND sr.end_time IS NOT NULL
+                      AND TIMESTAMPDIFF(MINUTE, sr.start_time, sr.end_time) > 0
+                    ORDER BY sr.start_time ASC
                 ");
                 $stmt->execute([':date' => $date]);
                 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

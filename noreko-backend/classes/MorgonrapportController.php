@@ -179,7 +179,7 @@ class MorgonrapportController {
             $effektivitet = $this->getEffektivitetData($date, $prevWeekDate);
             $stopp       = $this->getStoppData($date, $prevWeekDate);
             $kvalitet    = $this->getKvalitetData($date, $prevWeekDate);
-            $trender     = $this->getTrenderData($date, $prevWeekDate, $avg30Start, $avg30End);
+            $trender     = $this->getTrenderData($date, $prevWeekDate, $avg30Start);
             $highlights  = $this->getHighlightsData($date);
             $varningar   = $this->buildVarningar($produktion, $stopp, $kvalitet, $effektivitet);
 
@@ -547,8 +547,7 @@ class MorgonrapportController {
     private function getTrenderData(
         string $date,
         string $prevWeekDate,
-        string $avg30Start,
-        string $avg30End
+        string $avg30Start
     ): array {
         // Daglig IBC fran 30 dagar bakåt (for trendlinje)
         $dagligIbc = [];
@@ -672,7 +671,7 @@ class MorgonrapportController {
         // Produktion under mal
         if (!empty($produktion['under_mal'])) {
             $pct = $produktion['uppfyllnad_pct'];
-            $severity = $pct < 50 ? 'rod' : ($pct < 80 ? 'gul' : 'gul');
+            $severity = $pct < 50 ? 'rod' : 'gul';
             $varningar[] = [
                 'typ'       => 'produktion_under_mal',
                 'severity'  => $severity,

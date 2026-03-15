@@ -177,13 +177,13 @@ class OeeWaterfallController {
                 SELECT COALESCE(SUM(shift_ok), 0) AS ok_ibc,
                        COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_ibc
                 FROM (
-                    SELECT skiftraknare,
+                    SELECT DATE(datum) AS dag, skiftraknare,
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
                            MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
                     FROM rebotling_ibc
                     WHERE DATE(datum) BETWEEN :from AND :to
                       AND skiftraknare IS NOT NULL
-                    GROUP BY skiftraknare
+                    GROUP BY DATE(datum), skiftraknare
                 ) sub
             ");
             $stmt->execute([':from' => $fromDate, ':to' => $toDate]);

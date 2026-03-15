@@ -5743,3 +5743,55 @@ Granskade 10 filer (5 PHP controllers, 5 Angular komponenter) som ej granskats i
 [2026-03-11] feat: Produktionstakt — realtidsvy av IBC per timme med live-uppdatering var 30:e sekund. Stort centralt KPI-kort med trendpil (upp/ner/stabil), 3 referenskort (4h/dag/vecka-snitt), maltal-indikator (gron/gul/rod), alert-system vid lag takt >15 min, Chart.js linjegraf senaste 24h med maltal-linje, timtabell med statusfargkodning. Backend: ProduktionsTaktController (4 endpoints: current-rate/hourly-history/get-target/set-target). Migration: produktionstakt_target-tabell. Route: /rebotling/produktionstakt. Menyval under Rebotling.
 [2026-03-12] feat: Alarm-historik — dashboard for VD och driftledare over alla larm/varningar som triggats i systemet. 4 KPI-kort (totalt/kritiska/varningar/snitt per dag), Chart.js staplat stapeldiagram (larm per dag per severity: rod=critical, gul=warning, bla=info), filtrerbar tabell med severity-badges, per-typ-fordelning med progressbars. Larm byggs fran befintliga kallor: langa stopp >30 min (critical), lag produktionstakt <50% av mal (warning), hog kassationsgrad >5% (warning), maskinstopp med 0 IBC (critical). Filter: periodselektor (7/30/90 dagar), severity-filter, typ-filter. Backend: AlarmHistorikController (3 endpoints: list/summary/timeline). Route: /rebotling/alarm-historik. Menyval under Rebotling.
 [2026-03-12] feat: Kassationsorsak-statistik — Pareto-diagram + trendanalys per kassationsorsak, kopplat till operator och skift. 4 KPI-kort (totalt kasserade, vanligaste orsak, kassationsgrad med trend, foreg. period-jamforelse), Chart.js Pareto-diagram (staplar per orsak + kumulativ linje med 80/20-referens, klickbar for drilldown), trenddiagram per orsak (linjer med checkboxar for att valja orsaker), per-operator-tabell (kassationsprofil med andel vs snitt + avvikelse), per-skift-vy (dag/kvall/natt med progressbars), drilldown-vy (tidsserie + handelselista med skift/operator/kommentar). Periodvaljare 7/30/90/365 dagar, auto-refresh var 60 sekunder. Backend: KassationsorsakController (6 endpoints: overview/pareto/trend/per-operator/per-shift/drilldown). Migration: skift_typ-kolumn + index pa kassationsregistrering. Route: /rebotling/kassationsorsak-statistik. Menyval under Rebotling med fas fa-exclamation-triangle.
+[2026-03-15] fix: Worker A session #108 — backend PHP buggjakt batch 2 (10 controllers + 3 unused-var-fixar)
+
+### Granskade controllers (classes/):
+KassationsanalysController, VeckorapportController, HeatmapController, ParetoController,
+OeeWaterfallController, MorgonrapportController, DrifttidsTimelineController,
+ForstaTimmeAnalysController, MyStatsController + SkiftjamforelseController,
+GamificationController, SkiftoverlamningController
+
+### Fixade buggar:
+
+**ParetoController.php** — Redundant arsort() fore uasort() (rad 161). arsort() sorterar pa
+array-nycklar (strangnamn), inte pa 'minutes'-varde, vilket gav felaktig mellansortning.
+Tog bort den overflodiga arsort().
+
+**HeatmapController.php** — SQL-aliaskonflikt: kolumnen namngavs 'count' vilket ar ett
+reserverat ord i MySQL aggregatfunktioner. HAVING-klausulen kunde tolkats tvetydigt.
+Bytte alias till 'ibc_count' i bade SQL och PHP-lasningen.
+
+**OeeWaterfallController.php** — Multi-dag skiftraknare-aggregering: GROUP BY skiftraknare
+UTAN DATE(datum) ger fel nar samma skiftraknarnummer atervanns over flera dagar.
+La till DATE(datum) i GROUP BY i IBC-subfragan.
+
+**DrifttidsTimelineController.php** — Felaktig SQL: fragan pa stopporsak_registreringar
+anvande kolumnen 'orsak' som inte finns i tabellen. Korrekt struktur anvander
+'kategori_id' + JOIN mot stopporsak_kategorier for att fa orsaknamnet.
+Fixade till korrekt JOIN-fraga med sk.namn AS orsak.
+
+**MorgonrapportController.php** — Oanvand parameter: getTrenderData() tog emot $avg30End
+men anvande aldrig den (anropade SQL med $date som slutdatum, korrekt). Tog bort
+overflodiga parametern fran signaturen och anropsstallet.
+Dessutom: redundant ternary-uttryck $pct < 50 ? 'rod' : ($pct < 80 ? 'gul' : 'gul')
+forenklades till $pct < 50 ? 'rod' : 'gul'.
+
+**ForstaTimmeAnalysController.php** — XSS: default-case i switch ekade osanitiserad
+$run direkt i JSON-felsvar. La till htmlspecialchars().
+
+**MyStatsController.php** — Oanvand variabel $farBack = '2000-01-01' i getMyAchievements().
+Variabeln deklarerades men anvandes aldrig. Tog bort den.
+Dessutom: XSS i default-case switch, samma fix som ForstaTimmeAnalys.
+
+**SkiftjamforelseController.php** — Oanvanda variabler $lagstStopp och $lagstStoppMin i
+bestPractices()-metoden (togs aldrig till nagon anvandning). Oanvand konstant
+IDEAL_CYCLE_SEC = 120 (definierad men aldrig refererad i denna klass, den finns i
+OeeWaterfallController). Tog bort alla tre.
+
+**GamificationController.php** — Oanvand variabel $role = $_SESSION['role'] ?? '' i
+overview()-metoden med kommentar "Tillat aven vanliga anvandare" — variabeln lases
+aldrig. Tog bort tilldelningen.
+
+**SkiftoverlamningController.php** — Deprecated nullable parameter: skiftTider(string $typ,
+string $datum = null) ger deprecation-varning i PHP 8.1+ nar en parameter har
+default null utan nullable-typdeklaration. Andrade till ?string $datum = null.

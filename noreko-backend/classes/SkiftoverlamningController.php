@@ -181,7 +181,7 @@ class SkiftoverlamningController {
     /**
      * Beräkna skiftets start- och sluttid baserat på skifttyp och datum.
      */
-    private function skiftTider(string $typ, string $datum = null): array {
+    private function skiftTider(string $typ, ?string $datum = null): array {
         $datum = $datum ?: date('Y-m-d');
         switch ($typ) {
             case 'dag':
