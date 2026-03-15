@@ -3,13 +3,22 @@
 *Lead-agenten fyller på. Workers plockar uppgifter härifrån.*
 *Håll 5-10 öppna items. Markera med [x] när klart.*
 
-## Förbättringar
+## PRIORITET: BUGGJAKT (2026-03-15)
 
-- [x] **Rebotling operatörs-gamification** — poängsystem, badges, milstolpar, leaderboard med opt-in (session #104)
-- [x] **Rebotling prediktivt underhåll** — analysera stopporsaks-mönster, förutsäg nästa stopp per station, MTBF (session #104)
-- [ ] **Dashboards favoritlayout** — VD kan välja vilka KPI-kort/widgets som visas på startsidan, drag-and-drop ordning
-- [ ] **Realtids-notifikationer** — push-notiser vid underbemanning, maskinstopp >15 min, produktionsmål uppnått
-- [ ] **Rebotling energi/resursförbrukning** — koppla vatten/el/kemikalieförbrukning per IBC, visualisera kostnad per enhet
-- [ ] **Rebotling leveransplanering** — koppla produktion till kundordrar, visa leveransstatus, ETA per order
-- [ ] **Rebotling avvikelsehantering** — rapportera och spåra avvikelser (kvalitet, säkerhet, miljö) med eskalering och statusflöde
-- [ ] **Rebotling batch-spårning** — spåra varje IBC genom hela processen, QR/streckkod-koppling, historik per container
+Ägaren har bett oss fokusera på att hitta och fixa buggar. Inga nya features.
+
+- [pågår] **Buggjakt: ibc_ok-kolumn i remaining controllers** — MaskinhistorikController, RebotlingStationsdetaljController, KapacitetsplaneringController, SkiftrapportController, DagligBriefingController, StatistikOverblickController, GamificationController använder fel `ok`-kolumn
+- [pågår] **Buggjakt: Frontend subscription-läckor** — granska nya components (gamification, prediktivt-underhall, daglig-briefing, skiftoverlamning, operator-dashboard, vd-dashboard) för saknad takeUntil/OnDestroy
+- [ ] **Buggjakt: KassationsanalysController + ProduktionskalenderController** — granska för ibc_ok-fel + övriga SQL-buggar
+- [ ] **Buggjakt: Auth & session** — granska session-hantering, rate limiting, CORS-regler
+- [ ] **Buggjakt: OEE-beräkningar i fixade controllers** — verifiera att de 11 redan fixade controllers räknar OEE korrekt med nya mönstret
+- [ ] **Buggjakt: API-endpoints manuell test** — testa endpoints med curl, verifiera JSON-svar
+
+## Parkerade features (ta inte dessa nu)
+
+- [ ] Dashboards favoritlayout
+- [ ] Realtids-notifikationer
+- [ ] Rebotling energi/resursförbrukning
+- [ ] Rebotling leveransplanering
+- [ ] Rebotling avvikelsehantering
+- [ ] Rebotling batch-spårning
