@@ -7,14 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **Buggjakt: OperatorRanking streaks** — calcStreaks() anvande user_id pa rebotling_ibc, fixat till UNION ALL — verifiera med riktig data
-- [ ] **Buggjakt: 6 endpoints med saknade tabeller** — prediktivt-underhall, skiftoverlamning, rebotling, operators, news, bonus — kraver DB-tabeller
-- [>] **Buggjakt: PHP catch($e) cleanup** — 12 catch-block med oanvanda $e i controllers (Worker A #107)
-- [>] **Buggjakt: Edge cases i datum-hantering** — tidszoner, DST, arsskiften i controllers (Worker A #107)
-- [>] **Buggjakt: Frontend subscription leaks** — audit alla components for takeUntil/destroy$ (Worker B #107)
-- [>] **Buggjakt: Frontend template null-safety + responsivitet** — saknad ?. navigation, overflow (Worker B #107)
-- [ ] **Buggjakt: Nyare controllers (batch 2)** — 20+ controllers ogranskade: Kassationsanalys, Veckorapport, Heatmap, Pareto, OeeWaterfall, Morgonrapport, DrifttidsTimeline, ProduktionsPuls, ForstaTimmeAnalys, MyStats
-- [ ] **Buggjakt: Chart.js memory leaks** — verifiera chart?.destroy() i alla components med grafer
+- [ ] **Buggjakt: OperatorRanking streaks** — verifiera calcStreaks() med riktig data
+- [ ] **Buggjakt: 6 endpoints med saknade tabeller** — prediktivt-underhall, skiftoverlamning, rebotling, operators, news, bonus
+- [ ] **Buggjakt: Unused vars i 3 controllers** — SkiftjamforelseController ($today, $lagstStopp, $lagstStoppMin, IDEAL_CYCLE_SEC), GamificationController ($role), SkiftoverlamningController (deprecated nullable param)
+- [ ] **Buggjakt: Nyare controllers (batch 2)** — 20+ ogranskade: Kassationsanalys, Veckorapport, Heatmap, Pareto, OeeWaterfall, Morgonrapport, DrifttidsTimeline, ProduktionsPuls, ForstaTimmeAnalys, MyStats
+- [x] **Buggjakt: PHP catch($e) cleanup** — 119 oanvanda $e fixade i 49 filer
+- [x] **Buggjakt: DST datum-buggar** — 2 buggar fixade (GamificationController streak, PrediktivtUnderhall MTBF)
+- [x] **Buggjakt: SkiftoverlamningController auth** — GET-endpoints saknade requireLogin(), fixat
+- [x] **Buggjakt: Frontend subscription leaks** — alla 42 components OK, inga lacker
+- [x] **Buggjakt: Frontend trackBy** — ~270 ngFor utan trackBy fixade (prestandabugg vid polling)
+- [x] **Buggjakt: Chart.js memory leaks** — alla 32 components med Chart.js har chart?.destroy()
 
 ## Parkerade features (ta inte dessa nu)
 

@@ -59,18 +59,17 @@ Session #57-#101: Feature-utveckling löpande. Se lead-memory-archive.md för de
 Session #102-#104: Features (statistik-överblick, daglig briefing, gamification, prediktivt underhåll).
 Session #105: BUGGJAKT — 4 SQL-buggar + 3 error-handling-buggar fixade. 41 frontend components auditerade.
 Session #106: BUGGJAKT — 8 backend-buggar (2 säkerhet, 1 OEE, 5 query/unused) + 4 frontend-buggar + 12 API-endpoints testade + 3 unused vars fixade av lead.
-Session #107: BUGGJAKT — Worker A: catch($e) cleanup + datum edge cases + djupgranskning controllers. Worker B: subscription leak audit + template null-safety + responsivitet + service-granskning.
+Session #107: BUGGJAKT — Worker A: 119 catch($e) cleanup, 2 DST-buggar, 1 auth-bugg (SkiftoverlamningController). Worker B: ~270 trackBy fixade, subscription/Chart.js audit OK. Totalt: 122 fixar + 270 trackBy.
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 - [ ] **Buggjakt: Verifiera OperatorRanking streaks med riktig data**
 - [ ] **Buggjakt: 6 endpoints saknar DB-tabeller**
-- [>] **Buggjakt: PHP catch($e) cleanup** (Worker A #107)
-- [>] **Buggjakt: Edge cases i datum-hantering** (Worker A #107)
-- [>] **Buggjakt: Frontend subscriptions + templates** (Worker B #107)
+- [ ] **Buggjakt: Unused vars i SkiftjamforelseController, GamificationController, SkiftoverlamningController**
 - [ ] **Buggjakt: 20+ ogranskade controllers (batch 2)**
-- [ ] **Buggjakt: Chart.js memory leaks**
+- [ ] **Buggjakt: Verifiera OperatorRanking streaks med riktig data**
+- [ ] **Buggjakt: 6 endpoints saknar DB-tabeller**
 
 ## BESLUTSDAGBOK (senaste 3)
 
@@ -82,6 +81,6 @@ Worker B (Frontend buggjakt): 3 error-handling-buggar i vd-dashboard, gamificati
 Worker A (Backend auth+OEE+unused): 2 säkerhetsbuggar, 1 OEE-bugg, 2 query-buggar, 1 saknad return, 2 unused vars.
 Worker B (Frontend templates+API-test): 1 template-bugg, 3 unused imports. 12 endpoints testade. db_config.php + migration.
 
-### 2026-03-15 — Session #107 (pagar)
-Worker A (Backend catch/datum/controllers): catch($e) cleanup, datum edge cases, djupgranskning av DagligBriefing, StatistikOverblick, Skiftoverlamning, PrediktivtUnderhall, Gamification m.fl.
-Worker B (Frontend subscriptions/templates/services): subscription leak audit, template null-safety, responsivitet, service error handling.
+### 2026-03-15 — Session #107 (klar)
+Worker A: 119 catch($e) -> catch(\Exception) i 49 filer. 2 DST-buggar (streak/MTBF). 1 auth-bugg (SkiftoverlamningController GET utan requireLogin).
+Worker B: ~270 ngFor trackBy fixade (prestandabugg). Subscription/Chart.js audit OK (inga lacker). Services OK.
