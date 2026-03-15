@@ -1,3 +1,56 @@
+## 2026-03-15 Session #106 — Backend buggjakt: Auth/Security + OEE + Unused vars
+
+### Del 1: Auth & Session-granskning
+
+**Granskade filer:** AuthHelper.php, LoginController.php, RegisterController.php, ProfileController.php, AdminController.php, StatusController.php, api.php
+
+**Resultat:**
+- bcrypt (password_hash/password_verify) anvands korrekt overallt
+- Session-hantering: session_start() anropas efter auth, cookie-params har httponly+samesite+secure
+- CORS: korrekt konfigurerad med vitlista + dynamisk subdoman-matchning
+- Rate limiting: AuthHelper med 5 forsok / 15 min lockout, fungerar korrekt
+- SQL injection: prepared statements anvands genomgaende (ingen interpolering hittad)
+
+**Buggar fixade:**
+1. **login.php (KRITISK):** Hardkodad admin/admin123 utan bcrypt. Direkt atkomlig utanfor API-routern. Ersatt med 410 Gone.
+2. **admin.php (KRITISK):** Helt oautentiserad admin-stub utan session-check. Direkt atkomlig. Ersatt med 410 Gone.
+
+### Del 2: OEE-berakningar verifiering
+
+**Granskade filer:** OeeBenchmarkController, OeeJamforelseController, OeeTrendanalysController, OeeWaterfallController, MaskinOeeController, ProduktionskalenderController, StatusController
+
+**Resultat:**
+- OEE-formeln (T x P x K) ar korrekt i alla 5 OEE-controllers
+- IBC-rakning anvander korrekt MAX(ibc_ok) per skiftraknare, sedan SUM
+- Drifttid beraknas korrekt fran rebotling_onoff (running=1->0 intervall)
+- Division by zero hanteras med villkor (> 0) overallt
+- Null-hantering via COALESCE i SQL
+
+**Bugg fixad:**
+3. **ProduktionskalenderController.php:** OEE-tillganglighet var hardkodad till 1.0 (100%) trots att drifttid/stopptid-data fanns tillganglig. Nu beraknas som drifttid/(drifttid+stopptid).
+
+### Del 3: Operator-queries + Unused variables
+
+**Buggar fixade:**
+4. **OperatorRankingController.php — calcStreaks():** Anvande `WHERE user_id = :uid` pa rebotling_ibc men tabellen har op1/op2/op3, inte user_id. Streak blev alltid 0. Fixat med UNION ALL over op1/op2/op3.
+5. **OperatorRankingController.php — historik():** Samma user_id-bugg i daglig historik-query. Fixat med UNION ALL.
+6. **RankingHistorikController.php:** `$storstKlattare` beraknades men returnerades aldrig i API-svaret. Nu inkluderad som `storst_klattare`.
+7. **ProduktionsmalController.php:** Oanvand variabel `$wd` (rad 830) borttagen.
+8. **ProduktionsmalController.php:** Dubblerad tilldelning `$totalDagUtfall = 0` foljd av omedelbar overskrivning borttagen.
+
+### Filer andrade
+- noreko-backend/login.php (sakerhetsfix)
+- noreko-backend/admin.php (sakerhetsfix)
+- noreko-backend/classes/ProduktionskalenderController.php (OEE-fix)
+- noreko-backend/classes/OperatorRankingController.php (operator-query-fix)
+- noreko-backend/classes/RankingHistorikController.php (unused var fix)
+- noreko-backend/classes/ProduktionsmalController.php (unused var cleanup)
+
+### Build verified
+ng build passed with no errors.
+
+---
+
 ## 2026-03-15 Frontend Angular bugfix: error handling + race condition guards
 
 ### Audited components (subscription leaks, template bugs, error handling)
