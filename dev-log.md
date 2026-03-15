@@ -1,3 +1,31 @@
+## 2026-03-15 Session #107 Worker B — Frontend Angular buggjakt
+
+### Uppgift 1: Subscription leak audit
+Granskade alla 42 components i noreko-frontend/src/app/ (exkl. forbjudna dirs).
+**Resultat: Inga lacker hittades.** Alla 41 components med `.subscribe()` har:
+- `implements OnDestroy` + `destroy$ = new Subject<void>()`
+- `takeUntil(this.destroy$)` pa alla subscribe-anrop (242 takeUntil vs 201 subscribe)
+- `ngOnDestroy()` med `this.destroy$.next(); this.destroy$.complete();`
+- `clearInterval()` / `clearTimeout()` i ngOnDestroy for alla 34 components med timers
+- `chart?.destroy()` i ngOnDestroy for alla 32 components med Chart.js
+
+### Uppgift 2: Template-buggar och trackBy
+**Fixade saknad trackBy pa ~270 ngFor-loopar i 269 filer.**
+Alla ngFor-loopar saknade `trackBy` (bara 3 av ~270 hade det). Detta orsakar onodiga DOM-omritningar, sarskilt pa sidor med polling (var 30s-120s).
+- Lade till `trackByIndex(index: number): number { return index; }` i alla components
+- Lade till `trackBy: trackByIndex` pa alla ngFor i templates
+- Produktions-dashboard fick sarskilda trackBy-funktioner (trackByStation, trackByAlarm, trackByIbc) for battre prestanda vid 30s-polling
+- Null-safe navigation: templates ar generellt bra — anvander `*ngIf` guards for asynkron data
+- Responsivitet: col-md/col-lg anvands konsekvent, inga kritiska hardkodade bredder
+
+### Uppgift 3: Service-granskning
+- **Inga hardkodade URLs** — alla services anvander relativa paths
+- **catchError** finns i alla services (404 pipe()-anrop, 340 catchError)
+- **Korrekt error handling** i alla HTTP-anrop
+
+### Byggt och verifierat
+`npx ng build` — inga fel, bara CommonJS-varningar (canvg, html2canvas).
+
 ## 2026-03-15 Session #107 Worker A — Backend PHP cleanup + buggar
 
 ### Uppgift 1: catch($e) cleanup (PHP 8+)
