@@ -42,7 +42,7 @@ class KvalitetsTrendbrottController {
             case 'alerts':        $this->getAlerts();       break;
             case 'daily-detail':  $this->getDailyDetail();  break;
             default:
-                $this->sendError('Okänt run-värde: ' . $run);
+                $this->sendError('Okänt run-värde: ' . htmlspecialchars($run));
         }
     }
 
@@ -504,10 +504,13 @@ class KvalitetsTrendbrottController {
         // Försök stoppage_log
         try {
             $stmt = $this->pdo->prepare("
-                SELECT orsak, COALESCE(SUM(duration_min), 0) AS total_min, COUNT(*) AS antal
-                FROM stoppage_log
-                WHERE DATE(start_time) = :datum
-                GROUP BY orsak
+                SELECT COALESCE(sr.name, 'Okänd') AS orsak,
+                       COALESCE(SUM(sl.duration_minutes), 0) AS total_min,
+                       COUNT(*) AS antal
+                FROM stoppage_log sl
+                LEFT JOIN stoppage_reasons sr ON sr.id = sl.reason_id
+                WHERE DATE(sl.start_time) = :datum
+                GROUP BY sr.name
                 ORDER BY total_min DESC
             ");
             $stmt->execute([':datum' => $date]);
@@ -531,10 +534,12 @@ class KvalitetsTrendbrottController {
                     SELECT
                         COALESCE(sk.namn, 'Okänd') AS orsak,
                         COUNT(*) AS antal,
-                        COALESCE(SUM(sr.varaktighet_min), 0) AS total_min
+                        COALESCE(SUM(
+                            TIMESTAMPDIFF(MINUTE, sr.start_time, COALESCE(sr.end_time, NOW()))
+                        ), 0) AS total_min
                     FROM stopporsak_registreringar sr
                     LEFT JOIN stopporsak_kategorier sk ON sk.id = sr.kategori_id
-                    WHERE DATE(sr.datum) = :datum
+                    WHERE DATE(sr.start_time) = :datum
                     GROUP BY sk.namn
                     ORDER BY total_min DESC
                 ");

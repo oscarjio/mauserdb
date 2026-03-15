@@ -92,22 +92,6 @@ class DagligBriefingController {
         }
     }
 
-    private function getStationer(): array {
-        try {
-            $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
-            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            if (!empty($rows)) return $rows;
-        } catch (\Exception) {}
-
-        return [
-            ['id' => 1, 'namn' => 'Station 1'],
-            ['id' => 2, 'namn' => 'Station 2'],
-            ['id' => 3, 'namn' => 'Station 3'],
-            ['id' => 4, 'namn' => 'Station 4'],
-            ['id' => 5, 'namn' => 'Station 5'],
-        ];
-    }
-
     private function calcOeeForDay(string $date): array {
         $from = $date . ' 00:00:00';
         $to   = $date . ' 23:59:59';
@@ -467,7 +451,18 @@ class DagligBriefingController {
                 $dag = date('Y-m-d', strtotime($datum . " -{$i} days"));
                 $totalIbc = 0;
                 try {
-                    $stmt = $this->pdo->prepare("SELECT COUNT(*) AS cnt FROM rebotling_ibc WHERE DATE(datum) = :date");
+                    $stmt = $this->pdo->prepare("
+                        SELECT COALESCE(SUM(shift_ok + shift_ej_ok), 0) AS total_ibc
+                        FROM (
+                            SELECT skiftraknare,
+                                   MAX(COALESCE(ibc_ok, 0))    AS shift_ok,
+                                   MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                            FROM rebotling_ibc
+                            WHERE DATE(datum) = :date
+                              AND skiftraknare IS NOT NULL
+                            GROUP BY skiftraknare
+                        ) AS per_shift
+                    ");
                     $stmt->execute([':date' => $dag]);
                     $totalIbc = (int)$stmt->fetchColumn();
                 } catch (\Exception) {}

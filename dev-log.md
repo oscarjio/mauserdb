@@ -1,3 +1,43 @@
+## 2026-03-15 Session #108 Worker A — Buggjakt i 9 backend-controllers (batch 3)
+
+### Granskade controllers (classes/):
+1. AlarmHistorikController.php — OK (inga buggar)
+2. DagligBriefingController.php — 2 buggar
+3. FavoriterController.php — 1 bugg
+4. HistoriskSammanfattningController.php — OK (inga buggar)
+5. KassationsDrilldownController.php — 1 bugg
+6. KvalitetsTrendbrottController.php — 3 buggar
+7. OeeTrendanalysController.php — 2 buggar
+8. OperatorDashboardController.php — 2 buggar
+9. OperatorOnboardingController.php — OK (inga buggar)
+
+### Fixade buggar (11 st):
+
+**XSS (3 st):**
+- FavoriterController: `$run` skrevs ut utan `htmlspecialchars()` i default-case
+- KassationsDrilldownController: samma XSS-bugg
+- KvalitetsTrendbrottController: samma XSS-bugg
+
+**SQL-buggar / fel kolumnnamn (2 st):**
+- KvalitetsTrendbrottController::getStopReasons() — stoppage_log-fragan anvande felaktiga kolumnnamn (`orsak`, `duration_min`) istallet for (`reason_id` + JOIN till `stoppage_reasons`, `duration_minutes`)
+- KvalitetsTrendbrottController::getStopReasons() — stopporsak_registreringar-fragan anvande `sr.datum` och `sr.varaktighet_min` (finns ej), fixat till `DATE(sr.start_time)` och `TIMESTAMPDIFF()`
+
+**Logikfel (3 st):**
+- DagligBriefingController::veckotrend() — anvande `COUNT(*)` (raknar rader) istallet for MAX-per-skift-aggregering (kumulativa PLC-varden), gav helt fel IBC-antal
+- OperatorDashboardController::getMinBonus() — `shift_ok` beraknades identiskt med `shift_ibc` (`MAX(ibc_ok)`), sa `ok_ibc == total_ibc` alltid, vilket gav maximal kvalitetsbonus oavsett verklig kvalitet. Fixat: total_ibc = ok + ej_ok, ok_ibc = ibc_ok
+- OeeTrendanalysController::calcOeePerStation() — dod kod (dummy foreach over tom array) borttagen
+
+**Saknad auth (1 st):**
+- OperatorDashboardController — personliga endpoints (min-produktion, mitt-tempo, min-bonus, mina-stopp, min-veckotrend) saknade sessionskontroll, exponerade personlig operatorsdata utan inloggning
+
+**Input-validering (1 st):**
+- OeeTrendanalysController::jamforelse() — from1/to1/from2/to2 GET-params saknade datumformat-validering
+
+**Unused code (1 st):**
+- DagligBriefingController::getStationer() — metod definierad men aldrig anropad, borttagen
+
+---
+
 ## 2026-03-15 Session #108 Worker B — Endpoint-verifiering + Frontend logikbuggar
 
 ### Uppgift 1: Endpoint-verifiering (curl mot localhost:8099)

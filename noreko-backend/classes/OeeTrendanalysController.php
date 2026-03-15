@@ -222,10 +222,7 @@ class OeeTrendanalysController {
             foreach ($stationer as $s) {
                 $driftByStation[(int)$s['id']] = (int)($totalDrift / $stationCount);
             }
-            // Dummy loop to match following code
-            foreach ([] as $row) {
-                $driftByStation[(int)$row['station_id']] = max(0, (int)$row['drifttid_sek']);
-            }
+            // (Dead code removed: dummy loop with empty array)
         } catch (Exception) {
             // Fallback: fordela total drifttid jamt
         }
@@ -620,9 +617,21 @@ class OeeTrendanalysController {
             $from1 = $_GET['from1'] ?? date('Y-m-d', strtotime("-{$days} days"));
             $to1   = $_GET['to1']   ?? date('Y-m-d');
 
+            // Validera datumformat
+            $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
+            if (!preg_match($datePattern, $from1) || !preg_match($datePattern, $to1)) {
+                $this->sendError('Ogiltigt datumformat. Forvantat: YYYY-MM-DD');
+                return;
+            }
+
             // Period 2 (foregaende)
             $from2 = $_GET['from2'] ?? date('Y-m-d', strtotime("-{$days} days", strtotime($from1)));
             $to2   = $_GET['to2']   ?? date('Y-m-d', strtotime('-1 day', strtotime($from1)));
+
+            if (!preg_match($datePattern, $from2) || !preg_match($datePattern, $to2)) {
+                $this->sendError('Ogiltigt datumformat for period 2. Forvantat: YYYY-MM-DD');
+                return;
+            }
 
             $period1 = $this->calcOeePerStation($from1, $to1);
             $period2 = $this->calcOeePerStation($from2, $to2);

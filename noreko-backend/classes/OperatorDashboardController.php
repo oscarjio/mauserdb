@@ -27,6 +27,19 @@ class OperatorDashboardController {
 
         $run = trim($_GET['run'] ?? '');
 
+        // Personliga endpoints kräver inloggning
+        $personalEndpoints = ['min-produktion', 'mitt-tempo', 'min-bonus', 'mina-stopp', 'min-veckotrend'];
+        if (in_array($run, $personalEndpoints, true)) {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start(['read_and_close' => true]);
+            }
+            if (empty($_SESSION['user_id'])) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'Inloggning krävs']);
+                return;
+            }
+        }
+
         switch ($run) {
             case 'today':   $this->getToday();   break;
             case 'weekly':  $this->getWeekly();  break;
@@ -835,13 +848,13 @@ class OperatorDashboardController {
             // Hämta min produktion idag (kumulativt korrekt)
             $sqlProd = "
                 SELECT
-                    SUM(shift_ibc)     AS total_ibc,
-                    SUM(shift_ok)      AS ok_ibc,
-                    SUM(shift_runtime) AS total_runtime_s
+                    SUM(shift_ibc + shift_ej_ok) AS total_ibc,
+                    SUM(shift_ibc)               AS ok_ibc,
+                    SUM(shift_runtime)           AS total_runtime_s
                 FROM (
                     SELECT skiftraknare,
                            MAX(COALESCE(ibc_ok, 0))      AS shift_ibc,
-                           MAX(COALESCE(ibc_ok, 0))      AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM (
                         SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
