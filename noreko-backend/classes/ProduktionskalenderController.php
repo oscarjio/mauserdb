@@ -7,7 +7,7 @@
  *   run=month-data   &year=YYYY&month=MM → per-dag-data för hela månaden
  *   run=day-detail   &date=YYYY-MM-DD    → detaljerad data för specifik dag
  *
- * Tabeller: rebotling_ibc (datum, ok, op1, op2, op3, skiftraknare, lopnummer)
+ * Tabeller: rebotling_ibc (datum, ibc_ok, ibc_ej_ok, op1, op2, op3, skiftraknare, lopnummer)
  *           rebotling_onoff (datum, running)
  *           rebotling_stopp (datum, orsak, sekunder)
  *           operators (number, name)

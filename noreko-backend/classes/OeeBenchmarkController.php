@@ -6,7 +6,7 @@
  * OEE = Tillgänglighet × Prestanda × Kvalitet
  *   Tillgänglighet = Drifttid / (Drifttid + Stopptid)   — från rebotling_onoff
  *   Prestanda       = (Antal IBC × Ideal cykeltid) / Drifttid   — ideal = 120 sek
- *   Kvalitet        = OK IBC / Total IBC                 — från rebotling_ibc.ok
+ *   Kvalitet        = OK IBC / Total IBC                 — från rebotling_ibc.ibc_ok / (ibc_ok + ibc_ej_ok)
  *
  * Branschsnitt:
  *   World Class  ≥ 85%
@@ -19,7 +19,7 @@
  *   run=trend        → OEE per dag senaste N dagar (för Chart.js)
  *   run=breakdown    → de 3 faktorerna var för sig + trenddata
  *
- * Tabeller: rebotling_onoff (start_time, stop_time), rebotling_ibc (datum, ok, skiftraknare)
+ * Tabeller: rebotling_onoff (datum, running), rebotling_ibc (datum, ibc_ok, ibc_ej_ok, skiftraknare)
  */
 class OeeBenchmarkController {
     private $pdo;

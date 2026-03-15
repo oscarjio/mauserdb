@@ -25,7 +25,7 @@
  *
  * Auth: session kravs (401 om ej inloggad).
  *
- * Tabeller: rebotling_ibc (ok=1 for godkanda), rebotling_produktionsmal, rebotling_weekday_goals
+ * Tabeller: rebotling_ibc (ibc_ok, ibc_ej_ok, skiftraknare, datum), rebotling_produktionsmal, rebotling_weekday_goals
  */
 class ProduktionsmalController {
     private $pdo;
@@ -144,12 +144,15 @@ class ProduktionsmalController {
             $startDatum = $mal['start_datum'];
             $slutDatum = $mal['slut_datum'];
 
-            // Hamta producerade IBC (ok=1) i perioden
+            // Hamta producerade IBC (MAX(ibc_ok) per skiftraknare, sedan SUM)
             $ibcStmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS antal
-                FROM rebotling_ibc
-                WHERE ok = 1
-                  AND DATE(datum) BETWEEN :start AND :slut
+                SELECT COALESCE(SUM(max_ibc_ok), 0) AS antal
+                FROM (
+                    SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :start AND :slut
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
             ");
             $ibcStmt->execute([':start' => $startDatum, ':slut' => min($today, $slutDatum)]);
             $producerat = (int)($ibcStmt->fetchColumn() ?? 0);
@@ -218,11 +221,14 @@ class ProduktionsmalController {
 
             // Daglig produktion i perioden (for stapeldiagram)
             $dagligStmt = $this->pdo->prepare("
-                SELECT DATE(datum) AS dag, COUNT(*) AS antal
-                FROM rebotling_ibc
-                WHERE ok = 1
-                  AND DATE(datum) BETWEEN :start AND :slut
-                GROUP BY DATE(datum)
+                SELECT dag, SUM(max_ibc_ok) AS antal
+                FROM (
+                    SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :start AND :slut
+                    GROUP BY DATE(datum), skiftraknare
+                ) AS per_skift
+                GROUP BY dag
                 ORDER BY dag ASC
             ");
             $dagligStmt->execute([':start' => $startDatum, ':slut' => min($today, $slutDatum)]);
@@ -384,12 +390,15 @@ class ProduktionsmalController {
                 $startDatum = $m['start_datum'];
                 $slutDatum = $m['slut_datum'];
 
-                // Berakna faktisk produktion
+                // Berakna faktisk produktion (MAX(ibc_ok) per skiftraknare, sedan SUM)
                 $ibcStmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS antal
-                    FROM rebotling_ibc
-                    WHERE ok = 1
-                      AND DATE(datum) BETWEEN :start AND :slut
+                    SELECT COALESCE(SUM(max_ibc_ok), 0) AS antal
+                    FROM (
+                        SELECT skiftraknare, MAX(ibc_ok) AS max_ibc_ok
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :start AND :slut
+                        GROUP BY DATE(datum), skiftraknare
+                    ) AS per_skift
                 ");
                 $effektivtSlut = min($today, $slutDatum);
                 $ibcStmt->execute([':start' => $startDatum, ':slut' => $effektivtSlut]);

@@ -1,3 +1,29 @@
+## 2026-03-15 Fix remaining ok-column and user_id bugs in 4 controllers
+
+### Audit results
+Reviewed all 7 controllers listed as "remaining" in the 2026-03-13 log:
+- **MaskinhistorikController.php** — ALREADY CORRECT (uses MAX(ibc_ok) per skiftraknare)
+- **RebotlingStationsdetaljController.php** — ALREADY CORRECT
+- **KapacitetsplaneringController.php** — ALREADY CORRECT
+- **SkiftrapportController.php** — ALREADY CORRECT
+- **DagligBriefingController.php** — ALREADY CORRECT
+- **StatistikOverblickController.php** — ALREADY CORRECT
+- **GamificationController.php** — ALREADY CORRECT
+
+### Bugs found and fixed in OTHER controllers
+
+1. **RankingHistorikController.php** — `calcWeekProduction()` used `SUM(ok)` and `WHERE ok = 1` referencing non-existent `ok` column. Fixed to use `COUNT(*)` per operator (each row = 1 IBC cycle). Updated doc comment.
+
+2. **OperatorRankingController.php** — `getOperatorIbcData()` used `ri.user_id` and `ri.ok = 1`, both non-existent columns. Rewrote to use op1/op2/op3 UNION ALL pattern with operators table JOIN, matching GamificationController pattern.
+
+3. **ProduktionsmalController.php** — Three queries used `WHERE ok = 1` (non-existent column): progress query, daily chart query, and history query. All three rewritten to use `MAX(ibc_ok)` per skiftraknare then `SUM()`. Updated doc comment.
+
+4. **VdDashboardController.php** — `topOperatorer()` used `ri.user_id` (non-existent on rebotling_ibc). Rewrote to use op1/op2/op3 UNION ALL pattern with operators table JOIN.
+
+### Also fixed (doc comments only)
+- **OeeBenchmarkController.php** — Updated header comments from `rebotling_ibc.ok` to `ibc_ok/ibc_ej_ok`, and `rebotling_onoff (start_time, stop_time)` to `(datum, running)`.
+- **ProduktionskalenderController.php** — Updated header comment from `ok` to `ibc_ok, ibc_ej_ok`.
+
 ## 2026-03-13 Fix shift time display and day-after scenario for skiftrapporter
 
 - Backend `resolveSkiftTider()`: Removed restrictive date filter (DATE(datum) = ? OR DATE(datum) = ?) that could miss cycle data when report saved multiple days after shift. Now searches by skiftraknare only (unique enough).
@@ -30,8 +56,8 @@ Many controllers used wrong column names for `rebotling_onoff` and `rebotling_ib
 - IBC counts: `MAX(ibc_ok)` per skiftraknare, then `SUM()` across shifts
 - Running check: `SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1`
 
-### Remaining (lower priority)
-MaskinhistorikController, RebotlingStationsdetaljController, KapacitetsplaneringController, SkiftrapportController, DagligBriefingController, StatistikOverblickController, GamificationController, KassationsanalysController, ProduktionskalenderController still use `ok` column — these may need fixing in a follow-up.
+### Remaining (lower priority) — RESOLVED 2026-03-15
+All 9 controllers audited. 7 were already correct. RankingHistorikController, OperatorRankingController, ProduktionsmalController, VdDashboardController had bugs (wrong `ok`/`user_id` columns) — all fixed.
 
 ## 2026-03-13 Skiftraknare audit across rebotling tables
 

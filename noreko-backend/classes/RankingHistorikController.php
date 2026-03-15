@@ -8,7 +8,7 @@
  *   run=ranking-changes  → placeringsändring senaste vecka vs veckan innan
  *   run=streak-data      → operatörer med pågående positiva/negativa trender
  *
- * Tabeller: rebotling_ibc (datum, op1, op2, op3, ok), operators (number, name)
+ * Tabeller: rebotling_ibc (datum, op1, op2, op3, ibc_ok, ibc_ej_ok, skiftraknare), operators (number, name)
  */
 class RankingHistorikController {
     private $pdo;
@@ -87,31 +87,30 @@ class RankingHistorikController {
      * Returnerar [ operator_nummer => antal_ok_ibc ]
      */
     private function calcWeekProduction(int $year, int $week): array {
+        // rebotling_ibc uses cumulative ibc_ok per skiftraknare.
+        // For operator ranking we count rows (each row = 1 IBC cycle) per operator.
         $sql = "
-            SELECT op, SUM(ok_count) AS total_ok
+            SELECT op, SUM(cnt) AS total_ok
             FROM (
-                SELECT op1 AS op, SUM(ok) AS ok_count
+                SELECT op1 AS op, COUNT(*) AS cnt
                 FROM rebotling_ibc
                 WHERE YEAR(datum) = :y1 AND WEEK(datum, 1) = :w1
-                  AND ok = 1
                   AND op1 IS NOT NULL AND op1 > 0
                 GROUP BY op1
 
                 UNION ALL
 
-                SELECT op2 AS op, SUM(ok) AS ok_count
+                SELECT op2 AS op, COUNT(*) AS cnt
                 FROM rebotling_ibc
                 WHERE YEAR(datum) = :y2 AND WEEK(datum, 1) = :w2
-                  AND ok = 1
                   AND op2 IS NOT NULL AND op2 > 0
                 GROUP BY op2
 
                 UNION ALL
 
-                SELECT op3 AS op, SUM(ok) AS ok_count
+                SELECT op3 AS op, COUNT(*) AS cnt
                 FROM rebotling_ibc
                 WHERE YEAR(datum) = :y3 AND WEEK(datum, 1) = :w3
-                  AND ok = 1
                   AND op3 IS NOT NULL AND op3 > 0
                 GROUP BY op3
             ) AS combined

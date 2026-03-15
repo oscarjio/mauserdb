@@ -114,39 +114,53 @@ class OperatorRankingController {
     private function getOperatorIbcData(string $from, string $to): array {
         $operators = [];
 
-        // Forsta: prova rebotling_ibc med user_id
+        // rebotling_ibc uses op1/op2/op3 (not user_id) and ibc_ok/ibc_ej_ok (not ok)
         try {
             $sql = "
-                SELECT
-                    COALESCE(ri.user_id, 0) AS user_id,
-                    COALESCE(u.username, CONCAT('Operator ', ri.user_id)) AS operator_namn,
-                    COUNT(*) AS total_ibc,
-                    SUM(CASE WHEN ri.ok = 1 THEN 1 ELSE 0 END) AS ok_ibc,
-                    MIN(ri.datum) AS first_ibc,
-                    MAX(ri.datum) AS last_ibc
-                FROM rebotling_ibc ri
-                LEFT JOIN users u ON ri.user_id = u.id
-                WHERE DATE(ri.datum) BETWEEN :from AND :to
-                  AND ri.user_id IS NOT NULL
-                  AND ri.user_id > 0
-                GROUP BY ri.user_id, u.username
+                SELECT op_id,
+                       COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
+                       SUM(cnt) AS total_ibc,
+                       MIN(first_dt) AS first_ibc,
+                       MAX(last_dt) AS last_ibc
+                FROM (
+                    SELECT op1 AS op_id, COUNT(*) AS cnt, MIN(datum) AS first_dt, MAX(datum) AS last_dt
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from1 AND :to1 AND op1 IS NOT NULL AND op1 > 0
+                    GROUP BY op1
+                    UNION ALL
+                    SELECT op2 AS op_id, COUNT(*) AS cnt, MIN(datum), MAX(datum)
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from2 AND :to2 AND op2 IS NOT NULL AND op2 > 0
+                    GROUP BY op2
+                    UNION ALL
+                    SELECT op3 AS op_id, COUNT(*) AS cnt, MIN(datum), MAX(datum)
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :from3 AND :to3 AND op3 IS NOT NULL AND op3 > 0
+                    GROUP BY op3
+                ) AS sub
+                LEFT JOIN operators o ON o.number = sub.op_id
+                GROUP BY op_id, o.name
                 ORDER BY total_ibc DESC
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':from' => $from, ':to' => $to]);
+            $stmt->execute([
+                ':from1' => $from, ':to1' => $to,
+                ':from2' => $from, ':to2' => $to,
+                ':from3' => $from, ':to3' => $to,
+            ]);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $uid = (int)$row['user_id'];
+                $uid = (int)$row['op_id'];
                 $operators[$uid] = [
                     'user_id'       => $uid,
                     'operator_namn' => $row['operator_namn'],
                     'total_ibc'     => (int)$row['total_ibc'],
-                    'ok_ibc'        => (int)$row['ok_ibc'],
+                    'ok_ibc'        => (int)$row['total_ibc'], // each row = 1 IBC cycle
                     'first_ibc'     => $row['first_ibc'],
                     'last_ibc'      => $row['last_ibc'],
                 ];
             }
         } catch (\PDOException $e) {
-            // kolumnen user_id kanske saknas
+            // op columns might not exist
         }
 
         // Fallback: rebotling_data

@@ -331,23 +331,33 @@ class VdDashboardController {
             $today = date('Y-m-d');
             $operators = [];
 
+            // rebotling_ibc uses op1/op2/op3, not user_id
             try {
                 $sql = "
                     SELECT
-                        ri.user_id,
-                        COALESCE(u.username, CONCAT('Operator ', ri.user_id)) AS operator_namn,
-                        COUNT(*) AS total_ibc
-                    FROM rebotling_ibc ri
-                    LEFT JOIN users u ON ri.user_id = u.id
-                    WHERE DATE(ri.datum) = :today
-                      AND ri.user_id IS NOT NULL
-                      AND ri.user_id > 0
-                    GROUP BY ri.user_id, u.username
+                        op_id AS user_id,
+                        COALESCE(o.name, CONCAT('Operator ', op_id)) AS operator_namn,
+                        SUM(cnt) AS total_ibc
+                    FROM (
+                        SELECT op1 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY op1
+                        UNION ALL
+                        SELECT op2 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY op2
+                        UNION ALL
+                        SELECT op3 AS op_id, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY op3
+                    ) AS sub
+                    LEFT JOIN operators o ON o.number = sub.op_id
+                    GROUP BY op_id, o.name
                     ORDER BY total_ibc DESC
                     LIMIT 3
                 ";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([':today' => $today]);
+                $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                 $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
             } catch (\Exception $e) {}
 
