@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-15 (session #107)*
+*Senast uppdaterad: 2026-03-15 (session #108)*
 *Fullständig historik: lead-memory-archive.md*
 
 ---
@@ -60,28 +60,24 @@ Session #102-#104: Features (statistik-överblick, daglig briefing, gamification
 Session #105: BUGGJAKT — 4 SQL-buggar + 3 error-handling-buggar fixade. 41 frontend components auditerade.
 Session #106: BUGGJAKT — 8 backend-buggar (2 säkerhet, 1 OEE, 5 query/unused) + 4 frontend-buggar + 12 API-endpoints testade + 3 unused vars fixade av lead.
 Session #107: BUGGJAKT — Worker A: 119 catch($e) cleanup, 2 DST-buggar, 1 auth-bugg (SkiftoverlamningController). Worker B: ~270 trackBy fixade, subscription/Chart.js audit OK. Totalt: 122 fixar + 270 trackBy.
-Session #108: BUGGJAKT — Worker A: Batch 2 controllers (10 st) + unused vars (3 controllers). Worker B: 6 endpoint-verifieringar + frontend logikbuggar.
+Session #108: BUGGJAKT — Worker A: 10 buggar (3 SQL, 1 XSS, 4 unused, 1 redundant sort, 1 PHP8.1 deprecation). Worker B: 7 endpoints OK + 3 frontend-buggar (2 UTC-datum, 1 race condition).
 
 ## ÖPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [WIP] **Buggjakt: Batch 2 controllers (10 st) + unused vars (3 controllers)**
-- [WIP] **Buggjakt: 6 endpoints + frontend logikbuggar**
 - [ ] **Buggjakt: OperatorRanking streaks — verifiera med riktig data**
 - [ ] **Buggjakt: Batch 3 controllers (18 st)**
 - [ ] **Buggjakt: Frontend beräkningar vs backend konsistens**
 - [ ] **Buggjakt: API-routes audit (404-risk)**
+- [ ] **Buggjakt: Datum UTC-midnatt i fler components**
+- [ ] **Buggjakt: PHP logging konsistens**
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-15 — Session #106 (klar)
-Worker A (Backend auth+OEE+unused): 2 säkerhetsbuggar, 1 OEE-bugg, 2 query-buggar, 1 saknad return, 2 unused vars.
-Worker B (Frontend templates+API-test): 1 template-bugg, 3 unused imports. 12 endpoints testade. db_config.php + migration.
 
 ### 2026-03-15 — Session #107 (klar)
 Worker A: 119 catch($e) -> catch(\Exception) i 49 filer. 2 DST-buggar (streak/MTBF). 1 auth-bugg (SkiftoverlamningController GET utan requireLogin).
 Worker B: ~270 ngFor trackBy fixade (prestandabugg). Subscription/Chart.js audit OK (inga lacker). Services OK.
 
-### 2026-03-15 — Session #108 (pågår)
-Worker A: Granskar 10 batch-2-controllers + fixar unused vars i 3 controllers.
-Worker B: Curl-testar 6 endpoints + granskar frontend-beräkningar i 8 components.
+### 2026-03-15 — Session #108 (klar)
+Worker A: 10 buggar i 10 filer — 3 SQL/logik (OeeWaterfall GROUP BY, DrifttidsTimeline fel kolumn, Heatmap reserverat ord), 1 XSS (ForstaTimmeAnalys), 4 unused vars (Morgonrapport, MyStats, Skiftjamforelse, Gamification), 1 redundant sort (Pareto), 1 PHP8.1 deprecation (Skiftoverlamning nullable).
+Worker B: 7 endpoints verifierade (alla OK, inga saknade tabeller). 3 frontend-buggar: 2 UTC-midnatt datumfel (skiftjamforelse, morgonrapport), 1 race condition i vd-dashboard (isFetching med 6 parallella anrop → forkJoin).
