@@ -87,7 +87,7 @@ class ShiftPlanController {
 
         try {
             $dt = new DateTime($dateParam);
-        } catch (Exception $e) {
+        } catch (Exception) {
             $dt = new DateTime();
         }
 
@@ -169,7 +169,7 @@ class ShiftPlanController {
 
         try {
             $dt = new DateTime($weekStartParam);
-        } catch (Exception $e) {
+        } catch (Exception) {
             $dt = new DateTime();
         }
 
@@ -563,7 +563,7 @@ class ShiftPlanController {
 
         try {
             $dt = new DateTime($targetStart);
-        } catch (Exception $e) {
+        } catch (Exception) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
             return;

@@ -1,3 +1,26 @@
+## 2026-03-15 Session #107 Worker A — Backend PHP cleanup + buggar
+
+### Uppgift 1: catch($e) cleanup (PHP 8+)
+Sokte igenom alla PHP-filer i noreko-backend (exkl. forbjudna dirs).
+**Fixade 119 oanvanda `$e` i 49 filer** — bytte `catch(\Exception $e)` till `catch(\Exception)` dar `$e` aldrig anvandes (tomma catch-block, kommenterade block). Beholl `$e` overallt dar `$e->getMessage()` eller liknande anvands.
+
+### Uppgift 2: Datum-edge-cases
+1. **GamificationController.php** — streak-berakning anvande `/ 86400` utan avrundning for att jamfora dagar. Vid DST-byte (23h/25h dagar) kunde `$diff == 1` fallera. Fixat med `round()`.
+2. **PrediktivtUnderhallController.php** — MTBF-intervallberakning anvande `/ 86400` utan avrundning. Samma DST-problem. Fixat med `round()`.
+3. Ovriga datum-operationer granskade (23:59:59 monstret, YEARWEEK, veckonyckel-generering). Inga kritiska buggar — konsekvent timezone via `date_default_timezone_set('Europe/Stockholm')` i api.php.
+
+### Uppgift 3: Djupgranskning av ogranskade controllers
+Granskade: DagligBriefingController, StatistikOverblickController, SkiftoverlamningController, PrediktivtUnderhallController, GamificationController, VdDashboardController, HistoriskSammanfattningController.
+
+**Buggar fixade:**
+1. **SkiftoverlamningController.php** — **Saknad autentisering pa GET-endpoints.** Alla GET-anrop (list, detail, shift-kpis, summary, etc.) var oppen utan inloggningskrav. POST-endpoints hade `requireLogin()` men GET saknade det helt. Fixat: lagt till `$this->requireLogin()` langst upp i `handle()`.
+2. **SkiftoverlamningController.php** — `requireLogin()` anvande `session_start()` utan `read_and_close`. Fixat till `session_start(['read_and_close' => true])` for battre prestanda.
+
+**Inget att fixa (granskade men OK):**
+- Alla controllers validerar `$_GET` input korrekt (regex, intval, in_array)
+- Alla SQL-queries anvander prepared statements
+- NyheterController finns inte i kodbasen (namndes i uppgiften men existerar ej)
+
 ## 2026-03-15 Session #106 Lead — unused variable cleanup
 
 ### Fixade 3 oanvanda PHP-variabler (diagnostics cleanup)

@@ -141,7 +141,7 @@ class HistoriskSammanfattningController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {}
+        } catch (\Exception) {}
 
         return [
             ['id' => 1, 'namn' => 'Station 1'],
@@ -397,7 +397,7 @@ class HistoriskSammanfattningController {
             $namn = $nameRow ? $nameRow['name'] : "Op #{$opNum}";
 
             return ['op_num' => $opNum, 'namn' => $namn, 'ibc_ok' => $ibcOk];
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return null;
         }
     }
@@ -749,7 +749,7 @@ class HistoriskSammanfattningController {
                     $stmt->execute([$p['from'], $p['to']]);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 }
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Tabellen kanske inte finns
             }
 

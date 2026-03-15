@@ -118,7 +118,7 @@ class MorgonrapportController {
             $stmt->execute([$weekday]);
             $val = $stmt->fetchColumn();
             return $val ? (int)$val : self::DEFAULT_DAILY_GOAL;
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return self::DEFAULT_DAILY_GOAL;
         }
     }

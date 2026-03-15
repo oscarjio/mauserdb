@@ -213,7 +213,7 @@ class SkiftjamforelseController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {}
+        } catch (\Exception) {}
 
         return [
             ['id' => 1, 'namn' => 'Station 1'],

@@ -299,7 +299,7 @@ class MaskinOeeController {
         try {
             $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch();
             if ($row) $oeeMal = round((float)$row['mal'], 1);
-        } catch (\PDOException $e) {}
+        } catch (\PDOException) {}
 
         $this->sendSuccess([
             'days'              => $days,
@@ -464,7 +464,7 @@ class MaskinOeeController {
             try {
                 $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch();
                 if ($row) $oeeMal = round((float)$row['mal'], 1);
-            } catch (\PDOException $e) {}
+            } catch (\PDOException) {}
 
             $this->sendSuccess([
                 'days'       => $days,

@@ -935,7 +935,7 @@ class OperatorDashboardController {
                 $stoppRow = $stStopp->fetch(PDO::FETCH_ASSOC);
                 $antalStopp = (int)($stoppRow['cnt'] ?? 0);
                 $stopptidSek = max(0, (int)($stoppRow['sek'] ?? 0));
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // tabellen kanske saknas — ignorera
             }
 
@@ -1015,7 +1015,7 @@ class OperatorDashboardController {
                         'varaktighet_min' => round($sek / 60, 1),
                     ];
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // tabellen kanske saknas
             }
 

@@ -500,7 +500,7 @@ class RebotlingController {
                 if ($exceptionRow) {
                     $rebotlingTarget = (int)$exceptionRow['justerat_mal'];
                 }
-            } catch (Exception $e) { /* tabell saknas ännu — ignorera */ }
+            } catch (Exception) { /* tabell saknas ännu — ignorera */ }
 
             // Hämta senaste utetemperatur
             $utetemperatur = null;
@@ -576,7 +576,7 @@ class RebotlingController {
                 ");
                 $rastRow = $rastStmt->fetch(PDO::FETCH_ASSOC);
                 $onRast = $rastRow ? (bool)$rastRow['rast_status'] : false;
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Tabellen kanske inte finns ännu
             }
 
@@ -853,7 +853,7 @@ class RebotlingController {
                         $rs = null;
                     }
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Tabellen saknas eller fel – ignorera
             }
 
@@ -1024,7 +1024,7 @@ class RebotlingController {
                     }
                 }
                 $rast_data = array_map(fn($e) => ['time' => $e['time'], 'rast_status' => (int)$e['rast_status']], $rast_events);
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Tabellen kanske saknas – ignorera tyst
             }
 
@@ -1041,7 +1041,7 @@ class RebotlingController {
                 $plcRast = $plcRastStmt->fetch(PDO::FETCH_ASSOC);
                 $plc_rast_min = round($plcRast['total_rast_plc'] ?? 0, 1);
                 $plc_runtime_min = round($plcRast['total_runtime_plc'] ?? 0, 1);
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $plc_rast_min = 0;
                 $plc_runtime_min = 0;
             }
@@ -1426,7 +1426,7 @@ class RebotlingController {
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sr) $dailyGoal = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { /* ignorera */ }
+            } catch (Exception) { /* ignorera */ }
 
             $today = date('Y-m-d');
 
@@ -2864,7 +2864,7 @@ class RebotlingController {
                     echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
                     return;
                 }
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 http_response_code(500);
                 echo json_encode(['success' => false, 'items' => [], 'fallback' => true]);
                 return;

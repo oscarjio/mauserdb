@@ -253,7 +253,7 @@ class OperatorsbonusController {
             if ($val !== false && $val !== null) {
                 return round((float)$val, 2);
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Tabell finns inte, prova fallback
         }
 
@@ -325,7 +325,7 @@ class OperatorsbonusController {
             if ($total > 0) {
                 return round(($narv / $total) * 100, 1);
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Tabell saknas, använd fallback
         }
 
@@ -346,7 +346,7 @@ class OperatorsbonusController {
             if ($arbetsDagar > 0 && $dagar > 0) {
                 return round(min(($dagar / $arbetsDagar) * 100, 100), 1);
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Ignorera
         }
 

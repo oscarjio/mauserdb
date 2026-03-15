@@ -92,7 +92,7 @@ class PrediktivtUnderhallController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return false;
         }
     }
@@ -278,7 +278,7 @@ class PrediktivtUnderhallController {
                     if ($antalStopp >= 2) {
                         $intervals = [];
                         for ($i = 1; $i < $antalStopp; $i++) {
-                            $diff = (strtotime($stoppDagar[$i]) - strtotime($stoppDagar[$i - 1])) / 86400;
+                            $diff = round((strtotime($stoppDagar[$i]) - strtotime($stoppDagar[$i - 1])) / 86400);
                             $intervals[] = $diff;
                         }
                         $mtbfDagar = round(array_sum($intervals) / count($intervals), 1);

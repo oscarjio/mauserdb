@@ -116,7 +116,7 @@ class LineSkiftrapportController {
                 echo json_encode(['success' => false, 'message' => 'Du kan bara ändra dina egna rapporter']);
                 exit;
             }
-        } catch (PDOException $e) {
+        } catch (PDOException) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Databasfel']);
             exit;

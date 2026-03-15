@@ -139,7 +139,7 @@ class KassationsorsakController {
                 $map[(int)$row['number']] = $row['name'];
             }
             return $map;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return [];
         }
     }

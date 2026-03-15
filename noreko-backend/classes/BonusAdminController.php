@@ -1219,7 +1219,7 @@ class BonusAdminController {
                 foreach ($rows as $row) {
                     $tierAmounts[$row['level_name']] = (int)$row['amount_sek'];
                 }
-            } catch (PDOException $e) {
+            } catch (PDOException) {
                 // Använd defaults
             }
 
@@ -1520,7 +1520,7 @@ class BonusAdminController {
                     if (!empty($cfg['productivity_target_tvattade']))  $defaultTargets[5] = (float)$cfg['productivity_target_tvattade'];
                     if (!empty($cfg['max_bonus'])) $defaultMaxBonus = (int)$cfg['max_bonus'];
                 }
-            } catch (PDOException $e) {
+            } catch (PDOException) {
                 // Fortsätt med defaults
             }
 

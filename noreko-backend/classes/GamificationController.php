@@ -77,7 +77,7 @@ class GamificationController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return false;
         }
     }
@@ -145,7 +145,7 @@ class GamificationController {
                     'ok_ibc'        => (int)$row['total_ibc'], // all counted as ok here
                 ];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // op columns might not exist
         }
 
@@ -177,7 +177,7 @@ class GamificationController {
                         'ok_ibc'        => (int)$row['ok_ibc'],
                     ];
                 }
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // ignorera
             }
         }
@@ -222,7 +222,7 @@ class GamificationController {
                     'antal_stopp'     => (int)$row['antal_stopp'],
                 ];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Ignorera
         }
 
@@ -329,7 +329,7 @@ class GamificationController {
                         break;
                     }
                 }
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // Ignorera
             }
 
@@ -375,7 +375,7 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException $e) {}
+        } catch (\PDOException) {}
 
         // ---- Perfektionist: badge based on overall quality (simplified) ----
         // With cumulative ibc_ok/ibc_ej_ok, we check days with 0 ej_ok
@@ -411,7 +411,7 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException $e) {}
+        } catch (\PDOException) {}
 
         // ---- Maratonlopare: 5 dagar i rad med produktion ----
         try {
@@ -437,7 +437,7 @@ class GamificationController {
                 if ($prevDate === null) {
                     $currentStreak = 1;
                 } else {
-                    $diff = (strtotime($prevDate) - strtotime($d)) / 86400;
+                    $diff = round((strtotime($prevDate) - strtotime($d)) / 86400);
                     if ($diff == 1) {
                         $currentStreak++;
                     } else {
@@ -459,7 +459,7 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException $e) {}
+        } catch (\PDOException) {}
 
         // ---- Stoppjagare: minst stopp denna vecka ----
         if ($this->tableExists('stopporsak_registreringar')) {
@@ -491,7 +491,7 @@ class GamificationController {
                         'antal'       => 1,
                     ];
                 }
-            } catch (\PDOException $e) {}
+            } catch (\PDOException) {}
         }
 
         // ---- Teamspelare: basta operatoren sammanlagt (vecka) ----
@@ -531,7 +531,7 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException $e) {}
+        } catch (\PDOException) {}
 
         return $badges;
     }
@@ -673,7 +673,7 @@ class GamificationController {
                 $stmt->execute([$userId]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) $operatorNamn = $row['username'];
-            } catch (\PDOException $e) {}
+            } catch (\PDOException) {}
 
             // Hamta rank fran vecko-leaderboard
             $from = date('Y-m-d', strtotime('monday this week'));
@@ -746,7 +746,7 @@ class GamificationController {
             ");
             $stmt->execute([$userId, $userId, $userId]);
             $totalIbc = (int)($stmt->fetchColumn() ?? 0);
-        } catch (\PDOException $e) {}
+        } catch (\PDOException) {}
 
         $result = [];
         foreach ($milstolpar as $m) {

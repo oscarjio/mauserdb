@@ -81,7 +81,7 @@ class RebotlingAnalyticsController {
                 $maxStmt->execute([$foundSkiftraknare]);
                 $skiftSlut = $maxStmt->fetchColumn() ?: null;
             }
-        } catch (Exception $e) {}
+        } catch (Exception) {}
 
         // Fallback: om onoff saknar data, använd cykeltider
         if (!$skiftStart || !$skiftSlut) {
@@ -114,7 +114,7 @@ class RebotlingAnalyticsController {
                         $skiftSlut = date('Y-m-d H:i:s', strtotime($skiftStart) + ($runtimeMin * 60));
                     }
                 }
-            } catch (Exception $e) {}
+            } catch (Exception) {}
         }
 
         return ['start' => $skiftStart, 'slut' => $skiftSlut, 'cykel_datum' => $cykelDatum];
@@ -681,7 +681,7 @@ class RebotlingAnalyticsController {
                 $this->ensureSettingsTable();
                 $sr = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sr) $dailyTarget = (int)$sr['rebotling_target'];
-            } catch (Exception $e) { /* ignorera */ }
+            } catch (Exception) { /* ignorera */ }
 
             // Kolla om undantag finns för idag (getExecDashboard)
             try {
@@ -691,7 +691,7 @@ class RebotlingAnalyticsController {
                 if ($exceptionRow) {
                     $dailyTarget = (int)$exceptionRow['justerat_mal'];
                 }
-            } catch (Exception $e) { /* tabell saknas ännu — ignorera */ }
+            } catch (Exception) { /* tabell saknas ännu — ignorera */ }
 
             // ---- IBC idag ----
             $ibcToday = (int)$this->pdo->query("SELECT COUNT(*) FROM rebotling_ibc WHERE DATE(datum) = CURDATE()")->fetchColumn();
@@ -702,7 +702,7 @@ class RebotlingAnalyticsController {
                 $this->ensureShiftTimesTable();
                 $st = $this->pdo->query("SELECT start_time FROM rebotling_shift_times WHERE shift_name='förmiddag' LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 if ($st) $shiftStart = $st['start_time'];
-            } catch (Exception $e) { /* ignorera */ }
+            } catch (Exception) { /* ignorera */ }
 
             $shiftStartDt = new DateTime($now->format('Y-m-d') . ' ' . $shiftStart, $tz);
             if ($shiftStartDt > $now) {
@@ -716,7 +716,7 @@ class RebotlingAnalyticsController {
             try {
                 $st2 = $this->pdo->query("SELECT shift_hours FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($st2) $shiftLengthMin = (float)$st2['shift_hours'] * 60;
-            } catch (Exception $e) { /* ignorera */ }
+            } catch (Exception) { /* ignorera */ }
 
             $rate = $minutesSinceShiftStart > 0 ? $ibcToday / $minutesSinceShiftStart : 0;
             $remainingMin = max(0, $shiftLengthMin - $minutesSinceShiftStart);
@@ -936,7 +936,7 @@ class RebotlingAnalyticsController {
                         $ns = $this->pdo->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
                         $ns->execute([$opId]);
                         $nameRow = $ns->fetch(PDO::FETCH_ASSOC);
-                    } catch (Exception $e) { /* ignorera */ }
+                    } catch (Exception) { /* ignorera */ }
                     $bestOperator = [
                         'id'    => $opId,
                         'name'  => $nameRow ? ($nameRow['name'] ?? 'Okänd') : 'Op #' . $opId,
@@ -1562,13 +1562,13 @@ class RebotlingAnalyticsController {
                 foreach ($wgStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
                     $weekdayGoals[(int)$row['weekday']] = (int)$row['daily_goal'];
                 }
-            } catch (Exception $e) { /* tabell saknas */ }
+            } catch (Exception) { /* tabell saknas */ }
 
             $defaultGoal = 1000;
             try {
                 $sgRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sgRow) $defaultGoal = (int)$sgRow['rebotling_target'];
-            } catch (Exception $e) { /* ignorera */ }
+            } catch (Exception) { /* ignorera */ }
 
             // Hämta produktion per dag för hela året från rebotling_skiftrapport
             // SUM(ibc_ok) per datum
@@ -4159,7 +4159,7 @@ class RebotlingAnalyticsController {
                 $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
                 $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
                 if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Tabellen kanske inte finns — ignorera
             }
 
@@ -4733,7 +4733,7 @@ HTML;
                     ];
                 }
                 $hasParetoData = $totalKassation > 0;
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // Tabellerna finns inte ännu — pareto-data förblir tom
                 $hasParetoData = false;
             }
@@ -4769,7 +4769,7 @@ HTML;
                             : ($pd['antal'] < $prevAntal ? 'down' : 'stable');
                     }
                     unset($pd);
-                } catch (\Exception $e) {
+                } catch (\Exception) {
                     // Ignorera — trend blir otillgänglig
                 }
             }
@@ -4914,7 +4914,7 @@ HTML;
                     ];
                 }
                 $hasParetoData = $totalKassationRegistrerad > 0;
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 $hasParetoData = false;
             }
 
@@ -5123,7 +5123,7 @@ HTML;
                 $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
                 $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
                 if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
-            } catch (Exception $e) {}
+            } catch (Exception) {}
 
             $shiftNames = [1 => 'Formiddag (06-14)', 2 => 'Eftermiddag (14-22)', 3 => 'Natt (22-06)'];
             $shiftName = $shiftNames[$shift] ?? "Skift $shift";
@@ -6019,7 +6019,7 @@ HTML;
                 );
                 $stmtStop->execute();
                 $stoppageMin = (float)$stmtStop->fetchColumn();
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // stoppage_log finns kanske inte — falla tillbaka till rast som proxy
                 $stoppageMin = $rastMin;
             }
@@ -6058,7 +6058,7 @@ HTML;
                     // Ideal = 120% av median (top-performance benchmark)
                     $idealRatePerMin = $medianRate * 1.2;
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // använd fallback
             }
 

@@ -76,7 +76,7 @@ class RankingHistorikController {
                 $map[(int)$r['number']] = $r['name'];
             }
             return $map;
-        } catch (Exception $e) {
+        } catch (Exception) {
             return [];
         }
     }

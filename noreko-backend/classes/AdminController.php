@@ -76,7 +76,7 @@ class AdminController {
                 try {
                     $stmt = $pdo->query("SHOW COLUMNS FROM users LIKE 'active'");
                     $activeExists = $stmt->rowCount() > 0;
-                } catch (PDOException $e) {
+                } catch (PDOException) {
                     $activeExists = false;
                 }
                 

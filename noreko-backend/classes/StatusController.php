@@ -143,14 +143,14 @@ class StatusController {
                                     "SELECT AVG(cykel_tid) FROM rebotling_ibc WHERE DATE(datum) = CURDATE() AND cykel_tid > 0"
                                 )->fetchColumn();
                                 if ($cRow > 0) $snittCykel = (float)$cRow;
-                            } catch (Exception $e) { /* ignorera */ }
+                            } catch (Exception) { /* ignorera */ }
                             $maxMojlig = $prodTid / $snittCykel;
                             if ($maxMojlig > 0) {
                                 $oeePct = round(($ibcOk / $maxMojlig) * 100, 1);
                             }
                         }
                     }
-                } catch (Exception $e) { /* ignorera OEE-fel */ }
+                } catch (Exception) { /* ignorera OEE-fel */ }
 
                 $lines[] = [
                     'id'              => 'rebotling',

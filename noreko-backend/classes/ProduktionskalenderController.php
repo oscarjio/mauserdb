@@ -74,7 +74,7 @@ class ProduktionskalenderController {
                 $map[(int)$r['number']] = $r['name'];
             }
             return $map;
-        } catch (Exception $e) {
+        } catch (Exception) {
             return [];
         }
     }
@@ -135,7 +135,7 @@ class ProduktionskalenderController {
                 $prevTime    = $ts;
                 $prevRunning = $running;
             }
-        } catch (Exception $e) { /* ignorera */ }
+        } catch (Exception) { /* ignorera */ }
 
         return ['drifttid' => $drifttid, 'stopptid' => $stopptid];
     }
@@ -195,7 +195,7 @@ class ProduktionskalenderController {
             $mStmt = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1");
             $mRow  = $mStmt->fetch(PDO::FETCH_ASSOC);
             if ($mRow) $mål = (int)$mRow['rebotling_target'];
-        } catch (Exception $e) { /* tabell kanske saknas */ }
+        } catch (Exception) { /* tabell kanske saknas */ }
 
         // Bygg per-dag-data
         $dagData = [];
@@ -331,7 +331,7 @@ class ProduktionskalenderController {
                     'kvalitet' => $this->kvalitet($ibcOk, $ibcEjOk),
                 ];
             }
-        } catch (Exception $e) { /* ignorera */ }
+        } catch (Exception) { /* ignorera */ }
 
         // Gruppera dagar per ISO-vecka
         $veckor = [];
@@ -511,7 +511,7 @@ class ProduktionskalenderController {
                 ];
             }
             return $result;
-        } catch (Exception $e) {
+        } catch (Exception) {
             return [];
         }
     }
@@ -539,7 +539,7 @@ class ProduktionskalenderController {
                 ];
             }
             return $result;
-        } catch (Exception $e) {
+        } catch (Exception) {
             return [];
         }
     }

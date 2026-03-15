@@ -81,7 +81,7 @@ class OperatorRankingController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return false;
         }
     }
@@ -159,7 +159,7 @@ class OperatorRankingController {
                     'last_ibc'      => $row['last_ibc'],
                 ];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // op columns might not exist
         }
 
@@ -195,7 +195,7 @@ class OperatorRankingController {
                         'last_ibc'      => $row['last_ibc'],
                     ];
                 }
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // tabellen saknar nagra kolumner
             }
         }
@@ -241,7 +241,7 @@ class OperatorRankingController {
                     'antal_stopp'     => (int)$row['antal_stopp'],
                 ];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Ignorera
         }
 
@@ -402,7 +402,7 @@ class OperatorRankingController {
                         break;
                     }
                 }
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // Ignorera
             }
 
@@ -601,7 +601,7 @@ class OperatorRankingController {
                     }
                     $historik[$dag][$uid] = (int)$row['total_ibc'] * 10; // Poang
                 }
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // Fallback: rebotling_data
                 if ($this->tableExists('rebotling_data')) {
                     $sql = "

@@ -96,7 +96,7 @@ class TidrapportController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return false;
         }
     }

@@ -75,7 +75,7 @@ class VdDashboardController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return false;
         }
     }
@@ -85,7 +85,7 @@ class VdDashboardController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception $e) {}
+        } catch (\Exception) {}
 
         return [
             ['id' => 1, 'namn' => 'Station 1'],
@@ -127,7 +127,7 @@ class VdDashboardController {
         $drifttidSek = 0;
         try {
             $drifttidSek = $this->calcDrifttidSek($from, $to);
-        } catch (\Exception $e) {}
+        } catch (\Exception) {}
 
         $schemaSek = 8 * 3600;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
@@ -154,7 +154,7 @@ class VdDashboardController {
             $ibcRow = $stmt->fetch(PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
-        } catch (\Exception $e) {}
+        } catch (\Exception) {}
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
         $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
@@ -193,7 +193,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today' => $today]);
                 $aktivaOperatorer = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
 
             // Fallback: rebotling_data
             if ($aktivaOperatorer === 0 && $this->tableExists('rebotling_data')) {
@@ -207,7 +207,7 @@ class VdDashboardController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today' => $today]);
                     $aktivaOperatorer = (int)$stmt->fetchColumn();
-                } catch (\Exception $e) {}
+                } catch (\Exception) {}
             }
 
             // Dagsmal
@@ -221,7 +221,7 @@ class VdDashboardController {
                     if ($row) {
                         $dagsmal = (int)$row['mal_antal'];
                     }
-                } catch (\Exception $e) {}
+                } catch (\Exception) {}
             }
 
             // Fallback: berakna snitt fran senaste 30 dagarna
@@ -239,7 +239,7 @@ class VdDashboardController {
                     $stmt = $this->pdo->query($sql);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     $dagsmal = (int)($row['avg_ibc'] ?? 0);
-                } catch (\Exception $e) {}
+                } catch (\Exception) {}
             }
 
             if ($dagsmal === 0) $dagsmal = 100; // Default
@@ -295,7 +295,7 @@ class VdDashboardController {
                         $s['varaktighet_min'] = (int)$s['varaktighet_min'];
                     }
                     unset($s);
-                } catch (\Exception $e) {
+                } catch (\Exception) {
                     // Kolumner kan saknas
                 }
             }
@@ -308,7 +308,7 @@ class VdDashboardController {
                 if ($row && !(int)$row['running']) {
                     $stoppadeStationer[] = ['station_id' => 0, 'senaste_stopp' => $row['datum']];
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
 
             $this->sendSuccess([
                 'aktiva_stopp'       => $aktivaStopp,
@@ -359,7 +359,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                 $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
 
             // Fallback: rebotling_data
             if (empty($operators) && $this->tableExists('rebotling_data')) {
@@ -380,7 +380,7 @@ class VdDashboardController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today' => $today]);
                     $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                } catch (\Exception $e) {}
+                } catch (\Exception) {}
             }
 
             // Lagg till rank
@@ -436,7 +436,7 @@ class VdDashboardController {
                     $ibcByStation[$sid]['ok_ibc']    += (int)$row['ok_ibc'];
                     $ibcByStation[$sid]['total_ibc'] += (int)$row['ok_ibc'] + (int)$row['ej_ok_ibc'];
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
 
             // Hamta total drifttid (rebotling_onoff har datum + running, ej per station)
             $totalDrifttidSek = 0;
@@ -444,7 +444,7 @@ class VdDashboardController {
                 $from = $today . ' 00:00:00';
                 $to   = $today . ' 23:59:59';
                 $totalDrifttidSek = $this->calcDrifttidSek($from, $to);
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
             // Dela drifttid lika mellan stationer (onoff saknar station_id)
             $driftByStation = [];
             $stationCount = max(1, count($stationer));
@@ -571,7 +571,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from' => $skiftFromTime, ':to' => $skiftToTime]);
                 $ibcAktuellt = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
 
             // IBC for forra skiftet (samma typ, igår)
             $ibcForra = 0;
@@ -590,7 +590,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from' => $fFrom, ':to' => $fTo]);
                 $ibcForra = (int)$stmt->fetchColumn();
-            } catch (\Exception $e) {}
+            } catch (\Exception) {}
 
             $this->sendSuccess([
                 'skift'           => $skift,

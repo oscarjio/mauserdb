@@ -82,7 +82,7 @@ class RegisterController {
                 echo json_encode(['success' => false, 'message' => 'Användarnamnet är redan taget']);
                 return;
             }
-        } catch (PDOException $e) {
+        } catch (PDOException) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn']);
             return;
@@ -106,7 +106,7 @@ class RegisterController {
                     'email' => $email
                 ]
             ]);
-        } catch (PDOException $e) {
+        } catch (PDOException) {
             http_response_code(500);
             echo json_encode([
                 'success' => false,

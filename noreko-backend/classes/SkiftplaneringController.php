@@ -122,7 +122,7 @@ class SkiftplaneringController {
             $stmt->execute([$id]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             return $row ? $row['namn'] : 'Operatör #' . $id;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return 'Operatör #' . $id;
         }
     }
@@ -290,7 +290,7 @@ class SkiftplaneringController {
                     while ($op = $opStmt->fetch(\PDO::FETCH_ASSOC)) {
                         $operatorNames[(int)$op['id']] = $op['namn'];
                     }
-                } catch (\PDOException $e) {
+                } catch (\PDOException) {
                     // operators-tabellen kanske inte finns
                 }
             }
@@ -461,7 +461,7 @@ class SkiftplaneringController {
                 );
                 $prodStmt->execute([$fromDt, $toDt]);
                 $faktiskProduktion = (int)$prodStmt->fetchColumn();
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // rebotling_log kanske inte finns
             }
 
@@ -636,7 +636,7 @@ class SkiftplaneringController {
                 );
                 $val = (float)$ibcStmt->fetchColumn();
                 if ($val > 0) $ibcPerH = round($val, 1);
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // rebotling_log kanske inte finns
             }
 
@@ -665,7 +665,7 @@ class SkiftplaneringController {
                     "SELECT id, namn FROM operators ORDER BY namn ASC"
                 );
                 $operatorer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // operators-tabellen kanske inte finns
             }
 

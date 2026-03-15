@@ -93,7 +93,7 @@ class MinDagController {
             $stmt->execute();
             $val = $stmt->fetchColumn();
             return $val !== false ? (int)$val : 200;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return 200;
         }
     }

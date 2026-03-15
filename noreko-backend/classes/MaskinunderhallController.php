@@ -421,7 +421,7 @@ class MaskinunderhallController {
                 if ($intervall > 0) {
                     $nastaPlanerad = date('Y-m-d', strtotime($serviceDatum . ' +' . $intervall . ' days'));
                 }
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // ignorera
             }
         }

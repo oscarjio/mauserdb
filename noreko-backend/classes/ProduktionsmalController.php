@@ -1082,7 +1082,7 @@ class ProduktionsmalController {
                 $goals[(int)$r['weekday']] = (int)$r['daily_goal'];
             }
             return $goals;
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return [];
         }
     }

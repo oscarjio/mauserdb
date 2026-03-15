@@ -42,6 +42,8 @@ class SkiftoverlamningController {
     }
 
     public function handle(): void {
+        $this->requireLogin();
+
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run    = trim($_GET['run'] ?? '');
 
@@ -92,7 +94,7 @@ class SkiftoverlamningController {
 
     private function requireLogin(): void {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['read_and_close' => true]);
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
@@ -293,7 +295,7 @@ class SkiftoverlamningController {
                 $aStmt = $this->pdo->query("SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1");
                 $row = $aStmt->fetch(\PDO::FETCH_ASSOC);
                 $aktivNu = $row ? (bool)$row['running'] : false;
-            } catch (\PDOException $e) {}
+            } catch (\PDOException) {}
 
             $this->sendSuccess([
                 'skift_typ'       => $skiftTyp,
@@ -898,7 +900,7 @@ class SkiftoverlamningController {
                 $uStmt->execute([$userId]);
                 $uRow = $uStmt->fetch(\PDO::FETCH_ASSOC);
                 $username = $uRow['username'] ?? null;
-            } catch (\PDOException $e) {}
+            } catch (\PDOException) {}
         }
 
         $skiftTyp = $data['skift_typ'] ?? '';
@@ -1082,7 +1084,7 @@ class SkiftoverlamningController {
                 $stoppAntal = (int)($stoppRow['antal'] ?? 0);
                 // Stopptid = planerad tid minus drifttid
                 $stoppMinuter = max(0, round(($planeradSek - $drifttidSek) / 60));
-            } catch (\PDOException $e) {
+            } catch (\PDOException) {
                 // Enkel fallback: total schema minus drifttid
                 $stoppMinuter = max(0, round((($planeradSek - $drifttidSek) / 60)));
             }

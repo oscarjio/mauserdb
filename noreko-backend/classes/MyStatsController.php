@@ -98,7 +98,7 @@ class MyStatsController {
             $stmt->execute([$opNum]);
             $row = $stmt->fetch();
             return $row['name'] ?? ('Operatör #' . $opNum);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return 'Operatör #' . $opNum;
         }
     }
@@ -639,7 +639,7 @@ class MyStatsController {
                     ]);
                     $val = $stmt->fetchColumn();
                     return $val !== null ? (float)$val : 0.0;
-                } catch (\PDOException $e) {
+                } catch (\PDOException) {
                     return 0.0;
                 }
             };

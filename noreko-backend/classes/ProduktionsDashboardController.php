@@ -346,7 +346,7 @@ class ProduktionsDashboardController {
                   AND DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             ");
             $totalStationer = (int)($stmtTot->fetchColumn() ?? 0);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             $totalStationer = 0;
         }
 

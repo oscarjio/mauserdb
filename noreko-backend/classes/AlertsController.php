@@ -491,7 +491,7 @@ class AlertsController {
             ");
             $stmt->execute(['mins' => $minMinutes]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Tabellen kanske saknas
             return [];
         }
@@ -539,7 +539,7 @@ class AlertsController {
             ");
             $stmt->execute(['type' => $type, 'mins' => $withinMinutes]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             return false;
         }
     }

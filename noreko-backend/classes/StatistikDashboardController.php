@@ -569,7 +569,7 @@ class StatistikDashboardController {
                 $stmtS->execute([':datum' => $today]);
                 $sRow = $stmtS->fetch(\PDO::FETCH_ASSOC);
                 $stoppMinuter = (int)($sRow['total_min'] ?? 0);
-            } catch (\PDOException $e) { /* tabellen kanske saknas */ }
+            } catch (\PDOException) { /* tabellen kanske saknas */ }
 
             // Beräkna status
             $problem = [];

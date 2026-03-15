@@ -768,7 +768,7 @@ class AndonController {
                 if ($opRow && !empty($opRow['op_name'])) {
                     $operator = $opRow['op_name'];
                 }
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 // shift_plan kanske inte finns — ignorera
             }
 

@@ -92,7 +92,7 @@ class OeeTrendanalysController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (Exception $e) {
+        } catch (Exception) {
             // Tabellen kanske inte finns
         }
 
@@ -226,7 +226,7 @@ class OeeTrendanalysController {
             foreach ([] as $row) {
                 $driftByStation[(int)$row['station_id']] = max(0, (int)$row['drifttid_sek']);
             }
-        } catch (Exception $e) {
+        } catch (Exception) {
             // Fallback: fordela total drifttid jamt
         }
 
@@ -574,7 +574,7 @@ class OeeTrendanalysController {
                         $stoppInfo[$sid] = $row['orsak'] . ' (' . $row['antal'] . ' ggr)';
                     }
                 }
-            } catch (Exception $e) {
+            } catch (Exception) {
                 // Tabellen kanske inte finns
             }
 

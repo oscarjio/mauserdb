@@ -898,7 +898,7 @@ class KassationsanalysController {
                             if (!in_array($n, $opMap[$sk])) $opMap[$sk][] = $n;
                         }
                     }
-                } catch (\PDOException $e) {
+                } catch (\PDOException) {
                     // Kan ignoreras om operators saknas
                 }
             }
@@ -1481,7 +1481,7 @@ class KassationsanalysController {
                             $orsakMap[$sk][] = $or['orsak_namn'];
                         }
                     }
-                } catch (\PDOException $e) {
+                } catch (\PDOException) {
                     // Ignorera om tabellen saknas
                 }
             }

@@ -120,7 +120,7 @@ class SkiftrapportController {
                 echo json_encode(['success' => false, 'message' => 'Du kan bara ändra dina egna skiftrapporter']);
                 exit;
             }
-        } catch (PDOException $e) {
+        } catch (PDOException) {
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Databasfel']);
             exit;
@@ -189,7 +189,7 @@ class SkiftrapportController {
                     }
                 }
             }
-        } catch (PDOException $e) {
+        } catch (PDOException) {
             // Ignorera om tabellen redan finns
         }
     }
@@ -611,7 +611,7 @@ class SkiftrapportController {
                 $maxStmt->execute([$foundSkiftraknare]);
                 $slutTid = $maxStmt->fetchColumn() ?: null;
             }
-        } catch (Exception $e) {}
+        } catch (Exception) {}
 
         // Fallback: cykeltider om onoff saknas
         if (!$startTid || !$slutTid) {
@@ -645,7 +645,7 @@ class SkiftrapportController {
                         $slutTid = date('Y-m-d H:i:s', strtotime($startTid) + ($runtimeMin * 60));
                     }
                 }
-            } catch (Exception $e) {}
+            } catch (Exception) {}
         }
 
         return [
@@ -910,7 +910,7 @@ class SkiftrapportController {
             ");
             $stmtK->execute([':from_dt' => $fromDt, ':to_dt' => $toDt]);
             $topOrsaker = $stmtK->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // kassationsregistrering kanske inte finns
         }
 

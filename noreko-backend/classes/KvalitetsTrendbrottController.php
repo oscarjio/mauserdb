@@ -519,7 +519,7 @@ class KvalitetsTrendbrottController {
                     'källa'     => 'stoppage_log',
                 ];
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Tabellen kanske inte finns
         }
 
@@ -548,7 +548,7 @@ class KvalitetsTrendbrottController {
                     ];
                 }
             }
-        } catch (\PDOException $e) {
+        } catch (\PDOException) {
             // Tabellen kanske inte finns
         }
 

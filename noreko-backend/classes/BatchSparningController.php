@@ -322,7 +322,7 @@ class BatchSparningController {
                             $operatorer[$opId]['namn'] = $op['namn'];
                         }
                     }
-                } catch (\PDOException $e) {
+                } catch (\PDOException) {
                     // Tabellen kanske inte finns — ignorera
                 }
             }
