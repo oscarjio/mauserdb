@@ -124,7 +124,8 @@ export class MorgonrapportPage implements OnInit, OnDestroy {
   formatVeckodag(d: string): string {
     if (!d) return '-';
     const dagar = ['Söndag', 'Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag'];
-    const dt = new Date(d);
+    // Append T00:00:00 sa att datumet tolkas i lokal tid (undviker UTC-midnatt DST-bugg)
+    const dt = new Date(d.length === 10 ? d + 'T00:00:00' : d);
     return dagar[dt.getDay()] ?? d;
   }
 

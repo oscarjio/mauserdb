@@ -1,3 +1,63 @@
+## 2026-03-15 Session #108 Worker B — Endpoint-verifiering + Frontend logikbuggar
+
+### Uppgift 1: Endpoint-verifiering (curl mot localhost:8099)
+
+Testade 7 endpoints (PHP dev-server startad pa port 8099):
+
+| Endpoint | Resultat | Kommentar |
+|---|---|---|
+| prediktivt-underhall | Auth-skyddad (401) | Korrekt — krav inloggning |
+| skiftoverlamning | Auth-skyddad (session utgatt) | Korrekt |
+| rebotling | 500 "Kunde inte hamta statistik" | Korrekt — krav data |
+| operators | 403 "Endast admin" | Korrekt — admin-endpoint |
+| news | 404 utan run= param | **Korrekt** — krav `?run=events` |
+| news?run=events | 200 `{"success":true,"events":[]}` | Fungerar korrekt |
+| bonus | Auth-skyddad (401) | Korrekt |
+| gamification | Auth-skyddad (401) | Korrekt |
+
+**Slutsats:** Alla endpoints fungerar korrekt. Det initiala "404" for news berodde pa att testet saknade `run=`-parametern som NewsController kraver. Inga saknade DB-tabeller hittades (alla fel var auth/session-relaterade).
+
+### Uppgift 2: Frontend logikbuggar — 3 buggar fixade
+
+#### Bugg 1: DST/Timezone-bugg i skiftjamforelse.ts (rad 213)
+**Fil:** `noreko-frontend/src/app/pages/skiftjamforelse/skiftjamforelse.ts`
+
+```typescript
+// INNAN (bugg):
+const d = new Date(p.datum);  // "2026-03-15" → UTC midnight → CET 2026-03-14 23:00
+return `${d.getDate()}/${d.getMonth() + 1}`;  // Returnerade "14/3" istallet for "15/3"
+
+// EFTER (fixat):
+const d = new Date(p.datum.length === 10 ? p.datum + 'T00:00:00' : p.datum);
+```
+
+`new Date("YYYY-MM-DD")` parsar som UTC midnight. I Stockholm (CET+1/CEST+2) ger detta foregaende dag, sarskilt tydligt kring DST-overganger. Trendigrammet visade fel dagar pa X-axeln.
+
+#### Bugg 2: DST/Timezone-bugg i morgonrapport.ts (rad 127)
+**Fil:** `noreko-frontend/src/app/pages/morgonrapport/morgonrapport.ts`
+
+```typescript
+// INNAN (bugg):
+const dt = new Date(d);  // Samma UTC midnight-problem
+
+// EFTER (fixat):
+const dt = new Date(d.length === 10 ? d + 'T00:00:00' : d);
+```
+
+`formatVeckodag()` returnerade fel veckodag (t.ex. "Sondag" istallet for "Mandag") for datum nara midnatt UTC.
+
+#### Bugg 3: Race condition i vd-dashboard.component.ts
+**Fil:** `noreko-frontend/src/app/pages/vd-dashboard/vd-dashboard.component.ts`
+
+`isFetching`-flaggan aterstalldes till `false` i callbacken fran `getOversikt()` (det forsta av 6 parallella anrop). De ovriga 5 anropen (getStoppNu, getTopOperatorer, getStationOee, getVeckotrend, getSkiftstatus) var fortfarande in-flight nar `isFetching` nollstalldes. Nasta polling-tick (var 30s) kunde darmed starta en ny omgang medan foregaende anrop fortfarande pagick.
+
+**Fix:** Bytt fran 6 separata subscribe() till `forkJoin([...])` sa att `isFetching` aterstalls nar ALLA 6 anrop ar klara (eller timeout/error). Lade till `forkJoin`-import.
+
+### Byggt och verifierat
+`npx ng build` — inga fel, bara CommonJS-varningar (canvg, html2canvas, kanda).
+
+---
+
 ## 2026-03-15 Session #107 Worker B — Frontend Angular buggjakt
 
 ### Uppgift 1: Subscription leak audit

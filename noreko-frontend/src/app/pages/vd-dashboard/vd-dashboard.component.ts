@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, of } from 'rxjs';
+import { Subject, of, forkJoin } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
@@ -65,53 +65,40 @@ export class VdDashboardPage implements OnInit, OnDestroy {
     this.isFetching = true;
     this.errorMessage = '';
 
-    this.svc.getOversikt().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe(res => {
+    // Anvand forkJoin sa att isFetching aterstalls nar ALLA anrop ar klara
+    // (undviker race condition dar isFetching nollstalldes efter forsta svaret)
+    forkJoin([
+      this.svc.getOversikt().pipe(timeout(15000), catchError(() => of(null))),
+      this.svc.getStoppNu().pipe(timeout(15000), catchError(() => of(null))),
+      this.svc.getTopOperatorer().pipe(timeout(15000), catchError(() => of(null))),
+      this.svc.getStationOee().pipe(timeout(15000), catchError(() => of(null))),
+      this.svc.getVeckotrend().pipe(timeout(15000), catchError(() => of(null))),
+      this.svc.getSkiftstatus().pipe(timeout(15000), catchError(() => of(null))),
+    ]).pipe(takeUntil(this.destroy$)).subscribe(([oversiktRes, stoppRes, topRes, stationRes, trendRes, skiftRes]) => {
       this.isFetching = false;
       this.loading = false;
-      if (res?.success) {
-        this.oversikt = res.data;
+
+      if (oversiktRes?.success) {
+        this.oversikt = oversiktRes.data;
         this.lastUpdate = new Date().toLocaleTimeString('sv-SE');
       } else if (!this.oversikt) {
         this.errorMessage = 'Kunde inte hamta produktionsdata';
       }
-    });
 
-    this.svc.getStoppNu().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe(res => {
-      if (res?.success) this.stoppNu = res.data;
-    });
+      if (stoppRes?.success) this.stoppNu = stoppRes.data;
+      if (topRes?.success) this.topOperatorer = topRes.data;
 
-    this.svc.getTopOperatorer().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe(res => {
-      if (res?.success) this.topOperatorer = res.data;
-    });
-
-    this.svc.getStationOee().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe(res => {
-      if (res?.success) {
-        this.stationOee = res.data;
+      if (stationRes?.success) {
+        this.stationOee = stationRes.data;
         setTimeout(() => this.renderStationChart(), 100);
       }
-    });
 
-    this.svc.getVeckotrend().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe(res => {
-      if (res?.success) {
-        this.veckotrend = res.data;
+      if (trendRes?.success) {
+        this.veckotrend = trendRes.data;
         setTimeout(() => this.renderTrendChart(), 100);
       }
-    });
 
-    this.svc.getSkiftstatus().pipe(
-      timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
-    ).subscribe(res => {
-      if (res?.success) this.skiftstatus = res.data;
+      if (skiftRes?.success) this.skiftstatus = skiftRes.data;
     });
   }
 

@@ -210,7 +210,8 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
 
     const points = this.trendData.trend;
     const labels = points.map(p => {
-      const d = new Date(p.datum);
+      // Append T00:00:00 sa att datumet tolkas i lokal tid (undviker UTC-midnatt DST-bugg)
+      const d = new Date(p.datum.length === 10 ? p.datum + 'T00:00:00' : p.datum);
       return `${d.getDate()}/${d.getMonth() + 1}`;
     });
 
