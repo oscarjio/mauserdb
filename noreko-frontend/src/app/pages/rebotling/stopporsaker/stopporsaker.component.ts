@@ -444,4 +444,5 @@ export class StopporsakerPage implements OnInit, OnDestroy {
       },
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

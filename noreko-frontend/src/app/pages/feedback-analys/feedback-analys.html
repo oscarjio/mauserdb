@@ -20,7 +20,7 @@
             <span class="text-muted small">Period:</span>
             <div class="btn-group" role="group">
               <button
-                *ngFor="let p of periodOptions"
+                *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn btn-sm"
                 [class.btn-info]="days === p"
                 [class.btn-outline-secondary]="days !== p"
@@ -255,7 +255,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of sentimentData">
+                <tr *ngFor="let op of sentimentData; trackBy: trackByIndex">
                   <td class="fw-bold">{{ op.operator_namn }}</td>
                   <td class="text-center">
                     <span class="snitt-display" [class.snitt-green]="op.snitt_stamning >= 3.0"
@@ -337,7 +337,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let item of listData!.items">
+                  <tr *ngFor="let item of listData!.items; trackBy: trackByIndex">
                     <td class="text-muted small">{{ formatDatum(item.datum) }}</td>
                     <td class="fw-bold">{{ item.operator_namn }}</td>
                     <td class="text-center">
@@ -363,7 +363,7 @@
                     <i class="fas fa-chevron-left"></i>
                   </button>
                 </li>
-                <li class="page-item" *ngFor="let p of getPagesArray()"
+                <li class="page-item" *ngFor="let p of getPagesArray(); trackBy: trackByIndex"
                     [class.active]="p === listData.page">
                   <button class="page-link" (click)="onPageChange(p)">{{ p }}</button>
                 </li>

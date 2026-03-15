@@ -34,7 +34,7 @@
                   (ngModelChange)="onOperatorChange()"
                   [disabled]="loadingOps">
             <option [ngValue]="null" disabled>Välj operatör…</option>
-            <option *ngFor="let op of operators" [ngValue]="op.id">
+            <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">
               {{ op.name }} (#{{ op.number }})
             </option>
           </select>
@@ -48,7 +48,7 @@
       <div class="control-group">
         <label class="control-label">Period</label>
         <div class="period-btns">
-          <button *ngFor="let w of weekOptions"
+          <button *ngFor="let w of weekOptions; trackBy: trackByIndex"
                   class="period-btn"
                   [class.active]="selectedWeeks === w"
                   (click)="setWeeks(w)">
@@ -162,7 +162,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of trendData">
+              <tr *ngFor="let row of trendData; trackBy: trackByIndex">
                 <td class="week-cell">{{ row.vecka_label }}</td>
 
                 <td class="text-end">

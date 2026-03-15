@@ -280,4 +280,5 @@ export class UsersPage implements OnInit, OnDestroy {
       }
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

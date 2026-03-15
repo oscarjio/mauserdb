@@ -225,14 +225,14 @@
           <label class="form-label small mb-1">Filtrera på operatör</label>
           <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
             <option [ngValue]="null">— Alla operatörer —</option>
-            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <div>
           <label class="form-label small mb-1">Filtrera på operatör</label>
           <select class="form-control form-control-sm" [(ngModel)]="selectedOperatorId" (change)="onOperatorFilterChange()" style="width:200px;">
             <option [ngValue]="null">— Alla operatörer —</option>
-            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
         </div>
         <button class="btn btn-sm btn-outline-secondary" (click)="clearFilter()"
@@ -1150,7 +1150,7 @@
                                   </thead>
                                   <tbody>
                                     <tr>
-                                      <td *ngFor="let h of shiftSummaryData.hourly" class="text-center fw-bold text-info">
+                                      <td *ngFor="let h of shiftSummaryData.hourly; trackBy: trackByIndex" class="text-center fw-bold text-info">
                                         {{ h.antal }}
                                       </td>
                                     </tr>
@@ -1478,7 +1478,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let op of compareResult.a.operators">
+                      <tr *ngFor="let op of compareResult.a.operators; trackBy: trackByIndex">
                         <td>
                           <span class="badge bg-secondary">{{ op.user_name || '–' }}</span>
                         </td>
@@ -1526,7 +1526,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let op of compareResult.b.operators">
+                      <tr *ngFor="let op of compareResult.b.operators; trackBy: trackByIndex">
                         <td>
                           <span class="badge bg-secondary">{{ op.user_name || '–' }}</span>
                         </td>

@@ -267,7 +267,7 @@
           <div class="card-body">
             <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
               <div
-                *ngFor="let cell of getVisiblePeriodCells()"
+                *ngFor="let cell of getVisiblePeriodCells(); trackBy: trackByIndex"
                 class="period-cell"
                 [class.has-data]="cell.hasData"
                 [class.selected]="cell.isSelected"
@@ -422,7 +422,7 @@
                 </thead>
                 <tbody>
                   <tr
-                    *ngFor="let row of tableData"
+                    *ngFor="let row of tableData; trackBy: trackByIndex"
                     [class.clickable]="row.clickable"
                     (click)="onTableRowClick(row)">
                     <td>

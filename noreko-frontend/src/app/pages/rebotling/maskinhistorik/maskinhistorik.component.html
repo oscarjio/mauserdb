@@ -9,7 +9,7 @@
     <div class="d-flex align-items-center gap-2">
       <label class="text-light mb-0 small">Period:</label>
       <div class="btn-group btn-group-sm">
-        <button *ngFor="let alt of periodAlternativ"
+        <button *ngFor="let alt of periodAlternativ; trackBy: trackByIndex"
                 class="btn"
                 [class.btn-info]="period === alt.varde"
                 [class.btn-outline-secondary]="period !== alt.varde"
@@ -30,7 +30,7 @@
         <div class="spinner-border text-info spinner-border-sm me-2"></div>Hamtar stationer...
       </div>
       <div *ngIf="!loadingStationer" class="d-flex flex-wrap gap-2">
-        <button *ngFor="let s of stationer"
+        <button *ngFor="let s of stationer; trackBy: trackByIndex"
                 class="btn btn-sm station-btn"
                 [class.station-btn-active]="valdStation === s"
                 [class.station-btn-inactive]="valdStation !== s"
@@ -184,7 +184,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of stoppData; let i = index">
+                <tr *ngFor="let s of stoppData; let i = index; trackBy: trackByIndex">
                   <td class="text-muted small">{{ i + 1 }}</td>
                   <td class="small">{{ s.start_time }}</td>
                   <td class="small">{{ s.stop_time ?? '—' }}</td>
@@ -243,7 +243,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let rad of jamforelseData; let i = index"
+                <tr *ngFor="let rad of jamforelseData; let i = index; trackBy: trackByIndex"
                     [class.row-bast]="rad.rang === 'bast'"
                     [class.row-samst]="rad.rang === 'samst'"
                     [class.row-aktiv]="rad.station === valdStation">

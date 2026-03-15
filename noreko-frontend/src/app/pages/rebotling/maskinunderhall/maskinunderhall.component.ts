@@ -453,4 +453,5 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       service_intervall_dagar: 90,
     };
   }
+  trackByIndex(index: number): number { return index; }
 }

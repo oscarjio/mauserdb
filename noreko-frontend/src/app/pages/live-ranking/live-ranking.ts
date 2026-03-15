@@ -357,4 +357,5 @@ export class LiveRankingPage implements OnInit, OnDestroy {
     if (parts.length !== 3) return iso;
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
+  trackByIndex(index: number): number { return index; }
 }

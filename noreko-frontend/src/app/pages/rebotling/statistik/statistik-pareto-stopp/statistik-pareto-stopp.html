@@ -91,7 +91,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of paretoItems; let i = index"
+                <tr *ngFor="let item of paretoItems; let i = index; trackBy: trackByIndex"
                     [class.pareto-vital-row]="item.kumulativ_pct <= 80"
                     class="pareto-clickable-row"
                     (click)="onTableRowClick(item)"
@@ -186,7 +186,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let op of drilldownOperators">
+                  <tr *ngFor="let op of drilldownOperators; trackBy: trackByIndex">
                     <td>{{ op.operator }}</td>
                     <td class="text-end">{{ op.count }}</td>
                     <td class="text-end">{{ op.total_minutes | number:'1.1-1' }}</td>
@@ -212,7 +212,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let d of drilldownDays">
+                  <tr *ngFor="let d of drilldownDays; trackBy: trackByIndex">
                     <td>{{ d.date }}</td>
                     <td class="text-end">{{ d.count }}</td>
                     <td class="text-end">{{ d.minutes | number:'1.1-1' }}</td>
@@ -241,7 +241,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of drilldownStops">
+              <tr *ngFor="let s of drilldownStops; trackBy: trackByIndex">
                 <td>{{ s.date }}</td>
                 <td>{{ s.time }}</td>
                 <td>{{ s.end_time || '-' }}</td>

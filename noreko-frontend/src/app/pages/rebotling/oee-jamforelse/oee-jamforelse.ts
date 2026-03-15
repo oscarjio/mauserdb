@@ -223,4 +223,5 @@ export class OeeJamforelsePage implements OnInit, OnDestroy {
     const prefix = diff > 0 ? '+' : '';
     return `${prefix}${diff} pp`;
   }
+  trackByIndex(index: number): number { return index; }
 }

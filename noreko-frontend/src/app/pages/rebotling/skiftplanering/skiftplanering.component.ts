@@ -372,4 +372,5 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     }
     return ids;
   }
+  trackByIndex(index: number): number { return index; }
 }

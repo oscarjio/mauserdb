@@ -126,7 +126,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let g of goals">
+              <tr *ngFor="let g of goals; trackBy: trackByIndex">
                 <td>{{ g.mal_typ_label }}</td>
                 <td>{{ g.target_ibc }}</td>
                 <td>{{ g.target_kassation_pct }}%</td>
@@ -261,7 +261,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let d of weekly.days">
+            <tr *ngFor="let d of weekly.days; trackBy: trackByIndex">
               <td>{{ d.dag_namn }}</td>
               <td>{{ d.date }}</td>
               <td>{{ d.ibc_ok }}</td>

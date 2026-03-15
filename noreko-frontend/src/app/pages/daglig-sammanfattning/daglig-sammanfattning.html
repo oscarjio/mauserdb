@@ -236,7 +236,7 @@
               Ingen operatörsdata tillgänglig för detta datum.
             </div>
 
-            <div *ngFor="let op of summary.top_operatorer" class="op-rad mb-3">
+            <div *ngFor="let op of summary.top_operatorer; trackBy: trackByIndex" class="op-rad mb-3">
               <div class="d-flex align-items-center gap-2">
                 <span class="plats-badge" [ngClass]="getPlatsBadge(op.plats)">
                   {{ op.plats }}
@@ -286,7 +286,7 @@
               <div *ngIf="summary.stopptid.top3_orsaker.length === 0" class="text-muted small">
                 Inga stopporsaker registrerade.
               </div>
-              <div *ngFor="let orsak of summary.stopptid.top3_orsaker; let i = index"
+              <div *ngFor="let orsak of summary.stopptid.top3_orsaker; let i = index; trackBy: trackByIndex"
                    class="stopp-orsak mb-2">
                 <div class="d-flex align-items-center justify-content-between">
                   <span class="stopp-orsak-namn">
@@ -369,7 +369,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let s of summary.produktion.skiften">
+                    <tr *ngFor="let s of summary.produktion.skiften; trackBy: trackByIndex">
                       <td>{{ s.skiftraknare }}</td>
                       <td class="text-end text-success">{{ s.ibc_ok }}</td>
                       <td class="text-end" [ngClass]="getKvalitetKlass(s.kvalitet_pct)">{{ s.kvalitet_pct }}%</td>

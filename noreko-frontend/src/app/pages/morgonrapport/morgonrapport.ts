@@ -258,4 +258,5 @@ export class MorgonrapportPage implements OnInit, OnDestroy {
     if (total <= 20) return index % 2 === 0;
     return index % 5 === 0 || index === total - 1;
   }
+  trackByIndex(index: number): number { return index; }
 }

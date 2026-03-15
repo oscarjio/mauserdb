@@ -714,4 +714,5 @@ export class ShiftPlanPage implements OnInit, OnDestroy {
     }
     return name.substring(0, 2).toUpperCase();
   }
+  trackByIndex(index: number): number { return index; }
 }

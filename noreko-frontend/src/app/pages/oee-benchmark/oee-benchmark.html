@@ -20,7 +20,7 @@
             <span class="text-muted small">Period:</span>
             <div class="btn-group" role="group">
               <button
-                *ngFor="let p of periodOptions"
+                *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn btn-sm"
                 [class.btn-teal]="days === p"
                 [class.btn-outline-secondary]="days !== p"
@@ -136,7 +136,7 @@
 
           <div *ngIf="benchLoaded && benchData">
             <!-- Benchmark-rader -->
-            <div *ngFor="let bm of benchData.benchmarks" class="benchmark-row mb-3">
+            <div *ngFor="let bm of benchData.benchmarks; trackBy: trackByIndex" class="benchmark-row mb-3">
               <div class="d-flex align-items-center justify-content-between mb-1">
                 <div class="d-flex align-items-center gap-2">
                   <i [class]="getGapIcon(bm.over_target)"></i>
@@ -179,7 +179,7 @@
                 </span>)
               </h6>
               <ul class="forslag-list">
-                <li *ngFor="let f of benchData.forbattringsforslag">
+                <li *ngFor="let f of benchData.forbattringsforslag; trackBy: trackByIndex">
                   <i class="fas fa-chevron-right text-teal me-2 small"></i>{{ f }}
                 </li>
               </ul>
@@ -191,7 +191,7 @@
 
     <!-- Faktor-kort (Tillgänglighet / Prestanda / Kvalitet) -->
     <div class="row mb-4 g-3" *ngIf="breakLoaded && breakData">
-      <div class="col-12 col-md-4" *ngFor="let f of breakData.faktorer">
+      <div class="col-12 col-md-4" *ngFor="let f of breakData.faktorer; trackBy: trackByIndex">
         <div class="card card-dark p-3 faktor-card">
           <div class="d-flex align-items-center gap-2 mb-2">
             <i [class]="'fas ' + f.icon + ' fa-lg ' + getFaktorColorClass(f.color)"></i>

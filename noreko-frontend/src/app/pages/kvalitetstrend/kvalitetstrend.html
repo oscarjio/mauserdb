@@ -23,7 +23,7 @@
     <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
       <div class="period-selector">
         <button
-          *ngFor="let p of perioder"
+          *ngFor="let p of perioder; trackBy: trackByIndex"
           class="btn btn-sm period-btn"
           [class.active]="selectedPeriod === p.val"
           (click)="setPeriod(p.val)">
@@ -166,7 +166,7 @@
       <small class="text-muted ms-2">— operatörer som kräver extra uppmärksamhet</small>
     </div>
     <div class="larm-lista">
-      <div class="larm-rad" *ngFor="let larm of overviewData.utbildningslarm">
+      <div class="larm-rad" *ngFor="let larm of overviewData.utbildningslarm; trackBy: trackByIndex">
         <div class="larm-namn">
           <i class="fas fa-user-alt me-1 text-muted"></i>
           {{ larm.namn }}
@@ -285,7 +285,7 @@
                 <!-- Sparkline-mini som färgade prickar -->
                 <div class="sparkline-mini">
                   <span
-                    *ngFor="let v of op.sparkdata"
+                    *ngFor="let v of op.sparkdata; trackBy: trackByIndex"
                     class="spark-dot"
                     [class.spark-good]="v !== null && v >= 95"
                     [class.spark-warn]="v !== null && v >= 85 && v < 95"
@@ -407,7 +407,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of detailData.tidslinje">
+            <tr *ngFor="let row of detailData.tidslinje; trackBy: trackByIndex">
               <td class="text-muted small">{{ row.vecka_label }}</td>
               <td class="text-center text-success small">{{ row.ibc_ok || '–' }}</td>
               <td class="text-center text-danger small">{{ row.ibc_ej_ok || '–' }}</td>

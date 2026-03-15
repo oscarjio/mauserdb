@@ -394,4 +394,5 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
     const tot = this.detailData?.total_min ?? 0;
     return tot > 0 ? Math.round((orsak.total_min / tot) * 100) : 0;
   }
+  trackByIndex(index: number): number { return index; }
 }

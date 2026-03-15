@@ -14,7 +14,7 @@
       <label class="filter-label">Period</label>
       <div class="btn-group">
         <button
-          *ngFor="let opt of periodOptions"
+          *ngFor="let opt of periodOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="period === opt.value"
           [class.btn-outline-secondary]="period !== opt.value"
@@ -160,7 +160,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of skiftStarter">
+          <tr *ngFor="let row of skiftStarter; trackBy: trackByIndex">
             <td>{{ row.date }}</td>
             <td>
               <span class="shift-badge" [class.shift-dag]="row.shift === 'dag'" [class.shift-kvall]="row.shift === 'kväll'" [class.shift-natt]="row.shift === 'natt'">

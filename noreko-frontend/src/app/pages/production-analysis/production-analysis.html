@@ -415,7 +415,7 @@
                   <td colspan="11">
                     <div class="shift-detail">
                       <strong>Operatörs-ID:</strong>
-                      <span *ngFor="let opId of shift.operators; let last = last" class="operator-badge">
+                      <span *ngFor="let opId of shift.operators; let last = last; trackBy: trackByIndex" class="operator-badge">
                         {{ opId }}{{ !last ? '' : '' }}
                       </span>
                       <div class="mt-2 d-flex gap-3 flex-wrap">

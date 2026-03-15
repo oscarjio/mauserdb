@@ -6,7 +6,7 @@
       <i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Stopporsak-dashboard
     </h1>
     <div class="d-flex gap-2">
-      <button *ngFor="let p of periodOptions"
+      <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
               class="period-btn"
               [class.active]="period === p.days"
               (click)="setPeriod(p.days)">
@@ -129,7 +129,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let o of orsakerData!.orsaker">
+              <tr *ngFor="let o of orsakerData!.orsaker; trackBy: trackByIndex">
                 <td>{{ o.orsak }}</td>
                 <td class="text-end">{{ o.antal }}</td>
                 <td class="text-end">{{ formatDuration(o.total_min) }}</td>
@@ -169,7 +169,7 @@
         <div *ngIf="loadingDetaljer" class="text-center py-4"><span class="loading-spinner"></span></div>
 
         <div *ngIf="!loadingDetaljer && detaljerData?.detaljer?.length">
-          <div *ngFor="let d of detaljerData!.detaljer">
+          <div *ngFor="let d of detaljerData!.detaljer; trackBy: trackByIndex">
             <div class="detail-row d-flex align-items-center justify-content-between" (click)="toggleDetail(d.id)">
               <div class="d-flex align-items-center gap-3">
                 <span style="font-size:1.2rem">{{ d.ikon }}</span>

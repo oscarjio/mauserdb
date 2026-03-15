@@ -115,4 +115,5 @@ export class StatistikVeckodagComponent implements OnInit, OnDestroy {
       }
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

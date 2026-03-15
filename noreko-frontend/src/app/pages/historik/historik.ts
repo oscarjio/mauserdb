@@ -192,7 +192,7 @@ interface VeckoData {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let m of monthlyDataReversed; let i = index">
+                  <tr *ngFor="let m of monthlyDataReversed; let i = index; trackBy: trackByIndex">
                     <td class="fw-semibold">{{ getPeriodLabel(m.period) }}</td>
                     <td class="text-end">
                       {{ m.total_ibc | number }}
@@ -801,4 +801,5 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
     const foregaende = data[reversedIndex + 1].total_ibc;
     return { diff: aktuell - foregaende };
   }
+  trackByIndex(index: number): number { return index; }
 }

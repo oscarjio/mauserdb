@@ -53,11 +53,11 @@
     <div class="heatmap-grid">
       <div class="axis-corner"></div>
       <div class="hour-axis">
-        <div class="hour-label" *ngFor="let h of hours">{{ formatHour(h) }}</div>
+        <div class="hour-label" *ngFor="let h of hours; trackBy: trackByIndex">{{ formatHour(h) }}</div>
       </div>
 
       <!-- En rad per dag -->
-      <div class="day-row" *ngFor="let row of rows">
+      <div class="day-row" *ngFor="let row of rows; trackBy: trackByIndex">
         <div class="day-label">
           <span class="day-name">{{ row.dayLabel }}</span>
           <span class="day-date">{{ row.dateLabel }}</span>
@@ -66,7 +66,7 @@
           <div
             class="heatmap-cell"
             [class]="getCellClass(cell)"
-            *ngFor="let cell of row.cells"
+            *ngFor="let cell of row.cells; trackBy: trackByIndex"
             (mouseenter)="showTooltip($event, cell)"
             (mouseleave)="hideTooltip()"
           ></div>

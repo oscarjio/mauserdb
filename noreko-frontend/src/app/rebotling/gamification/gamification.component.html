@@ -25,7 +25,7 @@
 
     <!-- Period selector -->
     <div class="d-flex gap-2 mb-4 flex-wrap">
-      <button *ngFor="let p of periodOptions"
+      <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
               class="period-btn"
               [class.active]="period === p.value"
               (click)="setPeriod(p.value)">
@@ -99,7 +99,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of leaderboardData!.leaderboard"
+            <tr *ngFor="let op of leaderboardData!.leaderboard; trackBy: trackByIndex"
                 [class.row-gold]="op.rank === 1"
                 [class.row-silver]="op.rank === 2"
                 [class.row-bronze]="op.rank === 3">
@@ -187,7 +187,7 @@
       <div class="chart-card mb-4">
         <h6 class="mb-3"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Badges ({{ profilData.antal_badges }})</h6>
         <div class="row g-3">
-          <div class="col-6 col-md-4 col-lg-2" *ngFor="let badge of profilData.badges">
+          <div class="col-6 col-md-4 col-lg-2" *ngFor="let badge of profilData.badges; trackBy: trackByIndex">
             <div class="badge-card" [class.badge-earned]="badge.uppnadd" [class.badge-locked]="!badge.uppnadd">
               <div class="badge-icon" [style.color]="badge.uppnadd ? badge.farg : '#4a5568'">
                 <i [class]="badge.ikon"></i>
@@ -207,7 +207,7 @@
       <div class="chart-card mb-4">
         <h6 class="mb-3"><i class="fas fa-flag-checkered me-2" style="color:#4fd1c5"></i>Milstolpar</h6>
         <div class="row g-3">
-          <div class="col-12 col-md-6" *ngFor="let m of profilData.milstolpar">
+          <div class="col-12 col-md-6" *ngFor="let m of profilData.milstolpar; trackBy: trackByIndex">
             <div class="milstolpe-card" [class.milstolpe-done]="m.uppnadd">
               <div class="d-flex align-items-center gap-3">
                 <div class="milstolpe-icon" [style.color]="m.uppnadd ? m.farg : '#4a5568'">
@@ -295,7 +295,7 @@
         <div class="col-12 col-lg-6">
           <div class="chart-card">
             <h6 class="mb-3"><i class="fas fa-crown me-2" style="color:#FFD700"></i>Top 3 denna vecka</h6>
-            <div *ngFor="let op of overviewData.top3" class="top3-row">
+            <div *ngFor="let op of overviewData.top3; trackBy: trackByIndex" class="top3-row">
               <div class="d-flex align-items-center gap-3">
                 <span class="rank-badge" [style.background]="getMedalBg(op.rank)" [style.color]="getMedalColor(op.rank)">
                   {{ op.rank }}

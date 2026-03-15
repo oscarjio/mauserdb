@@ -16,4 +16,5 @@ export class TvattlinjeSkiftrapportPage {
     accentHex: '#3182ce',
     emptyText: 'Tvättlinjen är ej i drift ännu. Rapporter visas när produktion startar.'
   };
+  trackByIndex(index: number): number { return index; }
 }

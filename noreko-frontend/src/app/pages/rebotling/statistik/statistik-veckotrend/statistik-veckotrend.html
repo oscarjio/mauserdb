@@ -22,7 +22,7 @@
 
   <!-- KPI-kort rad -->
   <div class="kpi-row" *ngIf="kpis.length > 0">
-    <div class="kpi-card" *ngFor="let kpi of kpis; let i = index">
+    <div class="kpi-card" *ngFor="let kpi of kpis; let i = index; trackBy: trackByIndex">
 
       <!-- Titel -->
       <div class="kpi-label">{{ kpi.label }}</div>

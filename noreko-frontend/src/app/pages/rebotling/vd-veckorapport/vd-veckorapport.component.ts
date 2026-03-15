@@ -383,6 +383,8 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     if (forra === 0) return null;
     return round2(((denna - forra) / forra) * 100);
   }
+
+  trackByIndex(index: number): number { return index; }
 }
 
 function round2(v: number): number {

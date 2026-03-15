@@ -32,7 +32,7 @@
 
     <!-- Favoritlista med kort -->
     <div class="row g-3" *ngIf="!loading && favoriter.length > 0">
-      <div class="col-sm-6 col-md-4 col-lg-3 col-xl-2" *ngFor="let fav of favoriter; let i = index">
+      <div class="col-sm-6 col-md-4 col-lg-3 col-xl-2" *ngFor="let fav of favoriter; let i = index; trackBy: trackByIndex">
         <div class="favorit-card">
           <div class="favorit-card-top" [style.borderTopColor]="fav.color">
             <a [routerLink]="fav.route" class="favorit-link">
@@ -66,7 +66,7 @@
           <input type="text" class="form-control form-control-sm" placeholder="Sok bland sidor..." [(ngModel)]="searchQuery">
         </div>
         <div class="add-dialog-list">
-          <div class="add-page-item" *ngFor="let page of filteredPages" (click)="addFavorit(page)">
+          <div class="add-page-item" *ngFor="let page of filteredPages; trackBy: trackByIndex" (click)="addFavorit(page)">
             <i [class]="page.icon + ' me-2'" [style.color]="page.color"></i>
             <span>{{ page.label }}</span>
             <small class="text-muted ms-auto">{{ page.route }}</small>

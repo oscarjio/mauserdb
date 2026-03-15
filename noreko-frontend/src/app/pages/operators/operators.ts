@@ -635,4 +635,5 @@ export class OperatorsPage implements OnInit, OnDestroy {
     if (idx === 2) return 'bronze';
     return '';
   }
+  trackByIndex(index: number): number { return index; }
 }

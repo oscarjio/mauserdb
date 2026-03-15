@@ -271,4 +271,5 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
   printReport(): void {
     window.print();
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -2026,4 +2026,5 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     a.click();
     URL.revokeObjectURL(url);
   }
+  trackByIndex(index: number): number { return index; }
 }

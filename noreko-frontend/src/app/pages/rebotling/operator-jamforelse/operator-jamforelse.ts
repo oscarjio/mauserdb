@@ -457,4 +457,5 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
     }
     return best;
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -1347,4 +1347,5 @@ export class TvattlinjeStatistikPage implements OnInit, AfterViewInit, OnDestroy
     this.loadOeeTrend();
   }
 
+  trackByIndex(index: number): number { return index; }
 }

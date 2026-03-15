@@ -309,7 +309,7 @@ interface ProfileResponse {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of profil.recent_shifts" style="border-bottom:1px solid #3d4a5c;">
+                <tr *ngFor="let s of profil.recent_shifts; trackBy: trackByIndex" style="border-bottom:1px solid #3d4a5c;">
                   <td style="padding:12px 16px;color:#a0aec0;font-size:13px;">{{ s.datum }}</td>
                   <td style="padding:12px 16px;text-align:right;color:#718096;font-size:13px;">{{ s.skiftnr }}</td>
                   <td style="padding:12px 16px;text-align:right;font-weight:700;color:#63b3ed;">{{ s.ibc }}</td>
@@ -421,7 +421,7 @@ interface ProfileResponse {
             <i class="fas fa-certificate me-2" style="color:#63b3ed;"></i>Certifieringar
           </h5>
           <div class="row g-2">
-            <div *ngFor="let cert of profil.certifications" class="col-12 col-md-6">
+            <div *ngFor="let cert of profil.certifications; trackBy: trackByIndex" class="col-12 col-md-6">
               <div style="background:#1a202c;border-radius:8px;padding:12px 16px;border:1px solid #4a5568;display:flex;align-items:center;gap:12px;">
                 <i class="fas fa-check-circle" style="color:#68d391;font-size:1.2rem;"></i>
                 <div>
@@ -623,4 +623,5 @@ export class OperatorDetailPage implements OnInit, OnDestroy {
     };
     return map[line] ?? line;
   }
+  trackByIndex(index: number): number { return index; }
 }

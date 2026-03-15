@@ -16,7 +16,7 @@
       <label class="filter-label">Period</label>
       <div class="btn-group">
         <button
-          *ngFor="let d of dayOptions"
+          *ngFor="let d of dayOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="days === d"
           [class.btn-outline-secondary]="days !== d"
@@ -95,7 +95,7 @@
         <span class="legend-label">Lag</span>
         <div class="legend-steps">
           <div
-            *ngFor="let step of getLegendSteps()"
+            *ngFor="let step of getLegendSteps(); trackBy: trackByIndex"
             class="legend-step"
             [style.background]="step.color"
             [title]="step.label">
@@ -132,7 +132,7 @@
           <tr>
             <th class="hour-header-cell">Timme</th>
             <th
-              *ngFor="let date of dates; let i = index"
+              *ngFor="let date of dates; let i = index; trackBy: trackByIndex"
               class="date-header-cell"
               [title]="date">
               <span *ngIf="shouldShowDateLabel(i)">{{ formatDate(date) }}</span>
@@ -140,10 +140,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let hour of displayHours">
+          <tr *ngFor="let hour of displayHours; trackBy: trackByIndex">
             <td class="hour-label-cell">{{ formatHour(hour) }}</td>
             <td
-              *ngFor="let date of dates"
+              *ngFor="let date of dates; trackBy: trackByIndex"
               class="heat-cell"
               [style.background-color]="getCellColor(getCellCount(date, hour))"
               [style.color]="getCellTextColor(getCellCount(date, hour))"

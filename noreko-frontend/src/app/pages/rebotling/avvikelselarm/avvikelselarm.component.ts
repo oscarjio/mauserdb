@@ -340,4 +340,5 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     if (this.sortColumn !== col) return 'fas fa-sort text-muted';
     return this.sortAsc ? 'fas fa-sort-up text-info' : 'fas fa-sort-down text-info';
   }
+  trackByIndex(index: number): number { return index; }
 }

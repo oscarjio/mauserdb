@@ -452,7 +452,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of compareData!.operator_ranking; let i = index"
+            <tr *ngFor="let op of compareData!.operator_ranking; let i = index; trackBy: trackByIndex"
                 [class.gold-row]="i === 0"
                 [class.silver-row]="i === 1"
                 [class.bronze-row]="i === 2">
@@ -486,7 +486,7 @@
       <div class="card" style="background:#2d3748; border:1px solid #4a5568;">
         <div class="card-body p-0">
           <div
-            *ngFor="let op of report.top_operatorer; let i = index"
+            *ngFor="let op of report.top_operatorer; let i = index; trackBy: trackByIndex"
             class="d-flex align-items-center p-3"
             [class.border-bottom]="i < report.top_operatorer.length - 1"
             style="border-color:#4a5568 !important;"
@@ -519,7 +519,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of report.operator_ranking; let i = index"
+            <tr *ngFor="let op of report.operator_ranking; let i = index; trackBy: trackByIndex"
                 [class.gold-row]="i === 0"
                 [class.silver-row]="i === 1"
                 [class.bronze-row]="i === 2">
@@ -555,7 +555,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let w of report.week_summary"
+            <tr *ngFor="let w of report.week_summary; trackBy: trackByIndex"
                 [class.gold-row]="report.basta_vecka?.week === w.week"
                 [class.worst-row]="report.samsta_vecka?.week === w.week">
               <td class="fw-bold" style="white-space:nowrap">
@@ -592,7 +592,7 @@
         <div *ngIf="stopSummaryLoading" class="text-center text-muted py-3">
           <span class="spinner-border spinner-border-sm me-2"></span>Laddar stopporsaker...
         </div>
-        <div *ngFor="let item of stopSummary" class="stopp-row">
+        <div *ngFor="let item of stopSummary; trackBy: trackByIndex" class="stopp-row">
           <div class="stopp-label" [title]="item.orsak">{{ item.orsak }}</div>
           <div class="stopp-bar-wrap">
             <div class="stopp-bar-fill"

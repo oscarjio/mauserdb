@@ -75,7 +75,7 @@
       <i class="fas fa-clock me-2"></i>Kräver uppmärksamhet ({{ expiringSoonList.length }})
     </div>
     <div class="expiry-list">
-      <div class="expiry-item" *ngFor="let item of expiringSoonList"
+      <div class="expiry-item" *ngFor="let item of expiringSoonList; trackBy: trackByIndex"
            [class.expiry-item-expired]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry < 0"
            [class.expiry-item-warning]="item.cert.days_until_expiry !== null && item.cert.days_until_expiry >= 0">
         <span class="expiry-icon">
@@ -129,7 +129,7 @@
         <span class="filter-group-label">Status:</span>
         <div class="filter-row">
           <button
-            *ngFor="let sf of statusFilters"
+            *ngFor="let sf of statusFilters; trackBy: trackByIndex"
             class="filter-btn"
             [class.filter-btn-active]="statusFilter === sf.key"
             [class.filter-btn-expired]="sf.key === 'expired' && statusFilter === sf.key"
@@ -152,7 +152,7 @@
           <span class="filter-group-label">Linje:</span>
           <div class="filter-row">
             <button
-              *ngFor="let f of lineFilters"
+              *ngFor="let f of lineFilters; trackBy: trackByIndex"
               class="filter-btn"
               [class.filter-btn-active]="activeLineFilter === f.key"
               (click)="setLineFilter(f.key)">
@@ -183,7 +183,7 @@
 
     <!-- Operatörskort-grid -->
     <div class="op-grid" *ngIf="!error">
-      <div class="op-card" *ngFor="let op of filteredOperators">
+      <div class="op-card" *ngFor="let op of filteredOperators; trackBy: trackByIndex">
         <div class="op-card-header">
           <div class="op-avatar" [style.background]="getAvatarColor(op.name)">
             {{ getInitials(op.name) }}
@@ -197,7 +197,7 @@
         <div class="cert-list">
           <div
             class="cert-badge-row"
-            *ngFor="let cert of op.certifications"
+            *ngFor="let cert of op.certifications; trackBy: trackByIndex"
             [ngClass]="certRowClass(cert)">
             <span class="cert-badge" [ngClass]="getBadgeClass(cert)">
               <i class="fas fa-check-circle me-1" *ngIf="getBadgeClass(cert) === 'badge-valid'"></i>
@@ -267,13 +267,13 @@
         <thead>
           <tr>
             <th class="matrix-th-name" scope="col">Operatör</th>
-            <th class="matrix-th-line" *ngFor="let line of matrixData.lines" scope="col">
+            <th class="matrix-th-line" *ngFor="let line of matrixData.lines; trackBy: trackByIndex" scope="col">
               {{ line.label }}
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let op of matrixData.operators">
+          <tr *ngFor="let op of matrixData.operators; trackBy: trackByIndex">
             <td class="matrix-td-name">
               <div class="matrix-op-row">
                 <div class="op-avatar-sm" [style.background]="getAvatarColor(op.name)">
@@ -283,7 +283,7 @@
               </div>
             </td>
             <td class="matrix-td-cell"
-                *ngFor="let line of matrixData.lines"
+                *ngFor="let line of matrixData.lines; trackBy: trackByIndex"
                 [title]="getMatrixCellTitle(getMatrixCell(op.number, line.key), op.name, line.label)">
               <div class="matrix-cell" [ngClass]="getMatrixCellClass(getMatrixCell(op.number, line.key))">
                 <i class="fas" [ngClass]="getMatrixCellIcon(getMatrixCell(op.number, line.key))"></i>
@@ -317,7 +317,7 @@
           <label class="form-label">Operatör</label>
           <select class="form-control" [(ngModel)]="addForm.op_number" required>
             <option [ngValue]="null" disabled>Välj operatör...</option>
-            <option *ngFor="let op of operatorOptions" [ngValue]="op.number">
+            <option *ngFor="let op of operatorOptions; trackBy: trackByIndex" [ngValue]="op.number">
               {{ op.name }} (#{{ op.number }})
             </option>
           </select>

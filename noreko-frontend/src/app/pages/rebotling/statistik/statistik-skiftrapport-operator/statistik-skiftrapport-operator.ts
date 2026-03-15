@@ -326,4 +326,5 @@ export class StatistikSkiftrapportOperatorComponent implements OnInit, OnDestroy
   get todayStr(): string {
     return localDateStr(new Date());
   }
+  trackByIndex(index: number): number { return index; }
 }

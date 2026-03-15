@@ -228,4 +228,5 @@ export class StatistikUptidHeatmapComponent implements OnInit, OnDestroy {
     if (status === 'stopped') return 'Stopp';
     return 'Ingen data';
   }
+  trackByIndex(index: number): number { return index; }
 }

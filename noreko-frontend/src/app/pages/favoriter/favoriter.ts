@@ -125,4 +125,5 @@ export class FavoriterPage implements OnInit, OnDestroy {
   closeAddDialog(): void {
     this.showAddDialog = false;
   }
+  trackByIndex(index: number): number { return index; }
 }

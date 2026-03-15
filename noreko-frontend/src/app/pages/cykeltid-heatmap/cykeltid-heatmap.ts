@@ -384,4 +384,5 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
       },
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

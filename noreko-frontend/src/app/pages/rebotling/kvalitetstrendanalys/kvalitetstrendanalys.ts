@@ -334,4 +334,5 @@ export class KvalitetstrendanalysPage implements OnInit, OnDestroy {
   abs(val: number): number {
     return Math.abs(val);
   }
+  trackByIndex(index: number): number { return index; }
 }

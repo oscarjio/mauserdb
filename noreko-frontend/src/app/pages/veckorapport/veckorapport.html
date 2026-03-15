@@ -90,7 +90,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let entry of report.production.daily | keyvalue">
+          <tr *ngFor="let entry of report.production.daily | keyvalue; trackBy: trackByIndex">
             <td>{{ formatDateFull(entry.key) }}</td>
             <td class="text-end">{{ entry.value }}</td>
           </tr>
@@ -167,7 +167,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let reason of report.stops.top_reasons; let i = index">
+            <tr *ngFor="let reason of report.stops.top_reasons; let i = index; trackBy: trackByIndex">
               <td>{{ i + 1 }}. {{ reason.reason }}</td>
               <td class="text-end">{{ reason.count }}</td>
               <td class="text-end">{{ reason.hours }}</td>

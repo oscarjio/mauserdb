@@ -226,4 +226,5 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     if (pct >= 90) return 'text-warning';
     return 'text-danger';
   }
+  trackByIndex(index: number): number { return index; }
 }

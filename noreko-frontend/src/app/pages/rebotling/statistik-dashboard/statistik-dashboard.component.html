@@ -36,10 +36,10 @@
         <div class="status-label">{{ status.status_text }}</div>
       </div>
       <div class="status-details">
-        <div *ngFor="let p of status.problem" class="status-msg status-msg-röd">
+        <div *ngFor="let p of status.problem; trackBy: trackByIndex" class="status-msg status-msg-röd">
           <i class="fas fa-times-circle me-1"></i>{{ p }}
         </div>
-        <div *ngFor="let v of status.varning" class="status-msg status-msg-gul">
+        <div *ngFor="let v of status.varning; trackBy: trackByIndex" class="status-msg status-msg-gul">
           <i class="fas fa-exclamation-triangle me-1"></i>{{ v }}
         </div>
         <div *ngIf="status.problem.length === 0 && status.varning.length === 0" class="status-msg status-msg-grön">
@@ -180,7 +180,7 @@
       <div class="d-flex align-items-center gap-2">
         <label class="text-muted small mb-0">Period:</label>
         <select class="form-select form-select-sm dash-select" [(ngModel)]="trendPeriod" (change)="onPeriodChange()">
-          <option *ngFor="let p of periodOptions" [value]="p.val">{{ p.label }}</option>
+          <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p.val">{{ p.label }}</option>
         </select>
       </div>
     </div>
@@ -307,7 +307,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of tableData.rows" [ngClass]="getRowClass(row)">
+            <tr *ngFor="let row of tableData.rows; trackBy: trackByIndex" [ngClass]="getRowClass(row)">
               <td>{{ formatDatum(row.datum) }}</td>
               <td class="text-end text-success">{{ row.ibc_ok }}</td>
               <td class="text-end text-danger">{{ row.ibc_ej_ok }}</td>

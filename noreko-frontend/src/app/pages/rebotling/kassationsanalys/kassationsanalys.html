@@ -9,7 +9,7 @@
       <span class="kas-title">Kassationsanalys</span>
     </div>
     <div class="btn-group btn-group-sm" role="group" aria-label="Periodselektor">
-      <button *ngFor="let d of dayOptions" type="button" class="btn btn-sm"
+      <button *ngFor="let d of dayOptions; trackBy: trackByIndex" type="button" class="btn btn-sm"
         [class.btn-danger]="days === d.value"
         [class.btn-outline-danger]="days !== d.value"
         (click)="onDaysChange(d.value)">{{ d.label }}</button>

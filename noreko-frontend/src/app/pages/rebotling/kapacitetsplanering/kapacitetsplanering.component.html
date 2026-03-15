@@ -9,7 +9,7 @@
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small">Period:</label>
         <div class="btn-group btn-group-sm">
-          <button *ngFor="let alt of periodAlternativ"
+          <button *ngFor="let alt of periodAlternativ; trackBy: trackByIndex"
                   class="btn"
                   [class.btn-info]="periodFilter === alt.varde"
                   [class.btn-outline-secondary]="periodFilter !== alt.varde"
@@ -21,7 +21,7 @@
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small">Diagram:</label>
         <div class="btn-group btn-group-sm">
-          <button *ngFor="let alt of diagramPeriodAlternativ"
+          <button *ngFor="let alt of diagramPeriodAlternativ; trackBy: trackByIndex"
                   class="btn"
                   [class.btn-info]="diagramPeriod === alt.varde"
                   [class.btn-outline-secondary]="diagramPeriod !== alt.varde"
@@ -163,7 +163,7 @@
           <div *ngIf="!loadingStation && !errorStation && stationData.length > 0">
             <!-- Utnyttjandegrad badges ovanfor -->
             <div class="d-flex flex-wrap gap-2 mb-3">
-              <span *ngFor="let s of stationData"
+              <span *ngFor="let s of stationData; trackBy: trackByIndex"
                     class="kp-utnyttjande-badge" [ngClass]="utnyttjandeKlass(s.utnyttjande_pct)">
                 {{ s.station }}: {{ s.utnyttjande_pct }}%
               </span>
@@ -292,7 +292,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let st of bemanningData.stationer">
+                <tr *ngFor="let st of bemanningData.stationer; trackBy: trackByIndex">
                   <td>{{ st.station }}</td>
                   <td class="text-end fw-semibold">{{ st.operatorer }}</td>
                   <td class="text-center">
@@ -338,7 +338,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let r of tabellData">
+            <tr *ngFor="let r of tabellData; trackBy: trackByIndex">
               <td class="fw-semibold">{{ r.station }}</td>
               <td class="text-end text-muted">{{ r.teor_kap_per_h }}</td>
               <td class="text-end fw-semibold" [style.color]="utnyttjandeFarg(r.utnyttjande_pct)">{{ r.faktisk_kap_per_h }}</td>
@@ -508,7 +508,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let v of veckoData">
+            <tr *ngFor="let v of veckoData; trackBy: trackByIndex">
               <td class="fw-semibold">
                 <span class="kp-vecka-badge">V{{ v.vecka }}</span>
                 <span class="text-muted ms-1 small">{{ v.ar }}</span>

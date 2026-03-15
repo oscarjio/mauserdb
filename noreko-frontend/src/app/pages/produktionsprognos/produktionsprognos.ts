@@ -173,4 +173,5 @@ export class ProduktionsPrognosPage implements OnInit, OnDestroy {
     if (ratio <= 0.95) return '#fc8181';
     return '#f6ad55';
   }
+  trackByIndex(index: number): number { return index; }
 }

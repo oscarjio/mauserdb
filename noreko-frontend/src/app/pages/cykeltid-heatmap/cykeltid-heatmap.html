@@ -20,7 +20,7 @@
             <span class="text-muted small">Period:</span>
             <div class="btn-group" role="group">
               <button
-                *ngFor="let p of periodOptions"
+                *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn btn-sm"
                 [class.btn-info]="days === p"
                 [class.btn-outline-secondary]="days !== p"
@@ -113,12 +113,12 @@
                 <thead>
                   <tr>
                     <th class="op-col">Operatör</th>
-                    <th *ngFor="let h of hours" class="hour-col">{{ formatHour(h) }}</th>
+                    <th *ngFor="let h of hours; trackBy: trackByIndex" class="hour-col">{{ formatHour(h) }}</th>
                     <th class="avg-col">Snitt</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <ng-container *ngFor="let op of operators; let i = index">
+                  <ng-container *ngFor="let op of operators; let i = index; trackBy: trackByIndex">
                     <!-- Operatörsrad -->
                     <tr class="heatmap-row"
                         [class.expanded]="expandedOperatorId === op.id"
@@ -130,7 +130,7 @@
                            [class.fa-chevron-down]="expandedOperatorId !== op.id"
                            [class.fa-chevron-up]="expandedOperatorId === op.id"></i>
                       </td>
-                      <td *ngFor="let cell of matrix[i]"
+                      <td *ngFor="let cell of matrix[i]; trackBy: trackByIndex"
                           class="heatmap-cell"
                           [style.background]="getCellColor(cell)"
                           [title]="cell.avg_sek !== null ? (formatSek(cell.avg_sek) + ' snitt, ' + cell.antal + ' IBC') : 'Ingen data'">
@@ -165,7 +165,7 @@
                             <div class="hour-avg-row mb-3" *ngIf="detailHourAvg.length > 0">
                               <span class="text-muted small me-2">Snitt per timme:</span>
                               <div class="hour-avg-bars">
-                                <div *ngFor="let ha of detailHourAvg"
+                                <div *ngFor="let ha of detailHourAvg; trackBy: trackByIndex"
                                      class="hour-avg-item"
                                      [title]="formatHour(ha.hour) + ': ' + formatSek(ha.avg_sek) + ' snitt (' + ha.antal_dagar + ' dagar)'">
                                   <div class="hour-avg-bar"
@@ -183,13 +183,13 @@
                                 <thead>
                                   <tr>
                                     <th class="dag-col">Dag</th>
-                                    <th *ngFor="let h of detailHours" class="detail-hour-col">{{ formatHour(h) }}</th>
+                                    <th *ngFor="let h of detailHours; trackBy: trackByIndex" class="detail-hour-col">{{ formatHour(h) }}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  <tr *ngFor="let dagRow of detailDagMatrix">
+                                  <tr *ngFor="let dagRow of detailDagMatrix; trackBy: trackByIndex">
                                     <td class="dag-cell">{{ formatDag(dagRow.dag) }}</td>
-                                    <td *ngFor="let cell of dagRow.celler"
+                                    <td *ngFor="let cell of dagRow.celler; trackBy: trackByIndex"
                                         class="detail-heatmap-cell"
                                         [style.background]="getDetailCellColor(cell.avg_sek)"
                                         [title]="cell.avg_sek !== null ? (formatSek(cell.avg_sek) + ', ' + cell.antal + ' IBC') : 'Ingen data'">

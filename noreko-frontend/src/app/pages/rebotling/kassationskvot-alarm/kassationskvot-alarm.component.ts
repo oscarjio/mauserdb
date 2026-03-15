@@ -357,4 +357,5 @@ export class KassationskvotAlarmPage implements OnInit, OnDestroy {
     const max = this.maxOrsaker();
     return max > 0 ? Math.round((antal / max) * 100) : 0;
   }
+  trackByIndex(index: number): number { return index; }
 }

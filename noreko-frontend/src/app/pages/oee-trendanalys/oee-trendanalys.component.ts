@@ -383,4 +383,5 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       },
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

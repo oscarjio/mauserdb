@@ -67,19 +67,19 @@
         <thead>
           <tr>
             <th class="op-header">Operator</th>
-            <th class="day-header" *ngFor="let d of dayNumbers">{{ d }}</th>
+            <th class="day-header" *ngFor="let d of dayNumbers; trackBy: trackByIndex">{{ d }}</th>
             <th class="total-header">Totalt</th>
             <th class="total-header">Dagar</th>
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let op of operators">
+          <ng-container *ngFor="let op of operators; trackBy: trackByIndex">
             <tr class="op-row" [class.expanded]="isExpanded(op.operator_id)" (click)="toggleExpand(op.operator_id)">
               <td class="op-name">
                 <i class="fas fa-chevron-right expand-icon me-1" [class.rotated]="isExpanded(op.operator_id)"></i>
                 {{ op.operator_name }}
               </td>
-              <td *ngFor="let d of dayNumbers"
+              <td *ngFor="let d of dayNumbers; trackBy: trackByIndex"
                   class="day-cell"
                   [ngClass]="getCellClass(op.operator_id, d)"
                   (mouseenter)="showTooltip($event, op.operator_id, d, op.operator_name)"
@@ -97,7 +97,7 @@
                 <div class="detail-content">
                   <h6 class="mb-2">Detaljer for {{ op.operator_name }}</h6>
                   <div class="detail-grid" *ngIf="getExpandedDays(op.operator_id).length > 0">
-                    <div class="detail-item" *ngFor="let entry of getExpandedDays(op.operator_id)">
+                    <div class="detail-item" *ngFor="let entry of getExpandedDays(op.operator_id); trackBy: trackByIndex">
                       <div class="detail-date">{{ entry.dag }}</div>
                       <div class="detail-info">
                         <span class="detail-badge badge-ibc">{{ entry.ibc }} IBC</span>

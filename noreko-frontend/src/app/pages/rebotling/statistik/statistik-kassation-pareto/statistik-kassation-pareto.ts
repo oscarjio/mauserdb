@@ -66,4 +66,5 @@ export class StatistikKassationParetoComponent implements OnInit, OnDestroy {
         yRight: { position: 'right', min: 0, max: 100, ticks: { color: '#ed8936', callback: (v: any) => v+'%' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Kumulativ %', color: '#ed8936' } } } },
     plugins: [{ id: 'kassation80Line', afterDraw(chart: any) { const yR = chart.scales['yRight']; const xAx = chart.scales['x']; if (!yR || !xAx) return; const y80 = yR.getPixelForValue(80); const c2 = chart.ctx; c2.save(); c2.beginPath(); c2.moveTo(xAx.left, y80); c2.lineTo(xAx.right, y80); c2.strokeStyle = '#e53e3e'; c2.lineWidth = 1.5; c2.setLineDash([6,4]); c2.stroke(); c2.setLineDash([]); c2.fillStyle = '#e53e3e'; c2.font = '11px sans-serif'; c2.fillText('80%', xAx.right-32, y80-5); c2.restore(); } }] });
   }
+  trackByIndex(index: number): number { return index; }
 }

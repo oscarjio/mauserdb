@@ -420,4 +420,5 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   getOrsakColor(index: number): string {
     return ORSAK_COLORS[index % ORSAK_COLORS.length];
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -22,7 +22,7 @@
     <!-- Periodvaljare -->
     <div class="period-selector mt-3">
       <button
-        *ngFor="let p of perioder"
+        *ngFor="let p of perioder; trackBy: trackByIndex"
         class="btn btn-sm period-btn"
         [class.active]="selectedPeriod === p"
         (click)="setPeriod(p)">
@@ -129,7 +129,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of jamforelse?.skift">
+          <tr *ngFor="let s of jamforelse?.skift; trackBy: trackByIndex">
             <td>
               <i [class]="getSkiftIcon(s.skift)" class="me-2" [style.color]="getSkiftColor(s.skift)"></i>
               <strong [style.color]="getSkiftColor(s.skift)">{{ s.label }}</strong>
@@ -212,7 +212,7 @@
       Best Practices — styrkor per skift
     </h3>
     <div class="row g-3">
-      <div class="col-md-4" *ngFor="let bp of bestPractices?.practices">
+      <div class="col-md-4" *ngFor="let bp of bestPractices?.practices; trackBy: trackByIndex">
         <div class="bp-card" [style.border-left-color]="getSkiftColor(bp.skift)">
           <div class="bp-header">
             <i [class]="getSkiftIcon(bp.skift)" class="me-2" [style.color]="getSkiftColor(bp.skift)"></i>
@@ -220,7 +220,7 @@
             <span class="badge bg-dark ms-auto" [ngClass]="getOeeKlass(bp.oee_pct)">OEE {{ bp.oee_pct }}%</span>
           </div>
           <ul class="bp-insights">
-            <li *ngFor="let insight of bp.insights">
+            <li *ngFor="let insight of bp.insights; trackBy: trackByIndex">
               <i class="fas fa-check-circle me-1 text-success"></i>{{ insight }}
             </li>
           </ul>
@@ -271,7 +271,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let d of getSortedDetaljer()">
+          <tr *ngFor="let d of getSortedDetaljer(); trackBy: trackByIndex">
             <td>{{ d.datum }}</td>
             <td>
               <i [class]="getSkiftIcon(d.skift)" class="me-1" [style.color]="getSkiftColor(d.skift)"></i>

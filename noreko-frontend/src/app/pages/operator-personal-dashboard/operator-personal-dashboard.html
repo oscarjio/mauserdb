@@ -20,7 +20,7 @@
         [(ngModel)]="selectedOp"
         (ngModelChange)="onOperatorChange()">
         <option [ngValue]="0" disabled>-- Välj --</option>
-        <option *ngFor="let op of operatorer" [ngValue]="op.op_id">{{ op.namn }}</option>
+        <option *ngFor="let op of operatorer; trackBy: trackByIndex" [ngValue]="op.op_id">{{ op.namn }}</option>
       </select>
       <div *ngIf="loadingOps" class="opdash-select-spinner">
         <div class="spinner-border spinner-border-sm text-info" role="status"></div>
@@ -197,7 +197,7 @@
           </div>
 
           <div class="opdash-stopp-list">
-            <div *ngFor="let s of stopp.stopp" class="opdash-stopp-item">
+            <div *ngFor="let s of stopp.stopp; trackBy: trackByIndex" class="opdash-stopp-item">
               <div class="opdash-stopp-orsak">{{ s.orsak }}</div>
               <div class="opdash-stopp-tid">
                 <span class="opdash-stopp-varaktighet">{{ formatTime(s.varaktighet_sek) }}</span>

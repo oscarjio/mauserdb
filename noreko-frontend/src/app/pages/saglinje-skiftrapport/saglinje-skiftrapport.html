@@ -146,7 +146,7 @@
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let report of filteredReports">
+            <ng-container *ngFor="let report of filteredReports; trackBy: trackByIndex">
               <tr [class.inlagd-row]="report.inlagd == 1">
                 <td *ngIf="isAdmin"><input type="checkbox" [checked]="isSelected(report.id)" (change)="toggleSelect(report.id)" /></td>
                 <td>{{ report.id }}</td>

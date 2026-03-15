@@ -53,7 +53,7 @@
   <main *ngIf="!loading && !error && ranking.length > 0" class="tv-main">
     <div class="ranking-list">
       <div
-        *ngFor="let entry of ranking; let i = index"
+        *ngFor="let entry of ranking; let i = index; trackBy: trackByIndex"
         class="ranking-row"
         [class.row-top3]="i < 3"
       >

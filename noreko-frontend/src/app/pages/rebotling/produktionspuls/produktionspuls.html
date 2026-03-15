@@ -19,7 +19,7 @@
          (mouseleave)="onTickerMouseLeave()">
       <div class="ticker-track" [class.ticker-paused]="paused">
         <!-- Forsta kopian -->
-        <ng-container *ngFor="let item of items; let i = index">
+        <ng-container *ngFor="let item of items; let i = index; trackBy: trackByIndex">
           <div [ngClass]="getItemClass(item)" [title]="item.produkt">
             <div class="puls-icon-row">
               <i class="fas" [ngClass]="{
@@ -45,7 +45,7 @@
           </div>
         </ng-container>
         <!-- Duplicerat for somlos loop -->
-        <ng-container *ngFor="let item of items; let i = index">
+        <ng-container *ngFor="let item of items; let i = index; trackBy: trackByIndex">
           <div [ngClass]="getItemClass(item)" [title]="item.produkt">
             <div class="puls-icon-row">
               <i class="fas" [ngClass]="{
@@ -197,7 +197,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let event of pulseEvents">
+            <tr *ngFor="let event of pulseEvents; trackBy: trackByIndex">
               <td class="events-time">{{ formatDateTime(event.time) }}</td>
               <td>
                 <span [ngClass]="getEventBadgeClass(event)">

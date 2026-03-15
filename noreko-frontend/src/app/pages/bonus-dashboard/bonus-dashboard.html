@@ -276,7 +276,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let day of operatorData.daily_breakdown">
+                <tr *ngFor="let day of operatorData.daily_breakdown; trackBy: trackByIndex">
                   <td>{{ day.date }}</td>
                   <td>{{ day.cycles }}</td>
                   <td>{{ day.ibc_ok }}</td>
@@ -414,7 +414,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of cachedActiveRanking" [class.top-three]="op.rank <= 3">
+            <tr *ngFor="let op of cachedActiveRanking; trackBy: trackByIndex" [class.top-three]="op.rank <= 3">
               <td>
                 <span class="rank-medal" *ngIf="op.rank === 1">&#x1F947;</span>
                 <span class="rank-medal" *ngIf="op.rank === 2">&#x1F948;</span>
@@ -504,7 +504,7 @@
               <i class="fas fa-bolt me-2 text-info"></i>Snabbast (IBC/h)
             </div>
             <div class="hof-entries" *ngIf="hallOfFame.ibc_per_h.length > 0; else hofEmpty">
-              <div *ngFor="let e of hallOfFame.ibc_per_h" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
+              <div *ngFor="let e of hallOfFame.ibc_per_h; trackBy: trackByIndex" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
                 <div class="hof-medal">
                   <span *ngIf="e.badge === 'gold'">&#x1F947;</span>
                   <span *ngIf="e.badge === 'silver'">&#x1F948;</span>
@@ -530,7 +530,7 @@
               <i class="fas fa-check-double me-2 text-success"></i>Precisast (Kvalitet%)
             </div>
             <div class="hof-entries" *ngIf="hallOfFame.kvalitet_pct.length > 0">
-              <div *ngFor="let e of hallOfFame.kvalitet_pct" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
+              <div *ngFor="let e of hallOfFame.kvalitet_pct; trackBy: trackByIndex" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
                 <div class="hof-medal">
                   <span *ngIf="e.badge === 'gold'">&#x1F947;</span>
                   <span *ngIf="e.badge === 'silver'">&#x1F948;</span>
@@ -554,7 +554,7 @@
               <i class="fas fa-calendar-check me-2 text-purple"></i>Mest aktiv (skift)
             </div>
             <div class="hof-entries" *ngIf="hallOfFame.mest_aktiv.length > 0">
-              <div *ngFor="let e of hallOfFame.mest_aktiv" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
+              <div *ngFor="let e of hallOfFame.mest_aktiv; trackBy: trackByIndex" class="hof-entry" [class.hof-gold]="e.badge === 'gold'" [class.hof-silver]="e.badge === 'silver'" [class.hof-bronze]="e.badge === 'bronze'">
                 <div class="hof-medal">
                   <span *ngIf="e.badge === 'gold'">&#x1F947;</span>
                   <span *ngIf="e.badge === 'silver'">&#x1F948;</span>
@@ -624,7 +624,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let op of loneprognos.operatorer">
+              <tr *ngFor="let op of loneprognos.operatorer; trackBy: trackByIndex">
                 <td>
                   <span class="hof-avatar-inline">{{ getOperatorInitials(op.operator_name) }}</span>
                   {{ op.operator_name }}
@@ -733,7 +733,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let shift of shifts">
+            <tr *ngFor="let shift of shifts; trackBy: trackByIndex">
               <td>{{ shift.shift_number }}</td>
               <td>{{ shift.shift_start }}</td>
               <td>{{ shift.operator_count }} st</td>

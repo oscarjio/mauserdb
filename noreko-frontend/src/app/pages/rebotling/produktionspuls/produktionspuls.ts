@@ -176,4 +176,5 @@ export class ProduktionspulsPage implements OnInit, OnDestroy {
     };
     return map[event.type] || event.type;
   }
+  trackByIndex(index: number): number { return index; }
 }

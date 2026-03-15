@@ -162,7 +162,7 @@
   <!-- ========== VIKTNINGAR ========== -->
   <div *ngIf="activeTab === 'weights'">
     <div class="row g-4">
-      <div class="col-12 col-md-4" *ngFor="let produktId of [1, 4, 5]">
+      <div class="col-12 col-md-4" *ngFor="let produktId of [1, 4, 5]; trackBy: trackByIndex">
         <div class="card">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h6 class="mb-0">{{ getProductName(produktId) }}</h6>
@@ -787,7 +787,7 @@
               <!-- Preset-knappar -->
               <div class="d-flex gap-2 mb-3 flex-wrap">
                 <button class="btn btn-sm"
-                        *ngFor="let preset of simPresets"
+                        *ngFor="let preset of simPresets; trackBy: trackByIndex"
                         [class.btn-info]="simActivePreset === preset.name"
                         [class.btn-outline-secondary]="simActivePreset !== preset.name"
                         (click)="applyPreset(preset)">
@@ -981,7 +981,7 @@
           <div class="sim-hist-config-reminder mb-3">
             <span class="text-muted small"><i class="fas fa-info-circle me-1"></i>Aktuella simuleringsparametrar (ändra under "Simulering"-fliken):</span>
             <div class="d-flex gap-3 mt-1 flex-wrap">
-              <span *ngFor="let tier of simTiers" class="sim-hist-tier-tag">
+              <span *ngFor="let tier of simTiers; trackBy: trackByIndex" class="sim-hist-tier-tag">
                 <span class="tier-label-dot" style="width:8px;height:8px;display:inline-block;border-radius:50%;margin-right:4px;"
                       [style.background-color]="getSimTierColor(tier.label)"></span>
                 {{ tier.label }}: {{ tier.min_ibc_per_hour | number:'1.1-1' }} IBC/h = {{ tier.bonus_sek }} kr
@@ -1041,7 +1041,7 @@
               </div>
               <div class="card-body">
                 <div class="sim-hist-bar-chart" *ngIf="simHistResult?.operators?.length">
-                  <div class="sim-hist-bar-row" *ngFor="let op of simHistResult?.operators">
+                  <div class="sim-hist-bar-row" *ngFor="let op of simHistResult?.operators; trackBy: trackByIndex">
                     <div class="sim-hist-bar-label">
                       {{ op.op_name }}
                       <span class="text-muted small ms-1">#{{ op.op_number }}</span>
@@ -1565,7 +1565,7 @@
         </div>
         <div class="card-body p-2">
           <div class="d-flex gap-2 flex-wrap">
-            <span class="audit-reason-tag" *ngFor="let reason of auditResult?.summary?.top_stop_reasons; let i = index">
+            <span class="audit-reason-tag" *ngFor="let reason of auditResult?.summary?.top_stop_reasons; let i = index; trackBy: trackByIndex">
               <span class="audit-reason-rank">#{{ i + 1 }}</span> {{ reason }}
             </span>
           </div>

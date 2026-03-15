@@ -6,7 +6,7 @@
       <i class="fas fa-trophy me-2" style="color:#FFD700"></i>Operatorsranking
     </h1>
     <div class="d-flex gap-2 align-items-center flex-wrap">
-      <button *ngFor="let p of periodOptions"
+      <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
               class="period-btn"
               [class.active]="period === p.value"
               (click)="setPeriod(p.value)">
@@ -180,7 +180,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let op of rankingData!.ranking"
+              <tr *ngFor="let op of rankingData!.ranking; trackBy: trackByIndex"
                   [class.row-gold]="op.rank === 1"
                   [class.row-silver]="op.rank === 2"
                   [class.row-bronze]="op.rank === 3">

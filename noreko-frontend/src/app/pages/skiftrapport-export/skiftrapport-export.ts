@@ -543,4 +543,5 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
   drifttidBredd(pct: number): string {
     return `${Math.min(100, Math.max(0, pct))}%`;
   }
+  trackByIndex(index: number): number { return index; }
 }

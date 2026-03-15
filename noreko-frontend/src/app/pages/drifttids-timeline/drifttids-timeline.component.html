@@ -121,7 +121,7 @@
       <div class="timeline-hours">
         <span
           class="hour-label"
-          *ngFor="let h of timelineHours"
+          *ngFor="let h of timelineHours; trackBy: trackByIndex"
           [style.left.%]="hourLeft(h)">
           {{ h }}:00
         </span>
@@ -131,7 +131,7 @@
       <div class="timeline-track">
         <div
           class="timeline-segment"
-          *ngFor="let seg of visibleSegments; let i = index"
+          *ngFor="let seg of visibleSegments; let i = index; trackBy: trackByIndex"
           [style.left.%]="segmentLeft(seg)"
           [style.width.%]="segmentWidth(seg)"
           [style.background-color]="segmentColor(seg.type)"
@@ -262,7 +262,7 @@
         </thead>
         <tbody>
           <tr
-            *ngFor="let seg of visibleSegments"
+            *ngFor="let seg of visibleSegments; trackBy: trackByIndex"
             [class.table-active]="selectedSegment === seg"
             (click)="onSegmentClick(seg)"
             style="cursor: pointer;">

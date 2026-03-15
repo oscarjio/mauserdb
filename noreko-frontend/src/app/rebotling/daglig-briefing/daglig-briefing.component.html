@@ -88,7 +88,7 @@
 
   <!-- Loading KPI -->
   <div class="row g-3 mb-4" *ngIf="loadingSammanfattning">
-    <div class="col-lg-3 col-sm-6" *ngFor="let i of [1,2,3,4]">
+    <div class="col-lg-3 col-sm-6" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex">
       <div class="kpi-card skeleton-card">
         <div class="skeleton-text" style="width:60%;height:14px;margin-bottom:8px"></div>
         <div class="skeleton-text" style="width:40%;height:24px;margin-bottom:8px"></div>
@@ -112,7 +112,7 @@
         <div *ngIf="errorStopp" class="text-danger small">Kunde inte ladda stopporsaker.</div>
         <div *ngIf="!loadingStopp && !errorStopp">
           <div *ngIf="stopporsaker.length === 0" class="text-muted small">Inga registrerade stopp.</div>
-          <div class="stopp-item" *ngFor="let s of stopporsaker; let i = index">
+          <div class="stopp-item" *ngFor="let s of stopporsaker; let i = index; trackBy: trackByIndex">
             <div class="d-flex justify-content-between align-items-center mb-1">
               <span class="stopp-rank">{{ i + 1 }}.</span>
               <span class="stopp-namn flex-grow-1 ms-2">{{ s.orsak }}</span>
@@ -138,7 +138,7 @@
         <div *ngIf="!loadingBemanning && !errorBemanning">
           <div class="bemanning-count mb-2">{{ bemanningAntal }} operatorer aktiva idag</div>
           <div *ngIf="operatorer.length === 0" class="text-muted small">Inga aktiva operatorer.</div>
-          <div class="operator-item" *ngFor="let op of operatorer">
+          <div class="operator-item" *ngFor="let op of operatorer; trackBy: trackByIndex">
             <span class="op-namn"><i class="fas fa-user me-1" style="color:#a0aec0"></i>{{ op.namn }}</span>
             <span class="op-ibc">{{ op.ibc_idag }} IBC</span>
           </div>
@@ -175,7 +175,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let st of stationer">
+          <tr *ngFor="let st of stationer; trackBy: trackByIndex">
             <td>{{ st.station_namn }}</td>
             <td class="text-end">{{ st.total_ibc }}</td>
             <td class="text-end" [ngClass]="getOeeClass(st.oee_pct)">{{ st.oee_pct }}%</td>

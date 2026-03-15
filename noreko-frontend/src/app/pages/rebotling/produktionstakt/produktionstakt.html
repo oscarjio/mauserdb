@@ -134,7 +134,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let entry of hourlyHistory; let i = index"
+              <tr *ngFor="let entry of hourlyHistory; let i = index; trackBy: trackByIndex"
                   [ngClass]="getRowStatusClass(entry)">
                 <td>{{ entry.hour_label }}</td>
                 <td class="text-end">{{ entry.ibc_count }}</td>

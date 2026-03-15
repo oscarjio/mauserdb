@@ -268,7 +268,7 @@ interface NewsItem {
                 </thead>
                 <tbody>
                   <tr
-                    *ngFor="let item of filtreradeListan"
+                    *ngFor="let item of filtreradeListan; trackBy: trackByIndex"
                     [class.row-pinned]="item.pinned && !item.arkiverad"
                     [class.row-urgent]="item.category === 'urgent' && !item.arkiverad"
                     [class.row-archived]="item.arkiverad"
@@ -682,4 +682,5 @@ export class NewsAdminPage implements OnInit, OnDestroy {
         + ' ' + d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
     } catch { return dateStr; }
   }
+  trackByIndex(index: number): number { return index; }
 }

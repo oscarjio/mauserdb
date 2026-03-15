@@ -102,7 +102,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let m of result.weeklyMilestones" [class.table-success]="m.pct >= 100">
+            <tr *ngFor="let m of result.weeklyMilestones; trackBy: trackByIndex" [class.table-success]="m.pct >= 100">
               <td>V{{ m.week }}</td>
               <td>{{ formatDate(m.date) }}</td>
               <td>{{ m.cumIbc | number:'1.0-0' }}</td>

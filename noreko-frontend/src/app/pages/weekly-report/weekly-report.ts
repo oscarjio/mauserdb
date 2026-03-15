@@ -808,7 +808,7 @@ interface WeekCompare {
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let d of data.daily">
+            <tr *ngFor="let d of data.daily; trackBy: trackByIndex">
               <td>{{ d.dag }}</td>
               <td>{{ formatDagLabel(d.dag) }}</td>
               <td>
@@ -873,7 +873,7 @@ interface WeekCompare {
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of data.operators; let i = index">
+            <tr *ngFor="let op of data.operators; let i = index; trackBy: trackByIndex">
               <td>
                 <span class="rank-badge"
                       [class.rank-1]="i === 0"
@@ -1397,4 +1397,5 @@ export class WeeklyReportPage implements OnInit, OnDestroy, AfterViewInit {
                     'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
     return months[m] ?? '';
   }
+  trackByIndex(index: number): number { return index; }
 }

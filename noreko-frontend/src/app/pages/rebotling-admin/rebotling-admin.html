@@ -329,7 +329,7 @@
 
           <div class="row g-2" *ngIf="weekdayGoals.length > 0">
             <div class="col-6 col-sm-4 col-md-3 col-lg-2"
-              *ngFor="let goal of weekdayGoals; let i = index">
+              *ngFor="let goal of weekdayGoals; let i = index; trackBy: trackByIndex">
               <div class="weekday-goal-card"
                 [class.weekday-disabled]="goal.daily_goal === 0"
                 [class.weekday-today]="isToday(goal.weekday)">
@@ -448,7 +448,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let ex of goalExceptions" style="border-color:#4a5568;">
+                <tr *ngFor="let ex of goalExceptions; trackBy: trackByIndex" style="border-color:#4a5568;">
                   <td class="fw-semibold" style="color:#e2e8f0;">{{ ex.datum }}</td>
                   <td>
                     <span class="badge bg-warning text-dark">{{ ex.justerat_mal }} IBC</span>
@@ -592,7 +592,7 @@
             <i class="fas fa-exclamation-triangle me-2"></i>{{ shiftTimesError }}
           </div>
           <div class="row g-3" *ngIf="shiftTimes.length > 0">
-            <div class="col-12 col-md-4" *ngFor="let shift of shiftTimes">
+            <div class="col-12 col-md-4" *ngFor="let shift of shiftTimes; trackBy: trackByIndex">
               <div class="shift-time-card" [class.shift-disabled]="!shift.enabled">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span class="fw-semibold">{{ getShiftLabel(shift.shift_name) }}</span>
@@ -1157,7 +1157,7 @@
             <div class="goal-history-list">
               <div class="d-flex align-items-center gap-3 py-2"
                    style="border-bottom:1px solid #4a5568;"
-                   *ngFor="let h of goalHistory | slice:-10">
+                   *ngFor="let h of goalHistory | slice:-10; trackBy: trackByIndex">
                 <i class="fas fa-flag text-warning" style="width:16px;"></i>
                 <span class="fw-bold" style="color:#63b3ed; min-width:110px;">{{ h.value }} IBC/dag</span>
                 <span class="text-muted small">{{ h.changed_at | date:'yyyy-MM-dd HH:mm' }}</span>
@@ -1446,7 +1446,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let row of correlationData.series">
+                    <tr *ngFor="let row of correlationData.series; trackBy: trackByIndex">
                       <td>{{ row.vecka }}</td>
                       <td class="text-end">{{ row.antal_underhall }}</td>
                       <td class="text-end">{{ row.total_underhallstid }}</td>
@@ -1680,7 +1680,7 @@
               <label class="form-label fw-semibold">Kassationsorsak</label>
               <select class="form-select" [(ngModel)]="kassationForm.orsak_id" required>
                 <option [value]="0" disabled>Välj orsak...</option>
-                <option *ngFor="let t of kassationTyper" [value]="t.id">{{ t.namn }}</option>
+                <option *ngFor="let t of kassationTyper; trackBy: trackByIndex" [value]="t.id">{{ t.namn }}</option>
               </select>
             </div>
             <div class="col-12 col-md-2">
@@ -1725,7 +1725,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let k of kassationSenaste" style="border-color:#4a5568;">
+                <tr *ngFor="let k of kassationSenaste; trackBy: trackByIndex" style="border-color:#4a5568;">
                   <td style="white-space:nowrap;">{{ k.datum }}</td>
                   <td>
                     <span class="badge bg-danger" style="font-size:0.75rem;">{{ k.orsak_namn }}</span>

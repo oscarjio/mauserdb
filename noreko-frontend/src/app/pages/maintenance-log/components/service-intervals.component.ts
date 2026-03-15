@@ -57,7 +57,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let si of serviceIntervals">
+              <tr *ngFor="let si of serviceIntervals; trackBy: trackByIndex">
                 <td class="fw-semibold">{{ si.maskin_namn }}</td>
                 <td class="text-end">{{ si.intervall_ibc | number }} IBC</td>
                 <td class="text-end">{{ si.ibc_sedan_service | number }} IBC</td>
@@ -296,4 +296,5 @@ export class ServiceIntervalsComponent implements OnDestroy {
         }
       });
   }
+  trackByIndex(index: number): number { return index; }
 }

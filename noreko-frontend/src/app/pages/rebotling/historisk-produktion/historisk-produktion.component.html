@@ -295,7 +295,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of tabell.rows">
+            <tr *ngFor="let row of tabell.rows; trackBy: trackByIndex">
               <td>{{ row.date }}</td>
               <td class="text-end text-success">{{ row.ibc_ok }}</td>
               <td class="text-end text-danger">{{ row.ibc_ej_ok }}</td>

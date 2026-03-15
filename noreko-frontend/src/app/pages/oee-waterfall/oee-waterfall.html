@@ -14,7 +14,7 @@
       <label class="filter-label">Period</label>
       <div class="btn-group">
         <button
-          *ngFor="let opt of dayOptions"
+          *ngFor="let opt of dayOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="days === opt.value"
           [class.btn-outline-secondary]="days !== opt.value"
@@ -152,7 +152,7 @@
 
       <!-- Förluster -->
       <div class="forlust-rad"
-           *ngFor="let seg of forlustSegments()"
+           *ngFor="let seg of forlustSegments(); trackBy: trackByIndex"
            [class.forlust-negativ]="seg.typ === 'forlust'">
         <div class="forlust-label">
           <span class="forlust-dot" [style.background]="seg.farg"></span>

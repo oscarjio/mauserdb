@@ -368,4 +368,5 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
   formatH(h: number): string {
     return h.toFixed(1) + ' h';
   }
+  trackByIndex(index: number): number { return index; }
 }

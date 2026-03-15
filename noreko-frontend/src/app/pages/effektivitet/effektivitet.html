@@ -23,7 +23,7 @@
     <div class="d-flex align-items-center gap-3 flex-wrap mt-3">
       <div class="period-selector">
         <button
-          *ngFor="let p of perioder"
+          *ngFor="let p of perioder; trackBy: trackByIndex"
           class="btn btn-sm period-btn"
           [class.active]="selectedDays === p.val"
           (click)="setPeriod(p.val)">
@@ -170,7 +170,7 @@
         Effektivitet per skift — senaste {{ selectedDays }} dagar
       </h5>
       <div class="row g-3">
-        <div class="col-12 col-md-4" *ngFor="let s of skiftData.skift">
+        <div class="col-12 col-md-4" *ngFor="let s of skiftData.skift; trackBy: trackByIndex">
           <div class="skift-card" [class.skift-card-best]="s.ar_bast">
             <div class="skift-header">
               <span class="skift-label">{{ s.label }}</span>
@@ -219,7 +219,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let r of dagligaTabelRader">
+              <tr *ngFor="let r of dagligaTabelRader; trackBy: trackByIndex">
                 <td class="text-muted">{{ formatDatum(r.date) }}</td>
                 <td class="text-end">{{ r.ibc_count > 0 ? r.ibc_count : '–' }}</td>
                 <td class="text-end">

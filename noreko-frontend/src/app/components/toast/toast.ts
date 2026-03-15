@@ -9,7 +9,7 @@ import { ToastService, Toast } from '../../services/toast.service';
   imports: [CommonModule],
   template: `
     <div class="toast-container">
-      <div *ngFor="let toast of toasts"
+      <div *ngFor="let toast of toasts; trackBy: trackByIndex"
            class="toast-item"
            [class.toast-error]="toast.type === 'error'"
            [class.toast-warning]="toast.type === 'warning'"
@@ -81,4 +81,5 @@ export class ToastComponent implements OnInit, OnDestroy {
   dismiss(id: number): void {
     this.toastService.dismiss(id);
   }
+  trackByIndex(index: number): number { return index; }
 }

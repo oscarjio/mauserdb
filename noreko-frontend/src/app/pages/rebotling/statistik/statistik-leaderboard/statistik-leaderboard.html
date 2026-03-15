@@ -39,7 +39,7 @@
       <!-- Leaderboard-lista -->
       <div *ngIf="leaderboard.length > 0" class="lb-list">
 
-        <div *ngFor="let op of leaderboard"
+        <div *ngFor="let op of leaderboard; trackBy: trackByIndex"
              class="lb-row"
              [class.lb-row-gold]="op.rank === 1"
              [class.lb-row-silver]="op.rank === 2"

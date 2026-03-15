@@ -127,4 +127,5 @@ export class StatistikLeaderboardComponent implements OnInit, OnDestroy {
   isFirstAndPulsing(rank: number): boolean {
     return rank === 1 && this.pulseFirst;
   }
+  trackByIndex(index: number): number { return index; }
 }

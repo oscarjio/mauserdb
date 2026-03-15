@@ -149,7 +149,7 @@
               <label class="form-label">Stopporsak</label>
               <select class="form-select" [(ngModel)]="newEntry.reason_id" name="reason_id" required>
                 <option [ngValue]="0" disabled>-- Välj orsak --</option>
-                <option *ngFor="let r of reasons" [ngValue]="r.id">
+                <option *ngFor="let r of reasons; trackBy: trackByIndex" [ngValue]="r.id">
                   {{ r.name }} ({{ r.category === 'planned' ? 'Planerat' : 'Oplanerat' }})
                 </option>
               </select>
@@ -321,7 +321,7 @@
 
               <!-- Repeat cards -->
               <div class="repeat-cards" *ngIf="patternData.repeat_stoppages.length > 0">
-                <div class="repeat-card" *ngFor="let r of patternData.repeat_stoppages">
+                <div class="repeat-card" *ngFor="let r of patternData.repeat_stoppages; trackBy: trackByIndex">
                   <div class="repeat-card-main">
                     <span class="repeat-card-name">{{ r.orsak || 'Okänd orsak' }}</span>
                     <span class="repeat-card-count">{{ r.antal_7d }} gånger</span>
@@ -356,7 +356,7 @@
                 <span class="text-muted" style="font-size:0.8rem; font-weight:400;"> — senaste {{ patternData.period_days }} dagarna</span>
               </div>
               <div class="costly-list">
-                <div class="costly-row" *ngFor="let c of patternData.costly_reasons; let i = index">
+                <div class="costly-row" *ngFor="let c of patternData.costly_reasons; let i = index; trackBy: trackByIndex">
                   <div class="costly-rank">{{ i + 1 }}</div>
                   <div class="costly-info">
                     <div class="costly-name">{{ c.orsak }}</div>
@@ -413,7 +413,7 @@
                 </tr>
               </thead>
               <tbody>
-                <ng-container *ngFor="let s of filteredStoppages">
+                <ng-container *ngFor="let s of filteredStoppages; trackBy: trackByIndex">
                   <!-- Normal view row -->
                   <tr *ngIf="editingId !== s.id">
                     <td>
@@ -603,7 +603,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let r of stats.reasons">
+                    <tr *ngFor="let r of stats.reasons; trackBy: trackByIndex">
                       <td>
                         <span class="reason-badge" [style.borderLeftColor]="r.color">{{ r.name }}</span>
                       </td>
@@ -748,7 +748,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let o of paretoData.orsaker; let i = index"
+                  <tr *ngFor="let o of paretoData.orsaker; let i = index; trackBy: trackByIndex"
                       [class.pareto-row-vital]="o.kumulativ_pct <= 80 || (i > 0 && paretoData.orsaker[i-1].kumulativ_pct < 80)">
                     <td class="text-muted">{{ i + 1 }}</td>
                     <td>
@@ -818,7 +818,7 @@
           </button>
         </div>
         <div class="row g-3">
-          <div class="col-6 col-md-4 col-lg-2 text-center" *ngFor="let maskin of machines">
+          <div class="col-6 col-md-4 col-lg-2 text-center" *ngFor="let maskin of machines; trackBy: trackByIndex">
             <div class="qr-machine-card" *ngIf="qrDataUrls[maskin]; else qrPlaceholder">
               <img [src]="qrDataUrls[maskin]" [alt]="maskin" class="qr-img">
               <div class="qr-machine-label">{{maskin}}</div>

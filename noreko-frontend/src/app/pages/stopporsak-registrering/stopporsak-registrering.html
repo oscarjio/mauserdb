@@ -25,7 +25,7 @@
       </div>
       <div class="card-body p-0">
         <div class="aktiv-stopp-rad d-flex align-items-center p-3 border-bottom border-dark"
-             *ngFor="let stopp of aktivaStopp">
+             *ngFor="let stopp of aktivaStopp; trackBy: trackByIndex">
           <div class="stopp-ikon me-3">{{ stopp.ikon }}</div>
           <div class="flex-grow-1">
             <div class="fw-bold text-light">{{ stopp.kategori_namn }}</div>
@@ -55,7 +55,7 @@
       <h2 class="h6 text-muted mb-3 text-uppercase tracking-wide">Välj stopporsak</h2>
 
       <div class="row g-2 g-md-3" *ngIf="!loadingKategorier; else spinner">
-        <div class="col-6 col-md-3" *ngFor="let kat of kategorier">
+        <div class="col-6 col-md-3" *ngFor="let kat of kategorier; trackBy: trackByIndex">
           <button
             class="btn kategori-btn w-100 h-100 d-flex flex-column align-items-center justify-content-center"
             (click)="valjKategori(kat)">
@@ -136,7 +136,7 @@
 
       <div class="historik-lista" *ngIf="senasteStopp.length > 0">
         <div class="historik-rad d-flex align-items-center py-2 px-3 border-bottom border-dark"
-             *ngFor="let stopp of senasteStopp"
+             *ngFor="let stopp of senasteStopp; trackBy: trackByIndex"
              [class.aktiv-historik-rad]="stopp.end_time === null">
           <div class="stopp-ikon-liten me-3">{{ stopp.ikon }}</div>
           <div class="flex-grow-1">

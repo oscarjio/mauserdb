@@ -404,4 +404,5 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     };
     return labels[faktor] ?? faktor;
   }
+  trackByIndex(index: number): number { return index; }
 }

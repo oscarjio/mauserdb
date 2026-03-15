@@ -39,7 +39,7 @@
       <select class="form-select form-select-sm bg-dark text-light border-secondary"
               [(ngModel)]="valdStation"
               (change)="laddaAlltForStation()">
-        <option *ngFor="let s of stationer" [value]="s">{{ s }}</option>
+        <option *ngFor="let s of stationer; trackBy: trackByIndex" [value]="s">{{ s }}</option>
       </select>
     </div>
   </div>
@@ -214,7 +214,7 @@
     <!-- Periodknappar -->
     <div class="d-flex gap-2 mb-3 flex-wrap">
       <button
-        *ngFor="let alt of trendAlternativ"
+        *ngFor="let alt of trendAlternativ; trackBy: trackByIndex"
         class="btn btn-sm btn-period"
         [class.btn-period-aktiv]="trendDagar === alt.varde"
         (click)="byttPeriod(alt.varde)">

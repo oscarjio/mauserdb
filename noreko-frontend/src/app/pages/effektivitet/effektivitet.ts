@@ -366,4 +366,5 @@ export class EffektivitetComponent implements OnInit, OnDestroy {
   isLoading(): boolean {
     return this.summaryLoading || this.trendLoading;
   }
+  trackByIndex(index: number): number { return index; }
 }

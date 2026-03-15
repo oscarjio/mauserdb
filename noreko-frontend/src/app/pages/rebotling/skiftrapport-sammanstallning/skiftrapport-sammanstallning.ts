@@ -318,4 +318,5 @@ export class SkiftrapportSammanstallningPage implements OnInit, OnDestroy {
     const snitt = this.jamforelseData?.snitt as any;
     return snitt?.[key] ?? { totalt_producerade: 0, totalt_kasserade: 0, totalt_godkanda: 0, snitt_oee_pct: 0, snitt_producerade_per_dag: 0 };
   }
+  trackByIndex(index: number): number { return index; }
 }

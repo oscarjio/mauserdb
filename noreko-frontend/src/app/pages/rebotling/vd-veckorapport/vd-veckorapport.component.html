@@ -39,7 +39,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let kpi of kpiLista()">
+            <tr *ngFor="let kpi of kpiLista(); trackBy: trackByIndex">
               <td><strong>{{ formatKpiNamn(kpi) }}</strong></td>
               <td>{{ (sammanfattningData.kpi_forra)[kpi] | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}</td>
               <td>{{ (sammanfattningData.kpi_denna)[kpi] | number:'1.1-1' }}{{ formatKpiEnhet(kpi) }}</td>
@@ -71,7 +71,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let dag of sammanfattningData.daglig">
+            <tr *ngFor="let dag of sammanfattningData.daglig; trackBy: trackByIndex">
               <td>{{ dag.dag }}</td>
               <td>{{ dag.ibc }}</td>
               <td [class.negativ-text]="dag.kassation > 5">{{ dag.kassation | number:'1.1-1' }} %</td>
@@ -94,7 +94,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of sammanfattningData.operatorer">
+            <tr *ngFor="let op of sammanfattningData.operatorer; trackBy: trackByIndex">
               <td>{{ op.operator_namn }}</td>
               <td>{{ op.ibc_ok }}</td>
               <td>{{ op.kassationsgrad | number:'1.1-1' }} %</td>
@@ -118,7 +118,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let s of sammanfattningData.stopporsaker">
+            <tr *ngFor="let s of sammanfattningData.stopporsaker; trackBy: trackByIndex">
               <td>{{ s.orsak }}</td>
               <td>{{ s.antal }}</td>
               <td>{{ s.total_min | number:'1.0-0' }}</td>
@@ -141,7 +141,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let a of sammanfattningData.anomalier">
+            <tr *ngFor="let a of sammanfattningData.anomalier; trackBy: trackByIndex">
               <td>{{ a.datum }}</td>
               <td>{{ a.typ }}</td>
               <td>{{ a.beskrivning }}</td>
@@ -183,7 +183,7 @@
         <!-- Period-filter -->
         <div class="btn-group" role="group">
           <button
-            *ngFor="let alt of periodAlternativ"
+            *ngFor="let alt of periodAlternativ; trackBy: trackByIndex"
             type="button"
             class="btn btn-sm"
             [class.btn-primary]="valdPeriod === alt.val"
@@ -242,7 +242,7 @@
 
             <!-- KPI-kort -->
             <div *ngIf="!loadingKpi && kpiData" class="row g-3">
-              <div *ngFor="let kpi of kpiLista()" class="col-6 col-md-3">
+              <div *ngFor="let kpi of kpiLista(); trackBy: trackByIndex" class="col-6 col-md-3">
                 <div class="kpi-kort p-3 rounded">
                   <div class="kpi-rubrik mb-1">{{ formatKpiNamn(kpi) }}</div>
                   <div class="kpi-varde">
@@ -330,7 +330,7 @@
               <!-- Anomalilista -->
               <div *ngIf="trenderData.anomalier.length > 0">
                 <h6 class="text-muted mb-2">Identifierade avvikelser</h6>
-                <div *ngFor="let a of trenderData.anomalier"
+                <div *ngFor="let a of trenderData.anomalier; trackBy: trackByIndex"
                      class="anomali-rad mb-2 p-2 rounded d-flex align-items-center gap-3"
                      [style.border-left]="'4px solid ' + getAnomaliFarg(a.allvarlighet)">
                   <span class="anomali-ikon fw-bold"
@@ -387,7 +387,7 @@
               <!-- Top 3 -->
               <div *ngIf="topBottomData.top.length > 0" class="mb-3">
                 <div class="text-muted small mb-2 fw-semibold">TOP 3 — OEE</div>
-                <div *ngFor="let op of topBottomData.top; let i = index"
+                <div *ngFor="let op of topBottomData.top; let i = index; trackBy: trackByIndex"
                      class="op-rad d-flex align-items-center gap-3 p-2 mb-1 rounded op-top">
                   <span class="rank-badge rank-top">{{ i + 1 }}</span>
                   <div class="flex-grow-1">
@@ -403,7 +403,7 @@
               <!-- Bottom 3 -->
               <div *ngIf="topBottomData.bottom.length > 0">
                 <div class="text-muted small mb-2 fw-semibold">BEHÖVER STÖD</div>
-                <div *ngFor="let op of topBottomData.bottom"
+                <div *ngFor="let op of topBottomData.bottom; trackBy: trackByIndex"
                      class="op-rad d-flex align-items-center gap-3 p-2 mb-1 rounded op-bottom">
                   <span class="rank-badge rank-bottom">!</span>
                   <div class="flex-grow-1">
@@ -451,7 +451,7 @@
                 Inga stopporsaker registrerade för perioden.
               </div>
 
-              <div *ngFor="let s of stopporsakData.stopporsaker; let i = index"
+              <div *ngFor="let s of stopporsakData.stopporsaker; let i = index; trackBy: trackByIndex"
                    class="stopp-rad mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <span class="text-light small">

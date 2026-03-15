@@ -7,7 +7,7 @@
     </div>
 
     <div class="row justify-content-center mb-5">
-      <div class="col-lg-4 col-md-6 mb-3" *ngFor="let c of contacts">
+      <div class="col-lg-4 col-md-6 mb-3" *ngFor="let c of contacts; trackBy: trackByIndex">
         <div class="contact-card">
           <div class="contact-icon"><i class="fas" [ngClass]="c.icon"></i></div>
           <h5>{{ c.name }}</h5>

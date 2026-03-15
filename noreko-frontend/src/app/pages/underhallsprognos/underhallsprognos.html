@@ -146,7 +146,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let rad of scheduleData.schema" [ngClass]="getRowClass(rad.status)">
+          <tr *ngFor="let rad of scheduleData.schema; trackBy: trackByIndex" [ngClass]="getRowClass(rad.status)">
             <td>
               <div class="komponent-namn">
                 <i class="fas fa-wrench me-1 text-muted small"></i>
@@ -260,7 +260,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let post of historyData.poster">
+            <tr *ngFor="let post of historyData.poster; trackBy: trackByIndex">
               <td class="text-muted small">{{ formatDatum(post.datum) }}</td>
               <td>
                 <span class="text-light">{{ post.titel }}</span>

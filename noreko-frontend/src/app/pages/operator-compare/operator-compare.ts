@@ -113,7 +113,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
             <label class="selector-label">Operatör A</label>
             <select class="op-select op-a" [(ngModel)]="selectedOpA">
               <option [ngValue]="null" disabled>Välj operatör A…</option>
-              <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+              <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
             </select>
           </div>
 
@@ -123,7 +123,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
             <label class="selector-label">Operatör B</label>
             <select class="op-select op-b" [(ngModel)]="selectedOpB">
               <option [ngValue]="null" disabled>Välj operatör B…</option>
-              <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+              <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
             </select>
           </div>
         </div>
@@ -201,7 +201,7 @@ type ComparePeriod = 'this_week' | 'last_week' | 'this_month' | 'last_month' | '
 
             <!-- Scores under diagrammet -->
             <div class="radar-scores-row">
-              <div class="radar-score-item" *ngFor="let op of radarData.operators; let i = index">
+              <div class="radar-score-item" *ngFor="let op of radarData.operators; let i = index; trackBy: trackByIndex">
                 <span class="radar-score-name" [class.score-a]="i === 0" [class.score-b]="i === 1">
                   {{ op.namn }}:
                 </span>
@@ -1477,4 +1477,5 @@ export class OperatorComparePage implements OnInit, OnDestroy {
     }
     return name.slice(0, 2).toUpperCase();
   }
+  trackByIndex(index: number): number { return index; }
 }

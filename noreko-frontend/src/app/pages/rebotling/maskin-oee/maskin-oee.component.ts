@@ -438,4 +438,5 @@ export class MaskinOeePage implements OnInit, OnDestroy {
     const opt = this.periodOptions.find(p => p.key === this.period);
     return opt?.label ?? '';
   }
+  trackByIndex(index: number): number { return index; }
 }

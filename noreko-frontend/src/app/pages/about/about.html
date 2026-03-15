@@ -28,7 +28,7 @@
     <!-- Features Grid -->
     <h3 class="section-title mb-4"><i class="fas fa-star me-2"></i>Funktioner</h3>
     <div class="row mb-5">
-      <div class="col-lg-4 col-md-6 mb-3" *ngFor="let f of features">
+      <div class="col-lg-4 col-md-6 mb-3" *ngFor="let f of features; trackBy: trackByIndex">
         <div class="feature-card">
           <div class="feature-icon"><i class="fas" [ngClass]="f.icon"></i></div>
           <h5>{{ f.title }}</h5>
@@ -40,7 +40,7 @@
     <!-- Production Lines -->
     <h3 class="section-title mb-4"><i class="fas fa-industry me-2"></i>Produktionslinjer</h3>
     <div class="row mb-5">
-      <div class="col-md-6 col-lg-3 mb-3" *ngFor="let l of lines">
+      <div class="col-md-6 col-lg-3 mb-3" *ngFor="let l of lines; trackBy: trackByIndex">
         <div class="line-card">
           <h5>{{ l.name }}</h5>
           <span class="line-status" [style.color]="l.color">

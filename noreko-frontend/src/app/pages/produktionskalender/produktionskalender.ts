@@ -293,4 +293,5 @@ export class ProduktionskalenderComponent implements OnInit, OnDestroy {
   get aktuelltManadNamn(): string {
     return MANAD_NAMN[this.selectedMonth] + ' ' + this.selectedYear;
   }
+  trackByIndex(index: number): number { return index; }
 }

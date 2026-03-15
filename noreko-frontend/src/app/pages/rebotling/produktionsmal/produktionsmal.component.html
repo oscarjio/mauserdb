@@ -103,7 +103,7 @@
         <div class="mb-3 text-muted small">
           Dagsmal: {{ formatNumber(skiftData.dag_mal) }} IBC | Total hittills: {{ formatNumber(skiftData.total_utfall) }} IBC
         </div>
-        <div *ngFor="let s of skiftData.skift" class="mb-3">
+        <div *ngFor="let s of skiftData.skift; trackBy: trackByIndex" class="mb-3">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="fw-bold small">{{ s.skift_namn }}</span>
             <span class="small">
@@ -175,7 +175,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let r of historik">
+            <tr *ngFor="let r of historik; trackBy: trackByIndex">
               <td>{{ formatDatum(r.datum) }}</td>
               <td class="text-muted">{{ r.veckodag }}</td>
               <td class="text-end">{{ formatNumber(r.mal) }}</td>
@@ -217,7 +217,7 @@
       </div>
 
       <div *ngIf="!stationLoading && !stationError && stationer.length > 0">
-        <div *ngFor="let s of stationer" class="station-row mb-2">
+        <div *ngFor="let s of stationer; trackBy: trackByIndex" class="station-row mb-2">
           <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="small fw-bold">{{ s.station_namn }}</span>
             <span class="small">

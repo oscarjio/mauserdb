@@ -17,11 +17,11 @@
         </button>
 
         <select class="form-select form-select-sm year-select" [(ngModel)]="selectedYear" (change)="onManadChange()">
-          <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+          <option *ngFor="let y of years; trackBy: trackByIndex" [value]="y">{{ y }}</option>
         </select>
 
         <select class="form-select form-select-sm month-select" [(ngModel)]="selectedMonth" (change)="onManadChange()">
-          <option *ngFor="let m of months" [value]="m.nr">{{ m.namn }}</option>
+          <option *ngFor="let m of months; trackBy: trackByIndex" [value]="m.nr">{{ m.namn }}</option>
         </select>
 
         <button class="btn btn-outline-secondary btn-sm nav-btn" (click)="nastaManad()" title="Nästa månad">
@@ -58,14 +58,14 @@
           <div class="kalender-grid">
             <div class="veckonr-header"></div>
             <div
-              *ngFor="let namn of dagNamn; let i = index"
+              *ngFor="let namn of dagNamn; let i = index; trackBy: trackByIndex"
               class="dag-namn-cell"
               [class.helg-rubrik]="i >= 5"
             >{{ namn }}</div>
           </div>
 
           <!-- Veckor -->
-          <div *ngFor="let vecka of kalender">
+          <div *ngFor="let vecka of kalender; trackBy: trackByIndex">
             <!-- Dag-rader -->
             <div class="kalender-grid vecka-rad">
               <!-- Veckonummer -->
@@ -75,7 +75,7 @@
 
               <!-- Dagceller -->
               <div
-                *ngFor="let dag of vecka.dagar"
+                *ngFor="let dag of vecka.dagar; trackBy: trackByIndex"
                 class="dag-cell"
                 [class.tom-cell]="!dag.datum"
                 [class.helg-cell]="dag.helg && dag.datum"
@@ -224,7 +224,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let op of dagDetalj.topp5">
+                    <tr *ngFor="let op of dagDetalj.topp5; trackBy: trackByIndex">
                       <td>
                         <span class="rank-badge rank-{{ op.rank }}">{{ op.rank }}</span>
                       </td>
@@ -242,7 +242,7 @@
                 <i class="fas fa-stop-circle me-2 text-danger"></i>Stopporsaker
               </h6>
               <div class="stopp-lista">
-                <div *ngFor="let stopp of dagDetalj.stopporsaker" class="stopp-rad">
+                <div *ngFor="let stopp of dagDetalj.stopporsaker; trackBy: trackByIndex" class="stopp-rad">
                   <div class="stopp-orsak">{{ stopp.orsak }}</div>
                   <div class="stopp-info">
                     <span class="stopp-tid">{{ stopp.minuter }} min</span>

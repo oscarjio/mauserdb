@@ -315,4 +315,5 @@ export class SaglinjeAdminPage implements OnInit, OnDestroy {
       if (!this.destroy$.closed) this.showSuccessMessage = false;
     }, 3500);
   }
+  trackByIndex(index: number): number { return index; }
 }

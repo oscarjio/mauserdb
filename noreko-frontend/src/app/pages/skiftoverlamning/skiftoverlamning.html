@@ -184,7 +184,7 @@
         </h5>
       </div>
       <div class="card-body p-0">
-        <div *ngFor="let p of oppnaProblem; let i = index"
+        <div *ngFor="let p of oppnaProblem; let i = index; trackBy: trackByIndex"
              class="problem-row" [ngClass]="severityClass(p.allvarlighetsgrad)">
           <div class="d-flex justify-content-between align-items-start p-3">
             <div class="flex-grow-1">
@@ -271,7 +271,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of historikItems"
+            <tr *ngFor="let item of historikItems; trackBy: trackByIndex"
                 [class.row-problem]="item.har_pagaende_problem"
                 class="clickable-row"
                 (click)="loadDetail(item.id)">
@@ -380,7 +380,7 @@
       <div *ngIf="selectedItem.checklista && selectedItem.checklista.length > 0" class="card detail-card mb-4">
         <div class="card-header"><i class="fas fa-tasks me-2 text-info"></i>Checklista</div>
         <div class="card-body">
-          <div *ngFor="let c of selectedItem.checklista" class="form-check mb-2">
+          <div *ngFor="let c of selectedItem.checklista; trackBy: trackByIndex" class="form-check mb-2">
             <input class="form-check-input" type="checkbox" [checked]="c.checked" disabled>
             <label class="form-check-label" [class.text-success]="c.checked" [class.text-muted]="!c.checked">
               {{ c.label }}
@@ -507,7 +507,7 @@
             <div class="progress-bar" [class.bg-success]="allChecked" [class.bg-info]="!allChecked"
                  [style.width.%]="checklistaProgress"></div>
           </div>
-          <div *ngFor="let c of checklista; let i = index" class="checklista-item mb-2" (click)="toggleChecklista(i)">
+          <div *ngFor="let c of checklista; let i = index; trackBy: trackByIndex" class="checklista-item mb-2" (click)="toggleChecklista(i)">
             <div class="form-check">
               <input class="form-check-input" type="checkbox" [checked]="c.checked"
                      (change)="toggleChecklista(i)" (click)="$event.stopPropagation()">

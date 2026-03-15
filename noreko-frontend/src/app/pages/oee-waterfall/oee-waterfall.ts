@@ -251,4 +251,5 @@ export class OeeWaterfallPage implements OnInit, OnDestroy {
   forlustSegments(): WaterfallSegment[] {
     return this.segments.filter(s => s.typ === 'forlust');
   }
+  trackByIndex(index: number): number { return index; }
 }

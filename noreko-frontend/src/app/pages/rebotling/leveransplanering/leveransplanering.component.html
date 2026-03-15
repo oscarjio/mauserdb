@@ -30,7 +30,7 @@
     <div class="d-flex align-items-center gap-2">
       <span class="filter-label">Period:</span>
       <div class="btn-group btn-group-sm">
-        <button *ngFor="let p of periodOptions"
+        <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn"
                 [class.btn-info]="filterPeriod === p.key"
                 [class.btn-outline-secondary]="filterPeriod !== p.key"
@@ -121,7 +121,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let order of sortedOrdrar">
+          <tr *ngFor="let order of sortedOrdrar; trackBy: trackByIndex">
             <td>
               <span class="prio-badge" [ngClass]="getPrioClass(order.prioritet)">{{ order.prioritet }}</span>
             </td>

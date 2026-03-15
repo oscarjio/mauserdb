@@ -401,4 +401,5 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
   printCertifikat(): void {
     window.print();
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -48,7 +48,7 @@
             <select class="form-select form-select-sm filter-select" [(ngModel)]="filterAction" (change)="onFilterChange()">
               <option value="">Alla åtgärder</option>
               <ng-container *ngIf="availableActions.length > 0; else staticOptions">
-                <option *ngFor="let a of availableActions" [value]="a">{{ getActionLabel(a) }}</option>
+                <option *ngFor="let a of availableActions; trackBy: trackByIndex" [value]="a">{{ getActionLabel(a) }}</option>
               </ng-container>
               <ng-template #staticOptions>
                 <option value="create_user">Skapa användare</option>
@@ -173,7 +173,7 @@
         <div class="dark-card" *ngIf="!loading && logs.length > 0">
           <div class="card-body p-0">
             <div class="audit-list">
-              <div class="audit-entry" *ngFor="let log of logs" (click)="toggleExpand(log.id)">
+              <div class="audit-entry" *ngFor="let log of logs; trackBy: trackByIndex" (click)="toggleExpand(log.id)">
                 <div class="audit-entry-main">
                   <div class="audit-icon" [style.color]="getActionColor(log.action)">
                     <i class="fas" [ngClass]="getActionIcon(log.action)"></i>
@@ -203,7 +203,7 @@
                     <div class="col-md-6" *ngIf="log.old_value">
                       <div class="detail-label">Före</div>
                       <div class="detail-json">
-                        <div *ngFor="let key of formatJsonKeys(parseJson(log.old_value))">
+                        <div *ngFor="let key of formatJsonKeys(parseJson(log.old_value)); trackBy: trackByIndex">
                           <span class="json-key">{{ key }}:</span>
                           <span class="json-value">{{ parseJson(log.old_value)[key] }}</span>
                         </div>
@@ -212,7 +212,7 @@
                     <div class="col-md-6" *ngIf="log.new_value">
                       <div class="detail-label">Efter</div>
                       <div class="detail-json">
-                        <div *ngFor="let key of formatJsonKeys(parseJson(log.new_value))">
+                        <div *ngFor="let key of formatJsonKeys(parseJson(log.new_value)); trackBy: trackByIndex">
                           <span class="json-key">{{ key }}:</span>
                           <span class="json-value">{{ parseJson(log.new_value)[key] }}</span>
                         </div>
@@ -290,7 +290,7 @@
                 <div style="overflow-x: auto;">
                 <table class="audit-stats-table">
                   <tbody>
-                    <tr *ngFor="let item of stats.by_action">
+                    <tr *ngFor="let item of stats.by_action; trackBy: trackByIndex">
                       <td>
                         <span class="action-badge" [ngClass]="getActionBadgeClass(item.action)">
                           <i class="fas me-1" [ngClass]="getActionIcon(item.action)"></i>
@@ -316,7 +316,7 @@
                 <div style="overflow-x: auto;">
                 <table class="audit-stats-table">
                   <tbody>
-                    <tr *ngFor="let item of stats.by_user">
+                    <tr *ngFor="let item of stats.by_user; trackBy: trackByIndex">
                       <td><i class="fas fa-user-circle me-2 text-muted"></i>{{ item.user }}</td>
                       <td class="text-end"><strong>{{ item.count }}</strong></td>
                     </tr>

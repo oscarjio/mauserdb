@@ -365,4 +365,5 @@ export class SkiftjamforelseComponent implements OnInit, OnDestroy {
     if (this.detaljSort !== col) return 'fas fa-sort';
     return this.detaljSortDir > 0 ? 'fas fa-sort-up' : 'fas fa-sort-down';
   }
+  trackByIndex(index: number): number { return index; }
 }

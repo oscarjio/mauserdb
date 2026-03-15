@@ -162,7 +162,7 @@
 
       <!-- Periodselektor -->
       <div class="btn-group" role="group">
-        <button *ngFor="let p of periodAlternativ"
+        <button *ngFor="let p of periodAlternativ; trackBy: trackByIndex"
                 type="button"
                 class="btn btn-sm"
                 [class.btn-primary]="aktivPeriod === p.varde"
@@ -224,7 +224,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let rad of veckoData"
+            <tr *ngFor="let rad of veckoData; trackBy: trackByIndex"
                 [class.basta-rad]="rad.basta_oee"
                 [class.samsta-rad]="rad.samsta_oee">
               <td class="vecka-cell">
@@ -279,7 +279,7 @@
           Inga avvikande dagar identifierade — produktionen är stabil
         </div>
         <div class="row g-2">
-          <div *ngFor="let a of anomalierData" class="col-12 col-md-6 col-lg-4">
+          <div *ngFor="let a of anomalierData; trackBy: trackByIndex" class="col-12 col-md-6 col-lg-4">
             <div class="anomali-kort" [class]="avvikelseKlass(a)">
               <div class="d-flex justify-content-between align-items-start">
                 <div>

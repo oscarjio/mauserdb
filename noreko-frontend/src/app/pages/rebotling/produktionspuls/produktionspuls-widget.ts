@@ -23,7 +23,7 @@ import { ProduktionspulsService, PulsItem } from '../../../services/produktionsp
            (mouseenter)="paused = true"
            (mouseleave)="paused = false">
         <div class="puls-widget-track" [class.ticker-paused]="paused">
-          <ng-container *ngFor="let item of items">
+          <ng-container *ngFor="let item of items; trackBy: trackByIndex">
             <div class="pw-item" [ngClass]="{
               'pw-ok': !item.kasserad && !item.over_target,
               'pw-kasserad': item.kasserad,
@@ -35,7 +35,7 @@ import { ProduktionspulsService, PulsItem } from '../../../services/produktionsp
               <span class="pw-badge" *ngIf="item.kasserad">K</span>
             </div>
           </ng-container>
-          <ng-container *ngFor="let item of items">
+          <ng-container *ngFor="let item of items; trackBy: trackByIndex">
             <div class="pw-item" [ngClass]="{
               'pw-ok': !item.kasserad && !item.over_target,
               'pw-kasserad': item.kasserad,
@@ -182,4 +182,5 @@ export class ProduktionspulsWidget implements OnInit, OnDestroy {
       }
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

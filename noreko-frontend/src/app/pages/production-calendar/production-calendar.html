@@ -14,7 +14,7 @@
         <i class="fas fa-chevron-left"></i>
       </button>
       <select class="form-select form-select-sm year-select" (change)="onYearChange($event)">
-        <option *ngFor="let y of availableYears" [value]="y" [selected]="y === selectedYear">{{ y }}</option>
+        <option *ngFor="let y of availableYears; trackBy: trackByIndex" [value]="y" [selected]="y === selectedYear">{{ y }}</option>
       </select>
       <button class="btn btn-sm btn-outline-secondary" (click)="nextYear()" [disabled]="selectedYear >= 2026">
         <i class="fas fa-chevron-right"></i>
@@ -120,13 +120,13 @@
 
     <!-- Kalender-grid: 12 månadsblock -->
     <div class="calendar-grid">
-      <div class="month-block" *ngFor="let mb of monthBlocks">
+      <div class="month-block" *ngFor="let mb of monthBlocks; trackBy: trackByIndex">
         <div class="month-name">{{ mb.monthName }}</div>
         <div class="month-weeks">
-          <div class="week-row" *ngFor="let week of mb.weeks; let wi = index">
+          <div class="week-row" *ngFor="let week of mb.weeks; let wi = index; trackBy: trackByIndex">
             <div
               class="day-cell"
-              *ngFor="let cell of week.cells; let di = index"
+              *ngFor="let cell of week.cells; let di = index; trackBy: trackByIndex"
               [ngClass]="getCellColorClass(cell, selectedDay?.date === cell?.date)"
               [title]="getTooltip(cell, mb.month, wi, di)"
               [class.has-data]="!!cell"
@@ -216,7 +216,7 @@
         <!-- Operatörer -->
         <div class="dd-operators" *ngIf="dayDetail.operators.length > 0">
           <span class="dd-op-label">Operatörer:</span>
-          <span class="dd-op-badge" *ngFor="let op of dayDetail.operators" [title]="op.name">
+          <span class="dd-op-badge" *ngFor="let op of dayDetail.operators; trackBy: trackByIndex" [title]="op.name">
             {{ op.initials }}
           </span>
         </div>

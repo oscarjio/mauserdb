@@ -24,7 +24,7 @@
     <div class="col-auto">
       <div class="btn-group" role="group">
         <button
-          *ngFor="let opt of periodOptions"
+          *ngFor="let opt of periodOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="period === opt.val"
           [class.btn-outline-secondary]="period !== opt.val"
@@ -132,19 +132,19 @@
             <tr>
               <th style="background:transparent; border:none; color:#718096; font-size:0.7rem; width:80px;">Dag \ Timme</th>
               <th
-                *ngFor="let h of timmar"
+                *ngFor="let h of timmar; trackBy: trackByIndex"
                 style="background:transparent; border:none; color:#718096; font-size:0.65rem; text-align:center; padding:2px; min-width:30px;">
                 {{ h }}
               </th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let dag of heatmapVeckodagar">
+            <tr *ngFor="let dag of heatmapVeckodagar; trackBy: trackByIndex">
               <td style="background:transparent; border:none; color:#a0aec0; font-size:0.75rem; white-space:nowrap; padding-right:8px;">
                 {{ dag.namn }}
               </td>
               <td
-                *ngFor="let val of dag.data; let h = index"
+                *ngFor="let val of dag.data; let h = index; trackBy: trackByIndex"
                 [style.background]="cellColor(val)"
                 [style.color]="cellTextColor(val)"
                 style="border-radius:3px; text-align:center; font-size:0.6rem; padding:3px 1px; cursor:default; min-width:30px;"
@@ -186,7 +186,7 @@
           </div>
 
           <div *ngIf="!loadingPeak && harData">
-            <div *ngFor="let t of topp3; let i = index" class="mb-3">
+            <div *ngFor="let t of topp3; let i = index; trackBy: trackByIndex" class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div>
                   <span class="badge me-2" [style.background]="i === 0 ? '#d69e2e' : i === 1 ? '#a0aec0' : '#c05621'">#{{ i + 1 }}</span>
@@ -226,7 +226,7 @@
           </div>
 
           <div *ngIf="!loadingPeak && harData">
-            <div *ngFor="let t of botten3; let i = index" class="mb-3">
+            <div *ngFor="let t of botten3; let i = index; trackBy: trackByIndex" class="mb-3">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <div>
                   <span class="badge bg-danger me-2">#{{ i + 1 }}</span>
@@ -301,7 +301,7 @@
             </tr>
           </thead>
           <tbody style="font-size:0.85rem;">
-            <tr *ngFor="let t of summaryTimmar">
+            <tr *ngFor="let t of summaryTimmar; trackBy: trackByIndex">
               <td style="color:#a0aec0;">{{ formatTimme(t.timme) }}</td>
               <td class="text-end">
                 <span

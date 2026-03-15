@@ -235,7 +235,7 @@
           </thead>
           <tbody>
             <tr
-              *ngFor="let w of topWeeks; let i = index"
+              *ngFor="let w of topWeeks; let i = index; trackBy: trackByIndex"
               [class.row-gold]="i === 0"
               [class.row-current]="w.week_label === currentWeekLabel && i !== 0">
               <td>
@@ -320,7 +320,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of personalBests.operators">
+                <tr *ngFor="let op of personalBests.operators; trackBy: trackByIndex">
                   <td>
                     <span class="badge bg-secondary me-2">{{ op.initialer }}</span>
                     {{ op.namn }}
@@ -381,7 +381,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let m of monthlyLeaders">
+                <tr *ngFor="let m of monthlyLeaders; trackBy: trackByIndex">
                   <td class="fw-semibold">{{ m.manad }}</td>
                   <td class="text-end">{{ m.total_ibc | number:'1.0-0' }}</td>
                   <td class="text-end"
@@ -489,7 +489,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let op of personalBests.operators; let i = index">
+                  <tr *ngFor="let op of personalBests.operators; let i = index; trackBy: trackByIndex">
                     <td>
                       <span class="rank-badge me-2" [ngClass]="hofMedalClass(i + 1)">
                         <span *ngIf="i < 3"><i [class]="hofMedalIcon(i + 1)"></i></span>
@@ -545,7 +545,7 @@
         </div>
 
         <div *ngIf="hallOfFame.length > 0" class="hof-grid">
-          <div *ngFor="let day of hallOfFame; let i = index"
+          <div *ngFor="let day of hallOfFame; let i = index; trackBy: trackByIndex"
             class="hof-card"
             [class.hof-card--gold]="i === 0"
             [class.hof-card--silver]="i === 1"

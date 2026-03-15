@@ -221,7 +221,7 @@ interface FeedbackSummary {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of operatorer" style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
+                <tr *ngFor="let op of operatorer; trackBy: trackByIndex" style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
                   <td style="padding:14px 16px;vertical-align:middle;">
                     <div class="d-flex align-items-center gap-3">
                       <div [style.background]="getAvatarColor(op.namn)"
@@ -357,7 +357,7 @@ interface FeedbackSummary {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of weeklyData; let i = index"
+                <tr *ngFor="let op of weeklyData; let i = index; trackBy: trackByIndex"
                     [style.background]="i === 0 ? 'rgba(246,224,94,0.08)' : ''"
                     [style.border-left]="i === 0 ? '3px solid #f6e05e' : '3px solid transparent'"
                     style="border-bottom:1px solid #3d4a5c;cursor:pointer;" [routerLink]="['/admin/operator', op.op_id]">
@@ -564,7 +564,7 @@ interface FeedbackSummary {
 
               <!-- Dagarna -->
               <div *ngIf="feedbackSummary.per_dag.length > 0">
-                <div *ngFor="let dag of feedbackSummary.per_dag; let i = index; let odd = odd"
+                <div *ngFor="let dag of feedbackSummary.per_dag; let i = index; let odd = odd; trackBy: trackByIndex"
                      [style.background]="odd ? '#283141' : '#2d3748'"
                      style="padding:14px 20px;border-bottom:1px solid #374151;display:flex;align-items:center;gap:16px;">
 
@@ -938,4 +938,5 @@ export class OperatorDashboardPage implements OnInit, OnDestroy {
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
+  trackByIndex(index: number): number { return index; }
 }

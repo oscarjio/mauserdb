@@ -160,7 +160,7 @@
         </a>
       </div>
       <div class="row g-2">
-        <div class="col-6 col-sm-4 col-md-3 col-lg-2" *ngFor="let fav of userFavoriter">
+        <div class="col-6 col-sm-4 col-md-3 col-lg-2" *ngFor="let fav of userFavoriter; trackBy: trackByIndex">
           <a [routerLink]="fav.route" class="fav-shortcut-card" [style.borderTopColor]="fav.color">
             <i [class]="fav.icon" [style.color]="fav.color" style="font-size:1.4rem;"></i>
             <span class="fav-shortcut-label">{{ fav.label }}</span>
@@ -216,7 +216,7 @@
         <!-- Kategorifilter -->
         <div class="category-filter-bar px-4 py-2" *ngIf="!loadingEvents && events.length > 0">
           <button
-            *ngFor="let cat of categories"
+            *ngFor="let cat of categories; trackBy: trackByIndex"
             class="btn btn-sm category-filter-btn me-1 mb-1"
             [class.active]="activeCategory === cat.key"
             (click)="setCategory(cat.key)">
@@ -235,7 +235,7 @@
 
         <!-- Händelselista -->
         <ul class="list-group list-group-flush" *ngIf="!loadingEvents && filteredEvents.length > 0">
-          <li *ngFor="let e of filteredEvents"
+          <li *ngFor="let e of filteredEvents; trackBy: trackByIndex"
               class="list-group-item event-item"
               [ngClass]="'event-typ-' + e.typ"
               [class.event-pinned]="e.pinned"

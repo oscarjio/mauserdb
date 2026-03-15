@@ -285,4 +285,5 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   get stoppedCount(): number {
     return this.timelineData?.segments.filter(s => s.type === 'stopped').length ?? 0;
   }
+  trackByIndex(index: number): number { return index; }
 }

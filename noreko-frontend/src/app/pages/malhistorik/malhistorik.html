@@ -144,7 +144,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let a of historyData!.andringar">
+                <tr *ngFor="let a of historyData!.andringar; trackBy: trackByIndex">
                   <td class="text-muted">{{ formatDatum(a.andrad_vid) }}</td>
                   <td class="text-muted small">{{ formatTid(a.andrad_vid) }}</td>
                   <td>
@@ -189,7 +189,7 @@
 
           <div class="row g-3" *ngIf="(impactData?.impact?.length ?? 0) > 0">
             <div class="col-12 col-md-6 col-xl-4"
-                 *ngFor="let item of impactData!.impact">
+                 *ngFor="let item of impactData!.impact; trackBy: trackByIndex">
               <div class="impact-card" [class]="getEffektClass(item.effekt)">
 
                 <!-- Kort-rubrik -->

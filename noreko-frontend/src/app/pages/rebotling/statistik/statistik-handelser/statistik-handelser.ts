@@ -54,4 +54,5 @@ export class StatistikHandelserComponent implements OnInit, OnDestroy {
     this.rebotlingService.deleteProductionEvent(id).pipe(timeout(8000), catchError(() => of(null)), takeUntil(this.destroy$))
     .subscribe(res => { if (res?.success) { this.productionEvents = this.productionEvents.filter(e => e.id !== id); } });
   }
+  trackByIndex(index: number): number { return index; }
 }

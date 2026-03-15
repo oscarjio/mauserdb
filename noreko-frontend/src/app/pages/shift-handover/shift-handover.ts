@@ -414,4 +414,5 @@ export class ShiftHandoverPage implements OnInit, OnDestroy, AfterViewInit {
       this.focusTextarea();
     }
   }
+  trackByIndex(index: number): number { return index; }
 }

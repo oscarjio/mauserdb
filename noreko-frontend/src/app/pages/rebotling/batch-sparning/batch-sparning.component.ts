@@ -312,4 +312,5 @@ export class BatchSparningPage implements OnInit, OnDestroy {
     const sec = s % 60;
     return m + ':' + String(sec).padStart(2, '0') + ' min';
   }
+  trackByIndex(index: number): number { return index; }
 }

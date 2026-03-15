@@ -181,4 +181,5 @@ export class RebotlingPrognosPage implements OnInit, OnDestroy {
       this.calculate();
     }
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -14,7 +14,7 @@
       <label class="filter-label">Onboarding-period</label>
       <div class="btn-group">
         <button
-          *ngFor="let opt of monthOptions"
+          *ngFor="let opt of monthOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="months === opt.val"
           [class.btn-outline-secondary]="months !== opt.val"
@@ -95,7 +95,7 @@
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let op of operatorer; let i = index">
+          <ng-container *ngFor="let op of operatorer; let i = index; trackBy: trackByIndex">
             <!-- Operatorsrad -->
             <tr class="op-row"
                 [class.op-expanded]="selectedOperator?.operator_number === op.operator_number"
@@ -187,7 +187,7 @@
                             </tr>
                           </thead>
                           <tbody>
-                            <tr *ngFor="let w of curveData.weeks">
+                            <tr *ngFor="let w of curveData.weeks; trackBy: trackByIndex">
                               <td class="td-vecka">V{{ w.week }}</td>
                               <td class="td-ibc-d" [style.color]="w.ibc_h >= curveData.team_snitt_ibc_h ? '#48bb78' : '#fc8181'">
                                 {{ w.ibc_h }}

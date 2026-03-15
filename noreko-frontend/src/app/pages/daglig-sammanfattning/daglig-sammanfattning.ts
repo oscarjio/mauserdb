@@ -257,4 +257,5 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
       day: 'numeric',
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

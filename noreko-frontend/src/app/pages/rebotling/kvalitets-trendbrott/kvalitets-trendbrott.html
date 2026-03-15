@@ -6,7 +6,7 @@
     <div class="d-flex align-items-center gap-2">
       <label class="text-light me-1 mb-0">Period:</label>
       <select class="form-select form-select-sm period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
-        <option *ngFor="let p of periodOptions" [value]="p">{{ p }} dagar</option>
+        <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p">{{ p }} dagar</option>
       </select>
     </div>
   </div>
@@ -100,7 +100,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let alert of alertsData.alerts" class="alert-row" [class.high-alert]="alert.avvikelse_sigma > 3">
+          <tr *ngFor="let alert of alertsData.alerts; trackBy: trackByIndex" class="alert-row" [class.high-alert]="alert.avvikelse_sigma > 3">
             <td>{{ alert.datum }}</td>
             <td>
               <strong>{{ alert.kassation_pct }}%</strong>
@@ -113,7 +113,7 @@
               <span [class]="getTypBadgeClass(alert.typ)">{{ alert.typ === 'hög' ? 'Hög' : 'Låg' }}</span>
             </td>
             <td>
-              <span *ngFor="let op of alert.operators; let last = last">
+              <span *ngFor="let op of alert.operators; let last = last; trackBy: trackByIndex">
                 {{ op.name }}<span *ngIf="!last">, </span>
               </span>
               <span *ngIf="!alert.operators?.length" class="text-muted">-</span>
@@ -207,7 +207,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let s of dailyDetail.skift">
+            <tr *ngFor="let s of dailyDetail.skift; trackBy: trackByIndex">
               <td>{{ s.skiftraknare }}</td>
               <td>{{ s.ibc_ok }}</td>
               <td>{{ s.ibc_ej_ok }}</td>
@@ -217,7 +217,7 @@
               </td>
               <td>{{ s.drifttid }}</td>
               <td>
-                <span *ngFor="let op of s.operators; let last = last">
+                <span *ngFor="let op of s.operators; let last = last; trackBy: trackByIndex">
                   {{ op.name }}<span *ngIf="!last">, </span>
                 </span>
               </td>
@@ -241,7 +241,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of dailyDetail.per_operator">
+            <tr *ngFor="let op of dailyDetail.per_operator; trackBy: trackByIndex">
               <td>{{ op.name }}</td>
               <td>{{ op.ok }}</td>
               <td>{{ op.ej_ok }}</td>
@@ -267,7 +267,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let s of dailyDetail.stopporsaker">
+            <tr *ngFor="let s of dailyDetail.stopporsaker; trackBy: trackByIndex">
               <td>{{ s.orsak }}</td>
               <td>{{ s.antal }}</td>
               <td>{{ s.minuter }}</td>

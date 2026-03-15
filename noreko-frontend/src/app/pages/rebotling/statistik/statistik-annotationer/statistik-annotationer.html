@@ -85,7 +85,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let ann of annotations">
+              <tr *ngFor="let ann of annotations; trackBy: trackByIndex">
                 <td>{{ ann.datum }}</td>
                 <td>
                   <span class="badge" [style.background]="typColor(ann.typ)">

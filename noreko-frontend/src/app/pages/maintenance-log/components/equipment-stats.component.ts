@@ -83,7 +83,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of sortedEquipmentStats">
+              <tr *ngFor="let row of sortedEquipmentStats; trackBy: trackByIndex">
                 <td class="fw-semibold">{{ row.namn }}</td>
                 <td>
                   <span class="badge kategori-badge" [class]="getKategoriBadgeClass(row.kategori)">
@@ -192,4 +192,5 @@ export class EquipmentStatsComponent implements OnDestroy {
     if (this.sortField !== field) return 'fa-sort';
     return this.sortDir === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
   }
+  trackByIndex(index: number): number { return index; }
 }

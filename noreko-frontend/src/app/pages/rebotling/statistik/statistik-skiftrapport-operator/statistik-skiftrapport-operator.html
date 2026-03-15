@@ -17,7 +17,7 @@
                   [(ngModel)]="selectedOperatorId"
                   (change)="onOperatorChange()">
             <option [ngValue]="0" disabled>-- Valj operator --</option>
-            <option *ngFor="let op of operators" [ngValue]="op.id">{{ op.name }}</option>
+            <option *ngFor="let op of operators; trackBy: trackByIndex" [ngValue]="op.id">{{ op.name }}</option>
           </select>
 
           <!-- Period -->
@@ -123,7 +123,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of data"
+              <tr *ngFor="let row of data; trackBy: trackByIndex"
                   [style.background]="row.oee !== null && row.oee >= 90 ? 'rgba(72,187,120,0.08)' : (row.oee !== null && row.oee < 70 ? 'rgba(252,129,129,0.06)' : 'transparent')">
                 <td>{{ row.datum }}</td>
                 <td>{{ row.skift }}</td>

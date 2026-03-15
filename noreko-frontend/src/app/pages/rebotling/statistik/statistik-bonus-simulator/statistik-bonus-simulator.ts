@@ -254,4 +254,5 @@ export class StatistikBonusSimulatorComponent implements OnInit, OnDestroy {
     if (diff > 0) return '+';
     return '';
   }
+  trackByIndex(index: number): number { return index; }
 }

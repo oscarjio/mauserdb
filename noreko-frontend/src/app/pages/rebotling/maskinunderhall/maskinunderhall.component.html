@@ -111,7 +111,7 @@
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let m of filteredMaskiner">
+          <ng-container *ngFor="let m of filteredMaskiner; trackBy: trackByIndex">
             <!-- Maskinrad -->
             <tr [class]="getRowClass(m)" class="machine-row" (click)="selectMaskin(m)">
               <td>
@@ -183,7 +183,7 @@
                           </tr>
                         </thead>
                         <tbody>
-                          <tr *ngFor="let h of historik">
+                          <tr *ngFor="let h of historik; trackBy: trackByIndex">
                             <td>{{ h.service_datum }}</td>
                             <td>
                               <span [class]="getTypBadgeClass(h.service_typ)">
@@ -260,7 +260,7 @@
                   [(ngModel)]="addServiceForm.maskin_id"
                   name="maskin_id" required>
             <option [value]="0" disabled>Välj maskin...</option>
-            <option *ngFor="let m of maskiner" [value]="m.id">{{ m.namn }}</option>
+            <option *ngFor="let m of maskiner; trackBy: trackByIndex" [value]="m.id">{{ m.namn }}</option>
           </select>
         </div>
         <div class="mb-3">

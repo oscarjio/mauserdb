@@ -583,4 +583,5 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
   exportToPDF(): void {
     window.print();
   }
+  trackByIndex(index: number): number { return index; }
 }

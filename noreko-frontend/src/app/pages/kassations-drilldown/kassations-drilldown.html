@@ -14,7 +14,7 @@
       <label class="filter-label">Period</label>
       <div class="btn-group">
         <button
-          *ngFor="let opt of dayOptions"
+          *ngFor="let opt of dayOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="days === opt.value"
           [class.btn-outline-secondary]="days !== opt.value"
@@ -114,7 +114,7 @@
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let reason of reasons; let i = index">
+          <ng-container *ngFor="let reason of reasons; let i = index; trackBy: trackByIndex">
             <!-- Orsaksrad -->
             <tr class="reason-row"
                 [class.reason-expanded]="expandedReasonId === reason.reason_id"
@@ -171,7 +171,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let ev of detailEvents">
+                      <tr *ngFor="let ev of detailEvents; trackBy: trackByIndex">
                         <td>{{ ev.datum | date:'yyyy-MM-dd' }}</td>
                         <td>{{ ev.created_at | date:'HH:mm' }}</td>
                         <td>{{ ev.registrerad_av || '-' }}</td>

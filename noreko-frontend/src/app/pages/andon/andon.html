@@ -355,7 +355,7 @@
 
         <!-- Lista -->
         <div class="stopp-lista" *ngIf="!stoppagesLaddas && stoppages.length > 0">
-          <div class="stopp-rad" *ngFor="let s of stoppages">
+          <div class="stopp-rad" *ngFor="let s of stoppages; trackBy: trackByIndex">
             <span class="stopp-ikon" [style.background-color]="stoppageFarg(s.category)"></span>
             <div class="stopp-info">
               <div class="stopp-namn">{{ s.reason_name }}</div>
@@ -393,7 +393,7 @@
       <!-- Notlista -->
       <div class="overlam-lista" *ngIf="handoverNotes.length > 0">
         <div class="overlam-not"
-             *ngFor="let n of handoverNotes"
+             *ngFor="let n of handoverNotes; trackBy: trackByIndex"
              [style.border-left-color]="notePrioritetFarg(n.priority)">
           <div class="overlam-not-huvud">
             <span class="overlam-prioritet-badge"

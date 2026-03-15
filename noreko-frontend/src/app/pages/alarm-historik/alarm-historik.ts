@@ -268,4 +268,5 @@ export class AlarmHistorikPage implements OnInit, OnDestroy {
     }
     return this.typOptions;
   }
+  trackByIndex(index: number): number { return index; }
 }

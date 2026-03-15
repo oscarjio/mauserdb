@@ -80,7 +80,7 @@
 
     <!-- Alert-lista -->
     <div *ngIf="!activeLoading && !activeError && activeAlerts.length > 0">
-      <div *ngFor="let alert of activeAlerts"
+      <div *ngFor="let alert of activeAlerts; trackBy: trackByIndex"
         class="alert-card mb-3"
         style="background:#2d3748; border-radius:12px; padding:1.25rem 1.5rem; border-left:4px solid;"
         [style.border-left-color]="alert.severity === 'critical' ? '#fc8181' : '#ecc94b'">
@@ -213,7 +213,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let a of filteredHistory" style="border-color:#4a5568;">
+            <tr *ngFor="let a of filteredHistory; trackBy: trackByIndex" style="border-color:#4a5568;">
               <td style="padding:0.65rem 1rem; color:#a0aec0; font-size:0.85rem; white-space:nowrap;">
                 {{ formatDate(a.created_at) }}
               </td>

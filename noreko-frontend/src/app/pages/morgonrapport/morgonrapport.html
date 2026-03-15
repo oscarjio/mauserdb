@@ -63,7 +63,7 @@
       <h2 class="sektion-rubrik"><i class="fas fa-bell me-2"></i>Status &amp; Varningar</h2>
       <div class="varning-lista">
         <div
-          *ngFor="let v of varningar"
+          *ngFor="let v of varningar; trackBy: trackByIndex"
           class="varning-rad"
           [ngClass]="getSeverityKlass(v.severity)"
         >
@@ -219,7 +219,7 @@
             <div class="trendgraf-wrapper" *ngIf="trendDagar.length > 0; else ingenTrendData">
               <div class="trendgraf">
                 <div
-                  *ngFor="let dag of trendDagar; let i = index"
+                  *ngFor="let dag of trendDagar; let i = index; trackBy: trackByIndex"
                   class="trendgraf-stapel-container"
                   [title]="formatDatum(dag) + ': ' + getTrendIbcForDag(dag) + ' IBC'"
                 >
@@ -279,7 +279,7 @@
             <div class="text-muted small mb-2"><i class="fas fa-list-ol me-1"></i>Topp 3 stopporsaker</div>
             <div *ngIf="stopp && stopp.top3_orsaker.length > 0; else ingaStopp">
               <div
-                *ngFor="let o of stopp.top3_orsaker; let i = index"
+                *ngFor="let o of stopp.top3_orsaker; let i = index; trackBy: trackByIndex"
                 class="stopp-orsak-rad"
               >
                 <span class="stopp-orsak-rank">#{{ i + 1 }}</span>

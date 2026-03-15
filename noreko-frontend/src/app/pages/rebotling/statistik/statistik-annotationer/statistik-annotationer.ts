@@ -139,4 +139,5 @@ export class StatistikAnnotationerComponent implements OnInit, OnDestroy {
     };
     return labels[typ] || typ;
   }
+  trackByIndex(index: number): number { return index; }
 }

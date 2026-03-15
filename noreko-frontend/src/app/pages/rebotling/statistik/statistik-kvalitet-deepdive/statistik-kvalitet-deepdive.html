@@ -159,7 +159,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of orsaker">
+                <tr *ngFor="let item of orsaker; trackBy: trackByIndex">
                   <td>{{ item.namn }}</td>
                   <td class="text-end fw-bold" style="color:#e2e8f0;">{{ item.antal }}</td>
                   <td class="text-end" style="color:#a0aec0;">{{ item.andel | number:'1.1-1' }}%</td>

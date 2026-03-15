@@ -45,14 +45,14 @@
           <div *ngIf="!loading && calendarDays.length > 0">
             <!-- Veckodagsrubriker -->
             <div class="weekday-header-grid mb-1">
-              <div class="weekday-header" *ngFor="let wd of weekdayHeaders">{{ wd }}</div>
+              <div class="weekday-header" *ngFor="let wd of weekdayHeaders; trackBy: trackByIndex">{{ wd }}</div>
             </div>
 
             <!-- Dagceller med offset för att börja på rätt veckodag -->
             <div class="attendance-grid">
-              <div class="day-cell empty-offset" *ngFor="let o of startOffset"></div>
+              <div class="day-cell empty-offset" *ngFor="let o of startOffset; trackBy: trackByIndex"></div>
               <div class="day-cell"
-                   *ngFor="let day of calendarDays"
+                   *ngFor="let day of calendarDays; trackBy: trackByIndex"
                    [class.weekend]="day.weekday === 0 || day.weekday === 6"
                    [class.empty-day]="day.operators.length === 0">
                 <div class="day-num">
@@ -61,7 +61,7 @@
                 </div>
                 <div class="op-badges">
                   <span class="badge me-1 mb-1"
-                        *ngFor="let op of day.operators"
+                        *ngFor="let op of day.operators; trackBy: trackByIndex"
                         style="background:#4a5568;font-size:0.7rem"
                         [title]="op.namn">
                     {{ op.initialer }}
@@ -97,7 +97,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of attendanceStats">
+              <tr *ngFor="let s of attendanceStats; trackBy: trackByIndex">
                 <td>
                   <span class="badge me-2" style="background:#4a5568;font-size:0.7rem">{{ s.initialer }}</span>
                   {{ s.namn }}

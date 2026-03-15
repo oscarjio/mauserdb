@@ -24,7 +24,7 @@
   <!-- ============================================== -->
   <div class="row g-3 mb-4">
     <ng-container *ngIf="!loadingDaglig && dagligData; else laddaDaglig">
-      <div class="col-12 col-md-4" *ngFor="let s of dagligData!.skift">
+      <div class="col-12 col-md-4" *ngFor="let s of dagligData!.skift; trackBy: trackByIndex">
         <div class="skift-card">
           <div class="skift-card-header" [style.border-left-color]="skiftFarg(s.skift)">
             <i [class]="skiftIkon(s.skift) + ' me-2'" [style.color]="skiftFarg(s.skift)"></i>
@@ -73,7 +73,7 @@
             <div class="mt-3" *ngIf="s.top_kassationsorsaker && s.top_kassationsorsaker.length > 0">
               <div class="skift-metric-label mb-1">Top kassationsorsaker</div>
               <div class="kassationsorsak-lista">
-                <div class="kassationsorsak-rad" *ngFor="let k of s.top_kassationsorsaker; let i = index">
+                <div class="kassationsorsak-rad" *ngFor="let k of s.top_kassationsorsaker; let i = index; trackBy: trackByIndex">
                   <span class="kassationsorsak-nr">{{ i + 1 }}.</span>
                   <span class="kassationsorsak-namn">{{ k.orsak }}</span>
                   <span class="kassationsorsak-antal">{{ k.antal }} st</span>
@@ -177,7 +177,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let dag of veckoData!.dagar">
+                <tr *ngFor="let dag of veckoData!.dagar; trackBy: trackByIndex">
                   <td>
                     <strong>{{ dag.veckodag }}</strong>
                     <span class="text-muted small ms-1">{{ dag.datum }}</span>

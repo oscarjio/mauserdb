@@ -227,4 +227,5 @@ export class StatistikCykeltidOperatorComponent implements OnInit, OnDestroy {
     this.exportFeedback = true;
     setTimeout(() => this.exportFeedback = false, 2000);
   }
+  trackByIndex(index: number): number { return index; }
 }

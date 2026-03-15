@@ -333,4 +333,5 @@ export class ForstaTimmeAnalysPage implements OnInit, OnDestroy {
   get harTrendData(): boolean {
     return this.trendData.length > 0;
   }
+  trackByIndex(index: number): number { return index; }
 }

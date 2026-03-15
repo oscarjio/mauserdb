@@ -170,4 +170,5 @@ export class GamificationPage implements OnInit, OnDestroy {
       }
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

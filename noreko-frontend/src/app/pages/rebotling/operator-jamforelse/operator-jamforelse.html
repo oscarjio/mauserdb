@@ -38,7 +38,7 @@
             Kunde inte hämta operatörer.
           </div>
 
-          <div *ngFor="let op of alleOperatorer"
+          <div *ngFor="let op of alleOperatorer; trackBy: trackByIndex"
                class="px-3 py-2 d-flex align-items-center gap-2 dropdown-operator-item"
                [class.opacity-50]="!isVald(op.id) && valdaIds.size >= 3"
                style="cursor:pointer;"
@@ -63,7 +63,7 @@
     <div class="col-md-4 col-lg-3">
       <label class="form-label text-muted small mb-1">Period</label>
       <div class="btn-group w-100" role="group">
-        <button *ngFor="let opt of periodOptions"
+        <button *ngFor="let opt of periodOptions; trackBy: trackByIndex"
                 type="button"
                 class="btn btn-sm"
                 [class.btn-primary]="period === opt.val"
@@ -90,7 +90,7 @@
   <div class="row mb-4" *ngIf="valdaLista.length > 0">
     <div class="col-12">
       <div class="d-flex flex-wrap gap-2">
-        <span *ngFor="let op of valdaLista; let i = index"
+        <span *ngFor="let op of valdaLista; let i = index; trackBy: trackByIndex"
               class="badge px-3 py-2"
               [style.background-color]="operatorFarg(i) + '33'"
               [style.border]="'1px solid ' + operatorFarg(i)"
@@ -141,7 +141,7 @@
               <thead>
                 <tr style="border-bottom:1px solid #4a5568;">
                   <th style="background:#1a202c; color:#a0aec0; padding:12px 16px; width:180px;">KPI</th>
-                  <th *ngFor="let op of compareData; let i = index"
+                  <th *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="background:#1a202c; padding:12px 16px; text-align:center;">
                     <span [style.color]="operatorFarg(i)" class="fw-semibold">{{ op.namn }}</span>
                   </th>
@@ -153,7 +153,7 @@
                   <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
                     <i class="fas fa-box me-2" style="color:#4299e1;"></i>Totalt IBC
                   </td>
-                  <td *ngFor="let op of compareData; let i = index"
+                  <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
                       [class.fw-bold]="bestOperatorFor('totalt_ibc') === i"
                       [style.color]="bestOperatorFor('totalt_ibc') === i ? operatorFarg(i) : '#e2e8f0'">
@@ -166,7 +166,7 @@
                   <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
                     <i class="fas fa-tachometer-alt me-2" style="color:#48bb78;"></i>IBC per timme
                   </td>
-                  <td *ngFor="let op of compareData; let i = index"
+                  <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
                       [class.fw-bold]="bestOperatorFor('ibc_per_h') === i"
                       [style.color]="bestOperatorFor('ibc_per_h') === i ? operatorFarg(i) : '#e2e8f0'">
@@ -179,7 +179,7 @@
                   <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
                     <i class="fas fa-star me-2" style="color:#ecc94b;"></i>Kvalitetsgrad
                   </td>
-                  <td *ngFor="let op of compareData; let i = index"
+                  <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
                       [class.fw-bold]="bestOperatorFor('kvalitetsgrad') === i"
                       [style.color]="bestOperatorFor('kvalitetsgrad') === i ? operatorFarg(i) : '#e2e8f0'">
@@ -192,7 +192,7 @@
                   <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
                     <i class="fas fa-stop-circle me-2" style="color:#fc8181;"></i>Antal stopp
                   </td>
-                  <td *ngFor="let op of compareData; let i = index"
+                  <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
                       [class.fw-bold]="bestOperatorFor('antal_stopp') === i"
                       [style.color]="bestOperatorFor('antal_stopp') === i ? operatorFarg(i) : '#e2e8f0'">
@@ -205,7 +205,7 @@
                   <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
                     <i class="fas fa-clock me-2" style="color:#ed8936;"></i>Total stopptid
                   </td>
-                  <td *ngFor="let op of compareData; let i = index"
+                  <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
                       [class.fw-bold]="bestOperatorFor('total_stopptid_min') === i"
                       [style.color]="bestOperatorFor('total_stopptid_min') === i ? operatorFarg(i) : '#e2e8f0'">
@@ -218,7 +218,7 @@
                   <td style="padding:10px 16px; color:#a0aec0; font-size:0.875rem;">
                     <i class="fas fa-business-time me-2" style="color:#9f7aea;"></i>Aktiva timmar
                   </td>
-                  <td *ngFor="let op of compareData; let i = index"
+                  <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
                       [class.fw-bold]="bestOperatorFor('aktiva_timmar') === i"
                       [style.color]="bestOperatorFor('aktiva_timmar') === i ? operatorFarg(i) : '#e2e8f0'">

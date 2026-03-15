@@ -6,7 +6,7 @@
     <div class="d-flex align-items-center gap-2">
       <label class="text-light me-1 mb-0">Period:</label>
       <select class="form-select form-select-sm period-select" [(ngModel)]="period" (ngModelChange)="onPeriodChange()">
-        <option *ngFor="let p of periodOptions" [value]="p">{{ p }} dagar</option>
+        <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p">{{ p }} dagar</option>
       </select>
     </div>
   </div>
@@ -67,7 +67,7 @@
     <!-- Station checkboxar -->
     <div class="station-checkboxes mb-3" *ngIf="trendData?.series?.length">
       <span class="me-2 text-muted small">Stationer:</span>
-      <div class="form-check form-check-inline" *ngFor="let s of trendData!.series; let i = index">
+      <div class="form-check form-check-inline" *ngFor="let s of trendData!.series; let i = index; trackBy: trackByIndex">
         <input class="form-check-input" type="checkbox" [id]="'st_' + s.station_id"
                [(ngModel)]="stationChecked[s.station_id]" (change)="onStationToggle()">
         <label class="form-check-label station-label" [for]="'st_' + s.station_id"
@@ -117,7 +117,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let op of sortedOperators">
+              <tr *ngFor="let op of sortedOperators; trackBy: trackByIndex">
                 <td>{{ op.op_namn }}</td>
                 <td class="text-end">{{ op.total }}</td>
                 <td class="text-end">{{ op.kasserade }}</td>
@@ -176,7 +176,7 @@
             <span class="badge bg-warning text-dark">{{ alarmData.warning_count }} varningar</span>
           </div>
           <div class="alarm-list" *ngIf="alarmData.alarms.length > 0">
-            <div class="alarm-item" *ngFor="let a of alarmData.alarms"
+            <div class="alarm-item" *ngFor="let a of alarmData.alarms; trackBy: trackByIndex"
                  [class.alarm-critical]="a.niva === 'kritisk'"
                  [class.alarm-warning]="a.niva === 'varning'">
               <div class="d-flex justify-content-between align-items-center">
@@ -215,13 +215,13 @@
         <thead>
           <tr>
             <th class="heatmap-header-station">Station</th>
-            <th *ngFor="let w of heatmapData.weeks" class="text-center heatmap-header">{{ w.label }}</th>
+            <th *ngFor="let w of heatmapData.weeks; trackBy: trackByIndex" class="text-center heatmap-header">{{ w.label }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of heatmapData.rows">
+          <tr *ngFor="let row of heatmapData.rows; trackBy: trackByIndex">
             <td class="heatmap-station-name">{{ row.station }}</td>
-            <td *ngFor="let cell of row.cells; let j = index" class="text-center heatmap-cell"
+            <td *ngFor="let cell of row.cells; let j = index; trackBy: trackByIndex" class="text-center heatmap-cell"
                 [style.backgroundColor]="getHeatmapColor(cell)"
                 [style.color]="getHeatmapTextColor(cell)"
                 [title]="cell !== null ? row.station + ' ' + heatmapData!.weeks[j].label + ': ' + cell + '%' : 'Inga data'">

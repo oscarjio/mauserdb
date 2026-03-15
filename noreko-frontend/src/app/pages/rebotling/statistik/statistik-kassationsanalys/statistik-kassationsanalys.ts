@@ -279,4 +279,5 @@ export class StatistikKassationsanalysComponent implements OnInit, OnDestroy {
     if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
     return d;
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -15,7 +15,7 @@
       <label class="filter-label">Period</label>
       <div class="btn-group">
         <button
-          *ngFor="let d of dayOptions"
+          *ngFor="let d of dayOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="days === d"
           [class.btn-outline-secondary]="days !== d"
@@ -41,7 +41,7 @@
       <label class="filter-label">Larmtyp</label>
       <select class="form-select form-select-sm" [(ngModel)]="filterTyp" (change)="onFilterChange()">
         <option value="all">Alla typer</option>
-        <option *ngFor="let t of typOptionsForFilter" [value]="t">{{ t }}</option>
+        <option *ngFor="let t of typOptionsForFilter; trackBy: trackByIndex" [value]="t">{{ t }}</option>
       </select>
     </div>
   </div>
@@ -152,7 +152,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let alarm of alarms" [class.row-critical]="alarm.severity === 'critical'" [class.row-warning]="alarm.severity === 'warning'">
+          <tr *ngFor="let alarm of alarms; trackBy: trackByIndex" [class.row-critical]="alarm.severity === 'critical'" [class.row-warning]="alarm.severity === 'warning'">
             <td class="td-datum">{{ formatDatum(alarm.datum) }}</td>
             <td class="td-tid">{{ formatTid(alarm.tid) }}</td>
             <td class="td-typ">{{ alarm.typ }}</td>
@@ -187,7 +187,7 @@
       <i class="fas fa-tags me-2 text-info"></i>Fordelning per typ
     </h2>
     <div class="typ-grid">
-      <div class="typ-card" *ngFor="let entry of summary.per_typ | keyvalue">
+      <div class="typ-card" *ngFor="let entry of summary.per_typ | keyvalue; trackBy: trackByIndex">
         <div class="typ-name">{{ entry.key }}</div>
         <div class="typ-count">{{ entry.value }}</div>
         <div class="typ-bar">

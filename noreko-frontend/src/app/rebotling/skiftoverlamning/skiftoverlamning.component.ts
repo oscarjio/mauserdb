@@ -244,4 +244,5 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
     if (!text) return '--';
     return text.length > len ? text.substring(0, len) + '...' : text;
   }
+  trackByIndex(index: number): number { return index; }
 }

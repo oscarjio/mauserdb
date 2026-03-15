@@ -262,7 +262,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of rapport.operatorer; let i = index">
+                <tr *ngFor="let op of rapport.operatorer; let i = index; trackBy: trackByIndex">
                   <td>
                     <span class="badge bg-secondary me-2">{{ i + 1 }}</span>{{ op.namn }}
                   </td>
@@ -340,7 +340,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of rapport.skiften">
+                <tr *ngFor="let s of rapport.skiften; trackBy: trackByIndex">
                   <td class="text-muted small">{{ s.skiftraknare }}</td>
                   <td class="small">{{ s.skift_start }}</td>
                   <td class="small">{{ s.skift_slut }}</td>
@@ -442,7 +442,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let dag of veckoDagar">
+                <tr *ngFor="let dag of veckoDagar; trackBy: trackByIndex">
                   <td class="small">{{ formatDatumSv(dag.dag) }}</td>
                   <td class="text-center fw-bold text-success">{{ dag.ibc_ok }}</td>
                   <td class="text-center text-danger">{{ dag.ibc_ej_ok }}</td>

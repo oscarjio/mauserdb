@@ -244,4 +244,5 @@ export class HeatmapPage implements OnInit, OnDestroy {
     if (this.dates.length <= 31) return index % 3 === 0;
     return index % 7 === 0;
   }
+  trackByIndex(index: number): number { return index; }
 }

@@ -93,7 +93,7 @@
 
   <!-- KPI loading -->
   <div class="row g-3 mb-4" *ngIf="loadingKpi">
-    <div class="col-md-3 col-sm-6" *ngFor="let i of [1,2,3,4]">
+    <div class="col-md-3 col-sm-6" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex">
       <div class="kpi-card skeleton-card">
         <div class="skeleton-text w-50 mb-2"></div>
         <div class="skeleton-text w-75 mb-1" style="height:28px"></div>

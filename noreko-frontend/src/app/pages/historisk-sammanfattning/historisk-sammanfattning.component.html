@@ -21,14 +21,14 @@
         <label class="form-label small text-muted">Typ</label>
         <select class="form-select form-select-sm bg-dark text-light border-secondary"
                 [(ngModel)]="selectedTyp" (ngModelChange)="onTypChange()">
-          <option *ngFor="let t of typOptions" [value]="t.value">{{ t.label }}</option>
+          <option *ngFor="let t of typOptions; trackBy: trackByIndex" [value]="t.value">{{ t.label }}</option>
         </select>
       </div>
       <div class="col-md-3 col-sm-6 mb-2">
         <label class="form-label small text-muted">Period</label>
         <select class="form-select form-select-sm bg-dark text-light border-secondary"
                 [(ngModel)]="selectedPeriod" (ngModelChange)="onPeriodChange()">
-          <option *ngFor="let p of periodOptions" [value]="p.value">{{ p.label }}</option>
+          <option *ngFor="let p of periodOptions; trackBy: trackByIndex" [value]="p.value">{{ p.label }}</option>
         </select>
       </div>
     </div>
@@ -165,7 +165,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let op of operatorer">
+                    <tr *ngFor="let op of operatorer; trackBy: trackByIndex">
                       <td>
                         <span class="rank-badge" [ngClass]="{
                           'rank-gold': op.rank === 1,
@@ -213,7 +213,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let st of stationer">
+                    <tr *ngFor="let st of stationer; trackBy: trackByIndex">
                       <td>{{ st.station_namn }}</td>
                       <td class="text-end">
                         <span class="badge" [ngClass]="{
@@ -266,7 +266,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let s of stopporsaker">
+                  <tr *ngFor="let s of stopporsaker; trackBy: trackByIndex">
                     <td>{{ s.orsak }}</td>
                     <td class="text-end">{{ s.antal }}</td>
                     <td class="text-end">{{ s.total_h }} h</td>

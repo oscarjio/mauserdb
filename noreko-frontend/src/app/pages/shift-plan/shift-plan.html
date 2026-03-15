@@ -19,7 +19,7 @@
       {{ staffingWarnings.length }} dag(ar) de närmaste 7 dagarna har för få operatörer schemalagda
       (min {{ minOperators }} krävs).
       <div class="mt-1" style="font-size:0.85rem;">
-        <span *ngFor="let w of staffingWarnings; let last = last" class="me-2">
+        <span *ngFor="let w of staffingWarnings; let last = last; trackBy: trackByIndex" class="me-2">
           <strong>{{ w.dag_namn }} {{ w.datum }}</strong>
           ({{ w.underbemanning.length }} skift underbemanned)<span *ngIf="!last">,</span>
         </span>
@@ -80,13 +80,13 @@
       </div>
       <div class="week-summary-grid">
         <div class="week-summary-corner"></div>
-        <div *ngFor="let day of weekDays; let i = index" class="week-summary-day-header" [class.ws-today]="isToday(day)">
+        <div *ngFor="let day of weekDays; let i = index; trackBy: trackByIndex" class="week-summary-day-header" [class.ws-today]="isToday(day)">
           {{ dayNames[i] }} {{ day | date:'d/M' }}
         </div>
-        <ng-container *ngFor="let skift of skifts">
+        <ng-container *ngFor="let skift of skifts; trackBy: trackByIndex">
           <div class="week-summary-skift-label">{{ skift.label }} ({{ skift.time }})</div>
           <div
-            *ngFor="let day of weekDays"
+            *ngFor="let day of weekDays; trackBy: trackByIndex"
             class="week-summary-cell"
             [class.staffing-ok]="getStaffingClass(formatDate(day), skift.nr) === 'staffing-ok'"
             [class.staffing-warning]="getStaffingClass(formatDate(day), skift.nr) === 'staffing-warning'"
@@ -125,7 +125,7 @@
           <tr>
             <th class="th-skift" scope="col"></th>
             <th
-              *ngFor="let day of weekDays; let i = index"
+              *ngFor="let day of weekDays; let i = index; trackBy: trackByIndex"
               class="th-day"
               [class.th-today]="isToday(day)"
               [class.th-weekend]="isWeekend(i)"
@@ -139,7 +139,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let skift of skifts">
+          <tr *ngFor="let skift of skifts; trackBy: trackByIndex">
             <!-- Skiftlabel -->
             <td class="td-skift-label">
               <div class="skift-label-text">{{ skift.label }}</div>
@@ -148,7 +148,7 @@
 
             <!-- En cell per dag -->
             <td
-              *ngFor="let day of weekDays; let i = index"
+              *ngFor="let day of weekDays; let i = index; trackBy: trackByIndex"
               class="td-cell"
               [class.td-weekend]="isWeekend(i)"
               [class.td-today]="isToday(day)"
@@ -158,7 +158,7 @@
               <!-- Tilldelade operatörer -->
               <div class="chip-list">
                 <div
-                  *ngFor="let entry of getShiftEntries(formatDate(day), skift.nr)"
+                  *ngFor="let entry of getShiftEntries(formatDate(day), skift.nr); trackBy: trackByIndex"
                   class="op-chip"
                   [style.background-color]="getAvatarColor(entry.op_name)"
                   [title]="entry.op_name + (entry.note ? ' — ' + entry.note : '')"
@@ -195,7 +195,7 @@
                     Alla aktiva operatörer är redan inlagda.
                   </div>
                   <button
-                    *ngFor="let op of availableOperators"
+                    *ngFor="let op of availableOperators; trackBy: trackByIndex"
                     class="op-select-btn"
                     (click)="assignOperator(op)"
                   >
@@ -277,7 +277,7 @@
         <thead>
           <tr>
             <th class="wv-th-dag" scope="col">Dag</th>
-            <th class="wv-th-skift" *ngFor="let s of [1,2,3]" scope="col">
+            <th class="wv-th-skift" *ngFor="let s of [1,2,3]; trackBy: trackByIndex" scope="col">
               <div class="wv-skift-header">
                 <span class="wv-skift-nr">Skift {{ s }}</span>
                 <span class="wv-skift-tid">
@@ -289,7 +289,7 @@
         </thead>
         <tbody>
           <tr
-            *ngFor="let datum of weekViewDates"
+            *ngFor="let datum of weekViewDates; trackBy: trackByIndex"
             [class.wv-row-weekend]="isWeekendDatum(datum)"
             [class.wv-row-today]="isTodayStr(datum)"
           >
@@ -303,7 +303,7 @@
             </td>
 
             <!-- Skift 1, 2, 3 -->
-            <td *ngFor="let skiftNr of [1, 2, 3]" class="wv-td-skift">
+            <td *ngFor="let skiftNr of [1, 2, 3]; trackBy: trackByIndex" class="wv-td-skift">
               <ng-container *ngIf="getSlot(datum, skiftNr) as slot">
 
                 <!-- Planerat-rad -->
@@ -311,7 +311,7 @@
                   <div class="wv-section-label">Planerat</div>
                   <div class="wv-badge-row">
                     <div
-                      *ngFor="let op of slot.planerade_ops"
+                      *ngFor="let op of slot.planerade_ops; trackBy: trackByIndex"
                       class="wv-op-badge"
                       [class.badge-matched]="isOpFactual(slot, op.op_number)"
                       [class.badge-absent]="!isOpFactual(slot, op.op_number)"
@@ -340,7 +340,7 @@
                   <div class="wv-section-label wv-label-faktisk">Oplanerade</div>
                   <div class="wv-badge-row">
                     <div
-                      *ngFor="let fop of getUnplannedOps(slot)"
+                      *ngFor="let fop of getUnplannedOps(slot); trackBy: trackByIndex"
                       class="wv-op-badge badge-unplanned"
                       [title]="fop.op_name + ' — Oplanerad närvaro'"
                     >
@@ -391,7 +391,7 @@
       </div>
       <div class="wv-op-grid">
         <button
-          *ngFor="let op of getAvailableOpsForSlot(assigningSlot)"
+          *ngFor="let op of getAvailableOpsForSlot(assigningSlot); trackBy: trackByIndex"
           class="wv-op-card"
           [class.selected]="assigningOpNumber === op.op_number"
           (click)="assigningOpNumber = op.op_number"

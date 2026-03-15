@@ -337,4 +337,5 @@ export class ProduktionseffektivitetPage implements OnInit, OnDestroy {
   get isLoading(): boolean {
     return this.loadingHeatmap || this.loadingSummary || this.loadingPeak;
   }
+  trackByIndex(index: number): number { return index; }
 }

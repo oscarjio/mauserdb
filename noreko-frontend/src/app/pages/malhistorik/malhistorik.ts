@@ -285,4 +285,5 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
   getAntalForsamringar(): number {
     return (this.impactData?.impact ?? []).filter(i => i.effekt === 'forsämring').length;
   }
+  trackByIndex(index: number): number { return index; }
 }

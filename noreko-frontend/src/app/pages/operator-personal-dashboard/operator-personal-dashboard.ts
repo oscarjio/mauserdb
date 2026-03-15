@@ -366,4 +366,5 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   get harVeckotrendData(): boolean {
     return !!(this.veckotrend && this.veckotrend.values.some(v => v > 0));
   }
+  trackByIndex(index: number): number { return index; }
 }

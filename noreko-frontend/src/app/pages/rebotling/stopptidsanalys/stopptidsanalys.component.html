@@ -8,7 +8,7 @@
     <div class="d-flex align-items-center gap-2 flex-wrap">
       <span class="text-muted small me-1">Period:</span>
       <div class="btn-group btn-group-sm">
-        <button *ngFor="let p of periodOptions"
+        <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn"
                 [class.btn-info]="period === p.key"
                 [class.btn-outline-secondary]="period !== p.key"
@@ -131,7 +131,7 @@
       </h5>
       <!-- Maskin-checkboxar -->
       <div class="d-flex flex-wrap gap-2" *ngIf="trendData?.series?.length">
-        <span *ngFor="let s of trendData!.series; let i = index"
+        <span *ngFor="let s of trendData!.series; let i = index; trackBy: trackByIndex"
               class="trend-badge"
               [class.trend-badge-active]="isTrendMaskinSelected(s.maskin_id)"
               [style.border-color]="getMaskinColor(i)"
@@ -174,7 +174,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let m of perMaskinData!.maskiner; let i = index">
+          <tr *ngFor="let m of perMaskinData!.maskiner; let i = index; trackBy: trackByIndex">
             <td>
               <span class="color-dot" [style.background]="getMaskinColor(i)"></span>
               {{ m.maskin_namn }}
@@ -223,7 +223,7 @@
                 [(ngModel)]="maskinFilter"
                 (change)="onMaskinFilterChange()">
           <option [value]="0">Alla maskiner</option>
-          <option *ngFor="let m of allaMaskiner" [value]="m.id">{{ m.namn }}</option>
+          <option *ngFor="let m of allaMaskiner; trackBy: trackByIndex" [value]="m.id">{{ m.namn }}</option>
         </select>
       </div>
     </div>
@@ -251,7 +251,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of sortedStopp">
+          <tr *ngFor="let s of sortedStopp; trackBy: trackByIndex">
             <td class="text-nowrap">{{ s.startad_at | date:'yyyy-MM-dd HH:mm' }}</td>
             <td>{{ s.maskin_namn }}</td>
             <td class="text-end fw-bold" style="color:#63b3ed">{{ formatMin(s.duration_min) }}</td>

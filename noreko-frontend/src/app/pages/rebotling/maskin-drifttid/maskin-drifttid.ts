@@ -256,4 +256,5 @@ export class MaskinDrifttidPage implements OnInit, OnDestroy {
   trackByTimme(_index: number, cell: HeatmapCell): number {
     return cell.timme;
   }
+  trackByIndex(index: number): number { return index; }
 }

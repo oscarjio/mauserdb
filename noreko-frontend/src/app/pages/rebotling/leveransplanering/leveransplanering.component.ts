@@ -426,4 +426,5 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       },
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

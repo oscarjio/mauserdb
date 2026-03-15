@@ -75,25 +75,25 @@
         <thead>
           <tr>
             <th class="skift-col">Skift</th>
-            <th *ngFor="let d of dagar" [class.today-col]="isToday(d.datum)">
+            <th *ngFor="let d of dagar; trackBy: trackByIndex" [class.today-col]="isToday(d.datum)">
               {{ d.dag_namn }}<br>
               <small>{{ d.datum | date:'MM-dd' }}</small>
             </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of schema">
+          <tr *ngFor="let row of schema; trackBy: trackByIndex">
             <td class="skift-col">
               <strong>{{ skiftLabel(row.skift_typ) }}</strong>
               <br><small class="text-muted">Min: {{ row.min_bemanning }} / Max: {{ row.max_bemanning }}</small>
             </td>
-            <td *ngFor="let dag of row.dagar"
+            <td *ngFor="let dag of row.dagar; trackBy: trackByIndex"
                 [class]="cellStatusClass(dag.status)"
                 [class.today-col]="isToday(dag.datum)"
                 class="schedule-cell"
                 (click)="openShiftDetail(row.skift_typ, dag.datum)">
               <div class="cell-operators">
-                <span class="operator-tag" *ngFor="let op of dag.operatorer">
+                <span class="operator-tag" *ngFor="let op of dag.operatorer; trackBy: trackByIndex">
                   {{ op.namn }}
                 </span>
               </div>
@@ -204,7 +204,7 @@
           </div>
           <div class="list-group list-group-flush" *ngIf="shiftDetail.operatorer.length > 0">
             <div class="list-group-item d-flex justify-content-between align-items-center"
-                 *ngFor="let op of shiftDetail.operatorer">
+                 *ngFor="let op of shiftDetail.operatorer; trackBy: trackByIndex">
               <span>
                 <i class="fas fa-user me-2 text-info"></i>{{ op.namn }}
               </span>
@@ -244,7 +244,7 @@
         <label class="form-label">Välj operatör</label>
         <select class="form-select dark-input" [(ngModel)]="assignOperatorId" name="assignOp">
           <option [ngValue]="0" disabled>-- Välj operatör --</option>
-          <option *ngFor="let op of getAvailableOperators()" [ngValue]="op.id">
+          <option *ngFor="let op of getAvailableOperators(); trackBy: trackByIndex" [ngValue]="op.id">
             {{ op.namn }}
           </option>
         </select>

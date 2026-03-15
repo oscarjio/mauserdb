@@ -105,7 +105,7 @@
 
       <!-- Operatörskort-grid -->
       <div class="op-cards-grid" *ngIf="!opStatsLoading && filteredStats.length > 0">
-        <ng-container *ngFor="let s of filteredStats; let i = index">
+        <ng-container *ngFor="let s of filteredStats; let i = index; trackBy: trackByIndex">
           <!-- Operatörskortet -->
           <div class="op-card" [class.op-card--expanded]="expandedStatId === s.id"
                [class.op-card--inactive]="s.active == 0">
@@ -234,7 +234,7 @@
       </div>
 
       <div class="pairs-grid" *ngIf="!pairsLoading && pairsData.length > 0">
-        <div class="pair-card" *ngFor="let pair of pairsData; let i = index">
+        <div class="pair-card" *ngFor="let pair of pairsData; let i = index; trackBy: trackByIndex">
           <div class="pair-rank">#{{ i + 1 }}</div>
           <div class="pair-names">
             <span class="pair-avatar" [style.background]="getAvatarColor(pair.op1_name)">
@@ -291,15 +291,15 @@
             <thead>
               <tr>
                 <th class="compat-corner" scope="col">Operator / Produkt</th>
-                <th *ngFor="let prod of compatProducts" class="compat-prod-header" scope="col">
+                <th *ngFor="let prod of compatProducts; trackBy: trackByIndex" class="compat-prod-header" scope="col">
                   {{ prod.namn }}
                 </th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let op of compatOperators">
+              <tr *ngFor="let op of compatOperators; trackBy: trackByIndex">
                 <td class="compat-op-name">{{ op.namn }}</td>
-                <td *ngFor="let prod of compatProducts"
+                <td *ngFor="let prod of compatProducts; trackBy: trackByIndex"
                     class="compat-cell"
                     [style.background]="getCompatCellColor(op.id, prod.id)"
                     [title]="getCompatTooltip(op.id, prod.id)">
@@ -361,7 +361,7 @@
             </tr>
           </thead>
           <tbody>
-            <ng-container *ngFor="let op of filteredOperators">
+            <ng-container *ngFor="let op of filteredOperators; trackBy: trackByIndex">
               <tr [class.inactive-row]="op.active === 0 || op.active === '0'">
                 <td><strong>{{ op.name }}</strong></td>
                 <td><span class="badge bg-info text-dark">#{{ op.number }}</span></td>

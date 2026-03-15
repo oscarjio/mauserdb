@@ -14,7 +14,7 @@
       <label class="filter-label">Period</label>
       <div class="btn-group">
         <button
-          *ngFor="let opt of periodOptions"
+          *ngFor="let opt of periodOptions; trackBy: trackByIndex"
           class="btn btn-sm"
           [class.btn-primary]="period === opt.val"
           [class.btn-outline-secondary]="period !== opt.val"
@@ -108,7 +108,7 @@
           </tr>
         </thead>
         <tbody>
-          <ng-container *ngFor="let op of operatorer; let i = index">
+          <ng-container *ngFor="let op of operatorer; let i = index; trackBy: trackByIndex">
             <!-- Operatörsrad -->
             <tr class="op-row"
                 [class.op-expanded]="selectedOperator?.user_id === op.user_id"
@@ -203,7 +203,7 @@
                             </tr>
                           </thead>
                           <tbody>
-                            <tr *ngFor="let orsak of detailData.orsaker; let j = index">
+                            <tr *ngFor="let orsak of detailData.orsaker; let j = index; trackBy: trackByIndex">
                               <td>
                                 <span class="orsak-dot" [style.background]="orsakFarg(j)"></span>
                                 {{ orsak.orsak }}
@@ -270,7 +270,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let orsak of reasonsSummary!.orsaker; let i = index">
+            <tr *ngFor="let orsak of reasonsSummary!.orsaker; let i = index; trackBy: trackByIndex">
               <td class="td-rank-sm">{{ i + 1 }}</td>
               <td>
                 <span class="orsak-dot" [style.background]="orsakFarg(i)"></span>

@@ -18,7 +18,7 @@
 <h6 class="mt-3 mb-2" style="color:#a0aec0;"><i class="fas fa-trophy me-1" style="color:#ecc94b;"></i>Ranking (sorterad efter median, lagst = bast)</h6>
 <div class="table-responsive"><table class="table table-sm mb-0 cycle-op-table" style="color:#e2e8f0;font-size:0.85rem;">
 <thead><tr style="background:#1a202c;color:#a0aec0;"><th style="width:50px;" scope="col">Rank</th><th scope="col">Operator</th><th class="text-end" scope="col">Median (min)</th><th class="text-end" scope="col">Min (min)</th><th class="text-end" scope="col">Max (min)</th><th class="text-end" scope="col">Antal IBC</th><th class="text-end" scope="col">Stddev (min)</th></tr></thead>
-<tbody><tr *ngFor="let op of rankedData; let i = index" [class.best-operator]="i === 0" [style.background]="i === 0 ? 'rgba(72,187,120,0.12)' : ((op.vs_team_snitt ?? 0) <= 0 ? 'rgba(72,187,120,0.04)' : 'rgba(252,129,129,0.04)')">
+<tbody><tr *ngFor="let op of rankedData; let i = index; trackBy: trackByIndex" [class.best-operator]="i === 0" [style.background]="i === 0 ? 'rgba(72,187,120,0.12)' : ((op.vs_team_snitt ?? 0) <= 0 ? 'rgba(72,187,120,0.04)' : 'rgba(252,129,129,0.04)')">
 <td><span *ngIf="i === 0" class="badge" style="background:#48bb78;color:#1a202c;font-weight:700;">1</span><span *ngIf="i !== 0">{{ i + 1 }}</span></td>
 <td><span class="fw-semibold">{{ op.namn }}</span> <span class="text-muted ms-1 small">({{ op.initialer }})</span><span *ngIf="i === 0" class="ms-1" style="color:#48bb78;font-size:0.75rem;"><i class="fas fa-star"></i> Bast</span></td>
 <td class="text-end fw-bold"><span [style.color]="i === 0 ? '#48bb78' : ((op.vs_team_snitt ?? 0) <= 0 ? '#48bb78' : '#fc8181')">{{ op.median_min | number:'1.2-2' }}</span></td>

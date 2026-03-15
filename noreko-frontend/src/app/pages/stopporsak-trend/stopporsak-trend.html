@@ -23,7 +23,7 @@
     <div class="d-flex align-items-center gap-2 flex-wrap mt-3">
       <div class="period-selector">
         <button
-          *ngFor="let p of perioder"
+          *ngFor="let p of perioder; trackBy: trackByIndex"
           class="btn btn-sm period-btn"
           [class.active]="selectedWeeks === p.val"
           (click)="setPeriod(p.val)">
@@ -172,7 +172,7 @@
             <td class="text-center">
               <!-- Sparkline-prickar -->
               <div class="sparkline-mini">
-                <ng-container *ngFor="let val of getSparkdata(row); let i = index">
+                <ng-container *ngFor="let val of getSparkdata(row); let i = index; trackBy: trackByIndex">
                   <span class="spark-dot"
                         [ngClass]="getSparkDotKlass(val, row.current_avg)"
                         [title]="(val !== null ? val + ' stopp' : 'Ingen data')">
@@ -285,7 +285,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let rad of detailData.tidslinje">
+            <tr *ngFor="let rad of detailData.tidslinje; trackBy: trackByIndex">
               <td class="text-muted">{{ rad.week_label }}</td>
               <td class="text-center">
                 <span [class.text-warning]="rad.count > 0" [class.text-muted]="rad.count === 0">

@@ -79,7 +79,7 @@ import { MaintenanceFormComponent } from './components/maintenance-form.componen
 
   <!-- KPI skeleton om ej laddad -->
   <div class="row g-3 mb-4" *ngIf="!stats && isLoading">
-    <div class="col-6 col-md-3" *ngFor="let i of [1,2,3,4]">
+    <div class="col-6 col-md-3" *ngFor="let i of [1,2,3,4]; trackBy: trackByIndex">
       <div class="kpi-card kpi-skeleton"><div class="skeleton-box"></div></div>
     </div>
   </div>
@@ -386,4 +386,5 @@ export class MaintenanceLogPage implements OnInit, OnDestroy {
   onShowError(msg: string): void {
     this.errorMessage = msg;
   }
+  trackByIndex(index: number): number { return index; }
 }

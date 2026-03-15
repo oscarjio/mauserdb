@@ -9,7 +9,7 @@
       <span class="ka-title">Kassationsanalys</span>
     </div>
     <div class="btn-group btn-group-sm" role="group" aria-label="Periodselektor">
-      <button *ngFor="let d of dayOptions" type="button" class="btn btn-sm"
+      <button *ngFor="let d of dayOptions; trackBy: trackByIndex" type="button" class="btn btn-sm"
         [class.btn-danger]="days === d"
         [class.btn-outline-danger]="days !== d"
         (click)="onDaysChange(d)">{{ d }}d</button>
@@ -128,7 +128,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let o of orsaker" class="ka-orsak-row"
+          <tr *ngFor="let o of orsaker; trackBy: trackByIndex" class="ka-orsak-row"
             [class.ka-orsak-selected]="selectedCause?.id === o.id"
             (click)="selectCause(o)">
             <td class="ka-orsak-name">
@@ -231,7 +231,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let d of drilldown!.detaljer" class="ka-drill-row">
+            <tr *ngFor="let d of drilldown!.detaljer; trackBy: trackByIndex" class="ka-drill-row">
               <td>{{ d.datum }}</td>
               <td class="text-end fw-bold text-warning">{{ d.antal }}</td>
               <td style="color:#a0aec0;">{{ d.skiftraknare ?? '–' }}</td>

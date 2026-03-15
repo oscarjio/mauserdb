@@ -20,7 +20,7 @@
             <span class="text-muted small">Period:</span>
             <div class="btn-group" role="group">
               <button
-                *ngFor="let p of periodOptions"
+                *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn btn-sm"
                 [class.btn-warning]="weeks === p"
                 [class.btn-outline-secondary]="weeks !== p"
@@ -134,7 +134,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let item of changesData.andringar"
+                <tr *ngFor="let item of changesData.andringar; trackBy: trackByIndex"
                     [class.row-guld]="item.rank_nu === 1"
                     [class.row-silver]="item.rank_nu === 2"
                     [class.row-brons]="item.rank_nu === 3">
@@ -222,7 +222,7 @@
                       [(ngModel)]="h2hOp1Id"
                       (change)="onH2HChange()">
                 <option [value]="null">Välj operatör...</option>
-                <option *ngFor="let op of getAllaOperatorer()" [value]="op.operator_id">
+                <option *ngFor="let op of getAllaOperatorer(); trackBy: trackByIndex" [value]="op.operator_id">
                   {{ op.operator_namn }}
                 </option>
               </select>
@@ -236,7 +236,7 @@
                       [(ngModel)]="h2hOp2Id"
                       (change)="onH2HChange()">
                 <option [value]="null">Välj operatör...</option>
-                <option *ngFor="let op of getAllaOperatorer()" [value]="op.operator_id">
+                <option *ngFor="let op of getAllaOperatorer(); trackBy: trackByIndex" [value]="op.operator_id">
                   {{ op.operator_namn }}
                 </option>
               </select>
@@ -295,7 +295,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of streakData.streaks">
+                <tr *ngFor="let s of streakData.streaks; trackBy: trackByIndex">
                   <td>
                     <span class="op-namn">{{ s.operator_namn }}</span>
                   </td>
@@ -320,7 +320,7 @@
                   <td>
                     <div class="seq-dots">
                       <span
-                        *ngFor="let rank of s.rankningssekvens; let i = index"
+                        *ngFor="let rank of s.rankningssekvens; let i = index; trackBy: trackByIndex"
                         class="seq-dot"
                         [class.seq-dot-top]="rank === 1"
                         [class.seq-dot-high]="rank !== null && rank >= 2 && rank <= 3"

@@ -208,7 +208,7 @@
     <div class="notes-list" *ngIf="filteredNotes.length > 0">
       <div
         class="note-card"
-        *ngFor="let note of filteredNotes"
+        *ngFor="let note of filteredNotes; trackBy: trackByIndex"
         [class]="priorityClass(note.priority)"
         [class.note-acknowledged]="note.acknowledged_at !== null"
       >

@@ -179,4 +179,5 @@ export class VpnAdminPage implements OnInit, OnDestroy {
   getStatusText(connected: boolean): string {
     return connected ? 'Ansluten' : 'Frånkopplad';
   }
+  trackByIndex(index: number): number { return index; }
 }

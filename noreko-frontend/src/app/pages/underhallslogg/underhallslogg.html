@@ -91,7 +91,7 @@
               <label class="form-label-dark">Station</label>
               <select class="form-control-dark" [(ngModel)]="formStationId">
                 <option [ngValue]="0">-- Valj station --</option>
-                <option *ngFor="let s of stationer" [ngValue]="s.id">{{ s.namn }}</option>
+                <option *ngFor="let s of stationer; trackBy: trackByIndex" [ngValue]="s.id">{{ s.namn }}</option>
               </select>
             </div>
 
@@ -176,7 +176,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let s of perStation">
+                <tr *ngFor="let s of perStation; trackBy: trackByIndex">
                   <td class="fw-500">{{ s.station_namn }}</td>
                   <td class="text-end">{{ s.antal }}</td>
                   <td class="text-end">{{ formatTid(s.total_tid) }}</td>
@@ -217,7 +217,7 @@
 
           <select class="filter-select" [(ngModel)]="filterStation" (change)="onFilterChange()">
             <option [ngValue]="0">Alla stationer</option>
-            <option *ngFor="let s of stationer" [ngValue]="s.id">{{ s.namn }}</option>
+            <option *ngFor="let s of stationer; trackBy: trackByIndex" [ngValue]="s.id">{{ s.namn }}</option>
           </select>
 
           <select class="filter-select" [(ngModel)]="filterTyp" (change)="onFilterChange()">
@@ -259,7 +259,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let post of items">
+                <tr *ngFor="let post of items; trackBy: trackByIndex">
                   <td class="td-datum">{{ formatDatum(post.datum) }}</td>
                   <td class="fw-500">{{ post.station_namn }}</td>
                   <td>
@@ -308,7 +308,7 @@
                 <label class="form-label-dark">Kategori</label>
                 <select class="form-control-dark" [(ngModel)]="legacyFormKategori">
                   <option value="">-- Valj kategori --</option>
-                  <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+                  <option *ngFor="let kat of kategorier; trackBy: trackByIndex" [value]="kat.namn">{{ kat.namn }}</option>
                 </select>
               </div>
 
@@ -408,7 +408,7 @@
           </select>
           <select class="filter-select" [(ngModel)]="legacyFilterCategory" (change)="onLegacyFilterChange()">
             <option value="all">Alla kategorier</option>
-            <option *ngFor="let kat of kategorier" [value]="kat.namn">{{ kat.namn }}</option>
+            <option *ngFor="let kat of kategorier; trackBy: trackByIndex" [value]="kat.namn">{{ kat.namn }}</option>
           </select>
         </div>
         <div class="card-dark-body">
@@ -434,7 +434,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let post of historik">
+                <tr *ngFor="let post of historik; trackBy: trackByIndex">
                   <td class="td-datum">{{ formatDatum(post.created_at) }}</td>
                   <td class="td-operator">{{ post.operator_namn || 'Okand' }}</td>
                   <td>{{ post.kategori }}</td>

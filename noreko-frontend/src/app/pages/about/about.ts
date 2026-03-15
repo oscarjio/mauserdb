@@ -29,4 +29,5 @@ export class AboutPage {
     { name: 'Såglinje', status: 'Konfigurerad — ej i drift', color: '#f59e0b' },
     { name: 'Klassificeringslinje', status: 'Konfigurerad — ej i drift', color: '#f59e0b' },
   ];
+  trackByIndex(index: number): number { return index; }
 }

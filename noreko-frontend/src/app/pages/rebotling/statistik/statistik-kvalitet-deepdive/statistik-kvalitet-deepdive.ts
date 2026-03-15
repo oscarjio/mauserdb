@@ -446,4 +446,5 @@ export class StatistikKvalitetDeepdiveComponent implements OnInit, OnDestroy {
       }
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

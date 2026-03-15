@@ -463,4 +463,10 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
     const ss = String(t.getSeconds()).padStart(2, '0');
     return `${hh}:${mm}:${ss}`;
   }
+
+  // trackBy-funktioner for ngFor-prestanda
+  trackByStation(_i: number, s: StationStatus): string { return s.station; }
+  trackByAlarm(_i: number, a: AlarmRad): string { return a.start_time; }
+  trackByIbc(_i: number, ibc: IbcRad): string { return ibc.datum; }
+  trackByIndex(index: number): number { return index; }
 }

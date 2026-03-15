@@ -13,14 +13,14 @@
                 [(ngModel)]="valdStation"
                 (change)="byttStation()">
           <option value="">Alla stationer</option>
-          <option *ngFor="let s of tillgangligaStationer" [value]="s.id">{{ s.namn }}</option>
+          <option *ngFor="let s of tillgangligaStationer; trackBy: trackByIndex" [value]="s.id">{{ s.namn }}</option>
         </select>
       </div>
       <!-- Periodselektor -->
       <div class="d-flex align-items-center gap-2">
         <label class="text-light mb-0 small">Period:</label>
         <div class="btn-group btn-group-sm">
-          <button *ngFor="let alt of dagarAlternativ"
+          <button *ngFor="let alt of dagarAlternativ; trackBy: trackByIndex"
                   class="btn"
                   [class.btn-info]="dagar === alt.varde"
                   [class.btn-outline-secondary]="dagar !== alt.varde"
@@ -205,7 +205,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let rad of detaljer?.detaljer">
+                <tr *ngFor="let rad of detaljer?.detaljer; trackBy: trackByIndex">
                   <td>
                     <span class="kps-station-dot"
                           [style.background]="stationFarg(rad.station_id)"></span>

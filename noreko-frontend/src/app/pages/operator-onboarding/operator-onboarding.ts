@@ -272,4 +272,5 @@ export class OperatorOnboardingPage implements OnInit, OnDestroy {
     if (pct >= 70) return '#ecc94b';
     return '#fc8181';
   }
+  trackByIndex(index: number): number { return index; }
 }

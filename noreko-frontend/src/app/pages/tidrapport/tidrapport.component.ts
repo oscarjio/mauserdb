@@ -277,4 +277,5 @@ export class TidrapportPage implements OnInit, OnDestroy {
       },
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

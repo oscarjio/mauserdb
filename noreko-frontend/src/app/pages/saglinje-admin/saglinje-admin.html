@@ -302,7 +302,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let goal of weekdayGoals">
+              <tr *ngFor="let goal of weekdayGoals; trackBy: trackByIndex">
                 <td class="fw-semibold">
                   <span class="badge me-2"
                     [style.background]="goal.weekday >= 5 ? '#4a5568' : '#2b4c7e'"

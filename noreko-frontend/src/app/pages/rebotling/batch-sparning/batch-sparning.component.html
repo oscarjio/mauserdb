@@ -107,7 +107,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let b of activeBatches" class="clickable-row" (click)="selectBatch(b.id)">
+            <tr *ngFor="let b of activeBatches; trackBy: trackByIndex" class="clickable-row" (click)="selectBatch(b.id)">
               <td class="fw-bold">{{ b.batch_nummer }}</td>
               <td><span [class]="statusBadgeClass(b.status)">{{ b.status_label }}</span></td>
               <td style="min-width:140px">
@@ -194,7 +194,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let b of historyBatches" class="clickable-row" (click)="selectBatch(b.id)">
+            <tr *ngFor="let b of historyBatches; trackBy: trackByIndex" class="clickable-row" (click)="selectBatch(b.id)">
               <td class="fw-bold">{{ b.batch_nummer }}</td>
               <td>{{ b.antal_klara }} / {{ b.planerat_antal }}</td>
               <td><span [class.text-danger]="b.antal_kasserade > 0">{{ b.antal_kasserade }}</span></td>
@@ -285,7 +285,7 @@
         <div class="mb-3" *ngIf="selectedBatchDetail.operatorer.length > 0">
           <h6 class="section-title"><i class="fas fa-users me-1"></i>Operatörer</h6>
           <div class="d-flex flex-wrap gap-2">
-            <span class="badge bg-info text-dark" *ngFor="let op of selectedBatchDetail.operatorer">
+            <span class="badge bg-info text-dark" *ngFor="let op of selectedBatchDetail.operatorer; trackBy: trackByIndex">
               {{ op.namn }} ({{ op.antal }} IBC)
             </span>
           </div>
@@ -306,7 +306,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let ibc of selectedBatchDetail.ibcer" [class.row-kasserad]="ibc.kasserad">
+                <tr *ngFor="let ibc of selectedBatchDetail.ibcer; trackBy: trackByIndex" [class.row-kasserad]="ibc.kasserad">
                   <td>{{ ibc.ibc_nummer || '-' }}</td>
                   <td>{{ ibc.startad | date:'HH:mm' }}</td>
                   <td>{{ ibc.klar ? (ibc.klar | date:'HH:mm') : '-' }}</td>

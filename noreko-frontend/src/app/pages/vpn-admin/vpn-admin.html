@@ -108,7 +108,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let client of clients">
+                <tr *ngFor="let client of clients; trackBy: trackByIndex">
                   <td>
                     <span [ngClass]="getStatusBadgeClass(client.connected)">
                       {{ getStatusText(client.connected) }}

@@ -6,7 +6,7 @@
     <div class="d-flex align-items-center gap-2">
       <label class="text-light me-1 mb-0">Period:</label>
       <div class="btn-group btn-group-sm">
-        <button *ngFor="let p of periodOptions"
+        <button *ngFor="let p of periodOptions; trackBy: trackByIndex"
                 class="btn"
                 [class.btn-info]="period === p"
                 [class.btn-outline-secondary]="period !== p"
@@ -89,7 +89,7 @@
       <i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Trend per orsak over tid
     </h5>
     <div class="orsak-checkbox-list mb-3">
-      <label *ngFor="let s of trendData.series; let i = index">
+      <label *ngFor="let s of trendData.series; let i = index; trackBy: trackByIndex">
         <input type="checkbox"
                [checked]="selectedTrendOrsaker.has(s.orsak_id)"
                (change)="toggleTrendOrsak(s.orsak_id)">
@@ -129,7 +129,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let op of operatorData.operators">
+          <tr *ngFor="let op of operatorData.operators; trackBy: trackByIndex">
             <td>{{ op.op_namn }}</td>
             <td class="text-end">{{ op.total }}</td>
             <td>{{ op.orsaker.length > 0 ? op.orsaker[0].orsak : '-' }}</td>
@@ -166,7 +166,7 @@
     </div>
 
     <div class="row g-3" *ngIf="shiftData.shifts.length > 0">
-      <div class="col-md-4" *ngFor="let shift of shiftData.shifts">
+      <div class="col-md-4" *ngFor="let shift of shiftData.shifts; trackBy: trackByIndex">
         <div class="detail-kpi" style="text-align:left; padding:1rem;">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="skift-badge"
@@ -178,7 +178,7 @@
             </span>
             <span class="text-muted small">{{ shift.total }} st</span>
           </div>
-          <div *ngFor="let o of shift.orsaker; let i = index" class="mb-1">
+          <div *ngFor="let o of shift.orsaker; let i = index; trackBy: trackByIndex" class="mb-1">
             <div class="d-flex justify-content-between small">
               <span>{{ o.orsak }}</span>
               <span>{{ o.antal }} ({{ o.andel }}%)</span>
@@ -256,7 +256,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let ev of drilldownData.events">
+            <tr *ngFor="let ev of drilldownData.events; trackBy: trackByIndex">
               <td>{{ ev.datum }}</td>
               <td>
                 <span class="skift-badge"

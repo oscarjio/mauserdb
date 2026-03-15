@@ -213,7 +213,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let dag of perSkiftData.dagar">
+              <tr *ngFor="let dag of perSkiftData.dagar; trackBy: trackByIndex">
                 <td class="text-light">{{ dag.datum }}</td>
                 <td class="text-center">
                   <ng-container *ngIf="dag.dag; else ingenData">
@@ -290,7 +290,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let h of historikData.historik">
+                  <tr *ngFor="let h of historikData.historik; trackBy: trackByIndex">
                     <td class="text-light">{{ h.datum }}</td>
                     <td>
                       <span [style.color]="skiftFarg(h.skift_namn)">
@@ -337,7 +337,7 @@
               <div class="mb-2 text-muted small">
                 Baserat pa {{ orsakerData.alarm_skift_antal }} skift med overskridna troskelvarden
               </div>
-              <div *ngFor="let o of orsakerData.orsaker; let i = index" class="orsak-row mb-2">
+              <div *ngFor="let o of orsakerData.orsaker; let i = index; trackBy: trackByIndex" class="orsak-row mb-2">
                 <div class="d-flex justify-content-between mb-1">
                   <span class="text-light">
                     <span class="badge bg-secondary me-2">{{ i + 1 }}</span>{{ o.orsak }}

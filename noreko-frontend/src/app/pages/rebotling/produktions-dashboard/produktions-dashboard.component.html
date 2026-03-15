@@ -214,7 +214,7 @@
           Inga registrerade stopp.
         </div>
         <div class="pd-alarm-list" *ngIf="!loadingAlarm && alarm.length > 0">
-          <div class="pd-alarm-rad" *ngFor="let a of alarm"
+          <div class="pd-alarm-rad" *ngFor="let a of alarm; trackBy: trackByAlarm"
                [class.pd-alarm-pagaende]="a.status === 'Pagaende'">
             <div class="pd-alarm-status">
               <span class="pd-alarm-dot"
@@ -264,7 +264,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of stationer">
+              <tr *ngFor="let s of stationer; trackBy: trackByStation">
                 <td class="pd-td-station">{{ s.station }}</td>
                 <td>
                   <span class="pd-status-badge"
@@ -298,7 +298,7 @@
           Inga IBC registrerade.
         </div>
         <div class="pd-ibc-list" *ngIf="!loadingIbc && senIbc.length > 0">
-          <div class="pd-ibc-rad" *ngFor="let ibc of senIbc">
+          <div class="pd-ibc-rad" *ngFor="let ibc of senIbc; trackBy: trackByIbc">
             <div class="pd-ibc-status-dot"
                  [style.background]="ibc.ok === 1 ? '#68d391' : '#fc8181'">
             </div>

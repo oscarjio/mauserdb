@@ -50,7 +50,7 @@
     </div>
     <div *ngIf="!loadingMtbf && !errorMtbf && mtbfStationer.length > 0">
       <div class="row g-3">
-        <div class="col-xl-3 col-lg-4 col-md-6" *ngFor="let station of mtbfStationer">
+        <div class="col-xl-3 col-lg-4 col-md-6" *ngFor="let station of mtbfStationer; trackBy: trackByIndex">
           <div class="mtbf-card" [style.border]="getRiskCardBorder(station.risk)">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div class="station-namn">{{ station.station_namn }}</div>
@@ -129,13 +129,13 @@
           <thead>
             <tr>
               <th class="station-header">Station</th>
-              <th *ngFor="let orsak of heatmapOrsaker" class="orsak-header">{{ orsak }}</th>
+              <th *ngFor="let orsak of heatmapOrsaker; trackBy: trackByIndex" class="orsak-header">{{ orsak }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of heatmapMatris">
+            <tr *ngFor="let row of heatmapMatris; trackBy: trackByIndex">
               <td class="station-cell">{{ row.station_namn }}</td>
-              <td *ngFor="let cell of row.celler"
+              <td *ngFor="let cell of row.celler; trackBy: trackByIndex"
                   class="heatmap-cell"
                   [style.backgroundColor]="getHeatmapColor(cell.antal)"
                   [style.color]="getHeatmapTextColor(cell.antal)"
@@ -190,7 +190,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let station of trendStationer">
+            <tr *ngFor="let station of trendStationer; trackBy: trackByIndex">
               <td>{{ station.station_namn }}</td>
               <td class="text-end">{{ station.totalt }}</td>
               <td class="text-end">{{ (station.totalt / (trendVeckonycklar.length || 1)).toFixed(1) }}</td>
@@ -234,7 +234,7 @@
 
       <!-- Lista -->
       <div class="rekom-list">
-        <div class="rekom-item" *ngFor="let r of rekommendationer"
+        <div class="rekom-item" *ngFor="let r of rekommendationer; trackBy: trackByIndex"
              [style.borderLeft]="'4px solid ' + getRekomBorderColor(r.typ)">
           <div class="d-flex align-items-start gap-3">
             <i [class]="getRekomIcon(r.typ)" [style.color]="getRekomIconColor(r.typ)" style="font-size:1.3rem;margin-top:2px"></i>

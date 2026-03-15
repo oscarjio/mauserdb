@@ -9,7 +9,7 @@
       <span class="pte-title">Effektivitet per produkttyp</span>
     </div>
     <div class="btn-group btn-group-sm" role="group" aria-label="Periodselektor">
-      <button *ngFor="let d of dayOptions" type="button" class="btn btn-sm"
+      <button *ngFor="let d of dayOptions; trackBy: trackByIndex" type="button" class="btn btn-sm"
         [class.btn-info]="days === d"
         [class.btn-outline-info]="days !== d"
         (click)="onDaysChange(d)">{{ d }}d</button>
@@ -28,7 +28,7 @@
   </div>
 
   <div *ngIf="!loadingSummary && produkter.length > 0" class="row g-3 mb-4">
-    <div *ngFor="let p of produkter" class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    <div *ngFor="let p of produkter; trackBy: trackByIndex" class="col-12 col-sm-6 col-lg-4 col-xl-3">
       <div class="pte-produkt-card">
         <div class="pte-produkt-name">
           <i class="fas fa-cube me-1" style="color: #63b3ed;"></i>
@@ -70,7 +70,7 @@
       <i class="fas fa-medal me-2" style="color: #ecc94b;"></i>Kvalitetsranking
     </div>
     <div class="pte-chart-wrap">
-      <div *ngFor="let p of kvalitetRanking" class="pte-ranking-row">
+      <div *ngFor="let p of kvalitetRanking; trackBy: trackByIndex" class="pte-ranking-row">
         <span class="pte-ranking-name">{{ p.produkt_namn }}</span>
         <div class="pte-ranking-bar-wrap">
           <div class="pte-ranking-bar"
@@ -139,11 +139,11 @@
     <div class="pte-chart-wrap">
       <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
         <select class="pte-comp-select" [(ngModel)]="compA" (ngModelChange)="loadComparison()">
-          <option *ngFor="let p of produkter" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
+          <option *ngFor="let p of produkter; trackBy: trackByIndex" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
         </select>
         <span class="pte-comp-vs">vs</span>
         <select class="pte-comp-select" [(ngModel)]="compB" (ngModelChange)="loadComparison()">
-          <option *ngFor="let p of produkter" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
+          <option *ngFor="let p of produkter; trackBy: trackByIndex" [ngValue]="p.produkt_id">{{ p.produkt_namn }}</option>
         </select>
       </div>
 

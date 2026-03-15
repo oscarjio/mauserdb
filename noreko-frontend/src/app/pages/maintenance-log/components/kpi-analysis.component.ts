@@ -16,7 +16,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
     <div class="filter-bar mb-3 d-flex align-items-center gap-3 flex-wrap">
       <label class="filter-label mb-0">Period:</label>
       <div class="d-flex gap-2 flex-wrap">
-        <button class="btn btn-sm" *ngFor="let d of kpiDayOptions"
+        <button class="btn btn-sm" *ngFor="let d of kpiDayOptions; trackBy: trackByIndex"
                 [class.btn-info]="kpiDays === d"
                 [class.btn-outline-secondary]="kpiDays !== d"
                 (click)="setKpiDays(d)">
@@ -55,7 +55,7 @@ import { SHARED_STYLES } from '../maintenance-log.helpers';
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let row of kpiRows">
+              <tr *ngFor="let row of kpiRows; trackBy: trackByIndex">
                 <td class="fw-semibold">{{ row.equipment }}</td>
                 <td class="text-end">
                   <span class="text-warning fw-bold">{{ row.antal_fel }}</span>
@@ -125,4 +125,5 @@ export class KpiAnalysisComponent implements OnDestroy {
     this.kpiDays = days;
     this.loadKpiData();
   }
+  trackByIndex(index: number): number { return index; }
 }

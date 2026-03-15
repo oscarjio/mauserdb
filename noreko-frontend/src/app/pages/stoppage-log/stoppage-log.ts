@@ -1176,4 +1176,5 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       }
     });
   }
+  trackByIndex(index: number): number { return index; }
 }

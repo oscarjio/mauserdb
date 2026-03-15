@@ -284,7 +284,7 @@
         </div>
 
         <div class="shift-history-list">
-          <div *ngFor="let s of history.skift_historik" class="shift-hist-row">
+          <div *ngFor="let s of history.skift_historik; trackBy: trackByIndex" class="shift-hist-row">
             <div class="d-flex align-items-center gap-2 mb-1">
               <i [class]="skiftIcon(s.skift_namn)" class="text-muted small"></i>
               <span class="small text-muted">{{ formatDatum(s.skift_start) }} — {{ skiftLabel(s.skift_namn) }}</span>
