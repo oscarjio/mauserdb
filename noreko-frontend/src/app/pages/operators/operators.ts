@@ -494,7 +494,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
 
   getSenasteAktivitetClass(datum: string | null): string {
     if (!datum) return 'activity-never';
-    const days = (Date.now() - new Date(datum).getTime()) / (1000 * 60 * 60 * 24);
+    const days = (Date.now() - parseLocalDate(datum).getTime()) / (1000 * 60 * 60 * 24);
     if (days < 7) return 'activity-green';
     if (days <= 30) return 'activity-yellow';
     return 'activity-red';
@@ -509,7 +509,7 @@ export class OperatorsPage implements OnInit, OnDestroy {
       Nummer: op.number,
       Status: op.active == 1 ? 'Aktiv' : 'Inaktiv',
       'Senast aktiv': op.senaste_aktivitet
-        ? new Date(op.senaste_aktivitet).toLocaleDateString('sv-SE')
+        ? parseLocalDate(op.senaste_aktivitet).toLocaleDateString('sv-SE')
         : 'Aldrig',
       'Aktiva dagar (30d)': op.aktiva_dagar_30d ?? 0
     }));

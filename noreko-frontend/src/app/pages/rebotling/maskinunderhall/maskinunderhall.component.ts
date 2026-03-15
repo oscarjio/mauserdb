@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { localToday } from '../../../utils/date-utils';
 import {
   MaskinunderhallService,
   MaskinOverview,
@@ -438,7 +439,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
   private emptyServiceForm(): AddServiceData {
     return {
       maskin_id: 0,
-      service_datum: new Date().toISOString().split('T')[0],
+      service_datum: localToday(),
       service_typ: 'planerat',
       beskrivning: '',
       utfort_av: '',

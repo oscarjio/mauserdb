@@ -8,6 +8,7 @@ import {
   ShiftHistorik,
   ShiftHistoryData,
 } from '../../services/produktionsprognos.service';
+import { parseLocalDate } from '../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -143,7 +144,7 @@ export class ProduktionsPrognosPage implements OnInit, OnDestroy {
 
   formatDatum(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.toLocaleDateString('sv-SE', { weekday: 'short', month: 'short', day: 'numeric' });
   }
 

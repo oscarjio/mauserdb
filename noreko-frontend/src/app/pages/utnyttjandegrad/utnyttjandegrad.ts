@@ -12,6 +12,7 @@ import {
   LossesData,
   LossItem,
 } from '../../services/utnyttjandegrad.service';
+import { parseLocalDate } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -386,13 +387,13 @@ export class UtnyttjandegradComponent implements OnInit, OnDestroy {
 
   formatDatum(datum: string | null): string {
     if (!datum) return '-';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return '-';
     return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
   formatDatumKort(datum: string): string {
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { month: 'numeric', day: 'numeric' });
   }

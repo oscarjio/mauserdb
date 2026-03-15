@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { localToday } from '../../utils/date-utils';
 import {
   DagligBriefingService,
   SammanfattningData,
@@ -82,7 +83,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
 
   private getDatum(): string | undefined {
     if (this.datumVal === 'idag') {
-      return new Date().toISOString().slice(0, 10);
+      return localToday();
     }
     if (this.datumVal === 'specifikt' && this.specifiktDatum) {
       return this.specifiktDatum;

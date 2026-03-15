@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../../utils/date-utils';
 
 import {
   ProduktionsmalService,
@@ -298,7 +299,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
 
   formatDatum(datum: string): string {
     if (!datum) return '-';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
   }

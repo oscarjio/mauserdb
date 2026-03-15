@@ -17,6 +17,7 @@ import {
   UnderhallsPost,
   UnderhallsStats
 } from '../../services/underhallslogg.service';
+import { localToday } from '../../utils/date-utils';
 
 declare const Chart: any;
 
@@ -490,7 +491,7 @@ export class UnderhallsloggComponent implements OnInit, OnDestroy, AfterViewInit
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `rebotling_underhallslogg_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `rebotling_underhallslogg_${localToday()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -10,6 +10,7 @@ import {
   DailySummaryData,
   ComparisonData,
 } from '../../services/daglig-sammanfattning.service';
+import { localToday } from '../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -21,7 +22,7 @@ import {
 export class DagligSammanfattningComponent implements OnInit, OnDestroy {
 
   // Datumväljare (default: idag)
-  selectedDate: string = new Date().toISOString().slice(0, 10);
+  selectedDate: string = localToday();
 
   // Laddningstillstånd
   summaryLoading  = false;
@@ -70,7 +71,7 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
   }
 
   setToday(): void {
-    this.selectedDate = new Date().toISOString().slice(0, 10);
+    this.selectedDate = localToday();
     this.onDateChange();
   }
 
@@ -245,7 +246,7 @@ export class DagligSammanfattningComponent implements OnInit, OnDestroy {
   }
 
   isToday(): boolean {
-    return this.selectedDate === new Date().toISOString().slice(0, 10);
+    return this.selectedDate === localToday();
   }
 
   getFormattedDate(): string {

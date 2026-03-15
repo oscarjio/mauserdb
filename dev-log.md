@@ -1,3 +1,53 @@
+## 2026-03-15 Session #108 Worker B — UTC-datumbugg-audit + API-routes-audit i frontend
+
+### Uppgift 1: Frontend berakningar vs backend konsistens
+OEE- och bonusberakningar gors **enbart pa backend** — frontend visar bara
+varden fran API-svar (`oee_pct`, `beraknad_bonus_sek`, etc.). Inga
+inkonsistenser hittades; frontend duplicerar inte berakningslogik.
+
+### Uppgift 2: Datum UTC-midnatt audit — 22 buggar fixade i 19 filer
+**Buggtyp A: `new Date(datumstrang)` dar strang ar date-only (YYYY-MM-DD)**
+Parsar som UTC midnight → visar FEL dag i CET (t.ex. 14 mars istallet for 15 mars).
+Fix: byt till `parseLocalDate(datum)` fran `utils/date-utils.ts`.
+
+Fixade filer (13 st):
+1. effektivitet.ts — `formatDatum`, `formatDatumKort`
+2. utnyttjandegrad.ts — `formatDatum`, `formatDatumKort`
+3. produktionskalender.ts — `formateraDatum`
+4. underhallsprognos.ts — `formatDatum`
+5. produktionsprognos.ts — `formatDatum`
+6. tidrapport.component.ts — `formatDatum` + `customFrom`/`customTo`
+7. executive-dashboard.ts — `formatNewsDate`
+8. operators.ts — `getSenasteAktivitetClass` + `exportToCSV`
+9. oee-trendanalys.component.ts — trendchart labels + prediktionschart labels
+10. rebotling/vd-veckorapport — `formatDatum`
+11. rebotling/produktionsmal — `formatDatum`
+12. rebotling/statistik-dashboard — `formatDatum`
+13. produktionsmal.ts — `formatDatum`
+
+**Buggtyp B: `toISOString().split/slice` for "idag"-strang**
+`new Date().toISOString()` returnerar UTC → efter 23:00 CET ger det morgondagens datum.
+Fix: byt till `localToday()` eller `localDateStr(d)`.
+
+Fixade filer (6 st):
+14. daglig-sammanfattning.ts — 3 st (`selectedDate` init, `setToday`, `isToday`)
+15. drifttids-timeline.component.ts — `todayStr`, `prevDay`, `nextDay` (4 st)
+16. malhistorik.ts — `dagenInnan` + `idag` (2 st)
+17. daglig-briefing.component.ts — `getDatum`
+18. rebotling/skiftplanering — `isToday`
+19. rebotling/maskinunderhall — `emptyServiceForm`
+20. produktionsmal.ts — `todayStr`
+21. skiftrapport-export.ts — `formatDatumISO`
+22. underhallslogg.ts — CSV-filnamn
+
+### Uppgift 3: API-routes audit
+Alla HTTP-anrop fran frontend-services matchar existerande backend-actions i
+`api.php` classNameMap. Noll mismatches hittade. Nagra backend-actions
+(t.ex. `shift-handover`, `news`, `shift-plan`, `weekly-report`) anropas
+direkt fran components istallet for services — detta ar OK.
+
+---
+
 ## 2026-03-15 Session #108 Worker A — Buggjakt i 9 backend-controllers (batch 3)
 
 ### Granskade controllers (classes/):

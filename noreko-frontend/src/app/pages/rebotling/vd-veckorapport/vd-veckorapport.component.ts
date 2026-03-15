@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../../utils/date-utils';
 
 import {
   VdVeckorapportService,
@@ -336,7 +337,7 @@ export class VdVeckorapportPage implements OnInit, OnDestroy {
     const delar = datum.split('-');
     if (delar.length < 3) return datum;
     const dagar = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     return `${dagar[d.getDay()]} ${delar[2]}/${delar[1]}`;
   }
 

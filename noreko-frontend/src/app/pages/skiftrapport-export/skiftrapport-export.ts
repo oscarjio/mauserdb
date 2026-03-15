@@ -11,6 +11,7 @@ import {
   DagSummary,
   MultiDaySumma,
 } from '../../services/skiftrapport-export.service';
+import { localDateStr } from '../../utils/date-utils';
 
 // pdfmake är installerat via package.json
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -486,7 +487,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
   // ================================================================
 
   formatDatumISO(d: Date): string {
-    return d.toISOString().slice(0, 10);
+    return localDateStr(d);
   }
 
   formatDatumSv(iso: string): string {

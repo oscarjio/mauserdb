@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, catchError, timeout } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../../utils/date-utils';
 
 import {
   StatistikDashboardService,
@@ -366,7 +367,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
 
   formatDatum(datum: string): string {
     if (!datum) return '';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     const dagar = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
     return `${dagar[d.getDay()]} ${datum}`;
   }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../utils/date-utils';
 import {
   OeeTrendanalysService,
   SammanfattningData,
@@ -211,7 +212,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
 
     const items = this.trendData.trend;
     const labels = items.map(i => {
-      const dt = new Date(i.datum);
+      const dt = parseLocalDate(i.datum);
       return dt.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
     });
 
@@ -299,7 +300,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
     const recentHist = hist.slice(-14);
     const allPoints = [...recentHist, ...pred];
     const labels = allPoints.map(p => {
-      const dt = new Date(p.datum);
+      const dt = parseLocalDate(p.datum);
       return dt.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
     });
 

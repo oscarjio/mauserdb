@@ -9,6 +9,7 @@ import {
   TimelineData,
   TimelineSummaryData,
 } from '../../services/drifttids-timeline.service';
+import { localDateStr } from '../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -64,8 +65,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   // =================================================================
 
   todayStr(): string {
-    const d = new Date();
-    return d.toISOString().slice(0, 10);
+    return localDateStr(new Date());
   }
 
   onDateChange(): void {
@@ -75,18 +75,18 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   }
 
   prevDay(): void {
-    const d = new Date(this.selectedDate);
+    const d = new Date(this.selectedDate + 'T00:00:00');
     d.setDate(d.getDate() - 1);
-    this.selectedDate = d.toISOString().slice(0, 10);
+    this.selectedDate = localDateStr(d);
     this.onDateChange();
   }
 
   nextDay(): void {
-    const d = new Date(this.selectedDate);
+    const d = new Date(this.selectedDate + 'T00:00:00');
     d.setDate(d.getDate() + 1);
     const today = this.todayStr();
-    if (d.toISOString().slice(0, 10) <= today) {
-      this.selectedDate = d.toISOString().slice(0, 10);
+    if (localDateStr(d) <= today) {
+      this.selectedDate = localDateStr(d);
       this.onDateChange();
     }
   }

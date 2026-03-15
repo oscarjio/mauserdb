@@ -435,7 +435,7 @@ export class ExecutiveDashboardPage implements OnInit, OnDestroy {
 
   formatNewsDate(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + d.getFullYear();
   }
 

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { localToday } from '../../../utils/date-utils';
 import {
   SkiftplaneringService,
   SkiftOverview,
@@ -349,7 +350,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   }
 
   isToday(datum: string): boolean {
-    return datum === new Date().toISOString().split('T')[0];
+    return datum === localToday();
   }
 
   getAvailableOperators(): OperatorItem[] {

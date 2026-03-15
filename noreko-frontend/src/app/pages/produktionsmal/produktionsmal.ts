@@ -11,6 +11,7 @@ import {
   MalHistorikRad,
 } from '../../services/produktionsmal.service';
 import { PdfExportButtonComponent } from '../../components/pdf-export-button/pdf-export-button.component';
+import { localToday, parseLocalDate } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -316,12 +317,12 @@ export class ProduktionsmalComponent implements OnInit, OnDestroy {
   // ================================================================
 
   todayStr(): string {
-    return new Date().toISOString().split('T')[0];
+    return localToday();
   }
 
   formatDatum(datum: string): string {
     if (!datum) return '-';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
   }

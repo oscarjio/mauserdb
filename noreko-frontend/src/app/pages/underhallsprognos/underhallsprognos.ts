@@ -11,6 +11,7 @@ import {
   SchemaRad,
   HistoryData,
 } from '../../services/underhallsprognos.service';
+import { parseLocalDate } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -278,7 +279,7 @@ export class UnderhallsprognosComponent implements OnInit, OnDestroy {
 
   formatDatum(datum: string | null): string {
     if (!datum) return '—';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString('sv-SE', { year: 'numeric', month: 'short', day: 'numeric' });
   }

@@ -10,6 +10,7 @@ import {
   GoalHistoryData,
   GoalImpactData,
 } from '../../services/malhistorik.service';
+import { localToday, localDateStr, parseLocalDate } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -131,15 +132,15 @@ export class MalhistorikComponent implements OnInit, OnDestroy, AfterViewInit {
       // Lägg till en punkt precis innan nästa ändring (dagen innan)
       if (i < andringar.length - 1) {
         const naestaDatum = andringar[i + 1].andrad_vid.split(' ')[0];
-        const dagenInnan  = new Date(naestaDatum);
+        const dagenInnan  = parseLocalDate(naestaDatum);
         dagenInnan.setDate(dagenInnan.getDate() - 1);
-        malLabels.push(dagenInnan.toISOString().split('T')[0]);
+        malLabels.push(localDateStr(dagenInnan));
         malValues.push(a.nytt_mal);
       }
     });
 
     // Lägg till "idag" som sista punkt om senaste målet gäller
-    const idag = new Date().toISOString().split('T')[0];
+    const idag = localToday();
     const sistaAndring = andringar[andringar.length - 1];
     if (sistaAndring && sistaAndring.andrad_vid.split(' ')[0] !== idag) {
       malLabels.push(idag);

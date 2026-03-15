@@ -12,6 +12,7 @@ import {
   VeckoData,
   DayDetail,
 } from '../../services/produktionskalender.service';
+import { parseLocalDate } from '../../utils/date-utils';
 
 const MANAD_NAMN = [
   '', 'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
@@ -279,7 +280,7 @@ export class ProduktionskalenderComponent implements OnInit, OnDestroy {
 
   formateraDatum(datum: string | null): string {
     if (!datum) return '—';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     return d.toLocaleDateString('sv-SE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 

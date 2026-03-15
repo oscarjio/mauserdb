@@ -12,6 +12,7 @@ import {
   VeckodataData,
   DetaljerData,
 } from '../../services/tidrapport.service';
+import { parseLocalDate, localDateStr } from '../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -63,8 +64,8 @@ export class TidrapportPage implements OnInit, OnDestroy {
     const today = new Date();
     const thirtyAgo = new Date(today);
     thirtyAgo.setDate(thirtyAgo.getDate() - 30);
-    this.customTo = today.toISOString().split('T')[0];
-    this.customFrom = thirtyAgo.toISOString().split('T')[0];
+    this.customTo = localDateStr(today);
+    this.customFrom = localDateStr(thirtyAgo);
 
     this.loadAll();
     this.refreshTimer = setInterval(() => {
@@ -110,7 +111,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
 
   formatDatum(datum: string | null): string {
     if (!datum) return '-';
-    const d = new Date(datum);
+    const d = parseLocalDate(datum);
     if (isNaN(d.getTime())) return datum;
     return d.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' });
   }
