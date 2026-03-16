@@ -1,3 +1,40 @@
+## 2026-03-16 Session #120 Worker B — Buggjakt i frontend services
+
+### Granskade filer (21 services):
+1. produktions-dashboard.service.ts — 0 buggar (ren)
+2. produktionsflode.service.ts — 2 buggar fixade (relativ URL, saknad environment import)
+3. produktionskalender.service.ts — 2 buggar fixade (felaktig URL /api/api.php, saknad environment import)
+4. produktionskostnad.service.ts — 2 buggar fixade (relativ URL, saknad environment import)
+5. produktionsmal.service.ts — 0 buggar (ren)
+6. produktionsprognos.service.ts — 0 buggar (ren)
+7. produktionspuls.service.ts — 5 buggar fixade (saknad environment import, hardkodad URL, saknad timeout pa 4 HTTP-anrop, saknad catchError pa 4 HTTP-anrop)
+8. produktions-sla.service.ts — 2 buggar fixade (relativ URL, saknad environment import)
+9. produktionstakt.service.ts — 0 buggar (ren)
+10. skiftjamforelse.service.ts — 2 buggar fixade (relativ URL, saknad environment import)
+11. skiftoverlamning.service.ts — 2 buggar fixade (hardkodad URL i const, saknad environment import)
+12. skiftplanering.service.ts — 2 buggar fixade (relativ URL, saknad environment import)
+13. skiftrapport.service.ts — 5 buggar fixade (hardkodade URLs, saknad environment import, saknad timeout pa alla anrop, saknad catchError pa alla anrop)
+14. skiftrapport-export.service.ts — 1 bugg fixad (hardkodad URL i const, saknad environment import)
+15. skiftrapport-sammanstallning.service.ts — 0 buggar (ren)
+16. stoppage.service.ts — 3 buggar fixade (hardkodad URL, saknad environment import, saknad timeout/catchError pa 9 HTTP-anrop)
+17. stopporsaker.service.ts — 0 buggar (ren)
+18. stopporsak-operator.service.ts — 0 buggar (ren)
+19. stopporsak-registrering.service.ts — 3 buggar fixade (hardkodad URL, saknad environment import, saknad timeout/catchError pa 5 HTTP-anrop)
+20. stopporsak-trend.service.ts — 0 buggar (ren)
+21. stopptidsanalys.service.ts — 0 buggar (ren)
+
+### Aven fixat i komponenter (null-guards efter service-typandring):
+- stopporsak-registrering.ts — 5 null-guards tillagda (res. -> res?.)
+- stoppage-log.ts — 4 null-guards tillagda (res. -> res?.)
+
+### Sammanfattning:
+- **28 buggar fixade** i 12 services
+- **9 null-guards** tillagda i 2 komponenter
+- Vanligaste buggtyper: relativa/hardkodade URLs (8st), saknad timeout/catchError (12st), saknad environment import (10st)
+- Bygget LYCKAS efter alla fixar
+
+---
+
 ## 2026-03-16 Session #120 Worker A — Buggjakt i backend-controllers
 
 ### Granskade filer (16 controllers, 15 med classes/-implementationer):
