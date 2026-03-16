@@ -152,7 +152,7 @@ export const routes: Routes = [
       { path: 'admin/stopporsak-trend', canActivate: [adminGuard], loadComponent: () => import('./pages/stopporsak-trend/stopporsak-trend').then(m => m.StopporsakTrendComponent) },
       { path: 'admin/operator/:id', canActivate: [adminGuard], loadComponent: () => import('./pages/operator-detail/operator-detail').then(m => m.OperatorDetailPage) },
       { path: 'admin/underhall', canActivate: [adminGuard], loadComponent: () => import('./pages/maintenance-log/maintenance-log').then(m => m.MaintenanceLogPage) },
-      { path: 'admin/feature-flags', canActivate: [developerGuard], loadComponent: () => import('./pages/feature-flag-admin/feature-flag-admin').then(m => m.FeatureFlagAdminPage) },
+      { path: 'admin/feature-flags', canActivate: [adminGuard], loadComponent: () => import('./pages/feature-flag-admin/feature-flag-admin').then(m => m.FeatureFlagAdminPage) },
 
       { path: 'rebotling/andon', loadComponent: () => import('./pages/andon/andon').then(m => m.AndonPage) },
       { path: 'rebotling/andon-board', canActivate: [authGuard], loadComponent: () => import('./pages/andon-board/andon-board').then(m => m.AndonBoardComponent) },
