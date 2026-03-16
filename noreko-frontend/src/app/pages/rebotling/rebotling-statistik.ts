@@ -785,7 +785,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
           ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
           : 0;
 
-        const avgEff = periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length;
+        const avgEff = periodCycles.length > 0
+          ? periodCycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / periodCycles.length
+          : 0;
         cell.avgCycleTime = Math.round(avgCycleTime * 10) / 10;
         cell.efficiency = Math.round(avgEff);
       }
@@ -1699,7 +1701,9 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         ? validCycleTimes.reduce((sum, t) => sum + t, 0) / validCycleTimes.length
         : 0;
 
-      const avgEff = cycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / cycles.length;
+      const avgEff = cycles.length > 0
+        ? cycles.reduce((sum, c) => sum + (c.produktion_procent || 0), 0) / cycles.length
+        : 0;
 
       this.tableData.push({
         period: period,

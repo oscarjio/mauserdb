@@ -1,3 +1,27 @@
+## 2026-03-16 Session #129 Worker B — Frontend buggjakt: division-by-zero, sparkline Infinity
+
+### Division-by-zero i rebotling-statistik.ts (2 instanser)
+- **rebotling-statistik.ts rad ~788**: `avgEff = periodCycles.reduce(...) / periodCycles.length` saknade
+  guard for tomma arrayer. Nar det inte finns cykler for en period producerar detta `NaN` som
+  propagerar till tabelldata. Fix: ternary check `periodCycles.length > 0 ? ... : 0`.
+- **rebotling-statistik.ts rad ~1702**: Samma bugg i buildTableData() — `cycles.length` kunde vara 0.
+  Fix: identisk ternary guard.
+
+### Infinity i sparkline-berakning (statistik-veckotrend.ts)
+- **statistik-veckotrend.ts rad 127**: `plotW / (rawValues.length - 1)` producerade `Infinity` nar
+  `rawValues` hade exakt 1 element (funktionen returnerar tidigt om `nonNullValues < 2`, men
+  `rawValues` kan ha 1 icke-null + 0+ null-varden). Fix: `rawValues.length > 1 ? ... : plotW`.
+
+### Genomgang utan fynd (verifierat OK)
+- **Chart.js memory leaks**: Alla 109 filer med `new Chart(` har matchande `destroy()` i ngOnDestroy.
+- **setInterval leaks**: Alla komponenter med setInterval har matchande clearInterval.
+- **Subscription leaks**: Alla komponenter med `.subscribe()` har antingen `takeUntil(this.destroy$)`,
+  `unsubscribe`, eller servicen anvander `catchError(() => of(null))`.
+- **Template null-safety**: Alla `*ngFor` pa potentiellt undefined data ar skyddade med foraldra-`*ngIf`.
+- **HTTP error handling**: Alla HTTP-tjanster har `catchError` i sina pipe-kedjor.
+
+---
+
 ## 2026-03-16 Session #129 Worker A — PHP backend buggjakt: loose comparisons, exception exposure
 
 ### Sakerhetsfix: Exception-meddelanden exponerade till klient

@@ -124,7 +124,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
 
     // Bygg punkter — hoppa över null
     const points: { x: number; y: number }[] = [];
-    const step = plotW / (rawValues.length - 1);
+    const step = rawValues.length > 1 ? plotW / (rawValues.length - 1) : plotW;
     rawValues.forEach((v, i) => {
       if (v !== null) {
         const x = pad.left + i * step;
