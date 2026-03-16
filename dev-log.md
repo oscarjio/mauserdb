@@ -1,3 +1,48 @@
+## 2026-03-16 Session #119 Worker B — Buggjakt i OEE + operator-services (batch 3)
+
+### Granskade services (11 st):
+1. oee-benchmark.service.ts — 2 buggar fixade
+2. oee-jamforelse.service.ts — OK
+3. oee-trendanalys.service.ts — OK
+4. oee-waterfall.service.ts — OK
+5. operator-onboarding.service.ts — OK
+6. operator-personal-dashboard.service.ts — OK
+7. operator-ranking.service.ts — OK
+8. operatorsbonus.service.ts — 2 buggar fixade
+9. operators-prestanda.service.ts — OK
+10. operators.service.ts — 9 buggar fixade
+11. operatorsportal.service.ts — OK (redan fixad i #118)
+
+### Buggar fixade (13 st):
+
+**1. oee-benchmark.service.ts (2 buggar):**
+- Hardkodad URL `../../noreko-backend/api.php?action=oee-benchmark` -> `${environment.apiUrl}?action=oee-benchmark`
+- Saknad import av `environment` — lagt till
+
+**2. operatorsbonus.service.ts (2 buggar):**
+- Hardkodad URL `../../noreko-backend/api.php?action=operatorsbonus` -> `${environment.apiUrl}?action=operatorsbonus`
+- Saknad import av `environment` — lagt till
+
+**3. operators.service.ts (9 buggar):**
+- Hardkodad URL `/noreko-backend/api.php?action=operators` -> `${environment.apiUrl}?action=operators`
+- Saknad import av `environment` — lagt till
+- Saknad import av `of` fran `rxjs` — lagt till
+- Saknad import av `timeout`, `catchError` fran `rxjs/operators` — lagt till
+- getOperators() — saknade timeout + catchError — fixat
+- createOperator() — saknade timeout + catchError — fixat
+- updateOperator() — saknade timeout + catchError — fixat
+- deleteOperator() — saknade timeout + catchError — fixat
+- toggleActive() — saknade timeout + catchError — fixat
+- getStats() — saknade timeout + catchError, string concatenation -> template literal — fixat
+- getTrend() — saknade timeout + catchError, string concatenation -> template literal — fixat
+- getPairs() — saknade timeout + catchError — fixat
+- getMachineCompatibility() — saknade timeout + catchError, string concatenation -> template literal — fixat
+
+### Services utan buggar (8 st):
+oee-jamforelse, oee-trendanalys, oee-waterfall, operator-onboarding, operator-personal-dashboard, operator-ranking, operators-prestanda, operatorsportal — alla hade korrekt environment.apiUrl, timeout, catchError och imports.
+
+---
+
 ## 2026-03-16 Session #118 Worker B — Buggjakt i 15 frontend services (batch 2)
 
 ### Granskade services (15 st):
