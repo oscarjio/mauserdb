@@ -39,7 +39,7 @@ class ProfileController {
                     'id' => $user['id'],
                     'username' => $user['username'],
                     'email' => $user['email'],
-                    'role' => ($user['admin'] == 1) ? 'admin' : 'user',
+                    'role' => ((int)$user['admin'] === 1) ? 'admin' : 'user',
                     'operator_id' => $user['operator_id'] ? (int)$user['operator_id'] : null
                 ]
             ], JSON_UNESCAPED_UNICODE);
@@ -126,7 +126,7 @@ class ProfileController {
 
             $_SESSION['username'] = $updatedUser['username'];
             $_SESSION['email'] = $updatedUser['email'];
-            $_SESSION['role'] = ($updatedUser['admin'] == 1) ? 'admin' : 'user';
+            $_SESSION['role'] = ((int)$updatedUser['admin'] === 1) ? 'admin' : 'user';
             $_SESSION['operator_id'] = $updatedUser['operator_id'] ? (int)$updatedUser['operator_id'] : null;
 
             echo json_encode([

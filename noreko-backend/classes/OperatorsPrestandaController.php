@@ -470,9 +470,9 @@ class OperatorsPrestandaController {
                 case 'kassation': return $a['kassationsgrad']  <=> $b['kassationsgrad']; // lägre = bättre
                 case 'oee':       return $b['oee']             <=> $a['oee'];
                 case 'cykeltid':  // lägre = bättre, men 0 = ingen data → sist
-                    if ($a['medel_cykeltid'] == 0 && $b['medel_cykeltid'] == 0) return 0;
-                    if ($a['medel_cykeltid'] == 0) return 1;
-                    if ($b['medel_cykeltid'] == 0) return -1;
+                    if ((float)$a['medel_cykeltid'] === 0.0 && (float)$b['medel_cykeltid'] === 0.0) return 0;
+                    if ((float)$a['medel_cykeltid'] === 0.0) return 1;
+                    if ((float)$b['medel_cykeltid'] === 0.0) return -1;
                     return $a['medel_cykeltid'] <=> $b['medel_cykeltid'];
                 default: return $b['antal_ibc'] <=> $a['antal_ibc'];
             }

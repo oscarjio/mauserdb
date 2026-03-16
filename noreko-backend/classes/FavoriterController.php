@@ -121,7 +121,7 @@ class FavoriterController {
                 'sort_order' => $nextOrder,
             ]);
         } catch (\PDOException $e) {
-            if ($e->getCode() == 23000) {
+            if ((string)$e->getCode() === '23000') {
                 $this->sendError('Denna sida finns redan bland dina favoriter');
                 return;
             }

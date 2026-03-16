@@ -1,3 +1,35 @@
+## 2026-03-16 Session #129 Worker A — PHP backend buggjakt: loose comparisons, exception exposure
+
+### Sakerhetsfix: Exception-meddelanden exponerade till klient
+- **RebotlingAnalyticsController.php** (2 instanser): `$e->getMessage()` skickades direkt till klienten
+  vid InvalidArgumentException i `getWeeklySummaryEmail()` och `sendWeeklySummaryEmail()`.
+  PDOException-meddelanden med DB-struktur kunde potentiellt lacka vid framtida kodfrandringar.
+  Fix: Loggar till error_log, returnerar generiskt felmeddelande till klienten.
+
+### Loose comparisons (== ersatt med ===) — 18 instanser i 14 filer
+Alla `==` jamforelser som kunde ge oforutsagbara resultat p.g.a. PHP:s type juggling:
+
+1. **StatusController.php** — `$user['admin'] == 1` -> `(int)$user['admin'] === 1`
+2. **ProfileController.php** (2 instanser) — `$user['admin'] == 1` -> `(int)... === 1`
+3. **OperatorController.php** — `$e->getCode() == 23000` (2 instanser) -> `(string)$e->getCode() === '23000'`
+   (PDOException::getCode() returnerar string for SQLSTATE-koder)
+4. **OperatorController.php** — `$op['active'] == 1` -> `(int)... === 1`
+5. **FavoriterController.php** — `$e->getCode() == 23000` -> `(string)... === '23000'`
+6. **VeckotrendController.php** (2 instanser) — `== 0` -> `(float)... === 0.0`
+7. **KvalitetstrendController.php** — `$avgOlder == 0` -> `(float)... === 0.0`
+8. **OeeTrendanalysController.php** — `$denom == 0` -> `(float)... === 0.0`
+9. **VDVeckorapportController.php** — `$denom == 0` -> `(float)... === 0.0`
+10. **OperatorCompareController.php** — `$raw['cykeltid'] == 0` -> `(float)... === 0.0`
+11. **OperatorsPrestandaController.php** (3 instanser) — `medel_cykeltid == 0` -> `(float)... === 0.0`
+12. **GamificationController.php** — `$diff == 1` -> `$diff === 1`
+13. **StoppageController.php** — `$count == 0` -> `(int)$count === 0`
+14. **OperatorDashboardController.php** — `$snittForg == 0` -> `(float)... === 0.0`
+15. **VpnController.php** — `$meta['unread_bytes'] == 0` -> `(int)... === 0`
+16. **RebotlingController.php** — `$totalRuntimeMinutes == 0` -> `(float)... === 0.0`
+17. **TvattlinjeController.php** (2 instanser) — `$totalRuntimeMinutes == 0` -> `(float)... === 0.0`
+
+---
+
 ## 2026-03-16 Session #128 Worker B — Frontend buggjakt: date-parsing Safari-compat, timezone
 
 ### Komponenter granskade

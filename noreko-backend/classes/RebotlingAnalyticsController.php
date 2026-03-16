@@ -5577,7 +5577,8 @@ HTML;
             echo json_encode(['success' => true, 'data' => $summary], JSON_UNESCAPED_UNICODE);
         } catch (InvalidArgumentException $e) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            error_log('getWeeklySummaryEmail validation: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt veckoformat. Anvand YYYY-WXX (t.ex. 2026-W10).'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getWeeklySummaryEmail: ' . $e->getMessage());
             http_response_code(500);
@@ -5660,7 +5661,8 @@ HTML;
 
         } catch (InvalidArgumentException $e) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            error_log('sendWeeklySummaryEmail validation: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt veckoformat. Anvand YYYY-WXX (t.ex. 2026-W10).'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('sendWeeklySummaryEmail: ' . $e->getMessage());
             http_response_code(500);

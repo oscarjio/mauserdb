@@ -232,7 +232,7 @@ class VeckotrendController {
         $avgRecent = array_sum($recent) / count($recent);
         $avgOlder  = array_sum($older)  / count($older);
 
-        if ($avgOlder == 0) return 'stable';
+        if ((float)$avgOlder === 0.0) return 'stable';
         $diff = ($avgRecent - $avgOlder) / abs($avgOlder);
 
         if ($diff > 0.02)  return 'up';
@@ -255,7 +255,7 @@ class VeckotrendController {
         $first = $nonNull[0];
         $last  = $nonNull[$n - 1];
 
-        if ($first == 0) return null;
+        if ((float)$first === 0.0) return null;
         return round((($last - $first) / abs($first)) * 100, 1);
     }
 

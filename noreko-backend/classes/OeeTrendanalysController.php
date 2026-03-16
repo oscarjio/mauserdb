@@ -285,7 +285,7 @@ class OeeTrendanalysController {
             $sumXY += $i * $values[$i]; $sumX2 += $i * $i;
         }
         $denom = $n * $sumX2 - $sumX * $sumX;
-        if ($denom == 0) {
+        if ((float)$denom === 0.0) {
             return ['slope' => 0, 'intercept' => $sumY / $n, 'r2' => 0];
         }
         $slope = ($n * $sumXY - $sumX * $sumY) / $denom;

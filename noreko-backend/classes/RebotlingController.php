@@ -920,7 +920,7 @@ class RebotlingController {
             
             // Alternativ beräkning: Om vi inte fick runtime från events men har cykler,
             // uppskatta runtime från första till sista cykeln
-            if ($totalRuntimeMinutes == 0 && $total_cycles > 0) {
+            if ((float)$totalRuntimeMinutes === 0.0 && $total_cycles > 0) {
                 $firstCycle = new DateTime($cycles[0]['datum']);
                 $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum']);
                 $diff = $firstCycle->diff($lastCycle);

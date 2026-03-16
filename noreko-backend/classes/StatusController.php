@@ -46,7 +46,7 @@ class StatusController {
             }
 
             // Använd role-kolumnen om den finns, annars fallback till admin-kolumnen
-            $role = $user['role'] ?? (($user['admin'] == 1) ? 'admin' : 'user');
+            $role = $user['role'] ?? (((int)$user['admin'] === 1) ? 'admin' : 'user');
 
             echo json_encode([
                 'loggedIn' => true,

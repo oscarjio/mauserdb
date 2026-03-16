@@ -458,7 +458,7 @@ class GamificationController {
                     $currentStreak = 1;
                 } else {
                     $diff = round((strtotime($prevDate) - strtotime($d)) / 86400);
-                    if ($diff == 1) {
+                    if ($diff === 1) {
                         $currentStreak++;
                     } else {
                         $currentStreak = 1;

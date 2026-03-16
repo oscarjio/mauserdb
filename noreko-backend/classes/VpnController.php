@@ -246,7 +246,7 @@ class VpnController {
                     usleep(100000); // 100ms istället för 200ms
                     // Kolla om det finns mer data
                     $meta = stream_get_meta_data($socket);
-                    if ($meta['unread_bytes'] == 0) {
+                    if ((int)$meta['unread_bytes'] === 0) {
                         $endFound = true;
                         break;
                     }

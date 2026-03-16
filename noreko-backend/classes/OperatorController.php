@@ -51,7 +51,7 @@ class OperatorController {
                     echo json_encode(['success' => true, 'message' => 'Operatör skapad', 'id' => $newId], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('OperatorController create: ' . $e->getMessage());
-                    if ($e->getCode() == 23000) {
+                    if ((string)$e->getCode() === '23000') {
                         http_response_code(409);
                         echo json_encode(['success' => false, 'message' => 'Operatörsnumret är redan registrerat'], JSON_UNESCAPED_UNICODE);
                     } else {
@@ -89,7 +89,7 @@ class OperatorController {
                     echo json_encode(['success' => true, 'message' => 'Operatör uppdaterad'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('OperatorController update: ' . $e->getMessage());
-                    if ($e->getCode() == 23000) {
+                    if ((string)$e->getCode() === '23000') {
                         http_response_code(409);
                         echo json_encode(['success' => false, 'message' => 'Operatörsnumret är redan registrerat'], JSON_UNESCAPED_UNICODE);
                     } else {
@@ -139,7 +139,7 @@ class OperatorController {
                         return;
                     }
 
-                    $newActive = $op['active'] == 1 ? 0 : 1;
+                    $newActive = (int)$op['active'] === 1 ? 0 : 1;
                     $stmt = $pdo->prepare("UPDATE operators SET active = ? WHERE id = ?");
                     $stmt->execute([$newActive, $id]);
                     AuditLogger::log($pdo, 'toggle_operator_active', 'operator', $id,

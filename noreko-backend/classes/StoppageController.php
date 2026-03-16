@@ -112,7 +112,7 @@ class StoppageController {
 
             // Sätt in standardorsaker om tabellen är tom
             $count = $this->pdo->query("SELECT COUNT(*) FROM stoppage_reasons")->fetchColumn();
-            if ($count == 0) {
+            if ((int)$count === 0) {
                 $stmt = $this->pdo->prepare("INSERT INTO stoppage_reasons (code, name, category, color, sort_order) VALUES (?, ?, ?, ?, ?)");
                 foreach ($this->defaultReasons as $i => $reason) {
                     $stmt->execute([$reason['code'], $reason['name'], $reason['category'], $reason['color'], $i]);

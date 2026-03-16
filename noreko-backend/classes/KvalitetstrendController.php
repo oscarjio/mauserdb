@@ -255,7 +255,7 @@ class KvalitetstrendController {
         $avgRecent = array_sum($recent) / count($recent);
         $avgOlder  = array_sum($older)  / count($older);
 
-        if ($avgOlder == 0) {
+        if ((float)$avgOlder === 0.0) {
             return ['pct' => null, 'arrow' => 'flat'];
         }
 
