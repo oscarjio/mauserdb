@@ -1,3 +1,39 @@
+## 2026-03-16 Session #131 Worker A — PHP backend: 22 buggar fixade (boundary validation, date range, SQL audit)
+
+### Uppgift 1: PHP boundary validation (5 fixar)
+- **BonusController.php** rad 288: `$limit = min((...), 100)` saknade minimum — fix: `max(1, min((...), 100))`
+- **BonusController.php** rad 652: `$limit = min((...), 500)` saknade minimum — fix: `max(1, min((...), 500))`
+- **SkiftoverlamningController.php** rad 598: `$offset = max(0, ...)` saknade ovre grans — fix: `max(0, min(100000, ...))`
+- **RebotlingAnalyticsController.php** rad 3895: `$offset = max(0, ...)` saknade ovre grans — fix: `max(0, min(100000, ...))`
+- **BonusController.php** rad 144-145, 289-290, 430-431: `$_GET['start']`/`$_GET['end']` saknade `trim()` innan vidare behandling — fix: `isset(...) ? trim(...) : null` (3 metoder)
+
+### Uppgift 2: PHP date range validation (10 fixar)
+- **BonusController.php** `getDateFilter()`: Saknade from<=to-validering — fix: auto-swap om from > to
+- **HistoriskProduktionController.php** `resolveDateRange()`: Saknade from<=to + max 365-dagars grans
+- **OeeTrendanalysController.php** `jamforelse()`: 4 datumparametrar (from1/to1/from2/to2) saknade trim + from<=to-swap
+- **RebotlingController.php** `getCycleTrend()`, `getHeatmap()`, `getStatistics()`, `getEvents()`: saknade trim + from<=to-swap
+- **RebotlingAnalyticsController.php** `getOEETrend()`, `getCycleByOperator()`, `getAnnotations()`, `getAnnotationsList()`: saknade trim + from<=to-swap
+- **SkiftrapportController.php** `getShiftReportByOperator()`: `$from`/`$to` saknade trim + from<=to-swap
+- **SkiftrapportController.php** `getDagligSammanstallning()`: `$datum` saknade trim
+
+### Uppgift 3: PHP parameter whitelist/SQL audit (7 fixar)
+- **RuntimeController.php** `getBreakStats()`: `$period` saknade whitelist-validering — fix: `in_array($period, ['today', 'week', 'month'])`
+- **RebotlingController.php** `getOEE()`: `$period` saknade explicit whitelist fore match() — fix: whitelist + trim
+- **RebotlingController.php** `getCycleTrend()`: `$granularity` saknade whitelist — fix: `in_array($granularity, ['day', 'shift'])`
+- **RebotlingAnalyticsController.php** `getWeekComparison()`, `getOEETrend()`: `$granularity` saknade whitelist
+- **RebotlingAnalyticsController.php** `getProductionGoalProgress()`: `$period` saknade whitelist — fix: `in_array($period, ['today', 'week'])`
+- **RebotlingAnalyticsController.php** `getShiftTrend()`, `getShiftPdfSummary()`, `getShiftCompare()`: datum saknade trim
+- **RebotlingAnalyticsController.php** `getSkiftrapportList()`: `$operator` saknade trim
+
+### SQL injection re-audit — resultat
+Alla controllers granskade. Inga nya SQL-injektionssvagheter hittade.
+- `$orderExpr` i KassationsanalysController/ForstaTimmeAnalysController: hardbkodade SQL-uttryck (ej user input) — saker
+- `$updateClause` i BonusAdminController: byggt fran hardkodade kolumnnamn — saker
+- `$tableName` i LineSkiftrapportController/RuntimeController: byggt fran whitelistade `$line`-varden — saker
+- `LIMIT $limit` i RebotlingAnalyticsController rad 6633: `$limit = 5` ar hardkodat — saker
+
+---
+
 ## 2026-03-16 Session #130 Worker A — PHP backend: 27 buggar fixade (SQL edge cases, JSON-konsistens, catch-loggning)
 
 ### Uppgift 1: SQL edge cases audit
