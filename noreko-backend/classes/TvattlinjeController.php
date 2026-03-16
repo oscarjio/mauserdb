@@ -910,7 +910,9 @@ class TvattlinjeController {
                 ");
                 $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                error_log('TvattlinjeController getReport prevRows: ' . $e->getMessage());
+            }
 
             // Beräkna KPI för aktuellt datum
             $totalOk   = 0;
@@ -950,7 +952,9 @@ class TvattlinjeController {
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                error_log('TvattlinjeController getReport runtime: ' . $e->getMessage());
+            }
 
             // Snitt IBC/h
             $ibcPerHour = ($runtimeMinutes > 0 && $totalIbc > 0)

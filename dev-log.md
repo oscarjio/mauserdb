@@ -1,3 +1,61 @@
+## 2026-03-16 Session #125 Worker A — Buggjakt: SQL-parametervalidering + Error-logging konsistens
+
+### DEL 1: SQL-queries parametervalidering
+
+**Granskade ALLA 33 controllers/ (proxy-filer) + ALLA 112 classes/ (implementation).**
+
+**Resultat: INGA SQL-injection risker hittade.**
+
+Verifierade:
+- Inga `$_GET`/`$_POST` sätts direkt i SQL-strängar
+- Ingen sträng-konkatenering med user-input i queries
+- Alla dynamiska tabellnamn (LineSkiftrapportController) valideras mot whitelist `$allowedLines`
+- IN-clause `$placeholders` byggs alltid med `array_fill(..., '?')` — aldrig user-input
+- ORDER BY/LIMIT-parametrar är alltid intval()-castade eller från interna beräkningar
+- Alla parametrar går via PDO prepared statements med `?` eller `:param` placeholders
+
+### DEL 2: Error-logging konsistens
+
+**Granskade ALLA catch-block i 112 klasser.**
+
+Identifierade och fixade **10 buggar** i 5 filer — catch-block med exception-variabel som saknade `error_log`:
+
+**Filer med buggar fixade:**
+
+1. **ProduktionskalenderController.php (2 buggar):**
+   - `getMonthData()` catch (Exception $e): skickade `$e->getMessage()` direkt till klienten (informationsläcka) + saknade `error_log`
+   - `getDayDetail()` catch (Exception $e): samma problem — DB-felmeddelande exponerat i response
+   - Fix: lade till `error_log(...)` och ändrade response till generiskt felmeddelande (ej DB-detaljer)
+
+2. **KlassificeringslinjeController.php (2 buggar):**
+   - `getReport()` prevRows-catch: tomt `catch (\Exception $e) {}` — saknade `error_log`
+   - `getReport()` runtime-catch: tomt `catch (\Exception $e) {}` — saknade `error_log`
+   - Fix: lade till `error_log(...)` i båda
+
+3. **SaglinjeController.php (2 buggar):**
+   - `getReport()` prevRows-catch: tomt `catch (\Exception $e) {}` — saknade `error_log`
+   - `getReport()` runtime-catch: tomt `catch (\Exception $e) {}` — saknade `error_log`
+   - Fix: lade till `error_log(...)` i båda
+
+4. **TvattlinjeController.php (2 buggar):**
+   - `getReport()` prevRows-catch: tomt `catch (\Exception $e) {}` — saknade `error_log`
+   - `getReport()` runtime-catch: tomt `catch (\Exception $e) {}` — saknade `error_log`
+   - Fix: lade till `error_log(...)` i båda
+
+5. **BonusAdminController.php (2 buggar):**
+   - `updatePayoutStatus()` audit-catch: tomt `catch (Exception $ae) {}` — saknade `error_log`
+   - `deletePayout()` audit-catch: tomt `catch (Exception $ae) {}` — saknade `error_log`
+   - Bonus: fixade även `recordPayout()` audit-catch (hade kommentar men ingen log)
+   - Fix: lade till `error_log(...)` i alla tre
+
+### Buggtyper:
+- **Tomt catch-block (saknad error_log)**: 8 buggar
+- **Informationsläcka (DB-felmeddelande i response)**: 2 buggar
+
+**Totalt: 10 buggar fixade i 5 filer. Ingen frontend-ändring.**
+
+---
+
 ## 2026-03-16 Session #124 Worker B — Template null-safety audit + services re-audit
 
 ### DEL 1: Template null-safety audit av 19 page-komponenter

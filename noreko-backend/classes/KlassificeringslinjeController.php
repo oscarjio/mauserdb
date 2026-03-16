@@ -424,7 +424,9 @@ class KlassificeringslinjeController {
                 ");
                 $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                error_log('KlassificeringslinjeController getReport prevRows: ' . $e->getMessage());
+            }
 
             $totalOk   = 0;
             $totalEjOk = 0;
@@ -460,7 +462,9 @@ class KlassificeringslinjeController {
                     $runtimeMinutes = ($diff->days * 1440) + ($diff->h * 60) + $diff->i;
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
                 }
-            } catch (\Exception $e) {}
+            } catch (\Exception $e) {
+                error_log('KlassificeringslinjeController getReport runtime: ' . $e->getMessage());
+            }
 
             $ibcPerHour = ($runtimeMinutes > 0 && $totalIbc > 0)
                 ? round(($totalIbc / $runtimeMinutes) * 60, 1)

@@ -1016,7 +1016,9 @@ class BonusAdminController {
 
             try {
                 $this->logAudit('update_status', 'bonus_payout', $id, null, ['status' => $status]);
-            } catch (Exception $ae) {}
+            } catch (Exception $ae) {
+                error_log('BonusAdmin updatePayoutStatus audit: ' . $ae->getMessage());
+            }
 
             $this->sendSuccess(['id' => $id, 'status' => $status, 'message' => 'Status uppdaterad']);
         } catch (PDOException $e) {
@@ -1092,7 +1094,7 @@ class BonusAdminController {
                     'op_id' => $op_id, 'amount_sek' => $amount_sek, 'period' => "{$period_start}–{$period_end}"
                 ]);
             } catch (Exception $ae) {
-                // audit-logg är ej kritisk
+                error_log('BonusAdmin recordPayout audit: ' . $ae->getMessage());
             }
 
             $this->sendSuccess(['id' => (int)$newId, 'message' => 'Utbetalning registrerad']);
@@ -1127,7 +1129,9 @@ class BonusAdminController {
             // Försök logga audit
             try {
                 $this->logAudit('delete', 'bonus_payout', $id, ['id' => $id], null);
-            } catch (Exception $ae) {}
+            } catch (Exception $ae) {
+                error_log('BonusAdmin deletePayout audit: ' . $ae->getMessage());
+            }
 
             $this->sendSuccess(['message' => 'Utbetalning borttagen']);
         } catch (PDOException $e) {
