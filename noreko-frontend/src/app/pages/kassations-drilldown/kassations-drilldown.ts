@@ -54,6 +54,8 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
   private reasonChart: Chart | null = null;
   private trendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private reasonChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: KassationsDrilldownService) {}
 
@@ -64,6 +66,8 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.reasonChartTimer) { clearTimeout(this.reasonChartTimer); this.reasonChartTimer = null; }
+    if (this.trendChartTimer) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
     this.destroyCharts();
   }
 
@@ -104,7 +108,8 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.overview = res.data;
           this.reasons  = res.data.reasons ?? [];
-          setTimeout(() => { if (!this.destroy$.closed) this.buildReasonChart(); }, 0);
+          if (this.reasonChartTimer) clearTimeout(this.reasonChartTimer);
+          this.reasonChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildReasonChart(); }, 0);
         } else {
           this.errorOverview = true;
           this.overview = null;
@@ -123,7 +128,8 @@ export class KassationsDrilldownPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data.trend ?? [];
-          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0);
+          if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 0);
         } else {
           this.errorTrend  = true;
           this.trendData   = [];

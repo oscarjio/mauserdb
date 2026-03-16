@@ -1,3 +1,52 @@
+## 2026-03-16 Session #113 Worker B — null-safety, setTimeout-lackor, PHP-konsistens
+
+### Granskade filer (18 st):
+**DEL 1 — Template null-safety (10 sidor):**
+vd-dashboard.component.html, executive-dashboard.html, bonus-dashboard.html,
+operator-ranking.component.html, effektivitet.html, kassations-drilldown.html,
+stopporsak-trend.html, operator-dashboard.ts (inline), historik.ts (inline),
+rebotling-statistik.html
+
+**DEL 2 — Subscription/lifecycle audit (10 .ts-filer):**
+vd-dashboard.component.ts, executive-dashboard.ts, bonus-dashboard.ts,
+operator-ranking.component.ts, effektivitet.ts, kassations-drilldown.ts,
+stopporsak-trend.ts, operator-dashboard.ts, historik.ts
+
+**DEL 3 — PHP error-logging konsistens (5 controllers):**
+ProduktionsDashboardController.php, ProduktionseffektivitetController.php,
+ProduktionsSlaController.php, ProduktionsTaktController.php, StopporsakTrendController.php
+
+### Fixade buggar (8 st):
+
+**bonus-dashboard.html (1 bugg)**
+1. shift.kpis.effektivitet/produktivitet/kvalitet/bonus_avg utan `?.` — kraschar om kpis ar null/undefined vid renderering.
+
+**effektivitet.html (1 bugg)**
+2. `s.drift_hours.toFixed(1)` utan null-check — TypeError om drift_hours ar null.
+
+**vd-dashboard.component.ts (1 bugg)**
+3. Tva `setTimeout()` (renderStationChart, renderTrendChart) utan sparade handles — aldrig clearTimeout i ngOnDestroy. Minnesbacka vid snabb navigering.
+
+**operator-ranking.component.ts (1 bugg)**
+4. Tva `setTimeout()` (buildPoangChart, buildHistorikChart) utan sparade handles — samma problem som ovan.
+
+**kassations-drilldown.ts (1 bugg)**
+5. Tva `setTimeout()` (buildReasonChart, buildTrendChart) utan sparade handles — samma problem.
+
+**ProduktionsDashboardController.php (1 bugg)**
+6. `catch (\PDOException)` utan variabel och utan `error_log()` — tyst svaljer DB-fel for totalStationer-query.
+
+**ProduktionsTaktController.php (1 bugg)**
+7. sendSuccess/sendError saknade `JSON_UNESCAPED_UNICODE` — svenska tecken (a/a/o) escapades till \uXXXX i JSON-svar.
+
+**StopporsakTrendController.php (1 bugg)**
+8. Samma som ovan — sendSuccess/sendError saknade `JSON_UNESCAPED_UNICODE`.
+
+### Build
+`npx ng build` OK — inga kompileringsfel.
+
+---
+
 ## 2026-03-16 Session #113 Worker A — buggjakt batch 5 + operator-controllers
 
 ### Granskade filer (8 st, ~4120 rader):

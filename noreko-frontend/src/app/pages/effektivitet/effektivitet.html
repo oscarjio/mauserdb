@@ -185,7 +185,7 @@
             </div>
             <div class="skift-meta">
               <div><i class="fas fa-boxes me-1 opacity-60"></i>{{ s.ibc_count }} IBC totalt</div>
-              <div><i class="fas fa-clock me-1 opacity-60"></i>{{ s.drift_hours.toFixed(1) }} drifttimmar</div>
+              <div><i class="fas fa-clock me-1 opacity-60"></i>{{ s.drift_hours != null ? s.drift_hours.toFixed(1) : '–' }} drifttimmar</div>
               <div><i class="fas fa-calendar-day me-1 opacity-60"></i>{{ s.dagar }} dagar med produktion</div>
             </div>
           </div>

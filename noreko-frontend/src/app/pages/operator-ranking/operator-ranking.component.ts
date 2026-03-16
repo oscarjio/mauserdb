@@ -61,6 +61,8 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private poangChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private historikChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: OperatorRankingService) {}
 
@@ -77,6 +79,8 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
     }
+    if (this.poangChartTimer) { clearTimeout(this.poangChartTimer); this.poangChartTimer = null; }
+    if (this.historikChartTimer) { clearTimeout(this.historikChartTimer); this.historikChartTimer = null; }
   }
 
   setPeriod(value: string): void {
@@ -176,7 +180,8 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
       this.loadingPoangfordelning = false;
       if (res?.success) {
         this.poangfordelningData = res.data;
-        setTimeout(() => this.buildPoangChart(), 100);
+        if (this.poangChartTimer) clearTimeout(this.poangChartTimer);
+        this.poangChartTimer = setTimeout(() => this.buildPoangChart(), 100);
       }
     });
   }
@@ -187,7 +192,8 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
       this.loadingHistorik = false;
       if (res?.success) {
         this.historikData = res.data;
-        setTimeout(() => this.buildHistorikChart(), 100);
+        if (this.historikChartTimer) clearTimeout(this.historikChartTimer);
+        this.historikChartTimer = setTimeout(() => this.buildHistorikChart(), 100);
       }
     });
   }

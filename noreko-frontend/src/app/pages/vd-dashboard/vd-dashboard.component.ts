@@ -44,6 +44,8 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshInterval: any = null;
+  private stationChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: VdDashboardService) {}
 
@@ -56,6 +58,8 @@ export class VdDashboardPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     if (this.refreshInterval) clearInterval(this.refreshInterval);
+    if (this.stationChartTimer) { clearTimeout(this.stationChartTimer); this.stationChartTimer = null; }
+    if (this.trendChartTimer) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
     this.trendChart?.destroy();
     this.stationChart?.destroy();
   }
@@ -90,12 +94,14 @@ export class VdDashboardPage implements OnInit, OnDestroy {
 
       if (stationRes?.success) {
         this.stationOee = stationRes.data;
-        setTimeout(() => this.renderStationChart(), 100);
+        if (this.stationChartTimer) clearTimeout(this.stationChartTimer);
+        this.stationChartTimer = setTimeout(() => this.renderStationChart(), 100);
       }
 
       if (trendRes?.success) {
         this.veckotrend = trendRes.data;
-        setTimeout(() => this.renderTrendChart(), 100);
+        if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
+        this.trendChartTimer = setTimeout(() => this.renderTrendChart(), 100);
       }
 
       if (skiftRes?.success) this.skiftstatus = skiftRes.data;
