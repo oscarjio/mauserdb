@@ -12,6 +12,7 @@ import {
   Kriterium,
   StatistikItem,
 } from '../../../services/kvalitetscertifikat.service';
+import { localToday } from '../../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -79,7 +80,7 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
   constructor(private svc: KvalitetscertifikatService) {}
 
   ngOnInit(): void {
-    this.genDatum = new Date().toISOString().substring(0, 10);
+    this.genDatum = localToday();
     this.loadAll();
     this.refreshInterval = setInterval(() => this.loadOverview(), 60000);
   }

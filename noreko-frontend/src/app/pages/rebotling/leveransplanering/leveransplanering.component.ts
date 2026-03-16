@@ -11,6 +11,7 @@ import {
   KapacitetData,
   KundorderItem,
 } from '../../../services/leveransplanering.service';
+import { localToday } from '../../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -90,7 +91,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   // ---- Helpers ----
 
   private todayStr(): string {
-    return new Date().toISOString().substring(0, 10);
+    return localToday();
   }
 
   private destroyCharts(): void {

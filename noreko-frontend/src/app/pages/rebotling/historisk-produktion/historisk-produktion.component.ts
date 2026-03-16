@@ -12,6 +12,7 @@ import {
   DetaljTabell,
 } from '../../../services/historisk-produktion.service';
 import { PdfExportButtonComponent } from '../../../components/pdf-export-button/pdf-export-button.component';
+import { localToday, localDateStr } from '../../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -57,8 +58,8 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const today = new Date();
-    this.customTo   = today.toISOString().substring(0, 10);
-    this.customFrom = new Date(today.getTime() - 29 * 86400000).toISOString().substring(0, 10);
+    this.customTo   = localToday();
+    this.customFrom = localDateStr(new Date(today.getTime() - 29 * 86400000));
 
     this.loadAll();
     this.refreshInterval = setInterval(() => this.loadOverview(), 120000);

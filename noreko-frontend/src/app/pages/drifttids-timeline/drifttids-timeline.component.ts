@@ -9,7 +9,7 @@ import {
   TimelineData,
   TimelineSummaryData,
 } from '../../services/drifttids-timeline.service';
-import { localDateStr } from '../../utils/date-utils';
+import { localDateStr, parseLocalDate } from '../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -150,7 +150,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
    * Beräkna vänster-position (%) för ett segment på tidslinjen.
    */
   segmentLeft(seg: TimelineSegment): number {
-    const segStart = new Date(seg.start);
+    const segStart = parseLocalDate(seg.start);
     const startMin = segStart.getHours() * 60 + segStart.getMinutes();
     const clampedMin = Math.max(startMin, this.TIMELINE_START_H * 60);
     const offsetMin = clampedMin - this.TIMELINE_START_H * 60;
@@ -161,8 +161,8 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
    * Beräkna bredd (%) för ett segment på tidslinjen.
    */
   segmentWidth(seg: TimelineSegment): number {
-    const segStart = new Date(seg.start);
-    const segEnd   = new Date(seg.end);
+    const segStart = parseLocalDate(seg.start);
+    const segEnd   = parseLocalDate(seg.end);
     const startMin = segStart.getHours() * 60 + segStart.getMinutes();
     const endMin   = segEnd.getHours() * 60 + segEnd.getMinutes();
 
@@ -240,7 +240,7 @@ export class DrifttidsTimelineComponent implements OnInit, OnDestroy {
   // =================================================================
 
   formatTime(datetimeStr: string): string {
-    const d = new Date(datetimeStr);
+    const d = parseLocalDate(datetimeStr);
     return d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
   }
 

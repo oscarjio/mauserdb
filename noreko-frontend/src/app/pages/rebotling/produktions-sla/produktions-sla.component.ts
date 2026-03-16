@@ -13,6 +13,7 @@ import {
   SlaGoal,
   SetGoalData,
 } from '../../../services/produktions-sla.service';
+import { localToday } from '../../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -48,7 +49,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     mal_typ: 'dagligt',
     target_ibc: 80,
     target_kassation_pct: 5,
-    giltig_from: new Date().toISOString().substring(0, 10),
+    giltig_from: localToday(),
   };
   savingGoal = false;
   goalMessage = '';

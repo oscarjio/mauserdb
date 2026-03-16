@@ -10,6 +10,7 @@ import {
   AlertSettings,
   AlertType,
 } from '../../../services/alerts.service';
+import { parseLocalDate } from '../../../utils/date-utils';
 
 @Component({
   standalone: true,
@@ -256,7 +257,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
   formatDate(dateStr: string): string {
     if (!dateStr) return '—';
-    const d = new Date(dateStr);
+    const d = parseLocalDate(dateStr);
     return d.toLocaleString('sv-SE', {
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit',
@@ -265,7 +266,7 @@ export class AlertsPage implements OnInit, OnDestroy {
 
   timeAgo(dateStr: string): string {
     if (!dateStr) return '';
-    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    const diff = Math.floor((Date.now() - parseLocalDate(dateStr).getTime()) / 1000);
     if (diff < 60)  return `${diff} sek sedan`;
     if (diff < 3600) return `${Math.floor(diff / 60)} min sedan`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} tim sedan`;

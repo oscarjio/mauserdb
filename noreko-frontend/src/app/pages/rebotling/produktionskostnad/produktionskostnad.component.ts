@@ -13,6 +13,7 @@ import {
   ShiftComparison,
   KonfigFaktor,
 } from '../../../services/produktionskostnad.service';
+import { localToday, localDateStr } from '../../../utils/date-utils';
 
 Chart.register(...registerables);
 
@@ -66,8 +67,8 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const today = new Date();
-    this.tableTo   = today.toISOString().substring(0, 10);
-    this.tableFrom = new Date(today.getTime() - 30 * 86400000).toISOString().substring(0, 10);
+    this.tableTo   = localToday();
+    this.tableFrom = localDateStr(new Date(today.getTime() - 30 * 86400000));
 
     this.loadAll();
     this.refreshInterval = setInterval(() => this.loadOverview(), 60000);

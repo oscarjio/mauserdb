@@ -151,7 +151,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
 
   formatDate(dt: string): string {
     if (!dt) return '-';
-    const d = new Date(dt);
+    const d = parseLocalDate(dt);
     return d.toLocaleDateString('sv-SE') + ' ' + d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
   }
 
