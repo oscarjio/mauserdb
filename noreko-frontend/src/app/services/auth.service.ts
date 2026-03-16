@@ -93,6 +93,7 @@ export class AuthService {
     this.user$.next(null);
 
     this.http.get('/noreko-backend/api.php?action=login&run=logout', { withCredentials: true }).pipe(
+      timeout(8000),
       catchError(() => of(null))
     ).subscribe(() => {
       this.router.navigate(['/login']);

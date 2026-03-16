@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
 
 // ========== Interfaces som matchar BonusController API-svar ==========
 
@@ -265,13 +266,13 @@ export class BonusService {
 
   constructor(private http: HttpClient) {}
 
-  getDailySummary(): Observable<BonusSummaryResponse> {
+  getDailySummary(): Observable<BonusSummaryResponse | null> {
     return this.http.get<BonusSummaryResponse>(this.baseUrl + '&run=summary', {
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getOperatorStats(operatorId: string, period?: string, start?: string, end?: string): Observable<OperatorStatsResponse> {
+  getOperatorStats(operatorId: string, period?: string, start?: string, end?: string): Observable<OperatorStatsResponse | null> {
     let params = new HttpParams().set('run', 'operator').set('id', operatorId);
     if (period) params = params.set('period', period);
     if (start) params = params.set('start', start);
@@ -280,10 +281,10 @@ export class BonusService {
     return this.http.get<OperatorStatsResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getRanking(period?: string, limit: number = 10, start?: string, end?: string): Observable<RankingResponse> {
+  getRanking(period?: string, limit: number = 10, start?: string, end?: string): Observable<RankingResponse | null> {
     let params = new HttpParams().set('run', 'ranking').set('limit', limit.toString());
     if (period) params = params.set('period', period);
     if (start) params = params.set('start', start);
@@ -292,10 +293,10 @@ export class BonusService {
     return this.http.get<RankingResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getTeamStats(period?: string, start?: string, end?: string): Observable<TeamStatsResponse> {
+  getTeamStats(period?: string, start?: string, end?: string): Observable<TeamStatsResponse | null> {
     let params = new HttpParams().set('run', 'team');
     if (period) params = params.set('period', period);
     if (start) params = params.set('start', start);
@@ -304,65 +305,65 @@ export class BonusService {
     return this.http.get<TeamStatsResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getKPIDetails(operatorId: string, period?: string): Observable<KPIDetailsResponse> {
+  getKPIDetails(operatorId: string, period?: string): Observable<KPIDetailsResponse | null> {
     let params = new HttpParams().set('run', 'kpis').set('id', operatorId);
     if (period) params = params.set('period', period);
 
     return this.http.get<KPIDetailsResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getOperatorHistory(operatorId: string, limit: number = 50): Observable<OperatorHistoryResponse> {
+  getOperatorHistory(operatorId: string, limit: number = 50): Observable<OperatorHistoryResponse | null> {
     const params = new HttpParams().set('run', 'history').set('id', operatorId).set('limit', limit.toString());
 
     return this.http.get<OperatorHistoryResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getWeeklyHistory(operatorId: string): Observable<WeeklyHistoryResponse> {
+  getWeeklyHistory(operatorId: string): Observable<WeeklyHistoryResponse | null> {
     const params = new HttpParams().set('run', 'weekly_history').set('id', operatorId);
     return this.http.get<WeeklyHistoryResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getHallOfFame(): Observable<HallOfFameResponse> {
+  getHallOfFame(): Observable<HallOfFameResponse | null> {
     const params = new HttpParams().set('run', 'hall-of-fame');
     return this.http.get<HallOfFameResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getLoneprognos(): Observable<LoneprognosResponse> {
+  getLoneprognos(): Observable<LoneprognosResponse | null> {
     const params = new HttpParams().set('run', 'loneprognos');
     return this.http.get<LoneprognosResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
   getWeekTrend(): Observable<any> {
     const params = new HttpParams().set('run', 'week-trend');
     return this.http.get<any>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getRankingPosition(): Observable<RankingPositionResponse> {
+  getRankingPosition(): Observable<RankingPositionResponse | null> {
     const params = new HttpParams().set('run', 'ranking-position');
     return this.http.get<RankingPositionResponse>(this.baseUrl, {
       params,
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
 }

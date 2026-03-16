@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
 
 export interface BonusConfigResponse {
   success: boolean;
@@ -78,35 +79,35 @@ export class BonusAdminService {
 
   constructor(private http: HttpClient) {}
 
-  getConfig(): Observable<BonusConfigResponse> {
+  getConfig(): Observable<BonusConfigResponse | null> {
     return this.http.get<BonusConfigResponse>(this.baseUrl + '&run=get_config', {
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  updateWeights(produkt: number, weights: { eff: number; prod: number; qual: number }): Observable<GenericResponse> {
+  updateWeights(produkt: number, weights: { eff: number; prod: number; qual: number }): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=update_weights', {
       produkt,
       weights
-    }, { withCredentials: true });
+    }, { withCredentials: true }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  setTargets(targets: { foodgrade: number; nonun: number; tvattade: number }): Observable<GenericResponse> {
+  setTargets(targets: { foodgrade: number; nonun: number; tvattade: number }): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=set_targets', {
       targets
-    }, { withCredentials: true });
+    }, { withCredentials: true }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getPeriods(): Observable<BonusPeriodsResponse> {
+  getPeriods(): Observable<BonusPeriodsResponse | null> {
     return this.http.get<BonusPeriodsResponse>(this.baseUrl + '&run=get_periods', {
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  approveBonuses(period: string): Observable<GenericResponse> {
+  approveBonuses(period: string): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=approve_bonuses', {
       period
-    }, { withCredentials: true });
+    }, { withCredentials: true }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
   exportReport(period: string, format: string = 'csv'): Observable<any> {
@@ -118,25 +119,25 @@ export class BonusAdminService {
     return this.http.get<GenericResponse>(
       this.baseUrl + '&run=export_report&period=' + encodeURIComponent(period) + '&format=json',
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getSystemStats(): Observable<BonusSystemStatsResponse> {
+  getSystemStats(): Observable<BonusSystemStatsResponse | null> {
     return this.http.get<BonusSystemStatsResponse>(this.baseUrl + '&run=get_stats', {
       withCredentials: true
-    });
+    }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  setWeeklyGoal(weeklyGoal: number): Observable<GenericResponse> {
+  setWeeklyGoal(weeklyGoal: number): Observable<GenericResponse | null> {
     return this.http.post<GenericResponse>(this.baseUrl + '&run=set_weekly_goal', {
       weekly_goal: weeklyGoal
-    }, { withCredentials: true });
+    }, { withCredentials: true }).pipe(timeout(10000), catchError(() => of(null)));
   }
 
-  getOperatorForecast(operatorId: number): Observable<OperatorForecastResponse> {
+  getOperatorForecast(operatorId: number): Observable<OperatorForecastResponse | null> {
     return this.http.get<OperatorForecastResponse>(
       this.baseUrl + '&run=operator_forecast&id=' + operatorId,
       { withCredentials: true }
-    );
+    ).pipe(timeout(10000), catchError(() => of(null)));
   }
 }

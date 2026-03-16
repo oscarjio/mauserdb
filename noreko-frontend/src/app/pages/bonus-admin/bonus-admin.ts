@@ -402,8 +402,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     }
 
     this.loading = true;
-    this.bonusAdmin.updateWeights(produkt, weights).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' })), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.updateWeights(produkt, weights).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
+        if (!res) { this.showError('Nätverksfel vid uppdatering'); this.loading = false; return; }
         if (res.success) {
           this.showSuccess('Viktningar uppdaterade!');
           this.editingWeights[produkt] = false;
@@ -437,8 +438,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
 
   saveTargets() {
     this.loading = true;
-    this.bonusAdmin.setTargets(this.targetsForm).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' })), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.setTargets(this.targetsForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
+        if (!res) { this.showError('Nätverksfel vid uppdatering'); this.loading = false; return; }
         if (res.success) {
           this.showSuccess('Produktivitetsmål uppdaterade!');
           this.editingTargets = false;
@@ -470,8 +472,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       return;
     }
     this.loading = true;
-    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' })), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.setWeeklyGoal(this.weeklyGoalForm).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
+        if (!res) { this.showError('Nätverksfel vid sparning'); this.loading = false; return; }
         if (res.success) {
           this.showSuccess('Veckobonusmål sparat!');
           this.editingWeeklyGoal = false;
@@ -547,8 +550,9 @@ export class BonusAdminPage implements OnInit, OnDestroy {
     if (!confirm(`Godkänn alla bonusar för period ${period}?`)) return;
 
     this.loading = true;
-    this.bonusAdmin.approveBonuses(period).pipe(timeout(8000), catchError(() => of({ success: false, error: 'Timeout' } as { success: boolean; data?: { cycles_approved?: number }; error?: string })), takeUntil(this.destroy$)).subscribe({
+    this.bonusAdmin.approveBonuses(period).pipe(takeUntil(this.destroy$)).subscribe({
       next: (res) => {
+        if (!res) { this.showError('Nätverksfel vid godkännande'); this.loading = false; return; }
         if (res.success) {
           this.showSuccess(`Bonusar godkända för ${period}! (${(res as { data?: { cycles_approved?: number } }).data?.cycles_approved} cykler)`);
           this.loadPeriods();

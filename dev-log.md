@@ -1,3 +1,84 @@
+## 2026-03-16 Session #117 Worker B — Buggjakt i 15 frontend services
+
+### Granskade services (15 st):
+1. auth.service.ts
+2. bonus.service.ts
+3. bonus-admin.service.ts
+4. effektivitet.service.ts
+5. favoriter.service.ts
+6. feedback-analys.service.ts
+7. forsta-timme-analys.service.ts
+8. heatmap.service.ts
+9. historisk-produktion.service.ts
+10. historisk-sammanfattning.service.ts
+11. kapacitetsplanering.service.ts
+12. kassationsanalys.service.ts
+13. kassations-drilldown.service.ts
+14. kassationskvot-alarm.service.ts
+15. kassationsorsak-statistik.service.ts
+
+### Buggar fixade (26 st):
+
+**1. Saknad timeout() och catchError() — bonus.service.ts (11 metoder):**
+- getDailySummary() — lade till timeout(10000), catchError(() => of(null))
+- getOperatorStats() — lade till timeout(10000), catchError(() => of(null))
+- getRanking() — lade till timeout(10000), catchError(() => of(null))
+- getTeamStats() — lade till timeout(10000), catchError(() => of(null))
+- getKPIDetails() — lade till timeout(10000), catchError(() => of(null))
+- getOperatorHistory() — lade till timeout(10000), catchError(() => of(null))
+- getWeeklyHistory() — lade till timeout(10000), catchError(() => of(null))
+- getHallOfFame() — lade till timeout(10000), catchError(() => of(null))
+- getLoneprognos() — lade till timeout(10000), catchError(() => of(null))
+- getWeekTrend() — lade till timeout(10000), catchError(() => of(null))
+- getRankingPosition() — lade till timeout(10000), catchError(() => of(null))
+
+**2. Saknad timeout() och catchError() — bonus-admin.service.ts (9 metoder):**
+- getConfig() — lade till timeout(10000), catchError(() => of(null))
+- updateWeights() — lade till timeout(10000), catchError(() => of(null))
+- setTargets() — lade till timeout(10000), catchError(() => of(null))
+- getPeriods() — lade till timeout(10000), catchError(() => of(null))
+- approveBonuses() — lade till timeout(10000), catchError(() => of(null))
+- exportReport() (JSON-variant) — lade till timeout(15000), catchError(() => of(null))
+- getSystemStats() — lade till timeout(10000), catchError(() => of(null))
+- setWeeklyGoal() — lade till timeout(10000), catchError(() => of(null))
+- getOperatorForecast() — lade till timeout(10000), catchError(() => of(null))
+
+**3. Felaktig relativ API-URL — feedback-analys.service.ts (1 st):**
+- Anvande '../../noreko-backend/api.php' (relativ sokvag som bryts vid routing).
+- Fixat till environment.apiUrl ('${environment.apiUrl}?action=feedback-analys').
+- Lade till saknad import av environment.
+
+**4. Felaktig relativ API-URL — historisk-produktion.service.ts (1 st):**
+- Anvande '../../noreko-backend/api.php' (relativ sokvag som bryts vid routing).
+- Fixat till environment.apiUrl ('${environment.apiUrl}?action=historisk-produktion').
+- Lade till saknad import av environment.
+
+**5. Saknad timeout() pa logout — auth.service.ts (1 st):**
+- logout()-anropet hade catchError men saknade timeout().
+- Lade till timeout(8000) fore catchError.
+
+**6. Null-guard-fixar i bonus-admin komponent (4 st):**
+- updateWeights subscribe: lade till null-guard for res
+- setTargets subscribe: lade till null-guard for res
+- setWeeklyGoal subscribe: lade till null-guard for res
+- approveBonuses subscribe: lade till null-guard for res
+- Tog bort redundant timeout/catchError fran komponent-sidan (hanteras nu i service)
+
+### Services utan buggar (10 st — redan korrekt implementerade):
+- effektivitet.service.ts — timeout + catchError + environment.apiUrl
+- favoriter.service.ts — timeout + catchError + environment.apiUrl
+- forsta-timme-analys.service.ts — timeout + catchError + environment.apiUrl
+- heatmap.service.ts — timeout + catchError + environment.apiUrl
+- historisk-sammanfattning.service.ts — timeout + catchError + environment.apiUrl
+- kapacitetsplanering.service.ts — timeout + catchError + environment.apiUrl
+- kassationsanalys.service.ts — timeout + catchError + environment.apiUrl
+- kassations-drilldown.service.ts — timeout + catchError + environment.apiUrl
+- kassationskvot-alarm.service.ts — timeout + catchError + environment.apiUrl
+- kassationsorsak-statistik.service.ts — timeout + catchError + environment.apiUrl
+
+### Bygge:
+- `npx ng build` — INGA FEL efter fixar (enbart CommonJS-varningar fran tredjepartsbibliotek)
+
 ## 2026-03-16 Session #117 Worker A — Buggjakt i 11 Produktion-controllers
 
 ### Granskade controllers (11 st):

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -113,7 +114,7 @@ export interface DetaljTabellResponse {
 
 @Injectable({ providedIn: 'root' })
 export class HistoriskProduktionService {
-  private api = '../../noreko-backend/api.php?action=historisk-produktion';
+  private api = `${environment.apiUrl}?action=historisk-produktion`;
 
   constructor(private http: HttpClient) {}
 

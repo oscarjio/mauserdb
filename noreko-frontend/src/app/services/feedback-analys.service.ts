@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -94,7 +95,7 @@ export interface OperatorSentimentResponse {
 
 @Injectable({ providedIn: 'root' })
 export class FeedbackAnalysService {
-  private api = '../../noreko-backend/api.php?action=feedback-analys';
+  private api = `${environment.apiUrl}?action=feedback-analys`;
 
   constructor(private http: HttpClient) {}
 
