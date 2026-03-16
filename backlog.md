@@ -7,16 +7,14 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Buggjakt: Backend classes/ controllers batch 2** — Worker A #122 — 13 buggar i 7 controllers (av 13 granskade + api.php OK)
-- [x] **Buggjakt: Backend routing/api.php** — Worker A #122 — inga orphan-actions hittade
-- [x] **Buggjakt: PHP helper-klasser** — Worker B #122 — rena (prepared statements, bcrypt, korrekt felhantering)
-- [x] **Buggjakt: Funktionstesta Rebotling-endpoints** — Worker B #122 — 1 kritisk 500-fix (TrendanalysController constructor)
-- [x] **Buggjakt: Funktionstesta Funktioner-endpoints** — Worker B #122 — 14 HTTP-statuskod-fixar (404->400) i 7 controllers
-- [ ] **Buggjakt: Backend classes/ controllers batch 3** — Granska resterande controllers som INTE granskats i batch 1+2
-- [ ] **Buggjakt: Angular pipes och directives** — Granska custom pipes/directives for buggar
+- [x] **Buggjakt: Backend controllers batch 3** — Worker A #123 — 20 buggar i 10 filer (av 20 controllers)
+- [x] **Buggjakt: Frontend guards/interceptors/utils + pipes** — Worker B #123 — alla rena, inga pipes finns
+- [x] **Buggjakt: Backend controllers batch 4** — Worker B #123 — 7 buggar i 5 filer (av 16 controllers)
+- [ ] **Buggjakt: Resterande controllers batch 5** — ProduktTypEffektivitet t.o.m. WeeklyReport (ca 20 st)
 - [ ] **Buggjakt: Error-logging konsistens** — Verifiera att alla catch-block loggar korrekt
 - [ ] **Buggjakt: SQL-queries parametervalidering** — Granska att alla user-input saniteras
-- [ ] **Buggjakt: Granska Angular guards och interceptors** — Auth guards, HTTP interceptors, route guards
+- [ ] **Buggjakt: Angular services re-audit** — Dubbelkolla services som fixades i #119-#122
+- [ ] **Buggjakt: Template null-safety** — Granska Angular templates for saknade ?. och *ngIf-guards
 
 ## Parkerade features (ta inte dessa nu)
 
