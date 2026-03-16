@@ -1,3 +1,71 @@
+## 2026-03-16 Session #123 Worker A — Buggjakt i PHP backend-controllers batch 4
+
+### Granskade 20 PHP backend-controllers (aldrig granskade tidigare):
+
+**Rena filer (inga buggar):**
+1. AvvikelselarmController.php — OK
+2. CykeltidHeatmapController.php — OK (korrekt operators.number i JOIN)
+3. DagligBriefingController.php — OK (korrekt o.number = sub.op i JOIN)
+4. EffektivitetController.php — OK
+5. FavoriterController.php — OK (session_start utan read_and_close intentionellt for skrivaccess)
+6. ForstaTimmeAnalysController.php — OK
+7. HistorikController.php — OK (intentionellt publik, ingen auth)
+8. HistoriskProduktionController.php — OK
+9. KapacitetsplaneringController.php — OK
+10. KassationsanalysController.php — OK
+
+**Filer med buggar fixade (20 buggar i 10 filer):**
+
+11. **FeedbackAnalysController.php (3 buggar) — KRITISK:**
+    - 3x LEFT JOIN operators o ON o.id = f.operator_id — operator_feedback.operator_id lagrar operators.number (badge-nummer), inte PK id
+    - Andrat till o.number = f.operator_id i getFeedbackList(), getFeedbackStats() (mest_aktiv), getOperatorSentiment()
+    - Felen gav inga operatornamn i alla feedback-vyer
+
+12. **DagligSammanfattningController.php (4 buggar) — KRITISK:**
+    - 4x WHERE DATE(created_at) i queries mot rebotling_ibc — kolumnen heter datum, inte created_at
+    - Andrat WHERE DATE(created_at) → WHERE DATE(datum) i getProduktionsdata(), getTopOperatorer() (3x UNION), getTrendmot(), getVeckosnitt()
+    - Felen gav alltid tomma/noll-resultat for dagssammanfattning
+
+13. **HistoriskSammanfattningController.php (6 buggar) — KRITISK:**
+    - 6x DATE(created_at) i queries mot rebotling_ibc — fel kolumnnamn, ska vara datum
+    - Andrat i calcPeriodData(), perioder() (MIN/MAX), getTopOperator(), calcStationData(), trend() (3x), operatorer() (2x)
+    - Felen gav alltid tomma/noll-resultat for historisk sammanfattning
+
+14. **KassationsorsakController.php (7 buggar):**
+    - XSS: $run reflekterad osparat i sendError() — htmlspecialchars() lagt till
+    - Empty catch utan error_log i getOperatorNames(): catch (\PDOException) { return []; } — lagt till error_log
+    - 5x saknad HTTP 500-statuskod i catch-block: getPareto(), getTrend(), getPerOperator(), getPerShift(), getDrilldown()
+
+15. **KassationskvotAlarmController.php (5 buggar):**
+    - 5x sendError('Databasfel') utan 500-statuskod i catch-block
+    - Fixat i getAlarmHistorik(), sparaTroskel(), getTimvisTrend(), getPerSkift(), getTopOrsaker()
+
+16. **KassationsDrilldownController.php (2 buggar):**
+    - 2x sendError('Databasfel') utan 500-statuskod i catch-block
+    - Fixat i getReasonDetail() och getTrend()
+
+17. **DrifttidsTimelineController.php (2 buggar):**
+    - 2x sendError utan 500-statuskod i catch-block
+    - Fixat i getTimelineData() och getSummary()
+
+18. **HeatmapController.php (1 bugg):**
+    - sendError('Databasfel vid hamtning av heatmap-data') utan 500-statuskod i getHeatmapData() catch-block
+
+19. **DashboardLayoutController.php (1 bugg):**
+    - XSS: $run reflekterad osparat i sendError() — htmlspecialchars() lagt till
+
+20. **BatchSparningController.php (1 bugg):**
+    - Empty catch-block utan error_log (catch (\PDOException) { // ignorera }) i getBatchDetail()
+    - Andrat till catch (\PDOException $e) med error_log(...)
+
+### Build och deployment:
+- Git commit: c7d70dc — 10 filer, 20 buggar fixade
+- Push: OK
+
+### Totalt: 20 buggar fixade i 10 filer
+
+---
+
 ## 2026-03-16 Session #123 Worker B — Buggjakt i Angular frontend-utils + PHP controllers batch 3
 
 ### DEL 1: Granskade Angular-filer (aldrig granskade tidigare):
