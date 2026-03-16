@@ -12,7 +12,6 @@ import {
   FeedbackTrendData,
   TrendPunkt,
   OperatorSentimentItem,
-  FeedbackItem,
   FeedbackListData,
 } from '../../services/feedback-analys.service';
 

@@ -13,7 +13,6 @@ import {
   PoangFordelningData,
   HistorikData,
   MvpData,
-  OperatorRank,
 } from '../../services/operator-ranking.service';
 
 Chart.register(...registerables);

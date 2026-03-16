@@ -78,6 +78,7 @@ Session #123: BUGGJAKT — 27 buggar (20 Worker A + 7 Worker B). 36 PHP-controll
 Session #124: BUGGJAKT — 52 buggar (34 Worker A + 18 Worker B). 17 PHP-controllers granskade (batch 5 klar) + 9 Angular services re-audit.
 Session #125: BUGGJAKT — 16 buggar (10 Worker A + 6 Worker B). SQL-parametervalidering OK + error-logging + TS-logik + dead code.
 Session #126: BUGGJAKT — 9 buggar (2 Worker A 500-fixar + 7 Worker B polling/guards). Kritiska 500-fel fixade (shift filter, time_of_day, saknade tabeller).
+Session #127: BUGGJAKT — 16 buggar (8 Worker A + 8 Worker B). intval()-bugg (kritisk), XSS-risk, DB-lakcor + setTimeout-leaks, timezone-parsing.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -105,6 +106,6 @@ Worker A: 2 kritiska 500-fixar (shift filter, time_of_day, saknade tabeller).
 Worker B: 7 buggar — 5 polling race conditions (news, rebotling-sammanfattning, produktionsflode, batch-sparning, produktions-dashboard) + 2 saknade authGuard (produkttyp-effektivitet, produktionstakt).
 Totalt: 9 buggar.
 
-### 2026-03-16 — Session #127 (pagar)
-Worker A: Endpoint-testning med curl + SQL edge cases + input validation.
-Worker B: Template null-safety + Chart.js memory leaks + service-logik + date/timezone.
+### 2026-03-16 — Session #127 (klar)
+Worker A: 8 buggar i 4 filer — 4x intval() med ogiltig base 256 (kritisk, user_id/reason_id alltid 0), 1x DB-felmeddelande exponerat, 3x osaniterad $_GET i JSON (XSS).
+Worker B: 8 buggar i 8 filer — 4x untracked setTimeout (chart-timers), 4x timezone-bugg (new Date() utan parseLocalDate). Lead fixade 3 oanvanda imports.

@@ -12,9 +12,7 @@ import {
   PerStationData,
   TrendData,
   OrsakerTabellData,
-  OrsakRow,
   DetaljerData,
-  DetaljRow,
 } from '../../../services/stopporsaker.service';
 
 Chart.register(...registerables);
