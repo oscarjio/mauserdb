@@ -12,6 +12,7 @@
         <a class="nav-link active" aria-current="page" routerLink="/">Hem</a>
       </li>
 
+      <!-- ============ REBOTLING — kärna ============ -->
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="rebotlingDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="line-dot" [class.line-dot-on]="rebotlingRunning" [class.line-dot-off]="!rebotlingRunning"></span>
@@ -19,23 +20,13 @@
           <span class="badge bg-danger ms-1" *ngIf="loggedIn && urgentNoteCount > 0">{{ urgentNoteCount }}</span>
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="rebotlingDropdown">
-          <li *ngIf="ff.canAccess('rebotling/produktions-dashboard')"><a class="dropdown-item" routerLink="/rebotling/produktions-dashboard"><i class="fas fa-tv me-2" style="color:#4fd1c5"></i>Produktions-dashboard</a></li>
-          <li *ngIf="ff.canAccess('rebotling/sammanfattning')"><a class="dropdown-item" routerLink="/rebotling/sammanfattning"><i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>Sammanfattning</a></li>
-          <li *ngIf="ff.canAccess('rebotling/andon')"><a class="dropdown-item" routerLink="/rebotling/andon"><i class="fas fa-tv me-2 text-success"></i>Andon-tavla</a></li>
-          <li *ngIf="ff.canAccess('rebotling/andon-board')"><a class="dropdown-item" routerLink="/rebotling/andon-board"><i class="fas fa-desktop me-2 text-info"></i>Fabriksskarm</a></li>
           <li *ngIf="ff.canAccess('rebotling/live')"><a class="dropdown-item" routerLink="/rebotling/live">Live</a></li>
           <li *ngIf="ff.canAccess('rebotling/live-ranking')"><a class="dropdown-item" routerLink="/rebotling/live-ranking"><i class="fas fa-trophy me-2 text-warning"></i>Live Ranking</a></li>
           <li *ngIf="ff.canAccess('rebotling/skiftrapport')"><a class="dropdown-item" routerLink="/rebotling/skiftrapport">Skiftrapport</a></li>
           <li *ngIf="ff.canAccess('rebotling/statistik')"><a class="dropdown-item" routerLink="/rebotling/statistik">Statistik</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kassationsanalys')"><a class="dropdown-item" routerLink="/rebotling/kassationsanalys"><i class="fas fa-trash-alt me-2 text-danger"></i>Kassationsanalys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kassationsorsak-drilldown')"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak-drilldown"><i class="fas fa-search-plus me-2" style="color:#fc8181"></i>Kassationsanalys+</a></li>
-          <li *ngIf="ff.canAccess('rebotling/cykeltid-heatmap')"><a class="dropdown-item" routerLink="/rebotling/cykeltid-heatmap"><i class="fas fa-th me-2 text-info"></i>Cykeltids-heatmap</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produkttyp-effektivitet')"><a class="dropdown-item" routerLink="/rebotling/produkttyp-effektivitet"><i class="fas fa-boxes me-2 text-info"></i>Produkttyp-effektivitet</a></li>
           <li *ngIf="ff.canAccess('rebotling/historik')"><a class="dropdown-item" routerLink="/rebotling/historik"><i class="fas fa-history me-2"></i>Historisk jämförelse</a></li>
-          <li *ngIf="ff.canAccess('rebotling/narvarotracker')"><a class="dropdown-item" routerLink="/rebotling/narvarotracker"><i class="fas fa-calendar-check me-2 text-info"></i>Närvarotracker</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionspuls')"><a class="dropdown-item" routerLink="/rebotling/produktionspuls"><i class="fas fa-heartbeat me-2 text-danger"></i>Produktionspuls</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionstakt')"><a class="dropdown-item" routerLink="/rebotling/produktionstakt"><i class="fas fa-tachometer-alt me-2" style="color:#4299e1"></i>Produktionstakt</a></li>
-          <li *ngIf="ff.canAccess('rebotling/benchmarking')"><a class="dropdown-item" routerLink="/rebotling/benchmarking"><i class="fas fa-trophy me-2 text-warning"></i>Benchmarking</a></li>
+          <li *ngIf="ff.canAccess('rebotling/andon')"><a class="dropdown-item" routerLink="/rebotling/andon"><i class="fas fa-tv me-2 text-success"></i>Andon-tavla</a></li>
+          <li *ngIf="ff.canAccess('rebotling/andon-board')"><a class="dropdown-item" routerLink="/rebotling/andon-board"><i class="fas fa-desktop me-2 text-info"></i>Fabriksskärm</a></li>
           <li *ngIf="ff.canAccess('rebotling/overlamning')"><hr class="dropdown-divider"></li>
           <li *ngIf="ff.canAccess('rebotling/overlamning')">
             <a class="dropdown-item" routerLink="/rebotling/overlamning">
@@ -43,89 +34,133 @@
               <span class="badge bg-danger ms-2" *ngIf="urgentNoteCount > 0">{{ urgentNoteCount }}</span>
             </a>
           </li>
-          <li *ngIf="ff.canAccess('rebotling/skiftoverlamning')">
-            <a class="dropdown-item" routerLink="/rebotling/skiftoverlamning">
-              <i class="fas fa-clipboard-check me-2 text-info"></i>Skiftoverlamning
-            </a>
-          </li>
-          <li *ngIf="ff.canAccess('rebotling/operatorsportal')"><a class="dropdown-item" routerLink="/rebotling/operatorsportal"><i class="fas fa-user-circle me-2" style="color:#4299e1"></i>Min portal</a></li>
-          <li *ngIf="ff.canAccess('rebotling/min-dag')"><a class="dropdown-item" routerLink="/rebotling/min-dag"><i class="fas fa-user-clock me-2 text-success"></i>Min dag</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operator-dashboard')"><a class="dropdown-item" routerLink="/rebotling/operator-dashboard"><i class="fas fa-id-badge me-2" style="color:#63b3ed;"></i>Min statistik</a></li>
-          <li *ngIf="ff.canAccess('min-bonus')"><a class="dropdown-item" routerLink="/min-bonus"><i class="fas fa-star me-2 text-info"></i>Min Bonus</a></li>
+          <li *ngIf="ff.canAccess('rebotling/skiftoverlamning')"><a class="dropdown-item" routerLink="/rebotling/skiftoverlamning"><i class="fas fa-clipboard-check me-2 text-info"></i>Skiftöverlämning v2</a></li>
           <li *ngIf="ff.canAccess('rebotling/stopporsak-registrering')"><a class="dropdown-item" routerLink="/rebotling/stopporsak-registrering"><i class="fas fa-stop-circle me-2 text-danger"></i>Registrera stopp</a></li>
-          <li *ngIf="ff.canAccess('rebotling/underhallslogg')"><a class="dropdown-item" routerLink="/rebotling/underhallslogg"><i class="fas fa-tools me-2 text-warning"></i>Underhallslogg</a></li>
-          <li *ngIf="ff.canAccess('rebotling/stopporsaker')"><a class="dropdown-item" routerLink="/rebotling/stopporsaker"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Stopporsak-dashboard</a></li>
-          <li *ngIf="ff.canAccess('rebotling/oee-benchmark')"><a class="dropdown-item" routerLink="/rebotling/oee-benchmark"><i class="fas fa-chart-pie me-2 text-teal"></i>OEE Benchmark</a></li>
-          <li *ngIf="ff.canAccess('rebotling/skiftrapport-export')"><a class="dropdown-item" routerLink="/rebotling/skiftrapport-export"><i class="fas fa-file-pdf me-2 text-danger"></i>Skiftrapport PDF</a></li>
-          <li *ngIf="ff.canAccess('rebotling/feedback-analys')"><a class="dropdown-item" routerLink="/rebotling/feedback-analys"><i class="fas fa-comment-dots me-2 text-info"></i>Feedback-analys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/ranking-historik')"><a class="dropdown-item" routerLink="/rebotling/ranking-historik"><i class="fas fa-trophy me-2 text-warning"></i>Ranking-historik</a></li>
-          <li *ngIf="ff.canAccess('rebotling/daglig-sammanfattning')"><a class="dropdown-item" routerLink="/rebotling/daglig-sammanfattning"><i class="fas fa-tachometer-alt me-2 text-info"></i>Daglig sammanfattning</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionskalender')"><a class="dropdown-item" routerLink="/rebotling/produktionskalender"><i class="fas fa-calendar-alt me-2 text-success"></i>Produktionskalender</a></li>
-          <li *ngIf="ff.canAccess('rebotling/skiftjamforelse')"><a class="dropdown-item" routerLink="/rebotling/skiftjamforelse"><i class="fas fa-people-arrows me-2" style="color: #ed8936;"></i>Skiftjämförelse</a></li>
-          <li *ngIf="ff.canAccess('rebotling/malhistorik')"><a class="dropdown-item" routerLink="/rebotling/malhistorik"><i class="fas fa-bullseye me-2" style="color:#4fd1c5"></i>Målhistorik</a></li>
-          <li *ngIf="ff.canAccess('rebotling/underhallsprognos')"><a class="dropdown-item" routerLink="/rebotling/underhallsprognos"><i class="fas fa-tools me-2" style="color:#fc5c65"></i>Underhållsprognos</a></li>
-          <li *ngIf="ff.canAccess('rebotling/prediktivt-underhall')"><a class="dropdown-item" routerLink="/rebotling/prediktivt-underhall"><i class="fas fa-brain me-2" style="color:#9f7aea"></i>Prediktivt underhall</a></li>
-          <li *ngIf="ff.canAccess('rebotling/effektivitet')"><a class="dropdown-item" routerLink="/rebotling/effektivitet"><i class="fas fa-bolt me-2" style="color:#ecc94b"></i>Maskineffektivitet</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionsmal')"><a class="dropdown-item" routerLink="/rebotling/produktionsmal"><i class="fas fa-bullseye me-2" style="color:#48bb78"></i>Produktionsmal</a></li>
-          <li *ngIf="ff.canAccess('rebotling/utnyttjandegrad')"><a class="dropdown-item" routerLink="/rebotling/utnyttjandegrad"><i class="fas fa-gauge-high me-2" style="color:#4299e1"></i>Utnyttjandegrad</a></li>
-          <li *ngIf="ff.canAccess('rebotling/daglig-briefing')"><a class="dropdown-item" routerLink="/rebotling/daglig-briefing"><i class="fas fa-newspaper me-2" style="color:#4fd1c5"></i>Daglig briefing</a></li>
-          <li *ngIf="ff.canAccess('rebotling/morgonrapport')"><a class="dropdown-item" routerLink="/rebotling/morgonrapport"><i class="fas fa-sun me-2" style="color:#fbd38d"></i>Morgonrapport</a></li>
-          <li *ngIf="ff.canAccess('rebotling/veckorapport')"><a class="dropdown-item" routerLink="/rebotling/veckorapport"><i class="fas fa-file-alt me-2" style="color:#68d391"></i>Veckorapport</a></li>
-          <li *ngIf="ff.canAccess('rebotling/alarm-historik')"><a class="dropdown-item" routerLink="/rebotling/alarm-historik"><i class="fas fa-bell me-2" style="color:#f6ad55"></i>Alarm-historik</a></li>
-          <li *ngIf="ff.canAccess('rebotling/pareto')"><a class="dropdown-item" routerLink="/rebotling/pareto"><i class="fas fa-chart-bar me-2" style="color:#f6ad55"></i>Pareto-analys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktions-heatmap')"><a class="dropdown-item" routerLink="/rebotling/produktions-heatmap"><i class="fas fa-th me-2" style="color:#68d391"></i>Produktions-heatmap</a></li>
-          <li *ngIf="ff.canAccess('rebotling/oee-waterfall')"><a class="dropdown-item" routerLink="/rebotling/oee-waterfall"><i class="fas fa-chart-bar me-2" style="color:#4fd1c5"></i>OEE-analys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/drifttids-timeline')"><a class="dropdown-item" routerLink="/rebotling/drifttids-timeline"><i class="fas fa-stream me-2" style="color:#4fd1c5"></i>Drifttids-timeline</a></li>
-          <li *ngIf="ff.canAccess('rebotling/forsta-timme-analys')"><a class="dropdown-item" routerLink="/rebotling/forsta-timme-analys"><i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Forsta timmen</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionsprognos')"><a class="dropdown-item" routerLink="/rebotling/produktionsprognos"><i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Produktionsprognos</a></li>
-          <li *ngIf="ff.canAccess('rebotling/stopporsak-operator')"><a class="dropdown-item" routerLink="/rebotling/stopporsak-operator"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Stopporsak per operatör</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operator-onboarding')"><a class="dropdown-item" routerLink="/rebotling/operator-onboarding"><i class="fas fa-user-graduate me-2" style="color:#63b3ed"></i>Operator-onboarding</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operator-jamforelse')"><a class="dropdown-item" routerLink="/rebotling/operator-jamforelse"><i class="fas fa-users me-2" style="color:#4299e1"></i>Operatörsjämförelse</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionseffektivitet')"><a class="dropdown-item" routerLink="/rebotling/produktionseffektivitet"><i class="fas fa-clock me-2" style="color:#68d391"></i>Produktionseffektivitet/h</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kvalitets-trendbrott')"><a class="dropdown-item" routerLink="/rebotling/kvalitets-trendbrott"><i class="fas fa-chart-line me-2" style="color:#fc8181"></i>Kvalitets-trendbrott</a></li>
-          <li *ngIf="ff.canAccess('rebotling/maskinunderhall')"><a class="dropdown-item" routerLink="/rebotling/maskinunderhall"><i class="fas fa-wrench me-2" style="color:#68d391"></i>Maskinunderhåll</a></li>
-          <li *ngIf="ff.canAccess('rebotling/statistik-dashboard')"><a class="dropdown-item" routerLink="/rebotling/statistik-dashboard"><i class="fas fa-tachometer-alt me-2" style="color:#4fd1c5"></i>Statistik-dashboard</a></li>
-          <li *ngIf="ff.canAccess('rebotling/batch-sparning')"><a class="dropdown-item" routerLink="/rebotling/batch-sparning"><i class="fas fa-boxes me-2" style="color:#63b3ed"></i>Batch-spårning</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kassationsorsak-statistik')"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak-statistik"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Kassationsorsak-statistik</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktions-sla')"><a class="dropdown-item" routerLink="/rebotling/produktions-sla"><i class="fas fa-bullseye me-2" style="color:#48bb78"></i>Maluppfyllnad</a></li>
-          <li *ngIf="ff.canAccess('rebotling/skiftplanering')"><a class="dropdown-item" routerLink="/rebotling/skiftplanering"><i class="fas fa-calendar-alt me-2" style="color:#63b3ed"></i>Skiftplanering</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionskostnad')"><a class="dropdown-item" routerLink="/rebotling/produktionskostnad"><i class="fas fa-coins me-2" style="color:#ecc94b"></i>Produktionskostnad/IBC</a></li>
-          <li *ngIf="ff.canAccess('rebotling/stopptidsanalys')"><a class="dropdown-item" routerLink="/rebotling/stopptidsanalys"><i class="fas fa-stopwatch me-2" style="color:#63b3ed"></i>Stopptidsanalys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/maskin-oee')"><a class="dropdown-item" routerLink="/rebotling/maskin-oee"><i class="fas fa-tachometer-alt me-2" style="color:#9f7aea"></i>Maskin-OEE</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operatorsbonus')"><a class="dropdown-item" routerLink="/rebotling/operatorsbonus"><i class="fas fa-award me-2" style="color:#ecc94b"></i>Operatorsbonus</a></li>
-          <li *ngIf="ff.canAccess('rebotling/leveransplanering')"><a class="dropdown-item" routerLink="/rebotling/leveransplanering"><i class="fas fa-truck-loading me-2" style="color:#63b3ed"></i>Leveransplanering</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kvalitetscertifikat')"><a class="dropdown-item" routerLink="/rebotling/kvalitetscertifikat"><i class="fas fa-certificate me-2" style="color:#48bb78"></i>Kvalitetscertifikat</a></li>
-          <li *ngIf="ff.canAccess('rebotling/historisk-produktion')"><a class="dropdown-item" routerLink="/rebotling/historisk-produktion"><i class="fas fa-chart-line me-2" style="color:#63b3ed"></i>Historisk produktion</a></li>
-          <li *ngIf="ff.canAccess('rebotling/avvikelselarm')"><a class="dropdown-item" routerLink="/rebotling/avvikelselarm"><i class="fas fa-exclamation-triangle me-2" style="color:#fc8181"></i>Avvikelselarm</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionsflode')"><a class="dropdown-item" routerLink="/rebotling/produktionsflode"><i class="fas fa-project-diagram me-2" style="color:#9f7aea"></i>Produktionsflode</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kassationsorsak')"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak"><i class="fas fa-times-circle me-2" style="color:#fc8181"></i>Kassationsorsak per station</a></li>
-          <li *ngIf="ff.canAccess('rebotling/oee-jamforelse')"><a class="dropdown-item" routerLink="/rebotling/oee-jamforelse"><i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>OEE-jamforelse</a></li>
-          <li *ngIf="ff.canAccess('rebotling/maskin-drifttid')"><a class="dropdown-item" routerLink="/rebotling/maskin-drifttid"><i class="fas fa-th me-2" style="color:#48bb78"></i>Maskin-drifttid heatmap</a></li>
-          <li *ngIf="ff.canAccess('rebotling/skiftrapport-sammanstallning')"><a class="dropdown-item" routerLink="/rebotling/skiftrapport-sammanstallning"><i class="fas fa-clipboard-list me-2" style="color:#4fd1c5"></i>Skiftsammanstallning</a></li>
-          <li *ngIf="ff.canAccess('rebotling/maskinhistorik')"><a class="dropdown-item" routerLink="/rebotling/maskinhistorik"><i class="fas fa-industry me-2" style="color:#9f7aea"></i>Maskinhistorik per station</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kassationskvot-alarm')"><a class="dropdown-item" routerLink="/rebotling/kassationskvot-alarm"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Kassationskvot-alarm</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kapacitetsplanering')"><a class="dropdown-item" routerLink="/rebotling/kapacitetsplanering"><i class="fas fa-chart-area me-2" style="color:#4fd1c5"></i>Kapacitetsplanering</a></li>
-          <li *ngIf="ff.canAccess('rebotling/rebotling-trendanalys')"><a class="dropdown-item" routerLink="/rebotling/rebotling-trendanalys"><i class="fas fa-chart-line me-2" style="color:#4299e1"></i>Trendanalys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operators-prestanda')"><a class="dropdown-item" routerLink="/rebotling/operators-prestanda"><i class="fas fa-users me-2" style="color:#63b3ed"></i>Operatörs-prestanda</a></li>
-          <li *ngIf="ff.canAccess('rebotling/stationsdetalj')"><a class="dropdown-item" routerLink="/rebotling/stationsdetalj"><i class="fas fa-industry me-2" style="color:#4fd1c5"></i>Stationsdetalj</a></li>
-          <li *ngIf="ff.canAccess('rebotling/vd-veckorapport')"><a class="dropdown-item" routerLink="/rebotling/vd-veckorapport"><i class="fas fa-file-invoice me-2" style="color:#9f7aea"></i>VD Veckorapport</a></li>
-          <li *ngIf="ff.canAccess('rebotling/produktionsmal-uppfoljning')"><a class="dropdown-item" routerLink="/rebotling/produktionsmal-uppfoljning"><i class="fas fa-chart-line me-2" style="color:#48bb78"></i>Produktionsmal-uppfoljning</a></li>
-          <li *ngIf="ff.canAccess('rebotling/tidrapport')"><a class="dropdown-item" routerLink="/rebotling/tidrapport"><i class="fas fa-clock me-2" style="color:#63b3ed"></i>Tidrapport</a></li>
-          <li *ngIf="ff.canAccess('rebotling/oee-trendanalys')"><a class="dropdown-item" routerLink="/rebotling/oee-trendanalys"><i class="fas fa-chart-area me-2" style="color:#4fd1c5"></i>OEE Trendanalys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/operator-ranking')"><a class="dropdown-item" routerLink="/rebotling/operator-ranking"><i class="fas fa-trophy me-2" style="color:#FFD700"></i>Operatorsranking</a></li>
-          <li *ngIf="ff.canAccess('rebotling/gamification')"><a class="dropdown-item" routerLink="/rebotling/gamification"><i class="fas fa-gamepad me-2" style="color:#b794f4"></i>Gamification</a></li>
-          <li *ngIf="ff.canAccess('rebotling/vd-dashboard')"><a class="dropdown-item" routerLink="/rebotling/vd-dashboard"><i class="bi bi-speedometer2 me-2" style="color:#4fd1c5"></i>VD Dashboard</a></li>
-          <li *ngIf="ff.canAccess('rebotling/historisk-sammanfattning')"><a class="dropdown-item" routerLink="/rebotling/historisk-sammanfattning"><i class="bi bi-file-earmark-bar-graph me-2" style="color:#63b3ed"></i>Historisk sammanfattning</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kvalitetstrendanalys')"><a class="dropdown-item" routerLink="/rebotling/kvalitetstrendanalys"><i class="fas fa-chart-area me-2" style="color:#fc8181"></i>Kvalitetstrend-analys</a></li>
           <li *ngIf="loggedIn && (user?.role === 'admin' || user?.role === 'developer')"><hr class="dropdown-divider"></li>
           <li *ngIf="ff.canAccess('rebotling/admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/admin"><i class="fas fa-cogs me-2"></i>Admin</a></li>
           <li *ngIf="ff.canAccess('rebotling/bonus')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus"><i class="fas fa-trophy me-2"></i>Bonus</a></li>
           <li *ngIf="ff.canAccess('rebotling/bonus-admin')"><a class="dropdown-item text-warning" routerLink="/rebotling/bonus-admin"><i class="fas fa-sliders-h me-2"></i>Bonus Admin</a></li>
-          <li *ngIf="ff.canAccess('rebotling/analys')"><a class="dropdown-item text-warning" routerLink="/rebotling/analys"><i class="fas fa-chart-line me-2"></i>Produktionsanalys</a></li>
-          <li *ngIf="ff.canAccess('rebotling/kalender')"><a class="dropdown-item text-warning" routerLink="/rebotling/kalender"><i class="fas fa-calendar-alt me-2"></i>Produktionskalender</a></li>
-          <li *ngIf="ff.canAccess('rebotling/prognos')"><a class="dropdown-item text-warning" routerLink="/rebotling/prognos" routerLinkActive="active">Leveransprognos</a></li>
         </ul>
       </li>
+
+      <!-- ============ FUNKTIONER — grupperade analysverktyg ============ -->
+      <li class="nav-item dropdown" *ngIf="loggedIn">
+        <a class="nav-link dropdown-toggle" href="#" id="funktionerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+          Funktioner
+        </a>
+        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-funktioner" aria-labelledby="funktionerDropdown">
+
+          <!-- Produktion -->
+          <li class="dropdown-header text-uppercase small" style="color:#4fd1c5; letter-spacing:1px;">Produktion</li>
+          <li *ngIf="ff.canAccess('rebotling/produktions-dashboard')"><a class="dropdown-item" routerLink="/rebotling/produktions-dashboard"><i class="fas fa-tv me-2"></i>Dashboard</a></li>
+          <li *ngIf="ff.canAccess('rebotling/sammanfattning')"><a class="dropdown-item" routerLink="/rebotling/sammanfattning"><i class="fas fa-tachometer-alt me-2"></i>Sammanfattning</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionspuls')"><a class="dropdown-item" routerLink="/rebotling/produktionspuls"><i class="fas fa-heartbeat me-2"></i>Produktionspuls</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionstakt')"><a class="dropdown-item" routerLink="/rebotling/produktionstakt"><i class="fas fa-tachometer-alt me-2"></i>Produktionstakt</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionskalender')"><a class="dropdown-item" routerLink="/rebotling/produktionskalender"><i class="fas fa-calendar-alt me-2"></i>Kalender</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionsprognos')"><a class="dropdown-item" routerLink="/rebotling/produktionsprognos"><i class="fas fa-chart-line me-2"></i>Prognos</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionseffektivitet')"><a class="dropdown-item" routerLink="/rebotling/produktionseffektivitet"><i class="fas fa-clock me-2"></i>Effektivitet/h</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionskostnad')"><a class="dropdown-item" routerLink="/rebotling/produktionskostnad"><i class="fas fa-coins me-2"></i>Kostnad/IBC</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionsflode')"><a class="dropdown-item" routerLink="/rebotling/produktionsflode"><i class="fas fa-project-diagram me-2"></i>Produktionsflöde</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionsmal')"><a class="dropdown-item" routerLink="/rebotling/produktionsmal"><i class="fas fa-bullseye me-2"></i>Produktionsmål</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktionsmal-uppfoljning')"><a class="dropdown-item" routerLink="/rebotling/produktionsmal-uppfoljning"><i class="fas fa-chart-line me-2"></i>Måluppföljning</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktions-sla')"><a class="dropdown-item" routerLink="/rebotling/produktions-sla"><i class="fas fa-bullseye me-2"></i>Måluppfyllnad</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kapacitetsplanering')"><a class="dropdown-item" routerLink="/rebotling/kapacitetsplanering"><i class="fas fa-chart-area me-2"></i>Kapacitetsplanering</a></li>
+          <li *ngIf="ff.canAccess('rebotling/historisk-produktion')"><a class="dropdown-item" routerLink="/rebotling/historisk-produktion"><i class="fas fa-chart-line me-2"></i>Historisk produktion</a></li>
+          <li *ngIf="ff.canAccess('rebotling/historisk-sammanfattning')"><a class="dropdown-item" routerLink="/rebotling/historisk-sammanfattning"><i class="bi bi-file-earmark-bar-graph me-2"></i>Historisk sammanfattning</a></li>
+          <li *ngIf="ff.canAccess('rebotling/rebotling-trendanalys')"><a class="dropdown-item" routerLink="/rebotling/rebotling-trendanalys"><i class="fas fa-chart-line me-2"></i>Trendanalys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/benchmarking')"><a class="dropdown-item" routerLink="/rebotling/benchmarking"><i class="fas fa-trophy me-2"></i>Benchmarking</a></li>
+
+          <!-- OEE & Kvalitet -->
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header text-uppercase small" style="color:#9f7aea; letter-spacing:1px;">OEE & Kvalitet</li>
+          <li *ngIf="ff.canAccess('rebotling/oee-benchmark')"><a class="dropdown-item" routerLink="/rebotling/oee-benchmark"><i class="fas fa-chart-pie me-2"></i>OEE Benchmark</a></li>
+          <li *ngIf="ff.canAccess('rebotling/oee-waterfall')"><a class="dropdown-item" routerLink="/rebotling/oee-waterfall"><i class="fas fa-chart-bar me-2"></i>OEE-analys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/oee-trendanalys')"><a class="dropdown-item" routerLink="/rebotling/oee-trendanalys"><i class="fas fa-chart-area me-2"></i>OEE Trendanalys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/oee-jamforelse')"><a class="dropdown-item" routerLink="/rebotling/oee-jamforelse"><i class="fas fa-chart-line me-2"></i>OEE-jämförelse</a></li>
+          <li *ngIf="ff.canAccess('rebotling/maskin-oee')"><a class="dropdown-item" routerLink="/rebotling/maskin-oee"><i class="fas fa-tachometer-alt me-2"></i>Maskin-OEE</a></li>
+          <li *ngIf="ff.canAccess('rebotling/utnyttjandegrad')"><a class="dropdown-item" routerLink="/rebotling/utnyttjandegrad"><i class="fas fa-gauge-high me-2"></i>Utnyttjandegrad</a></li>
+          <li *ngIf="ff.canAccess('rebotling/effektivitet')"><a class="dropdown-item" routerLink="/rebotling/effektivitet"><i class="fas fa-bolt me-2"></i>Maskineffektivitet</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kvalitetscertifikat')"><a class="dropdown-item" routerLink="/rebotling/kvalitetscertifikat"><i class="fas fa-certificate me-2"></i>Kvalitetscertifikat</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kvalitets-trendbrott')"><a class="dropdown-item" routerLink="/rebotling/kvalitets-trendbrott"><i class="fas fa-chart-line me-2"></i>Kvalitets-trendbrott</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kvalitetstrendanalys')"><a class="dropdown-item" routerLink="/rebotling/kvalitetstrendanalys"><i class="fas fa-chart-area me-2"></i>Kvalitetstrend-analys</a></li>
+
+          <!-- Kassation & Stopp -->
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header text-uppercase small" style="color:#fc8181; letter-spacing:1px;">Kassation & Stopp</li>
+          <li *ngIf="ff.canAccess('rebotling/kassationsanalys')"><a class="dropdown-item" routerLink="/rebotling/kassationsanalys"><i class="fas fa-trash-alt me-2"></i>Kassationsanalys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kassationsorsak-drilldown')"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak-drilldown"><i class="fas fa-search-plus me-2"></i>Kassationsanalys+</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kassationsorsak')"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak"><i class="fas fa-times-circle me-2"></i>Orsak per station</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kassationsorsak-statistik')"><a class="dropdown-item" routerLink="/rebotling/kassationsorsak-statistik"><i class="fas fa-exclamation-triangle me-2"></i>Orsak-statistik</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kassationskvot-alarm')"><a class="dropdown-item" routerLink="/rebotling/kassationskvot-alarm"><i class="fas fa-exclamation-circle me-2"></i>Kassationskvot-alarm</a></li>
+          <li *ngIf="ff.canAccess('rebotling/stopporsaker')"><a class="dropdown-item" routerLink="/rebotling/stopporsaker"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsak-dashboard</a></li>
+          <li *ngIf="ff.canAccess('rebotling/stopporsak-operator')"><a class="dropdown-item" routerLink="/rebotling/stopporsak-operator"><i class="fas fa-exclamation-triangle me-2"></i>Stopporsak per operatör</a></li>
+          <li *ngIf="ff.canAccess('rebotling/stopptidsanalys')"><a class="dropdown-item" routerLink="/rebotling/stopptidsanalys"><i class="fas fa-stopwatch me-2"></i>Stopptidsanalys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/pareto')"><a class="dropdown-item" routerLink="/rebotling/pareto"><i class="fas fa-chart-bar me-2"></i>Pareto-analys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/avvikelselarm')"><a class="dropdown-item" routerLink="/rebotling/avvikelselarm"><i class="fas fa-exclamation-triangle me-2"></i>Avvikelselarm</a></li>
+
+          <!-- Operatör -->
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header text-uppercase small" style="color:#63b3ed; letter-spacing:1px;">Operatör</li>
+          <li *ngIf="ff.canAccess('rebotling/operatorsportal')"><a class="dropdown-item" routerLink="/rebotling/operatorsportal"><i class="fas fa-user-circle me-2"></i>Min portal</a></li>
+          <li *ngIf="ff.canAccess('rebotling/min-dag')"><a class="dropdown-item" routerLink="/rebotling/min-dag"><i class="fas fa-user-clock me-2"></i>Min dag</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operator-dashboard')"><a class="dropdown-item" routerLink="/rebotling/operator-dashboard"><i class="fas fa-id-badge me-2"></i>Min statistik</a></li>
+          <li *ngIf="ff.canAccess('min-bonus')"><a class="dropdown-item" routerLink="/min-bonus"><i class="fas fa-star me-2"></i>Min Bonus</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operator-ranking')"><a class="dropdown-item" routerLink="/rebotling/operator-ranking"><i class="fas fa-trophy me-2"></i>Ranking</a></li>
+          <li *ngIf="ff.canAccess('rebotling/ranking-historik')"><a class="dropdown-item" routerLink="/rebotling/ranking-historik"><i class="fas fa-trophy me-2"></i>Ranking-historik</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operator-jamforelse')"><a class="dropdown-item" routerLink="/rebotling/operator-jamforelse"><i class="fas fa-users me-2"></i>Operatörsjämförelse</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operators-prestanda')"><a class="dropdown-item" routerLink="/rebotling/operators-prestanda"><i class="fas fa-users me-2"></i>Operatörs-prestanda</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operatorsbonus')"><a class="dropdown-item" routerLink="/rebotling/operatorsbonus"><i class="fas fa-award me-2"></i>Operatörsbonus</a></li>
+          <li *ngIf="ff.canAccess('rebotling/operator-onboarding')"><a class="dropdown-item" routerLink="/rebotling/operator-onboarding"><i class="fas fa-user-graduate me-2"></i>Onboarding</a></li>
+          <li *ngIf="ff.canAccess('rebotling/gamification')"><a class="dropdown-item" routerLink="/rebotling/gamification"><i class="fas fa-gamepad me-2"></i>Gamification</a></li>
+          <li *ngIf="ff.canAccess('rebotling/narvarotracker')"><a class="dropdown-item" routerLink="/rebotling/narvarotracker"><i class="fas fa-calendar-check me-2"></i>Närvarotracker</a></li>
+          <li *ngIf="ff.canAccess('rebotling/tidrapport')"><a class="dropdown-item" routerLink="/rebotling/tidrapport"><i class="fas fa-clock me-2"></i>Tidrapport</a></li>
+          <li *ngIf="ff.canAccess('rebotling/feedback-analys')"><a class="dropdown-item" routerLink="/rebotling/feedback-analys"><i class="fas fa-comment-dots me-2"></i>Feedback-analys</a></li>
+
+          <!-- Underhåll & Maskin -->
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header text-uppercase small" style="color:#68d391; letter-spacing:1px;">Underhåll & Maskin</li>
+          <li *ngIf="ff.canAccess('rebotling/underhallslogg')"><a class="dropdown-item" routerLink="/rebotling/underhallslogg"><i class="fas fa-tools me-2"></i>Underhållslogg</a></li>
+          <li *ngIf="ff.canAccess('rebotling/maskinunderhall')"><a class="dropdown-item" routerLink="/rebotling/maskinunderhall"><i class="fas fa-wrench me-2"></i>Maskinunderhåll</a></li>
+          <li *ngIf="ff.canAccess('rebotling/underhallsprognos')"><a class="dropdown-item" routerLink="/rebotling/underhallsprognos"><i class="fas fa-tools me-2"></i>Underhållsprognos</a></li>
+          <li *ngIf="ff.canAccess('rebotling/prediktivt-underhall')"><a class="dropdown-item" routerLink="/rebotling/prediktivt-underhall"><i class="fas fa-brain me-2"></i>Prediktivt underhåll</a></li>
+          <li *ngIf="ff.canAccess('rebotling/stationsdetalj')"><a class="dropdown-item" routerLink="/rebotling/stationsdetalj"><i class="fas fa-industry me-2"></i>Stationsdetalj</a></li>
+          <li *ngIf="ff.canAccess('rebotling/maskinhistorik')"><a class="dropdown-item" routerLink="/rebotling/maskinhistorik"><i class="fas fa-industry me-2"></i>Maskinhistorik</a></li>
+          <li *ngIf="ff.canAccess('rebotling/maskin-drifttid')"><a class="dropdown-item" routerLink="/rebotling/maskin-drifttid"><i class="fas fa-th me-2"></i>Maskin-drifttid heatmap</a></li>
+          <li *ngIf="ff.canAccess('rebotling/drifttids-timeline')"><a class="dropdown-item" routerLink="/rebotling/drifttids-timeline"><i class="fas fa-stream me-2"></i>Drifttids-timeline</a></li>
+
+          <!-- Rapporter -->
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header text-uppercase small" style="color:#fbd38d; letter-spacing:1px;">Rapporter</li>
+          <li *ngIf="ff.canAccess('rebotling/daglig-sammanfattning')"><a class="dropdown-item" routerLink="/rebotling/daglig-sammanfattning"><i class="fas fa-tachometer-alt me-2"></i>Daglig sammanfattning</a></li>
+          <li *ngIf="ff.canAccess('rebotling/daglig-briefing')"><a class="dropdown-item" routerLink="/rebotling/daglig-briefing"><i class="fas fa-newspaper me-2"></i>Daglig briefing</a></li>
+          <li *ngIf="ff.canAccess('rebotling/morgonrapport')"><a class="dropdown-item" routerLink="/rebotling/morgonrapport"><i class="fas fa-sun me-2"></i>Morgonrapport</a></li>
+          <li *ngIf="ff.canAccess('rebotling/veckorapport')"><a class="dropdown-item" routerLink="/rebotling/veckorapport"><i class="fas fa-file-alt me-2"></i>Veckorapport</a></li>
+          <li *ngIf="ff.canAccess('rebotling/vd-veckorapport')"><a class="dropdown-item" routerLink="/rebotling/vd-veckorapport"><i class="fas fa-file-invoice me-2"></i>VD Veckorapport</a></li>
+          <li *ngIf="ff.canAccess('rebotling/vd-dashboard')"><a class="dropdown-item" routerLink="/rebotling/vd-dashboard"><i class="bi bi-speedometer2 me-2"></i>VD Dashboard</a></li>
+          <li *ngIf="ff.canAccess('rebotling/skiftrapport-export')"><a class="dropdown-item" routerLink="/rebotling/skiftrapport-export"><i class="fas fa-file-pdf me-2"></i>Skiftrapport PDF</a></li>
+          <li *ngIf="ff.canAccess('rebotling/skiftrapport-sammanstallning')"><a class="dropdown-item" routerLink="/rebotling/skiftrapport-sammanstallning"><i class="fas fa-clipboard-list me-2"></i>Skiftsammanställning</a></li>
+          <li *ngIf="ff.canAccess('rebotling/skiftjamforelse')"><a class="dropdown-item" routerLink="/rebotling/skiftjamforelse"><i class="fas fa-people-arrows me-2"></i>Skiftjämförelse</a></li>
+          <li *ngIf="ff.canAccess('rebotling/malhistorik')"><a class="dropdown-item" routerLink="/rebotling/malhistorik"><i class="fas fa-bullseye me-2"></i>Målhistorik</a></li>
+          <li *ngIf="ff.canAccess('rebotling/alarm-historik')"><a class="dropdown-item" routerLink="/rebotling/alarm-historik"><i class="fas fa-bell me-2"></i>Alarm-historik</a></li>
+
+          <!-- Visualisering -->
+          <li><hr class="dropdown-divider"></li>
+          <li class="dropdown-header text-uppercase small" style="color:#ecc94b; letter-spacing:1px;">Visualisering</li>
+          <li *ngIf="ff.canAccess('rebotling/statistik-dashboard')"><a class="dropdown-item" routerLink="/rebotling/statistik-dashboard"><i class="fas fa-tachometer-alt me-2"></i>Statistik-dashboard</a></li>
+          <li *ngIf="ff.canAccess('rebotling/cykeltid-heatmap')"><a class="dropdown-item" routerLink="/rebotling/cykeltid-heatmap"><i class="fas fa-th me-2"></i>Cykeltids-heatmap</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produktions-heatmap')"><a class="dropdown-item" routerLink="/rebotling/produktions-heatmap"><i class="fas fa-th me-2"></i>Produktions-heatmap</a></li>
+          <li *ngIf="ff.canAccess('rebotling/produkttyp-effektivitet')"><a class="dropdown-item" routerLink="/rebotling/produkttyp-effektivitet"><i class="fas fa-boxes me-2"></i>Produkttyp-effektivitet</a></li>
+          <li *ngIf="ff.canAccess('rebotling/forsta-timme-analys')"><a class="dropdown-item" routerLink="/rebotling/forsta-timme-analys"><i class="fas fa-stopwatch me-2"></i>Första timmen</a></li>
+          <li *ngIf="ff.canAccess('rebotling/batch-sparning')"><a class="dropdown-item" routerLink="/rebotling/batch-sparning"><i class="fas fa-boxes me-2"></i>Batch-spårning</a></li>
+          <li *ngIf="ff.canAccess('rebotling/leveransplanering')"><a class="dropdown-item" routerLink="/rebotling/leveransplanering"><i class="fas fa-truck-loading me-2"></i>Leveransplanering</a></li>
+          <li *ngIf="ff.canAccess('rebotling/analys')"><a class="dropdown-item" routerLink="/rebotling/analys"><i class="fas fa-chart-line me-2"></i>Produktionsanalys</a></li>
+          <li *ngIf="ff.canAccess('rebotling/kalender')"><a class="dropdown-item" routerLink="/rebotling/kalender"><i class="fas fa-calendar-alt me-2"></i>Produktionskalender</a></li>
+          <li *ngIf="ff.canAccess('rebotling/prognos')"><a class="dropdown-item" routerLink="/rebotling/prognos">Leveransprognos</a></li>
+          <li *ngIf="ff.canAccess('rebotling/skiftplanering')"><a class="dropdown-item" routerLink="/rebotling/skiftplanering"><i class="fas fa-calendar-alt me-2"></i>Skiftplanering</a></li>
+        </ul>
+      </li>
+
+      <!-- ============ ÖVRIGA LINJER ============ -->
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="tvattlinjeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <span class="line-dot" [class.line-dot-on]="tvattlinjeRunning" [class.line-dot-off]="!tvattlinjeRunning"></span>
@@ -175,14 +210,14 @@
           <i class="fas fa-file-alt me-1"></i>Rapporter
         </a>
         <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="rapporterDropdown">
-          <li *ngIf="ff.canAccess('statistik/overblick')"><a class="dropdown-item" routerLink="/statistik/overblick"><i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>Statistik-overblick</a></li>
+          <li *ngIf="ff.canAccess('statistik/overblick')"><a class="dropdown-item" routerLink="/statistik/overblick"><i class="fas fa-chart-line me-2" style="color:#4fd1c5"></i>Statistik-överblick</a></li>
           <li><hr class="dropdown-divider"></li>
           <li *ngIf="ff.canAccess('rapporter/manad')"><a class="dropdown-item" routerLink="/rapporter/manad"><i class="fas fa-calendar-alt me-2"></i>Månadsrapport</a></li>
           <li *ngIf="ff.canAccess('rapporter/vecka')"><a class="dropdown-item" routerLink="/rapporter/vecka"><i class="fas fa-calendar-week me-2"></i>Veckorapport</a></li>
         </ul>
       </li>
 
-      <!-- Notifikationscentral — visas bara för inloggade -->
+      <!-- Notifikationscentral -->
       <li class="nav-item dropdown" *ngIf="loggedIn">
         <a class="nav-link position-relative" href="#" id="notifDropdown" role="button"
            data-bs-toggle="dropdown" aria-expanded="false" title="Notifikationer">
@@ -219,7 +254,6 @@
           </li>
         </ul>
       </li>
-
 
       <li class="nav-item dropdown" *ngIf="!loggedIn">
         <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">

@@ -56,7 +56,7 @@ class FeatureFlagController {
     }
 
     private function isDeveloper(): bool {
-        return isset($_SESSION['role']) && $_SESSION['role'] === 'developer';
+        return isset($_SESSION['role']) && in_array($_SESSION['role'], ['developer', 'admin'], true);
     }
 
     private function ensureTableExists() {

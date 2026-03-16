@@ -1,3 +1,20 @@
+/* Funktioner-dropdown: scrollbar med grupprubriker */
+.dropdown-menu-funktioner {
+  max-height: 80vh;
+  overflow-y: auto;
+  min-width: 280px;
+}
+.dropdown-menu-funktioner .dropdown-header {
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding: 0.5rem 1rem 0.2rem;
+  margin-top: 0.2rem;
+}
+.dropdown-menu-funktioner .dropdown-item {
+  font-size: 0.85rem;
+  padding: 0.3rem 1rem;
+}
+
 .main-menu {
   display: flex;
   align-items: center;
