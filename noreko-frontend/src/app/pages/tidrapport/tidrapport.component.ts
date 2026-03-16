@@ -39,8 +39,11 @@ export class TidrapportPage implements OnInit, OnDestroy {
   sammanfattningLoading = false;
   sammanfattningError = false;
   operatorLoading = false;
+  operatorError = false;
   veckoLoading = false;
+  veckoError = false;
   detaljerLoading = false;
+  detaljerError = false;
 
   // Data
   sammanfattning: SammanfattningData | null = null;
@@ -157,6 +160,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
 
   private loadPerOperator(): void {
     this.operatorLoading = true;
+    this.operatorError = false;
     const from = this.period === 'anpassat' ? this.customFrom : undefined;
     const to = this.period === 'anpassat' ? this.customTo : undefined;
 
@@ -166,12 +170,15 @@ export class TidrapportPage implements OnInit, OnDestroy {
         this.operatorLoading = false;
         if (res?.success) {
           this.operatorData = res.data;
+        } else {
+          this.operatorError = true;
         }
       });
   }
 
   private loadVeckodata(): void {
     this.veckoLoading = true;
+    this.veckoError = false;
     this.svc.getVeckodata(4)
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
@@ -182,12 +189,15 @@ export class TidrapportPage implements OnInit, OnDestroy {
           this.chartTimer = setTimeout(() => {
             if (!this.destroy$.closed) this.renderVeckoChart();
           }, 100);
+        } else {
+          this.veckoError = true;
         }
       });
   }
 
   loadDetaljer(): void {
     this.detaljerLoading = true;
+    this.detaljerError = false;
     const from = this.period === 'anpassat' ? this.customFrom : undefined;
     const to = this.period === 'anpassat' ? this.customTo : undefined;
     const opId = this.filterOperatorId > 0 ? this.filterOperatorId : undefined;
@@ -198,6 +208,8 @@ export class TidrapportPage implements OnInit, OnDestroy {
         this.detaljerLoading = false;
         if (res?.success) {
           this.detaljerData = res.data;
+        } else {
+          this.detaljerError = true;
         }
       });
   }

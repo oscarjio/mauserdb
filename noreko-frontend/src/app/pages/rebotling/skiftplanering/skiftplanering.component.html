@@ -53,6 +53,11 @@
     <span class="ms-2 text-muted">Laddar KPI:er...</span>
   </div>
 
+  <!-- Error overview -->
+  <div class="alert alert-danger py-2 mb-4" *ngIf="errorOverview && !loadingOverview">
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda KPI:er.
+  </div>
+
   <!-- Veckoväljare -->
   <div class="week-nav mb-3" *ngIf="!loadingSchedule">
     <button class="btn btn-sm btn-outline-secondary" (click)="navigateWeek(-1)">
@@ -128,8 +133,13 @@
     Kunde inte ladda veckoschema. Försök igen senare.
   </div>
 
+  <!-- Error capacity -->
+  <div class="alert alert-danger mb-4" *ngIf="errorCapacity && !loadingCapacity">
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda bemanningsdata.
+  </div>
+
   <!-- Bemanningsgrad-diagram -->
-  <div class="table-card mb-4" *ngIf="capacityData.length > 0">
+  <div class="table-card mb-4" *ngIf="capacityData.length > 0 && !errorCapacity">
     <h5 class="section-title mb-3"><i class="fas fa-chart-bar me-2"></i>Bemanningsgrad per dag</h5>
     <div style="height: 250px; position: relative;">
       <canvas id="capacityChart"></canvas>
@@ -141,9 +151,20 @@
     <div class="detail-panel" (click)="$event.stopPropagation()">
 
       <!-- Loading -->
-      <div class="text-center py-5" *ngIf="loadingDetail && !shiftDetail">
+      <div class="text-center py-5" *ngIf="loadingDetail && !shiftDetail && !errorDetail">
         <div class="spinner-border text-info"></div>
         <p class="mt-2 text-muted">Laddar skiftdetaljer...</p>
+      </div>
+
+      <!-- Error detail -->
+      <div *ngIf="errorDetail && !loadingDetail" class="alert alert-danger m-3">
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda skiftdetaljer.
+        <button class="btn btn-sm btn-outline-light ms-2" (click)="closeDetail()">Stang</button>
+      </div>
+
+      <!-- Remove error -->
+      <div *ngIf="removeError" class="alert alert-danger m-3 py-2">
+        <i class="fas fa-exclamation-triangle me-1"></i>{{ removeError }}
       </div>
 
       <ng-container *ngIf="shiftDetail">
@@ -256,6 +277,10 @@
       <div class="text-center py-2" *ngIf="loadingOperators">
         <div class="spinner-border spinner-border-sm text-info"></div>
         <span class="ms-2 text-muted">Laddar operatörer...</span>
+      </div>
+
+      <div *ngIf="errorOperators && !loadingOperators" class="alert alert-danger py-2">
+        <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda operatorer.
       </div>
 
       <div class="alert alert-success py-2" *ngIf="assignMessage">{{ assignMessage }}</div>

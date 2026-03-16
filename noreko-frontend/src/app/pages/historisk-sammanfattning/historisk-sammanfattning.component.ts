@@ -42,6 +42,14 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
   loadingStationer = false;
   loadingStopporsaker = false;
 
+  // Errors
+  errorPerioder = false;
+  errorRapport = false;
+  errorTrend = false;
+  errorOperatorer = false;
+  errorStationer = false;
+  errorStopporsaker = false;
+
   // Data
   rapport: RapportData | null = null;
   trendData: TrendData | null = null;
@@ -84,6 +92,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
 
   loadPerioder(): void {
     this.loadingPerioder = true;
+    this.errorPerioder = false;
     this.svc.getPerioder().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPerioder = false;
       if (res?.success) {
@@ -94,6 +103,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
           this.selectedPeriod = this.manadOptions[0].value;
         }
         this.loadAll();
+      } else {
+        this.errorPerioder = true;
       }
     });
   }
@@ -121,17 +132,21 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
 
   private loadRapport(): void {
     this.loadingRapport = true;
+    this.errorRapport = false;
     this.svc.getRapport(this.selectedTyp, this.selectedPeriod)
       .pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingRapport = false;
         if (res?.success) {
           this.rapport = res.data;
+        } else {
+          this.errorRapport = true;
         }
       });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
+    this.errorTrend = false;
     this.svc.getTrend(this.selectedTyp, this.selectedPeriod)
       .pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingTrend = false;
@@ -139,34 +154,43 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
           this.trendData = res.data;
           if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
           this.trendChartTimer = setTimeout(() => this.buildTrendChart(), 100);
+        } else {
+          this.errorTrend = true;
         }
       });
   }
 
   private loadOperatorer(): void {
     this.loadingOperatorer = true;
+    this.errorOperatorer = false;
     this.svc.getOperatorer(this.selectedTyp, this.selectedPeriod)
       .pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOperatorer = false;
         if (res?.success) {
           this.operatorer = res.data.operatorer || [];
+        } else {
+          this.errorOperatorer = true;
         }
       });
   }
 
   private loadStationer(): void {
     this.loadingStationer = true;
+    this.errorStationer = false;
     this.svc.getStationer(this.selectedTyp, this.selectedPeriod)
       .pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingStationer = false;
         if (res?.success) {
           this.stationer = res.data.stationer || [];
+        } else {
+          this.errorStationer = true;
         }
       });
   }
 
   private loadStopporsaker(): void {
     this.loadingStopporsaker = true;
+    this.errorStopporsaker = false;
     this.svc.getStopporsaker(this.selectedTyp, this.selectedPeriod)
       .pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingStopporsaker = false;
@@ -175,6 +199,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
           this.stopporsakerTotalH = res.data.total_h || 0;
           if (this.paretoChartTimer) clearTimeout(this.paretoChartTimer);
           this.paretoChartTimer = setTimeout(() => this.buildParetoChart(), 100);
+        } else {
+          this.errorStopporsaker = true;
         }
       });
   }

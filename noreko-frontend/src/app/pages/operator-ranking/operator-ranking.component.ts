@@ -46,6 +46,14 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
   loadingHistorik = false;
   loadingMvp = false;
 
+  // Error states
+  errorSammanfattning = false;
+  errorTopplista = false;
+  errorRanking = false;
+  errorPoangfordelning = false;
+  errorHistorik = false;
+  errorMvp = false;
+
   // Data
   sammanfattning: SammanfattningData | null = null;
   topplistaData: TopplistaData | null = null;
@@ -152,57 +160,83 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
 
   private loadSammanfattning(): void {
     this.loadingSammanfattning = true;
+    this.errorSammanfattning = false;
     this.svc.getSammanfattning(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
-      if (res?.success) this.sammanfattning = res.data;
+      if (res?.success) {
+        this.sammanfattning = res.data;
+      } else {
+        this.errorSammanfattning = true;
+      }
     });
   }
 
   private loadTopplista(): void {
     this.loadingTopplista = true;
+    this.errorTopplista = false;
     this.svc.getTopplista(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTopplista = false;
-      if (res?.success) this.topplistaData = res.data;
+      if (res?.success) {
+        this.topplistaData = res.data;
+      } else {
+        this.errorTopplista = true;
+      }
     });
   }
 
   private loadRanking(): void {
     this.loadingRanking = true;
+    this.errorRanking = false;
     this.svc.getRanking(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingRanking = false;
-      if (res?.success) this.rankingData = res.data;
+      if (res?.success) {
+        this.rankingData = res.data;
+      } else {
+        this.errorRanking = true;
+      }
     });
   }
 
   private loadPoangfordelning(): void {
     this.loadingPoangfordelning = true;
+    this.errorPoangfordelning = false;
     this.svc.getPoangfordelning(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPoangfordelning = false;
       if (res?.success) {
         this.poangfordelningData = res.data;
         if (this.poangChartTimer) clearTimeout(this.poangChartTimer);
         this.poangChartTimer = setTimeout(() => this.buildPoangChart(), 100);
+      } else {
+        this.errorPoangfordelning = true;
       }
     });
   }
 
   private loadHistorik(): void {
     this.loadingHistorik = true;
+    this.errorHistorik = false;
     this.svc.getHistorik().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingHistorik = false;
       if (res?.success) {
         this.historikData = res.data;
         if (this.historikChartTimer) clearTimeout(this.historikChartTimer);
         this.historikChartTimer = setTimeout(() => this.buildHistorikChart(), 100);
+      } else {
+        this.errorHistorik = true;
       }
     });
   }
 
   private loadMvp(): void {
     this.loadingMvp = true;
+    this.errorMvp = false;
     this.svc.getMvp(this.mvpTyp).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingMvp = false;
-      if (res?.success) this.mvpData = res.data;
+      if (res?.success) {
+        this.mvpData = res.data;
+      } else {
+        this.errorMvp = true;
+      }
     });
   }
 

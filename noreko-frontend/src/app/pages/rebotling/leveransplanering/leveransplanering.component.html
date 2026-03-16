@@ -49,8 +49,13 @@
     <p class="text-muted mt-2">Laddar leveransplanering...</p>
   </div>
 
+  <!-- Error overview -->
+  <div class="alert alert-danger mb-4" *ngIf="errorOverview && !loadingOverview">
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda oversiktsdata. Forsok igen senare.
+  </div>
+
   <!-- KPI-KORT -->
-  <div class="row g-3 mb-4" *ngIf="overview">
+  <div class="row g-3 mb-4" *ngIf="overview && !errorOverview">
 
     <div class="col-6 col-md-3">
       <div class="kpi-card">
@@ -93,8 +98,13 @@
     </div>
   </div>
 
+  <!-- Error ordrar -->
+  <div class="alert alert-danger mb-4" *ngIf="errorOrdrar && !loadingOrdrar">
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda ordrar.
+  </div>
+
   <!-- ORDERTABELL -->
-  <div class="chart-card mb-4" *ngIf="ordrarData">
+  <div class="chart-card mb-4" *ngIf="ordrarData && !errorOrdrar">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="card-title mb-0">
         <i class="fas fa-table me-2" style="color:#63b3ed"></i>Kundordrar
@@ -165,8 +175,13 @@
     </div>
   </div>
 
+  <!-- Error kapacitet -->
+  <div class="alert alert-danger mb-4" *ngIf="errorKapacitet && !loadingKapacitet">
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda kapacitetsdata.
+  </div>
+
   <!-- GANTT-LIKNANDE KAPACITETSVY -->
-  <div class="chart-card mb-4" *ngIf="kapacitetData">
+  <div class="chart-card mb-4" *ngIf="kapacitetData && !errorKapacitet">
     <h5 class="card-title mb-3">
       <i class="fas fa-project-diagram me-2" style="color:#f6ad55"></i>Kapacitetsvy — Planerade ordrar
     </h5>
@@ -207,27 +222,27 @@
           <div class="row g-3">
             <div class="col-md-6">
               <label class="form-label">Kundnamn *</label>
-              <input type="text" class="form-control" [(ngModel)]="newOrder.kundnamn" placeholder="T.ex. BASF Ludwigshafen">
+              <input type="text" class="form-control" [(ngModel)]="newOrder.kundnamn" name="kundnamn" placeholder="T.ex. BASF Ludwigshafen" required maxlength="200">
             </div>
             <div class="col-md-3">
               <label class="form-label">Antal IBC *</label>
-              <input type="number" class="form-control" [(ngModel)]="newOrder.antal_ibc" min="1">
+              <input type="number" class="form-control" [(ngModel)]="newOrder.antal_ibc" name="antal_ibc" min="1" max="999999" required>
             </div>
             <div class="col-md-3">
               <label class="form-label">Prioritet (1-10)</label>
-              <input type="number" class="form-control" [(ngModel)]="newOrder.prioritet" min="1" max="10">
+              <input type="number" class="form-control" [(ngModel)]="newOrder.prioritet" name="prioritet" min="1" max="10">
             </div>
             <div class="col-md-6">
               <label class="form-label">Bestallningsdatum</label>
-              <input type="date" class="form-control" [(ngModel)]="newOrder.bestallningsdatum">
+              <input type="date" class="form-control" [(ngModel)]="newOrder.bestallningsdatum" name="bestallningsdatum">
             </div>
             <div class="col-md-6">
               <label class="form-label">Onskat leveransdatum *</label>
-              <input type="date" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum">
+              <input type="date" class="form-control" [(ngModel)]="newOrder.onskat_leveransdatum" name="onskat_leveransdatum" required>
             </div>
             <div class="col-12">
               <label class="form-label">Notering</label>
-              <textarea class="form-control" rows="2" [(ngModel)]="newOrder.notering" placeholder="Valfri notering..."></textarea>
+              <textarea class="form-control" rows="2" [(ngModel)]="newOrder.notering" name="notering" placeholder="Valfri notering..." maxlength="1000"></textarea>
             </div>
           </div>
           <div class="alert alert-danger mt-3 py-2" *ngIf="newOrderError">{{ newOrderError }}</div>

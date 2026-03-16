@@ -41,6 +41,11 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   loadingOrdrar   = false;
   loadingKapacitet = false;
 
+  // Errors
+  errorOverview = false;
+  errorOrdrar   = false;
+  errorKapacitet = false;
+
   // Data
   overview:      LeveransOverviewData | null = null;
   ordrarData:    OrdrarData | null           = null;
@@ -123,27 +128,34 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
 
   private loadOverview(): void {
     this.loadingOverview = true;
+    this.errorOverview = false;
     this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       this.loading = false;
       if (res?.success) {
         this.overview = res.data;
+      } else {
+        this.errorOverview = true;
       }
     });
   }
 
   private loadOrdrar(): void {
     this.loadingOrdrar = true;
+    this.errorOrdrar = false;
     this.svc.getOrdrar(this.filterStatus, this.filterPeriod).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOrdrar = false;
       if (res?.success) {
         this.ordrarData = res.data;
+      } else {
+        this.errorOrdrar = true;
       }
     });
   }
 
   private loadKapacitet(): void {
     this.loadingKapacitet = true;
+    this.errorKapacitet = false;
     this.svc.getKapacitet(30).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingKapacitet = false;
       if (res?.success) {
@@ -152,6 +164,8 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
           this.buildGanttChart();
           this.buildKapacitetChart();
         }, 80);
+      } else {
+        this.errorKapacitet = true;
       }
     });
   }

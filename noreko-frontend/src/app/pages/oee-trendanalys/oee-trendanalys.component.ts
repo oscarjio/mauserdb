@@ -47,6 +47,14 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   loadingJamforelse = false;
   loadingPrediktion = false;
 
+  // Errors
+  errorSammanfattning = false;
+  errorStationer = false;
+  errorTrend = false;
+  errorFlaskhalsar = false;
+  errorJamforelse = false;
+  errorPrediktion = false;
+
   // Data
   sammanfattning: SammanfattningData | null = null;
   stationerData: PerStationData | null = null;
@@ -134,16 +142,20 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
 
   private loadSammanfattning(): void {
     this.loadingSammanfattning = true;
+    this.errorSammanfattning = false;
     this.svc.getSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
       if (res?.success) {
         this.sammanfattning = res.data;
+      } else {
+        this.errorSammanfattning = true;
       }
     });
   }
 
   private loadStationer(): void {
     this.loadingStationer = true;
+    this.errorStationer = false;
     this.svc.getPerStation(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingStationer = false;
       if (res?.success) {
@@ -152,50 +164,64 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
         if (res.data.stationer?.length && this.stationsLista.length === 0) {
           this.stationsLista = res.data.stationer;
         }
+      } else {
+        this.errorStationer = true;
       }
     });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
+    this.errorTrend = false;
     this.svc.getTrend(this.period, this.selectedStation ?? undefined).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
         if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
         this.trendChartTimer = setTimeout(() => this.buildTrendChart(), 100);
+      } else {
+        this.errorTrend = true;
       }
     });
   }
 
   private loadFlaskhalsar(): void {
     this.loadingFlaskhalsar = true;
+    this.errorFlaskhalsar = false;
     this.svc.getFlaskhalsar(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingFlaskhalsar = false;
       if (res?.success) {
         this.flaskhalserData = res.data;
+      } else {
+        this.errorFlaskhalsar = true;
       }
     });
   }
 
   private loadJamforelse(): void {
     this.loadingJamforelse = true;
+    this.errorJamforelse = false;
     this.svc.getJamforelse(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingJamforelse = false;
       if (res?.success) {
         this.jamforelseData = res.data;
+      } else {
+        this.errorJamforelse = true;
       }
     });
   }
 
   private loadPrediktion(): void {
     this.loadingPrediktion = true;
+    this.errorPrediktion = false;
     this.svc.getPrediktion().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingPrediktion = false;
       if (res?.success) {
         this.prediktionData = res.data;
         if (this.prediktionChartTimer) clearTimeout(this.prediktionChartTimer);
         this.prediktionChartTimer = setTimeout(() => this.buildPrediktionChart(), 100);
+      } else {
+        this.errorPrediktion = true;
       }
     });
   }

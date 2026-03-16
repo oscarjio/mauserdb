@@ -36,6 +36,10 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   // Errors
   errorOverview = false;
   errorSchedule = false;
+  errorDetail = false;
+  errorCapacity = false;
+  errorOperators = false;
+  removeError = '';
 
   // Data
   overview: SkiftOverview | null = null;
@@ -155,10 +159,14 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   openShiftDetail(skiftTyp: string, datum: string): void {
     this.loadingDetail = true;
     this.shiftDetail = null;
+    this.errorDetail = false;
+    this.removeError = '';
     this.svc.getShiftDetail(skiftTyp, datum).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingDetail = false;
       if (res?.success) {
         this.shiftDetail = res;
+      } else {
+        this.errorDetail = true;
       }
     });
   }
@@ -169,6 +177,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
 
   removeOperator(schemaId: number): void {
     if (!confirm('Ta bort operatör från detta skift?')) return;
+    this.removeError = '';
     this.svc.unassignOperator(schemaId).pipe(takeUntil(this.destroy$)).subscribe(res => {
       if (res?.success) {
         this.loadSchedule(this.currentWeek);
@@ -178,6 +187,8 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
         if (this.shiftDetail) {
           this.openShiftDetail(this.shiftDetail.skift_typ, this.shiftDetail.datum);
         }
+      } else {
+        this.removeError = res?.error || 'Kunde inte ta bort operatoren';
       }
     });
   }
@@ -195,10 +206,13 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     // Load operators if not loaded yet
     if (this.allOperators.length === 0) {
       this.loadingOperators = true;
+      this.errorOperators = false;
       this.svc.getOperators().pipe(takeUntil(this.destroy$)).subscribe(res => {
         this.loadingOperators = false;
         if (res?.success) {
           this.allOperators = res.operatorer;
+        } else {
+          this.errorOperators = true;
         }
       });
     }
@@ -237,12 +251,15 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
 
   loadCapacity(): void {
     this.loadingCapacity = true;
+    this.errorCapacity = false;
     this.svc.getCapacity().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingCapacity = false;
       if (res?.success) {
         this.capacityData = res.dag_data;
         this.capacityMinPerDay = res.min_per_dag;
         setTimeout(() => this.renderCapacityChart(), 100);
+      } else {
+        this.errorCapacity = true;
       }
     });
   }

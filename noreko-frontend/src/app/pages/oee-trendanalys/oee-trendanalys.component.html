@@ -19,8 +19,13 @@
     </div>
   </div>
 
+  <!-- Error KPI -->
+  <div class="alert alert-danger py-2 mb-3" *ngIf="errorSammanfattning && !loadingSammanfattning" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
+    <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda sammanfattning. Forsok igen senare.
+  </div>
+
   <!-- KPI-kort -->
-  <div class="row g-3 mb-4">
+  <div class="row g-3 mb-4" *ngIf="!errorSammanfattning">
     <div class="col-6 col-lg">
       <div class="kpi-card">
         <div class="kpi-label">OEE idag</div>
@@ -98,7 +103,10 @@
           </span>
         </h6>
         <div *ngIf="loadingTrend" class="text-center py-4"><span class="loading-spinner"></span></div>
-        <div class="chart-wrapper" *ngIf="!loadingTrend">
+        <div class="alert alert-danger py-2" *ngIf="errorTrend && !loadingTrend" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
+          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda trenddata.
+        </div>
+        <div class="chart-wrapper" *ngIf="!loadingTrend && !errorTrend">
           <canvas id="oeeTrendChart"></canvas>
         </div>
       </div>
@@ -111,7 +119,10 @@
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-industry me-2"></i>OEE per station</h6>
         <div *ngIf="loadingStationer" class="text-center py-4"><span class="loading-spinner"></span></div>
-        <div class="table-dark-custom" *ngIf="!loadingStationer && stationerData?.stationer?.length">
+        <div class="alert alert-danger py-2" *ngIf="errorStationer && !loadingStationer" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
+          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda stationsdata.
+        </div>
+        <div class="table-dark-custom" *ngIf="!loadingStationer && !errorStationer && stationerData?.stationer?.length">
           <table class="table table-sm mb-0">
             <thead>
               <tr>
@@ -172,7 +183,7 @@
             </tbody>
           </table>
         </div>
-        <div *ngIf="!loadingStationer && (!stationerData?.stationer?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingStationer && !errorStationer && (!stationerData?.stationer?.length)" class="text-center py-3" style="color:#718096">
           Inga stationsdata for perioden.
         </div>
       </div>
@@ -181,7 +192,10 @@
       <div class="chart-card">
         <h6 class="mb-3"><i class="fas fa-exclamation-circle me-2" style="color:#fc8181"></i>Flaskhalsar</h6>
         <div *ngIf="loadingFlaskhalsar" class="text-center py-4"><span class="loading-spinner"></span></div>
-        <div *ngIf="!loadingFlaskhalsar && flaskhalserData?.flaskhalsar?.length">
+        <div class="alert alert-danger py-2" *ngIf="errorFlaskhalsar && !loadingFlaskhalsar" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
+          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda flaskhalsar.
+        </div>
+        <div *ngIf="!loadingFlaskhalsar && !errorFlaskhalsar && flaskhalserData?.flaskhalsar?.length">
           <div *ngFor="let f of flaskhalserData!.flaskhalsar; let i = index; trackBy: trackByIndex" class="flaskhals-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
@@ -208,7 +222,7 @@
             </div>
           </div>
         </div>
-        <div *ngIf="!loadingFlaskhalsar && (!flaskhalserData?.flaskhalsar?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingFlaskhalsar && !errorFlaskhalsar && (!flaskhalserData?.flaskhalsar?.length)" class="text-center py-3" style="color:#718096">
           Inga flaskhalsar identifierade.
         </div>
       </div>
@@ -231,7 +245,10 @@
           </span>
         </h6>
         <div *ngIf="loadingJamforelse" class="text-center py-4"><span class="loading-spinner"></span></div>
-        <div class="table-dark-custom" *ngIf="!loadingJamforelse && jamforelseData?.stationer?.length">
+        <div class="alert alert-danger py-2" *ngIf="errorJamforelse && !loadingJamforelse" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
+          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda jamforelsedata.
+        </div>
+        <div class="table-dark-custom" *ngIf="!loadingJamforelse && !errorJamforelse && jamforelseData?.stationer?.length">
           <table class="table table-sm mb-0">
             <thead>
               <tr>
@@ -263,7 +280,7 @@
             </tbody>
           </table>
         </div>
-        <div *ngIf="!loadingJamforelse && (!jamforelseData?.stationer?.length)" class="text-center py-3" style="color:#718096">
+        <div *ngIf="!loadingJamforelse && !errorJamforelse && (!jamforelseData?.stationer?.length)" class="text-center py-3" style="color:#718096">
           Inga jamforelsedata tillgangliga.
         </div>
       </div>
@@ -281,7 +298,10 @@
           </span>
         </h6>
         <div *ngIf="loadingPrediktion" class="text-center py-4"><span class="loading-spinner"></span></div>
-        <div class="chart-wrapper" *ngIf="!loadingPrediktion">
+        <div class="alert alert-danger py-2" *ngIf="errorPrediktion && !loadingPrediktion" style="background:#742a2a; border-color:#9b2c2c; color:#feb2b2;">
+          <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda prediktionsdata.
+        </div>
+        <div class="chart-wrapper" *ngIf="!loadingPrediktion && !errorPrediktion">
           <canvas id="prediktionChart"></canvas>
         </div>
       </div>
