@@ -1,3 +1,56 @@
+## 2026-03-16 Session #124 Worker A — Buggjakt i PHP backend-controllers batch 5
+
+### Granskade 17 PHP backend-controllers (classes/ + controllers/):
+
+**Rena filer (inga buggar):**
+1. SkiftjamforelseController.php — OK
+2. SkiftplaneringController.php — OK
+3. SkiftoverlamningController.php — OK
+4. StatistikDashboardController.php — OK
+5. StatistikOverblickController.php — OK
+6. StopporsakOperatorController.php — OK
+7. StopptidsanalysController.php — OK
+8. UnderhallsloggController.php — OK
+9. AlarmHistorikController.php — OK
+10. KvalitetsTrendbrottController.php — OK
+11. RebotlingStationsdetaljController.php — OK
+
+**Filer med buggar fixade (34 buggar i 6 filer):**
+
+12. **ProduktionspulsController.php (14 buggar):**
+    - 5x PDO::PARAM_INT utan backslash-prefix (saknar namespace)
+    - 9x PDO::FETCH_ASSOC utan backslash-prefix (saknar namespace)
+    - Andrat till \PDO::PARAM_INT och \PDO::FETCH_ASSOC overallt
+
+13. **VdDashboardController.php (10 buggar):**
+    - 10x PDO::FETCH_ASSOC utan backslash-prefix (saknar namespace)
+    - Andrat till \PDO::FETCH_ASSOC overallt
+
+14. **StopporsakController.php (5 buggar):**
+    - 5x sendError('Databasfel') i catch-block utan HTTP 500 statuskod
+    - Andrat till sendError('Databasfel', 500) i getSammanfattning(), getPareto(), getTrend(), getOrsakerTabell(), getDetaljer()
+
+15. **VeckorapportController.php (3 buggar) — KRITISK:**
+    - 3x DATE(created_at) i queries mot rebotling_ibc — kolumnen heter datum, inte created_at
+    - Andrat DATE(created_at) till DATE(datum) i getTotalRuntimeHours() (SELECT, WHERE, GROUP BY)
+    - Felet gav alltid 0 timmar drifttid i veckorapporten
+
+16. **ProduktionsPrognosController.php (1 bugg):**
+    - 1x PDO::FETCH_COLUMN utan backslash-prefix i getIbcTimestampColumn()
+    - Andrat till \PDO::FETCH_COLUMN
+
+17. **ProduktionsmalController.php (1 bugg) — KRITISK:**
+    - 1x GROUP BY DATE(created_at) i getFactualIbcByDate() — kolumnen heter datum, inte created_at
+    - Andrat GROUP BY DATE(created_at) till GROUP BY DATE(datum)
+    - Felet gav felaktiga/tomma produktionsmal-berakningar
+
+### Buggtyper:
+- **Saknad namespace-prefix (PDO::)**: 25 buggar (ProduktionspulsController, VdDashboardController, ProduktionsPrognosController)
+- **Saknad HTTP 500 statuskod**: 5 buggar (StopporsakController)
+- **Fel kolumnnamn (created_at istallet for datum)**: 4 buggar (VeckorapportController, ProduktionsmalController)
+
+---
+
 ## 2026-03-16 Session #123 Worker A — Buggjakt i PHP backend-controllers batch 4
 
 ### Granskade 20 PHP backend-controllers (aldrig granskade tidigare):
