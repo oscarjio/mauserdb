@@ -27,7 +27,7 @@ class RebotlingTrendanalysController {
                 break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Okänt run-kommando'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Okänt run-kommando: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')], JSON_UNESCAPED_UNICODE);
                 return;
         }
     }
@@ -41,6 +41,8 @@ class RebotlingTrendanalysController {
      * Returnerar array av ['datum', 'oee', 'produktion', 'kassation']
      */
     private function hamtaDagligData(int $dagar): array {
+        $dagar = max(1, min(365, $dagar));
+        try {
         $sql = "
             SELECT
                 DATE(i.datum) AS datum,
@@ -102,6 +104,10 @@ class RebotlingTrendanalysController {
             ];
         }
         return $result;
+        } catch (\PDOException $e) {
+            error_log('RebotlingTrendanalysController::hamtaDagligData: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -194,7 +200,7 @@ class RebotlingTrendanalysController {
                     'kassation'  => $this->tomTrendKort(),
                 ],
                 'timestamp' => date('Y-m-d H:i:s'),
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -319,6 +325,7 @@ class RebotlingTrendanalysController {
     // ============================================================
 
     private function veckosammanfattning(): void {
+        try {
         $sql = "
             SELECT
                 YEAR(datum)       AS ar,
@@ -414,7 +421,12 @@ class RebotlingTrendanalysController {
             'success'    => true,
             'data'       => array_reverse($veckor), // Nyast först för display
             'timestamp'  => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log('RebotlingTrendanalysController::veckosammanfattning: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta veckosammanfattning'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     // ============================================================

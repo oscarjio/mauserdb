@@ -55,7 +55,7 @@ class RebotlingProductController {
             echo json_encode([
                 'success' => true,
                 'data' => $products
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('Kunde inte hämta produkter: ' . $e->getMessage());
             http_response_code(500);
@@ -83,8 +83,10 @@ class RebotlingProductController {
             $stmt->execute([$data['name'], $data['cycle_time_minutes']]);
             
             $productId = $this->pdo->lastInsertId();
+            $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
+            $safeCycle = (float)$data['cycle_time_minutes'];
             AuditLogger::log($this->pdo, 'product_create', 'rebotling_products', (int)$productId,
-                "Skapad: name={$data['name']}, cycle_time={$data['cycle_time_minutes']}");
+                "Skapad: name={$safeName}, cycle_time={$safeCycle}");
 
             echo json_encode([
                 'success' => true,
@@ -94,7 +96,7 @@ class RebotlingProductController {
                     'name' => $data['name'],
                     'cycle_time_minutes' => $data['cycle_time_minutes']
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('Kunde inte skapa produkt: ' . $e->getMessage());
             http_response_code(500);
@@ -122,8 +124,10 @@ class RebotlingProductController {
             $stmt->execute([$data['name'], $data['cycle_time_minutes'], $data['id']]);
             
             if ($stmt->rowCount() > 0) {
+                $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
+                $safeCycle = (float)$data['cycle_time_minutes'];
                 AuditLogger::log($this->pdo, 'product_update', 'rebotling_products', (int)$data['id'],
-                    "Uppdaterad: name={$data['name']}, cycle_time={$data['cycle_time_minutes']}");
+                    "Uppdaterad: name={$safeName}, cycle_time={$safeCycle}");
                 echo json_encode([
                     'success' => true,
                     'message' => 'Produkt uppdaterad',
@@ -132,7 +136,7 @@ class RebotlingProductController {
                         'name' => $data['name'],
                         'cycle_time_minutes' => $data['cycle_time_minutes']
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
             } else {
                 http_response_code(404);
                 echo json_encode([
@@ -173,7 +177,7 @@ class RebotlingProductController {
                 echo json_encode([
                     'success' => true,
                     'message' => 'Produkt borttagen'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
             } else {
                 http_response_code(404);
                 echo json_encode([

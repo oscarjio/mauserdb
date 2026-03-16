@@ -43,7 +43,7 @@ class RebotlingAdminController {
                 ]
             ];
 
-            echo json_encode(['success' => true, 'data' => $settings]);
+            echo json_encode(['success' => true, 'data' => $settings], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('Kunde inte hämta admin-inställningar: ' . $e->getMessage());
             http_response_code(500);
@@ -156,7 +156,7 @@ class RebotlingAdminController {
         try {
             $this->ensureWeekdayGoalsTable();
             $rows = $this->pdo->query("SELECT weekday, daily_goal, label FROM rebotling_weekday_goals ORDER BY weekday")->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getWeekdayGoals: ' . $e->getMessage());
             http_response_code(500);
@@ -259,7 +259,7 @@ class RebotlingAdminController {
                 }
             }
 
-            echo json_encode(['success' => true, 'data' => $thresholds]);
+            echo json_encode(['success' => true, 'data' => $thresholds], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getAlertThresholds: ' . $e->getMessage());
             http_response_code(500);
@@ -395,7 +395,7 @@ class RebotlingAdminController {
                     'is_running'   => $isRunning,
                     'server_time'  => $now->format('H:i:s'),
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getTodaySnapshot: ' . $e->getMessage());
             http_response_code(500);
@@ -437,7 +437,7 @@ class RebotlingAdminController {
         try {
             $this->ensureShiftTimesTable();
             $rows = $this->pdo->query("SELECT shift_name, start_time, end_time, enabled FROM rebotling_shift_times ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getShiftTimes: ' . $e->getMessage());
             http_response_code(500);
@@ -538,7 +538,7 @@ class RebotlingAdminController {
                     'ibc_today'       => $ibcToday,
                     'server_time'     => date('Y-m-d H:i:s')
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getSystemStatus: ' . $e->getMessage());
             http_response_code(500);
@@ -671,7 +671,7 @@ class RebotlingAdminController {
         // --- Klassificeringslinje ---
         $lines[] = $this->getOtherLineStatus('klassificeringslinje', 'Klassificeringslinje', 'klassificeringslinje_settings');
 
-        echo json_encode(['success' => true, 'lines' => $lines]);
+        echo json_encode(['success' => true, 'lines' => $lines], JSON_UNESCAPED_UNICODE);
     }
 
 
@@ -922,7 +922,7 @@ class RebotlingAdminController {
                 }
             }
 
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getGoalHistory: ' . $e->getMessage());
             http_response_code(500);
@@ -947,7 +947,7 @@ class RebotlingAdminController {
                 'lr_show_motto'    => ($rows['lr_show_motto']    ?? '1') === '1',
                 'lr_poll_interval' => intval($rows['lr_poll_interval'] ?? 30),
                 'lr_title'         => $rows['lr_title'] ?? 'Live Ranking',
-            ]]);
+            ]], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
@@ -1013,7 +1013,7 @@ class RebotlingAdminController {
                 'columns'          => $columns,
                 'sort_by'          => $rows['lrc_sort_by'] ?? 'ibc_per_hour',
                 'refresh_interval' => intval($rows['lrc_refresh_interval'] ?? 30),
-            ]]);
+            ]], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getLiveRankingConfig: ' . $e->getMessage());
             http_response_code(500);
@@ -1081,7 +1081,7 @@ class RebotlingAdminController {
             $ibcIdag = (int)($todayRow['idag_total'] ?? 0);
 
             if ($ibcIdag <= 0) {
-                echo json_encode(['success' => false, 'error' => 'Ingen IBC-data för idag']);
+                echo json_encode(['success' => false, 'error' => 'Ingen IBC-data för idag'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -1199,7 +1199,7 @@ class RebotlingAdminController {
                     'orsak'        => $r['orsak'],
                 ];
             }, $rows);
-            echo json_encode(['success' => true, 'exceptions' => $exceptions]);
+            echo json_encode(['success' => true, 'exceptions' => $exceptions], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getGoalExceptions: ' . $e->getMessage());
             http_response_code(500);

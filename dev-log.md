@@ -1,3 +1,57 @@
+## 2026-03-16 Session #119 Worker A — Buggjakt i rebotling-controllers
+
+### Granskade filer (7 st):
+1. RebotlingStationsdetaljController.php (classes/) — 1 bugg fixad
+2. RebotlingTrendanalysController.php — 5 buggar fixade
+3. RebotlingProductController.php — 5 buggar fixade
+4. RebotlingAdminController.php — 8 buggar fixade
+5. RebotlingAnalyticsController.php — 14 buggar fixade
+6. RebotlingSammanfattningController.php — OK (redan korrekt)
+7. RebotlingStationsdetaljController.php (controllers/ proxy) — OK
+
+### Buggar fixade (33 st):
+
+**1. RebotlingStationsdetaljController.php (1 bugg):**
+- Saknad htmlspecialchars pa $_GET['station'] i getRealtidOee() — XSS-risk
+
+**2. RebotlingTrendanalysController.php (5 buggar):**
+- Saknad htmlspecialchars pa $run i default error-meddelande — XSS-risk
+- Saknad JSON_UNESCAPED_UNICODE i trender() tom-data-svar
+- Saknad JSON_UNESCAPED_UNICODE i veckosammanfattning()
+- Saknad try/catch runt hamtaDagligData() SQL — krasch vid DB-fel
+- Saknad try/catch runt veckosammanfattning() SQL — krasch vid DB-fel
+
+**3. RebotlingProductController.php (5 buggar):**
+- Saknad JSON_UNESCAPED_UNICODE i getProducts()
+- Saknad JSON_UNESCAPED_UNICODE i createProduct()
+- Saknad JSON_UNESCAPED_UNICODE i updateProduct()
+- Saknad JSON_UNESCAPED_UNICODE i deleteProduct()
+- Saknad htmlspecialchars pa $data['name'] i AuditLogger-anrop (2 stallen) — log injection
+
+**4. RebotlingAdminController.php (8 buggar):**
+- Saknad JSON_UNESCAPED_UNICODE i getAdminSettings()
+- Saknad JSON_UNESCAPED_UNICODE i getWeekdayGoals()
+- Saknad JSON_UNESCAPED_UNICODE i getAlertThresholds()
+- Saknad JSON_UNESCAPED_UNICODE i getShiftTimes()
+- Saknad JSON_UNESCAPED_UNICODE i getAllLinesStatus()
+- Saknad JSON_UNESCAPED_UNICODE i getTodaySnapshot()
+- Saknad JSON_UNESCAPED_UNICODE i getSystemStatus()
+- Saknad JSON_UNESCAPED_UNICODE i getLiveRankingSettings() + getLiveRankingConfig()
+
+**5. RebotlingAnalyticsController.php (14 buggar):**
+- 2 tomma catch-block i resolveSkiftTider() — nu loggar till error_log
+- Saknad JSON_UNESCAPED_UNICODE i getProductionReport() auth error (2 stallen)
+- Saknad JSON_UNESCAPED_UNICODE i getOEETrend() shift-svar
+- Saknad JSON_UNESCAPED_UNICODE i getOEETrend() daily-svar
+- Saknad JSON_UNESCAPED_UNICODE i getBestShifts()
+- Saknad JSON_UNESCAPED_UNICODE i getAnnotations() (2 stallen)
+- Saknad JSON_UNESCAPED_UNICODE i stoppage-tabeller check
+- Saknad JSON_UNESCAPED_UNICODE i e-postnotifikationer (3 stallen)
+- Saknad JSON_UNESCAPED_UNICODE i kassationsorsaker tom-svar
+- Saknad JSON_UNESCAPED_UNICODE i weekly summary
+
+---
+
 ## 2026-03-16 Session #119 Worker B — Buggjakt i OEE + operator-services (batch 3)
 
 ### Granskade services (11 st):

@@ -386,7 +386,7 @@ class RebotlingStationsdetaljController {
         }
 
         $this->sendSuccess([
-            'station'            => $_GET['station'] ?? 'Rebotling',
+            'station'            => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
             'from_dt'            => $fromDt,
             'to_dt'              => $toDt,
             'aktiv_nu'           => $aktiv,

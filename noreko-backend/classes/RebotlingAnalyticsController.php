@@ -80,7 +80,9 @@ class RebotlingAnalyticsController {
                 $maxStmt->execute([$foundSkiftraknare]);
                 $skiftSlut = $maxStmt->fetchColumn() ?: null;
             }
-        } catch (Exception) {}
+        } catch (Exception $e) {
+            error_log('RebotlingAnalyticsController::resolveSkiftTider onoff: ' . $e->getMessage());
+        }
 
         // Fallback: om onoff saknar data, använd cykeltider
         if (!$skiftStart || !$skiftSlut) {
@@ -113,7 +115,9 @@ class RebotlingAnalyticsController {
                         $skiftSlut = date('Y-m-d H:i:s', strtotime($skiftStart) + ($runtimeMin * 60));
                     }
                 }
-            } catch (Exception) {}
+            } catch (Exception $e) {
+                error_log('RebotlingAnalyticsController::resolveSkiftTider runtime fallback: ' . $e->getMessage());
+            }
         }
 
         return ['start' => $skiftStart, 'slut' => $skiftSlut, 'cykel_datum' => $cykelDatum];
@@ -205,7 +209,7 @@ class RebotlingAnalyticsController {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs']);
+            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -542,7 +546,7 @@ class RebotlingAnalyticsController {
                     ];
                 }
 
-                echo json_encode(['success' => true, 'granularity' => 'shift', 'data' => $shiftData]);
+                echo json_encode(['success' => true, 'granularity' => 'shift', 'data' => $shiftData], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -597,7 +601,7 @@ class RebotlingAnalyticsController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'data' => $daily]);
+            echo json_encode(['success' => true, 'data' => $daily], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingController getOEETrend: ' . $e->getMessage());
             http_response_code(500);
@@ -652,7 +656,7 @@ class RebotlingAnalyticsController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'data' => $result]);
+            echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingController getBestShifts: ' . $e->getMessage());
             http_response_code(500);
@@ -3066,7 +3070,7 @@ class RebotlingAnalyticsController {
             return strcmp($a['date'], $b['date']);
         });
 
-        echo json_encode(['success' => true, 'annotations' => $annotations]);
+        echo json_encode(['success' => true, 'annotations' => $annotations], JSON_UNESCAPED_UNICODE);
     }
 
     // ----------------------------------------------------------------
@@ -3753,7 +3757,7 @@ class RebotlingAnalyticsController {
                    AND table_name IN ('stoppage_log','stoppage_reasons')"
             );
             if ((int)$check->fetchColumn() < 2) {
-                echo json_encode(['success' => false, 'message' => 'Tabellerna finns inte.']);
+                echo json_encode(['success' => false, 'message' => 'Tabellerna finns inte.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
         } catch (Exception $e) {
@@ -4356,7 +4360,7 @@ class RebotlingAnalyticsController {
             $emailsRaw = $row['notification_emails'] ?? '';
             if (empty(trim($emailsRaw))) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.']);
+                echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -4483,7 +4487,7 @@ class RebotlingAnalyticsController {
 
             if (count($sentTo) === 0) {
                 http_response_code(500);
-                echo json_encode(['success' => false, 'error' => 'Kunde inte skicka till någon mottagare. Kontrollera serverinställningar.']);
+                echo json_encode(['success' => false, 'error' => 'Kunde inte skicka till någon mottagare. Kontrollera serverinställningar.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -4960,7 +4964,7 @@ HTML;
             $topOrsaker = $stmtTop->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($topOrsaker)) {
-                echo json_encode(['success' => true, 'days' => $days, 'orsaker' => [], 'trend' => []]);
+                echo json_encode(['success' => true, 'days' => $days, 'orsaker' => [], 'trend' => []], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -5540,7 +5544,7 @@ HTML;
 
         try {
             $summary = $this->computeWeeklySummary($week);
-            echo json_encode(['success' => true, 'data' => $summary]);
+            echo json_encode(['success' => true, 'data' => $summary], JSON_UNESCAPED_UNICODE);
         } catch (InvalidArgumentException $e) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
@@ -5578,7 +5582,7 @@ HTML;
             $emailsRaw = $row['notification_emails'] ?? '';
             if (empty(trim($emailsRaw))) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.']);
+                echo json_encode(['success' => false, 'error' => 'Inga e-postmottagare konfigurerade. Konfigurera under E-postnotifikationer.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -5864,7 +5868,7 @@ HTML;
             $stmt->execute($params);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            echo json_encode(['success' => true, 'annotations' => $rows]);
+            echo json_encode(['success' => true, 'annotations' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getAnnotationsList: ' . $e->getMessage());
             http_response_code(500);
@@ -6272,7 +6276,7 @@ HTML;
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs']);
+            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
