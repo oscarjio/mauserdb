@@ -7,13 +7,11 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **Buggjakt: Prognos/planering-controllers** — PrediktivtUnderhall, Leveransplanering, ProduktionsPrognos, Kapacitetsplanering
-- [ ] **Buggjakt: Rapport-controllers** — VeckorapportController, MorgonrapportController, DagligBriefingController
-- [ ] **Buggjakt: Stopporsak-controllers** — StopporsakController, StopporsakOperatorController, StopptidsanalysController
-- [ ] **Buggjakt: Skift-controllers** — SkiftplaneringController, SkiftoverlamningController, SkiftjamforelseController
-- [ ] **Buggjakt: OEE/Statistik-controllers** — OeeTrendanalys, OeeWaterfall, StatistikDashboard, StatistikOverblick
 - [ ] **Buggjakt: Operator-controllers** — OperatorDashboard, OperatorOnboarding, OperatorRanking, MyStats
 - [ ] **Buggjakt: Diverse controllers** — AlarmHistorik, DrifttidsTimeline, Favoriter, ForstaTimmeAnalys, Heatmap, HistoriskSammanfattning, KvalitetsTrendbrott, Pareto, Underhallslogg, VdDashboard
+- [ ] **Buggjakt: Frontend services** — Granska Angular services (HTTP-anrop, felhantering, subscription-hantering)
+- [ ] **Buggjakt: Frontend templates** — Granska Angular templates (null-safety, trackBy, async pipes, felaktiga bindings)
+- [ ] **Buggjakt: API-endpoints manuell test** — Testa endpoints med curl, verifiera korrekta svar och felkoder
 
 ## Parkerade features (ta inte dessa nu)
 

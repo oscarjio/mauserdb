@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #114)*
+*Senast uppdaterad: 2026-03-16 (session #115)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -66,23 +66,23 @@ Session #111: BUGGJAKT — 30 buggar (21 workers + 9 lead).
 Session #112: BUGGJAKT — 22 buggar + 10 unused vars.
 Session #113: BUGGJAKT — 11 buggar (3 aggregering + 8 null-safety/setTimeout/unicode).
 Session #114: BUGGJAKT — 26 fixar. Worker A: 1 SQL-injection + 83 JSON_UNESCAPED_UNICODE. Worker B: 25 (5 catch-block + 18 setTimeout + 2 maskin).
+Session #115: BUGGJAKT — 40 buggar (20 Worker A + 20 Worker B). 17 controllers granskade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [ ] Prognos/planering-controllers (4 st)
-- [ ] Rapport-controllers (Veckorapport, Morgonrapport, DagligBriefing)
-- [ ] Stopporsak-controllers (3 st)
-- [ ] Skift-controllers (3 st)
-- [ ] OEE/Statistik + Operator + Diverse controllers (~20 st)
+- [ ] Operator-controllers (4 st)
+- [ ] Diverse controllers (~10 st)
+- [ ] Frontend services-granskning
+- [ ] Frontend templates-granskning
+- [ ] API-endpoints manuell test
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-16 — Session #113 (klar)
-Worker A: 3 buggar (aggregering + ranking). Worker B: 8 buggar (null-safety, setTimeout, unicode).
-Totalt: 11 buggar.
-
 ### 2026-03-16 — Session #114 (klar)
-Worker A: 1 SQL-injection i BonusAdmin (string-interpolation -> prepared statement) + 83 filer JSON_UNESCAPED_UNICODE audit. Rebotling djupgranskning OK (inga nya buggar).
-Worker B: 5 tomma catch-block (Skiftjamforelse, MaskinOee, Maskinunderhall) + 18 setTimeout-lackor (6 komponenter) + 2 maskin-buggar (hardkodad avg_cykeltid, saknad unicode).
-Totalt: 26 fixar.
+Worker A: 1 SQL-injection i BonusAdmin + 83 filer JSON_UNESCAPED_UNICODE. Worker B: 5 tomma catch-block + 18 setTimeout-lackor + 2 maskin-buggar. Totalt: 26 fixar.
+
+### 2026-03-16 — Session #115 (klar)
+Worker A: 20 buggar — 1 operators.id/number (Morgonrapport), 4 felaktig kolumn sr.orsak->kommentar (DagligBriefing), 3 saknad WHERE linje='rebotling', 1 edge case timme 24:00, 22 tomma catch.
+Worker B: 20 buggar — 2 operators.id/number (Skiftplanering), 1 session-locking, 3 JSON_UNICODE, 14 tomma catch.
+Totalt: 40 buggar.
