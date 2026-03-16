@@ -1,3 +1,39 @@
+## 2026-03-16 Session #115 Worker A — Buggjakt i 7 backend-controllers (2 grupper)
+
+### Granskade controllers (7 st):
+**Grupp 1 - Prognos/planering:** PrediktivtUnderhallController, LeveransplaneringController, ProduktionsPrognosController, KapacitetsplaneringController
+**Grupp 2 - Rapport:** VeckorapportController, MorgonrapportController, DagligBriefingController
+
+### Buggar fixade (20 st):
+
+**1. operators.id vs operators.number forvaxling (1 st):**
+- `classes/MorgonrapportController.php` getHighlightsData(): Anvande `operator_id` joind mot `operators.id` — kolumnen operator_id finns ej i rebotling_ibc. Ersatt med korrekt op1/op2/op3 -> operators.number monster (samma som DagligBriefingController anvander)
+
+**2. Felaktig kolumnreferens sr.orsak (4 st):**
+- `classes/DagligBriefingController.php` rad 293, 298 (sammanfattning) och rad 366, 372 (stopporsaker): Refererade till `sr.orsak` som inte existerar i stopporsak_registreringar — korrekt kolumn ar `sr.kommentar`. Fixat alla 4 forekomster
+
+**3. Saknad WHERE linje='rebotling' filter (3 st):**
+- `classes/DagligBriefingController.php` rad 206 (sammanfattning stoppminuter): Frangade alla linjer istallet for bara rebotling
+- `classes/DagligBriefingController.php` rad 298 (sammanfattning framsta_orsak): Samma problem
+- `classes/DagligBriefingController.php` rad 373 (stopporsaker): Samma problem
+
+**4. Edge case: timme 23 ger "24:00" (1 st):**
+- `classes/MorgonrapportController.php` rad 647: `$bastaTimme + 1` kunde producera 24 nar bastaTimme=23. Fixat med `($bastaTimme + 1) % 24`
+
+**5. Tomma catch-block utan $e-variabel och error_log (22 st):**
+- `classes/DagligBriefingController.php`: 10 tomma catch-block fixade (calcOeeForDay onoff+ibc, sammanfattning kasserade+stoppminuter+produktionsmal+avg_ibc+basta_operator+framsta_orsak, stopporsaker, veckotrend, bemanning)
+- `classes/KapacitetsplaneringController.php`: 8 tomma catch-block fixade (getKpi snitt, getDagligKapacitet snitt+dag, getUtnyttjandegradTrend dag, getTidFordelning dag, getKapacitetstabell half, getBemanning hist, getPrognos hist)
+- `classes/ProduktionsPrognosController.php`: 4 tomma catch-block fixade (getIbcTimestampColumn, getDagsMal settings+undantag, getForecast snittTakt)
+
+### Controllers granskade utan fynd (OK):
+- `classes/PrediktivtUnderhallController.php` — allt korrekt, prepared statements, felhantering OK
+- `classes/LeveransplaneringController.php` — allt korrekt, validering OK, prepared statements
+- `classes/VeckorapportController.php` — allt korrekt, linje-filter finns, felhantering OK
+- `classes/ProduktionsPrognosController.php` — skiftlogik korrekt, inga operators-forvaxlingar
+- `classes/KapacitetsplaneringController.php` — aggregering korrekt (MAX per skiftraknare, SUM per dag)
+
+---
+
 ## 2026-03-16 Session #115 Worker B — Buggjakt i 10 backend-controllers (3 grupper)
 
 ### Granskade controllers (10 st):
