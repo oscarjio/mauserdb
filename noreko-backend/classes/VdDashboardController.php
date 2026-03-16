@@ -84,7 +84,7 @@ class VdDashboardController {
     private function getStationer(): array {
         try {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
         } catch (\Exception $e) {
             error_log('VdDashboardController::getStationer: ' . $e->getMessage());
@@ -108,7 +108,7 @@ class VdDashboardController {
             WHERE datum BETWEEN :from_dt AND :to_dt ORDER BY datum ASC
         ");
         $stmt->execute([':from_dt' => $from, ':to_dt' => $to]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         $sek = 0; $lastOn = null;
         foreach ($rows as $r) {
             $ts = strtotime($r['datum']);
@@ -156,7 +156,7 @@ class VdDashboardController {
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':date' => $date]);
-            $ibcRow = $stmt->fetch(PDO::FETCH_ASSOC);
+            $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
         } catch (\Exception $e) {
@@ -231,7 +231,7 @@ class VdDashboardController {
                     $sql = "SELECT mal_antal FROM produktionsmal WHERE datum = :today LIMIT 1";
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today' => $today]);
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row) {
                         $dagsmal = (int)$row['mal_antal'];
                     }
@@ -253,7 +253,7 @@ class VdDashboardController {
                         ) AS sub
                     ";
                     $stmt = $this->pdo->query($sql);
-                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $dagsmal = (int)($row['avg_ibc'] ?? 0);
                 } catch (\Exception $e) {
                     error_log('VdDashboardController::oversikt (snitt ibc fallback): ' . $e->getMessage());
@@ -304,7 +304,7 @@ class VdDashboardController {
                         ORDER BY sr.start_time ASC
                     ";
                     $stmt = $this->pdo->query($sql);
-                    $aktivaStopp = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $aktivaStopp = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                     foreach ($aktivaStopp as &$s) {
                         $s['varaktighet_min'] = (int)$s['varaktighet_min'];
@@ -319,7 +319,7 @@ class VdDashboardController {
             $stoppadeStationer = [];
             try {
                 $stmt = $this->pdo->query("SELECT running, datum FROM rebotling_onoff ORDER BY datum DESC LIMIT 1");
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row && !(int)$row['running']) {
                     $stoppadeStationer[] = ['station_id' => 0, 'senaste_stopp' => $row['datum']];
                 }
@@ -375,7 +375,7 @@ class VdDashboardController {
                 ";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
-                $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
                 error_log('VdDashboardController::topOperatorer (ibc): ' . $e->getMessage());
             }
@@ -398,7 +398,7 @@ class VdDashboardController {
                     ";
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today' => $today]);
-                    $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    $operators = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 } catch (\Exception $e) {
                     error_log('VdDashboardController::topOperatorer (rebotling_data): ' . $e->getMessage());
                 }
@@ -449,7 +449,7 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today' => $today]);
                 // Aggregera per station (summera over skift)
-                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
                     $sid = (int)$row['station_id'];
                     if (!isset($ibcByStation[$sid])) {
                         $ibcByStation[$sid] = ['total_ibc' => 0, 'ok_ibc' => 0];

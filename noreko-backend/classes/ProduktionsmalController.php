@@ -1100,7 +1100,7 @@ class ProduktionsmalController {
                 SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
                 FROM rebotling_ibc
                 WHERE DATE(datum) BETWEEN ? AND ?
-                GROUP BY DATE(created_at), skiftraknare
+                GROUP BY DATE(datum), skiftraknare
                 HAVING COUNT(*) > 1
              ) sub
              GROUP BY dag ORDER BY dag ASC"

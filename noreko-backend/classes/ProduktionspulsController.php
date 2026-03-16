@@ -90,9 +90,9 @@ class ProduktionspulsController {
                 ORDER BY i.datum DESC
                 LIMIT :lim
             ");
-            $stmt->bindValue(':lim', $limit * 2, PDO::PARAM_INT);
+            $stmt->bindValue(':lim', $limit * 2, \PDO::PARAM_INT);
             $stmt->execute();
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             foreach ($rows as $row) {
                 $kasserad = ((int)($row['ibc_ej_ok'] ?? 0) > 0) || ((int)($row['bur_ej_ok'] ?? 0) > 0);
@@ -119,9 +119,9 @@ class ProduktionspulsController {
                     ORDER BY datum DESC
                     LIMIT :lim
                 ");
-                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
                 $stmt->execute();
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
                     $isRunning = (int)($row['running'] ?? 0);
@@ -161,9 +161,9 @@ class ProduktionspulsController {
                     ORDER BY sr.start_time DESC
                     LIMIT :lim
                 ");
-                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
                 $stmt->execute();
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
                     $reason = $row['orsak'] ?? 'Okand orsak';
@@ -202,9 +202,9 @@ class ProduktionspulsController {
                     ORDER BY sl.start_time DESC
                     LIMIT :lim
                 ");
-                $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+                $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
                 $stmt->execute();
-                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
                 foreach ($rows as $row) {
                     $events[] = [
@@ -286,7 +286,7 @@ class ProduktionspulsController {
                     ORDER BY datum DESC
                     LIMIT 1
                 ");
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) {
                     $isRunning = (int)($row['running'] ?? 0);
                     $driftstatus = [
@@ -311,7 +311,7 @@ class ProduktionspulsController {
                     ORDER BY datum DESC
                     LIMIT 1
                 ");
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row && $row['datum']) {
                     $minuter = round((time() - strtotime($row['datum'])) / 60);
                     $senasteStopp = [
@@ -369,9 +369,9 @@ class ProduktionspulsController {
                 ORDER BY i.datum DESC
                 LIMIT :lim
             ");
-            $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
             $stmt->execute();
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $items = [];
             foreach ($rows as $row) {
@@ -447,7 +447,7 @@ class ProduktionspulsController {
             WHERE datum BETWEEN :from_dt AND :to_dt
         ");
         $stmt->execute(['from_dt' => $from, 'to_dt' => $to]);
-        $counts = $stmt->fetch(PDO::FETCH_ASSOC);
+        $counts = $stmt->fetch(\PDO::FETCH_ASSOC);
 
         $total = (int)($counts['total'] ?? 0);
         $kasserade = (int)($counts['kasserade'] ?? 0);
@@ -466,7 +466,7 @@ class ProduktionspulsController {
             WHERE diff_sec > 0 AND diff_sec <= 1800
         ");
         $stmt2->execute(['from_dt' => $from, 'to_dt' => $to]);
-        $avgRow = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $avgRow = $stmt2->fetch(\PDO::FETCH_ASSOC);
         $avgCycleMinutes = $avgRow['avg_cycle_seconds'] !== null
             ? round((float)$avgRow['avg_cycle_seconds'] / 60, 1)
             : null;

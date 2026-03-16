@@ -202,7 +202,7 @@ class StopporsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('StopporsakController::getSammanfattning: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -264,7 +264,7 @@ class StopporsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('StopporsakController::getPareto: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -414,7 +414,7 @@ class StopporsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('StopporsakController::getTrend: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -494,7 +494,7 @@ class StopporsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('StopporsakController::getOrsakerTabell: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -591,7 +591,7 @@ class StopporsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('StopporsakController::getDetaljer: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 }

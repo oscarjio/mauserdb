@@ -327,11 +327,11 @@ class VeckorapportController {
             $stmt = $this->pdo->prepare(
                 "SELECT SUM(max_runtime) AS runtime_min
                  FROM (
-                     SELECT DATE(created_at) AS dag, skiftraknare,
+                     SELECT DATE(datum) AS dag, skiftraknare,
                             MAX(runtime_plc) AS max_runtime
                      FROM rebotling_ibc
-                     WHERE DATE(created_at) BETWEEN ? AND ?
-                     GROUP BY DATE(created_at), skiftraknare
+                     WHERE DATE(datum) BETWEEN ? AND ?
+                     GROUP BY DATE(datum), skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
             );
