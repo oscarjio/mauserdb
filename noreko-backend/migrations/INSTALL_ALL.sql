@@ -44,7 +44,7 @@ ALTER TABLE bonus_config
     ADD COLUMN IF NOT EXISTS weekly_bonus_goal DECIMAL(6,2) NOT NULL DEFAULT 80.00
         COMMENT 'Målpoäng per vecka för bonusberäkning';
 
-INSERT INTO bonus_config (id, weekly_bonus_goal)
+INSERT IGNORE INTO bonus_config (id, weekly_bonus_goal)
 VALUES (1, 80.00)
 ON DUPLICATE KEY UPDATE weekly_bonus_goal = IF(weekly_bonus_goal = 0, 80.00, weekly_bonus_goal);
 
@@ -810,7 +810,7 @@ CREATE TABLE IF NOT EXISTS produktionstakt_target (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Sätt ett default-måltal
-INSERT INTO produktionstakt_target (target_ibc_per_hour, set_by)
+INSERT IGNORE INTO produktionstakt_target (target_ibc_per_hour, set_by)
 VALUES (12.0, NULL);
 
 
@@ -864,7 +864,7 @@ INSERT IGNORE INTO `larmregler` (`id`, `typ`, `allvarlighetsgrad`, `grans_varde`
 (5, 'produktionsmal',   'info',      0.00, 1, 'Produktionsmal ej uppnatt vid skiftslut — informationslarm');
 
 -- Seed: 20 exempellarm (spridda over senaste 30 dagarna)
-INSERT INTO `avvikelselarm` (`typ`, `allvarlighetsgrad`, `meddelande`, `varde_aktuellt`, `varde_grans`, `tidsstampel`, `kvitterad`, `kvitterad_av`, `kvitterad_datum`, `kvitterings_kommentar`) VALUES
+INSERT IGNORE INTO `avvikelselarm` (`typ`, `allvarlighetsgrad`, `meddelande`, `varde_aktuellt`, `varde_grans`, `tidsstampel`, `kvitterad`, `kvitterad_av`, `kvitterad_datum`, `kvitterings_kommentar`) VALUES
 -- Kritiska larm
 ('maskinstopp', 'kritisk', 'Tvattmaskin stoppad i 55 minuter — mekaniskt fel',            55.00, 30.00, DATE_SUB(NOW(), INTERVAL 1 DAY)  + INTERVAL 6 HOUR,  0, NULL, NULL, NULL),
 ('maskinstopp', 'kritisk', 'Transportband stoppat i 42 minuter — PLC-larm',               42.00, 30.00, DATE_SUB(NOW(), INTERVAL 2 DAY)  + INTERVAL 9 HOUR,  1, 'Erik Lindqvist', DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 10 HOUR, 'Reparerat, band bytt'),
@@ -929,13 +929,13 @@ CREATE TABLE IF NOT EXISTS `batch_ibc` (
 
 -- Seed-data: exempelbatchar
 
-INSERT INTO `batch_order` (`id`, `batch_nummer`, `planerat_antal`, `kommentar`, `status`, `skapad_av`, `skapad_datum`, `avslutad_datum`) VALUES
+INSERT IGNORE INTO `batch_order` (`id`, `batch_nummer`, `planerat_antal`, `kommentar`, `status`, `skapad_av`, `skapad_datum`, `avslutad_datum`) VALUES
 (1, 'BATCH-2026-0301', 10, 'Standardtvätt Mauser 1000L', 'klar', 1, '2026-03-01 07:00:00', '2026-03-01 15:30:00'),
 (2, 'BATCH-2026-0305', 15, 'Kemikalietvätt specialorder', 'pagaende', 1, '2026-03-05 06:30:00', NULL),
 (3, 'BATCH-2026-0310', 8, 'Expresstvätt prioriterad', 'pausad', 1, '2026-03-10 08:00:00', NULL);
 
 -- Seed IBC:er för batch 1 (klar — 10 av 10, 1 kasserad)
-INSERT INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `klar`, `kasserad`, `cykeltid_sekunder`) VALUES
+INSERT IGNORE INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `klar`, `kasserad`, `cykeltid_sekunder`) VALUES
 (1, 'IBC-10001', 1, '2026-03-01 07:05:00', '2026-03-01 07:52:00', 0, 2820),
 (1, 'IBC-10002', 1, '2026-03-01 07:55:00', '2026-03-01 08:40:00', 0, 2700),
 (1, 'IBC-10003', 2, '2026-03-01 08:45:00', '2026-03-01 09:30:00', 0, 2700),
@@ -948,7 +948,7 @@ INSERT INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `kl
 (1, 'IBC-10010', 2, '2026-03-01 15:00:00', '2026-03-01 15:30:00', 0, 1800);
 
 -- Seed IBC:er för batch 2 (pågående — 9 av 15 klara, 1 kasserad)
-INSERT INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `klar`, `kasserad`, `cykeltid_sekunder`) VALUES
+INSERT IGNORE INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `klar`, `kasserad`, `cykeltid_sekunder`) VALUES
 (2, 'IBC-20001', 1, '2026-03-05 06:35:00', '2026-03-05 07:20:00', 0, 2700),
 (2, 'IBC-20002', 2, '2026-03-05 07:25:00', '2026-03-05 08:10:00', 0, 2700),
 (2, 'IBC-20003', 1, '2026-03-05 08:15:00', '2026-03-05 09:00:00', 0, 2700),
@@ -960,7 +960,7 @@ INSERT INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `kl
 (2, 'IBC-20009', 1, '2026-03-05 13:20:00', '2026-03-05 14:05:00', 0, 2700);
 
 -- Seed IBC:er för batch 3 (pausad — 3 av 8 klara)
-INSERT INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `klar`, `kasserad`, `cykeltid_sekunder`) VALUES
+INSERT IGNORE INTO `batch_ibc` (`batch_id`, `ibc_nummer`, `operator_id`, `startad`, `klar`, `kasserad`, `cykeltid_sekunder`) VALUES
 (3, 'IBC-30001', 2, '2026-03-10 08:05:00', '2026-03-10 08:50:00', 0, 2700),
 (3, 'IBC-30002', 2, '2026-03-10 08:55:00', '2026-03-10 09:40:00', 0, 2700),
 (3, 'IBC-30003', 1, '2026-03-10 09:45:00', '2026-03-10 10:30:00', 0, 2700);
@@ -1054,7 +1054,7 @@ CREATE TABLE IF NOT EXISTS kvalitetskriterier (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed: kvalitetskriterier
-INSERT INTO kvalitetskriterier (namn, beskrivning, min_varde, max_varde, vikt, aktiv) VALUES
+INSERT IGNORE INTO kvalitetskriterier (namn, beskrivning, min_varde, max_varde, vikt, aktiv) VALUES
 ('Kassation',       'Kassationsprocent under grans',          NULL,  3.00, 30.00, TRUE),
 ('Cykeltid',        'Genomsnittlig cykeltid under grans',     NULL, 45.00, 25.00, TRUE),
 ('Antal IBC',       'Minsta antal IBC i batchen',            50.00,  NULL, 20.00, TRUE),
@@ -1062,7 +1062,7 @@ INSERT INTO kvalitetskriterier (namn, beskrivning, min_varde, max_varde, vikt, a
 ('Operatoerserfarenhet', 'Operatoren har certifiering',       1.00,  NULL, 10.00, TRUE);
 
 -- Seed: exempelcertifikat (25 st)
-INSERT INTO kvalitetscertifikat (batch_nummer, datum, operator_id, operator_namn, antal_ibc, kassation_procent, cykeltid_snitt, kvalitetspoang, status, kommentar, bedomd_av, bedomd_datum) VALUES
+INSERT IGNORE INTO kvalitetscertifikat (batch_nummer, datum, operator_id, operator_namn, antal_ibc, kassation_procent, cykeltid_snitt, kvalitetspoang, status, kommentar, bedomd_av, bedomd_datum) VALUES
 ('B-2026-0301',  '2026-02-10', 1, 'Erik Lindberg',    185, 1.20, 38.5, 94.5, 'godkand',   'Utmarkt batch, alla kriterier uppfyllda.',        'Admin', '2026-02-10 16:00:00'),
 ('B-2026-0302',  '2026-02-11', 2, 'Anna Svensson',    192, 0.80, 36.2, 97.2, 'godkand',   'Mycket bra kvalitet och kort cykeltid.',           'Admin', '2026-02-11 16:30:00'),
 ('B-2026-0303',  '2026-02-12', 3, 'Karl Johansson',   178, 2.90, 42.1, 81.3, 'godkand',   'Godkand men nara kassationsgrans.',                'Admin', '2026-02-12 15:45:00'),
@@ -1123,7 +1123,7 @@ INSERT IGNORE INTO `produktionskapacitet_config` (`id`, `kapacitet_per_dag`, `pl
 VALUES (1, 80, '["2026-03-20","2026-04-03","2026-04-17"]', 10);
 
 -- Seed exempelordrar
-INSERT INTO `kundordrar` (`kundnamn`, `antal_ibc`, `bestallningsdatum`, `onskat_leveransdatum`, `beraknat_leveransdatum`, `status`, `prioritet`, `notering`) VALUES
+INSERT IGNORE INTO `kundordrar` (`kundnamn`, `antal_ibc`, `bestallningsdatum`, `onskat_leveransdatum`, `beraknat_leveransdatum`, `status`, `prioritet`, `notering`) VALUES
 ('BASF Ludwigshafen',     120, '2026-02-15', '2026-03-20', '2026-03-18', 'i_produktion', 1, 'Prioriterad kund, express'),
 ('Brenntag Nordic',        80, '2026-02-20', '2026-03-25', '2026-03-24', 'i_produktion', 3, NULL),
 ('Perstorp Specialty',     60, '2026-03-01', '2026-03-28', '2026-03-27', 'planerad',      5, NULL),
@@ -1286,7 +1286,7 @@ CREATE TABLE IF NOT EXISTS `bonus_konfiguration` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed-data
-INSERT INTO `bonus_konfiguration` (`faktor`, `vikt`, `mal_varde`, `max_bonus_kr`, `beskrivning`) VALUES
+INSERT IGNORE INTO `bonus_konfiguration` (`faktor`, `vikt`, `mal_varde`, `max_bonus_kr`, `beskrivning`) VALUES
     ('ibc_per_timme', 40.00, 12.00, 500.00, 'IBC per timme — genomsnittlig produktionstakt'),
     ('kvalitet',      30.00, 98.00, 400.00, 'Kvalitet — andel godkanda IBC i procent'),
     ('narvaro',       20.00, 100.00, 200.00, 'Narvaro — narvaro i procent'),
@@ -1336,7 +1336,7 @@ CREATE TABLE IF NOT EXISTS `produktionskostnad_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed-data: standardvärden
-INSERT INTO `produktionskostnad_config` (`faktor`, `varde`, `enhet`) VALUES
+INSERT IGNORE INTO `produktionskostnad_config` (`faktor`, `varde`, `enhet`) VALUES
 ('energi',    150.00, 'kr/h'),
 ('bemanning', 350.00, 'kr/h'),
 ('material',   50.00, 'kr/IBC'),
@@ -1366,7 +1366,7 @@ CREATE TABLE IF NOT EXISTS `produktions_mal` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed-data: standardmål
-INSERT INTO `produktions_mal` (`mal_typ`, `target_ibc`, `target_kassation_pct`, `giltig_from`, `giltig_tom`, `created_by`, `created_at`) VALUES
+INSERT IGNORE INTO `produktions_mal` (`mal_typ`, `target_ibc`, `target_kassation_pct`, `giltig_from`, `giltig_tom`, `created_by`, `created_at`) VALUES
 ('dagligt',   80,  5.00, '2026-01-01', NULL, 1, '2026-01-01 00:00:00'),
 ('veckovist', 400, 4.00, '2026-01-01', NULL, 1, '2026-01-01 00:00:00');
 
@@ -1533,7 +1533,7 @@ INSERT IGNORE INTO `maskin_register` (`id`, `namn`, `beskrivning`, `service_inte
 (6, 'Ventiltestare',      'Testning av IBC-ventiler',           60);
 
 -- Demo-data: stopphändelser senaste 30 dagarna (varierade maskiner)
-INSERT INTO `maskin_stopptid`
+INSERT IGNORE INTO `maskin_stopptid`
     (`maskin_id`, `maskin_namn`, `startad_at`, `avslutad_at`, `duration_min`, `orsak`, `orsak_kategori`, `operator_namn`)
 VALUES
 -- Tvättmaskin (mest stopp)
@@ -1625,7 +1625,7 @@ CREATE TABLE IF NOT EXISTS `kapacitet_config` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed-data: rebotling-stationer
-INSERT INTO `kapacitet_config` (`station_id`, `station_namn`, `teoretisk_kapacitet_per_timme`, `mal_utnyttjandegrad_pct`, `ibc_per_operator_timme`) VALUES
+INSERT IGNORE INTO `kapacitet_config` (`station_id`, `station_namn`, `teoretisk_kapacitet_per_timme`, `mal_utnyttjandegrad_pct`, `ibc_per_operator_timme`) VALUES
 ('station_1', 'Station 1', 30.00, 85.00, 15.00),
 ('station_2', 'Station 2', 30.00, 85.00, 15.00),
 ('station_3', 'Station 3', 28.00, 85.00, 14.00),
@@ -1656,7 +1656,7 @@ CREATE TABLE IF NOT EXISTS `rebotling_kassationsalarminst` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Standardinstallning
-INSERT INTO `rebotling_kassationsalarminst` (`varning_procent`, `alarm_procent`, `skapad_av`)
+INSERT IGNORE INTO `rebotling_kassationsalarminst` (`varning_procent`, `alarm_procent`, `skapad_av`)
 VALUES (3.00, 5.00, NULL);
 
 
@@ -1781,7 +1781,7 @@ CREATE TABLE IF NOT EXISTS feature_flags (
 -- 3. Seed: Alla menylänkar
 -- Rollhierarki: public(0) < user(1) < admin(2) < developer(3)
 -- Default: Live + Skiftrapport = public, resten = developer
-INSERT INTO feature_flags (feature_key, label, category, min_role) VALUES
+INSERT IGNORE INTO feature_flags (feature_key, label, category, min_role) VALUES
 -- Rebotling: public (alla ser)
 ('rebotling/live', 'Live', 'rebotling', 'public'),
 ('rebotling/live-ranking', 'Live Ranking', 'rebotling', 'public'),
