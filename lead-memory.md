@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #124)*
+*Senast uppdaterad: 2026-03-16 (session #125)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -76,24 +76,22 @@ Session #121: BUGGJAKT — 41 buggar (12 Worker A + 29 Worker B). 13 PHP-control
 Session #122: BUGGJAKT — 28 buggar (13 Worker A + 15 Worker B). 13 PHP-controllers + api.php + PHP helpers + endpoint-testning. Kritisk 500-fix i RebotlingTrendanalys.
 Session #123: BUGGJAKT — 27 buggar (20 Worker A + 7 Worker B). 36 PHP-controllers + 4 Angular utils/guards/interceptors granskade. Inga pipes i projektet.
 Session #124: BUGGJAKT — 52 buggar (34 Worker A + 18 Worker B). 17 PHP-controllers granskade (batch 5 klar) + 9 Angular services re-audit.
+Session #125: BUGGJAKT — 16 buggar (10 Worker A + 6 Worker B). SQL-parametervalidering OK + error-logging + TS-logik + dead code.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] Backend controllers batch 5 (ProduktionsmalController t.o.m. VeckorapportController — 17 st) — #124
-- [x] Angular services re-audit (9 services fixade) — #124
-- [ ] Error-logging konsistens
-- [ ] SQL-queries parametervalidering
-- [ ] Oanvanda privata metoder (dead code)
-- [ ] Frontend page-komponenter audit (TS-logik)
+- [x] Error-logging konsistens — #125
+- [x] SQL-queries parametervalidering (alla rena) — #125
+- [x] Oanvanda privata metoder (3 borttagna) — #125
+- [x] Frontend page-komponenter audit (42 sidor, 3 buggar) — #125
+- [ ] HTTP-polling race conditions
+- [ ] PHP type coercion (== vs ===)
+- [ ] Angular route guards audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #122 (klar)
-Worker A: 13 buggar i 7 filer (av 13 controllers). Worker B: 15 buggar i 8 backend-filer. Kritisk 500-fix i RebotlingTrendanalys.
-Totalt: 28 buggar.
 
 ### 2026-03-16 — Session #123 (klar)
 Worker A: 20 buggar i 10 filer (av 20 controllers granskade) — namespace-buggar, SQL kolumnfel, tomma catch-block.
@@ -104,3 +102,8 @@ Totalt: 27 buggar.
 Worker A: 34 buggar i 6 filer (av 17 controllers granskade) — 25x PDO:: utan \-namespace, 5x saknad HTTP 500, 4x created_at->datum.
 Worker B: 18 buggar i 9 services — hardkodade URLs->environment.apiUrl, saknad timeout/catchError. Templates (19 sidor) rena.
 Totalt: 52 buggar.
+
+### 2026-03-16 — Session #125 (klar)
+Worker A: 10 buggar i 5 filer — tomma catch-block (4 controllers) + DB-felmeddelande exponerat i response (1 informationslacka).
+Worker B: 6 buggar — 3 TS-logik (div-by-zero, race condition chartTimer, interval-typing) + 3 dead code (oanvanda privata metoder).
+Totalt: 16 buggar.

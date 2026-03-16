@@ -7,13 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Buggjakt: Backend controllers batch 5** — Worker A #124 — 34 buggar i 6 filer (av 17 controllers)
-- [x] **Buggjakt: Frontend services re-audit** — Worker B #124 — 18 buggar i 9 services (hardkodade URLs, saknad timeout/catchError)
-- [ ] **Buggjakt: Error-logging konsistens** — Verifiera att alla catch-block loggar korrekt
-- [ ] **Buggjakt: SQL-queries parametervalidering** — Granska att alla user-input saniteras
-- [ ] **Buggjakt: Template null-safety** — Granska Angular templates for saknade ?. och *ngIf-guards
-- [ ] **Buggjakt: Oanvanda privata metoder** — Ta bort dead code (t.ex. calcMinuter i StopporsakController)
-- [ ] **Buggjakt: Frontend page-komponenter audit** — Granska TS-logik i page-komponenter (edge cases, felhantering)
+- [ ] **Buggjakt: HTTP-polling race conditions** — granska setInterval-baserad polling for race conditions och dubbla anrop
+- [ ] **Buggjakt: PHP type coercion** — granska loose comparisons (== vs ===) i PHP-controllers
+- [ ] **Buggjakt: Angular route guards** — verifiera att alla skyddade routes har korrekta guards
+- [ ] **Buggjakt: PHP return-typ konsistens** — granska att alla endpoints returnerar konsekvent JSON-format
+- [ ] **Buggjakt: Frontend error-display** — verifiera att catchError visar anvandarvanliga felmeddelanden
+- [ ] **Buggjakt: Date/timezone edge cases** — granska datum-hantering vid midnatt/skiftbyte
 
 ## Parkerade features (ta inte dessa nu)
 
