@@ -1,3 +1,38 @@
+## 2026-03-16 Session #131 Worker B — Angular frontend: 30 buggar fixade (form validation, error state UI)
+
+### Uppgift 1: Angular form validation audit (4 fixar)
+- **leveransplanering.component.html**: Ny order-formular saknade `required` pa kundnamn och antal_ibc inputs
+- **leveransplanering.component.html**: `antal_ibc` input saknade `min="1"` och `max="999999"` attribut
+- **leveransplanering.component.html**: `kundnamn` input saknade `maxlength="200"` attribut
+- **leveransplanering.component.html**: `onskat_leveransdatum` input saknade `required` attribut
+
+### Uppgift 2: Angular error state UI audit (26 fixar)
+**operator-ranking** (6 fixar):
+- **operator-ranking.component.ts**: 6 load-metoder saknade error-flaggor — lade till `errorSammanfattning`, `errorTopplista`, `errorRanking`, `errorPoangfordelning`, `errorHistorik`, `errorMvp`; satter true vid `!res?.success`
+- **operator-ranking.component.html**: 4 sektioner (topplista, ranking-tabell, poangfordelning-chart, historik-chart) saknade error-alerts + `!errorXxx` villkor pa data-block
+
+**leveransplanering** (3 fixar):
+- **leveransplanering.component.ts**: 3 load-metoder (overview, ordrar, kapacitet) saknade error-flaggor — lade till `errorOverview`, `errorOrdrar`, `errorKapacitet`
+- **leveransplanering.component.html**: 3 sektioner saknade error-alerts
+
+**tidrapport** (3 fixar):
+- **tidrapport.component.ts**: 3 load-metoder (perOperator, veckodata, detaljer) saknade error-flaggor — lade till `operatorError`, `veckoError`, `detaljerError`
+- **tidrapport.component.html**: 3 sektioner saknade error-alerts + `!errorXxx` villkor pa empty states
+
+**skiftplanering** (4 fixar):
+- **skiftplanering.component.ts**: 4 metoder (shiftDetail, removeOperator, capacity, operators) saknade error-flaggor — lade till `errorDetail`, `errorCapacity`, `errorOperators`, `removeError`
+- **skiftplanering.component.html**: 4 sektioner saknade error-alerts (detail overlay, remove error, capacity, operator loading)
+
+**historisk-sammanfattning** (6 fixar):
+- **historisk-sammanfattning.component.ts**: 6 load-metoder saknade error-flaggor — lade till `errorPerioder`, `errorRapport`, `errorTrend`, `errorOperatorer`, `errorStationer`, `errorStopporsaker`
+- **historisk-sammanfattning.component.html**: 6 sektioner saknade error-alerts + empty states + `!errorXxx` villkor
+
+**oee-trendanalys** (6 fixar):
+- **oee-trendanalys.component.ts**: 6 load-metoder saknade error-flaggor — lade till `errorSammanfattning`, `errorStationer`, `errorTrend`, `errorFlaskhalsar`, `errorJamforelse`, `errorPrediktion`
+- **oee-trendanalys.component.html**: 6 sektioner saknade error-alerts (sammanfattning KPI, trend-chart, stationer-tabell, flaskhalsar, jamforelse-tabell, prediktion-chart)
+
+---
+
 ## 2026-03-16 Session #131 Worker A — PHP backend: 22 buggar fixade (boundary validation, date range, SQL audit)
 
 ### Uppgift 1: PHP boundary validation (5 fixar)
