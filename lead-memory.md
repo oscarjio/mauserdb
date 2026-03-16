@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #118)*
+*Senast uppdaterad: 2026-03-16 (session #119)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -70,26 +70,27 @@ Session #115: BUGGJAKT — 40 buggar (20 Worker A + 20 Worker B). 17 controllers
 Session #116: BUGGJAKT — 58 buggar (34 Worker A + 24 Worker B). 20 controllers granskade. 12 kritiska operators.id/number-fixar.
 Session #117: BUGGJAKT — 51 buggar (25 Worker A + 26 Worker B). 11 PHP-controllers + 15 TS-services granskade.
 Session #118: BUGGJAKT — 23 buggar (5 Worker A + 18 Worker B). 10 PHP-controllers + 15 TS-services granskade.
+Session #119: BUGGJAKT — 46 buggar (33 Worker A + 13 Worker B). 5 rebotling-controllers + 11 TS-services granskade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [x] Frontend services batch 2 (15 st) — session #118 Worker B
-- [x] Kassation/Kvalitet + Stopporsak/Skift-controllers (10 st) — session #118 Worker A
-- [ ] Rebotling-controllers (EJ live)
-- [ ] Frontend services batch 3 (OEE + operator-services, 11 st)
+- [x] Rebotling-controllers (EJ live) — session #119 Worker A
+- [x] Frontend services batch 3 (OEE + operator-services, 11 st) — session #119 Worker B
 - [ ] Frontend services batch 4 (Produktion-services, 10 st)
 - [ ] Frontend services batch 5 (Skift/Stopp-services, 12 st)
 - [ ] Frontend services batch 6 (Ovrigt, 15 st)
+- [ ] Frontend components (null-guards, pipes, trackBy)
+- [ ] Backend routing/api.php (orphan-actions)
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #117 (klar)
-Worker A: 25 buggar i 8 controllers — 3 kritiska created_at->datum kolumnfix (ProduktionsmalController), 10 tomma catch, 10 JSON_UNICODE, 2 saknad htmlspecialchars.
-Worker B: 26 buggar i 5 services + 1 komponent — 20 saknad timeout/catchError (bonus, bonus-admin), 2 felaktiga relativa URLs (feedback-analys, historisk-produktion), 1 saknad timeout auth logout, 4 null-guards bonus-admin.
-Totalt: 51 buggar.
 
 ### 2026-03-16 — Session #118 (klar)
 Worker A: 5 buggar i 3 controllers — 2 tomma catch (KassationsanalysController), 1 SQL-injection LIMIT/OFFSET (SkiftoverlamningController), 1 saknad htmlspecialchars 4 stallen (RebotlingStationsdetaljController), 1 tom catch (RebotlingStationsdetaljController).
 Worker B: 18 buggar i 5 services — 5 kvalitets-trendbrott (import + URL + timeout/catchError), 2 maskinunderhall (import + URL), 2 ranking-historik (import + URL), 2 rebotling-sammanfattning (import + URL), 7 rebotling (import + 60+ hardkodade URLs + felaktig template literal).
 Totalt: 23 buggar.
+
+### 2026-03-16 — Session #119 (klar)
+Worker A: 33 buggar i 5 rebotling-controllers — 1 XSS (RebotlingStationsdetalj), 5 buggar (RebotlingTrendanalys: htmlspecialchars + JSON_UNICODE + try/catch), 5 buggar (RebotlingProduct: JSON_UNICODE + log injection), 8 buggar (RebotlingAdmin: JSON_UNICODE), 14 buggar (RebotlingAnalytics: 2 tomma catch + 12 JSON_UNICODE).
+Worker B: 13 buggar i 3 services — oee-benchmark (2: URL + import), operatorsbonus (2: URL + import), operators (9: URL + imports + timeout/catchError pa 8 metoder).
+Totalt: 46 buggar.
