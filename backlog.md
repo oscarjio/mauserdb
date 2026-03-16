@@ -7,13 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Buggjakt: Frontend services (batch 1)** — Worker B #117 — 26 buggar fixade i 5 services
-- [x] **Buggjakt: Produktion-controllers** — Worker A #117 — 25 buggar fixade i 8 controllers
-- [ ] **Buggjakt: Frontend services (batch 2)** — 15 services: kvalitetstrend, kvalitetstrendanalys, kvalitets-trendbrott, leveransplanering, maskin-drifttid, maskinhistorik, maskin-oee, maskinunderhall, morgonrapport, my-stats, operator-portal, ranking-historik, rebotling, rebotling-analytics, tidrapport
-- [ ] **Buggjakt: Kassation/Kvalitet-controllers** — 13 controllers: KassationsanalysController, KassationsDrilldown, KassationskvotAlarm, Kassationsorsak, KassationsorsakPerStation, KvalitetscertifikatController, Kvalitetstrendanalys, KvalitetstrendController
-- [ ] **Buggjakt: Rebotling-controllers** — RebotlingAdmin, RebotlingAnalytics, RebotlingSammanfattning, RebotlingStationsdetalj, RebotlingTrendanalys, RebotlingProduct (EJ RebotlingController = live)
-- [ ] **Buggjakt: Frontend components** — Granska Angular-components for template-fel, saknad trackBy, felaktiga bindings
-- [ ] **Buggjakt: Stopporsak/Skift-controllers** — StopporsakController, StopporsakRegistrering, StopporsakTrend, StopptidsanalysController, SkiftrapportController, SkiftplaneringController
+- [x] **Buggjakt: Kassation/Kvalitet + Stopporsak/Skift-controllers** — Worker A #118 — 5 buggar i 3 controllers
+- [x] **Buggjakt: Frontend services (batch 2)** — Worker B #118 — 18 buggar i 5 services
+- [ ] **Buggjakt: Rebotling-controllers** — RebotlingStationsdetalj + rebotling-trendanalys.service + rebotling-stationsdetalj.service (EJ RebotlingController = live)
+- [ ] **Buggjakt: Frontend services (batch 3)** — OEE-services: oee-benchmark, oee-jamforelse, oee-trendanalys, oee-waterfall + operator-*: operator-onboarding, operator-personal-dashboard, operator-ranking, operatorsbonus, operators-prestanda, operators
+- [ ] **Buggjakt: Frontend services (batch 4)** — Produktion-services: produktions-dashboard, produktionsflode, produktionskalender, produktionskostnad, produktionsmal, produktionsprognos, produktionspuls, produktions-sla, produktionstakt, produkttyp-effektivitet
+- [ ] **Buggjakt: Frontend services (batch 5)** — Skift/Stopp-services: skiftjamforelse, skiftoverlamning, skiftplanering, skiftrapport, skiftrapport-export, skiftrapport-sammanstallning, stoppage, stopporsaker, stopporsak-operator, stopporsak-registrering, stopporsak-trend, stopptidsanalys
+- [ ] **Buggjakt: Frontend services (batch 6)** — Ovrigt: alarm-historik, alerts, andon-board, audit, avvikelselarm, daglig-sammanfattning, drifttids-timeline, kvalitetscertifikat, statistik-dashboard, statistik-overblick, underhallslogg, underhallsprognos, users, vd-dashboard, veckorapport
 
 ## Parkerade features (ta inte dessa nu)
 
