@@ -69,6 +69,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
 
   private destroy$ = new Subject<void>();
   private viewReady = false;
+  private chartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private service: RankingHistorikService) {}
 
@@ -79,11 +80,13 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   ngAfterViewInit(): void {
     this.viewReady = true;
     if (this.rankingsLoaded && this.rankingsData) {
-      setTimeout(() => this.renderTrendChart(), 50);
+      if (this.chartTimer) clearTimeout(this.chartTimer);
+      this.chartTimer = setTimeout(() => this.renderTrendChart(), 50);
     }
   }
 
   ngOnDestroy(): void {
+    if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     try { this.trendChart?.destroy(); } catch (_e) { /* ignore */ }
     try { this.h2hChart?.destroy();   } catch (_e) { /* ignore */ }
     this.trendChart = null;
@@ -123,7 +126,8 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
         this.rankingsData = res?.success ? res.data : null;
         this.rankingsLoaded = true;
         if (this.viewReady && this.rankingsData) {
-          setTimeout(() => this.renderTrendChart(), 50);
+          if (this.chartTimer) clearTimeout(this.chartTimer);
+          this.chartTimer = setTimeout(() => this.renderTrendChart(), 50);
         }
       });
   }
@@ -330,7 +334,8 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
 
   onH2HChange(): void {
     if (this.h2hOp1Id !== null && this.h2hOp2Id !== null) {
-      setTimeout(() => this.renderH2HChart(), 50);
+      if (this.chartTimer) clearTimeout(this.chartTimer);
+      this.chartTimer = setTimeout(() => this.renderH2HChart(), 50);
     }
   }
 

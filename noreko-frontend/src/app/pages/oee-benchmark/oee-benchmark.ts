@@ -53,6 +53,8 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private destroy$ = new Subject<void>();
   private viewReady = false;
+  private gaugeTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private service: OeeBenchmarkService) {}
 
@@ -63,14 +65,18 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
   ngAfterViewInit(): void {
     this.viewReady = true;
     if (this.oeeLoaded && this.oeeData) {
-      setTimeout(() => this.renderGauge(), 50);
+      if (this.gaugeTimer) clearTimeout(this.gaugeTimer);
+      this.gaugeTimer = setTimeout(() => this.renderGauge(), 50);
     }
     if (this.trendLoaded && this.trendData) {
-      setTimeout(() => this.renderTrendChart(), 50);
+      if (this.trendTimer) clearTimeout(this.trendTimer);
+      this.trendTimer = setTimeout(() => this.renderTrendChart(), 50);
     }
   }
 
   ngOnDestroy(): void {
+    if (this.gaugeTimer) { clearTimeout(this.gaugeTimer); this.gaugeTimer = null; }
+    if (this.trendTimer) { clearTimeout(this.trendTimer); this.trendTimer = null; }
     try { this.gaugeChart?.destroy(); } catch (_e) { /* ignore */ }
     try { this.trendChart?.destroy(); } catch (_e) { /* ignore */ }
     this.gaugeChart = null;
@@ -112,7 +118,8 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
         this.oeeData = res?.success ? res.data : null;
         this.oeeLoaded = true;
         if (this.viewReady && this.oeeData) {
-          setTimeout(() => this.renderGauge(), 50);
+          if (this.gaugeTimer) clearTimeout(this.gaugeTimer);
+          this.gaugeTimer = setTimeout(() => this.renderGauge(), 50);
         }
       });
   }
@@ -139,7 +146,8 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
         this.trendData = res?.success ? res.data : null;
         this.trendLoaded = true;
         if (this.viewReady && this.trendData) {
-          setTimeout(() => this.renderTrendChart(), 50);
+          if (this.trendTimer) clearTimeout(this.trendTimer);
+          this.trendTimer = setTimeout(() => this.renderTrendChart(), 50);
         }
       });
   }

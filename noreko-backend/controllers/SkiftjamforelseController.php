@@ -72,7 +72,7 @@ class SkiftjamforelseController {
             'success'   => true,
             'data'      => $data,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
@@ -81,7 +81,7 @@ class SkiftjamforelseController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function getDays(): int {
@@ -182,7 +182,8 @@ class SkiftjamforelseController {
             if (!$check || $check->rowCount() === 0) {
                 return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
             }
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('SkiftjamforelseController::getStopptidPerSkift: ' . $e->getMessage());
             return ['FM' => 0, 'EM' => 0, 'Natt' => 0];
         }
 
@@ -213,7 +214,9 @@ class SkiftjamforelseController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('SkiftjamforelseController::getStationer: ' . $e->getMessage());
+        }
 
         return [
             ['id' => 1, 'namn' => 'Station 1'],

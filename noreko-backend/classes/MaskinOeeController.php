@@ -83,7 +83,7 @@ class MaskinOeeController {
             'success'   => true,
             'data'      => $data,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
@@ -92,7 +92,7 @@ class MaskinOeeController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -299,7 +299,9 @@ class MaskinOeeController {
         try {
             $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch();
             if ($row) $oeeMal = round((float)$row['mal'], 1);
-        } catch (\PDOException) {}
+        } catch (\PDOException $e) {
+            error_log('MaskinOeeController::getOverview oee_mal: ' . $e->getMessage());
+        }
 
         $this->sendSuccess([
             'days'              => $days,
@@ -464,7 +466,9 @@ class MaskinOeeController {
             try {
                 $row = $this->pdo->query("SELECT AVG(oee_mal_pct) AS mal FROM maskin_oee_config")->fetch();
                 if ($row) $oeeMal = round((float)$row['mal'], 1);
-            } catch (\PDOException) {}
+            } catch (\PDOException $e) {
+                error_log('MaskinOeeController::getTrend oee_mal: ' . $e->getMessage());
+            }
 
             $this->sendSuccess([
                 'days'       => $days,

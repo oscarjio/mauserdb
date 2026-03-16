@@ -58,6 +58,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
   private donutChart: Chart | null  = null;
   private detailChart: Chart | null = null;
   private destroy$ = new Subject<void>();
+  private chartTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly COLORS = [
     '#4299e1', '#48bb78', '#ecc94b', '#ed8936', '#e53e3e',
@@ -72,6 +73,7 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyAllCharts();
@@ -116,7 +118,8 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.overview    = res.data;
           this.operatorer  = res.data.operatorer ?? [];
-          setTimeout(() => {
+          if (this.chartTimer) clearTimeout(this.chartTimer);
+          this.chartTimer = setTimeout(() => {
             if (!this.destroy$.closed) { this.buildBarChart(); }
           }, 0);
         } else {
@@ -138,7 +141,8 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
         this.loadingReasons = false;
         if (res?.success) {
           this.reasonsSummary = res.data;
-          setTimeout(() => {
+          if (this.chartTimer) clearTimeout(this.chartTimer);
+          this.chartTimer = setTimeout(() => {
             if (!this.destroy$.closed) { this.buildDonutChart(); }
           }, 0);
         } else {
@@ -169,7 +173,8 @@ export class StopporsakOperatorPage implements OnInit, OnDestroy {
         this.loadingDetail = false;
         if (res?.success) {
           this.detailData = res.data;
-          setTimeout(() => {
+          if (this.chartTimer) clearTimeout(this.chartTimer);
+          this.chartTimer = setTimeout(() => {
             if (!this.destroy$.closed) { this.buildDetailChart(); }
           }, 0);
         } else {

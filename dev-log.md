@@ -1,3 +1,36 @@
+## 2026-03-16 Session #114 Worker B — catch-block audit, setTimeout-lackor del 2, maskin-controllers
+
+### DEL 1 — Tomma catch-block audit (5 fixar i 3 filer):
+**SkiftjamforelseController.php (2 fixar)**
+1. `catch (\PDOException)` i getStopptidPerSkift — saknade $e och error_log
+2. `catch (\Exception) {}` i getStationer — tom catch, saknade $e och error_log
+
+**MaskinOeeController.php (2 fixar)**
+3. `catch (\PDOException) {}` i getOverview oee_mal — tom catch, saknade $e och error_log
+4. `catch (\PDOException) {}` i getTrend oee_mal — tom catch, saknade $e och error_log
+
+**MaskinunderhallController.php (1 fix)**
+5. `catch (\PDOException)` i addService intervall-lookup — saknade $e och error_log (var `// ignorera`)
+
+### DEL 2 — Frontend setTimeout-lackor del 2 (7 komponenter, 18 setTimeout fixade):
+**ranking-historik.ts** — 3 setTimeout utan handle, la till chartTimer + clearTimeout i ngOnDestroy
+**cykeltid-heatmap.ts** — 2 setTimeout utan handle, la till chartTimer + clearTimeout i ngOnDestroy
+**oee-benchmark.ts** — 4 setTimeout utan handle, la till gaugeTimer + trendTimer + clearTimeout i ngOnDestroy
+**oee-trendanalys.component.ts** — 2 setTimeout utan handle, la till chartTimer + clearTimeout i ngOnDestroy
+**stopporsak-operator.ts** — 3 setTimeout utan handle, la till chartTimer + clearTimeout i ngOnDestroy
+**favoriter.ts** — 4 setTimeout utan handle, la till msgTimer + clearTimeout i ngOnDestroy
+
+### DEL 3 — Maskin-controllers audit (2 fixar i 2 filer):
+**MaskinhistorikController.php (1 fix)**
+6. avg_cykeltid_sek var hardkodad till 0 — beraknas nu korrekt fran drifttid/antal IBC
+
+**MaskinOeeController.php (1 fix)**
+7. sendSuccess/sendError saknade JSON_UNESCAPED_UNICODE — svenska tecken blev escapade
+
+### Totalt: 7 backend-buggar + 18 setTimeout-lackor = 25 fixar
+
+---
+
 ## 2026-03-16 Session #113 Worker B — null-safety, setTimeout-lackor, PHP-konsistens
 
 ### Granskade filer (18 st):

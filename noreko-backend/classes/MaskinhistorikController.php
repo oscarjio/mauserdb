@@ -194,7 +194,7 @@ class MaskinhistorikController {
             'ok_ibc'             => $okAntal,
             'kasserade_ibc'      => $total - $okAntal,
             'kassationsgrad_pct' => $total > 0 ? round(($total - $okAntal) / $total * 100, 1) : 0.0,
-            'avg_cykeltid_sek'   => 0,
+            'avg_cykeltid_sek'   => $total > 0 ? round($drifttidSek / $total, 1) : 0,
             'arbetsdagar'        => $arbetsdagar,
         ];
     }

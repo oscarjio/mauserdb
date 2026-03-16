@@ -65,6 +65,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
 
   private destroy$ = new Subject<void>();
   private viewReady = false;
+  private chartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private service: CykeltidHeatmapService) {}
 
@@ -75,11 +76,13 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
   ngAfterViewInit(): void {
     this.viewReady = true;
     if (this.patternLoaded && this.dayPattern.length > 0) {
-      setTimeout(() => this.renderPatternChart(), 50);
+      if (this.chartTimer) clearTimeout(this.chartTimer);
+      this.chartTimer = setTimeout(() => this.renderPatternChart(), 50);
     }
   }
 
   ngOnDestroy(): void {
+    if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
     try { this.patternChart?.destroy(); } catch (_e) { /* ignore */ }
     this.patternChart = null;
     this.destroy$.next();
@@ -145,7 +148,8 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
         }
         this.patternLoaded = true;
         if (this.viewReady) {
-          setTimeout(() => this.renderPatternChart(), 50);
+          if (this.chartTimer) clearTimeout(this.chartTimer);
+          this.chartTimer = setTimeout(() => this.renderPatternChart(), 50);
         }
       });
   }

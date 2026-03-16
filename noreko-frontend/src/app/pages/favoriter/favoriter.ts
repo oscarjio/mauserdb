@@ -21,6 +21,7 @@ import {
 })
 export class FavoriterPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  private msgTimer: ReturnType<typeof setTimeout> | null = null;
 
   favoriter: Favorit[] = [];
   loading = true;
@@ -49,6 +50,7 @@ export class FavoriterPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.msgTimer) { clearTimeout(this.msgTimer); this.msgTimer = null; }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -75,10 +77,12 @@ export class FavoriterPage implements OnInit, OnDestroy {
         if (res.success && res.data) {
           this.favoriter.push(res.data as Favorit);
           this.successMsg = `"${page.label}" tillagd`;
-          setTimeout(() => this.successMsg = '', 2500);
+          if (this.msgTimer) clearTimeout(this.msgTimer);
+          this.msgTimer = setTimeout(() => this.successMsg = '', 2500);
         } else {
           this.error = res.error || 'Kunde inte lägga till';
-          setTimeout(() => this.error = '', 3000);
+          if (this.msgTimer) clearTimeout(this.msgTimer);
+          this.msgTimer = setTimeout(() => this.error = '', 3000);
         }
       });
   }
@@ -90,10 +94,12 @@ export class FavoriterPage implements OnInit, OnDestroy {
         if (res.success) {
           this.favoriter = this.favoriter.filter(f => f.id !== fav.id);
           this.successMsg = `"${fav.label}" borttagen`;
-          setTimeout(() => this.successMsg = '', 2500);
+          if (this.msgTimer) clearTimeout(this.msgTimer);
+          this.msgTimer = setTimeout(() => this.successMsg = '', 2500);
         } else {
           this.error = res.error || 'Kunde inte ta bort';
-          setTimeout(() => this.error = '', 3000);
+          if (this.msgTimer) clearTimeout(this.msgTimer);
+          this.msgTimer = setTimeout(() => this.error = '', 3000);
         }
       });
   }
