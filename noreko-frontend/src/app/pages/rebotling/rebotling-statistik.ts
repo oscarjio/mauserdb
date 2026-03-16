@@ -137,6 +137,10 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   currentMonth: number = new Date().getMonth();
   selectedPeriods: Date[] = [];
 
+  // Flik-navigation
+  activeTab: 'overview' | 'production' | 'quality' | 'operators' | 'analysis' = 'overview';
+  private heatmapLoadedOnce = false;
+
   periodCells: PeriodCell[] = [];
   monthNames = ['Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
                 'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
@@ -1901,12 +1905,19 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     this.heatmapTooltip = { ...this.heatmapTooltip, visible: false };
   }
 
+  setTab(tab: 'overview' | 'production' | 'quality' | 'operators' | 'analysis') {
+    this.activeTab = tab;
+    if (tab === 'production' && !this.heatmapLoadedOnce) {
+      this.heatmapLoadedOnce = true;
+      this.loadHeatmap();
+    }
+  }
+
   onHeatmapDaysChange() {
-    // Rensa custom range när användaren väljer fast period
     this.heatmapUseCustomRange = false;
     this.heatmapCustomFrom = '';
     this.heatmapCustomTo = '';
-    if (this.viewMode === 'heatmap') this.loadHeatmap();
+    this.loadHeatmap();
   }
 
   getEfficiencyClass(efficiency: number): string {

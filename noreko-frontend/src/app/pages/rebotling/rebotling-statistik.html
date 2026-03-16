@@ -1,170 +1,444 @@
 <div class="rebotling-statistik-page">
 
-  <!-- Kugghjulsikon - Dashboard Layout-konfigurering -->
-  <div class="container-fluid pt-3 pb-1 d-flex justify-content-end">
-    <button class="btn btn-sm btn-outline-secondary dashboard-config-btn"
-            (click)="toggleLayoutConfig()"
-            title="Anpassa dashboard-widgets">
-      <i class="fas fa-cog me-1"></i>Anpassa dashboard
-    </button>
+  <!-- ============ PAGE HEADER ============ -->
+  <div class="stats-page-header">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <h2 class="mb-0">
+        <i class="fas fa-chart-line me-2"></i>Rebotling Statistik
+      </h2>
+      <button class="btn btn-sm btn-outline-secondary"
+              (click)="toggleLayoutConfig()"
+              title="Anpassa dashboard-widgets">
+        <i class="fas fa-cog"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ TAB NAVIGATION ============ -->
+  <div class="stats-tab-bar">
+    <div class="container-fluid">
+      <nav class="stats-tabs">
+        <button [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+          <i class="fas fa-tachometer-alt"></i><span>Oversikt</span>
+        </button>
+        <button [class.active]="activeTab === 'production'" (click)="setTab('production')">
+          <i class="fas fa-industry"></i><span>Produktion</span>
+        </button>
+        <button [class.active]="activeTab === 'quality'" (click)="setTab('quality')">
+          <i class="fas fa-check-circle"></i><span>Kvalitet & OEE</span>
+        </button>
+        <button [class.active]="activeTab === 'operators'" (click)="setTab('operators')">
+          <i class="fas fa-users"></i><span>Operatorer</span>
+        </button>
+        <button [class.active]="activeTab === 'analysis'" (click)="setTab('analysis')">
+          <i class="fas fa-microscope"></i><span>Analys</span>
+        </button>
+      </nav>
+    </div>
   </div>
 
   <!-- Dashboard Layout-konfigureringspanel -->
-  <div class="container-fluid mb-3" *ngIf="showLayoutConfig">
+  <div class="container-fluid mt-3" *ngIf="showLayoutConfig">
     <div class="dark-card layout-config-panel">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-          <i class="fas fa-cog me-2"></i>
-          Anpassa Dashboard
-        </h5>
+        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Anpassa Dashboard</h5>
         <button class="btn btn-sm btn-outline-secondary" (click)="toggleLayoutConfig()">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="card-body">
         <p class="text-muted mb-3">Valj vilka widgets som ska visas och andra ordning med pilknapparna.</p>
-
         <div class="layout-widget-list">
           <div class="layout-widget-item" *ngFor="let w of dashboardLayout; let i = index; let first = first; let last = last; trackBy: trackByIndex">
             <div class="d-flex align-items-center gap-3">
-              <!-- Synlighets-toggle -->
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox"
                        [id]="'widget-toggle-' + w.id"
                        [checked]="w.visible"
                        (change)="toggleWidgetVisibility(w.id)">
               </div>
-
-              <!-- Widget-info -->
               <div class="flex-grow-1">
-                <div class="layout-widget-name" [class.text-muted]="!w.visible">
-                  {{ getWidgetName(w.id) }}
-                </div>
+                <div class="layout-widget-name" [class.text-muted]="!w.visible">{{ getWidgetName(w.id) }}</div>
                 <small class="text-muted">{{ getWidgetDescription(w.id) }}</small>
               </div>
-
-              <!-- Ordningsknappar -->
               <div class="d-flex flex-column gap-1">
-                <button class="btn btn-sm btn-outline-secondary layout-order-btn"
-                        [disabled]="first"
-                        (click)="moveWidgetUp(i)"
-                        title="Flytta upp">
+                <button class="btn btn-sm btn-outline-secondary layout-order-btn" [disabled]="first" (click)="moveWidgetUp(i)" title="Flytta upp">
                   <i class="fas fa-chevron-up"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-secondary layout-order-btn"
-                        [disabled]="last"
-                        (click)="moveWidgetDown(i)"
-                        title="Flytta ner">
+                <button class="btn btn-sm btn-outline-secondary layout-order-btn" [disabled]="last" (click)="moveWidgetDown(i)" title="Flytta ner">
                   <i class="fas fa-chevron-down"></i>
                 </button>
               </div>
             </div>
           </div>
         </div>
-
         <div class="d-flex gap-2 mt-3">
           <button class="btn btn-primary" (click)="saveDashboardLayout()" [disabled]="layoutSaving">
             <i class="fas fa-save me-1" *ngIf="!layoutSaving"></i>
-            <i class="fas fa-spinner fa-spin me-1" *ngIf="layoutSaving"></i>
-            Spara layout
+            <i class="fas fa-spinner fa-spin me-1" *ngIf="layoutSaving"></i>Spara layout
           </button>
-          <button class="btn btn-outline-secondary" (click)="resetDashboardLayout()">
-            <i class="fas fa-undo me-1"></i>Aterstall standard
-          </button>
-          <button class="btn btn-outline-secondary ms-auto" (click)="toggleLayoutConfig()">
-            Avbryt
-          </button>
+          <button class="btn btn-outline-secondary" (click)="resetDashboardLayout()"><i class="fas fa-undo me-1"></i>Aterstall</button>
+          <button class="btn btn-outline-secondary ms-auto" (click)="toggleLayoutConfig()">Avbryt</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Veckotrend sparklines - ÖVERST -->
-  <div class="container-fluid" *ngIf="isWidgetVisible('veckotrend')">
-    @defer (on viewport) {
-      <app-statistik-veckotrend></app-statistik-veckotrend>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
-    }
-  </div>
 
-  <!-- OEE Gauge - overst pa sidan -->
-  <div class="container-fluid" *ngIf="isWidgetVisible('oee-gauge')">
-    @defer {
-      <app-statistik-oee-gauge></app-statistik-oee-gauge>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
-    }
-  </div>
+  <!-- ================================================================
+       TAB 1: OVERSIKT
+       ================================================================ -->
+  <div *ngIf="activeTab === 'overview'" class="tab-content-area">
 
-  <!-- Produktionsmål-tracker -->
-  <div class="container-fluid" *ngIf="isWidgetVisible('produktionsmal')">
-    @defer (on viewport) {
-      <app-statistik-produktionsmal></app-statistik-produktionsmal>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border" style="color:#ed8936;" role="status"></div></div>
-    }
-  </div>
-
-  <!-- Topp-5 operatörer leaderboard -->
-  <div class="container-fluid" *ngIf="isWidgetVisible('leaderboard')">
-    @defer (on viewport) {
-      <app-statistik-leaderboard></app-statistik-leaderboard>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border" style="color:#d69e2e;" role="status"></div></div>
-    }
-  </div>
-
-  <!-- Header with Breadcrumb -->
-  <div class="stats-header">
-    <div class="container-fluid">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h2 class="mb-2">
-            <i class="fas fa-chart-line me-2"></i>
-            Rebotling Statistik
-          </h2>
-          <!-- Breadcrumb Navigation -->
+    <!-- Breadcrumb + Navigation -->
+    <div class="stats-header">
+      <div class="container-fluid">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
           <nav class="breadcrumb-nav">
-            <button 
-              class="breadcrumb-btn" 
-              (click)="navigateToYear()"
-              [class.active]="viewMode === 'year'">
+            <button class="breadcrumb-btn" (click)="navigateToYear()" [class.active]="viewMode === 'year'">
               {{ breadcrumb[0] || currentYear }}
             </button>
-            <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 1">
-              <i class="fas fa-chevron-right"></i>
-            </span>
-            <button 
-              *ngIf="breadcrumb.length > 1"
-              class="breadcrumb-btn" 
-              (click)="navigateToMonth()"
-              [class.active]="viewMode === 'month'">
+            <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 1"><i class="fas fa-chevron-right"></i></span>
+            <button *ngIf="breadcrumb.length > 1" class="breadcrumb-btn" (click)="navigateToMonth()" [class.active]="viewMode === 'month'">
               {{ breadcrumb[1] }}
             </button>
-            <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 2">
-              <i class="fas fa-chevron-right"></i>
-            </span>
-            <button 
-              *ngIf="breadcrumb.length > 2"
-              class="breadcrumb-btn active">
-              {{ breadcrumb[2] }}
-            </button>
+            <span class="breadcrumb-sep" *ngIf="breadcrumb.length > 2"><i class="fas fa-chevron-right"></i></span>
+            <button *ngIf="breadcrumb.length > 2" class="breadcrumb-btn active">{{ breadcrumb[2] }}</button>
           </nav>
-        </div>
-        
-        <!-- Navigation Controls -->
-        <div class="nav-controls d-flex align-items-center gap-2">
-          <ng-container *ngIf="viewMode !== 'heatmap'">
-            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()">
-              <i class="fas fa-chevron-left"></i>
-            </button>
+          <div class="nav-controls d-flex align-items-center gap-2">
+            <button class="btn btn-dark btn-sm" (click)="navigatePrevious()"><i class="fas fa-chevron-left"></i></button>
             <span class="mx-2 view-mode-label">{{ getViewModeLabel() }}</span>
-            <button class="btn btn-dark btn-sm" (click)="navigateNext()">
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </ng-container>
-          <ng-container *ngIf="viewMode === 'heatmap'">
+            <button class="btn btn-dark btn-sm" (click)="navigateNext()"><i class="fas fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Produktionsoverblick (VD-vy) -->
+    <div class="container-fluid" *ngIf="overviewData && !overviewLoading">
+      <div class="overview-panel mb-4">
+        <div class="overview-title"><i class="fas fa-tachometer-alt me-2"></i>Produktionspuls</div>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="ov-label">Idag</div>
+            <div class="ov-main">
+              <span class="ov-big">{{ overviewData.todayIbc }}</span>
+              <span class="ov-unit">IBC</span>
+            </div>
+            <div class="ov-sub">
+              av {{ overviewData.todayTarget }} mal
+              <span class="ov-pct" [ngClass]="overviewData.todayPct >= 90 ? 'text-success' : overviewData.todayPct >= 70 ? 'text-warning' : 'text-danger'">
+                ({{ overviewData.todayPct }}%)
+              </span>
+            </div>
+            <div class="ov-sub" *ngIf="overviewData.todayForecast > 0">
+              Prognos: <strong>{{ overviewData.todayForecast }}</strong> IBC
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="ov-label">Aktuell takt</div>
+            <div class="ov-main">
+              <span class="ov-big">{{ overviewData.ratePerH | number:'1.1-1' }}</span>
+              <span class="ov-unit">IBC/h</span>
+            </div>
+            <div class="ov-sub">
+              OEE idag: <strong [ngClass]="overviewData.oeeToday >= 65 ? 'text-success' : overviewData.oeeToday >= 50 ? 'text-warning' : 'text-danger'">{{ overviewData.oeeToday | number:'1.0-0' }}%</strong>
+            </div>
+            <div class="ov-sub">
+              <span class="ov-trend" [ngClass]="getTrendClass(getOeeDiff())">
+                <i class="fas" [ngClass]="getTrendIcon(getOeeDiff())"></i>
+                {{ getOeeDiff() > 0 ? '+' : '' }}{{ getOeeDiff() }}% vs igar
+              </span>
+            </div>
+          </div>
+          <div class="overview-card">
+            <div class="ov-label">Denna vecka</div>
+            <div class="ov-main">
+              <span class="ov-big">{{ overviewData.thisWeekIbc }}</span>
+              <span class="ov-unit">IBC</span>
+            </div>
+            <div class="ov-sub">
+              Forr. vecka: {{ overviewData.prevWeekIbc }}
+              <span class="ov-trend" [ngClass]="getTrendClass(overviewData.weekDiffPct)">
+                <i class="fas" [ngClass]="getTrendIcon(overviewData.weekDiffPct)"></i>
+                {{ overviewData.weekDiffPct > 0 ? '+' : '' }}{{ overviewData.weekDiffPct | number:'1.0-0' }}%
+              </span>
+            </div>
+            <div class="ov-sub">Kvalitet: <strong>{{ overviewData.qualityPct | number:'1.1-1' }}%</strong></div>
+          </div>
+          <div class="overview-card">
+            <div class="ov-label">Senaste 7 dagar</div>
+            <div class="ov-sparkline">
+              <svg width="120" height="32" viewBox="0 0 120 32">
+                <polyline [attr.points]="getSparklinePoints()" fill="none" stroke="#00d4ff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="ov-sparkline-labels">
+              <span *ngFor="let d of overviewData.days7; let last = last; trackBy: trackByIndex" class="ov-spark-day" [class.ov-spark-today]="last">{{ d.ibc }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="container-fluid">
+      <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-cubes"></i></div>
+            <div class="kpi-value">{{ totalCycles }}</div>
+            <div class="kpi-label">Totalt Cykler</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-clock"></i></div>
+            <div class="kpi-value">{{ avgCycleTime }} min</div>
+            <div class="kpi-label">Snitt Cykeltid</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-percentage"></i></div>
+            <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">{{ avgEfficiency }}%</div>
+            <div class="kpi-label">Effektivitet</div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="kpi-card">
+            <div class="kpi-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="kpi-value">{{ totalRuntimeHours }}h</div>
+            <div class="kpi-label">Total Kortid</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading / Error -->
+    <div class="container-fluid">
+      <div class="text-center py-5" *ngIf="loading">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3 text-muted">Hamtar statistik...</p>
+      </div>
+      <div class="alert alert-warning" *ngIf="error && !loading">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+      </div>
+    </div>
+
+    <!-- Main Content: Calendar + Chart -->
+    <div class="container-fluid" *ngIf="!loading">
+      <div class="row">
+        <!-- Calendar Sidebar -->
+        <div class="col-lg-3 mb-4">
+          <div class="dark-card">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Valj Period</h5>
+              <small class="text-muted" *ngIf="viewMode !== 'day'">Klicka for att markera, dubbelklicka for att oppna</small>
+              <small class="text-muted" *ngIf="viewMode === 'day'">Visar cykeltid per producerad IBC</small>
+            </div>
+            <div class="card-body">
+              <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
+                <div *ngFor="let cell of getVisiblePeriodCells(); trackBy: trackByIndex"
+                     class="period-cell"
+                     [class.has-data]="cell.hasData"
+                     [class.selected]="cell.isSelected"
+                     (mousedown)="onCellMouseDown(cell, $event)"
+                     (mouseenter)="onCellMouseEnter(cell)"
+                     (dblclick)="onCellDoubleClick(cell)">
+                  <div class="cell-label">{{ cell.label }}</div>
+                  <div class="cell-count" *ngIf="cell.hasData && viewMode !== 'day'">{{ cell.cyclesCount }}</div>
+                  <div class="cell-count" *ngIf="cell.hasData && viewMode === 'day' && cell.avgCycleTime > 0">
+                    {{ cell.avgCycleTime }}<small style="font-size: 0.7em;">min</small>
+                  </div>
+                  <div class="cell-info" *ngIf="cell.hasData && viewMode !== 'day'"><small>{{ cell.avgCycleTime }}min</small></div>
+                  <div class="cell-info" *ngIf="cell.hasData && viewMode === 'day'">
+                    <small>{{ cell.cyclesCount }} cykel<span *ngIf="cell.cyclesCount !== 1">er</span></small>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3" *ngIf="viewMode !== 'day'">
+                <div class="d-grid gap-2 mb-2" *ngIf="viewMode === 'month'">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" (click)="showOnlyDaysWithCycles = !showOnlyDaysWithCycles">
+                    <i class="fas fa-filter me-2"></i>
+                    <span *ngIf="showOnlyDaysWithCycles">Visa alla dagar</span>
+                    <span *ngIf="!showOnlyDaysWithCycles">Visa bara dagar med data</span>
+                  </button>
+                </div>
+                <div class="d-grid gap-2">
+                  <button class="btn btn-primary" (click)="showStatistics()" [disabled]="loading">
+                    <i class="fas fa-sync-alt me-2" [class.fa-spin]="loading"></i>
+                    <span *ngIf="selectedPeriods.length > 0">Visa Markerade ({{ selectedPeriods.length }})</span>
+                    <span *ngIf="selectedPeriods.length === 0">Uppdatera</span>
+                  </button>
+                  <button class="btn btn-outline-secondary btn-sm" (click)="clearSelection()" [disabled]="selectedPeriods.length === 0">
+                    <i class="fas fa-times me-2"></i>Rensa
+                  </button>
+                </div>
+              </div>
+              <div class="mt-3" *ngIf="viewMode === 'day'">
+                <small class="text-muted d-block text-center">Dra i grafen for att zooma in</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="col-lg-9 mb-4">
+          <div class="dark-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Produktionsanalys</h5>
+                <small class="text-muted d-block">
+                  <span style="color:#27ae60">&#9632;</span> Kor &nbsp;
+                  <span style="color:#ffc107">&#9632;</span> Rast &nbsp;
+                  <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
+                  <span style="color:#ffc107">--</span> Snitt &nbsp;
+                  <span style="color:#ff8800">--</span> Mal
+                </small>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span *ngIf="viewMode === 'day' && dayUtilizationPct > 0"
+                      class="day-metric-badge"
+                      [class.badge-good]="dayUtilizationPct >= 75"
+                      [class.badge-warn]="dayUtilizationPct >= 50 && dayUtilizationPct < 75"
+                      [class.badge-bad]="dayUtilizationPct < 50">
+                  <i class="fas fa-tachometer-alt me-1"></i>{{ dayUtilizationPct }}%
+                </span>
+                <span *ngIf="viewMode === 'day' && dayLongestStopMinutes > 0"
+                      class="day-metric-badge"
+                      [class.badge-good]="dayLongestStopMinutes < 15"
+                      [class.badge-warn]="dayLongestStopMinutes >= 15 && dayLongestStopMinutes < 30"
+                      [class.badge-bad]="dayLongestStopMinutes >= 30">
+                  <i class="fas fa-pause-circle me-1"></i>{{ dayLongestStopMinutes }}min stopp
+                </span>
+                <button *ngIf="chartHasSelection()" class="btn btn-outline-light btn-sm" (click)="resetChartZoom()">Aterstall</button>
+                <button class="btn btn-sm btn-outline-secondary" (click)="exportProductionChart()" [disabled]="!productionChart" title="Exportera graf">
+                  <i class="fas fa-download"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="chart-container"><canvas #productionChart></canvas></div>
+            </div>
+          </div>
+
+          <!-- Timeline (dag-vy) -->
+          <div *ngIf="viewMode === 'day' && timelineSegments.length > 0" class="rast-timeline mt-2 mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <small class="text-muted">00:00</small>
+              <small class="text-muted">24:00</small>
+            </div>
+            <div class="timeline-bar position-relative">
+              <div *ngFor="let seg of timelineSegments; trackBy: trackByIndex"
+                   class="timeline-seg"
+                   [class.seg-running]="seg.type === 'running'"
+                   [class.seg-rast]="seg.type === 'rast'"
+                   [class.seg-stopped]="seg.type === 'stopped'"
+                   [style.left.%]="seg.startPct"
+                   [style.width.%]="seg.widthPct"></div>
+            </div>
+            <div class="d-flex gap-3 mt-1">
+              <small><span class="tl-dot running"></span> Kor</small>
+              <small><span class="tl-dot rast"></span> Rast</small>
+              <small><span class="tl-dot stopped"></span> Stopp</small>
+            </div>
+          </div>
+
+          <!-- Skiftversikt (dag-vy) -->
+          <div *ngIf="viewMode === 'day' && shiftSummaries.length > 0" class="row g-2 mb-4">
+            <div class="col-12"><h6 class="text-muted"><i class="fas fa-layer-group me-2"></i>Skiftoversikt</h6></div>
+            <div class="col-auto" *ngFor="let s of shiftSummaries; trackBy: trackByIndex">
+              <div class="shift-summary-card">
+                <div class="shift-nr">Skift #{{ s.nr }}</div>
+                <div class="shift-stat"><i class="fas fa-box text-info me-1"></i>{{ s.ibcCount }} IBC</div>
+                <div class="shift-stat" *ngIf="s.avgCycleTime > 0">
+                  <i class="fas fa-clock text-warning me-1"></i>{{ s.avgCycleTime | number:'1.1-1' }} min
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="row" *ngIf="tableData.length > 0">
+        <div class="col-12">
+          <div class="dark-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-table me-2"></i>Detaljerad Statistik</h5>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" title="CSV"><i class="fas fa-download me-1"></i>CSV</button>
+                <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" title="Excel"><i class="fas fa-file-excel me-1"></i>Excel</button>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="stats-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Period</th>
+                      <th class="text-end" scope="col">Cykler</th>
+                      <th class="text-end" scope="col">Snitt Cykeltid</th>
+                      <th class="text-end" scope="col">Effektivitet</th>
+                      <th class="text-end" scope="col">Kortid (min)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of tableData; trackBy: trackByIndex"
+                        [class.clickable]="row.clickable"
+                        (click)="onTableRowClick(row)">
+                      <td><i class="fas fa-calendar-day me-2 text-muted"></i>{{ row.period }}</td>
+                      <td class="text-end"><strong>{{ row.cycles }}</strong></td>
+                      <td class="text-end">{{ row.avgCycleTime }} min</td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)"><strong>{{ row.efficiency }}%</strong></td>
+                      <td class="text-end">{{ row.runtime | number:'1.0-0' }}</td>
+                    </tr>
+                  </tbody>
+                  <tfoot *ngIf="tableData.length > 1">
+                    <tr class="total-row">
+                      <td><strong>Totalt</strong></td>
+                      <td class="text-end"><strong>{{ totalCycles }}</strong></td>
+                      <td class="text-end"><strong>{{ avgCycleTime }} min</strong></td>
+                      <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)"><strong>{{ avgEfficiency }}%</strong></td>
+                      <td class="text-end"><strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Data -->
+      <div *ngIf="!loading && tableData.length === 0" class="text-center py-5">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <h5>Ingen data for vald period</h5>
+        <p class="text-muted">Valj en annan period eller vanta pa att produktionen startar</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ================================================================
+       TAB 2: PRODUKTION
+       ================================================================ -->
+  <div *ngIf="activeTab === 'production'" class="tab-content-area">
+    <div class="container-fluid">
+
+      <!-- Veckotrend -->
+      @defer (on viewport) {
+        <app-statistik-veckotrend></app-statistik-veckotrend>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
+
+      <!-- Heatmap -->
+      <div class="dark-card mt-3 mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h5 class="mb-0"><i class="fas fa-th me-2 text-warning"></i>Produktions-heatmap</h5>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
             <select class="form-select form-select-sm bg-dark text-light border-secondary" style="width:auto"
                     [(ngModel)]="heatmapDays" (change)="onHeatmapDaysChange()"
                     [disabled]="heatmapUseCustomRange">
@@ -174,102 +448,35 @@
               <option [value]="60">60 dagar</option>
               <option [value]="90">90 dagar</option>
             </select>
-            <div class="custom-range d-flex align-items-center gap-2 ms-2">
-              <label class="form-label mb-0 text-muted small">Anpassat:</label>
-              <input type="date" class="form-control form-control-sm date-input"
-                [(ngModel)]="heatmapCustomFrom"
-                [max]="heatmapCustomTo || todayStr" />
-              <span class="text-muted">–</span>
-              <input type="date" class="form-control form-control-sm date-input"
-                [(ngModel)]="heatmapCustomTo"
-                [min]="heatmapCustomFrom"
-                [max]="todayStr" />
-              <button class="btn btn-sm btn-outline-primary"
-                (click)="applyHeatmapCustomRange()"
-                [disabled]="!heatmapCustomFrom || !heatmapCustomTo">
-                Visa
-              </button>
-              <button *ngIf="heatmapUseCustomRange" class="btn btn-sm btn-outline-secondary"
-                (click)="clearHeatmapCustomRange()"
-                title="Rensa anpassat intervall">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-            <button class="btn btn-outline-secondary btn-sm ms-1" (click)="exitHeatmapMode()">
-              <i class="fas fa-arrow-left me-1"></i>Tillbaka
-            </button>
-          </ng-container>
-          <button class="btn btn-sm ms-1"
-                  [class.btn-warning]="viewMode === 'heatmap'"
-                  [class.btn-outline-warning]="viewMode !== 'heatmap'"
-                  (click)="enterHeatmapMode()"
-                  title="Produktionsintensitet per timme och dag">
-            <i class="fas fa-th me-1"></i>Heatmap
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ HEATMAP-VY ============ -->
-  <div class="container-fluid py-4" *ngIf="viewMode === 'heatmap'">
-    <div class="row">
-      <div class="col-12">
-        <div class="dark-card">
-          <div class="card-header-dark d-flex justify-content-between align-items-center mb-3">
-            <h5 class="mb-0">
-              <i class="fas fa-th me-2 text-warning"></i>
-              Produktionsintensitet per timme och dag
-            </h5>
-            <small class="text-muted">Antal IBC-cykler per timme</small>
+            <input type="date" class="form-control form-control-sm date-input"
+              [(ngModel)]="heatmapCustomFrom" [max]="heatmapCustomTo || todayStr" />
+            <span class="text-muted">-</span>
+            <input type="date" class="form-control form-control-sm date-input"
+              [(ngModel)]="heatmapCustomTo" [min]="heatmapCustomFrom" [max]="todayStr" />
+            <button class="btn btn-sm btn-outline-primary" (click)="applyHeatmapCustomRange()" [disabled]="!heatmapCustomFrom || !heatmapCustomTo">Visa</button>
+            <button *ngIf="heatmapUseCustomRange" class="btn btn-sm btn-outline-secondary" (click)="clearHeatmapCustomRange()"><i class="fas fa-times"></i></button>
           </div>
-
-          <div *ngIf="loading" class="text-center py-5">
+        </div>
+        <div class="card-body">
+          <div *ngIf="loading" class="text-center py-4">
             <div class="spinner-border text-warning" role="status"></div>
-            <div class="mt-2 text-muted">Laddar heatmap...</div>
           </div>
 
           <div *ngIf="!loading && heatmapRows.length > 0" class="heatmap-container">
-
-            <!-- KPI-val + förklaring -->
             <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
               <div class="heatmap-kpi-toggle">
-                <button class="hm-kpi-btn"
-                        [class.active]="heatmapKpi === 'ibc'"
-                        (click)="heatmapKpi = 'ibc'">
-                  IBC/h
-                </button>
-                <button class="hm-kpi-btn"
-                        [class.active]="heatmapKpi === 'quality'"
-                        (click)="heatmapKpi = 'quality'">
-                  Kvalitet%
-                </button>
-                <button class="hm-kpi-btn"
-                        [class.active]="heatmapKpi === 'oee'"
-                        (click)="heatmapKpi = 'oee'">
-                  OEE%
-                </button>
+                <button class="hm-kpi-btn" [class.active]="heatmapKpi === 'ibc'" (click)="heatmapKpi = 'ibc'">IBC/h</button>
+                <button class="hm-kpi-btn" [class.active]="heatmapKpi === 'quality'" (click)="heatmapKpi = 'quality'">Kvalitet%</button>
+                <button class="hm-kpi-btn" [class.active]="heatmapKpi === 'oee'" (click)="heatmapKpi = 'oee'">OEE%</button>
               </div>
-              <small class="text-muted">
-                Visar: <strong class="text-light">{{ getHeatmapKpiLabel() }}</strong>
-              </small>
-              <button class="btn btn-sm btn-outline-secondary ms-auto"
-                      title="Exportera heatmap-data som CSV"
-                      [disabled]="!heatmapRows || heatmapRows.length === 0"
-                      (click)="exportHeatmapCSV()">
-                <i class="fas fa-download me-1"></i>Exportera CSV
+              <small class="text-muted">Visar: <strong class="text-light">{{ getHeatmapKpiLabel() }}</strong></small>
+              <button class="btn btn-sm btn-outline-secondary ms-auto" (click)="exportHeatmapCSV()" [disabled]="!heatmapRows?.length">
+                <i class="fas fa-download me-1"></i>CSV
               </button>
             </div>
-
-            <!-- Heatmap-rutnät med tooltip -->
             <div class="heatmap-grid">
-              <!-- Tomma hörncellen + datum-labels (x-axel) -->
               <div class="heatmap-corner"></div>
-              <div class="heatmap-date-label" *ngFor="let row of heatmapRows; trackBy: trackByIndex">
-                {{ row.label }}
-              </div>
-
-              <!-- En rad per timme -->
+              <div class="heatmap-date-label" *ngFor="let row of heatmapRows; trackBy: trackByIndex">{{ row.label }}</div>
               <ng-container *ngFor="let hour of heatmapHours; let hi = index; trackBy: trackByIndex">
                 <div class="heatmap-hour-label">{{ hour }}:00</div>
                 <div class="heatmap-cell"
@@ -281,669 +488,215 @@
                 </div>
               </ng-container>
             </div>
-
-            <!-- Tooltip -->
-            <div class="heatmap-tooltip"
-                 *ngIf="heatmapTooltip.visible"
-                 [style.left.px]="heatmapTooltip.x"
-                 [style.top.px]="heatmapTooltip.y - 8">
-              <div class="ht-date">{{ heatmapTooltip.date }} &nbsp; {{ heatmapTooltip.hour }}:00–{{ heatmapTooltip.hour + 1 }}:00</div>
-              <div class="ht-row"><span>IBC denna timme:</span><strong>{{ heatmapTooltip.count }}</strong></div>
-              <div class="ht-row"><span>IBC/h (takt):</span><strong>{{ heatmapTooltip.ibcH }}</strong></div>
-              <div class="ht-row" *ngIf="heatmapTooltip.qualityPct > 0">
-                <span>Kvalitet% (dag):</span><strong>{{ heatmapTooltip.qualityPct | number:'1.0-1' }}%</strong>
-              </div>
-              <div class="ht-row text-muted" *ngIf="heatmapTooltip.qualityPct === 0 && heatmapTooltip.count > 0">
-                <span>Kvalitet%:</span><small>Ej tillgängligt per timme</small>
-              </div>
+            <div class="heatmap-tooltip" *ngIf="heatmapTooltip.visible"
+                 [style.left.px]="heatmapTooltip.x" [style.top.px]="heatmapTooltip.y - 8">
+              <div class="ht-date">{{ heatmapTooltip.date }} &nbsp; {{ heatmapTooltip.hour }}:00-{{ heatmapTooltip.hour + 1 }}:00</div>
+              <div class="ht-row"><span>IBC:</span><strong>{{ heatmapTooltip.count }}</strong></div>
+              <div class="ht-row" *ngIf="heatmapTooltip.qualityPct > 0"><span>Kvalitet:</span><strong>{{ heatmapTooltip.qualityPct | number:'1.0-1' }}%</strong></div>
             </div>
-
-            <!-- Legend -->
             <div class="heatmap-legend mt-3 d-flex align-items-center gap-2 flex-wrap">
-              <small class="text-muted me-1">
-                <span class="hm-zero-box"></span> Ingen prod.
-              </small>
-              <small class="text-muted">Låg</small>
+              <small class="text-muted me-1"><span class="hm-zero-box"></span> Ingen prod.</small>
+              <small class="text-muted">Lag</small>
               <div class="heatmap-legend-bar" [style.background]="getHeatmapLegendGradient()"></div>
-              <small class="text-muted">Hög</small>
-              <small class="text-muted ms-2">
-                {{ getHeatmapLegendLow() }} → {{ getHeatmapLegendHigh() }}
-              </small>
+              <small class="text-muted">Hog</small>
+              <small class="text-muted ms-2">{{ getHeatmapLegendLow() }} -> {{ getHeatmapLegendHigh() }}</small>
             </div>
           </div>
 
-          <div *ngIf="!loading && heatmapRows.length === 0 && !error" class="text-center py-4 text-muted">
+          <div *ngIf="!loading && heatmapRows.length === 0" class="text-center py-4 text-muted">
             <i class="fas fa-inbox fa-2x mb-2"></i>
-            <div>Ingen produktionsdata hittades för perioden</div>
+            <div>Ingen data for perioden</div>
           </div>
-          <div *ngIf="error" class="alert alert-danger mt-3" role="alert">{{ error }}</div>
         </div>
       </div>
+
+      <!-- Histogram -->
+      @defer (on viewport) {
+        <app-statistik-histogram></app-statistik-histogram>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
+      }
+
+      <!-- Produktionsrytm -->
+      @defer (on viewport) {
+        <app-statistik-produktionsrytm></app-statistik-produktionsrytm>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
+
+      <!-- Cykeltrend -->
+      @defer (on viewport) {
+        <app-statistik-cykeltrend></app-statistik-cykeltrend>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-secondary" role="status"></div></div>
+      }
+
+      <!-- Veckodag -->
+      @defer (on viewport) {
+        <app-statistik-veckodag></app-statistik-veckodag>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
+
+      <!-- Produktionsmal -->
+      @defer (on viewport) {
+        <app-statistik-produktionsmal></app-statistik-produktionsmal>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border" style="color:#ed8936;" role="status"></div></div>
+      }
+
+      <!-- Uptid Heatmap -->
+      @defer (on viewport) {
+        <app-statistik-uptid-heatmap></app-statistik-uptid-heatmap>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
     </div>
   </div>
 
-  <!-- ============ NORMAL VY (år/månad/dag) ============ -->
-  <div class="container-fluid py-4" *ngIf="viewMode !== 'heatmap'">
 
-    <!-- ======== PRODUKTIONSOVERBLICK (VD-vy) ======== -->
-    <div class="overview-panel mb-4" *ngIf="overviewData && !overviewLoading && isWidgetVisible('produktionspuls')">
-      <div class="overview-title">
-        <i class="fas fa-tachometer-alt me-2"></i>Produktionsoverblick
-      </div>
-      <div class="overview-grid">
-        <!-- Idag -->
-        <div class="overview-card">
-          <div class="ov-label">Idag</div>
-          <div class="ov-main">
-            <span class="ov-big">{{ overviewData.todayIbc }}</span>
-            <span class="ov-unit">IBC</span>
-          </div>
-          <div class="ov-sub">
-            av {{ overviewData.todayTarget }} mal
-            <span class="ov-pct" [ngClass]="overviewData.todayPct >= 90 ? 'text-success' : overviewData.todayPct >= 70 ? 'text-warning' : 'text-danger'">
-              ({{ overviewData.todayPct }}%)
-            </span>
-          </div>
-          <div class="ov-sub" *ngIf="overviewData.todayForecast > 0">
-            Prognos: <strong>{{ overviewData.todayForecast }}</strong> IBC
-          </div>
-        </div>
+  <!-- ================================================================
+       TAB 3: KVALITET & OEE
+       ================================================================ -->
+  <div *ngIf="activeTab === 'quality'" class="tab-content-area">
+    <div class="container-fluid">
 
-        <!-- Takt -->
-        <div class="overview-card">
-          <div class="ov-label">Aktuell takt</div>
-          <div class="ov-main">
-            <span class="ov-big">{{ overviewData.ratePerH | number:'1.1-1' }}</span>
-            <span class="ov-unit">IBC/h</span>
-          </div>
-          <div class="ov-sub">
-            OEE idag: <strong [ngClass]="overviewData.oeeToday >= 65 ? 'text-success' : overviewData.oeeToday >= 50 ? 'text-warning' : 'text-danger'">{{ overviewData.oeeToday | number:'1.0-0' }}%</strong>
-          </div>
-          <div class="ov-sub">
-            <span class="ov-trend" [ngClass]="getTrendClass(getOeeDiff())">
-              <i class="fas" [ngClass]="getTrendIcon(getOeeDiff())"></i>
-              {{ getOeeDiff() > 0 ? '+' : '' }}{{ getOeeDiff() }}% vs igar
-            </span>
-          </div>
-        </div>
+      @defer (on viewport) {
+        <app-statistik-oee-gauge></app-statistik-oee-gauge>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
+      }
 
-        <!-- Denna vecka -->
-        <div class="overview-card">
-          <div class="ov-label">Denna vecka</div>
-          <div class="ov-main">
-            <span class="ov-big">{{ overviewData.thisWeekIbc }}</span>
-            <span class="ov-unit">IBC</span>
-          </div>
-          <div class="ov-sub">
-            Forr. vecka: {{ overviewData.prevWeekIbc }}
-            <span class="ov-trend" [ngClass]="getTrendClass(overviewData.weekDiffPct)">
-              <i class="fas" [ngClass]="getTrendIcon(overviewData.weekDiffPct)"></i>
-              {{ overviewData.weekDiffPct > 0 ? '+' : '' }}{{ overviewData.weekDiffPct | number:'1.0-0' }}%
-            </span>
-          </div>
-          <div class="ov-sub">
-            Kvalitet: <strong>{{ overviewData.qualityPct | number:'1.1-1' }}%</strong>
-          </div>
-        </div>
+      @defer (on viewport) {
+        <app-statistik-waterfall-oee></app-statistik-waterfall-oee>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
+      }
 
-        <!-- 7-dagars trend -->
-        <div class="overview-card">
-          <div class="ov-label">Senaste 7 dagar</div>
-          <div class="ov-sparkline">
-            <svg width="120" height="32" viewBox="0 0 120 32">
-              <polyline
-                [attr.points]="getSparklinePoints()"
-                fill="none"
-                stroke="#00d4ff"
-                stroke-width="2"
-                stroke-linejoin="round"
-                stroke-linecap="round" />
-            </svg>
-          </div>
-          <div class="ov-sparkline-labels">
-            <span *ngFor="let d of overviewData.days7; let i = index; let last = last; trackBy: trackByIndex"
-                  class="ov-spark-day"
-                  [class.ov-spark-today]="last">
-              {{ d.ibc }}
-            </span>
-          </div>
-        </div>
-      </div>
+      @defer (on viewport) {
+        <app-statistik-oee-komponenter></app-statistik-oee-komponenter>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-oee-deepdive></app-statistik-oee-deepdive>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-kvalitetstrend></app-statistik-kvalitetstrend>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-kvalitetsanalys></app-statistik-kvalitetsanalys>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-kvalitet-deepdive></app-statistik-kvalitet-deepdive>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-kassation-pareto></app-statistik-kassation-pareto>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-kassationsanalys></app-statistik-kassationsanalys>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
+      }
     </div>
-
-    <!-- KPI Cards -->
-    <div class="row mb-4">
-      <div class="col-lg-3 col-md-6 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-cubes"></i>
-          </div>
-          <div class="kpi-value">{{ totalCycles }}</div>
-          <div class="kpi-label">Totalt Cykler</div>
-        </div>
-      </div>
-
-      <div class="col-lg-3 col-md-6 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-clock"></i>
-          </div>
-          <div class="kpi-value">{{ avgCycleTime }} min</div>
-          <div class="kpi-label">Snitt Cykeltid</div>
-        </div>
-      </div>
-
-      <div class="col-lg-3 col-md-6 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-percentage"></i>
-          </div>
-          <div class="kpi-value" [ngClass]="getEfficiencyClass(avgEfficiency)">
-            {{ avgEfficiency }}%
-          </div>
-          <div class="kpi-label">Genomsnittlig Effektivitet</div>
-        </div>
-      </div>
-
-      <div class="col-lg-3 col-md-6 mb-3">
-        <div class="kpi-card">
-          <div class="kpi-icon">
-            <i class="fas fa-hourglass-half"></i>
-          </div>
-          <div class="kpi-value">{{ totalRuntimeHours }}h</div>
-          <div class="kpi-label">Total Körtid</div>
-        </div>
-      </div>
-
-      <div class="col-lg-3 col-md-6 mb-3" *ngIf="totalRastMinutes > 0">
-        <div class="kpi-card">
-          <div class="kpi-icon" style="background: rgba(255,193,7,0.15); color: #ffc107;">
-            <i class="fas fa-coffee"></i>
-          </div>
-          <div class="kpi-value text-warning">{{ totalRastMinutes | number:'1.0-0' }} min</div>
-          <div class="kpi-label">Rasttid</div>
-          <div class="kpi-sub text-muted" style="font-size:0.8rem;margin-top:0.25rem;">exkl. från effektivitet</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ======== SNABBLÄNKAR FÖR NYA PANELER ======== -->
-    <div class="row mb-3 g-2" *ngIf="!loading">
-      <div class="col-auto">
-        <button class="btn btn-sm" [class.btn-outline-info]="!showWeekComparison" [class.btn-info]="showWeekComparison" (click)="showWeekComparison = !showWeekComparison">
-          <i class="fas fa-calendar-week me-1"></i>Veckojamforelse
-        </button>
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-sm" [class.btn-outline-warning]="!showPrediktion" [class.btn-warning]="showPrediktion" (click)="showPrediktion = !showPrediktion">
-          <i class="fas fa-bullseye me-1"></i>Prognos idag
-        </button>
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-sm" [class.btn-outline-success]="!showOeeDeepDive" [class.btn-success]="showOeeDeepDive" (click)="showOeeDeepDive = !showOeeDeepDive">
-          <i class="fas fa-tachometer-alt me-1"></i>OEE Deep-dive
-        </button>
-      </div>
-      <div class="col-auto">
-        <button class="btn btn-sm" [class.btn-outline-secondary]="!showCycleTrend" [class.btn-secondary]="showCycleTrend" (click)="showCycleTrend = !showCycleTrend">
-          <i class="fas fa-chart-bar me-1"></i>Cykeltrend
-        </button>
-      </div>
-    </div>
-
-    <app-statistik-veckojamforelse *ngIf="showWeekComparison"></app-statistik-veckojamforelse>
-    <app-statistik-prediktion *ngIf="showPrediktion"></app-statistik-prediktion>
-
-    <app-statistik-oee-deepdive *ngIf="showOeeDeepDive"></app-statistik-oee-deepdive>
-    <app-statistik-cykeltrend *ngIf="showCycleTrend"></app-statistik-cykeltrend>
-
-    <!-- Loading State -->
-    <div class="text-center py-5" *ngIf="loading">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Laddar...</span>
-      </div>
-      <p class="mt-3">Hämtar statistik...</p>
-    </div>
-
-    <!-- Error State -->
-    <div class="alert alert-warning" *ngIf="error && !loading">
-      <i class="fas fa-exclamation-triangle me-2"></i>
-      {{ error }}
-      <small class="d-block mt-1">Visar exempeldata</small>
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="row" *ngIf="!loading">
-      
-      <!-- Calendar/Period Selector -->
-      <div class="col-lg-3 mb-4">
-        <div class="dark-card">
-          <div class="card-header">
-            <h5 class="mb-0">
-              <i class="fas fa-calendar-alt me-2"></i>
-              Välj Period
-            </h5>
-            <small class="text-muted" *ngIf="viewMode !== 'day'">
-              Klicka för att markera, dubbelklicka för att öppna
-            </small>
-            <small class="text-muted" *ngIf="viewMode === 'day'">
-              Visar cykeltid per producerad IBC
-            </small>
-          </div>
-          <div class="card-body">
-            <div class="period-grid" [class.grid-hours]="viewMode === 'day'" [class.grid-10min]="viewMode === 'day'">
-              <div 
-                *ngFor="let cell of getVisiblePeriodCells(); trackBy: trackByIndex"
-                class="period-cell"
-                [class.has-data]="cell.hasData"
-                [class.selected]="cell.isSelected"
-                (mousedown)="onCellMouseDown(cell, $event)"
-                (mouseenter)="onCellMouseEnter(cell)"
-                (dblclick)="onCellDoubleClick(cell)">
-                <div class="cell-label">{{ cell.label }}</div>
-                <div class="cell-count" *ngIf="cell.hasData && viewMode !== 'day'">
-                  {{ cell.cyclesCount }}
-                </div>
-                <div class="cell-count" *ngIf="cell.hasData && viewMode === 'day' && cell.avgCycleTime > 0">
-                  {{ cell.avgCycleTime }}<small style="font-size: 0.7em;">min</small>
-                </div>
-                <div class="cell-info" *ngIf="cell.hasData && viewMode !== 'day'">
-                  <small>{{ cell.avgCycleTime }}min</small>
-                </div>
-                <div class="cell-info" *ngIf="cell.hasData && viewMode === 'day'">
-                  <small>{{ cell.cyclesCount }} cykel<span *ngIf="cell.cyclesCount !== 1">er</span></small>
-                </div>
-              </div>
-            </div>
-            
-            <div class="mt-3" *ngIf="viewMode !== 'day'">
-              <!-- I månadsvy: växla visa alla dagar / bara dagar med cykler -->
-              <div class="d-grid gap-2 mb-2" *ngIf="viewMode === 'month'">
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  (click)="showOnlyDaysWithCycles = !showOnlyDaysWithCycles">
-                  <i class="fas fa-filter me-2"></i>
-                  <span *ngIf="showOnlyDaysWithCycles">Visa alla dagar</span>
-                  <span *ngIf="!showOnlyDaysWithCycles">Visa bara dagar med data</span>
-                </button>
-              </div>
-              <!-- Action Buttons -->
-              <div class="d-grid gap-2 mb-3">
-                <button 
-                  class="btn btn-primary btn-lg"
-                  (click)="showStatistics()"
-                  [disabled]="loading">
-                  <i class="fas fa-sync-alt me-2" [class.fa-spin]="loading"></i>
-                  <span *ngIf="selectedPeriods.length > 0">
-                    Visa Markerade ({{ selectedPeriods.length }})
-                  </span>
-                  <span *ngIf="selectedPeriods.length === 0">
-                    Uppdatera Statistik
-                  </span>
-                </button>
-                <button 
-                  class="btn btn-outline-secondary"
-                  (click)="clearSelection()"
-                  [disabled]="selectedPeriods.length === 0">
-                  <i class="fas fa-times me-2"></i>
-                  Rensa markering
-                </button>
-              </div>
-              
-              <small class="legend d-block text-center">
-                <span class="legend-item">
-                  <span class="legend-color" style="background: #228b22"></span>
-                  = Produktion
-                </span>
-                <span class="legend-item ms-3">
-                  <span class="legend-color selected"></span>
-                  = Vald
-                </span>
-              </small>
-              <small class="text-muted d-block text-center mt-2">
-                💡 Dra musen för att markera flera
-              </small>
-            </div>
-            
-            <div class="mt-3" *ngIf="viewMode === 'day'">
-              <small class="legend d-block text-center">
-                <span class="legend-item">
-                  <span class="legend-color" style="background: #228b22"></span>
-                  = Data finns
-                </span>
-              </small>
-              <small class="text-muted d-block text-center mt-2">
-                💡 Dra i grafen för att zooma in på en period
-              </small>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Chart -->
-      <div class="col-lg-9 mb-4">
-        <div class="dark-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-0">
-                <i class="fas fa-chart-line me-2"></i>
-                Produktionsanalys
-              </h5>
-              <small class="text-muted d-block">
-                Bakgrund: <span style="color:#27ae60">&#9632;</span> Kör &nbsp;
-                <span style="color:#ffc107">&#9632;</span> Rast (exkl. från effektivitet) &nbsp;
-                <span style="color:#dc3545">&#9632;</span> Stoppad &nbsp;|&nbsp;
-                <span style="color:#ffc107">- -</span> Snitt &nbsp;
-                <span style="color:#ff8800">- -</span> Mål
-              </small>
-            </div>
-            <!-- Dag-vy: utnyttjandegrad och längsta stopp -->
-            <div *ngIf="viewMode === 'day'" class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-              <span
-                *ngIf="dayUtilizationPct > 0"
-                class="day-metric-badge"
-                [class.badge-good]="dayUtilizationPct >= 75"
-                [class.badge-warn]="dayUtilizationPct >= 50 && dayUtilizationPct < 75"
-                [class.badge-bad]="dayUtilizationPct < 50"
-                title="Utnyttjandegrad = körtid / (första start till sista händelse)">
-                <i class="fas fa-tachometer-alt me-1"></i>
-                Utnyttjande {{ dayUtilizationPct }}%
-              </span>
-              <span
-                *ngIf="dayLongestStopMinutes > 0"
-                class="day-metric-badge"
-                [class.badge-good]="dayLongestStopMinutes < 15"
-                [class.badge-warn]="dayLongestStopMinutes >= 15 && dayLongestStopMinutes < 30"
-                [class.badge-bad]="dayLongestStopMinutes >= 30"
-                title="Längsta sammanhängande stopp under dagen">
-                <i class="fas fa-pause-circle me-1"></i>
-                Längsta stopp {{ dayLongestStopMinutes }} min
-              </span>
-              <button
-                *ngIf="chartHasSelection()"
-                class="btn btn-outline-light btn-sm"
-                (click)="resetChartZoom()">
-                Återställ
-              </button>
-            </div>
-            <button class="btn btn-sm btn-outline-secondary me-2" (click)="exportProductionChart()" [disabled]="!productionChart" title="Exportera graf som PNG">
-              <i class="bi bi-download me-1"></i>{{ exportChartFeedback ? 'Exporterad!' : 'PNG' }}
-            </button>
-            <button
-              *ngIf="viewMode !== 'day' && chartHasSelection()"
-              class="btn btn-outline-light btn-sm"
-              (click)="resetChartZoom()">
-              Återställ
-            </button>
-          </div>
-          <div class="card-body">
-            <div class="chart-container">
-              <canvas #productionChart></canvas>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tidslinje (dag-vy) -->
-        <div *ngIf="viewMode === 'day' && timelineSegments.length > 0" class="rast-timeline mt-2 mb-3">
-          <div class="d-flex justify-content-between mb-1">
-            <small class="text-muted">Tidslinje (00:00)</small>
-            <small class="text-muted">(24:00)</small>
-          </div>
-          <div class="timeline-bar position-relative">
-            <div *ngFor="let seg of timelineSegments; trackBy: trackByIndex"
-                 class="timeline-seg"
-                 [class.seg-running]="seg.type === 'running'"
-                 [class.seg-rast]="seg.type === 'rast'"
-                 [class.seg-stopped]="seg.type === 'stopped'"
-                 [style.left.%]="seg.startPct"
-                 [style.width.%]="seg.widthPct">
-            </div>
-          </div>
-          <div class="d-flex gap-3 mt-1">
-            <small><span class="tl-dot running"></span> Kör</small>
-            <small><span class="tl-dot rast"></span> Rast</small>
-            <small><span class="tl-dot stopped"></span> Stopp</small>
-          </div>
-        </div>
-
-        <!-- Skiftöversikt (dag-vy) -->
-        <div *ngIf="viewMode === 'day' && shiftSummaries.length > 0" class="row g-2 mb-4">
-          <div class="col-12">
-            <h6 class="text-muted">
-              <i class="fas fa-layer-group me-2"></i>Skiftöversikt
-            </h6>
-          </div>
-          <div class="col-auto" *ngFor="let s of shiftSummaries; trackBy: trackByIndex">
-            <div class="shift-summary-card">
-              <div class="shift-nr">Skift #{{ s.nr }}</div>
-              <div class="shift-stat"><i class="fas fa-box text-info me-1"></i>{{ s.ibcCount }} IBC</div>
-              <div class="shift-stat" *ngIf="s.avgCycleTime > 0">
-                <i class="fas fa-clock text-warning me-1"></i>{{ s.avgCycleTime | number:'1.1-1' }} min/cykel
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Data Table -->
-    <div class="row" *ngIf="!loading && tableData.length > 0">
-      <div class="col-12">
-        <div class="dark-card">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-              <h5 class="mb-0">
-                <i class="fas fa-table me-2"></i>
-                Detaljerad Statistik
-              </h5>
-              <small class="text-muted">
-                Klicka på en rad för att öppna detaljvy
-              </small>
-            </div>
-            <button class="btn btn-sm btn-outline-light" (click)="exportCSV()" *ngIf="tableData.length > 0" title="Exportera till CSV">
-              <i class="fas fa-download me-1"></i>CSV
-            </button>
-            <button class="btn btn-sm btn-outline-success" (click)="exportExcel()" *ngIf="tableData.length > 0" title="Exportera till Excel">
-              <i class="fas fa-file-excel me-1"></i>Excel
-            </button>
-          </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
-              <table class="stats-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Period</th>
-                    <th class="text-end" scope="col">Cykler</th>
-                    <th class="text-end" scope="col">Snitt Cykeltid</th>
-                    <th class="text-end" scope="col">Effektivitet</th>
-                    <th class="text-end" scope="col">Körtid (min)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr 
-                    *ngFor="let row of tableData; trackBy: trackByIndex"
-                    [class.clickable]="row.clickable"
-                    (click)="onTableRowClick(row)">
-                    <td>
-                      <i class="fas fa-calendar-day me-2 text-muted"></i>
-                      {{ row.period }}
-                    </td>
-                    <td class="text-end">
-                      <strong>{{ row.cycles }}</strong>
-                    </td>
-                    <td class="text-end">
-                      {{ row.avgCycleTime }} min
-                    </td>
-                    <td class="text-end" [ngClass]="getEfficiencyClass(row.efficiency)">
-                      <strong>{{ row.efficiency }}%</strong>
-                    </td>
-                    <td class="text-end">
-                      {{ row.runtime | number:'1.0-0' }}
-                    </td>
-                  </tr>
-                </tbody>
-                <tfoot *ngIf="tableData.length > 1">
-                  <tr class="total-row">
-                    <td><strong>Totalt</strong></td>
-                    <td class="text-end">
-                      <strong>{{ totalCycles }}</strong>
-                    </td>
-                    <td class="text-end">
-                      <strong>{{ avgCycleTime }} min</strong>
-                    </td>
-                    <td class="text-end" [ngClass]="getEfficiencyClass(avgEfficiency)">
-                      <strong>{{ avgEfficiency }}%</strong>
-                    </td>
-                    <td class="text-end">
-                      <strong>{{ totalRuntimeHours * 60 | number:'1.0-0' }}</strong>
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- No Data Message -->
-    <div class="row" *ngIf="!loading && tableData.length === 0">
-      <div class="col-12">
-        <div class="dark-card text-center py-5">
-          <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-          <h5>Ingen data för vald period</h5>
-          <p class="text-muted">Välj en annan period eller vänta på att produktionen startar</p>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /normal vy -->
-
-
-  <!-- Child components med @defer -->
-  @defer (on viewport) {
-    <app-statistik-histogram></app-statistik-histogram>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-spc></app-statistik-spc>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-cykeltid-operator></app-statistik-cykeltid-operator>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border" style="color:#9f7aea;" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-kvalitetstrend></app-statistik-kvalitetstrend>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-waterfall-oee></app-statistik-waterfall-oee>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-veckodag></app-statistik-veckodag>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-produktionsrytm></app-statistik-produktionsrytm>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-pareto-stopp></app-statistik-pareto-stopp>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-handelser></app-statistik-handelser>
-  } @placeholder {
-    <div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-kassation-pareto></app-statistik-kassation-pareto>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-kvalitetsanalys></app-statistik-kvalitetsanalys>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-oee-komponenter></app-statistik-oee-komponenter>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-success" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-skiftrapport-operator></app-statistik-skiftrapport-operator>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-kvalitet-deepdive></app-statistik-kvalitet-deepdive>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-skiftjamforelse></app-statistik-skiftjamforelse>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border" style="color:#ed8936;" role="status"></div></div>
-  }
-
-  @defer (on viewport) {
-    <app-statistik-annotationer></app-statistik-annotationer>
-  } @placeholder {
-    <div class="text-center py-4"><div class="spinner-border text-secondary" role="status"></div></div>
-  }
-
-  <!-- Bonus "What-if"-simulator -->
-  <div class="container-fluid mt-3" *ngIf="isWidgetVisible('bonus-simulator')">
-    @defer (on viewport) {
-      <app-statistik-bonus-simulator></app-statistik-bonus-simulator>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
-    }
   </div>
 
-  <!-- Maskinupptid-heatmap -->
-  <div class="container-fluid mt-3">
-    @defer (on viewport) {
-      <app-statistik-uptid-heatmap></app-statistik-uptid-heatmap>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
-    }
+
+  <!-- ================================================================
+       TAB 4: OPERATORER
+       ================================================================ -->
+  <div *ngIf="activeTab === 'operators'" class="tab-content-area">
+    <div class="container-fluid">
+
+      @defer (on viewport) {
+        <app-statistik-leaderboard></app-statistik-leaderboard>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border" style="color:#d69e2e;" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-cykeltid-operator></app-statistik-cykeltid-operator>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border" style="color:#9f7aea;" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-skiftrapport-operator></app-statistik-skiftrapport-operator>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-skiftjamforelse></app-statistik-skiftjamforelse>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border" style="color:#ed8936;" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-bonus-simulator></app-statistik-bonus-simulator>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+      }
+    </div>
   </div>
 
-  <!-- Kassationsanalys -->
-  <div class="container-fluid mt-3" *ngIf="isWidgetVisible('kassationsanalys-sammanfattning')">
-    @defer (on viewport) {
-      <app-statistik-kassationsanalys></app-statistik-kassationsanalys>
-    } @placeholder {
-      <div class="text-center py-4"><div class="spinner-border text-danger" role="status"></div></div>
-    }
+
+  <!-- ================================================================
+       TAB 5: ANALYS
+       ================================================================ -->
+  <div *ngIf="activeTab === 'analysis'" class="tab-content-area">
+    <div class="container-fluid">
+
+      @defer (on viewport) {
+        <app-statistik-spc></app-statistik-spc>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-veckojamforelse></app-statistik-veckojamforelse>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-info" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-prediktion></app-statistik-prediktion>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-pareto-stopp></app-statistik-pareto-stopp>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-warning" role="status"></div></div>
+      }
+
+      @defer (on viewport) {
+        <app-statistik-handelser></app-statistik-handelser>
+      } @placeholder { <div></div> }
+
+      @defer (on viewport) {
+        <app-statistik-annotationer></app-statistik-annotationer>
+      } @placeholder {
+        <div class="text-center py-4"><div class="spinner-border text-secondary" role="status"></div></div>
+      }
+    </div>
   </div>
 
 </div>
