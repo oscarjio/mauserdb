@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -113,7 +114,7 @@ export interface HistorikResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OperatorsbonusService {
-  private api = '../../noreko-backend/api.php?action=operatorsbonus';
+  private api = `${environment.apiUrl}?action=operatorsbonus`;
 
   constructor(private http: HttpClient) {}
 

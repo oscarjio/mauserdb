@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -120,7 +121,7 @@ export interface BreakdownResponse {
 
 @Injectable({ providedIn: 'root' })
 export class OeeBenchmarkService {
-  private api = '../../noreko-backend/api.php?action=oee-benchmark';
+  private api = `${environment.apiUrl}?action=oee-benchmark`;
 
   constructor(private http: HttpClient) {}
 
