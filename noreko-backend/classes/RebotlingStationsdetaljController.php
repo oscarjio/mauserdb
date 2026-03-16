@@ -217,7 +217,7 @@ class RebotlingStationsdetaljController {
             : 0.0;
 
         $this->sendSuccess([
-            'station'            => $_GET['station'] ?? 'Rebotling',
+            'station'            => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
             'datum'              => $idag,
             'oee_pct'            => $oee['oee_pct'],
             'tillganglighet_pct' => $oee['tillganglighet_pct'],
@@ -272,7 +272,7 @@ class RebotlingStationsdetaljController {
             }
 
             $this->sendSuccess([
-                'station' => $_GET['station'] ?? 'Rebotling',
+                'station' => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
                 'ibc'     => $result,
                 'antal'   => count($result),
             ]);
@@ -351,7 +351,7 @@ class RebotlingStationsdetaljController {
         }
 
         $this->sendSuccess([
-            'station' => $_GET['station'] ?? 'Rebotling',
+            'station' => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
             'dagar'   => $dagar,
             'trend'   => $result,
         ]);
@@ -380,7 +380,8 @@ class RebotlingStationsdetaljController {
             ");
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             $aktiv = $row && (int)$row['running'] === 1;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('RebotlingStationsdetaljController::getRealtidOee aktiv: ' . $e->getMessage());
             $aktiv = false;
         }
 

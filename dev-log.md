@@ -1,3 +1,49 @@
+## 2026-03-16 Session #118 Worker A — Buggjakt i Kassation/Kvalitet + Stopporsak/Skift controllers
+
+### Granskade filer (10 st):
+1. controllers/KassationsanalysController.php (proxy -> classes/)
+2. controllers/KassationsDrilldownController.php (proxy -> classes/)
+3. controllers/KvalitetsTrendbrottController.php (proxy -> classes/)
+4. controllers/StopporsakController.php (proxy -> classes/)
+5. controllers/StopporsakOperatorController.php (proxy -> classes/)
+6. controllers/StopptidsanalysController.php (proxy -> classes/)
+7. controllers/SkiftjamforelseController.php (full controller)
+8. controllers/SkiftoverlamningController.php (proxy -> classes/)
+9. controllers/SkiftplaneringController.php (proxy -> classes/)
+10. controllers/RebotlingStationsdetaljController.php (proxy -> classes/)
+
+### Buggar fixade (5 st):
+
+**1. Tom catch-block utan loggning — KassationsanalysController.php (getDetails):**
+- `catch (\PDOException)` utan variabel och utan error_log vid operators-uppslagning.
+- Fixat: lade till `$e` och `error_log('KassationsanalysController::getDetails (operators): ...')`.
+
+**2. Tom catch-block utan loggning — KassationsanalysController.php (getDetaljer):**
+- `catch (\PDOException)` utan variabel och utan error_log vid orsak-uppslagning.
+- Fixat: lade till `$e` och `error_log('KassationsanalysController::getDetaljer (orsaker): ...')`.
+
+**3. SQL-injektion (LIMIT/OFFSET interpolerat) — SkiftoverlamningController.php (getList):**
+- `LIMIT {$limit} OFFSET {$offset}` interpolerades direkt i SQL-stringen.
+- Visserligen castades till int men strider mot prepared-statement-principen.
+- Fixat: bygger `$listParams = array_values($params) + [$limit, $offset]` och anvander `LIMIT ? OFFSET ?` med `execute($listParams)`.
+
+**4. Saknad htmlspecialchars() pa user-input — RebotlingStationsdetaljController.php (4 stallen):**
+- `$_GET['station']` anvandes direkt i JSON-output utan sanitering i getKpiIdag(), getSenasteIbc(), getOeeTrend(), getRealtidOee().
+- Fixat: lade till `htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8')` pa alla 4 stallen.
+
+**5. Tom catch-block utan loggning — RebotlingStationsdetaljController.php (getRealtidOee):**
+- `catch (\PDOException)` utan variabel och utan error_log vid aktiv-status-kollen.
+- Fixat: lade till `$e` och `error_log('RebotlingStationsdetaljController::getRealtidOee aktiv: ...')`.
+
+### Controllers utan buggar (5 st — redan korrekt implementerade):
+- classes/KassationsDrilldownController.php — prepared statements, JSON_UNESCAPED_UNICODE, felhantering OK
+- classes/KvalitetsTrendbrottController.php — prepared statements, JSON_UNESCAPED_UNICODE, felhantering OK
+- classes/StopporsakController.php — prepared statements, JSON_UNESCAPED_UNICODE, felhantering OK
+- classes/StopporsakOperatorController.php — prepared statements, JSON_UNESCAPED_UNICODE, felhantering OK
+- classes/StopptidsanalysController.php — prepared statements, JSON_UNESCAPED_UNICODE, felhantering OK
+
+---
+
 ## 2026-03-16 Session #117 Worker B — Buggjakt i 15 frontend services
 
 ### Granskade services (15 st):
