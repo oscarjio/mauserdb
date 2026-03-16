@@ -225,7 +225,7 @@ class BonusController {
             $position = $this->getOperatorPrimaryPosition($op_id, $dateFilter);
 
             // Hämta operatörens namn
-            $opNameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $opNameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE number = ?");
             $opNameStmt->execute([$op_id]);
             $opName = $opNameStmt->fetchColumn() ?: null;
 
@@ -299,7 +299,7 @@ class BonusController {
 
         try {
             // Hämta operatörsnamn för lookup
-            $opRows = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $opRows = $this->pdo->query("SELECT number, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
 
             $rankings = [];
 
@@ -896,7 +896,7 @@ class BonusController {
      */
     private function getHallOfFame(): void {
         try {
-            $opRows = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $opRows = $this->pdo->query("SELECT number, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
 
             // --- IBC/h per dag per operatör senaste 90 dagar ---
             // Aggregera per (datum, skiftraknare, op) → summera per datum per op → snitt-IBC/h per dag
@@ -1052,7 +1052,7 @@ class BonusController {
      */
     private function getLoneprognos(): void {
         try {
-            $opRows = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $opRows = $this->pdo->query("SELECT number, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
 
             $monthStart = date('Y-m-01');
             $today      = date('Y-m-d');
@@ -2129,11 +2129,11 @@ class BonusController {
             if (!empty($opIds)) {
                 $placeholders = implode(',', array_fill(0, count($opIds), '?'));
                 $nameStmt = $this->pdo->prepare("
-                    SELECT id, name FROM operators WHERE id IN ($placeholders)
+                    SELECT number, name FROM operators WHERE number IN ($placeholders)
                 ");
                 $nameStmt->execute(array_values($opIds));
                 foreach ($nameStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $opNames[(int)$row['id']] = $row['name'];
+                    $opNames[(int)$row['number']] = $row['name'];
                 }
             }
 

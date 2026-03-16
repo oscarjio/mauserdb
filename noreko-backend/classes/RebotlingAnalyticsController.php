@@ -930,10 +930,10 @@ class RebotlingAnalyticsController {
                     $ibcH = $boRow['runtime_min'] > 0
                         ? round($boRow['ibc_ok'] * 60.0 / $boRow['runtime_min'], 1)
                         : 0;
-                    // Hämta namn från users-tabellen
+                    // Hämta namn från operators-tabellen (op1 = operators.number)
                     $nameRow = null;
                     try {
-                        $ns = $this->pdo->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+                        $ns = $this->pdo->prepare("SELECT name FROM operators WHERE number = ? LIMIT 1");
                         $ns->execute([$opId]);
                         $nameRow = $ns->fetch(PDO::FETCH_ASSOC);
                     } catch (Exception) { /* ignorera */ }
@@ -989,10 +989,10 @@ class RebotlingAnalyticsController {
                     $nameMap = [];
                     if (!empty($opIds)) {
                         $placeholders = implode(',', array_fill(0, count($opIds), '?'));
-                        $ns2 = $this->pdo->prepare("SELECT id, name FROM users WHERE id IN ($placeholders)");
+                        $ns2 = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($placeholders)");
                         $ns2->execute($opIds);
                         foreach ($ns2->fetchAll(PDO::FETCH_ASSOC) as $nr) {
-                            $nameMap[(int)$nr['id']] = $nr['name'] ?? 'Okänd';
+                            $nameMap[(int)$nr['number']] = $nr['name'] ?? 'Okänd';
                         }
                     }
 
@@ -4089,9 +4089,13 @@ class RebotlingAnalyticsController {
 
             $planned = $totalDrift + $totalRast;
             $avail   = $planned > 0 ? min($totalDrift / $planned, 1) : null;
+            $idealRatePerMin = 15.0 / 60.0;
+            $perf = ($totalDrift > 0 && $totalTotalt > 0)
+                ? min(($totalTotalt / $totalDrift) / $idealRatePerMin, 1.0)
+                : null;
             $qualityRatio = $totalTotalt > 0 ? ($totalIbcOk / $totalTotalt) : null;
-            $oee = ($avail !== null && $qualityRatio !== null)
-                ? round($avail * $qualityRatio * 100, 1)
+            $oee = ($avail !== null && $perf !== null && $qualityRatio !== null)
+                ? round($avail * $perf * $qualityRatio * 100, 1)
                 : null;
 
             $ibcPerH = $totalDrift > 0
@@ -4152,7 +4156,7 @@ class RebotlingAnalyticsController {
             $kommentar = '';
             try {
                 $komStmt = $this->pdo->prepare("
-                    SELECT kommentar FROM rebotling_skift_kommentarer
+                    SELECT kommentar FROM rebotling_skift_kommentar
                     WHERE datum = :datum AND skift_nr = :skift_nr
                     LIMIT 1
                 ");
@@ -5113,13 +5117,17 @@ HTML;
             $kvalitet = $totalTotalt > 0 ? round(($totalIbcOk / $totalTotalt) * 100, 1) : null;
             $planned = $totalDrift + $totalRast;
             $avail = $planned > 0 ? min($totalDrift / $planned, 1) : null;
+            $idealRatePerMin = 15.0 / 60.0;
+            $perf = ($totalDrift > 0 && $totalTotalt > 0)
+                ? min(($totalTotalt / $totalDrift) / $idealRatePerMin, 1.0)
+                : null;
             $qr = $totalTotalt > 0 ? ($totalIbcOk / $totalTotalt) : null;
-            $oee = ($avail !== null && $qr !== null) ? round($avail * $qr * 100, 1) : null;
+            $oee = ($avail !== null && $perf !== null && $qr !== null) ? round($avail * $perf * $qr * 100, 1) : null;
             $ibcPerH = $totalDrift > 0 ? round(($totalIbcOk / ($totalDrift / 60)), 1) : null;
 
             $kommentar = '';
             try {
-                $komStmt = $this->pdo->prepare("SELECT kommentar FROM rebotling_skift_kommentarer WHERE datum = :datum AND skift_nr = :skift_nr LIMIT 1");
+                $komStmt = $this->pdo->prepare("SELECT kommentar FROM rebotling_skift_kommentar WHERE datum = :datum AND skift_nr = :skift_nr LIMIT 1");
                 $komStmt->execute(['datum' => $date, 'skift_nr' => $shift]);
                 $komRow = $komStmt->fetch(PDO::FETCH_ASSOC);
                 if ($komRow) $kommentar = $komRow['kommentar'] ?? '';
@@ -5442,10 +5450,10 @@ HTML;
         $nameMap = [];
         if (!empty($opIds)) {
             $ph = implode(',', array_fill(0, count($opIds), '?'));
-            $ns = $this->pdo->prepare("SELECT id, name FROM users WHERE id IN ($ph)");
+            $ns = $this->pdo->prepare("SELECT number, name FROM operators WHERE number IN ($ph)");
             $ns->execute(array_values($opIds));
             foreach ($ns->fetchAll(PDO::FETCH_ASSOC) as $nr) {
-                $nameMap[(int)$nr['id']] = $nr['name'] ?? 'Okänd';
+                $nameMap[(int)$nr['number']] = $nr['name'] ?? 'Okänd';
             }
         }
 
@@ -6553,7 +6561,7 @@ HTML;
 
         try {
             // Hämta alla operatörsnamn
-            $opRows = $this->pdo->query("SELECT id, name FROM operators WHERE active = 1 OR active IS NULL")
+            $opRows = $this->pdo->query("SELECT number, name FROM operators WHERE active = 1 OR active IS NULL")
                                ->fetchAll(PDO::FETCH_KEY_PAIR);
 
             // Hjälpfunktion: perShiftByPosition (liknande BonusController)

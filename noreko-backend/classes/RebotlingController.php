@@ -1477,17 +1477,7 @@ class RebotlingController {
                 LIMIT 10
             ";
 
-            // PDO named placeholders kan inte upprepas — bind manuellt med positional
-            if ($countToday > 0) {
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
-                    ':dateFrom'  => $today,
-                    ':dateFrom'  => $today,   // op2
-                    ':dateFrom'  => $today,   // op3 — PDO overwrites duplicates, so use positional below
-                ]);
-            }
-
-            // Bygg om med positional placeholders för att undvika duplikat-parameter-problem
+            // PDO named placeholders kan inte upprepas — bygg om med positional
             $sqlPos = str_replace(':dateFrom', '?', $sql);
             $stmt2  = $this->pdo->prepare($sqlPos);
             $d      = $dateParam['dateFrom'];
@@ -2935,7 +2925,7 @@ class RebotlingController {
                         DATE(datum)                         AS datum_day,
                         skiftraknare,
                         COALESCE(MAX(ibc_ok), 0)            AS shift_ibc_ok,
-                        COALESCE(MAX(bur_ej_ok), 0)         AS shift_ibc_ej_ok,
+                        COALESCE(MAX(ibc_ej_ok), 0)         AS shift_ibc_ej_ok,
                         COALESCE(MAX(runtime_plc), 0)       AS shift_runtime,
                         COALESCE(MAX(rasttime), 0)          AS shift_rast
                     FROM rebotling_ibc

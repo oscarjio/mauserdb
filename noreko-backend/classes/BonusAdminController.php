@@ -673,7 +673,7 @@ class BonusAdminController {
         }
         try {
             // Hämta operatörens namn
-            $nameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $nameStmt = $this->pdo->prepare("SELECT name FROM operators WHERE number = ?");
             $nameStmt->execute([$op_id]);
             $opName = $nameStmt->fetchColumn() ?: 'Operatör ' . $op_id;
 
@@ -1246,7 +1246,7 @@ class BonusAdminController {
             };
 
             // 2. Hämta operatörsnamn
-            $opNames = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $opNames = $this->pdo->query("SELECT number, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
 
             // 3. Per-skift per operatör: IBC, runtime, rasttime, bonus_poang
             $perShiftRows = [];
@@ -1559,7 +1559,7 @@ class BonusAdminController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta operatörsnamn
-            $opNames = $this->pdo->query("SELECT id, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
+            $opNames = $this->pdo->query("SELECT number, name FROM operators")->fetchAll(PDO::FETCH_KEY_PAIR);
 
             // --- Aggregera per operatör: beräkna nuvarande och simulerad bonus ---
             $operatorer = [];
