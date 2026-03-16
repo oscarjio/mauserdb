@@ -803,18 +803,17 @@ class RebotlingController {
             $stmt->execute(['start' => $start, 'end' => $end]);
             $rawCycles = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Filtrera bort felaktiga cykeltider
-            // Om cykeltiden är NULL eller över 30 minuter (maskinen var troligen stoppad), sätt till NULL
+            // Behåll ALLA cykler för korrekt antal.
+            // Cykeltid NULL = första cykeln i skiftet (LAG ger NULL) eller lång paus (>30 min).
             $cycles = [];
             foreach ($rawCycles as $cycle) {
-                // Filtrera bort första cykeln (NULL cycle_time) eller onormalt långa cykeltider
-                if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 0 && $cycle['cycle_time'] <= 30) {
-                    $cycles[] = $cycle;
-                } else if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 30) {
-                    // Behåll cykeln men sätt cycle_time till NULL för långa pauser
+                if ($cycle['cycle_time'] !== null && $cycle['cycle_time'] > 30) {
+                    // Lång paus — behåll cykeln men nollställ cykeltiden
                     $cycle['cycle_time'] = null;
-                    $cycles[] = $cycle;
+                } elseif ($cycle['cycle_time'] !== null && $cycle['cycle_time'] <= 0) {
+                    $cycle['cycle_time'] = null;
                 }
+                $cycles[] = $cycle;
             }
 
             // Hämta on/off events för perioden

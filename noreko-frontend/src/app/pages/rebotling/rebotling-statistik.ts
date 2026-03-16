@@ -153,7 +153,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
   // Senaste hämtade statistik-data (används för zoom/val i grafen)
   private lastStatisticsData: any = null;
-  // Markering i dags-grafen (10-minutersintervall, index 0-143)
+  // Markering i grafen (cykelindex i dag-vy, slot-index i övriga vyer)
   private chartSelectionStartIndex: number | null = null;
   private chartSelectionEndIndex: number | null = null;
   // Förhandsvisning medan man drar med musen
@@ -172,9 +172,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
   dayLongestStopMinutes: number = 0;
   dayUtilizationPct: number = 0;
 
-  // Spårar vilket fönster (start-slot-index i 144-slots-arrayen) som visas i dag-grafen
-  // Används för att korrekt mappa chartSelection-index till absoluta slot-index i tabellen
-  private chartWindowFrom: number = 0;
+  // Per-cykel data för dag-vy (sorterade efter tid)
+  private sortedDayCycles: any[] = [];
 
   /** I månadsvy: false = visa alla dagar, true = visa bara dagar med cykler */
   showOnlyDaysWithCycles: boolean = true;
@@ -852,22 +851,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const cycles = data.cycles || [];
     const onoff = data.onoff_events || [];
 
+    // Dag-vy: per-cykel istället för 10-minutersintervall
+    if (this.viewMode === 'day') {
+      return this.preparePerCycleChartData(cycles, onoff, data);
+    }
+
     const grouped = new Map<string, any>();
 
     // Initialize ALL periods first
-    if (this.viewMode === 'day') {
-      // Generate 10-minute intervals for day view
-      for (let h = 0; h < 24; h++) {
-        for (let m = 0; m < 60; m += 10) {
-          const label = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-          grouped.set(label, {
-            cycles: [],
-            cycleTime: [],
-            running: false
-          });
-        }
-      }
-    } else if (this.viewMode === 'month') {
+    if (this.viewMode === 'month') {
       const useHourlyChart = this.selectedPeriods.length >= 2;
 
       if (useHourlyChart) {
@@ -916,16 +908,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const monthViewHourly = this.viewMode === 'month' && this.selectedPeriods.length >= 2;
 
-    // Add cycle data
+    // Add cycle data (månad/år-vy — dag-vy hanteras i preparePerCycleChartData)
     cycles.forEach((cycle: any) => {
       const date = new Date(cycle.datum);
       let key: string;
 
-      if (this.viewMode === 'day') {
-        const hour = date.getHours();
-        const minute = Math.floor(date.getMinutes() / 10) * 10;
-        key = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      } else if (this.viewMode === 'month') {
+      if (this.viewMode === 'month') {
         key = monthViewHourly
           ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
           : `${date.getDate()}`;
@@ -951,11 +939,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const date = new Date(event.datum);
       let key: string;
 
-      if (this.viewMode === 'day') {
-        const hour = date.getHours();
-        const minute = Math.floor(date.getMinutes() / 10) * 10;
-        key = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      } else if (this.viewMode === 'month') {
+      if (this.viewMode === 'month') {
         key = monthViewHourly
           ? `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${date.getHours()}`
           : `${date.getDate()}`;
@@ -986,64 +970,8 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     const entries = Array.from(grouped.entries());
 
-    // --- Smart tidsfönster för dag-vy ---
-    // Istället för att visa alla 144 slots (00:00-23:50) beräknar vi ett snävare
-    // fönster baserat på var faktisk data finns, med 1 timmes marginal på varje sida.
-    // Minimiintervall är alltid 06:00-18:00 (slot-index 36-108).
-    let windowFrom = 0;
-    let windowTo = entries.length - 1;
-    this.chartWindowFrom = 0; // Reset, sätts nedan för dag-vy
-
-    if (this.viewMode === 'day' && this.chartSelectionStartIndex === null) {
-      // Slot-index: 00:00 = 0, 06:00 = 36, 18:00 = 108, 23:50 = 143
-      const MIN_FROM = 36;  // 06:00
-      const MIN_TO   = 108; // 18:00
-      const PADDING  = 6;   // 1 timme = 6 slots à 10 min
-
-      let firstDataSlot = -1;
-      let lastDataSlot  = -1;
-
-      entries.forEach(([key, value], idx) => {
-        if (value.cycles.length > 0 || value.running) {
-          if (firstDataSlot === -1) { firstDataSlot = idx; }
-          lastDataSlot = idx;
-        }
-      });
-
-      if (firstDataSlot !== -1) {
-        // Utvidga med padding och tillämpa minimitider
-        const paddedFrom = Math.max(0, firstDataSlot - PADDING);
-        const paddedTo   = Math.min(entries.length - 1, lastDataSlot + PADDING);
-        windowFrom = Math.min(paddedFrom, MIN_FROM);
-        windowTo   = Math.max(paddedTo, MIN_TO);
-      } else {
-        // Ingen data alls: visa standardfönstret 06:00-18:00
-        windowFrom = MIN_FROM;
-        windowTo   = MIN_TO;
-      }
-      // Spara för updateTable
-      this.chartWindowFrom = windowFrom;
-    }
-
-    // Om vi är i dagsvy och har en markering i grafen, begränsa till valt intervall
-    // (markeringen är relativ till det redan fönster-begränsade label-indexet)
-    let fromIndex = windowFrom;
-    let toIndex   = windowTo;
-
-    if (
-      this.viewMode === 'day' &&
-      this.chartSelectionStartIndex !== null &&
-      this.chartSelectionEndIndex !== null &&
-      entries.length > 0
-    ) {
-      const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-      const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-      // chartSelection är relativt det visade fönstret
-      fromIndex = Math.max(windowFrom, windowFrom + minSel);
-      toIndex   = Math.min(windowTo, windowFrom + maxSel);
-    }
-
-    const slicedEntries = entries.slice(fromIndex, toIndex + 1);
+    // Månad/år-vy: visa alla entries
+    const slicedEntries = entries;
 
     slicedEntries.forEach(([key, value]) => {
       labels.push((value as any).label !== undefined ? (value as any).label : key);
@@ -1097,9 +1025,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
 
     rast.forEach((ev: any) => {
       const d = new Date(ev.datum);
-      const key = this.viewMode === 'day'
-        ? `${d.getHours().toString().padStart(2, '0')}:${(Math.floor(d.getMinutes() / 10) * 10).toString().padStart(2, '0')}`
-        : `${d.getDate()}`;
+      const key = `${d.getDate()}`;
       if (ev.rast_status == 1) { rastStartKey = key; }
       else if (ev.rast_status == 0 && rastStartKey !== null) {
         const si = labels.indexOf(rastStartKey);
@@ -1114,6 +1040,158 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     }
 
     return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods };
+  }
+
+  /**
+   * Per-cykel graf-data för dag-vy.
+   * Varje IBC-cykel = en datapunkt (istället för 10-minutersintervall).
+   */
+  private preparePerCycleChartData(cycles: any[], onoff: any[], data: any) {
+    // Sortera cykler kronologiskt
+    const sorted = [...cycles].sort(
+      (a, b) => new Date(a.datum).getTime() - new Date(b.datum).getTime()
+    );
+    this.sortedDayCycles = sorted;
+
+    // Filtrera till cykler med giltig cykeltid (för grafen)
+    const withTime = sorted.filter((c: any) => {
+      const ct = parseFloat(c.cycle_time);
+      return !isNaN(ct) && ct > 0 && ct <= 30;
+    });
+
+    // Tillämpa markering/zoom — arbetar direkt med cykelindex
+    let displayCycles = withTime;
+    if (
+      this.chartSelectionStartIndex !== null &&
+      this.chartSelectionEndIndex !== null
+    ) {
+      const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+      displayCycles = withTime.slice(
+        Math.max(0, minSel),
+        Math.min(withTime.length, maxSel + 1)
+      );
+    }
+
+    const labels: string[] = [];
+    const cycleTime: number[] = [];
+    const avgCycleTimeArr: number[] = [];
+    const targetCycleTimeArr: number[] = [];
+
+    let totalCycleTime = 0;
+
+    displayCycles.forEach((cycle: any) => {
+      const d = new Date(cycle.datum);
+      labels.push(
+        `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`
+      );
+      const ct = parseFloat(cycle.cycle_time);
+      cycleTime.push(Math.round(ct * 10) / 10);
+      totalCycleTime += ct;
+    });
+
+    const overallAvg = displayCycles.length > 0
+      ? Math.round((totalCycleTime / displayCycles.length) * 10) / 10
+      : 0;
+    labels.forEach(() => {
+      avgCycleTimeArr.push(overallAvg);
+      targetCycleTimeArr.push(this.targetCycleTime);
+    });
+
+    // Bygg kör/stopp-perioder från on/off-händelser, mappade till cykelindex
+    const runningPeriods = this.buildRunningPeriodsForCycles(displayCycles, onoff);
+
+    // Rast-perioder mappade till cykelindex
+    const rast: any[] = data.rast_events || [];
+    const rastPeriods = this.buildRastPeriodsForCycles(displayCycles, rast);
+
+    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods };
+  }
+
+  /**
+   * Bygg kör/stopp bakgrundsfält mappade till cykelindex.
+   * Varje cykel har en timestamp; vi kollar on/off-händelser för att avgöra
+   * om det finns stopp-perioder mellan cyklerna.
+   */
+  private buildRunningPeriodsForCycles(displayCycles: any[], onoff: any[]): any[] {
+    if (displayCycles.length === 0) return [];
+
+    // Bygg on/off tidslinje
+    const offPeriods: { start: number; end: number }[] = [];
+    let lastOff: Date | null = null;
+    for (const ev of onoff) {
+      const d = new Date(ev.datum);
+      if (!ev.running) {
+        lastOff = d;
+      } else if (lastOff) {
+        offPeriods.push({ start: lastOff.getTime(), end: d.getTime() });
+        lastOff = null;
+      }
+    }
+
+    // Markera hela grafområdet som "running" som bas
+    const periods: any[] = [];
+    let currentStart = 0;
+
+    for (let i = 1; i < displayCycles.length; i++) {
+      const prevTime = new Date(displayCycles[i - 1].datum).getTime();
+      const currTime = new Date(displayCycles[i].datum).getTime();
+
+      // Kolla om det finns en off-period som överlappar gapet mellan cyklerna
+      const hasOff = offPeriods.some(p => p.start <= currTime && p.end >= prevTime);
+
+      if (hasOff) {
+        // Stäng köra-perioden
+        if (i - 1 >= currentStart) {
+          periods.push({ startIndex: currentStart, endIndex: i - 1, running: true });
+        }
+        // Stoppperiod (enbart gapet)
+        periods.push({ startIndex: i - 1, endIndex: i, running: false });
+        currentStart = i;
+      }
+    }
+
+    // Stäng sista kör-perioden
+    if (currentStart <= displayCycles.length - 1) {
+      periods.push({ startIndex: currentStart, endIndex: displayCycles.length - 1, running: true });
+    }
+
+    return periods;
+  }
+
+  /**
+   * Mappa rast-händelser till cykelindex i per-cykel-grafen.
+   */
+  private buildRastPeriodsForCycles(displayCycles: any[], rastEvents: any[]): { startIndex: number; endIndex: number }[] {
+    if (!displayCycles.length || !rastEvents.length) return [];
+
+    const periods: { startIndex: number; endIndex: number }[] = [];
+    let rastStart: Date | null = null;
+
+    for (const ev of rastEvents) {
+      const d = new Date(ev.datum);
+      if (ev.rast_status == 1) {
+        rastStart = d;
+      } else if (ev.rast_status == 0 && rastStart) {
+        const startTime = rastStart.getTime();
+        const endTime = d.getTime();
+
+        // Hitta cykelindex som omger rast-perioden
+        let si = -1;
+        let ei = -1;
+        for (let i = 0; i < displayCycles.length; i++) {
+          const ct = new Date(displayCycles[i].datum).getTime();
+          if (ct >= startTime && si === -1) si = Math.max(0, i - 1);
+          if (ct >= endTime) { ei = i; break; }
+        }
+        if (si === -1) si = displayCycles.length - 1;
+        if (ei === -1) ei = displayCycles.length - 1;
+        if (si >= 0) periods.push({ startIndex: si, endIndex: ei });
+        rastStart = null;
+      }
+    }
+
+    return periods;
   }
 
   createChart(ctx: CanvasRenderingContext2D, chartData: any) {
@@ -1499,24 +1577,33 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       } else if (this.viewMode === 'month') {
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
       } else {
-        // Group by 10-minute intervals for day view
-        const hour = date.getHours();
-        const minute = Math.floor(date.getMinutes() / 10) * 10;
-
-        // Om användaren har markerat ett intervall i dag-vyn, filtrera bort cykler utanför.
-        // chartSelectionStart/EndIndex är relativa till det visade fönstret (börjar vid chartWindowFrom).
+        // Dag-vy: gruppera per cykel med tidsstämpel.
+        // Om markering aktiv: filtrera via sortedDayCycles tidsintervall.
         if (
           this.chartSelectionStartIndex !== null &&
-          this.chartSelectionEndIndex !== null
+          this.chartSelectionEndIndex !== null &&
+          this.sortedDayCycles.length > 0
         ) {
-          const bucketIndex = hour * 6 + minute / 10;
-          const minSel = this.chartWindowFrom + Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-          const maxSel = this.chartWindowFrom + Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
-          if (bucketIndex < minSel || bucketIndex > maxSel) {
-            return;
+          const withTime = this.sortedDayCycles.filter((c: any) => {
+            const ct = parseFloat(c.cycle_time);
+            return !isNaN(ct) && ct > 0 && ct <= 30;
+          });
+          const minSel = Math.min(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          const maxSel = Math.max(this.chartSelectionStartIndex, this.chartSelectionEndIndex);
+          const startCycle = withTime[Math.max(0, minSel)];
+          const endCycle = withTime[Math.min(withTime.length - 1, maxSel)];
+          if (startCycle && endCycle) {
+            const startTime = new Date(startCycle.datum).getTime();
+            const endTime = new Date(endCycle.datum).getTime();
+            const cycleTime = date.getTime();
+            if (cycleTime < startTime || cycleTime > endTime) {
+              return; // Utanför markerat intervall
+            }
           }
         }
 
+        const hour = date.getHours();
+        const minute = Math.floor(date.getMinutes() / 10) * 10;
         key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}-${hour}-${minute}`;
       }
 
@@ -1535,11 +1622,12 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       } else if (this.viewMode === 'month') {
         period = `${date.getDate()} ${this.monthNames[date.getMonth()].substring(0, 3)}`;
       } else {
-        // Show 10-minute intervals for day view
+        // Dag-vy: visa 10-min-intervall i tabellen för gruppering
         const hour = date.getHours();
         const minute = Math.floor(date.getMinutes() / 10) * 10;
-        const endMinute = minute + 10;
-        period = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} - ${hour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+        const endHour = minute >= 50 ? hour + 1 : hour;
+        const endMinute = (minute + 10) % 60;
+        period = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}–${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
       }
 
       // Filtrera bort NULL cycle_time värden för korrekt genomsnitt
@@ -1586,7 +1674,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       }
       return `Senaste ${this.heatmapDays} dagarna`;
     }
-    return '10-min intervall';
+    return 'Cykeldata';
   }
 
   // ======== HEATMAP ========
