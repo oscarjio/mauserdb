@@ -725,7 +725,6 @@ class BonusAdminController {
 
             // Prognos: antag 5 skift/vecka
             $projected_weekly_bonus  = min(round($avg_bonus * $multiplier, 1), 200);
-            $projected_shifts_week   = 5; // normalt en vecka
             $pct_of_goal = $weeklyGoal > 0 ? round(($avg_bonus / $weeklyGoal) * 100, 1) : 0;
 
             $this->sendSuccess([
@@ -1351,7 +1350,6 @@ class BonusAdminController {
             $longestStopHours = round($longestStopMinutes / 60, 1);
 
             // 6. Beräkna per operatör: snitt IBC/h, förlorad produktion, simulerad IBC
-            $totalOperators = count($opData);
             // Fördela stopptid lika — varje operatör förlorar sin andel
             // (alla operatörer som jobbar vid stopp påverkas lika)
             $results = [];
@@ -1378,10 +1376,6 @@ class BonusAdminController {
                 // Simulerad produktion: faktisk + (förlorad tid * snitt IBC/h)
                 $lostIbc         = $ibcPerHour * $lostHours;
                 $simulatedIbc    = $totalIbc + $lostIbc;
-
-                // Simulerad snitt IBC/h (med den extra produktionstiden)
-                $simulatedHours  = $totalHours + $lostHours;
-                $simulatedIbcPerH = $simulatedHours > 0 ? $simulatedIbc / $simulatedHours : 0;
 
                 // Simulerad bonus_poang (proportionell ökning baserad på IBC)
                 $ibcRatio = $totalIbc > 0 ? $simulatedIbc / $totalIbc : 1;

@@ -120,25 +120,25 @@ class OperatorDashboardController {
                            COALESCE(totalt,0) AS tot_totalt, COALESCE(drifttid,0) AS drifttid_min,
                            updated_at
                     FROM rebotling_skiftrapport
-                    WHERE DATE(datum) = :today AND op1 IS NOT NULL AND op1 > 0
+                    WHERE DATE(datum) = :today1 AND op1 IS NOT NULL AND op1 > 0
                     UNION ALL
                     SELECT id AS skift_id, op2 AS op_num, COALESCE(ibc_ok,0) AS ibc_ok,
                            COALESCE(totalt,0) AS tot_totalt, COALESCE(drifttid,0) AS drifttid_min,
                            updated_at
                     FROM rebotling_skiftrapport
-                    WHERE DATE(datum) = :today AND op2 IS NOT NULL AND op2 > 0
+                    WHERE DATE(datum) = :today2 AND op2 IS NOT NULL AND op2 > 0
                     UNION ALL
                     SELECT id AS skift_id, op3 AS op_num, COALESCE(ibc_ok,0) AS ibc_ok,
                            COALESCE(totalt,0) AS tot_totalt, COALESCE(drifttid,0) AS drifttid_min,
                            updated_at
                     FROM rebotling_skiftrapport
-                    WHERE DATE(datum) = :today AND op3 IS NOT NULL AND op3 > 0
+                    WHERE DATE(datum) = :today3 AND op3 IS NOT NULL AND op3 > 0
                 ) AS alla
                 GROUP BY op_num
             ";
 
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':today' => $today]);
+            $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($rows)) {
@@ -671,18 +671,18 @@ class OperatorDashboardController {
                     MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                 FROM (
                     SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
-                    WHERE op1 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    WHERE op1 = :op1 AND DATE(datum) = :today1 AND skiftraknare IS NOT NULL
                     UNION ALL
                     SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
-                    WHERE op2 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    WHERE op2 = :op2 AND DATE(datum) = :today2 AND skiftraknare IS NOT NULL
                     UNION ALL
                     SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
-                    WHERE op3 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                    WHERE op3 = :op3 AND DATE(datum) = :today3 AND skiftraknare IS NOT NULL
                 ) AS u
                 GROUP BY HOUR(datum), skiftraknare
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':op' => $opNum, ':today' => $today]);
+            $stmt->execute([':op1' => $opNum, ':op2' => $opNum, ':op3' => $opNum, ':today1' => $today, ':today2' => $today, ':today3' => $today]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Aggregera: summera MAX per skifträknare, per timme
@@ -748,19 +748,19 @@ class OperatorDashboardController {
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM (
                         SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op1 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op1 = :op1 AND DATE(datum) = :today1 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op2 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op2 = :op2 AND DATE(datum) = :today2 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op3 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op3 = :op3 AND DATE(datum) = :today3 AND skiftraknare IS NOT NULL
                     ) AS u
                     GROUP BY skiftraknare
                 ) AS per_shift
             ";
             $stmt = $this->pdo->prepare($sqlMin);
-            $stmt->execute([':op' => $opNum, ':today' => $today]);
+            $stmt->execute([':op1' => $opNum, ':op2' => $opNum, ':op3' => $opNum, ':today1' => $today, ':today2' => $today, ':today3' => $today]);
             $myRow = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
             $myIbc = (int)($myRow['total_ibc'] ?? 0);
@@ -779,20 +779,20 @@ class OperatorDashboardController {
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM (
                         SELECT op1 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op1 IS NOT NULL AND op1 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op1 IS NOT NULL AND op1 > 0 AND DATE(datum) = :today1 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op2 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op2 IS NOT NULL AND op2 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op2 IS NOT NULL AND op2 > 0 AND DATE(datum) = :today2 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op3 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op3 IS NOT NULL AND op3 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op3 IS NOT NULL AND op3 > 0 AND DATE(datum) = :today3 AND skiftraknare IS NOT NULL
                     ) AS u
                     GROUP BY op_num, skiftraknare
                 ) AS per_shift
                 GROUP BY op_num
             ";
             $stmtAll = $this->pdo->prepare($sqlAll);
-            $stmtAll->execute([':today' => $today]);
+            $stmtAll->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
             $allRows = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
 
             $sumRates = 0.0;
@@ -857,20 +857,20 @@ class OperatorDashboardController {
                            MAX(COALESCE(ibc_ej_ok, 0))   AS shift_ej_ok,
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM (
-                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op1 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op1 = :op1 AND DATE(datum) = :today1 AND skiftraknare IS NOT NULL
                         UNION ALL
-                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op2 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op2 = :op2 AND DATE(datum) = :today2 AND skiftraknare IS NOT NULL
                         UNION ALL
-                        SELECT skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op3 = :op AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        SELECT skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc FROM rebotling_ibc
+                        WHERE op3 = :op3 AND DATE(datum) = :today3 AND skiftraknare IS NOT NULL
                     ) AS u
                     GROUP BY skiftraknare
                 ) AS ps
             ";
             $stmt = $this->pdo->prepare($sqlProd);
-            $stmt->execute([':op' => $opNum, ':today' => $today]);
+            $stmt->execute([':op1' => $opNum, ':op2' => $opNum, ':op3' => $opNum, ':today1' => $today, ':today2' => $today, ':today3' => $today]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
             $totalIbc  = (int)($row['total_ibc'] ?? 0);
@@ -899,20 +899,20 @@ class OperatorDashboardController {
                            MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
                     FROM (
                         SELECT op1 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op1 IS NOT NULL AND op1 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op1 IS NOT NULL AND op1 > 0 AND DATE(datum) = :today1 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op2 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op2 IS NOT NULL AND op2 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op2 IS NOT NULL AND op2 > 0 AND DATE(datum) = :today2 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT op3 AS op_num, skiftraknare, ibc_ok, runtime_plc FROM rebotling_ibc
-                        WHERE op3 IS NOT NULL AND op3 > 0 AND DATE(datum) = :today AND skiftraknare IS NOT NULL
+                        WHERE op3 IS NOT NULL AND op3 > 0 AND DATE(datum) = :today3 AND skiftraknare IS NOT NULL
                     ) AS u
                     GROUP BY op_num, skiftraknare
                 ) AS per_shift
                 GROUP BY op_num
             ";
             $stmtAll = $this->pdo->prepare($sqlAll);
-            $stmtAll->execute([':today' => $today]);
+            $stmtAll->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
             $allRows = $stmtAll->fetchAll(PDO::FETCH_ASSOC);
 
             $sumRates = 0.0;
@@ -1069,13 +1069,13 @@ class OperatorDashboardController {
                            MAX(COALESCE(ibc_ok, 0)) AS shift_ibc
                     FROM (
                         SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
-                        WHERE op1 = :op AND DATE(datum) BETWEEN :from AND :to AND skiftraknare IS NOT NULL
+                        WHERE op1 = :op1 AND DATE(datum) BETWEEN :from1 AND :to1 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
-                        WHERE op2 = :op AND DATE(datum) BETWEEN :from AND :to AND skiftraknare IS NOT NULL
+                        WHERE op2 = :op2 AND DATE(datum) BETWEEN :from2 AND :to2 AND skiftraknare IS NOT NULL
                         UNION ALL
                         SELECT datum, skiftraknare, ibc_ok FROM rebotling_ibc
-                        WHERE op3 = :op AND DATE(datum) BETWEEN :from AND :to AND skiftraknare IS NOT NULL
+                        WHERE op3 = :op3 AND DATE(datum) BETWEEN :from3 AND :to3 AND skiftraknare IS NOT NULL
                     ) AS u
                     GROUP BY DATE(datum), skiftraknare
                 ) AS per_shift
@@ -1083,7 +1083,7 @@ class OperatorDashboardController {
                 ORDER BY dag ASC
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':op' => $opNum, ':from' => $fromDate, ':to' => $today]);
+            $stmt->execute([':op1' => $opNum, ':op2' => $opNum, ':op3' => $opNum, ':from1' => $fromDate, ':from2' => $fromDate, ':from3' => $fromDate, ':to1' => $today, ':to2' => $today, ':to3' => $today]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $dagMap = [];

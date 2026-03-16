@@ -22,7 +22,6 @@ class RebotlingAnalyticsController {
         // Steg 1: Hitta rätt skifträknare i rebotling_ibc (original + fallback nedåt)
         // Sök UTAN datumfilter först (skifträknare är tillräckligt unikt),
         // med datumfilter som sekundärt fallback (hanterar dag-efter-scenariot)
-        $prevDay = date('Y-m-d', strtotime($date . ' -1 day'));
         $foundSkiftraknare = null;
 
         foreach (array_keys($skiftraknareList) as $sk) {
@@ -484,12 +483,10 @@ class RebotlingAnalyticsController {
             }
             $oeeStart = $fromDate;
             $oeeEnd   = $toDate;
-            $useDateRange = true;
         } else {
             $days = min(365, max(7, intval($_GET['days'] ?? 30)));
             $oeeStart = date('Y-m-d', strtotime("-{$days} days"));
             $oeeEnd   = date('Y-m-d');
-            $useDateRange = false;
         }
         $granularity = $_GET['granularity'] ?? 'day';
         try {
@@ -1932,16 +1929,14 @@ class RebotlingAnalyticsController {
 
             // ---- Bygg topp-10-lista ----
             $topWeeks = [];
-            $bestWeekYr = null;
-            $bestWeekWk = null;
-            foreach ($topWeeksRaw as $i => $row) {
+            foreach ($topWeeksRaw as $row) {
                 $yr  = (int)$row['yr'];
                 $wk  = (int)$row['wk'];
                 $key = $yr . '-' . $wk;
                 $oee = $oeeByWeek[$key] ?? null;
                 // ISO veckonummer → veckoetiketten
                 $weekLabel = 'V' . $wk . ' ' . $yr;
-                $entry = [
+                $topWeeks[] = [
                     'week_label'  => $weekLabel,
                     'yr'          => $yr,
                     'wk'          => $wk,
@@ -1950,11 +1945,6 @@ class RebotlingAnalyticsController {
                     'avg_oee'     => $oee,
                     'days_active' => (int)$row['days_active'],
                 ];
-                if ($i === 0) {
-                    $bestWeekYr = $yr;
-                    $bestWeekWk = $wk;
-                }
-                $topWeeks[] = $entry;
             }
 
             // ================================================================
@@ -2260,8 +2250,6 @@ class RebotlingAnalyticsController {
                 $ibcTotal       = (int)($row['ibc_total'] ?? 0);
                 $prodDays       = (int)($row['production_days'] ?? 0);
                 $avgQuality     = (float)($row['avg_quality'] ?? 0);
-                $runtimeH       = (float)($row['total_runtime_hours'] ?? 0);
-                $stoppageH      = (float)($row['total_stoppage_hours'] ?? 0);
 
                 // OEE daglig för snittberäkning
                 $oeeSQL = "
@@ -4743,7 +4731,6 @@ HTML;
             }
 
             // 4. Trend per orsak vs föregående period (om Pareto-data finns)
-            $orsakTrend = [];
             if ($hasParetoData) {
                 $prevFrom = date('Y-m-d', strtotime("-" . ($days * 2) . " days"));
                 $prevTo = date('Y-m-d', strtotime("-{$days} days"));

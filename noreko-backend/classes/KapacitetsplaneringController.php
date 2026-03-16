@@ -765,20 +765,26 @@ class KapacitetsplaneringController {
             try {
                 $stmt = $this->pdo->prepare("
                     SELECT
-                        COUNT(*) AS total_ibc,
-                        COUNT(DISTINCT DATE(datum)) AS prod_dagar,
+                        COALESCE(SUM(dag_tot), 0) AS total_ibc,
+                        COUNT(DISTINCT dag) AS prod_dagar,
                         MAX(dag_tot) AS basta_dag_antal,
                         MIN(dag_tot) AS samsta_dag_antal,
-                        MAX(basta_dat) AS basta_datum,
-                        MIN(samsta_dat) AS samsta_datum
+                        MAX(dag) AS basta_datum,
+                        MIN(dag) AS samsta_datum
                     FROM (
                         SELECT
-                            DATE(datum) AS basta_dat,
-                            DATE(datum) AS samsta_dat,
-                            COUNT(*) AS dag_tot
-                        FROM rebotling_ibc
-                        WHERE DATE(datum) BETWEEN :monday AND :friday
-                        GROUP BY DATE(datum)
+                            dag,
+                            SUM(max_ok + max_ej_ok) AS dag_tot
+                        FROM (
+                            SELECT DATE(datum) AS dag, skiftraknare,
+                                   MAX(COALESCE(ibc_ok, 0)) AS max_ok,
+                                   MAX(COALESCE(ibc_ej_ok, 0)) AS max_ej_ok
+                            FROM rebotling_ibc
+                            WHERE DATE(datum) BETWEEN :monday AND :friday
+                              AND skiftraknare IS NOT NULL
+                            GROUP BY DATE(datum), skiftraknare
+                        ) per_skift
+                        GROUP BY dag
                     ) t
                 ");
                 $stmt->execute([':monday' => $mondayStr, ':friday' => $fridayStr]);
@@ -1139,7 +1145,6 @@ class KapacitetsplaneringController {
             $stmt->execute();
             $histRad = $stmt->fetch(\PDO::FETCH_ASSOC);
             $histIbc = (int)($histRad['total_ibc'] ?? 0);
-            $histOp  = max(1, (int)($histRad['unika_op'] ?? 1));
             $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
             $ibcPerOpPerTimme = $histIbc / ($histDagar * (self::PLANERAD_DRIFTTID_SEK / 3600));
         } catch (\PDOException) {
