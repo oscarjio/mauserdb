@@ -326,17 +326,17 @@ class NewsController {
         try {
             $sql = "
                 SELECT 'certifiering' AS typ,
-                       DATE(oc.certified_at) AS event_datum,
-                       DATE_FORMAT(oc.certified_at,'%Y-%m-%d %H:%i:%s') AS event_datetime,
+                       DATE(oc.certified_date) AS event_datum,
+                       DATE_FORMAT(oc.certified_date,'%Y-%m-%d %H:%i:%s') AS event_datetime,
                        NULL AS value,
-                       CONCAT('Ny certifiering: ', o.name, ' certifierad för ', oc.line_name,
-                              IF(oc.expires_at IS NOT NULL,
-                                 CONCAT(' — giltig till ', DATE_FORMAT(oc.expires_at,'%d %b %Y')),
+                       CONCAT('Ny certifiering: ', o.name, ' certifierad för ', oc.line,
+                              IF(oc.expires_date IS NOT NULL,
+                                 CONCAT(' — giltig till ', DATE_FORMAT(oc.expires_date,'%d %b %Y')),
                                  '')) AS text
                 FROM operator_certifications oc
-                JOIN operators o ON o.operator_id = oc.operator_id
-                WHERE oc.certified_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
-                ORDER BY oc.certified_at DESC
+                JOIN operators o ON o.number = oc.op_number
+                WHERE oc.certified_date >= DATE_SUB(NOW(), INTERVAL 14 DAY)
+                ORDER BY oc.certified_date DESC
                 LIMIT 3
             ";
             $stmt = $this->pdo->query($sql);
@@ -362,14 +362,14 @@ class NewsController {
         try {
             $sql = "
                 SELECT 'urgent_note' AS typ,
-                       DATE(skapad_tid) AS event_datum,
-                       DATE_FORMAT(skapad_tid,'%Y-%m-%d %H:%i:%s') AS event_datetime,
+                       DATE(created_at) AS event_datum,
+                       DATE_FORMAT(created_at,'%Y-%m-%d %H:%i:%s') AS event_datetime,
                        NULL AS value,
                        CONCAT('Brådskande skiftnotat: ', LEFT(note, 80), IF(LENGTH(note) > 80, '...', '')) AS text
                 FROM shift_handover
                 WHERE priority = 'urgent'
-                  AND skapad_tid >= DATE_SUB(NOW(), INTERVAL 3 DAY)
-                ORDER BY skapad_tid DESC
+                  AND created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+                ORDER BY created_at DESC
                 LIMIT 2
             ";
             $stmt = $this->pdo->query($sql);
@@ -513,7 +513,7 @@ class NewsController {
                        DATE(bp.created_at) AS event_datum,
                        DATE_FORMAT(bp.created_at, '%Y-%m-%d %H:%i:%s') AS event_datetime
                 FROM bonus_payouts bp
-                JOIN operators o ON o.operator_id = bp.op_id
+                JOIN operators o ON o.id = bp.op_id
                 WHERE bp.created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)
                   AND bp.status IN ('pending', 'approved', 'paid')
                   AND bp.bonus_level IS NOT NULL
@@ -545,12 +545,12 @@ class NewsController {
         // 9. Lång streak — operatörer med 5+ dagar i rad (beräknas i realtid)
         try {
             $sql = "
-                SELECT o.operator_id, o.name AS op_name,
+                SELECT o.number, o.name AS op_name,
                        GROUP_CONCAT(DISTINCT DATE(ri.datum) ORDER BY DATE(ri.datum) DESC) AS dagar
                 FROM operators o
-                JOIN rebotling_ibc ri ON (ri.op1 = o.operator_id OR ri.op2 = o.operator_id OR ri.op3 = o.operator_id)
+                JOIN rebotling_ibc ri ON (ri.op1 = o.number OR ri.op2 = o.number OR ri.op3 = o.number)
                 WHERE ri.datum >= DATE_SUB(CURDATE(), INTERVAL 14 DAY)
-                GROUP BY o.operator_id, o.name
+                GROUP BY o.number, o.name
                 HAVING COUNT(DISTINCT DATE(ri.datum)) >= 5
                 ORDER BY COUNT(DISTINCT DATE(ri.datum)) DESC
                 LIMIT 5

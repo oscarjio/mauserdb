@@ -101,7 +101,7 @@ class AlertsController {
                 $this->runAlertCheck();
                 break;
             default:
-                $this->sendError('Ogiltig run: ' . $run);
+                $this->sendError('Ogiltig run: ' . htmlspecialchars($run));
                 break;
         }
     }

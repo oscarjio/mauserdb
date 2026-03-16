@@ -281,22 +281,28 @@ class AdminController {
                 $params[] = ($operatorId === null || $operatorId === '') ? null : (int)$operatorId;
             }
             if ($fields) {
-                $params[] = $id;
-                $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($params);
-                $changedFields = [];
-                if ($username) $changedFields['username'] = $username;
-                if ($email) $changedFields['email'] = $email;
-                if ($phone !== null) $changedFields['phone'] = $phone;
-                if ($password) $changedFields['password'] = '***';
-                if ($admin !== null) $changedFields['admin'] = $admin;
-                if ($operatorId !== 'SKIP') $changedFields['operator_id'] = $operatorId;
-                AuditLogger::log($pdo, 'update_user', 'user', (int)$id,
-                    "Uppdaterade användare (ID: $id): " . implode(', ', array_keys($changedFields)),
-                    null, $changedFields
-                );
-                echo json_encode(['success' => true, 'message' => 'Användare uppdaterad']);
+                try {
+                    $params[] = $id;
+                    $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = ?';
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+                    $changedFields = [];
+                    if ($username) $changedFields['username'] = $username;
+                    if ($email) $changedFields['email'] = $email;
+                    if ($phone !== null) $changedFields['phone'] = $phone;
+                    if ($password) $changedFields['password'] = '***';
+                    if ($admin !== null) $changedFields['admin'] = $admin;
+                    if ($operatorId !== 'SKIP') $changedFields['operator_id'] = $operatorId;
+                    AuditLogger::log($pdo, 'update_user', 'user', (int)$id,
+                        "Uppdaterade användare (ID: $id): " . implode(', ', array_keys($changedFields)),
+                        null, $changedFields
+                    );
+                    echo json_encode(['success' => true, 'message' => 'Användare uppdaterad']);
+                } catch (PDOException $e) {
+                    error_log('AdminController update_user: ' . $e->getMessage());
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera användare'], JSON_UNESCAPED_UNICODE);
+                }
             } else {
                 echo json_encode(['success' => false, 'message' => 'Inga fält att uppdatera'], JSON_UNESCAPED_UNICODE);
             }

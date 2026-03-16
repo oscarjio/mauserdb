@@ -14,6 +14,15 @@ class NarvaroController {
     }
 
     public function handle() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Inloggning kravs'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $run    = trim($_GET['run'] ?? '');
 

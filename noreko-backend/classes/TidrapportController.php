@@ -333,7 +333,7 @@ class TidrapportController {
             ]);
         } catch (\PDOException $e) {
             error_log('TidrapportController::getSammanfattning: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -405,7 +405,7 @@ class TidrapportController {
             ]);
         } catch (\PDOException $e) {
             error_log('TidrapportController::getPerOperator: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -480,7 +480,7 @@ class TidrapportController {
             ]);
         } catch (\PDOException $e) {
             error_log('TidrapportController::getVeckodata: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -488,7 +488,7 @@ class TidrapportController {
     // run=detaljer — Detaljerad skiftlista
     // ================================================================
 
-    private function getDetaljer(): array {
+    private function getDetaljer(): void {
         [$fromDate, $toDate, $period] = $this->getDateRange();
         $operatorFilter = isset($_GET['operator_id']) ? intval($_GET['operator_id']) : null;
 
@@ -521,11 +521,9 @@ class TidrapportController {
             ];
 
             $this->sendSuccess($result);
-            return $result;
         } catch (\PDOException $e) {
             error_log('TidrapportController::getDetaljer: ' . $e->getMessage());
-            $this->sendError('Databasfel');
-            return [];
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -574,7 +572,7 @@ class TidrapportController {
             exit;
         } catch (\PDOException $e) {
             error_log('TidrapportController::getExportCsv: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 }
