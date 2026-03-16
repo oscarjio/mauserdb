@@ -5191,16 +5191,18 @@ HTML;
 
             $opTableHtml = '';
             if (count($rows) > 0) {
-                $opTableHtml = "<table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:0.85rem;'><thead><tr style='background:#f0f0f0;'><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Bur ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Totalt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Operatorer</th></tr></thead><tbody>";
+                $opTableHtml = "<table style='width:100%;border-collapse:collapse;margin-top:16px;font-size:0.85rem;'><thead><tr style='background:#f0f0f0;'><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Produkt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Löpnr</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Bur ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>IBC ej OK</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:right;'>Totalt</th><th style='padding:6px 10px;border:1px solid #ccc;text-align:left;'>Operatorer</th></tr></thead><tbody>";
                 foreach ($rows as $r) {
                     $prod = htmlspecialchars($r['product_name'] ?? '-', ENT_QUOTES, 'UTF-8');
+                    $lopnr = (int)($r['lopnummer'] ?? 0);
+                    $lopnrStr = $lopnr > 0 ? (string)$lopnr : '-';
                     $ibcOk = (int)($r['ibc_ok'] ?? 0);
                     $burEj = (int)($r['bur_ej_ok'] ?? 0);
                     $ibcEj = (int)($r['ibc_ej_ok'] ?? 0);
                     $totalt = (int)($r['totalt'] ?? 0);
                     $ops = array_filter([$r['op1_name'] ?? null, $r['op2_name'] ?? null, $r['op3_name'] ?? null]);
                     $opsStr = htmlspecialchars(implode(', ', $ops) ?: '-', ENT_QUOTES, 'UTF-8');
-                    $opTableHtml .= "<tr><td style='padding:5px 10px;border:1px solid #ddd;'>{$prod}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#006600;font-weight:600;'>{$ibcOk}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#996600;'>{$burEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#cc0000;'>{$ibcEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$totalt}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$opsStr}</td></tr>";
+                    $opTableHtml .= "<tr><td style='padding:5px 10px;border:1px solid #ddd;'>{$prod}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;'>{$lopnrStr}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#006600;font-weight:600;'>{$ibcOk}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#996600;'>{$burEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;color:#cc0000;'>{$ibcEj}</td><td style='padding:5px 10px;border:1px solid #ddd;text-align:right;font-weight:600;'>{$totalt}</td><td style='padding:5px 10px;border:1px solid #ddd;'>{$opsStr}</td></tr>";
                 }
                 $opTableHtml .= "</tbody></table>";
             }
