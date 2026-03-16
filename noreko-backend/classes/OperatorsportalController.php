@@ -9,8 +9,8 @@
  *   - run=my-bonus   → bonusberäkning: timmar, IBC, IBC/h, teamsnitt IBC/h, bonus-poäng
  *
  * Identifiering:
- *   - $_SESSION['operator_id'] = operators.id (sätts vid inloggning)
- *   - rebotling_ibc.op1/op2/op3 = operators.id
+ *   - $_SESSION['operator_id'] = operators.number (sätts vid inloggning)
+ *   - rebotling_ibc.op1/op2/op3 = operators.number
  *
  * OBS: ibc_ok, runtime_plc m.fl. är KUMULATIVA PLC-värden per skift.
  * Aggregering sker i två steg: MAX() per skiftraknare, sedan SUM()/AVG() över skift.
@@ -325,7 +325,7 @@ class OperatorsportalController {
 
         try {
             // Operatörsnamn
-            $stmtName = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $stmtName = $this->pdo->prepare("SELECT name FROM operators WHERE number = ?");
             $stmtName->execute([$opId]);
             $opName = $stmtName->fetchColumn() ?: 'Okänd';
 

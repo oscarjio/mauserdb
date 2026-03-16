@@ -66,7 +66,7 @@ class MinDagController {
     private function getOperatorInfo(int $opId): array {
         try {
             $stmt = $this->pdo->prepare(
-                "SELECT name, initialer FROM operators WHERE id = ? LIMIT 1"
+                "SELECT name, initialer FROM operators WHERE number = ? LIMIT 1"
             );
             $stmt->execute([$opId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);

@@ -198,6 +198,11 @@ class OperatorCompareController {
     // Rådata för en specifik operatör (för radar)
     // -------------------------------------------------------------------------
     private function getOperatorRadarRaw(int $opId, int $days): array {
+        // Slå upp operators.number (op1/op2/op3 = number)
+        $numStmt = $this->pdo->prepare('SELECT number FROM operators WHERE id = ? LIMIT 1');
+        $numStmt->execute([$opId]);
+        $opNumber = (int)($numStmt->fetchColumn() ?: $opId);
+
         $sql = '
             SELECT
                 COALESCE(
@@ -229,7 +234,7 @@ class OperatorCompareController {
         ';
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$days, $opId, $opId, $opId]);
+        $stmt->execute([$days, $opNumber, $opNumber, $opNumber]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$row || (int)$row['aktiva_dagar'] === 0) {
@@ -345,15 +350,16 @@ class OperatorCompareController {
     // Hämta aggregerad statistik för en operatör
     // -------------------------------------------------------------------------
     private function getOperatorStats(int $opId, int $days): ?array {
-        // Hämta namn
+        // Hämta namn och number (op1/op2/op3 = operators.number)
         $nameStmt = $this->pdo->prepare(
-            'SELECT id, name FROM operators WHERE id = ? LIMIT 1'
+            'SELECT id, name, number FROM operators WHERE id = ? LIMIT 1'
         );
         $nameStmt->execute([$opId]);
         $op = $nameStmt->fetch(PDO::FETCH_ASSOC);
         if (!$op) {
             return null;
         }
+        $opNumber = (int)$op['number'];
 
         // Aggregera statistik via subquery (MAX per skiftraknare per dag)
         $sql = '
@@ -380,7 +386,7 @@ class OperatorCompareController {
         ';
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$days, $opId, $opId, $opId]);
+        $stmt->execute([$days, $opNumber, $opNumber, $opNumber]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return [
@@ -400,6 +406,11 @@ class OperatorCompareController {
     // Veckovis trend senaste 8 veckor (56 dagar) för en operatör
     // -------------------------------------------------------------------------
     private function getWeeklyTrend(int $opId): array {
+        // Slå upp operators.number (op1/op2/op3 = number)
+        $numStmt = $this->pdo->prepare('SELECT number FROM operators WHERE id = ? LIMIT 1');
+        $numStmt->execute([$opId]);
+        $opNumber = (int)($numStmt->fetchColumn() ?: $opId);
+
         $sql = '
             SELECT
                 YEARWEEK(datum, 1)  AS vecka,
@@ -420,7 +431,7 @@ class OperatorCompareController {
         ';
 
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$opId, $opId, $opId]);
+        $stmt->execute([$opNumber, $opNumber, $opNumber]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         $result = [];
