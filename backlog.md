@@ -7,16 +7,17 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Error response audit** — 2 PDOException-lackage fixade (Worker A #129)
-- [x] **Loose comparisons** — 18 fixar i 16 controllers (Worker A #129)
-- [x] **Chart.js memory leaks** — 109 instanser verifierade, alla OK (Worker B #129)
-- [x] **HTTP error handling** — alla services har catchError, verifierat (Worker B #129)
-- [x] **Subscription leaks** — alla har takeUntil/unsubscribe, verifierat (Worker B #129)
-- [ ] **SQL edge cases** — LIMIT utan ORDER BY, NULL i aggregeringar, saknad index-audit
-- [ ] **Template null-safety deep audit** — granska komplexa templates med nestade objekt
-- [ ] **PHP return type consistency** — controllers som returnerar inkonsistenta JSON-strukturer
-- [ ] **PHP error_log audit** — verifiera att alla catch-block loggar till error_log
-- [ ] **Angular lazy loading** — verifiera att alla routes lazy-loadar korrekt
+- [x] **SQL edge cases** — 3x LIMIT utan ORDER BY, 3x NULL-safe aggregering (Worker A #130)
+- [x] **Template null-safety deep audit** — 21x .toFixed() pa null/undefined (Worker B #130)
+- [x] **PHP return type consistency** — 18x saknad success-nyckel i JSON-svar (Worker A #130)
+- [x] **PHP error_log audit** — 3x catch utan error_log (Worker A #130)
+- [x] **Angular lazy loading** — verifierat OK, alla routes lazy-loadar (Worker B #130)
+- [x] **Angular service URL audit** — verifierat OK, alla URLs relativa (Worker B #130)
+- [ ] **PHP boundary validation** — granska att alla query-params (limit, offset, dates) valideras
+- [ ] **Angular form validation** — granska att alla formuler validerar input korrekt
+- [ ] **PHP SQL injection re-audit** — dubbelkolla prepared statements i nyare controllers
+- [ ] **Angular error state UI** — granska att felmeddelanden visas korrekt for anvandaren
+- [ ] **PHP date range validation** — verifiera att from/to-datum i queries ar logiskt korrekta
 
 ## Parkerade features (ta inte dessa nu)
 
