@@ -39,7 +39,7 @@ class SkiftplaneringController {
                 case 'capacity':      $this->getCapacity();     break;
                 case 'operators':     $this->getOperators();    break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -49,7 +49,7 @@ class SkiftplaneringController {
                 case 'assign':   $this->assignOperator();   break;
                 case 'unassign': $this->unassignOperator(); break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }

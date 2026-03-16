@@ -33,7 +33,7 @@ class BatchSparningController {
                 case 'batch-detail':    $this->getBatchDetail();    break;
                 case 'batch-history':   $this->getBatchHistory();   break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -49,7 +49,7 @@ class BatchSparningController {
                     $this->completeBatch();
                     break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }

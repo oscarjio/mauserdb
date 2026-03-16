@@ -33,7 +33,7 @@ class MaskinunderhallController {
                 case 'machine-history': $this->getMachineHistory(); break;
                 case 'timeline':        $this->getTimeline();       break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -49,7 +49,7 @@ class MaskinunderhallController {
                     $this->addMachine();
                     break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }

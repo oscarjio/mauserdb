@@ -56,7 +56,7 @@ class OperatorsbonusController {
                     $this->sparaKonfiguration();
                     break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }

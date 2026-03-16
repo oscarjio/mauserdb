@@ -3,7 +3,8 @@ class RebotlingTrendanalysController {
     private $pdo;
     private const CYKELTID = 120; // sekunder per IBC
 
-    public function __construct($pdo) {
+    public function __construct() {
+        global $pdo;
         $this->pdo = $pdo;
     }
 

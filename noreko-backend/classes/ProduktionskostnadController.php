@@ -46,7 +46,7 @@ class ProduktionskostnadController {
                 case 'shift-comparison': $this->getShiftComparison(); break;
                 case 'config':           $this->getConfig();          break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -58,7 +58,7 @@ class ProduktionskostnadController {
                     $this->updateConfig();
                     break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }

@@ -63,7 +63,7 @@ class SkiftoverlamningController {
                 case 'protokoll-historik':   $this->getProtokollHistorik(); break;
                 case 'protokoll-detalj':    $this->getProtokollDetalj();   break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -80,7 +80,7 @@ class SkiftoverlamningController {
                     $this->sparaProtokoll();
                     break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }

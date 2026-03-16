@@ -35,7 +35,7 @@ class ProduktionsSlaController {
                 case 'history':          $this->getHistory();         break;
                 case 'goals':            $this->getGoals();           break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
@@ -47,7 +47,7 @@ class ProduktionsSlaController {
                     $this->setGoal();
                     break;
                 default:
-                    $this->sendError('Okänd run-parameter', 404);
+                    $this->sendError('Okänd run-parameter', 400);
             }
             return;
         }
