@@ -62,7 +62,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
-  private chartTimer: ReturnType<typeof setTimeout> | null = null;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private prediktionChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: OeeTrendanalysService) {}
 
@@ -75,7 +76,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();
-    if (this.chartTimer) { clearTimeout(this.chartTimer); this.chartTimer = null; }
+    if (this.trendChartTimer) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
+    if (this.prediktionChartTimer) { clearTimeout(this.prediktionChartTimer); this.prediktionChartTimer = null; }
     if (this.refreshTimer) {
       clearInterval(this.refreshTimer);
       this.refreshTimer = null;
@@ -160,8 +162,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success) {
         this.trendData = res.data;
-        if (this.chartTimer) clearTimeout(this.chartTimer);
-        this.chartTimer = setTimeout(() => this.buildTrendChart(), 100);
+        if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
+        this.trendChartTimer = setTimeout(() => this.buildTrendChart(), 100);
       }
     });
   }
@@ -192,8 +194,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       this.loadingPrediktion = false;
       if (res?.success) {
         this.prediktionData = res.data;
-        if (this.chartTimer) clearTimeout(this.chartTimer);
-        this.chartTimer = setTimeout(() => this.buildPrediktionChart(), 100);
+        if (this.prediktionChartTimer) clearTimeout(this.prediktionChartTimer);
+        this.prediktionChartTimer = setTimeout(() => this.buildPrediktionChart(), 100);
       }
     });
   }

@@ -117,18 +117,6 @@ class KassationsorsakController {
     }
 
     /**
-     * Härleda skifttyp från skifträknare (1=dag, 2=kväll, 3=natt)
-     */
-    private function skiftTypFromRaknare(?int $raknare): string {
-        switch ($raknare) {
-            case 1: return 'dag';
-            case 2: return 'kväll';
-            case 3: return 'natt';
-            default: return 'okänd';
-        }
-    }
-
-    /**
      * Hämta operatörsnamn som map number => name
      */
     private function getOperatorNames(): array {

@@ -80,20 +80,6 @@ class StopporsakController {
         return [$prevFrom, $prevTo];
     }
 
-    /**
-     * Berakna varaktighet i minuter for ett stopp
-     */
-    private function calcMinuter(array $row): float {
-        if (!empty($row['end_time']) && !empty($row['start_time'])) {
-            $start = strtotime($row['start_time']);
-            $end   = strtotime($row['end_time']);
-            if ($start && $end && $end > $start) {
-                return round(($end - $start) / 60, 1);
-            }
-        }
-        return 0;
-    }
-
     private function sendSuccess(array $data): void {
         echo json_encode([
             'success'   => true,

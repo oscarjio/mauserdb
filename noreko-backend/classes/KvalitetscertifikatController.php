@@ -91,13 +91,6 @@ class KvalitetscertifikatController {
         }
     }
 
-    private function currentUserId(): ?int {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start(['read_and_close' => true]);
-        }
-        return isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
-    }
-
     private function currentUserName(): string {
         if (session_status() === PHP_SESSION_NONE) {
             session_start(['read_and_close' => true]);

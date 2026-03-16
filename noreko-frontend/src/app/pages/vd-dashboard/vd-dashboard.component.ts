@@ -43,7 +43,7 @@ export class VdDashboardPage implements OnInit, OnDestroy {
 
   // Lifecycle
   private destroy$ = new Subject<void>();
-  private refreshInterval: any = null;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private stationChartTimer: ReturnType<typeof setTimeout> | null = null;
   private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -57,11 +57,11 @@ export class VdDashboardPage implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    if (this.refreshInterval) clearInterval(this.refreshInterval);
+    if (this.refreshInterval) { clearInterval(this.refreshInterval); this.refreshInterval = null; }
     if (this.stationChartTimer) { clearTimeout(this.stationChartTimer); this.stationChartTimer = null; }
     if (this.trendChartTimer) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
-    this.trendChart?.destroy();
-    this.stationChart?.destroy();
+    try { this.trendChart?.destroy(); } catch (_) {}
+    try { this.stationChart?.destroy(); } catch (_) {}
   }
 
   loadAll(): void {
