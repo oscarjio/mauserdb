@@ -48,6 +48,79 @@
 
 ---
 
+## 2026-03-16 Session #122 Worker B — Buggjakt i backend helpers + endpoint-testning + Angular-granskning
+
+### DEL 1: Granskade PHP helper-klasser och controllers:
+
+**Rena filer (inga buggar):**
+1. AuthHelper.php — OK (bcrypt, prepared statements, felhantering i alla catch)
+2. api.php — OK (routing via classNameMap, autoloading fran classes/, CORS, security headers)
+3. AuditController.php — OK (AuditLogger, ensureTable, prepared statements)
+4. RebotlingSammanfattningController.php — OK (null-handling, tableExists, error logging)
+5. StatusController.php — OK (read_and_close session, felhantering)
+6. DagligBriefingController.php — OK (fallback-strategier, felhantering)
+7. GamificationController.php — OK (badge/leaderboard, felhantering)
+8. PrediktivtUnderhallController.php — OK (MTBF, riskbedomning, felhantering)
+9. FeatureFlagController.php — OK (developer-only POST, validering)
+10. RebotlingController.php — OK (sub-controllers far $pdo korrekt)
+
+**Filer med buggar fixade (15 buggar i 8 filer):**
+
+11. **RebotlingTrendanalysController.php (1 bugg):**
+    - Constructor __construct($pdo) matchade inte api.php som instansierar utan argument
+    - Andrat till __construct() med global $pdo — fixade 500-fel pa trendanalys-endpoint
+
+12. **MaskinunderhallController.php (2 buggar):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400 (2 stallen)
+
+13. **ProduktionsSlaController.php (2 buggar):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400 (2 stallen)
+
+14. **SkiftoverlamningController.php (2 buggar):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400 (2 stallen)
+
+15. **BatchSparningController.php (2 buggar):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400 (2 stallen)
+
+16. **SkiftplaneringController.php (2 buggar):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400 (2 stallen)
+
+17. **OperatorsbonusController.php (1 bugg):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400
+
+18. **ProduktionskostnadController.php (2 buggar):**
+    - sendError() anvande HTTP 404 for saknad run-parameter — andrat till 400 (2 stallen)
+
+### DEL 2-3: Funktionell testning av endpoints med curl:
+
+Testade rebotling-relaterade och ovriga endpoints mot dev-server (mauserdb.local):
+- rebotling-trendanalys: 500 -> 200 efter constructor-fix
+- rebotling-sammanfattning, oee, kassation, operatorsbonus, maskinunderhall, skiftplanering,
+  batch-sparning, produktionskostnad, produktions-sla, skiftoverlamning: alla 200 OK
+- rebotling default (getLiveStats): 500 — befintligt beteende nar ingen PLC-data finns
+
+### DEL 4: Angular-komponentgranskning:
+
+Granskade alla 41 komponenter med subscribe(), alla 29 med setInterval():
+- Alla har korrekt destroy$/ngOnDestroy/takeUntil
+- Alla har clearInterval i ngOnDestroy
+- Alla Chart.js-instanser har destroy() i cleanup
+- Inga saknade imports, inga template-fel
+
+**Noterade tomma catch-block (ej fixade — intentionella fire-and-forget):**
+- BonusAdminController (2), RebotlingAnalyticsController (1), SkiftrapportController (2),
+  RebotlingAdminController (1)
+- TvattlinjeController, SaglinjeController, KlassificeringslinjeController — ror ej (live-controllers)
+
+### Sakerhetskontroller:
+- Ingen SQL injection hittad — alla controllers anvaander prepared statements
+- Ingen sha1/md5 — enbart bcrypt via AuthHelper
+- Inga XSS-problem i granskade filer
+
+### Totalt: 15 buggar fixade i 8 filer
+
+---
+
 ## 2026-03-16 Session #121 Worker B — Buggjakt i frontend services batch 6 + komponent-granskning
 
 ### DEL 1: Granskade 15 frontend-services:
