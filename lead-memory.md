@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #127)*
+*Senast uppdaterad: 2026-03-16 (session #128)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -79,33 +79,33 @@ Session #124: BUGGJAKT — 52 buggar (34 Worker A + 18 Worker B). 17 PHP-control
 Session #125: BUGGJAKT — 16 buggar (10 Worker A + 6 Worker B). SQL-parametervalidering OK + error-logging + TS-logik + dead code.
 Session #126: BUGGJAKT — 9 buggar (2 Worker A 500-fixar + 7 Worker B polling/guards). Kritiska 500-fel fixade (shift filter, time_of_day, saknade tabeller).
 Session #127: BUGGJAKT — 16 buggar (8 Worker A + 8 Worker B). intval()-bugg (kritisk), XSS-risk, DB-lakcor + setTimeout-leaks, timezone-parsing.
+Session #128: BUGGJAKT — 27 buggar (12 Worker A + 15 Worker B). Type coercion, saknad auth, input validation + Safari datetime-parsing, timezone-fix.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] Systematisk 500-fel-jakt — #126 (kritiska fixade)
-- [x] HTTP-polling race conditions — #126 (5 komponenter fixade)
-- [x] Angular route guards audit — #126 (2 saknade guards fixade)
-- [x] Subscription-lackor — #126 (alla 160 komponenter granskade, inga lackor)
-- [ ] Endpoint-testning med curl — alla API-endpoints
-- [ ] SQL edge cases (division by zero, NULL, LIMIT utan ORDER BY)
-- [ ] PHP type coercion (== vs ===)
-- [ ] Template null-safety audit
+- [ ] PHP type coercion (== vs ===) — #128
+- [ ] Input validation audit — #128
+- [ ] SQL edge cases (division by zero, NULL, LIMIT utan ORDER BY) — #128
+- [ ] Template null-safety audit — #128
+- [ ] Chart.js memory leaks — #128
+- [ ] Error response audit — exponerade PDOException-meddelanden
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-16 — Session #125 (klar)
-Worker A: 10 buggar i 5 filer — tomma catch-block (4 controllers) + DB-felmeddelande exponerat i response (1 informationslacka).
-Worker B: 6 buggar — 3 TS-logik (div-by-zero, race condition chartTimer, interval-typing) + 3 dead code (oanvanda privata metoder).
-Totalt: 16 buggar.
-
 ### 2026-03-16 — Session #126 (klar)
 Worker A: 2 kritiska 500-fixar (shift filter, time_of_day, saknade tabeller).
-Worker B: 7 buggar — 5 polling race conditions (news, rebotling-sammanfattning, produktionsflode, batch-sparning, produktions-dashboard) + 2 saknade authGuard (produkttyp-effektivitet, produktionstakt).
+Worker B: 7 buggar — 5 polling race conditions + 2 saknade authGuard.
 Totalt: 9 buggar.
 
 ### 2026-03-16 — Session #127 (klar)
-Worker A: 8 buggar i 4 filer — 4x intval() med ogiltig base 256 (kritisk, user_id/reason_id alltid 0), 1x DB-felmeddelande exponerat, 3x osaniterad $_GET i JSON (XSS).
-Worker B: 8 buggar i 8 filer — 4x untracked setTimeout (chart-timers), 4x timezone-bugg (new Date() utan parseLocalDate). Lead fixade 3 oanvanda imports.
+Worker A: 8 buggar i 4 filer — 4x intval() med ogiltig base 256 (kritisk), 1x info-lackage, 3x XSS.
+Worker B: 8 buggar i 8 filer — 4x untracked setTimeout, 4x timezone-bugg.
+Totalt: 16 buggar.
+
+### 2026-03-16 — Session #128 (klar)
+Worker A: 12 buggar — 7x type coercion (== till ===), 1x saknad auth, 2x input validation, 1x typ-check, 1x div-by-zero guard.
+Worker B: 15 buggar — 10x Safari datetime-parsing (new Date till parseLocalDate), 5x timezone (toISOString till localToday).
+Totalt: 27 buggar.
