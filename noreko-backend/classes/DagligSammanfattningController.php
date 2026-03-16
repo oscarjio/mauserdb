@@ -104,8 +104,8 @@ class DagligSammanfattningController {
                 MAX(ibc_ok)      AS ibc_ok,
                 MAX(ibc_ej_ok)   AS ibc_ej_ok,
                 MAX(runtime_plc) AS runtime_plc,
-                MIN(time_of_day) AS skift_start,
-                MAX(time_of_day) AS skift_slut
+                MIN(TIME(datum)) AS skift_start,
+                MAX(TIME(datum)) AS skift_slut
              FROM rebotling_ibc
              WHERE DATE(datum) = ?
              GROUP BY skiftraknare

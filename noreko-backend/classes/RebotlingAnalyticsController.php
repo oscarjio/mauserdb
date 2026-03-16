@@ -4022,8 +4022,8 @@ class RebotlingAnalyticsController {
         }
 
         try {
-            // Hämta alla skiftrapporter för detta datum
-            // Använd DATE() för att hantera både DATE och DATETIME-kolumner
+            // Hämta skiftrapporter för detta datum OCH specifikt skift
+            // Skiftnummer bestäms via rebotling_ibc: HOUR(MIN(datum)) → skift 1/2/3
             $stmt = $this->pdo->prepare("
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
@@ -4042,9 +4042,18 @@ class RebotlingAnalyticsController {
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
                 WHERE DATE(s.datum) = :date
+                  AND s.skiftraknare IS NOT NULL
+                  AND (
+                    SELECT CASE
+                        WHEN HOUR(MIN(i.datum)) BETWEEN 6 AND 13 THEN 1
+                        WHEN HOUR(MIN(i.datum)) BETWEEN 14 AND 21 THEN 2
+                        ELSE 3
+                    END
+                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare
+                  ) = :shift
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date]);
+            $stmt->execute(['date' => $date, 'shift' => $shift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Aggregera KPI:er
@@ -4105,9 +4114,18 @@ class RebotlingAnalyticsController {
             $prevStmt = $this->pdo->prepare("
                 SELECT SUM(s.totalt) AS prev_totalt
                 FROM rebotling_skiftrapport s
-                WHERE s.datum = :date
+                WHERE DATE(s.datum) = :date
+                  AND s.skiftraknare IS NOT NULL
+                  AND (
+                    SELECT CASE
+                        WHEN HOUR(MIN(i.datum)) BETWEEN 6 AND 13 THEN 1
+                        WHEN HOUR(MIN(i.datum)) BETWEEN 14 AND 21 THEN 2
+                        ELSE 3
+                    END
+                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare
+                  ) = :shift
             ");
-            $prevStmt->execute(['date' => $prevDate]);
+            $prevStmt->execute(['date' => $prevDate, 'shift' => $prevShift]);
             $prevRow = $prevStmt->fetch(PDO::FETCH_ASSOC);
 
             $prevTotalt = (int)($prevRow['prev_totalt'] ?? 0);
@@ -5054,7 +5072,8 @@ HTML;
         }
 
         try {
-            // Använd DATE() för att hantera både DATE och DATETIME-kolumner
+            // Hämta skiftrapporter för detta datum OCH specifikt skift
+            // Skiftnummer bestäms via rebotling_ibc: HOUR(MIN(datum)) → skift 1/2/3
             $stmt = $this->pdo->prepare("
                 SELECT
                     s.id, s.datum, s.ibc_ok, s.bur_ej_ok, s.ibc_ej_ok, s.totalt,
@@ -5073,9 +5092,18 @@ HTML;
                 LEFT JOIN operators o2 ON o2.number = s.op2
                 LEFT JOIN operators o3 ON o3.number = s.op3
                 WHERE DATE(s.datum) = :date
+                  AND s.skiftraknare IS NOT NULL
+                  AND (
+                    SELECT CASE
+                        WHEN HOUR(MIN(i.datum)) BETWEEN 6 AND 13 THEN 1
+                        WHEN HOUR(MIN(i.datum)) BETWEEN 14 AND 21 THEN 2
+                        ELSE 3
+                    END
+                    FROM rebotling_ibc i WHERE i.skiftraknare = s.skiftraknare
+                  ) = :shift
                 ORDER BY s.id
             ");
-            $stmt->execute(['date' => $date]);
+            $stmt->execute(['date' => $date, 'shift' => $shift]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Samla skifträknare för start/stopp-tid

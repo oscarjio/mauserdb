@@ -96,8 +96,8 @@ class SkiftrapportExportController {
                     MAX(bur_ej_ok)     AS bur_ej_ok,
                     MAX(runtime_plc)   AS runtime_plc,
                     MAX(rasttime)      AS rasttime,
-                    MIN(time_of_day)   AS skift_start,
-                    MAX(time_of_day)   AS skift_slut,
+                    MIN(TIME(datum))   AS skift_start,
+                    MAX(TIME(datum))   AS skift_slut,
                     DATE(MIN(created_at)) AS skift_datum
                  FROM rebotling_ibc
                  WHERE DATE(datum) = ?
