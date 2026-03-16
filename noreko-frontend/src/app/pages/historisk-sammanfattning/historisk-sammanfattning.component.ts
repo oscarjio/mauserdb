@@ -56,6 +56,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
 
   // Lifecycle
   private destroy$ = new Subject<void>();
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private paretoChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: HistoriskSammanfattningService) {}
 
@@ -67,6 +69,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();
+    if (this.trendChartTimer) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
+    if (this.paretoChartTimer) { clearTimeout(this.paretoChartTimer); this.paretoChartTimer = null; }
   }
 
   private destroyCharts(): void {
@@ -133,7 +137,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
         this.loadingTrend = false;
         if (res?.success) {
           this.trendData = res.data;
-          setTimeout(() => this.buildTrendChart(), 100);
+          if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
+          this.trendChartTimer = setTimeout(() => this.buildTrendChart(), 100);
         }
       });
   }
@@ -168,7 +173,8 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.stopporsaker = res.data.stopporsaker || [];
           this.stopporsakerTotalH = res.data.total_h || 0;
-          setTimeout(() => this.buildParetoChart(), 100);
+          if (this.paretoChartTimer) clearTimeout(this.paretoChartTimer);
+          this.paretoChartTimer = setTimeout(() => this.buildParetoChart(), 100);
         }
       });
   }

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../utils/date-utils';
 import {
   OperatorRankingService,
   SammanfattningData,
@@ -295,7 +296,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
     const colors = ['#4fd1c5', '#4299e1', '#ecc94b', '#b794f4', '#fc8181'];
 
     const labels = this.historikData.dates.map(d => {
-      const dt = new Date(d);
+      const dt = parseLocalDate(d);
       return dt.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
     });
 

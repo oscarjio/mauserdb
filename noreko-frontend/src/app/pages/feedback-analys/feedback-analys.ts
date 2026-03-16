@@ -57,6 +57,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
 
   private destroy$ = new Subject<void>();
   private viewReady = false;
+  private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private service: FeedbackAnalysService) {}
 
@@ -67,11 +68,13 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
   ngAfterViewInit(): void {
     this.viewReady = true;
     if (this.trendLoaded && this.trendData) {
-      setTimeout(() => this.renderTrendChart(), 50);
+      if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
+      this.trendChartTimer = setTimeout(() => this.renderTrendChart(), 50);
     }
   }
 
   ngOnDestroy(): void {
+    if (this.trendChartTimer) { clearTimeout(this.trendChartTimer); this.trendChartTimer = null; }
     try { this.trendChart?.destroy(); } catch (_e) { /* ignore */ }
     this.trendChart = null;
     this.destroy$.next();
@@ -123,7 +126,8 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
         this.trendData    = res?.success ? res.data : null;
         this.trendLoaded  = true;
         if (this.viewReady && this.trendData) {
-          setTimeout(() => this.renderTrendChart(), 50);
+          if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
+          this.trendChartTimer = setTimeout(() => this.renderTrendChart(), 50);
         }
       });
   }

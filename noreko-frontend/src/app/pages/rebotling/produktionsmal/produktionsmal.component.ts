@@ -210,7 +210,7 @@ export class RebotlingProduktionsmalPage implements OnInit, OnDestroy {
 
     const data = this.veckodata;
     const labels = data.datum.map(d => {
-      const dt = new Date(d);
+      const dt = parseLocalDate(d);
       return dt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'numeric' });
     });
 

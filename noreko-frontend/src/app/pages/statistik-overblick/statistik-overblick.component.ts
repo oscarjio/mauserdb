@@ -45,7 +45,10 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
   private kassationChart: Chart | null = null;
 
   private destroy$ = new Subject<void>();
-  private refreshInterval: any = null;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private produktionChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private oeeChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private kassationChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private svc: StatistikOverblickService) {}
 
@@ -58,10 +61,10 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();
-    if (this.refreshInterval) {
-      clearInterval(this.refreshInterval);
-      this.refreshInterval = null;
-    }
+    if (this.refreshInterval) { clearInterval(this.refreshInterval); this.refreshInterval = null; }
+    if (this.produktionChartTimer) { clearTimeout(this.produktionChartTimer); this.produktionChartTimer = null; }
+    if (this.oeeChartTimer) { clearTimeout(this.oeeChartTimer); this.oeeChartTimer = null; }
+    if (this.kassationChartTimer) { clearTimeout(this.kassationChartTimer); this.kassationChartTimer = null; }
   }
 
   onPeriodChange(): void {
@@ -108,7 +111,8 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
     ).subscribe(res => {
       this.loadingProduktion = false;
       if (res?.success) {
-        setTimeout(() => this.buildProduktionChart(res.data), 100);
+        if (this.produktionChartTimer) clearTimeout(this.produktionChartTimer);
+        this.produktionChartTimer = setTimeout(() => this.buildProduktionChart(res.data), 100);
       } else if (res !== null) {
         this.errorProduktion = true;
       }
@@ -126,7 +130,8 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
     ).subscribe(res => {
       this.loadingOee = false;
       if (res?.success) {
-        setTimeout(() => this.buildOeeChart(res.data), 100);
+        if (this.oeeChartTimer) clearTimeout(this.oeeChartTimer);
+        this.oeeChartTimer = setTimeout(() => this.buildOeeChart(res.data), 100);
       } else if (res !== null) {
         this.errorOee = true;
       }
@@ -144,7 +149,8 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
     ).subscribe(res => {
       this.loadingKassation = false;
       if (res?.success) {
-        setTimeout(() => this.buildKassationChart(res.data), 100);
+        if (this.kassationChartTimer) clearTimeout(this.kassationChartTimer);
+        this.kassationChartTimer = setTimeout(() => this.buildKassationChart(res.data), 100);
       } else if (res !== null) {
         this.errorKassation = true;
       }

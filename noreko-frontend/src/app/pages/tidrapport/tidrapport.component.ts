@@ -215,7 +215,7 @@ export class TidrapportPage implements OnInit, OnDestroy {
 
     const data = this.veckodata;
     const labels = data.dates.map(d => {
-      const dt = new Date(d);
+      const dt = parseLocalDate(d);
       return dt.toLocaleDateString('sv-SE', { day: 'numeric', month: 'numeric' });
     });
 

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
+import { parseLocalDate } from '../../../utils/date-utils';
 import {
   StopporsakerService,
   SammanfattningData,
@@ -381,7 +382,7 @@ export class StopporsakerPage implements OnInit, OnDestroy {
     if (!canvas || !this.trendData?.dates?.length) return;
 
     const dates = this.trendData.dates.map(d => {
-      const dt = new Date(d);
+      const dt = parseLocalDate(d);
       return dt.toLocaleDateString('sv-SE', { month: 'short', day: 'numeric' });
     });
 

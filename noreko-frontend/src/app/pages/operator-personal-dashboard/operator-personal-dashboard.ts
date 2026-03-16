@@ -50,6 +50,8 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
   private veckotrendChart: Chart | null = null;
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private produktionChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private veckotrendChartTimer: ReturnType<typeof setTimeout> | null = null;
 
   Math = Math; // Expose Math to template
 
@@ -81,10 +83,9 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
     this.destroyCharts();
-    if (this.refreshTimer) {
-      clearInterval(this.refreshTimer);
-      this.refreshTimer = null;
-    }
+    if (this.refreshTimer) { clearInterval(this.refreshTimer); this.refreshTimer = null; }
+    if (this.produktionChartTimer) { clearTimeout(this.produktionChartTimer); this.produktionChartTimer = null; }
+    if (this.veckotrendChartTimer) { clearTimeout(this.veckotrendChartTimer); this.veckotrendChartTimer = null; }
   }
 
   private destroyCharts(): void {
@@ -139,7 +140,8 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
       .subscribe(res => {
         this.loadingProduktion = false;
         this.produktion = res?.success ? res : null;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildProduktionChart(); }, 50);
+        if (this.produktionChartTimer) clearTimeout(this.produktionChartTimer);
+        this.produktionChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildProduktionChart(); }, 50);
       });
   }
 
@@ -180,7 +182,8 @@ export class OperatorPersonalDashboardPage implements OnInit, OnDestroy {
       .subscribe(res => {
         this.loadingTrend = false;
         this.veckotrend = res?.success ? res : null;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildVeckotrendChart(); }, 50);
+        if (this.veckotrendChartTimer) clearTimeout(this.veckotrendChartTimer);
+        this.veckotrendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildVeckotrendChart(); }, 50);
       });
   }
 

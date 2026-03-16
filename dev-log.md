@@ -1,3 +1,52 @@
+## 2026-03-16 Session #127 Worker B — Untracked setTimeout memory leaks + timezone date-parsing bugs
+
+### DEL 1: Untracked setTimeout memory leaks (4 komponenter, 9 buggar)
+
+Granskade alla pages-komponenter for `setTimeout()` anrop som inte sparas i en tracked timer-variabel och inte rensas i `ngOnDestroy()`. Nar komponenten forstors medan en setTimeout ar pending kors chart-buildern pa en forstord komponent = minnesbacka.
+
+1. **statistik-overblick.component.ts — 3 untracked setTimeout + any-typat interval**
+   - Problem: Tre `setTimeout(() => this.buildXxxChart(...), 100)` for produktion/OEE/kassation-charts sparades inte i variabler. `refreshInterval` var typat som `any`.
+   - Fix: Lade till `produktionChartTimer`, `oeeChartTimer`, `kassationChartTimer` (alla `ReturnType<typeof setTimeout> | null`). Varje anrop clearar foreg. timer fore ny. Alla rensas i `ngOnDestroy()`. Fixade `refreshInterval` typing till `ReturnType<typeof setInterval> | null`.
+
+2. **historisk-sammanfattning.component.ts — 2 untracked setTimeout**
+   - Problem: `setTimeout(() => this.buildTrendChart(), 100)` och `setTimeout(() => this.buildParetoChart(), 100)` sparades inte.
+   - Fix: Lade till `trendChartTimer` och `paretoChartTimer`. Clearar i `ngOnDestroy()`.
+
+3. **feedback-analys.ts — 2 untracked setTimeout**
+   - Problem: Tva `setTimeout(() => this.renderTrendChart(), 50)` (i `ngAfterViewInit` och `loadTrend`) utan tracked timer.
+   - Fix: Lade till `trendChartTimer`. Clearar i `ngOnDestroy()` (fore chart destroy).
+
+4. **operator-personal-dashboard.ts — 2 untracked setTimeout**
+   - Problem: `setTimeout(() => this.buildProduktionChart(), 50)` och `setTimeout(() => this.buildVeckotrendChart(), 50)` anvande `destroy$.closed`-check men timer-referenserna lacktes anda och kunde inte clearas vid snabb navigering.
+   - Fix: Lade till `produktionChartTimer` och `veckotrendChartTimer`. Clearar i `ngOnDestroy()`.
+
+### DEL 2: Timezone date-parsing buggar (4 komponenter, 4 buggar)
+
+Projektet har `parseLocalDate()` i `utils/date-utils.ts` som hanterar YYYY-MM-DD-strangar korrekt (appendar T00:00:00 for lokal tid). Fyra komponenter anvande `new Date(d)` pa date-only-strangar, vilket tolkas som UTC midnight och kan ge fel datum i CET/CEST.
+
+5. **operator-ranking.component.ts — `new Date(d)` i buildHistorikChart**
+   - Problem: `this.historikData.dates.map(d => new Date(d))` — date-only strangar tolkades som UTC.
+   - Fix: Lade till import av `parseLocalDate`, ersatte `new Date(d)` med `parseLocalDate(d)`.
+
+6. **tidrapport.component.ts — `new Date(d)` i renderVeckoChart**
+   - Problem: `data.dates.map(d => new Date(d))` for chart-labels.
+   - Fix: Ersatte med `parseLocalDate(d)` (import fanns redan).
+
+7. **produktionsmal.component.ts — `new Date(d)` i renderVeckoChart**
+   - Problem: `data.datum.map(d => new Date(d))` for chart-labels.
+   - Fix: Ersatte med `parseLocalDate(d)` (import fanns redan).
+
+8. **stopporsaker.component.ts — `new Date(d)` i trendchart-labels**
+   - Problem: `this.trendData.dates.map(d => new Date(d))` for chart-labels.
+   - Fix: Lade till import av `parseLocalDate`, ersatte med `parseLocalDate(d)`.
+
+### Sammanfattning
+- **8 buggar fixade** (4 setTimeout memory leaks, 4 timezone date-parsing)
+- **Filer andrade:** statistik-overblick.component.ts, historisk-sammanfattning.component.ts, feedback-analys.ts, operator-personal-dashboard.ts, operator-ranking.component.ts, tidrapport.component.ts, produktionsmal.component.ts, stopporsaker.component.ts
+- **Build:** `npx ng build` — OK (inga fel)
+
+---
+
 ## 2026-03-16 Session #126 Worker B — HTTP-polling race conditions + route guards audit
 
 ### DEL 1: HTTP-polling race conditions (7 buggar fixade)
