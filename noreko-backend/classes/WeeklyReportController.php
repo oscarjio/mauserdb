@@ -280,7 +280,7 @@ class WeeklyReportController {
             // Hämta veckomål från settings
             $dagmal = 1200; // fallback
             try {
-                $stmtGoal = $this->pdo->query("SELECT dagmal FROM rebotling_settings LIMIT 1");
+                $stmtGoal = $this->pdo->query("SELECT dagmal FROM rebotling_settings ORDER BY id ASC LIMIT 1");
                 $goalRow = $stmtGoal->fetch();
                 if ($goalRow && isset($goalRow['dagmal'])) {
                     $dagmal = intval($goalRow['dagmal']);

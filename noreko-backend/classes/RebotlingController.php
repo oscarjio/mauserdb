@@ -1674,7 +1674,7 @@ class RebotlingController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $date  = trim($_POST['event_date']   ?? '');
@@ -1683,7 +1683,7 @@ class RebotlingController {
         $type  = trim($_POST['event_type']   ?? 'ovrigt');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !$title) {
             http_response_code(400);
-            echo json_encode(['error' => 'Ogiltiga uppgifter'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltiga uppgifter'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $allowed = ['underhall', 'ny_operator', 'mal_andring', 'rekord', 'ovrigt'];
@@ -1698,7 +1698,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController addEvent: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte spara händelsen'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara händelsen'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1710,13 +1710,13 @@ class RebotlingController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $id = intval($_POST['id'] ?? 0);
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['error' => 'Saknar id'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Saknar id'], JSON_UNESCAPED_UNICODE);
             return;
         }
         try {
@@ -1725,7 +1725,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController deleteEvent: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte ta bort händelsen'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort händelsen'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2855,7 +2855,8 @@ class RebotlingController {
                     echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
                     return;
                 }
-            } catch (\Exception) {
+            } catch (\Exception $e) {
+                error_log('RebotlingController::getTopStopp table check: ' . $e->getMessage());
                 http_response_code(500);
                 echo json_encode(['success' => false, 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
                 return;

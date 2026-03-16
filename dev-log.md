@@ -1,3 +1,44 @@
+## 2026-03-16 Session #130 Worker A — PHP backend: 27 buggar fixade (SQL edge cases, JSON-konsistens, catch-loggning)
+
+### Uppgift 1: SQL edge cases audit
+**LIMIT utan ORDER BY (3 fixar):**
+- **WeeklyReportController.php**: `SELECT dagmal FROM rebotling_settings LIMIT 1` — lagt till `ORDER BY id ASC`
+- **LeveransplaneringController.php**: `SELECT * FROM produktionskapacitet_config LIMIT 1` — lagt till `ORDER BY id ASC`
+- **TvattlinjeController.php**: `SELECT * FROM tvattlinje_settings LIMIT 1` — lagt till `ORDER BY id ASC`
+
+**NULL-hantering i aggregeringar (3 fixar):**
+- **BatchSparningController.php** (2): `AVG(TIMESTAMPDIFF(...))` och `AVG(sub.kass_pct)` via `fetchColumn()` utan null-guard — returnerade NULL nar inga klara batchar fanns, `round((float)null, 1)` ger 0 men ar odefinerat beteende. Fix: `fetchColumn() ?? 0`
+- **MaskinunderhallController.php** (1): `AVG(service_intervall_dagar)` via `fetchColumn()` utan null-guard — samma problem nar inga aktiva maskiner finns. Fix: `fetchColumn() ?? 0`
+
+### Uppgift 2: JSON return type consistency (18 fixar)
+**Saknade `'success' => false` i felresponser:**
+- **AdminController.php** (2): `['error' => ...]` utan success-nyckel i auth-check och get_users-fel
+- **OperatorController.php** (2): auth-check och GET-fel saknade success-nyckel
+- **MaintenanceController.php** (2): auth-check och `sendError()` saknade success-nyckel
+- **RebotlingController.php** (7): addEvent/deleteEvent — auth, validering, och felresponser
+- **NewsController.php** (1): `requireAdmin()` auth-check
+- **RebotlingProductController.php** (1): 405 Method Not Allowed-respons
+- **VpnController.php** (1): 405 Method Not Allowed-respons
+
+**Saknade `'success' => true` i lyckade responser:**
+- **AdminController.php** (1): `get_users` returnerade `['users' => ...]` utan success
+- **OperatorController.php** (1): GET returnerade `['operators' => ...]` utan success
+
+### Uppgift 3: PHP error_log audit (3 fixar)
+Catch-block som returnerade HTTP 500 utan att logga felet:
+- **LineSkiftrapportController.php**: `checkOwnerOrAdmin()` PDOException — lade till `error_log()`
+- **SkiftrapportController.php**: `checkOwnerOrAdmin()` PDOException — lade till `error_log()`
+- **RebotlingController.php**: `getTopStopp()` table-check Exception — lade till `error_log()`
+
+### Verifiering utan fynd
+- **LIMIT > 1 utan ORDER BY**: 0 instanser — alla multi-row LIMIT har ORDER BY
+- **SUM/AVG med COALESCE i SQL men utan PHP null-guard**: De flesta har redan COALESCE i SQL-fragor
+- **GROUP BY utan icke-aggregerade kolumner**: Inga uppenbara problem funna
+- **SQL injection**: Inga superglobals direkt i SQL — alla anvander prepared statements
+- **getMessage() exponering**: Alla catch-block som loggar getMessage() returnerar generiska felmeddelanden till klienten
+
+---
+
 ## 2026-03-16 Session #130 Worker B — Template null-safety: 21 .toFixed() crash-buggar
 
 ### Problem

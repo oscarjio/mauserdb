@@ -55,7 +55,7 @@ class RebotlingProductController {
                 break;
             default:
                 http_response_code(405);
-                echo json_encode(['error' => 'Metod inte tillåten'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'error' => 'Metod inte tillåten'], JSON_UNESCAPED_UNICODE);
         }
     }
 

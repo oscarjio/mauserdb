@@ -140,7 +140,7 @@ class MaskinunderhallController {
             $snittStmt = $this->pdo->query(
                 "SELECT AVG(service_intervall_dagar) FROM maskin_register WHERE aktiv = 1"
             );
-            $snittIntervall = round((float)$snittStmt->fetchColumn(), 1);
+            $snittIntervall = round((float)($snittStmt->fetchColumn() ?? 0), 1);
 
             // Hämta alla maskiner med senaste service för att beräkna kommande/försenade
             $stmt = $this->pdo->query(

@@ -116,7 +116,8 @@ class LineSkiftrapportController {
                 echo json_encode(['success' => false, 'message' => 'Du kan bara ändra dina egna rapporter'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('LineSkiftrapportController::checkOwnerOrAdmin: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
             exit;

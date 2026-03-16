@@ -14,7 +14,7 @@ class AdminController {
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
         global $pdo;
@@ -327,11 +327,11 @@ class AdminController {
                     $u['active'] = 1; // Default till aktiv om kolumnen inte finns
                 }
             }
-            echo json_encode(['users' => $users]);
+            echo json_encode(['success' => true, 'users' => $users]);
         } catch (PDOException $e) {
             error_log('AdminController get_users: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte hämta användare'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta användare'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

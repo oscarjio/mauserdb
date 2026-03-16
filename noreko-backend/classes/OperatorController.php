@@ -20,7 +20,7 @@ class OperatorController {
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
         global $pdo;
@@ -201,11 +201,11 @@ class OperatorController {
                 ORDER BY o.number
             ");
             $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['operators' => $operators], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => true, 'operators' => $operators], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('OperatorController GET: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
         }
     }
 

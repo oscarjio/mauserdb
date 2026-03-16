@@ -39,7 +39,7 @@ class MaintenanceController {
 
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -684,6 +684,6 @@ class MaintenanceController {
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 }

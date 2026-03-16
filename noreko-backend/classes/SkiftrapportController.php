@@ -120,7 +120,8 @@ class SkiftrapportController {
                 echo json_encode(['success' => false, 'message' => 'Du kan bara ändra dina egna skiftrapporter']);
                 exit;
             }
-        } catch (PDOException) {
+        } catch (PDOException $e) {
+            error_log('SkiftrapportController::checkOwnerOrAdmin: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'message' => 'Databasfel']);
             exit;

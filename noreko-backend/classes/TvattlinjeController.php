@@ -720,7 +720,7 @@ class TvattlinjeController {
             $this->pdo->exec("ALTER TABLE tvattlinje_settings ADD COLUMN skiftlangd DECIMAL(4,1) NOT NULL DEFAULT 8.0");
         } catch (\Exception $e) { /* Kolumn finns redan */ }
 
-        $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings LIMIT 1");
+        $stmt = $this->pdo->query("SELECT * FROM tvattlinje_settings ORDER BY id ASC LIMIT 1");
         $settings = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$settings) {

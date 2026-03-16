@@ -138,7 +138,7 @@ class BatchSparningController {
                  FROM batch_order
                  WHERE status = 'klar' AND avslutad_datum IS NOT NULL"
             );
-            $snittLedtid = round((float)$ledtidStmt->fetchColumn(), 1);
+            $snittLedtid = round((float)($ledtidStmt->fetchColumn() ?? 0), 1);
 
             // Snitt kassation% per batch (över klara batchar)
             $kassStmt = $this->pdo->query(
@@ -156,7 +156,7 @@ class BatchSparningController {
                      GROUP BY bo.id
                  ) sub"
             );
-            $snittKassation = round((float)$kassStmt->fetchColumn(), 1);
+            $snittKassation = round((float)($kassStmt->fetchColumn() ?? 0), 1);
 
             // Bästa batch (lägst kassation bland klara med IBC:er)
             $bastaStmt = $this->pdo->query(

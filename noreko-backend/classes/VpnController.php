@@ -49,7 +49,7 @@ class VpnController {
             $this->handlePost();
         } else {
             http_response_code(405);
-            echo json_encode(['error' => 'Ogiltig metod'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig metod'], JSON_UNESCAPED_UNICODE);
         }
     }
 

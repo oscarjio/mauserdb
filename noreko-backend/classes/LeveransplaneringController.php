@@ -68,7 +68,7 @@ class LeveransplaneringController {
     }
 
     private function getConfig(): array {
-        $row = $this->pdo->query("SELECT * FROM produktionskapacitet_config LIMIT 1")->fetch();
+        $row = $this->pdo->query("SELECT * FROM produktionskapacitet_config ORDER BY id ASC LIMIT 1")->fetch();
         if (!$row) {
             return ['kapacitet_per_dag' => 80, 'planerade_underhallsdagar' => [], 'buffer_procent' => 10];
         }

@@ -31,7 +31,7 @@ class NewsController {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
             return false;
         }
         return true;
