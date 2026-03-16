@@ -1921,7 +1921,7 @@ INSERT IGNORE INTO feature_flags (feature_key, label, category, min_role) VALUES
 ('admin/vpn', 'VPN', 'admin', 'admin'),
 ('admin/audit', 'Aktivitetslogg', 'admin', 'admin'),
 ('admin/news', 'Nyheter', 'admin', 'admin'),
-('admin/feature-flags', 'Funktionshantering', 'admin', 'developer')
+('admin/feature-flags', 'Funktionshantering', 'admin', 'admin')
 ON DUPLICATE KEY UPDATE label = VALUES(label);
 
 

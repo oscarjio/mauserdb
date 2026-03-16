@@ -4,5 +4,5 @@
 
 UPDATE feature_flags SET min_role = 'admin' WHERE min_role = 'developer';
 
--- Feature flags admin-sida ska vara developer-only
-UPDATE feature_flags SET min_role = 'developer' WHERE feature_key = 'admin/feature-flags';
+-- Feature flags admin-sida tillgänglig för admin
+-- (developer ser allt ändå via rollhierarkin)
