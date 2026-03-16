@@ -1,3 +1,40 @@
+## 2026-03-16 Session #111 Worker B — buggjakt i stora class-filer (4 st)
+
+### Granskade filer:
+1. RebotlingAnalyticsController.php (6774 rader) — fullständigt granskad
+2. RebotlingController.php (3041 rader) — fullständigt granskad
+3. BonusController.php (2558 rader) — granskad operator-lookups + OEE
+4. BonusAdminController.php (1879 rader) — granskad operator-lookups
+
+### Fixade buggar (13 st i 4 class-filer):
+
+**RebotlingAnalyticsController.php (7 buggar)**
+1. getShiftSummary: OEE saknade Performance-faktor (Avail x Quality -> Avail x Perf x Quality)
+2. getShiftPdfSummary: samma OEE-bugg, Performance saknades
+3. getTopOperatorsLeaderboard: SELECT id -> SELECT number (op1/op2/op3 = operators.number)
+4. getExecDashboard bestOp: SELECT FROM users WHERE id -> operators WHERE number
+5. getExecDashboard lastShiftOps: SELECT id,name FROM users -> operators WHERE number
+6. computeWeeklySummary: SELECT id,name FROM users -> operators WHERE number
+7. rebotling_skift_kommentarer -> rebotling_skift_kommentar (felaktigt tabellnamn, 2 stallen)
+
+**RebotlingController.php (2 buggar)**
+8. getOeeComponents: MAX(bur_ej_ok) AS shift_ibc_ej_ok -> MAX(ibc_ej_ok) (fel kolumn i kvalitetsberakning)
+9. getLiveRanking: borttagen duplicerad query-execution med namngivna params som ej fungerar med PDO
+
+**BonusController.php (3 buggar)**
+10. getOperatorStats: SELECT FROM operators WHERE id -> WHERE number
+11. getRanking/getHallOfFame/getLoneprognos/getLoneberakning: SELECT id,name -> SELECT number,name (4 stallen)
+12. getWeekTrend: SELECT id,name FROM operators WHERE id IN -> WHERE number IN
+
+**BonusAdminController.php (1 bugg)**
+13. operator_forecast + getPayoutSummary + getBonusSimulator: SELECT id -> SELECT number (3 stallen)
+
+### Identifierade men EJ fixade:
+- SQL-injection i getTopOperatorsLeaderboard (date-strings interpolerade i SQL via closure) — lag risk, dates fran date() med intval-input
+- Duplicate route definitions i RebotlingController handle() — analytics-routes skuggas av live-data-routes
+
+---
+
 ## 2026-03-16 Session #111 Worker A — backend-buggjakt (8 controllers, batch 4)
 
 ### Granskade controllers (proxy-filer i controllers/ + classes/):
