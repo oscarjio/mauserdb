@@ -1,3 +1,33 @@
+## 2026-03-16 Session #111 Worker A — backend-buggjakt (8 controllers, batch 4)
+
+### Granskade controllers (proxy-filer i controllers/ + classes/):
+1. AlarmHistorikController.php — buggar i classes/
+2. HistoriskSammanfattningController.php — OK
+3. KassationsanalysController.php — buggar i classes/
+4. OperatorOnboardingController.php — OK
+5. OperatorRankingController.php — OK
+6. ProduktionsmalController.php — OK
+7. ProduktionsPrognosController.php — bugg i classes/
+8. VeckorapportController.php — OK
+
+### Fixade buggar (8 st i 3 class-filer):
+
+**AlarmHistorikController.php (2 buggar)**
+1. `sl.notes` kolumn finns ej i stoppage_log — fixat till `sl.comment AS notes`
+2. `goal` kolumn finns ej i rebotling_weekday_goals — fixat till `daily_goal AS goal`
+
+**KassationsanalysController.php (5 buggar)**
+3. getDrilldown: operators JOIN `o1.id = i.op1` — fixat till `o1.number = i.op1` (op1/op2/op3 matchar operators.number)
+4. getDetails: operators JOIN `o1.id = i.op1` — fixat till `o1.number = i.op1` (samma som ovan)
+5. XSS: default sendError anvande `$run` utan htmlspecialchars — fixat
+6. getDetaljer: `i.id` saknades i SELECT men refererades i resultatet — lagt till
+7. getDetaljer: `$r['station']` refererade kolumn som ej valdes — fixat till `$r['lopnummer']`
+
+**ProduktionsPrognosController.php (1 bugg)**
+8. XSS: default sendError anvande `$run` utan htmlspecialchars — fixat
+
+---
+
 ## 2026-03-15 Session #110 Worker A — backend-buggjakt (11 controllers, batch 3 del 2)
 
 ### Granskade controllers (proxy-filer i controllers/):
