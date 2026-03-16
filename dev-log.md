@@ -1,3 +1,37 @@
+## 2026-03-16 Session #120 Worker A — Buggjakt i backend-controllers
+
+### Granskade filer (16 controllers, 15 med classes/-implementationer):
+1. DagligBriefingController.php (classes/) — 1 bugg fixad
+2. ProduktionspulsController.php (classes/) — 2 buggar fixade
+3. UnderhallsloggController.php (classes/) — 1 bugg fixad
+4. SkiftplaneringController.php (classes/) — OK
+5. SkiftoverlamningController.php (classes/) — OK
+6. StopptidsanalysController.php (classes/) — OK
+7. StopporsakController.php (classes/) — OK
+8. StopporsakOperatorController.php (classes/) — OK
+9. VdDashboardController.php (classes/) — OK
+10. VeckorapportController.php (classes/) — OK
+11. AlarmHistorikController.php (classes/) — OK
+12. DrifttidsTimelineController.php (classes/) — OK
+13. StatistikDashboardController.php (classes/) — OK
+14. StatistikOverblickController.php (classes/) — OK
+15. ProduktionsmalController.php (classes/) — OK
+16. SkiftjamforelseController.php (controllers/, full implementation) — OK
+
+### Buggar fixade (4 st):
+
+**1. DagligBriefingController.php (1 bugg):**
+- Tom catch utan variabel/loggning i tableExists() — catch (\PDOException) bytt till catch (\PDOException $e) med error_log
+
+**2. ProduktionspulsController.php (2 buggar):**
+- Saknad try/catch i getLatest() — PDOException kunde krascha utan felhantering
+- Saknad try/catch i getHourlyStats() (tacker aven getHourData()) — PDOException kunde krascha utan felhantering
+
+**3. UnderhallsloggController.php (1 bugg):**
+- LIMIT via string-interpolering ({$limit}) bytt till prepared statement parameter (LIMIT ?) — SQL-injection-hardening
+
+---
+
 ## 2026-03-16 Session #119 Worker A — Buggjakt i rebotling-controllers
 
 ### Granskade filer (7 st):
