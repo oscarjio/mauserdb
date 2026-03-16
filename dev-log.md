@@ -1,3 +1,24 @@
+## 2026-03-16 Session #112 Lead — 5 operator id/number-buggar i 3 controllers
+
+### Fixade buggar (5 st):
+
+**OperatorsportalController.php (1 bugg)**
+1. getMyStats: `SELECT name FROM operators WHERE id = ?` -> `WHERE number = ?` (session operator_id = operators.number)
+
+**MinDagController.php (1 bugg)**
+2. getOperatorInfo: `SELECT name, initialer FROM operators WHERE id = ?` -> `WHERE number = ?`
+
+**OperatorCompareController.php (3 buggar)**
+3. getOperatorStats: anvande operators.id direkt i op1/op2/op3-query — la till id->number lookup
+4. getWeeklyTrend: samma bugg — la till id->number lookup
+5. getOperatorRadarRaw: samma bugg — la till id->number lookup
+
+### Bakgrund:
+Frontend skickar operators.id (PK) fran dropdowns, men op1/op2/op3 i rebotling_ibc = operators.number.
+Controllers maste forst sla upp operators.number fran id for att kunna filtrera skiftdata korrekt.
+
+---
+
 ## 2026-03-16 Session #112 Worker A — buggjakt 5 controllers + unused vars cleanup
 
 ### DEL 1: Granskade filer (bug audit):

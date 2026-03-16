@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #111)*
+*Senast uppdaterad: 2026-03-16 (session #112)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -51,6 +51,7 @@ IBC-tvatteri (1000L plasttankar i metallbur). Systemet ger VD realtidsoerblick +
 - **HTTP polling**: `setInterval` + `timeout(5000)` + `catchError` + `isFetching` guard
 - **APP_INITIALIZER**: `firstValueFrom(auth.fetchStatus())`
 - **Math i templates**: `Math = Math;` som class property
+- **operators-tabell**: `id` (PK auto-increment) och `number` (synligt badgenummer). op1/op2/op3 i rebotling_ibc = operators.number. users.operator_id = operators.number.
 
 ## Bug Hunt Status
 
@@ -61,30 +62,29 @@ Session #107: BUGGJAKT — 122 fixar + 270 trackBy.
 Session #108: BUGGJAKT — 13 buggar (10 backend + 3 frontend) + 7 endpoints OK.
 Session #109: BUGGJAKT — 33 buggar (11 backend + 22 UTC-datum).
 Session #110: BUGGJAKT — 15 buggar (13 backend + 2 imports). Alla controllers/ granskade.
-Session #111: BUGGJAKT — 30 buggar. Worker A: 8 i batch 4 (SQL-kolumn, XSS, JOIN). Worker B: 13 i 4 stora classes/ (OEE-formel, operator-lookup, tabellnamn). Lead: 9 routing-buggar + 1 en-dash-bugg i RebotlingController/BonusAdmin.
+Session #111: BUGGJAKT — 30 buggar. Workers: 21 (SQL, OEE, operator-lookup). Lead: 9 routing + 1 en-dash.
+Session #112: BUGGJAKT — 22 buggar + 10 unused vars. Worker A: 9 buggar (PDO-params, kumulativ agg) + 10 unused vars. Worker B: 8 buggar (SQL-kolumner, streak, VD-rapport). Lead: 5 id/number-buggar.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [x] **Batch 4 (8 controllers)** — klar #111
-- [x] **classes/ audit del 1 (4 storsta)** — klar #111
-- [ ] **classes/ audit del 2** — SkiftoverlamningController, KapacitetsplaneringController, OperatorDashboardController, SkiftrapportController, TvattlinjeController
-- [ ] **classes/ audit del 3** — AndonController, GamificationController, HistoriskSammanfattningController m.fl.
-- [ ] **Oanvanda variabler** — ~21 st i 4 filer
-- [ ] **api.php auth + template null-safety**
+- [ ] **Oanvanda variabler** — ~19 st i 4 filer
+- [ ] **Mellanstora classes/ batch 5** — ProduktionsDashboard, Produktionseffektivitet, ProduktionsSla, ProduktionsTakt, StopporsakTrend
+- [ ] **Operator-relaterade controllers** — verifiera id/number-konsistens
+- [ ] **Frontend template null-safety + subscription-audit**
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-15 — Session #109 (klar)
-Worker A: 11 buggar i 6 controllers (XSS, SQL, logik, auth, validering).
-Worker B: 22 UTC-datum buggar i 19 filer + OEE/routes audit OK. Totalt: 33.
 
 ### 2026-03-15 — Session #110 (klar)
 Worker A: 13 buggar i 6 filer. Worker B: 2 imports + audit OK. Totalt: 15.
 Alla controllers/ (33 st) granskade.
 
 ### 2026-03-16 — Session #111 (klar)
-Worker A: 8 buggar i 3 batch 4-filer (2 SQL-kolumn, 2 XSS, 2 JOIN, 1 saknad kolumn, 1 felaktig ref).
-Worker B: 13 buggar i 4 stora classes/ (2 OEE-formel, 3 operator-tabell, 6 id/number, 1 tabellnamn, 1 dead code).
-Lead: 8 routing-buggar i RebotlingController ($this-> -> $this->analyticsController/adminController) + 1 en-dash-bugg i BonusAdmin.
-Totalt: 30 buggar fixade. Alla batch 4 controllers + 4 storsta classes/ granskade.
+Worker A: 8 buggar i batch 4. Worker B: 13 buggar i 4 stora classes/.
+Lead: 9 routing + 1 en-dash. Totalt: 30.
+
+### 2026-03-16 — Session #112 (klar)
+Worker A: 9 buggar (7 PDO duplicate params i OperatorDashboard, 2 kumulativ agg i Kapacitetsplanering) + 10 unused vars (7 RebotlingAnalytics, 3 BonusAdmin).
+Worker B: 8 buggar (4 VDVeckorapport SQL-kolumner, 2 Gamification streak/GROUP BY, 1 Andon varaktighet, 1 OeeTrendanalys station_id). api.php auth OK.
+Lead: 5 operator id/number-buggar (OperatorsportalController, MinDagController, OperatorCompareController x3).
+Totalt: 22 buggar + 10 unused vars.
