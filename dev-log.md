@@ -1,3 +1,45 @@
+## 2026-03-16 Session #128 Worker B — Frontend buggjakt: date-parsing Safari-compat, timezone
+
+### Komponenter granskade
+rebotling-prognos, rebotling-skiftrapport, rebotling-admin, oee-trendanalys, oee-waterfall,
+daglig-sammanfattning, drifttids-timeline, cykeltid-heatmap, kassations-drilldown,
+rebotling/kassationsanalys, rebotling/alerts, rebotling/stopporsaker,
+rebotling/historisk-produktion, rebotling/produktions-sla, rebotling/produktionskostnad,
+rebotling/kvalitetscertifikat, rebotling/leveransplanering
+
+### Bugg 1: parseLocalDate saknade hantering av MySQL datetime-strängar (date-utils.ts)
+- MySQL returnerar datetime som "YYYY-MM-DD HH:mm:ss" (med mellanslag, inte T)
+- Safari kan inte parsa detta format med new Date()
+- Fix: Lade till regex-match och automatisk ersättning av mellanslag med T
+
+### Bugg 2-5: drifttids-timeline — new Date(string) på backend-datetimes (4 instanser)
+- segmentLeft(), segmentWidth() och formatTime() använde new Date() direkt
+- Gav NaN/Invalid Date i Safari på MySQL datetime-format
+- Fix: Importerade och använder parseLocalDate() istället
+
+### Bugg 6-8: rebotling-admin — new Date(string) på backend-datetimes (6 instanser)
+- getPlcAge(), getPlcStatus(), plcWarningLevel, plcMinutesOld använde new Date(last_plc_ping)
+- buildGoalHistoryChart() använde new Date(h.changed_at)
+- Fix: Importerade och använder parseLocalDate() istället
+
+### Bugg 9: rebotling/alerts — formatDate() och timeAgo() (2 instanser)
+- Använde new Date(dateStr) direkt på backend-datetimes
+- Fix: Importerade och använder parseLocalDate()
+
+### Bugg 10: rebotling/stopporsaker — formatDate() (1 instans)
+- Använde new Date(dt) direkt på backend-datetimes
+- Fix: Använder parseLocalDate() (var redan importerad)
+
+### Bonus-fixar: toISOString().substring(0,10) → localToday()/localDateStr() (5 komponenter)
+- **historisk-produktion**: customTo/customFrom använde toISOString() — ger fel datum efter 23:00 CET
+- **produktionskostnad**: tableTo/tableFrom — samma problem
+- **kvalitetscertifikat**: genDatum — samma problem
+- **produktions-sla**: giltig_from — samma problem
+- **leveransplanering**: todayStr() — samma problem
+- Fix: Ersatte med localToday() och localDateStr() som använder lokal tidzon
+
+---
+
 ## 2026-03-16 Session #128 Worker A — PHP backend buggjakt: type coercion, input validation, auth
 
 ### Bugg 1: Loose comparison (==) istallet for strict (===) i AdminController.php (6 instanser)
