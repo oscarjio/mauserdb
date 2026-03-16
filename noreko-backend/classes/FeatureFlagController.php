@@ -3,8 +3,8 @@
  * FeatureFlagController - Hanterar feature flags för rollbaserad synlighet
  *
  * GET  ?action=feature-flags&run=list    → Alla feature flags (public)
- * POST ?action=feature-flags&run=update  → Uppdatera en feature flag (developer-only)
- * POST ?action=feature-flags&run=bulk-update → Batch-uppdatera (developer-only)
+ * POST ?action=feature-flags&run=update  → Uppdatera en feature flag (admin/developer)
+ * POST ?action=feature-flags&run=bulk-update → Batch-uppdatera (admin/developer)
  */
 class FeatureFlagController {
     private $pdo;
@@ -30,13 +30,13 @@ class FeatureFlagController {
         }
 
         if ($method === 'POST') {
-            // Developer-only
+            // Admin/Developer-only
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
             if (!$this->isDeveloper()) {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'message' => 'Kräver developer-behörighet'], JSON_UNESCAPED_UNICODE);
+                echo json_encode(['success' => false, 'message' => 'Kräver admin- eller developer-behörighet'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
