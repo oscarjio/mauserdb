@@ -7,11 +7,11 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **Buggjakt: Operator-controllers** — OperatorDashboard, OperatorOnboarding, OperatorRanking, MyStats
-- [ ] **Buggjakt: Diverse controllers** — AlarmHistorik, DrifttidsTimeline, Favoriter, ForstaTimmeAnalys, Heatmap, HistoriskSammanfattning, KvalitetsTrendbrott, Pareto, Underhallslogg, VdDashboard
-- [ ] **Buggjakt: Frontend services** — Granska Angular services (HTTP-anrop, felhantering, subscription-hantering)
-- [ ] **Buggjakt: Frontend templates** — Granska Angular templates (null-safety, trackBy, async pipes, felaktiga bindings)
-- [ ] **Buggjakt: API-endpoints manuell test** — Testa endpoints med curl, verifiera korrekta svar och felkoder
+- [ ] **Buggjakt: Frontend services (batch 1)** — Granska 15 services: auth, bonus, bonus-admin, effektivitet, favoriter, feedback-analys, forsta-timme-analys, heatmap, historisk-produktion, historisk-sammanfattning, kapacitetsplanering, kassationsanalys, kassations-drilldown, kassationskvot-alarm, kassationsorsak-statistik
+- [ ] **Buggjakt: Frontend services (batch 2)** — Granska 15 services: kvalitetstrend, kvalitetstrendanalys, kvalitets-trendbrott, leveransplanering, maskin-drifttid, maskinhistorik, maskin-oee, maskinunderhall, morgonrapport, my-stats, operator-portal, ranking-historik, rebotling, rebotling-analytics, tidrapport
+- [ ] **Buggjakt: Produktion-controllers** — ProduktionsDashboard, Produktionseffektivitet, Produktionsflode, Produktionskalender, Produktionskostnad, Produktionsmal, Produktionspuls, ProduktionsSla, ProduktionsTakt, ProduktTypEffektivitet
+- [ ] **Buggjakt: Kassation/Kvalitet-controllers** — KassationsanalysController, KassationsDrilldown, KassationskvotAlarm, Kassationsorsak, KassationsorsakPerStation, KvalitetscertifikatController, Kvalitetstrendanalys, KvalitetstrendController
+- [ ] **Buggjakt: Rebotling-controllers** — RebotlingAdmin, RebotlingAnalytics, RebotlingSammanfattning, RebotlingStationsdetalj, RebotlingTrendanalys, RebotlingProduct (EJ RebotlingController = live)
 
 ## Parkerade features (ta inte dessa nu)
 

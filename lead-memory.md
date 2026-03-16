@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #115)*
+*Senast uppdaterad: 2026-03-16 (session #116)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -67,22 +67,27 @@ Session #112: BUGGJAKT — 22 buggar + 10 unused vars.
 Session #113: BUGGJAKT — 11 buggar (3 aggregering + 8 null-safety/setTimeout/unicode).
 Session #114: BUGGJAKT — 26 fixar. Worker A: 1 SQL-injection + 83 JSON_UNESCAPED_UNICODE. Worker B: 25 (5 catch-block + 18 setTimeout + 2 maskin).
 Session #115: BUGGJAKT — 40 buggar (20 Worker A + 20 Worker B). 17 controllers granskade.
+Session #116: BUGGJAKT — 58 buggar (34 Worker A + 24 Worker B). 20 controllers granskade. 12 kritiska operators.id/number-fixar.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [ ] Operator-controllers (4 st)
-- [ ] Diverse controllers (~10 st)
-- [ ] Frontend services-granskning
-- [ ] Frontend templates-granskning
+- [x] Operator-controllers (10 st) — session #116 Worker A
+- [x] Diverse controllers (10 st) — session #116 Worker B
+- [ ] Frontend services-granskning (batch 1: 15 st, batch 2: 15 st)
+- [ ] Produktion-controllers (10 st)
+- [ ] Kassation/Kvalitet-controllers (8 st)
+- [ ] Rebotling-controllers (6 st, EJ live)
 - [ ] API-endpoints manuell test
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #114 (klar)
-Worker A: 1 SQL-injection i BonusAdmin + 83 filer JSON_UNESCAPED_UNICODE. Worker B: 5 tomma catch-block + 18 setTimeout-lackor + 2 maskin-buggar. Totalt: 26 fixar.
 
 ### 2026-03-16 — Session #115 (klar)
 Worker A: 20 buggar — 1 operators.id/number (Morgonrapport), 4 felaktig kolumn sr.orsak->kommentar (DagligBriefing), 3 saknad WHERE linje='rebotling', 1 edge case timme 24:00, 22 tomma catch.
 Worker B: 20 buggar — 2 operators.id/number (Skiftplanering), 1 session-locking, 3 JSON_UNICODE, 14 tomma catch.
 Totalt: 40 buggar.
+
+### 2026-03-16 — Session #116 (klar)
+Worker A: 34 buggar i 8 controllers — 12 operators.id/number (OperatorController, OperatorCompare, Operatorsbonus), 2 fel tabell/kolumn, 12 tomma catch, 17 JSON_UNICODE, 1 session_status.
+Worker B: 24 buggar i 6 controllers — 21 JSON_UNICODE (19 i Underhallslogg), 3 tomma catch (ForstaTimme, HistoriskSammanfattning, KvalitetsTrendbrott, VdDashboard).
+Totalt: 58 buggar. 6 controllers OK.
