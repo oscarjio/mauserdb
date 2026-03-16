@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -152,7 +153,7 @@ export interface ComparisonResponse {
 
 @Injectable({ providedIn: 'root' })
 export class DagligSammanfattningService {
-  private api = '../../noreko-backend/api.php?action=daglig-sammanfattning';
+  private api = `${environment.apiUrl}?action=daglig-sammanfattning`;
 
   constructor(private http: HttpClient) {}
 

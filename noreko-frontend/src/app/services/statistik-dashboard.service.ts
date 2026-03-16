@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ====================================================
 // Interfaces
@@ -120,35 +122,35 @@ export interface ApiResponse<T> {
 
 @Injectable({ providedIn: 'root' })
 export class StatistikDashboardService {
-  private baseUrl = '/noreko-backend/api.php?action=statistikdashboard';
+  private baseUrl = `${environment.apiUrl}?action=statistikdashboard`;
 
   constructor(private http: HttpClient) {}
 
-  getSummary(): Observable<ApiResponse<DashboardSummary>> {
+  getSummary(): Observable<ApiResponse<DashboardSummary> | null> {
     return this.http.get<ApiResponse<DashboardSummary>>(
       `${this.baseUrl}&run=summary`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getProductionTrend(period: number = 30): Observable<ApiResponse<ProductionTrendData>> {
+  getProductionTrend(period: number = 30): Observable<ApiResponse<ProductionTrendData> | null> {
     return this.http.get<ApiResponse<ProductionTrendData>>(
       `${this.baseUrl}&run=production-trend&period=${period}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getDailyTable(): Observable<ApiResponse<DailyTableData>> {
+  getDailyTable(): Observable<ApiResponse<DailyTableData> | null> {
     return this.http.get<ApiResponse<DailyTableData>>(
       `${this.baseUrl}&run=daily-table`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getStatusIndicator(): Observable<ApiResponse<StatusIndicator>> {
+  getStatusIndicator(): Observable<ApiResponse<StatusIndicator> | null> {
     return this.http.get<ApiResponse<StatusIndicator>>(
       `${this.baseUrl}&run=status-indicator`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 }

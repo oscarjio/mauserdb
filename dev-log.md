@@ -1,3 +1,81 @@
+## 2026-03-16 Session #121 Worker B — Buggjakt i frontend services batch 6 + komponent-granskning
+
+### DEL 1: Granskade 15 frontend-services:
+
+**Rena filer (inga buggar):**
+1. alarm-historik.service.ts — OK (environment.apiUrl, timeout, catchError)
+2. andon-board.service.ts — OK (environment.apiUrl, timeout, catchError)
+3. avvikelselarm.service.ts — OK (environment.apiUrl, timeout, catchError)
+4. drifttids-timeline.service.ts — OK (environment.apiUrl, timeout, catchError)
+5. statistik-overblick.service.ts — OK (environment.apiUrl, timeout, catchError)
+6. vd-dashboard.service.ts — OK (environment.apiUrl, timeout, catchError)
+7. veckorapport.service.ts — OK (environment.apiUrl, timeout, catchError)
+
+**Filer med buggar fixade:**
+
+8. **alerts.service.ts (2 buggar):**
+   - Hardkodad URL `/noreko-backend/api.php` — bytt till `environment.apiUrl`
+   - Saknad import av environment
+
+9. **audit.service.ts (5 buggar):**
+   - Hardkodad URL `/noreko-backend/api.php` — bytt till `environment.apiUrl`
+   - Saknad timeout() pa getLogs()
+   - Saknad catchError() pa getLogs()
+   - Saknad timeout()/catchError() pa getStats()
+   - Saknad timeout()/catchError() pa getActions()
+   - Saknade imports: of, timeout, catchError, environment
+
+10. **daglig-sammanfattning.service.ts (2 buggar):**
+    - Relativ URL `../../noreko-backend/api.php` — bytt till `environment.apiUrl`
+    - Saknad import av environment
+
+11. **kvalitetscertifikat.service.ts (2 buggar):**
+    - Relativ URL `../../noreko-backend/api.php` — bytt till `environment.apiUrl`
+    - Saknad import av environment
+
+12. **statistik-dashboard.service.ts (6 buggar):**
+    - Hardkodad URL `/noreko-backend/api.php` — bytt till `environment.apiUrl`
+    - Saknad timeout()/catchError() pa getSummary()
+    - Saknad timeout()/catchError() pa getProductionTrend()
+    - Saknad timeout()/catchError() pa getDailyTable()
+    - Saknad timeout()/catchError() pa getStatusIndicator()
+    - Saknade imports: of, timeout, catchError, environment
+
+13. **underhallslogg.service.ts (2 buggar):**
+    - Hardkodad URL `/noreko-backend/api.php` — bytt till `environment.apiUrl`
+    - Saknad import av environment
+
+14. **underhallsprognos.service.ts (2 buggar):**
+    - Relativ URL `../../noreko-backend/api.php` — bytt till `environment.apiUrl`
+    - Saknad import av environment
+
+15. **users.service.ts (8 buggar):**
+    - Hardkodade URLs i alla 6 metoder — bytt till `environment.apiUrl` via `this.base`
+    - Saknad timeout() pa alla 6 metoder
+    - Saknad catchError() pa alla 6 metoder
+    - Saknade imports: of, timeout, catchError, environment
+
+### DEL 2: Komponent-granskning (14 komponenter):
+
+Granskade foljande .component.ts-filer:
+1. statistik-overblick.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, destroyCharts)
+2. vd-dashboard.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, clearTimeout, chart cleanup)
+3. drifttids-timeline.component.ts — OK (OnInit/OnDestroy, destroy$, takeUntil)
+4. oee-trendanalys.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, clearTimeout, destroyCharts)
+5. operator-ranking.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, clearTimeout, destroyCharts)
+6. tidrapport.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, clearTimeout, chart cleanup)
+7. historisk-sammanfattning.component.ts — OK (OnInit/OnDestroy, destroy$, destroyCharts)
+8. statistik-dashboard.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, clearTimeout, destroyChart)
+9. avvikelselarm.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, chart cleanup)
+10. kvalitetscertifikat.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, chart cleanup)
+11. maskinunderhall.component.ts — OK (OnInit/OnDestroy, destroy$, clearInterval, destroyChart)
+12. vd-veckorapport.component.ts — OK (OnInit/OnDestroy, destroy$, chart cleanup)
+13. maintenance-log 5 sub-components — Alla OK (destroy$, takeUntil, environment.apiUrl, timeout, catchError)
+
+### Totalt: 29 buggar fixade i 8 filer
+
+---
+
 ## 2026-03-16 Session #121 Worker A — Buggjakt i backend controllers batch 1
 
 ### Granskade filer (13 controllers):

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface AuditEntry {
   id: number;
@@ -24,7 +26,7 @@ export interface AuditStats {
 
 @Injectable({ providedIn: 'root' })
 export class AuditService {
-  private base = '/noreko-backend/api.php?action=audit';
+  private base = `${environment.apiUrl}?action=audit`;
 
   constructor(private http: HttpClient) {}
 
@@ -49,14 +51,23 @@ export class AuditService {
     if (params.search)        url += `&search=${encodeURIComponent(params.search)}`;
     if (params.from_date)     url += `&from_date=${encodeURIComponent(params.from_date)}`;
     if (params.to_date)       url += `&to_date=${encodeURIComponent(params.to_date)}`;
-    return this.http.get<any>(url, { withCredentials: true });
+    return this.http.get<any>(url, { withCredentials: true }).pipe(
+      timeout(15000),
+      catchError(() => of({ success: false, data: [], total: 0, page: 1, pages: 0, hasMore: false }))
+    );
   }
 
-  getStats(period: string = 'month'): Observable<{ success: boolean; data: AuditStats }> {
-    return this.http.get<any>(`${this.base}&run=stats&period=${period}`, { withCredentials: true });
+  getStats(period: string = 'month'): Observable<{ success: boolean; data: AuditStats | null }> {
+    return this.http.get<any>(`${this.base}&run=stats&period=${period}`, { withCredentials: true }).pipe(
+      timeout(15000),
+      catchError(() => of({ success: false, data: null as AuditStats | null }))
+    );
   }
 
   getActions(): Observable<{ success: boolean; data: string[] }> {
-    return this.http.get<any>(`${this.base}&run=actions`, { withCredentials: true });
+    return this.http.get<any>(`${this.base}&run=actions`, { withCredentials: true }).pipe(
+      timeout(10000),
+      catchError(() => of({ success: false, data: [] }))
+    );
   }
 }

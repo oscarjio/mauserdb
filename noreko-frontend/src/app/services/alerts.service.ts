@@ -2,6 +2,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject, timer } from 'rxjs';
 import { catchError, of, switchMap, takeUntil, timeout } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 // ================================================================
 // Interfaces
@@ -79,7 +80,7 @@ export interface AlertCheckResponse {
 
 @Injectable({ providedIn: 'root' })
 export class AlertsService implements OnDestroy {
-  private readonly base = '/noreko-backend/api.php?action=alerts';
+  private readonly base = `${environment.apiUrl}?action=alerts`;
   private readonly POLL_INTERVAL_MS = 60_000; // 60 sekunder
 
   /** BehaviorSubject med aktiva alerts — uppdateras var 60:e sekund */

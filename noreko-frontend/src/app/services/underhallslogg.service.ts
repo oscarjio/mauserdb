@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // Legacy interfaces (backward compatibility)
 export interface UnderhallKategori {
@@ -79,7 +80,7 @@ export interface ManadsChartData {
 
 @Injectable({ providedIn: 'root' })
 export class UnderhallsloggService {
-  private base = '/noreko-backend/api.php?action=underhallslogg';
+  private base = `${environment.apiUrl}?action=underhallslogg`;
 
   constructor(private http: HttpClient) {}
 
