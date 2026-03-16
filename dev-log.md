@@ -1,3 +1,75 @@
+## 2026-03-16 Session #124 Worker B — Template null-safety audit + services re-audit
+
+### DEL 1: Template null-safety audit av 19 page-komponenter
+
+**Granskade alla 19 specificerade page-komponenter (template + TS):**
+1. daglig-sammanfattning — OK
+2. drifttids-timeline — OK
+3. effektivitet — OK
+4. feedback-analys — OK
+5. historisk-sammanfattning — OK
+6. kassations-drilldown — OK
+7. kvalitetstrend — OK
+8. morgonrapport — OK
+9. oee-trendanalys — OK
+10. oee-waterfall — OK
+11. operator-dashboard — OK
+12. operator-ranking — OK
+13. pareto — OK
+14. produktionsprognos — OK
+15. skiftjamforelse — OK
+16. statistik-overblick — OK
+17. vd-dashboard — OK
+18. veckorapport — OK
+
+Alla 19 sidor har korrekt:
+- `*ngIf` guards pa all datadependent rendering
+- `?.` safe navigation overallt
+- `takeUntil(this.destroy$)` pa alla subscriptions
+- `clearInterval`/`clearTimeout` i ngOnDestroy
+- Chart.js destroy i ngOnDestroy
+- `Math = Math` dar templates anvander Math
+- `trackBy` pa alla `*ngFor`
+
+**0 buggar hittade i templates.**
+
+### DEL 2: Services re-audit + utokad granskning
+
+**Granskade 10 services fran sessioner #119-#122 (alla rena):**
+1. oee-benchmark.service.ts — OK
+2. oee-trendanalys.service.ts — OK
+3. operator-ranking.service.ts — OK
+4. produktionsflode.service.ts — OK
+5. produktionskalender.service.ts — OK
+6. vd-dashboard.service.ts — OK
+7. veckorapport.service.ts — OK
+8. kassations-drilldown.service.ts — OK
+9. feedback-analys.service.ts — OK
+10. daglig-sammanfattning.service.ts — OK
+
+**Utokad granskning: hittade 9 services med hardkodade URLer (ej environment.apiUrl):**
+
+**Filer med buggar fixade (18 buggar i 9 filer):**
+
+1. **narvarotracker.service.ts (3 buggar):** hardkodad URL, saknad timeout, saknad catchError
+2. **produkttyp-effektivitet.service.ts (4 buggar):** hardkodad URL, saknad catchError pa 3 metoder
+3. **malhistorik.service.ts (1 bugg):** relativ URL `../../noreko-backend/api.php`
+4. **cykeltid-heatmap.service.ts (1 bugg):** relativ URL `../../noreko-backend/api.php`
+5. **batch-sparning.service.ts (1 bugg):** relativ URL `../../noreko-backend/api.php`
+6. **bonus-admin.service.ts (1 bugg):** hardkodad URL `/noreko-backend/api.php`
+7. **bonus.service.ts (1 bugg):** hardkodad URL `/noreko-backend/api.php`
+8. **feature-flag.service.ts (1 bugg):** hardkodad URL `/noreko-backend/api.php`
+9. **line-skiftrapport.service.ts (5 buggar):** hardkodad URL + saknad timeout/catchError pa 7 metoder
+
+### Buggtyper:
+- **Hardkodad/relativ URL istallet for environment.apiUrl**: 9 buggar
+- **Saknad catchError**: 5 buggar (narvarotracker, produkttyp-effektivitet x3, line-skiftrapport)
+- **Saknad timeout**: 4 buggar (narvarotracker, line-skiftrapport)
+
+**Totalt: 18 buggar fixade i 9 filer. Build OK.**
+
+---
+
 ## 2026-03-16 Session #124 Worker A — Buggjakt i PHP backend-controllers batch 5
 
 ### Granskade 17 PHP backend-controllers (classes/ + controllers/):
