@@ -1,3 +1,46 @@
+## 2026-03-16 Session #115 Worker B — Buggjakt i 10 backend-controllers (3 grupper)
+
+### Granskade controllers (10 st):
+**Grupp 1 - Stopporsak:** StopporsakController, StopporsakOperatorController, StopptidsanalysController
+**Grupp 2 - Skift:** SkiftplaneringController, SkiftoverlamningController, SkiftjamforelseController
+**Grupp 3 - OEE/Statistik:** OeeTrendanalysController, OeeWaterfallController, StatistikDashboardController, StatistikOverblickController
+
+### Buggar fixade (20 st):
+
+**1. Saknad JSON_UNESCAPED_UNICODE (3 st):**
+- `classes/StatistikDashboardController.php` rad 72: sendError() saknade JSON_UNESCAPED_UNICODE — svenska tecken i felmeddelanden blev mojibake
+- `classes/SkiftplaneringController.php` rad 70: requireLogin() echo saknade JSON_UNESCAPED_UNICODE
+- `classes/SkiftoverlamningController.php` rad 101: requireLogin() echo saknade JSON_UNESCAPED_UNICODE
+
+**2. Session-locking bugg (1 st):**
+- `classes/SkiftplaneringController.php` rad 66: `session_start()` utan `read_and_close => true` — orsakade session-locking for alla GET-requests. Fixat till `session_start(['read_and_close' => true])`
+
+**3. operators.id vs operators.number forvaxling (2 st):**
+- `classes/SkiftplaneringController.php` rad 123 `getOperatorName()`: Anvande `WHERE id = ?` istallet for `WHERE number = ?`. Fixat med number-forst och id-fallback
+- `classes/SkiftplaneringController.php` rad 289 `getSchedule()`: Operator lookup anvande bara `WHERE id IN` — lagt till `OR number IN` for att hitta ratt operatorsnamn
+
+**4. Tomma catch-block utan $e-variabel och error_log (14 st):**
+- `classes/StopporsakController.php` rad 126: tableExists() PDOException
+- `classes/StopporsakOperatorController.php` rad 419: getOperatorDetail username PDOException
+- `classes/SkiftplaneringController.php` rad 295: getSchedule operators PDOException
+- `classes/SkiftplaneringController.php` rad 466: getShiftDetail rebotling_log PDOException
+- `classes/SkiftplaneringController.php` rad 641: getCapacity rebotling_log PDOException
+- `classes/SkiftplaneringController.php` rad 670: getOperators PDOException
+- `classes/SkiftoverlamningController.php` rad 298: getAktuelltSkift aktivNu PDOException
+- `classes/SkiftoverlamningController.php` rad 903: createHandover username PDOException
+- `classes/SkiftoverlamningController.php` rad 1091: getSkiftdata stopp PDOException
+- `classes/SkiftjamforelseController.php` rad 184: getStopptidPerSkift PDOException
+- `classes/SkiftjamforelseController.php` rad 215: getStationer Exception
+- `classes/OeeTrendanalysController.php` rad 95: getStationer Exception
+- `classes/OeeTrendanalysController.php` rad 226: calcOeePerStation drifttid Exception
+- `classes/OeeTrendanalysController.php` rad 579: flaskhalsar stopporsaker Exception
+- `classes/StatistikOverblickController.php` rad 145: getKpi prev Exception
+- `classes/StatistikOverblickController.php` rad 386: calcOeeForDay onoff Exception
+- `classes/StatistikOverblickController.php` rad 410: calcOeeForDay ibc Exception
+- `classes/StatistikDashboardController.php` rad 572: getStatusIndicator stoppage_log PDOException
+
+---
+
 ## 2026-03-16 Session #114 Worker A — JSON_UNESCAPED_UNICODE audit + SQL-injection fix + Rebotling-granskning
 
 ### DEL 1 — Rebotling-controllers djupgranskning:

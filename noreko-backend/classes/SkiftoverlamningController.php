@@ -98,7 +98,7 @@ class SkiftoverlamningController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -295,7 +295,9 @@ class SkiftoverlamningController {
                 $aStmt = $this->pdo->query("SELECT running FROM rebotling_onoff ORDER BY datum DESC LIMIT 1");
                 $row = $aStmt->fetch(\PDO::FETCH_ASSOC);
                 $aktivNu = $row ? (bool)$row['running'] : false;
-            } catch (\PDOException) {}
+            } catch (\PDOException $e) {
+                error_log('SkiftoverlamningController getAktuelltSkift aktivNu: ' . $e->getMessage());
+            }
 
             $this->sendSuccess([
                 'skift_typ'       => $skiftTyp,
@@ -900,7 +902,9 @@ class SkiftoverlamningController {
                 $uStmt->execute([$userId]);
                 $uRow = $uStmt->fetch(\PDO::FETCH_ASSOC);
                 $username = $uRow['username'] ?? null;
-            } catch (\PDOException) {}
+            } catch (\PDOException $e) {
+                error_log('SkiftoverlamningController createHandover username lookup: ' . $e->getMessage());
+            }
         }
 
         $skiftTyp = $data['skift_typ'] ?? '';
@@ -1084,8 +1088,8 @@ class SkiftoverlamningController {
                 $stoppAntal = (int)($stoppRow['antal'] ?? 0);
                 // Stopptid = planerad tid minus drifttid
                 $stoppMinuter = max(0, round(($planeradSek - $drifttidSek) / 60));
-            } catch (\PDOException) {
-                // Enkel fallback: total schema minus drifttid
+            } catch (\PDOException $e) {
+                error_log('SkiftoverlamningController getSkiftdata stopp: ' . $e->getMessage());
                 $stoppMinuter = max(0, round((($planeradSek - $drifttidSek) / 60)));
             }
 

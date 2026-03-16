@@ -416,7 +416,8 @@ class StopporsakOperatorController {
                 $stmt->execute([$operatorId]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $operatörNamn = $row ? $row['username'] : "Operatör #{$operatorId}";
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                error_log('StopporsakOperatorController::getOperatorDetail username: ' . $e->getMessage());
                 $operatörNamn = "Operatör #{$operatorId}";
             }
         }

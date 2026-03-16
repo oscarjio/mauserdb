@@ -142,7 +142,9 @@ class StatistikOverblickController {
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $prevKasserade = (int)($row['kasserade'] ?? 0);
                 $prevTotalIbc = (int)($row['ok_ibc'] ?? 0) + $prevKasserade;
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('StatistikOverblickController::getKpi prev: ' . $e->getMessage());
+            }
 
             $prevKassationsrate = $prevTotalIbc > 0 ? round(($prevKasserade / $prevTotalIbc) * 100, 2) : 0;
 
@@ -383,7 +385,9 @@ class StatistikOverblickController {
                 $prevRunning = $running;
             }
             $drifttidSek = max(0, $drifttidSek);
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('StatistikOverblickController::calcOeeForDay onoff: ' . $e->getMessage());
+        }
 
         $schemaSek = self::SCHEMA_SEK_PER_DAG;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
@@ -407,7 +411,9 @@ class StatistikOverblickController {
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('StatistikOverblickController::calcOeeForDay ibc: ' . $e->getMessage());
+        }
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
         $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;

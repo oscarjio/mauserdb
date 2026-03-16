@@ -69,7 +69,7 @@ class StatistikDashboardController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -569,7 +569,9 @@ class StatistikDashboardController {
                 $stmtS->execute([':datum' => $today]);
                 $sRow = $stmtS->fetch(\PDO::FETCH_ASSOC);
                 $stoppMinuter = (int)($sRow['total_min'] ?? 0);
-            } catch (\PDOException) { /* tabellen kanske saknas */ }
+            } catch (\PDOException $e) {
+                error_log('StatistikDashboardController::getStatusIndicator stoppage_log: ' . $e->getMessage());
+            }
 
             // Beräkna status
             $problem = [];

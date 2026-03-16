@@ -63,11 +63,11 @@ class SkiftplaneringController {
 
     private function requireLogin(): void {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            session_start(['read_and_close' => true]);
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -120,11 +120,17 @@ class SkiftplaneringController {
      */
     private function getOperatorName(int $id): string {
         try {
-            $stmt = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $stmt = $this->pdo->prepare("SELECT name FROM operators WHERE number = ?");
             $stmt->execute([$id]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-            return $row ? $row['name'] : 'Operatör #' . $id;
-        } catch (\PDOException) {
+            if ($row) return $row['name'];
+            // Fallback: try by id
+            $stmt2 = $this->pdo->prepare("SELECT name FROM operators WHERE id = ?");
+            $stmt2->execute([$id]);
+            $row2 = $stmt2->fetch(\PDO::FETCH_ASSOC);
+            return $row2 ? $row2['name'] : 'Operatör #' . $id;
+        } catch (\PDOException $e) {
+            error_log('SkiftplaneringController getOperatorName: ' . $e->getMessage());
             return 'Operatör #' . $id;
         }
     }
@@ -286,14 +292,16 @@ class SkiftplaneringController {
                 $placeholders = implode(',', array_fill(0, count($operatorIds), '?'));
                 try {
                     $opStmt = $this->pdo->prepare(
-                        "SELECT id, name FROM operators WHERE id IN ($placeholders)"
+                        "SELECT id, number, name FROM operators WHERE number IN ($placeholders) OR id IN ($placeholders)"
                     );
-                    $opStmt->execute(array_values($operatorIds));
+                    $vals = array_values($operatorIds);
+                    $opStmt->execute(array_merge($vals, $vals));
                     while ($op = $opStmt->fetch(\PDO::FETCH_ASSOC)) {
                         $operatorNames[(int)$op['id']] = $op['name'];
+                        $operatorNames[(int)$op['number']] = $op['name'];
                     }
-                } catch (\PDOException) {
-                    // operators-tabellen kanske inte finns
+                } catch (\PDOException $e) {
+                    error_log('SkiftplaneringController getSchedule operators: ' . $e->getMessage());
                 }
             }
 
@@ -463,8 +471,8 @@ class SkiftplaneringController {
                 );
                 $prodStmt->execute([$fromDt, $toDt]);
                 $faktiskProduktion = (int)$prodStmt->fetchColumn();
-            } catch (\PDOException) {
-                // rebotling_log kanske inte finns
+            } catch (\PDOException $e) {
+                error_log('SkiftplaneringController getShiftDetail rebotling_log: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -638,8 +646,8 @@ class SkiftplaneringController {
                 );
                 $val = (float)$ibcStmt->fetchColumn();
                 if ($val > 0) $ibcPerH = round($val, 1);
-            } catch (\PDOException) {
-                // rebotling_log kanske inte finns
+            } catch (\PDOException $e) {
+                error_log('SkiftplaneringController getCapacity rebotling_log: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -667,8 +675,8 @@ class SkiftplaneringController {
                     "SELECT id, name AS namn FROM operators ORDER BY name ASC"
                 );
                 $operatorer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\PDOException) {
-                // operators-tabellen kanske inte finns
+            } catch (\PDOException $e) {
+                error_log('SkiftplaneringController getOperators: ' . $e->getMessage());
             }
 
             $this->sendSuccess(['operatorer' => $operatorer]);

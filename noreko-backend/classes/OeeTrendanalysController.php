@@ -92,8 +92,8 @@ class OeeTrendanalysController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (Exception) {
-            // Tabellen kanske inte finns
+        } catch (Exception $e) {
+            error_log('OeeTrendanalysController::getStationer: ' . $e->getMessage());
         }
 
         // Fallback: harda stationsnamn (typiska for rebotling)
@@ -223,8 +223,8 @@ class OeeTrendanalysController {
                 $driftByStation[(int)$s['id']] = (int)($totalDrift / $stationCount);
             }
             // (Dead code removed: dummy loop with empty array)
-        } catch (Exception) {
-            // Fallback: fordela total drifttid jamt
+        } catch (Exception $e) {
+            error_log('OeeTrendanalysController::calcOeePerStation drifttid: ' . $e->getMessage());
         }
 
         // Om ingen stationsdata i rebotling_onoff, anvand total och fordela
@@ -576,8 +576,8 @@ class OeeTrendanalysController {
                         $stoppInfo[$fItem['station_id']] = $topOrsak;
                     }
                 }
-            } catch (Exception) {
-                // Tabellen kanske inte finns
+            } catch (Exception $e) {
+                error_log('OeeTrendanalysController::flaskhalsar stopporsaker: ' . $e->getMessage());
             }
 
             foreach ($flaskhalsar as &$f) {

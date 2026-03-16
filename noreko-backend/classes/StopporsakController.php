@@ -123,7 +123,8 @@ class StopporsakController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('StopporsakController::tableExists: ' . $e->getMessage());
             return false;
         }
     }
