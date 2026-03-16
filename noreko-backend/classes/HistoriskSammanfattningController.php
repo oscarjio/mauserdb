@@ -141,7 +141,9 @@ class HistoriskSammanfattningController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('HistoriskSammanfattningController::getStationer: ' . $e->getMessage());
+        }
 
         return [
             ['id' => 1, 'namn' => 'Station 1'],
@@ -397,7 +399,8 @@ class HistoriskSammanfattningController {
             $namn = $nameRow ? $nameRow['name'] : "Op #{$opNum}";
 
             return ['op_num' => $opNum, 'namn' => $namn, 'ibc_ok' => $ibcOk];
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('HistoriskSammanfattningController::getTopOperator: ' . $e->getMessage());
             return null;
         }
     }
@@ -749,8 +752,8 @@ class HistoriskSammanfattningController {
                     $stmt->execute([$p['from'], $p['to']]);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
                 }
-            } catch (\Exception) {
-                // Tabellen kanske inte finns
+            } catch (\Exception $e) {
+                error_log('HistoriskSammanfattningController::stopporsaker (inner): ' . $e->getMessage());
             }
 
             // Berakna cumulative % for Pareto

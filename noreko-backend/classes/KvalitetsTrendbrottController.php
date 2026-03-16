@@ -64,7 +64,7 @@ class KvalitetsTrendbrottController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function getPeriod(): int {
@@ -522,8 +522,8 @@ class KvalitetsTrendbrottController {
                     'källa'     => 'stoppage_log',
                 ];
             }
-        } catch (\PDOException) {
-            // Tabellen kanske inte finns
+        } catch (\PDOException $e) {
+            error_log('KvalitetsTrendbrottController::getStopReasons (stoppage_log): ' . $e->getMessage());
         }
 
         // Försök stopporsak_registreringar
@@ -553,8 +553,8 @@ class KvalitetsTrendbrottController {
                     ];
                 }
             }
-        } catch (\PDOException) {
-            // Tabellen kanske inte finns
+        } catch (\PDOException $e) {
+            error_log('KvalitetsTrendbrottController::getStopReasons (stopporsak_registreringar): ' . $e->getMessage());
         }
 
         return $reasons;

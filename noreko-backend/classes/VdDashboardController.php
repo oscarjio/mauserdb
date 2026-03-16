@@ -75,7 +75,8 @@ class VdDashboardController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('VdDashboardController::tableExists: ' . $e->getMessage());
             return false;
         }
     }
@@ -85,7 +86,9 @@ class VdDashboardController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('VdDashboardController::getStationer: ' . $e->getMessage());
+        }
 
         return [
             ['id' => 1, 'namn' => 'Station 1'],
@@ -127,7 +130,9 @@ class VdDashboardController {
         $drifttidSek = 0;
         try {
             $drifttidSek = $this->calcDrifttidSek($from, $to);
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('VdDashboardController::calcOeeForDay (drifttid): ' . $e->getMessage());
+        }
 
         $schemaSek = 8 * 3600;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
@@ -154,7 +159,9 @@ class VdDashboardController {
             $ibcRow = $stmt->fetch(PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('VdDashboardController::calcOeeForDay (ibc): ' . $e->getMessage());
+        }
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
         $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
@@ -196,7 +203,9 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                 $aktivaOperatorer = (int)$stmt->fetchColumn();
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::oversikt (aktiva op ibc): ' . $e->getMessage());
+            }
 
             // Fallback: rebotling_data
             if ($aktivaOperatorer === 0 && $this->tableExists('rebotling_data')) {
@@ -210,7 +219,9 @@ class VdDashboardController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today' => $today]);
                     $aktivaOperatorer = (int)$stmt->fetchColumn();
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('VdDashboardController::oversikt (aktiva op rebotling_data): ' . $e->getMessage());
+                }
             }
 
             // Dagsmal
@@ -224,7 +235,9 @@ class VdDashboardController {
                     if ($row) {
                         $dagsmal = (int)$row['mal_antal'];
                     }
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('VdDashboardController::oversikt (produktionsmal): ' . $e->getMessage());
+                }
             }
 
             // Fallback: berakna snitt fran senaste 30 dagarna
@@ -242,7 +255,9 @@ class VdDashboardController {
                     $stmt = $this->pdo->query($sql);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
                     $dagsmal = (int)($row['avg_ibc'] ?? 0);
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('VdDashboardController::oversikt (snitt ibc fallback): ' . $e->getMessage());
+                }
             }
 
             if ($dagsmal === 0) $dagsmal = 100; // Default
@@ -295,8 +310,8 @@ class VdDashboardController {
                         $s['varaktighet_min'] = (int)$s['varaktighet_min'];
                     }
                     unset($s);
-                } catch (\Exception) {
-                    // Kolumner kan saknas
+                } catch (\Exception $e) {
+                    error_log('VdDashboardController::stoppNu (stopporsak_registreringar): ' . $e->getMessage());
                 }
             }
 
@@ -308,7 +323,9 @@ class VdDashboardController {
                 if ($row && !(int)$row['running']) {
                     $stoppadeStationer[] = ['station_id' => 0, 'senaste_stopp' => $row['datum']];
                 }
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::stoppNu (rebotling_onoff): ' . $e->getMessage());
+            }
 
             $this->sendSuccess([
                 'aktiva_stopp'       => $aktivaStopp,
@@ -359,7 +376,9 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':today1' => $today, ':today2' => $today, ':today3' => $today]);
                 $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::topOperatorer (ibc): ' . $e->getMessage());
+            }
 
             // Fallback: rebotling_data
             if (empty($operators) && $this->tableExists('rebotling_data')) {
@@ -380,7 +399,9 @@ class VdDashboardController {
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':today' => $today]);
                     $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('VdDashboardController::topOperatorer (rebotling_data): ' . $e->getMessage());
+                }
             }
 
             // Lagg till rank
@@ -436,7 +457,9 @@ class VdDashboardController {
                     $ibcByStation[$sid]['ok_ibc']    += (int)$row['ok_ibc'];
                     $ibcByStation[$sid]['total_ibc'] += (int)$row['ok_ibc'] + (int)$row['ej_ok_ibc'];
                 }
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::stationOee (ibc): ' . $e->getMessage());
+            }
 
             // Hamta total drifttid (rebotling_onoff har datum + running, ej per station)
             $totalDrifttidSek = 0;
@@ -444,7 +467,9 @@ class VdDashboardController {
                 $from = $today . ' 00:00:00';
                 $to   = $today . ' 23:59:59';
                 $totalDrifttidSek = $this->calcDrifttidSek($from, $to);
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::stationOee (drifttid): ' . $e->getMessage());
+            }
             // Dela drifttid lika mellan stationer (onoff saknar station_id)
             $driftByStation = [];
             $stationCount = max(1, count($stationer));
@@ -571,7 +596,9 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from' => $skiftFromTime, ':to' => $skiftToTime]);
                 $ibcAktuellt = (int)$stmt->fetchColumn();
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::skiftstatus (aktuellt ibc): ' . $e->getMessage());
+            }
 
             // IBC for forra skiftet (samma typ, igår)
             $ibcForra = 0;
@@ -590,7 +617,9 @@ class VdDashboardController {
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from' => $fFrom, ':to' => $fTo]);
                 $ibcForra = (int)$stmt->fetchColumn();
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('VdDashboardController::skiftstatus (forra ibc): ' . $e->getMessage());
+            }
 
             $this->sendSuccess([
                 'skift'           => $skift,

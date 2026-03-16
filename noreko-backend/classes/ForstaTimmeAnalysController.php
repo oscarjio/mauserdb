@@ -84,7 +84,8 @@ class ForstaTimmeAnalysController {
         try {
             $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc")->fetchAll(PDO::FETCH_COLUMN);
             return in_array('timestamp', $cols) ? 'timestamp' : 'datum';
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('ForstaTimmeAnalysController::getIbcTimestampColumn: ' . $e->getMessage());
             return 'datum';
         }
     }

@@ -1,3 +1,55 @@
+## 2026-03-16 Session #116 Worker B — Buggjakt i 10 backend-controllers (2 grupper)
+
+### Granskade controllers (10 st):
+**Grupp 1 - Diverse:** AlarmHistorikController, DrifttidsTimelineController, FavoriterController, ForstaTimmeAnalysController, HeatmapController
+**Grupp 2 - Fler diverse:** HistoriskSammanfattningController, KvalitetsTrendbrottController, ParetoController, UnderhallsloggController, VdDashboardController
+
+### Buggar fixade (24 st):
+
+**1. Saknad JSON_UNESCAPED_UNICODE (21 st):**
+- `classes/FavoriterController.php` rad 217: sendSuccess() saknade JSON_UNESCAPED_UNICODE — svenska tecken i favorit-labels blev mojibake
+- `classes/KvalitetsTrendbrottController.php` rad 67: sendError() saknade JSON_UNESCAPED_UNICODE — svenska felmeddelanden blev mojibake
+- `classes/UnderhallsloggController.php` rad 54: 401-svar saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 76: GET felmeddelande saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 89: POST felmeddelande saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 95: 405-svar saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 167: sendSuccess() saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 527: getCategories() svar saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 531: getCategories() fel saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 539-565: logUnderhall() 4 json_encode saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 577: logUnderhall() success saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 585: logUnderhall() error saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 622: getList() svar saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 626: getList() fel saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 667: getStats() svar saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 683: getStats() fel saknade JSON_UNESCAPED_UNICODE
+- `classes/UnderhallsloggController.php` rad 693-725: deleteEntry() 6 json_encode saknade JSON_UNESCAPED_UNICODE
+
+**2. Tomma catch-block utan $e-variabel och error_log (3 st):**
+- `classes/ForstaTimmeAnalysController.php` rad 87: catch (\Exception) utan $e och error_log i getIbcTimestampColumn()
+- `classes/HistoriskSammanfattningController.php` rad 144: catch (\Exception) utan $e och error_log i getStationer()
+- `classes/HistoriskSammanfattningController.php` rad 400: catch (\Exception) utan $e och error_log i getTopOperator()
+- `classes/HistoriskSammanfattningController.php` rad 752: catch (\Exception) utan $e och error_log i stopporsaker() inner
+- `classes/KvalitetsTrendbrottController.php` rad 525: catch (\PDOException) utan $e och error_log i getStopReasons() stoppage_log
+- `classes/KvalitetsTrendbrottController.php` rad 556: catch (\PDOException) utan $e och error_log i getStopReasons() stopporsak_registreringar
+- `classes/VdDashboardController.php` rad 78: catch (\PDOException) utan $e i tableExists()
+- `classes/VdDashboardController.php` rad 88: catch (\Exception) utan $e i getStationer()
+- `classes/VdDashboardController.php` rad 130: catch (\Exception) utan $e i calcOeeForDay() drifttid
+- `classes/VdDashboardController.php` rad 157: catch (\Exception) utan $e i calcOeeForDay() ibc
+- `classes/VdDashboardController.php` rad 199-245: 4x catch (\Exception) utan $e i oversikt()
+- `classes/VdDashboardController.php` rad 298-311: 2x catch (\Exception) utan $e i stoppNu()
+- `classes/VdDashboardController.php` rad 362-383: 2x catch (\Exception) utan $e i topOperatorer()
+- `classes/VdDashboardController.php` rad 439-447: 2x catch (\Exception) utan $e i stationOee()
+- `classes/VdDashboardController.php` rad 574-593: 2x catch (\Exception) utan $e i skiftstatus()
+
+### Controllers granskade utan fynd (OK):
+- `classes/AlarmHistorikController.php` — alla json_encode har JSON_UNESCAPED_UNICODE, prepared statements, catch med error_log, division-by-zero skydd
+- `classes/DrifttidsTimelineController.php` — alla json_encode har JSON_UNESCAPED_UNICODE, alla catch har $e och error_log, korrekt felhantering
+- `classes/HeatmapController.php` — alla json_encode har JSON_UNESCAPED_UNICODE, prepared statements, division-by-zero skydd
+- `classes/ParetoController.php` — alla json_encode har JSON_UNESCAPED_UNICODE, prepared statements, catch med error_log, division-by-zero skydd
+
+---
+
 ## 2026-03-16 Session #115 Worker A — Buggjakt i 7 backend-controllers (2 grupper)
 
 ### Granskade controllers (7 st):
