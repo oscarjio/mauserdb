@@ -167,21 +167,21 @@ class RebotlingController {
             } elseif ($action === 'events') {
                 $this->getEvents();
             } elseif ($action === 'stoppage-analysis') {
-                $this->getStoppageAnalysis();
+                $this->analyticsController->getStoppageAnalysis();
             } elseif ($action === 'pareto-stoppage') {
-                $this->getParetoStoppage();
+                $this->analyticsController->getParetoStoppage();
             } elseif ($action === 'alert-thresholds') {
-                $this->getAlertThresholds();
+                $this->adminController->getAlertThresholds();
             } elseif ($action === 'today-snapshot') {
-                $this->getTodaySnapshot();
+                $this->adminController->getTodaySnapshot();
             } elseif ($action === 'cycle-by-operator') {
-                $this->getCycleByOperator();
+                $this->analyticsController->getCycleByOperator();
             } elseif ($action === 'shift-trend') {
-                $this->getShiftTrend();
+                $this->analyticsController->getShiftTrend();
             } elseif ($action === 'all-lines-status') {
-                $this->getAllLinesStatus();
+                $this->adminController->getAllLinesStatus();
             } elseif ($action === 'notification-settings') {
-                $this->getNotificationSettings();
+                $this->adminController->getNotificationSettings();
             } elseif ($action === 'live-ranking-settings') {
                 $this->getLiveRankingSettings();
             } elseif ($action === 'personal-bests') {

@@ -1090,7 +1090,7 @@ class BonusAdminController {
             // Försök logga audit
             try {
                 $this->logAudit('create', 'bonus_payout', (int)$newId, null, [
-                    'op_id' => $op_id, 'amount_sek' => $amount_sek, 'period' => "$period_start–$period_end"
+                    'op_id' => $op_id, 'amount_sek' => $amount_sek, 'period' => "{$period_start}–{$period_end}"
                 ]);
             } catch (Exception $ae) {
                 // audit-logg är ej kritisk
