@@ -107,7 +107,7 @@ class DagligSammanfattningController {
                 MIN(time_of_day) AS skift_start,
                 MAX(time_of_day) AS skift_slut
              FROM rebotling_ibc
-             WHERE DATE(created_at) = ?
+             WHERE DATE(datum) = ?
              GROUP BY skiftraknare
              HAVING COUNT(*) > 1
              ORDER BY skiftraknare ASC"
@@ -300,7 +300,7 @@ class DagligSammanfattningController {
                     ) AS cycle_sek,
                     skiftraknare
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = :d1 AND op1 IS NOT NULL AND op1 > 0
+                WHERE DATE(datum) = :d1 AND op1 IS NOT NULL AND op1 > 0
                 UNION ALL
                 SELECT op2 AS op_num,
                     TIMESTAMPDIFF(SECOND,
@@ -309,7 +309,7 @@ class DagligSammanfattningController {
                     ) AS cycle_sek,
                     skiftraknare
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = :d2 AND op2 IS NOT NULL AND op2 > 0
+                WHERE DATE(datum) = :d2 AND op2 IS NOT NULL AND op2 > 0
                 UNION ALL
                 SELECT op3 AS op_num,
                     TIMESTAMPDIFF(SECOND,
@@ -318,7 +318,7 @@ class DagligSammanfattningController {
                     ) AS cycle_sek,
                     skiftraknare
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = :d3 AND op3 IS NOT NULL AND op3 > 0
+                WHERE DATE(datum) = :d3 AND op3 IS NOT NULL AND op3 > 0
              ) lagd
              WHERE cycle_sek >= 30 AND cycle_sek <= 1800
              GROUP BY op_num
@@ -442,7 +442,7 @@ class DagligSammanfattningController {
             "SELECT SUM(max_ok) AS ibc_ok FROM (
                 SELECT skiftraknare, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = ?
+                WHERE DATE(datum) = ?
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
              ) skiften"
@@ -478,7 +478,7 @@ class DagligSammanfattningController {
                 "SELECT SUM(max_ok) AS ibc FROM (
                     SELECT MAX(ibc_ok) AS max_ok
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) = ?
+                    WHERE DATE(datum) = ?
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) t"

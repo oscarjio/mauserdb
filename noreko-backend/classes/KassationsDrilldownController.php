@@ -248,7 +248,7 @@ class KassationsDrilldownController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsDrilldownController::getReasonDetail: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -304,7 +304,7 @@ class KassationsDrilldownController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsDrilldownController::getTrend: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 }

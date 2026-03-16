@@ -160,7 +160,7 @@ class HeatmapController {
             ]);
         } catch (\PDOException $e) {
             error_log('HeatmapController::getHeatmapData: ' . $e->getMessage());
-            $this->sendError('Databasfel vid hamtning av heatmap-data');
+            $this->sendError('Databasfel vid hamtning av heatmap-data', 500);
         }
     }
 

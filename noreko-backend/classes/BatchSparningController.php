@@ -322,8 +322,8 @@ class BatchSparningController {
                             $operatorer[$opId]['namn'] = $op['namn'];
                         }
                     }
-                } catch (\PDOException) {
-                    // Tabellen kanske inte finns — ignorera
+                } catch (\PDOException $e) {
+                    error_log('BatchSparningController::getBatchDetail (operators): ' . $e->getMessage());
                 }
             }
 

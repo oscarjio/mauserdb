@@ -50,7 +50,7 @@ class KassationsorsakController {
             case 'per-operator':  $this->getPerOperator();  break;
             case 'per-shift':     $this->getPerShift();     break;
             case 'drilldown':     $this->getDrilldown();    break;
-            default:              $this->sendError('Ogiltig run: ' . $run); break;
+            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 
@@ -139,7 +139,8 @@ class KassationsorsakController {
                 $map[(int)$row['number']] = $row['name'];
             }
             return $map;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KassationsorsakController::getOperatorNames: ' . $e->getMessage());
             return [];
         }
     }
@@ -284,7 +285,7 @@ class KassationsorsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsorsakController::getPareto: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -369,7 +370,7 @@ class KassationsorsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsorsakController::getTrend: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -474,7 +475,7 @@ class KassationsorsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsorsakController::getPerOperator: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -549,7 +550,7 @@ class KassationsorsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsorsakController::getPerShift: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -643,7 +644,7 @@ class KassationsorsakController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationsorsakController::getDrilldown: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 }

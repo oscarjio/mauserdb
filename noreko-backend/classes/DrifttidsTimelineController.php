@@ -449,7 +449,7 @@ class DrifttidsTimelineController {
             ]);
         } catch (\Exception $e) {
             error_log('DrifttidsTimelineController::getTimelineData: ' . $e->getMessage());
-            $this->sendError('Kunde inte hämta timeline-data');
+            $this->sendError('Kunde inte hämta timeline-data', 500);
         }
     }
 
@@ -507,7 +507,7 @@ class DrifttidsTimelineController {
             ]);
         } catch (\Exception $e) {
             error_log('DrifttidsTimelineController::getSummary: ' . $e->getMessage());
-            $this->sendError('Kunde inte beräkna summary');
+            $this->sendError('Kunde inte beräkna summary', 500);
         }
     }
 }

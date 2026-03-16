@@ -119,7 +119,7 @@ class FeedbackAnalysController {
                         f.stämning AS stamning,
                         f.kommentar, f.skapad_at
                  FROM operator_feedback f
-                 LEFT JOIN operators o ON o.id = f.operator_id
+                 LEFT JOIN operators o ON o.number = f.operator_id
                  WHERE {$whereStr}
                  ORDER BY f.skapad_at DESC
                  LIMIT :lim OFFSET :off"
@@ -212,7 +212,7 @@ class FeedbackAnalysController {
                         COALESCE(o.name, CONCAT('Operatör #', f.operator_id)) AS namn,
                         COUNT(*) AS antal
                  FROM operator_feedback f
-                 LEFT JOIN operators o ON o.id = f.operator_id
+                 LEFT JOIN operators o ON o.number = f.operator_id
                  WHERE f.datum >= :from
                  GROUP BY f.operator_id
                  ORDER BY antal DESC
@@ -320,7 +320,7 @@ class FeedbackAnalysController {
                          ORDER BY f2.skapad_at DESC LIMIT 1
                         ) AS senaste_kommentar
                  FROM operator_feedback f
-                 LEFT JOIN operators o ON o.id = f.operator_id
+                 LEFT JOIN operators o ON o.number = f.operator_id
                  WHERE f.datum >= :from
                  GROUP BY f.operator_id
                  ORDER BY snitt_stamning DESC"

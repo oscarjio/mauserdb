@@ -172,7 +172,7 @@ class HistoriskSammanfattningController {
                     MAX(ibc_ej_ok)   AS max_ej_ok,
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
-                WHERE DATE(created_at) BETWEEN ? AND ?
+                WHERE DATE(datum) BETWEEN ? AND ?
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
              ) s"
@@ -226,7 +226,7 @@ class HistoriskSammanfattningController {
     private function perioder(): void {
         try {
             // Hitta min/max datum fran rebotling_ibc
-            $stmt = $this->pdo->query("SELECT MIN(DATE(created_at)) AS min_date, MAX(DATE(created_at)) AS max_date FROM rebotling_ibc");
+            $stmt = $this->pdo->query("SELECT MIN(DATE(datum)) AS min_date, MAX(DATE(datum)) AS max_date FROM rebotling_ibc");
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             $minDate = $row['min_date'] ?? date('Y-m-01');
@@ -376,7 +376,7 @@ class HistoriskSammanfattningController {
                         MIN(NULLIF(op1, 0)) AS op1,
                         MAX(ibc_ok) AS max_ok
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) BETWEEN ? AND ?
+                    WHERE DATE(datum) BETWEEN ? AND ?
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
@@ -419,7 +419,7 @@ class HistoriskSammanfattningController {
                     MAX(ibc_ej_ok)   AS max_ej_ok,
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
-                WHERE DATE(created_at) BETWEEN ? AND ?
+                WHERE DATE(datum) BETWEEN ? AND ?
                   AND COALESCE(station_id, 1) = ?
                 GROUP BY skiftraknare
                 HAVING COUNT(*) > 1
@@ -471,7 +471,7 @@ class HistoriskSammanfattningController {
             // OEE/IBC per dag
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    DATE(created_at) AS datum,
+                    DATE(datum) AS datum,
                     COUNT(DISTINCT skiftraknare) AS antal_skift,
                     SUM(max_ok) AS ibc_ok,
                     SUM(max_ej_ok) AS ibc_ej_ok,
@@ -479,16 +479,16 @@ class HistoriskSammanfattningController {
                  FROM (
                     SELECT
                         skiftraknare,
-                        DATE(created_at) AS created_at,
+                        DATE(datum) AS datum,
                         MAX(ibc_ok)      AS max_ok,
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) BETWEEN ? AND ?
-                    GROUP BY skiftraknare, DATE(created_at)
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                    GROUP BY skiftraknare, DATE(datum)
                     HAVING COUNT(*) > 1
                  ) s
-                 GROUP BY DATE(created_at)
+                 GROUP BY DATE(datum)
                  ORDER BY datum"
             );
             $stmt->execute([$from, $to]);
@@ -579,7 +579,7 @@ class HistoriskSammanfattningController {
                         MAX(ibc_ej_ok)   AS max_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) BETWEEN ? AND ?
+                    WHERE DATE(datum) BETWEEN ? AND ?
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
@@ -602,7 +602,7 @@ class HistoriskSammanfattningController {
                         MIN(NULLIF(op1, 0)) AS op1,
                         MAX(ibc_ok) AS max_ok
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) BETWEEN ? AND ?
+                    WHERE DATE(datum) BETWEEN ? AND ?
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s

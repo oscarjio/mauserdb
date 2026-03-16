@@ -311,7 +311,7 @@ class KassationskvotAlarmController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationskvotAlarmController::getAlarmHistorik: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -363,7 +363,7 @@ class KassationskvotAlarmController {
             $this->sendSuccess(['varning_procent' => $varning, 'alarm_procent' => $alarm]);
         } catch (\PDOException $e) {
             error_log('KassationskvotAlarmController::sparaTroskel: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -423,7 +423,7 @@ class KassationskvotAlarmController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationskvotAlarmController::getTimvisTrend: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -487,7 +487,7 @@ class KassationskvotAlarmController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationskvotAlarmController::getPerSkift: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 
@@ -557,7 +557,7 @@ class KassationskvotAlarmController {
             ]);
         } catch (\PDOException $e) {
             error_log('KassationskvotAlarmController::getTopOrsaker: ' . $e->getMessage());
-            $this->sendError('Databasfel');
+            $this->sendError('Databasfel', 500);
         }
     }
 }
