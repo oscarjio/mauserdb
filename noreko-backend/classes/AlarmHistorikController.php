@@ -117,7 +117,7 @@ class AlarmHistorikController {
                     TIME(sl.start_time)           AS tid,
                     sl.duration_minutes           AS varaktighet_min,
                     COALESCE(sr.name, 'Okand orsak') AS orsak,
-                    sl.notes
+                    sl.comment AS notes
                 FROM stoppage_log sl
                 LEFT JOIN stoppage_reasons sr ON sr.id = sl.reason_id
                 WHERE DATE(sl.start_time) BETWEEN :from_date AND :to_date
@@ -187,7 +187,7 @@ class AlarmHistorikController {
             $goals = [];
             $goalCheck = $this->pdo->query("SHOW TABLES LIKE 'rebotling_weekday_goals'");
             if ($goalCheck && $goalCheck->rowCount() > 0) {
-                $goalStmt = $this->pdo->query("SELECT weekday, goal FROM rebotling_weekday_goals");
+                $goalStmt = $this->pdo->query("SELECT weekday, daily_goal AS goal FROM rebotling_weekday_goals");
                 foreach ($goalStmt->fetchAll(\PDO::FETCH_ASSOC) as $g) {
                     $goals[(int)$g['weekday']] = (int)$g['goal'];
                 }

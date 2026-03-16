@@ -40,7 +40,7 @@ class ProduktionsPrognosController {
         switch ($run) {
             case 'forecast':      $this->getForecast();     break;
             case 'shift-history': $this->getShiftHistory(); break;
-            default:              $this->sendError('Ogiltig run: ' . $run); break;
+            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 

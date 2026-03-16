@@ -53,7 +53,7 @@ class KassationsanalysController {
             case 'per-station':    $this->getPerStation();     break;
             case 'per-operator':   $this->getPerOperator();    break;
             case 'detaljer':       $this->getDetaljer();       break;
-            default:              $this->sendError('Ogiltig run: ' . $run); break;
+            default:              $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 
@@ -544,9 +544,9 @@ class KassationsanalysController {
                             o3.name AS op3_namn,
                             i.op1, i.op2, i.op3
                         FROM rebotling_ibc i
-                        LEFT JOIN operators o1 ON o1.id = i.op1
-                        LEFT JOIN operators o2 ON o2.id = i.op2
-                        LEFT JOIN operators o3 ON o3.id = i.op3
+                        LEFT JOIN operators o1 ON o1.number = i.op1
+                        LEFT JOIN operators o2 ON o2.number = i.op2
+                        LEFT JOIN operators o3 ON o3.number = i.op3
                         WHERE i.skiftraknare IN ({$placeholders})
                         GROUP BY i.skiftraknare, DATE(i.datum), i.op1, i.op2, i.op3
                         ORDER BY i.skiftraknare
@@ -883,9 +883,9 @@ class KassationsanalysController {
                     $stmtOps = $this->pdo->prepare("
                         SELECT i.skiftraknare, o1.name AS op1, o2.name AS op2, o3.name AS op3
                         FROM rebotling_ibc i
-                        LEFT JOIN operators o1 ON o1.id = i.op1
-                        LEFT JOIN operators o2 ON o2.id = i.op2
-                        LEFT JOIN operators o3 ON o3.id = i.op3
+                        LEFT JOIN operators o1 ON o1.number = i.op1
+                        LEFT JOIN operators o2 ON o2.number = i.op2
+                        LEFT JOIN operators o3 ON o3.number = i.op3
                         WHERE i.skiftraknare IN ({$ph})
                         GROUP BY i.skiftraknare, i.op1, i.op2, i.op3
                     ");
@@ -1437,6 +1437,7 @@ class KassationsanalysController {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
+                    i.id,
                     i.datum,
                     i.skiftraknare,
                     i.ibc_ok,
@@ -1495,7 +1496,7 @@ class KassationsanalysController {
                 $result[] = [
                     'id'       => (int)$r['id'],
                     'datum'    => $r['datum'],
-                    'station'  => $r['station'] ?? '',
+                    'station'  => $r['lopnummer'] ?? '',
                     'operator' => implode(', ', $ops) ?: 'Okand',
                     'orsak'    => implode(', ', $orsaker) ?: 'Ej angiven',
                 ];
