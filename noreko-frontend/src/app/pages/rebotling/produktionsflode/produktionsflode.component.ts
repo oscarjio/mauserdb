@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import {
   ProduktionsflodeService,
   FlodeOverview,
@@ -20,10 +20,13 @@ import { PdfExportButtonComponent } from '../../../components/pdf-export-button/
 })
 export class ProduktionsflodePage implements OnInit, OnDestroy {
 
-  // Loading
+  // Loading / fetching guards
   loadingOverview  = false;
   loadingFlode     = false;
   loadingStationer = false;
+  private isFetchingOverview  = false;
+  private isFetchingFlode     = false;
+  private isFetchingStationer = false;
 
   // Data
   overview: FlodeOverview | null          = null;
@@ -72,31 +75,40 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
   }
 
   loadOverview(): void {
+    if (this.isFetchingOverview) return;
+    this.isFetchingOverview = true;
     this.loadingOverview = true;
     this.svc.getOverview(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
+        this.isFetchingOverview = false;
         if (res?.success) this.overview = res.data;
       });
   }
 
   loadFlode(): void {
+    if (this.isFetchingFlode) return;
+    this.isFetchingFlode = true;
     this.loadingFlode = true;
     this.svc.getFlodeData(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingFlode = false;
+        this.isFetchingFlode = false;
         if (res?.success) this.flodeData = res.data;
       });
   }
 
   loadStationer(): void {
+    if (this.isFetchingStationer) return;
+    this.isFetchingStationer = true;
     this.loadingStationer = true;
     this.svc.getStationDetaljer(this.selectedDays)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
+        this.isFetchingStationer = false;
         if (res?.success) this.stationerData = res.data;
       });
   }

@@ -107,6 +107,8 @@ export class News implements OnInit, OnDestroy {
   // Favoriter (snabblänkar på startsidan)
   userFavoriter: Favorit[] = [];
 
+  private isFetchingData = false;
+  private isFetchingEvents = false;
   private apiBase = '/noreko-backend/api.php';
 
   constructor(
@@ -165,13 +167,14 @@ export class News implements OnInit, OnDestroy {
   }
 
   private fetchAllData() {
-    this.fetchRebotlingData();
-    this.fetchTvattlinjeData();
-    this.fetchSaglinjeData();
-    this.fetchKlassificeringslinjeData();
-  }
+    if (this.isFetchingData) return;
+    this.isFetchingData = true;
 
-  private fetchRebotlingData() {
+    let pending = 0;
+    const done = () => { pending--; if (pending <= 0) this.isFetchingData = false; };
+
+    // Rebotling
+    pending += 2;
     this.rebotlingService.getLiveStats().pipe(
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: RebotlingLiveStatsResponse | null) => {
@@ -181,6 +184,7 @@ export class News implements OnInit, OnDestroy {
         this.rebotlingPercentage = this.rebotlingTarget > 0
           ? Math.round((this.rebotlingToday / this.rebotlingTarget) * 100) : 0;
       }
+      done();
     });
 
     this.rebotlingService.getRunningStatus().pipe(
@@ -189,10 +193,11 @@ export class News implements OnInit, OnDestroy {
       if (res && res.success && res.data) {
         this.rebotlingStatus = res.data.running;
       }
+      done();
     });
-  }
 
-  private fetchTvattlinjeData() {
+    // Tvättlinje
+    pending += 2;
     this.tvattlinjeService.getLiveStats().pipe(
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: TvattlinjeLiveStatsResponse | null) => {
@@ -201,6 +206,7 @@ export class News implements OnInit, OnDestroy {
         this.tvattlinjeTarget = res.data.ibcTarget;
         this.tvattlinjePercentage = res.data.productionPercentage || 0;
       }
+      done();
     });
 
     this.tvattlinjeService.getRunningStatus().pipe(
@@ -209,10 +215,11 @@ export class News implements OnInit, OnDestroy {
       if (res && res.success && res.data) {
         this.tvattlinjeStatus = res.data.running;
       }
+      done();
     });
-  }
 
-  private fetchSaglinjeData() {
+    // Saglinje
+    pending++;
     this.lineSkiftrapportService.getReports('saglinje').pipe(
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineReportsResponse | null) => {
@@ -226,10 +233,11 @@ export class News implements OnInit, OnDestroy {
           ? Math.round((this.saglinjeToday / this.saglinjeTarget) * 100) : 0;
         this.saglinjeStatus = reps.length > 0;
       }
+      done();
     });
-  }
 
-  private fetchKlassificeringslinjeData() {
+    // Klassificeringslinje
+    pending++;
     this.lineSkiftrapportService.getReports('klassificeringslinje').pipe(
       timeout(5000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe((res: LineReportsResponse | null) => {
@@ -243,10 +251,14 @@ export class News implements OnInit, OnDestroy {
           ? Math.round((this.klassificeringslinjeToday / this.klassificeringslinjeTarget) * 100) : 0;
         this.klassificeringslinjeStatus = reps.length > 0;
       }
+      done();
     });
   }
 
   loadEvents() {
+    if (this.isFetchingEvents) return;
+    this.isFetchingEvents = true;
+
     this.http.get<{ success: boolean; events: NewsEvent[] }>(
       `${this.apiBase}?action=news&run=events&antal=15`
     ).pipe(
@@ -255,6 +267,7 @@ export class News implements OnInit, OnDestroy {
       takeUntil(this.destroy$)
     ).subscribe(res => {
       this.loadingEvents = false;
+      this.isFetchingEvents = false;
       if (res?.success && Array.isArray(res.events)) {
         this.events = res.events;
         this.applyFilter();

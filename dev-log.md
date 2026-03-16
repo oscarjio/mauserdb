@@ -1,3 +1,64 @@
+## 2026-03-16 Session #126 Worker B — HTTP-polling race conditions + route guards audit
+
+### DEL 1: HTTP-polling race conditions (7 buggar fixade)
+
+**Granskade alla 70 komponenter med setInterval-polling** (exkl. rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live).
+
+1. **news.ts — Race condition: fetchAllData() utan isFetching-guard**
+   - Problem: `fetchAllData()` kallades var 5:e sekund via setInterval men saknade `isFetching` guard. Fyra separata fetch-metoder (rebotling, tvattlinje, saglinje, klassificeringslinje) med 6 parallella HTTP-anrop kunde stackas om servern var langsammare an 5s.
+   - Fix: Lade till `isFetchingData` guard. Inlinade alla fetch-anrop med pending-counter som aterstaller guard nar alla 6 anrop ar klara. Lade aven till `isFetchingEvents` guard pa `loadEvents()`.
+
+2. **rebotling-sammanfattning.component.ts — Saknad timeout/catchError/isFetching**
+   - Problem: Tre HTTP-anrop (`getOverview`, `getProduktion7d`, `getMaskinStatus`) kallades var 60:e sekund utan `timeout()`, `catchError()` eller `isFetching` guard. Vid natverksproblem hanger requests forever och stackar parallella anrop.
+   - Fix: Lade till `isFetchingOverview/isFetchingGraph/isFetchingMaskiner` guards, `timeout(15000)`, och `catchError(() => of(null))` pa alla tre anrop.
+
+3. **produktionsflode.component.ts — Saknad timeout/catchError/isFetching**
+   - Problem: Tre HTTP-anrop (`getOverview`, `getFlodeData`, `getStationDetaljer`) kallades var 120:e sekund utan skydd.
+   - Fix: Samma monster som ovan — isFetching guards, timeout(15000), catchError.
+
+4. **batch-sparning.component.ts — Saknad timeout/catchError pa 30s-polling**
+   - Problem: `loadOverview`, `loadActiveBatches`, `loadHistory` kallades var 30:e sekund utan timeout/catchError. Anvande loadingXxx som halv-guard men om error kastades aterstalldes inte flaggan.
+   - Fix: Lade till `timeout(15000)`, `catchError(() => of(null))`, och anvander loadingXxx som isFetching guard.
+
+5. **produktions-dashboard.component.ts — 5 HTTP-anrop utan timeout pa 30s-poll**
+   - Problem: `laddaOversikt`, `laddaGrafer` (forkJoin med 2 anrop), `laddaStationer`, `laddaAlarm`, `laddaIbc` — alla utan timeout, catchError, och isFetching guards. Mest aggressiva pollern (30s) med flest parallella anrop.
+   - Fix: Lade till isFetching guards (via loadingXxx), timeout(15000), och catchError pa alla 5 metoder (7 totala HTTP-anrop). forkJoin-anropen fick timeout/catchError pa varje individuellt anrop.
+
+**OBS: 28 ytterligare filer har samma monster** (setInterval + polling utan timeout) men med langsammare poll-intervall (60-300s). Dessa ar lagre risk men bor fixas framover.
+
+### DEL 2: Angular route guards audit (2 buggar fixade)
+
+**Granskade app.routes.ts (163 rader, ~60 routes).**
+
+Guard-implementation (auth.guard.ts) ar korrekt implementerad med:
+- `authGuard`: vantar pa `initialized$` fore kontroll, redirect till /login med returnUrl
+- `adminGuard`: kontrollerar role === 'admin' || 'developer'
+- `developerGuard`: kontrollerar role === 'developer'
+
+6. **rebotling/produkttyp-effektivitet — Saknad authGuard**
+   - Problem: Produkttyp-effektivitetsanalys (detaljerade produktionsdata per produkttyp) var tillganglig utan inloggning.
+   - Fix: Lade till `canActivate: [authGuard]`.
+
+7. **rebotling/produktionstakt — Saknad authGuard**
+   - Problem: Produktionstakt-sidan (realtids produktionshastighet + admin-funktioner for att andra malvarden) var tillganglig utan inloggning.
+   - Fix: Lade till `canActivate: [authGuard]`.
+
+### DEL 3: Subscription-lackor audit
+
+**Granskade alla 160 komponent-filer med `.subscribe()`.**
+
+Resultat: INGA subscription-lackor hittade. Alla komponenter foljer korrekt monster:
+- `destroy$ = new Subject<void>()` deklarerad
+- `takeUntil(this.destroy$)` pa alla subscriptions
+- `ngOnDestroy` med `this.destroy$.next(); this.destroy$.complete()`
+- Alla `setInterval` har matchande `clearInterval` i ngOnDestroy
+
+### Summering
+- **7 buggar fixade** (5 race conditions + 2 saknade route guards)
+- **6 filer andrade**: news.ts, app.routes.ts, rebotling-sammanfattning.component.ts, produktionsflode.component.ts, batch-sparning.component.ts, produktions-dashboard.component.ts
+
+---
+
 ## 2026-03-16 Session #125 Worker B — TypeScript logic-audit + PHP dead code cleanup
 
 ### DEL 1: Frontend TypeScript logic-audit

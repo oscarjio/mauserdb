@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, forkJoin } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, forkJoin, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   ProduktionsDashboardService,
@@ -102,30 +102,32 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   }
 
   laddaOversikt(): void {
+    if (this.loadingOversikt) return;
     this.loadingOversikt = true;
     this.errorOversikt   = false;
 
     this.svc.getOversikt()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOversikt = false;
         if (res?.success) {
           this.oversikt = res.data;
           this.senastUppdaterad = new Date();
           this.pulsera();
-        } else {
+        } else if (res !== null) {
           this.errorOversikt = true;
         }
       });
   }
 
   laddaGrafer(): void {
+    if (this.loadingGrafer) return;
     this.loadingGrafer = true;
     this.errorGrafer   = false;
 
     forkJoin([
-      this.svc.getVeckoProduktion(),
-      this.svc.getVeckoOee(),
+      this.svc.getVeckoProduktion().pipe(timeout(15000), catchError(() => of(null))),
+      this.svc.getVeckoOee().pipe(timeout(15000), catchError(() => of(null))),
     ]).pipe(takeUntil(this.destroy$))
       .subscribe(([prodRes, oeeRes]) => {
         this.loadingGrafer = false;
@@ -139,16 +141,17 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
               this.byggOeeChart();
             }
           }, 0);
-        } else {
+        } else if (prodRes !== null || oeeRes !== null) {
           this.errorGrafer = true;
         }
       });
   }
 
   laddaStationer(): void {
+    if (this.loadingStationer) return;
     this.loadingStationer = true;
     this.svc.getStationerStatus()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
         if (res?.success) this.stationer = res.data.stationer;
@@ -156,9 +159,10 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   }
 
   laddaAlarm(): void {
+    if (this.loadingAlarm) return;
     this.loadingAlarm = true;
     this.svc.getSenasteAlarm()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingAlarm = false;
         if (res?.success) this.alarm = res.data.alarm;
@@ -166,9 +170,10 @@ export class ProduktionsDashboardPage implements OnInit, OnDestroy {
   }
 
   laddaIbc(): void {
+    if (this.loadingIbc) return;
     this.loadingIbc = true;
     this.svc.getSenasteIbc()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingIbc = false;
         if (res?.success) this.senIbc = res.data.ibc;

@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   BatchSparningService,
@@ -91,44 +91,47 @@ export class BatchSparningPage implements OnInit, OnDestroy {
   }
 
   loadOverview(): void {
+    if (this.loadingOverview) return;
     this.loadingOverview = true;
     this.errorOverview = false;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getOverview().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       if (res?.success) {
         this.overview = res.data;
-      } else {
+      } else if (res !== null) {
         this.errorOverview = true;
       }
     });
   }
 
   loadActiveBatches(): void {
+    if (this.loadingActive) return;
     this.loadingActive = true;
     this.errorActive = false;
-    this.svc.getActiveBatches().pipe(takeUntil(this.destroy$)).subscribe(res => {
+    this.svc.getActiveBatches().pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingActive = false;
       if (res?.success) {
         this.activeBatches = res.batchar;
         setTimeout(() => this.renderProgressChart(), 100);
-      } else {
+      } else if (res !== null) {
         this.errorActive = true;
       }
     });
   }
 
   loadHistory(): void {
+    if (this.loadingHistory) return;
     this.loadingHistory = true;
     this.errorHistory = false;
     this.svc.getBatchHistory(
       this.historyFrom || undefined,
       this.historyTo || undefined,
       this.historySearch || undefined
-    ).pipe(takeUntil(this.destroy$)).subscribe(res => {
+    ).pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)).subscribe(res => {
       this.loadingHistory = false;
       if (res?.success) {
         this.historyBatches = res.batchar;
-      } else {
+      } else if (res !== null) {
         this.errorHistory = true;
       }
     });

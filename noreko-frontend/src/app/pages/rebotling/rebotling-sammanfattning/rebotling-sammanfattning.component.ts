@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { Subject, of } from 'rxjs';
+import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
 import {
   RebotlingSammanfattningService,
@@ -23,10 +23,13 @@ Chart.register(...registerables);
 })
 export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
 
-  // Loading
+  // Loading / fetching guards
   loadingOverview = false;
   loadingGraph    = false;
   loadingMaskiner = false;
+  private isFetchingOverview = false;
+  private isFetchingGraph    = false;
+  private isFetchingMaskiner = false;
 
   // Data
   overview: SammanfattningOverview | null = null;
@@ -67,21 +70,27 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
   }
 
   loadOverview(): void {
+    if (this.isFetchingOverview) return;
+    this.isFetchingOverview = true;
     this.loadingOverview = true;
     this.svc.getOverview()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
+        this.isFetchingOverview = false;
         if (res?.success) this.overview = res.data;
       });
   }
 
   loadProduktion7d(): void {
+    if (this.isFetchingGraph) return;
+    this.isFetchingGraph = true;
     this.loadingGraph = true;
     this.svc.getProduktion7d()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingGraph = false;
+        this.isFetchingGraph = false;
         if (res?.success) {
           this.produktion7d = res.data;
           setTimeout(() => this.renderChart(), 100);
@@ -90,11 +99,14 @@ export class RebotlingSammanfattningPage implements OnInit, OnDestroy {
   }
 
   loadMaskinStatus(): void {
+    if (this.isFetchingMaskiner) return;
+    this.isFetchingMaskiner = true;
     this.loadingMaskiner = true;
     this.svc.getMaskinStatus()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingMaskiner = false;
+        this.isFetchingMaskiner = false;
         if (res?.success) this.maskinStatus = res.data;
       });
   }
