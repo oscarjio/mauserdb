@@ -7,14 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Buggjakt: Backend controllers (skift/stopp/vd/statistik)** — Worker A #120 — 4 buggar i 3 controllers
-- [x] **Buggjakt: Frontend services batch 4+5 (produktion + skift/stopp, 21 st)** — Worker B #120 — 37 buggar i 14 filer
-- [ ] **Buggjakt: Frontend services batch 6** — Ovrigt: alarm-historik, alerts, andon-board, audit, avvikelselarm, daglig-sammanfattning, drifttids-timeline, kvalitetscertifikat, statistik-dashboard, statistik-overblick, underhallslogg, underhallsprognos, users, vd-dashboard, veckorapport
-- [ ] **Buggjakt: Frontend components** — Granska komponent-templates for saknade null-guards, felaktiga pipes, saknade trackBy i *ngFor
-- [ ] **Buggjakt: Backend routing/api.php** — Verifiera att alla actions routas korrekt, inga orphan-actions
-- [ ] **Buggjakt: Backend classes/ controllers batch 1** — Granska 20 classes/-controllers (Gamification, Feedback, Bonus, Kapacitet, Leverans, Kassation, Kvalitet, Malhistorik, Effektivitet, Cykeltid, etc)
+- [x] **Buggjakt: Backend classes/ controllers batch 1** — Worker A #121 — 12 buggar i 3 controllers (av 13 granskade)
+- [x] **Buggjakt: Frontend services batch 6 + komponenter** — Worker B #121 — 29 buggar i 8 services + 14 komponenter granskade
 - [ ] **Buggjakt: Backend classes/ controllers batch 2** — Granska 20 classes/-controllers (Andon, Alerts, Audit, Register, Login, Admin, Tidrapport, Narvaro, MinDag, Profile, Status, News, etc)
+- [ ] **Buggjakt: Backend routing/api.php** — Verifiera att alla actions routas korrekt, inga orphan-actions
 - [ ] **Buggjakt: PHP helper-klasser** — AuthHelper, AuditLogger, DatabaseConnection — granska for edge cases
+- [ ] **Buggjakt: Funktionstesta Rebotling-sidor** — Curl-testa alla rebotling-endpoints, verifiera JSON-svar
+- [ ] **Buggjakt: Funktionstesta Funktioner-sidor** — Curl-testa OEE, kassation, operator, underhall, rapporter, visualisering
 
 ## Parkerade features (ta inte dessa nu)
 

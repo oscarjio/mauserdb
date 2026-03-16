@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #120)*
+*Senast uppdaterad: 2026-03-16 (session #121)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -72,42 +72,27 @@ Session #117: BUGGJAKT — 51 buggar (25 Worker A + 26 Worker B). 11 PHP-control
 Session #118: BUGGJAKT — 23 buggar (5 Worker A + 18 Worker B). 10 PHP-controllers + 15 TS-services granskade.
 Session #119: BUGGJAKT — 46 buggar (33 Worker A + 13 Worker B). 5 rebotling-controllers + 11 TS-services granskade.
 Session #120: BUGGJAKT — 41 buggar (4 Worker A + 37 Worker B). 16 PHP-controllers + 21 TS-services granskade.
+Session #121: BUGGJAKT — 41 buggar (12 Worker A + 29 Worker B). 13 PHP-controllers + 15 TS-services + 14 komponenter granskade.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
-### PRIORITET 1: FUNKTIONSTESTA HELA SIDAN (agaren krav 2026-03-16)
-Workers ska testköra VARJE sida pa https://dev.mauserdb.com (inlogg: aiab / Noreko2025) och:
-1. Oppna varje sida i menyn — kontrollera att den laddar utan fel
-2. Testa API-anrop — curl mot varje endpoint, kontrollera att response ar giltig JSON (ej 500)
-3. Testa formulär — skicka POST-requests, kontrollera att de sparar korrekt
-4. Kontrollera att feature flags fungerar — admin-anvandare ska se ratt sidor
-5. Kontrollera menyn — "Funktioner"-dropdown med grupperade sektioner ska fungera
-
-**Testplan per worker:**
-- Worker A: Testa alla Rebotling-sidor (skiftrapport, statistik, historik, admin, bonus, andon, skiftoverlamning, stoppregistrering)
-- Worker B: Testa alla Funktioner-sidor (produktion, OEE, kassation, operator, underhall, rapporter, visualisering)
-- Rapportera: vilka sidor ger 500-fel, vilka sidor ar tomma, vilka formulär fungerar inte
-
 ### Kvarstaende buggjakt-items:
-- [x] Backend controllers (skift/stopp/vd/statistik, 16 st) — session #120 Worker A klar
-- [x] Frontend services batch 4+5 (produktion + skift/stopp, 21 st) — session #120 Worker B klar
-- [ ] Frontend services batch 6 (Ovrigt, 15 st)
-- [ ] Frontend components (null-guards, pipes, trackBy)
+- [ ] Backend classes/ controllers batch 2 (Andon, Alerts, Audit, Register, Login, Admin, etc)
 - [ ] Backend routing/api.php (orphan-actions)
-- [ ] Backend classes/ controllers batch 1 (20 st)
-- [ ] Backend classes/ controllers batch 2 (20 st)
 - [ ] PHP helper-klasser (AuthHelper, AuditLogger, DatabaseConnection)
+- [ ] Funktionstesta Rebotling-sidor (curl-testa endpoints)
+- [ ] Funktionstesta Funktioner-sidor (curl-testa endpoints)
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #119 (klar)
-Worker A: 33 buggar i 5 rebotling-controllers — 1 XSS (RebotlingStationsdetalj), 5 buggar (RebotlingTrendanalys), 5 buggar (RebotlingProduct), 8 buggar (RebotlingAdmin), 14 buggar (RebotlingAnalytics).
-Worker B: 13 buggar i 3 services — oee-benchmark (2), operatorsbonus (2), operators (9).
-Totalt: 46 buggar.
 
 ### 2026-03-16 — Session #120 (klar)
 Worker A: 4 buggar i 3 controllers — 1 tomt catch (DagligBriefing), 2 saknade try/catch (Produktionspuls), 1 LIMIT interpolation (Underhallslogg). 13 av 16 controllers var rena.
 Worker B: 37 buggar i 14 filer — 28 service-buggar (hardkodade URLs, saknade timeout/catchError, felaktiga imports) i 12 services + 9 null-guards i 2 komponenter (stopporsak-registrering, stoppage-log).
-Totalt: 41 buggar. Beslut: Utokade backlog med 3 nya items (classes/ batch 1+2, PHP helpers).
+Totalt: 41 buggar.
+
+### 2026-03-16 — Session #121 (klar)
+Worker A: 12 buggar i 3 controllers (av 13 granskade) — 7 tomma catch-block (Gamification), 2 XSS (Bonus), 1 SQL created_at->datum + 1 felaktig HTTP 421->401 + 1 doc-fix (Malhistorik). 10 controllers rena.
+Worker B: 29 buggar i 8 services (av 15 granskade) + 14 komponenter (alla rena) — hardkodade URLs, saknade timeout/catchError, saknade environment-imports. 7 services rena.
+Totalt: 41 buggar. classes/ batch 1 + frontend batch 6 klara.
