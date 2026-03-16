@@ -391,7 +391,9 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException) {}
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getBadges(centurion): ' . $e->getMessage());
+        }
 
         // ---- Perfektionist: badge based on overall quality (simplified) ----
         // With cumulative ibc_ok/ibc_ej_ok, we check days with 0 ej_ok
@@ -427,7 +429,9 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException) {}
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getBadges(perfektionist): ' . $e->getMessage());
+        }
 
         // ---- Maratonlopare: 5 dagar i rad med produktion ----
         try {
@@ -475,7 +479,9 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException) {}
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getBadges(maratonlopare): ' . $e->getMessage());
+        }
 
         // ---- Stoppjagare: minst stopp denna vecka ----
         if ($this->tableExists('stopporsak_registreringar')) {
@@ -507,7 +513,9 @@ class GamificationController {
                         'antal'       => 1,
                     ];
                 }
-            } catch (\PDOException) {}
+            } catch (\PDOException $e) {
+                error_log('GamificationController::getBadges(stoppjagare): ' . $e->getMessage());
+            }
         }
 
         // ---- Teamspelare: basta operatoren sammanlagt (vecka) ----
@@ -547,7 +555,9 @@ class GamificationController {
                     'antal'       => 1,
                 ];
             }
-        } catch (\PDOException) {}
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getBadges(teamspelare): ' . $e->getMessage());
+        }
 
         return $badges;
     }
@@ -689,7 +699,9 @@ class GamificationController {
                 $stmt->execute([$userId]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 if ($row) $operatorNamn = $row['username'];
-            } catch (\PDOException) {}
+            } catch (\PDOException $e) {
+                error_log('GamificationController::minProfil(username): ' . $e->getMessage());
+            }
 
             // Hamta rank fran vecko-leaderboard
             $from = date('Y-m-d', strtotime('monday this week'));
@@ -762,7 +774,9 @@ class GamificationController {
             ");
             $stmt->execute([$userId, $userId, $userId]);
             $totalIbc = (int)($stmt->fetchColumn() ?? 0);
-        } catch (\PDOException) {}
+        } catch (\PDOException $e) {
+            error_log('GamificationController::getMilstolpar: ' . $e->getMessage());
+        }
 
         $result = [];
         foreach ($milstolpar as $m) {

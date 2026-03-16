@@ -1,3 +1,39 @@
+## 2026-03-16 Session #121 Worker A — Buggjakt i backend controllers batch 1
+
+### Granskade filer (13 controllers):
+1. GamificationController.php — 7 buggar fixade
+2. FeedbackController.php — OK (ren)
+3. BonusController.php — 2 buggar fixade
+4. MalhistorikController.php — 3 buggar fixade (2 SQL + 1 HTTP-statuskod)
+5. EffektivitetController.php — OK (ren)
+6. HistorikController.php — OK (ren)
+7. CykeltidHeatmapController.php — OK (ren)
+8. DrifttidsTimelineController.php — OK (ren)
+9. LeveransplaneringController.php — OK (ren)
+10. KassationsanalysController.php — OK (ren, granskade toppen)
+11. KvalitetstrendController.php — OK (ren, granskade toppen)
+12. KapacitetsplaneringController.php — OK (ren, granskade toppen)
+13. MaskinOeeController.php — OK (ren, granskade toppen)
+
+Ej existerande controllers (enligt listan): KapacitetController, LeveransController, KassationController, KvalitetController, CykeltidController, DrifttidsController, EnergianvandningController, FlaskhalsenController, FordelningController, JamforelseController, KapacitetsplanController, LagerController, MaskinController, MaterialController.
+
+### Buggar fixade (12 st):
+
+**1. GamificationController.php (7 buggar):**
+- 7 tomma catch-block (catch (\PDOException) {}) utan error_log — alla fixade med error_log och namngivna exceptions:
+  - getBadges(centurion), getBadges(perfektionist), getBadges(maratonlopare), getBadges(stoppjagare), getBadges(teamspelare), minProfil(username), getMilstolpar
+
+**2. BonusController.php (2 buggar):**
+- XSS: $run utan htmlspecialchars i POST default error (rad 46)
+- XSS: $run utan htmlspecialchars i GET default error (rad 73)
+
+**3. MalhistorikController.php (3 buggar):**
+- SQL-fel: calcIbcPerTimme() anvande created_at istallet for datum i rebotling_ibc (5 forekomster fixade)
+- HTTP-statuskod 421 (Misdirected Request) istallet for 401 (Unauthorized) vid saknad inloggning
+- Felaktig kommentar (421 namndes i doc-block) — fixad till 401
+
+---
+
 ## 2026-03-16 — Manuell bugfix-session (ägaren)
 
 ### Fixade buggar:

@@ -13,7 +13,7 @@
  *       För varje måländring: snitt IBC/h och måluppfyllnad 7 dagar före och
  *       7 dagar efter ändringen. Returnerar impact-data med färgkodning.
  *
- * Auth: session_id krävs (421 om ej inloggad).
+ * Auth: session_id krävs (401 om ej inloggad).
  * Tabeller: rebotling_goal_history, rebotling_ibc
  */
 class MalhistorikController {
@@ -30,7 +30,7 @@ class MalhistorikController {
         }
 
         if (empty($_SESSION['user_id'])) {
-            $this->sendError('Inloggning krävs', 421);
+            $this->sendError('Inloggning krävs', 401);
             return;
         }
 
@@ -73,21 +73,21 @@ class MalhistorikController {
         // Summera max IBC/skift per dag (samma mönster som DagligSammanfattningController)
         $stmt = $this->pdo->prepare(
             "SELECT
-                DATE(created_at) AS dag,
+                DATE(datum) AS dag,
                 SUM(max_ibc) AS dag_ibc,
                 SUM(runtime_min) AS dag_runtime
              FROM (
                 SELECT
-                    DATE(created_at) AS created_at,
+                    DATE(datum) AS datum_dag,
                     skiftraknare,
                     MAX(ibc_ok) AS max_ibc,
                     MAX(runtime_plc) AS runtime_min
                 FROM rebotling_ibc
-                WHERE DATE(created_at) BETWEEN :from AND :to
-                GROUP BY DATE(created_at), skiftraknare
+                WHERE DATE(datum) BETWEEN :from AND :to
+                GROUP BY DATE(datum), skiftraknare
                 HAVING COUNT(*) > 1
              ) skiften
-             GROUP BY DATE(created_at)
+             GROUP BY dag
              HAVING dag_runtime > 0"
         );
         $stmt->execute([':from' => $fromDate, ':to' => $toDate]);
