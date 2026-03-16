@@ -71,6 +71,8 @@ export interface SkiftInfo {
   runtime_min: number;
   kvalitet_pct: number;
   ibc_per_timme: number;
+  lopnummer_range?: string;
+  lopnummer_count?: number;
 }
 
 export interface ReportData {

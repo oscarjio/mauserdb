@@ -100,7 +100,7 @@ class SkiftrapportExportController {
                     MAX(time_of_day)   AS skift_slut,
                     DATE(MIN(created_at)) AS skift_datum
                  FROM rebotling_ibc
-                 WHERE DATE(created_at) = ?
+                 WHERE DATE(datum) = ?
                  GROUP BY skiftraknare
                  HAVING COUNT(*) > 1
                  ORDER BY skiftraknare ASC"
@@ -157,16 +157,22 @@ class SkiftrapportExportController {
                     ? round(($ibcOk / $ibcTotalSkift) * 100, 1) : 0.0;
                 $skiftIbcPerH = $runtime > 0
                     ? round($ibcOk / ($runtime / 60), 1) : 0.0;
+                // Löpnummer för detta skift
+                $lopnummer = $this->fetchLopnummer((int)$r['skiftraknare']);
+                $lopnummerRange = $this->buildRanges($lopnummer);
+
                 $skiftLista[] = [
-                    'skiftraknare'  => (int)$r['skiftraknare'],
-                    'skift_datum'   => $r['skift_datum'],
-                    'skift_start'   => $r['skift_start'],
-                    'skift_slut'    => $r['skift_slut'],
-                    'ibc_ok'        => $ibcOk,
-                    'ibc_ej_ok'     => $ibcEjOk,
-                    'runtime_min'   => $runtime,
-                    'kvalitet_pct'  => $skiftKvalitet,
-                    'ibc_per_timme' => $skiftIbcPerH,
+                    'skiftraknare'    => (int)$r['skiftraknare'],
+                    'skift_datum'     => $r['skift_datum'],
+                    'skift_start'     => $r['skift_start'],
+                    'skift_slut'      => $r['skift_slut'],
+                    'ibc_ok'          => $ibcOk,
+                    'ibc_ej_ok'       => $ibcEjOk,
+                    'runtime_min'     => $runtime,
+                    'kvalitet_pct'    => $skiftKvalitet,
+                    'ibc_per_timme'   => $skiftIbcPerH,
+                    'lopnummer_range' => $lopnummerRange,
+                    'lopnummer_count' => count($lopnummer),
                 ];
             }
 
@@ -196,7 +202,7 @@ class SkiftrapportExportController {
                             datum
                         ) AS cycle_sek
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) = ?
+                    WHERE DATE(datum) = ?
                  ) raw
                  WHERE cycle_sek >= 30 AND cycle_sek <= 1800"
             );
@@ -237,13 +243,13 @@ class SkiftrapportExportController {
                         ) AS cycle_sek
                     FROM (
                         SELECT op1 AS op_num, datum, skiftraknare FROM rebotling_ibc
-                        WHERE DATE(created_at) = :d1 AND op1 IS NOT NULL AND op1 > 0
+                        WHERE DATE(datum) = :d1 AND op1 IS NOT NULL AND op1 > 0
                         UNION ALL
                         SELECT op2 AS op_num, datum, skiftraknare FROM rebotling_ibc
-                        WHERE DATE(created_at) = :d2 AND op2 IS NOT NULL AND op2 > 0
+                        WHERE DATE(datum) = :d2 AND op2 IS NOT NULL AND op2 > 0
                         UNION ALL
                         SELECT op3 AS op_num, datum, skiftraknare FROM rebotling_ibc
-                        WHERE DATE(created_at) = :d3 AND op3 IS NOT NULL AND op3 > 0
+                        WHERE DATE(datum) = :d3 AND op3 IS NOT NULL AND op3 > 0
                     ) ops_raw
                  ) with_lag
                  WHERE cycle_sek >= 30 AND cycle_sek <= 1800
@@ -294,7 +300,7 @@ class SkiftrapportExportController {
                         MAX(ibc_ej_ok)   AS max_ibc_ej_ok,
                         MAX(runtime_plc) AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) = ?
+                    WHERE DATE(datum) = ?
                     GROUP BY skiftraknare
                     HAVING COUNT(*) > 1
                  ) s"
@@ -376,6 +382,35 @@ class SkiftrapportExportController {
     // run=multi-day&start=YYYY-MM-DD&end=YYYY-MM-DD
     // ================================================================
 
+    private function fetchLopnummer(int $skiftraknare): array {
+        $stmt = $this->pdo->prepare(
+            "SELECT lopnummer FROM rebotling_ibc WHERE skiftraknare = ? ORDER BY lopnummer"
+        );
+        $stmt->execute([$skiftraknare]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+        $nums = array_map('intval', $rows);
+        return array_values(array_unique(array_filter($nums, fn($n) => $n > 0 && $n < 998)));
+    }
+
+    private function buildRanges(array $nums): string {
+        if (empty($nums)) return '–';
+        sort($nums);
+        $ranges = [];
+        $start = $nums[0];
+        $end   = $start;
+        for ($i = 1; $i < count($nums); $i++) {
+            if ($nums[$i] === $end + 1) {
+                $end = $nums[$i];
+            } else {
+                $ranges[] = $start === $end ? "$start" : $start . '-' . $end;
+                $start = $nums[$i];
+                $end   = $start;
+            }
+        }
+        $ranges[] = $start === $end ? "$start" : $start . '-' . $end;
+        return implode(', ', $ranges);
+    }
+
     private function getMultiDay(): void {
         $start = trim($_GET['start'] ?? '');
         $end   = trim($_GET['end']   ?? '');
@@ -400,24 +435,24 @@ class SkiftrapportExportController {
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT
-                    DATE(created_at)   AS dag,
+                    DATE(datum)   AS dag,
                     SUM(max_ibc_ok)    AS ibc_ok,
                     SUM(max_ibc_ej_ok) AS ibc_ej_ok,
                     SUM(max_runtime)   AS runtime_min,
                     COUNT(DISTINCT skiftraknare) AS antal_skiften
                  FROM (
                     SELECT
-                        DATE(created_at)    AS created_at,
+                        DATE(datum)    AS created_at,
                         skiftraknare,
                         MAX(ibc_ok)         AS max_ibc_ok,
                         MAX(ibc_ej_ok)      AS max_ibc_ej_ok,
                         MAX(runtime_plc)    AS max_runtime
                     FROM rebotling_ibc
-                    WHERE DATE(created_at) BETWEEN ? AND ?
-                    GROUP BY DATE(created_at), skiftraknare
+                    WHERE DATE(datum) BETWEEN ? AND ?
+                    GROUP BY DATE(datum), skiftraknare
                     HAVING COUNT(*) > 1
                  ) s
-                 GROUP BY DATE(created_at)
+                 GROUP BY DATE(datum)
                  ORDER BY dag ASC"
             );
             $stmt->execute([$start, $end]);

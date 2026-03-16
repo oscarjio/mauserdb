@@ -204,6 +204,7 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
             ['Antal skiften', `${p.antal_skiften}`],
             ['Skiftstart', p.skift_start ?? '—'],
             ['Skiftslut', p.skift_slut ?? '—'],
+            ['Löpnummer', this.getLopnummerRange(r) || '—'],
           ],
         },
         layout: 'lightHorizontalLines',
@@ -539,6 +540,14 @@ export class SkiftrapportExportComponent implements OnInit, OnDestroy {
     if (pct >= 65) return '#68d391';
     if (pct >= 45) return '#f6e05e';
     return '#fc8181';
+  }
+
+  getLopnummerRange(rapport: ReportData): string {
+    if (!rapport?.skiften?.length) return '';
+    const ranges = rapport.skiften
+      .filter((s: any) => s.lopnummer_range && s.lopnummer_range !== '–')
+      .map((s: any) => s.lopnummer_range);
+    return ranges.join(', ') || '';
   }
 
   drifttidBredd(pct: number): string {

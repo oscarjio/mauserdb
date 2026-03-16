@@ -47,15 +47,7 @@
               <input type="date" class="form-control bg-dark text-light border-secondary"
                      [(ngModel)]="emailReportDate" [disabled]="emailSending">
             </div>
-            <div class="col-md-5">
-              <label class="form-label" style="color:#a0aec0;">Skift</label>
-              <select class="form-select bg-dark text-light border-secondary"
-                      [(ngModel)]="emailReportShift" [disabled]="emailSending">
-                <option [ngValue]="1">1 — Förmiddag (06–14)</option>
-                <option [ngValue]="2">2 — Eftermiddag (14–22)</option>
-                <option [ngValue]="3">3 — Natt (22–06)</option>
-              </select>
-            </div>
+            <!-- Skiftval borttaget — inga fasta skift -->
           </div>
           <p class="text-muted small mb-3">
             <i class="fas fa-info-circle me-1"></i>
@@ -200,15 +192,7 @@
           <label class="form-label small mb-1">Till datum</label>
           <input type="date" class="form-control form-control-sm" [(ngModel)]="filterTo" style="max-width:150px; width:100%;" />
         </div>
-        <div>
-          <label class="form-label small mb-1">Skift</label>
-          <select class="form-control form-control-sm" [(ngModel)]="filterSkift" style="max-width:160px; width:100%;">
-            <option value="">Alla skift</option>
-            <option value="förmiddag">Förmiddag (06–14)</option>
-            <option value="eftermiddag">Eftermiddag (14–22)</option>
-            <option value="natt">Natt (22–06)</option>
-          </select>
-        </div>
+        <!-- Skiftfilter borttaget — inga fasta skift -->
         <div>
           <label class="form-label small mb-1">Sök</label>
           <input type="text" class="form-control form-control-sm" [(ngModel)]="searchText"
