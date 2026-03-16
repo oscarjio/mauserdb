@@ -603,9 +603,6 @@ class SkiftoverlamningController {
             $countStmt->execute($params);
             $total = (int)$countStmt->fetchColumn();
 
-            $listParams = array_values($params);
-            $listParams[] = $limit;
-            $listParams[] = $offset;
             $stmt = $this->pdo->prepare(
                 "SELECT l.id, l.operator_id, l.operator_namn, l.skift_typ, l.datum,
                         l.ibc_totalt, l.ibc_per_h, l.stopptid_min, l.kassationer,
@@ -617,9 +614,14 @@ class SkiftoverlamningController {
                  LEFT JOIN users u ON l.operator_id = u.id
                  {$whereSql}
                  ORDER BY l.skapad DESC
-                 LIMIT ? OFFSET ?"
+                 LIMIT :lim OFFSET :off"
             );
-            $stmt->execute($listParams);
+            foreach ($params as $k => $v) {
+                $stmt->bindValue($k, $v);
+            }
+            $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+            $stmt->bindValue(':off', $offset, \PDO::PARAM_INT);
+            $stmt->execute();
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
             $items = [];

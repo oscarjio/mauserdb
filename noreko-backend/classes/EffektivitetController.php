@@ -108,18 +108,18 @@ class EffektivitetController {
         // Vi summerar per dag för att få totalt per dag.
         $stmt = $this->pdo->prepare(
             "SELECT
-                DATE(created_at) AS dag,
+                DATE(datum) AS dag,
                 SUM(max_ibc)     AS ibc_count,
                 SUM(max_runtime) AS runtime_min
              FROM (
                 SELECT
-                    DATE(created_at) AS created_at,
+                    DATE(datum) AS dag,
                     skiftraknare,
                     MAX(ibc_ok)      AS max_ibc,
                     MAX(runtime_plc) AS max_runtime
                 FROM rebotling_ibc
-                WHERE DATE(created_at) BETWEEN ? AND ?
-                GROUP BY DATE(created_at), skiftraknare
+                WHERE DATE(datum) BETWEEN ? AND ?
+                GROUP BY DATE(datum), skiftraknare
                 HAVING COUNT(*) > 1
              ) sub
              GROUP BY dag
@@ -334,7 +334,7 @@ class EffektivitetController {
             $bastaIbcH  = -1.0;
 
             foreach (array_keys(self::SKIFT) as $skift) {
-                $timeCond = $this->skiftTimewhere($skift, 'created_at');
+                $timeCond = $this->skiftTimewhere($skift, 'datum');
 
                 $stmt = $this->pdo->prepare(
                     "SELECT
@@ -343,14 +343,14 @@ class EffektivitetController {
                         COUNT(DISTINCT dag)            AS dagar_med_produktion
                      FROM (
                         SELECT
-                            DATE(created_at) AS dag,
+                            DATE(datum) AS dag,
                             skiftraknare,
                             MAX(ibc_ok)      AS max_ibc,
                             MAX(runtime_plc) AS max_runtime
                         FROM rebotling_ibc
-                        WHERE DATE(created_at) BETWEEN ? AND ?
+                        WHERE DATE(datum) BETWEEN ? AND ?
                           AND {$timeCond}
-                        GROUP BY DATE(created_at), skiftraknare
+                        GROUP BY DATE(datum), skiftraknare
                         HAVING COUNT(*) > 1
                      ) sub"
                 );
