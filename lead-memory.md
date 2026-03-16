@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #113)*
+*Senast uppdaterad: 2026-03-16 (session #114)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -64,24 +64,25 @@ Session #109: BUGGJAKT — 33 buggar (11 backend + 22 UTC-datum).
 Session #110: BUGGJAKT — 15 buggar (13 backend + 2 imports). Alla controllers/ granskade.
 Session #111: BUGGJAKT — 30 buggar (21 workers + 9 lead).
 Session #112: BUGGJAKT — 22 buggar + 10 unused vars.
-Session #113: BUGGJAKT — 11 buggar. Worker A: 3 (aggregering + ranking). Worker B: 8 (null-safety, setTimeout, logging, unicode).
+Session #113: BUGGJAKT — 11 buggar (3 aggregering + 8 null-safety/setTimeout/unicode).
+Session #114: BUGGJAKT — 26 fixar. Worker A: 1 SQL-injection + 83 JSON_UNESCAPED_UNICODE. Worker B: 25 (5 catch-block + 18 setTimeout + 2 maskin).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
-- [ ] Oanvanda variabler (~19 st i 4 filer)
-- [ ] Tomma catch-block (16 filer svaljer fel tyst)
-- [ ] Rebotling-controllers djupgranskning (RebotlingAnalytics 6769 rader!)
-- [ ] Maskin-controllers + Prognos/planering-controllers
-- [ ] JSON_UNESCAPED_UNICODE audit + Frontend setTimeout del 2
+- [ ] Prognos/planering-controllers (4 st)
+- [ ] Rapport-controllers (Veckorapport, Morgonrapport, DagligBriefing)
+- [ ] Stopporsak-controllers (3 st)
+- [ ] Skift-controllers (3 st)
+- [ ] OEE/Statistik + Operator + Diverse controllers (~20 st)
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-16 — Session #112 (klar)
-Worker A: 9 buggar + 10 unused vars. Worker B: 8 buggar. Lead: 5 id/number-buggar.
-Totalt: 22 buggar + 10 unused vars.
-
 ### 2026-03-16 — Session #113 (klar)
-Worker A: 3 buggar — 2 COUNT(*)-aggregeringsfel i ProduktionsDashboard, 1 operator-ranking stopptid-bugg (user_id vs operator_id mismatch).
-Worker B: 8 buggar — 1 null-safety (bonus-dashboard), 1 null-safety (effektivitet), 3 setTimeout-lackor (vd-dashboard, operator-ranking, kassations-drilldown), 1 tyst catch (ProduktionsDashboard), 2 saknad JSON_UNESCAPED_UNICODE (ProduktionsTakt, StopporsakTrend).
-Granskade: 8 backend + 18 frontend filer. Totalt: 11 buggar.
+Worker A: 3 buggar (aggregering + ranking). Worker B: 8 buggar (null-safety, setTimeout, unicode).
+Totalt: 11 buggar.
+
+### 2026-03-16 — Session #114 (klar)
+Worker A: 1 SQL-injection i BonusAdmin (string-interpolation -> prepared statement) + 83 filer JSON_UNESCAPED_UNICODE audit. Rebotling djupgranskning OK (inga nya buggar).
+Worker B: 5 tomma catch-block (Skiftjamforelse, MaskinOee, Maskinunderhall) + 18 setTimeout-lackor (6 komponenter) + 2 maskin-buggar (hardkodad avg_cykeltid, saknad unicode).
+Totalt: 26 fixar.
