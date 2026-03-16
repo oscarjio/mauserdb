@@ -7,12 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **Buggjakt: HTTP-polling race conditions** — granska setInterval-baserad polling for race conditions och dubbla anrop
-- [ ] **Buggjakt: PHP type coercion** — granska loose comparisons (== vs ===) i PHP-controllers
-- [ ] **Buggjakt: Angular route guards** — verifiera att alla skyddade routes har korrekta guards
-- [ ] **Buggjakt: PHP return-typ konsistens** — granska att alla endpoints returnerar konsekvent JSON-format
-- [ ] **Buggjakt: Frontend error-display** — verifiera att catchError visar anvandarvanliga felmeddelanden
-- [ ] **Buggjakt: Date/timezone edge cases** — granska datum-hantering vid midnatt/skiftbyte
+- [ ] **Endpoint-testning med curl** — testa ALLA API-endpoints, logga 500-fel, fixa root cause (Worker A #127)
+- [ ] **Template null-safety** — granska .html-filer for saknad ?. navigation som kraschar vid undefined (Worker B #127)
+- [ ] **Chart.js memory leaks** — verifiera att alla chart-instanser destroyas korrekt (Worker B #127)
+- [ ] **SQL edge cases** — division by zero, NULL i AVG, LIMIT utan ORDER BY (Worker A #127)
+- [ ] **Input validation** — controllers som saknar validering av required params (Worker A #127)
+- [ ] **Date/timezone edge cases** — granska datum-hantering vid midnatt/skiftbyte
+- [ ] **PHP type coercion** — granska loose comparisons (== vs ===) i PHP-controllers
 
 ## Parkerade features (ta inte dessa nu)
 

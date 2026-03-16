@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #125)*
+*Senast uppdaterad: 2026-03-16 (session #127)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -77,33 +77,34 @@ Session #122: BUGGJAKT — 28 buggar (13 Worker A + 15 Worker B). 13 PHP-control
 Session #123: BUGGJAKT — 27 buggar (20 Worker A + 7 Worker B). 36 PHP-controllers + 4 Angular utils/guards/interceptors granskade. Inga pipes i projektet.
 Session #124: BUGGJAKT — 52 buggar (34 Worker A + 18 Worker B). 17 PHP-controllers granskade (batch 5 klar) + 9 Angular services re-audit.
 Session #125: BUGGJAKT — 16 buggar (10 Worker A + 6 Worker B). SQL-parametervalidering OK + error-logging + TS-logik + dead code.
+Session #126: BUGGJAKT — 9 buggar (2 Worker A 500-fixar + 7 Worker B polling/guards). Kritiska 500-fel fixade (shift filter, time_of_day, saknade tabeller).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] Error-logging konsistens — #125
-- [x] SQL-queries parametervalidering (alla rena) — #125
-- [x] Oanvanda privata metoder (3 borttagna) — #125
-- [x] Frontend page-komponenter audit (42 sidor, 3 buggar) — #125
-- [ ] HTTP-polling race conditions
+- [x] Systematisk 500-fel-jakt — #126 (kritiska fixade)
+- [x] HTTP-polling race conditions — #126 (5 komponenter fixade)
+- [x] Angular route guards audit — #126 (2 saknade guards fixade)
+- [x] Subscription-lackor — #126 (alla 160 komponenter granskade, inga lackor)
+- [ ] Endpoint-testning med curl — alla API-endpoints
+- [ ] SQL edge cases (division by zero, NULL, LIMIT utan ORDER BY)
 - [ ] PHP type coercion (== vs ===)
-- [ ] Angular route guards audit
+- [ ] Template null-safety audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #123 (klar)
-Worker A: 20 buggar i 10 filer (av 20 controllers granskade) — namespace-buggar, SQL kolumnfel, tomma catch-block.
-Worker B: 7 buggar i 5 filer (av 16 controllers + 4 Angular-filer) — HAVING-bugg, SQL kolumnfel, namespace-buggar.
-Totalt: 27 buggar.
-
-### 2026-03-16 — Session #124 (klar)
-Worker A: 34 buggar i 6 filer (av 17 controllers granskade) — 25x PDO:: utan \-namespace, 5x saknad HTTP 500, 4x created_at->datum.
-Worker B: 18 buggar i 9 services — hardkodade URLs->environment.apiUrl, saknad timeout/catchError. Templates (19 sidor) rena.
-Totalt: 52 buggar.
 
 ### 2026-03-16 — Session #125 (klar)
 Worker A: 10 buggar i 5 filer — tomma catch-block (4 controllers) + DB-felmeddelande exponerat i response (1 informationslacka).
 Worker B: 6 buggar — 3 TS-logik (div-by-zero, race condition chartTimer, interval-typing) + 3 dead code (oanvanda privata metoder).
 Totalt: 16 buggar.
+
+### 2026-03-16 — Session #126 (klar)
+Worker A: 2 kritiska 500-fixar (shift filter, time_of_day, saknade tabeller).
+Worker B: 7 buggar — 5 polling race conditions (news, rebotling-sammanfattning, produktionsflode, batch-sparning, produktions-dashboard) + 2 saknade authGuard (produkttyp-effektivitet, produktionstakt).
+Totalt: 9 buggar.
+
+### 2026-03-16 — Session #127 (pagar)
+Worker A: Endpoint-testning med curl + SQL edge cases + input validation.
+Worker B: Template null-safety + Chart.js memory leaks + service-logik + date/timezone.
