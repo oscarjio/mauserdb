@@ -2,8 +2,9 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
-const API = '/noreko-backend/api.php?action=skiftrapport-export';
+const API = `${environment.apiUrl}?action=skiftrapport-export`;
 
 // ---- Interfaces ----
 

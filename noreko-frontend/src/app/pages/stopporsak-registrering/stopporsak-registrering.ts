@@ -88,7 +88,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
       .subscribe({
         next: res => {
           this.loadingKategorier = false;
-          if (res.success) this.kategorier = res.data;
+          if (res?.success) this.kategorier = res.data;
         },
         error: () => { this.loadingKategorier = false; }
       });
@@ -101,7 +101,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
       .subscribe({
         next: res => {
           this.loadingAktiva = false;
-          if (res.success) {
+          if (res?.success) {
             this.aktivaStopp = res.data;
             this.uppdateraTimers();
           }
@@ -117,7 +117,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
       .subscribe({
         next: res => {
           this.loadingHistorik = false;
-          if (res.success) this.senasteStopp = res.data;
+          if (res?.success) this.senasteStopp = res.data;
         },
         error: () => { this.loadingHistorik = false; }
       });
@@ -147,7 +147,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
       .subscribe({
         next: res => {
           this.submitting = false;
-          if (res.success) {
+          if (res?.success) {
             this.visaBekraftelse(`Stopp registrerat: ${this.valdKategori?.ikon} ${this.valdKategori?.namn}`);
             this.valdKategori = null;
             this.kommentar = '';
@@ -155,7 +155,7 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
             this.loadAktivaStopp();
             this.loadHistorik();
           } else {
-            this.errorMessage = res.message || 'Kunde inte registrera stoppet';
+            this.errorMessage = res?.message || 'Kunde inte registrera stoppet';
           }
         },
         error: () => {
@@ -174,12 +174,12 @@ export class StopporsakRegistreringPage implements OnInit, OnDestroy {
       .subscribe({
         next: res => {
           this.endingStopId = null;
-          if (res.success) {
+          if (res?.success) {
             this.visaBekraftelse('Stopp avslutat');
             this.loadAktivaStopp();
             this.loadHistorik();
           } else {
-            this.errorMessage = res.message || 'Kunde inte avsluta stoppet';
+            this.errorMessage = res?.message || 'Kunde inte avsluta stoppet';
           }
         },
         error: () => {

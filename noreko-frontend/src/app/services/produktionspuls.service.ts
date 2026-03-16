@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // === Legacy interfaces (bakatkompat) ===
 
@@ -73,39 +75,39 @@ export interface LiveKpiResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ProduktionspulsService {
-  private api = '/noreko-backend/api.php?action=produktionspuls';
+  private api = `${environment.apiUrl}?action=produktionspuls`;
 
   constructor(private http: HttpClient) {}
 
   // Legacy
-  getLatest(limit = 50): Observable<PulsLatestResponse> {
+  getLatest(limit = 50): Observable<PulsLatestResponse | null> {
     return this.http.get<PulsLatestResponse>(
       `${this.api}&run=latest&limit=${limit}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(10000), catchError(() => of(null)));
   }
 
   // Legacy
-  getHourlyStats(): Observable<PulsHourlyResponse> {
+  getHourlyStats(): Observable<PulsHourlyResponse | null> {
     return this.http.get<PulsHourlyResponse>(
       `${this.api}&run=hourly-stats`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(10000), catchError(() => of(null)));
   }
 
   // Ny: kronologisk handelsefeed
-  getPulse(limit = 20): Observable<PulseResponse> {
+  getPulse(limit = 20): Observable<PulseResponse | null> {
     return this.http.get<PulseResponse>(
       `${this.api}&run=pulse&limit=${limit}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(10000), catchError(() => of(null)));
   }
 
   // Ny: realtids-KPI:er
-  getLiveKpi(): Observable<LiveKpiResponse> {
+  getLiveKpi(): Observable<LiveKpiResponse | null> {
     return this.http.get<LiveKpiResponse>(
       `${this.api}&run=live-kpi`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(10000), catchError(() => of(null)));
   }
 }

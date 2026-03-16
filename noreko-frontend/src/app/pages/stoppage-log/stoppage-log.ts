@@ -242,7 +242,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   loadReasons() {
     this.stoppageService.getReasons().pipe(timeout(8000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success) this.reasons = res.data;
+        if (res?.success) this.reasons = res.data;
       }
     });
   }
@@ -250,7 +250,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   loadStoppages() {
     this.stoppageService.getStoppages(this.selectedLine, this.selectedPeriod).pipe(timeout(8000), catchError(() => of({ success: false, data: [] })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success) this.stoppages = res.data;
+        if (res?.success) this.stoppages = res.data;
         this.loading = false;
       },
       error: () => this.loading = false
@@ -260,7 +260,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   loadWeeklySummary() {
     this.stoppageService.getWeeklySummary(this.selectedLine).pipe(timeout(8000), catchError(() => of({ success: false, data: null })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success) {
+        if (res?.success) {
           this.weeklySummary = res.data;
           clearTimeout(this.chartTimerId);
           this.chartTimerId = setTimeout(() => {
@@ -275,7 +275,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   loadStats() {
     this.stoppageService.getStats(this.selectedLine, this.selectedPeriod).pipe(timeout(8000), catchError(() => of({ success: false, data: null })), takeUntil(this.destroy$)).subscribe({
       next: (res) => {
-        if (res.success) {
+        if (res?.success) {
           this.stats = res.data;
           clearTimeout(this.chartTimerId);
           this.chartTimerId = setTimeout(() => {

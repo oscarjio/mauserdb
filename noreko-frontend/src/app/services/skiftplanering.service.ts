@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -105,7 +106,7 @@ export interface OperatorsResponse {
 
 @Injectable({ providedIn: 'root' })
 export class SkiftplaneringService {
-  private api = '../../noreko-backend/api.php?action=skiftplanering';
+  private api = `${environment.apiUrl}?action=skiftplanering`;
 
   constructor(private http: HttpClient) {}
 

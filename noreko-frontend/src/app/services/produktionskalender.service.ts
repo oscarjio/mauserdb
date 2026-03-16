@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -89,7 +90,7 @@ export interface DayDetailResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ProduktionskalenderService {
-  private readonly apiBase = '/api/api.php';
+  private readonly apiBase = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
