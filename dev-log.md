@@ -1,3 +1,49 @@
+## 2026-03-16 Session #125 Worker B — TypeScript logic-audit + PHP dead code cleanup
+
+### DEL 1: Frontend TypeScript logic-audit
+
+**Granskade ALLA 42 page-komponenter** under `noreko-frontend/src/app/pages/` (37 sidkomponenter + 5 maintenance-log sub-komponenter).
+
+**Identifierade och fixade 3 buggar:**
+
+1. **kvalitetscertifikat.component.ts — Division-by-zero i linjear regression**
+   - Problem: `const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)` — när n=1 blir namnaren 0 → slope=Infinity/NaN
+   - Fix: lade till guard `const denom = n * sumX2 - sumX * sumX; const slope = denom !== 0 ? ... : 0;`
+   - Identisk fix som redan finns i `rebotling-trendanalys.component.ts`
+
+2. **oee-trendanalys.component.ts — Race condition: delad chartTimer**
+   - Problem: `loadTrend()` och `loadPrediktion()` delade samma `chartTimer`-handle. Om prediktionsvaret anlände inom 100 ms efter trendsvaret avbröts `buildTrendChart()` och kördes aldrig
+   - Fix: delade upp i `trendChartTimer` och `prediktionChartTimer` — separata handles med korrekt `clearTimeout` i `ngOnDestroy`
+
+3. **vd-dashboard.component.ts — Tre kodstilistiska brister**
+   - `refreshInterval: any` → ändrad till `ReturnType<typeof setInterval> | null` (konsekvent med övriga komponenter)
+   - `clearInterval(this.refreshInterval)` satte inte `this.refreshInterval = null` efteråt
+   - `this.trendChart?.destroy()` och `this.stationChart?.destroy()` saknade try-catch (alla andra komponenter har det)
+
+### DEL 2: PHP dead code cleanup
+
+**Granskade ALLA 33 controllers/ (proxy-filer) + ALLA 112 classes/ (implementation).**
+
+Letade efter oanvända private methods, importerade men oanvända klasser, kommenterad kod och oanvända variabler.
+
+**Hittade och tog bort 3 oanvända private metoder:**
+
+1. **classes/StopporsakController.php — `calcMinuter(array $row): float`**
+   - Beräknade stopptid i minuter från start/end-timestamps
+   - Aldrig anropad via `$this->calcMinuter()` — dead code sedan refaktorering
+
+2. **classes/KassationsorsakController.php — `skiftTypFromRaknare(?int $raknare): string`**
+   - Konverterade skifträknare (1/2/3) till text (dag/kväll/natt)
+   - Aldrig anropad — dead code sedan skiftlogiken skrevs om
+
+3. **classes/KvalitetscertifikatController.php — `currentUserId(): ?int`**
+   - Läste user_id från sessionen
+   - Aldrig anropad — `currentUserName()` (bredvid) används men inte denna
+
+### Totalt: 6 buggar fixade i 6 filer. Build: OK.
+
+---
+
 ## 2026-03-16 Session #125 Worker A — Buggjakt: SQL-parametervalidering + Error-logging konsistens
 
 ### DEL 1: SQL-queries parametervalidering
