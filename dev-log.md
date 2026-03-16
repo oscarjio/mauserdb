@@ -1,3 +1,41 @@
+## 2026-03-16 Session #112 Worker A — buggjakt 5 controllers + unused vars cleanup
+
+### DEL 1: Granskade filer (bug audit):
+1. OperatorDashboardController.php (~1118 rader) — 7 buggar fixade
+2. KapacitetsplaneringController.php (~1191 rader) — 2 buggar fixade
+3. SkiftoverlamningController.php (~1263 rader) — inga buggar hittade
+4. SkiftrapportController.php (~1108 rader) — inga buggar hittade
+5. TvattlinjeController.php (~1106 rader) — inga buggar hittade
+
+### Fixade buggar DEL 1 (9 st i 2 filer):
+
+**OperatorDashboardController.php (7 buggar — duplicate PDO named params)**
+1. getToday(): `:today` x3 i UNION ALL — fixat till `:today1/:today2/:today3`
+2. getMinProduktion(): `:op` x3, `:today` x3 — fixat med unika suffix
+3. getMittTempo() query 1 (min): `:op` x3, `:today` x3 — fixat
+4. getMittTempo() query 2 (alla): `:today` x3 — fixat
+5. getMinBonus() query 1: `:op` x3, `:today` x3 — fixat + saknade `ibc_ej_ok` i inner SELECT (kolumnen refererades i MAX men valdes aldrig)
+6. getMinBonus() query 2 (alla): `:today` x3 — fixat
+7. getMinVeckotrend(): `:op` x3, `:from` x3, `:to` x3 — fixat
+
+**KapacitetsplaneringController.php (2 buggar)**
+8. getVeckoOversikt(): `COUNT(*)` pa rader i rebotling_ibc istallet for korrekt kumulativ aggregering. Fixat till `MAX(ibc_ok) + MAX(ibc_ej_ok)` per skiftraknare per dag, sedan `SUM()`.
+9. getPrognos(): refererade `$histRad['unika_op']` som inte existerar i SQL-fragan — borttagen
+
+### DEL 2: Unused variables borttagna (10 st i 2 filer):
+
+**RebotlingAnalyticsController.php (7 vars)**
+- `$prevDay` (L25), `$useDateRange` (L487/492), `$bestWeekYr` (L1935/1954), `$bestWeekWk` (L1936/1955), `$runtimeH` (L2263), `$stoppageH` (L2264), `$orsakTrend` (L4746)
+
+**BonusAdminController.php (3 vars)**
+- `$projected_shifts_week` (L728), `$totalOperators` (L1354), `$simulatedIbcPerH` + `$simulatedHours` (L1384)
+
+### Noterat men EJ fixat:
+- KassationsanalysController.php och RebotlingController.php hade inga oanvanda variabler (trots uppskattning ~1/~2)
+- TvattlinjeController.php: designinkonsistens mellan `loadSettings()`/`saveAdminSettings()` (kolumnbaserat) och `getSettings()`/`setSettings()` (key-value). Ej en bugg men kan orsaka problem vid framtida andring.
+
+---
+
 ## 2026-03-16 Session #112 Worker B — buggjakt classes/ audit del 3 (6 filer + api.php)
 
 ### Granskade filer:
