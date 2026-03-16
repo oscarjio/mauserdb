@@ -697,8 +697,8 @@ class SkiftrapportController {
      */
     private function getShiftReportByOperator() {
         $operatorId = isset($_GET['operator_id']) ? intval($_GET['operator_id']) : 0;
-        $from = $_GET['from'] ?? '';
-        $to   = $_GET['to'] ?? '';
+        $from = trim($_GET['from'] ?? '');
+        $to   = trim($_GET['to'] ?? '');
 
         if ($operatorId <= 0) {
             http_response_code(400);
@@ -709,6 +709,10 @@ class SkiftrapportController {
             http_response_code(400);
             echo json_encode(['success' => false, 'message' => 'Ogiltigt datumformat (from/to)']);
             return;
+        }
+        // Validera att from <= to
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
         }
 
         try {
@@ -936,7 +940,7 @@ class SkiftrapportController {
      * ?datum=YYYY-MM-DD (default: idag)
      */
     private function getDagligSammanstallning(): void {
-        $datum = $_GET['datum'] ?? date('Y-m-d');
+        $datum = trim($_GET['datum'] ?? date('Y-m-d'));
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);

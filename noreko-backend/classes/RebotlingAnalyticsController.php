@@ -353,6 +353,9 @@ class RebotlingAnalyticsController {
     public function getWeekComparison() {
         try {
             $granularity = $_GET['granularity'] ?? 'day';
+            if (!in_array($granularity, ['day', 'shift'], true)) {
+                $granularity = 'day';
+            }
 
             if ($granularity === 'shift') {
                 // Per-skift: hämta senaste 14 dagarna, varje skift = en datapunkt
@@ -470,13 +473,17 @@ class RebotlingAnalyticsController {
      */
 
     public function getOEETrend() {
-        $fromDate = $_GET['from_date'] ?? null;
-        $toDate   = $_GET['to_date']   ?? null;
+        $fromDate = isset($_GET['from_date']) ? trim($_GET['from_date']) : null;
+        $toDate   = isset($_GET['to_date'])   ? trim($_GET['to_date'])   : null;
         if ($fromDate && $toDate) {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
+            }
+            // Validera att from <= to
+            if ($fromDate > $toDate) {
+                [$fromDate, $toDate] = [$toDate, $fromDate];
             }
             // Begränsa till max 365 dagar för att förhindra timeout/memory exhaustion
             $startDt = new DateTime($fromDate);
@@ -493,6 +500,9 @@ class RebotlingAnalyticsController {
             $oeeEnd   = date('Y-m-d');
         }
         $granularity = $_GET['granularity'] ?? 'day';
+        if (!in_array($granularity, ['day', 'shift'], true)) {
+            $granularity = 'day';
+        }
         try {
             if ($granularity === 'shift') {
                 // Per-skift: varje skift = en datapunkt med eget OEE-värde
@@ -1058,8 +1068,8 @@ class RebotlingAnalyticsController {
 
 
     public function getShiftCompare() {
-        $date_a = $_GET['date_a'] ?? '';
-        $date_b = $_GET['date_b'] ?? '';
+        $date_a = trim($_GET['date_a'] ?? '');
+        $date_b = trim($_GET['date_b'] ?? '');
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_a) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_b)) {
             http_response_code(400);
@@ -1394,8 +1404,8 @@ class RebotlingAnalyticsController {
 
     public function getCycleByOperator() {
         $today = date('Y-m-d');
-        $startDate = $_GET['start_date'] ?? date('Y-m-d', strtotime('-29 days'));
-        $endDate   = $_GET['end_date']   ?? $today;
+        $startDate = trim($_GET['start_date'] ?? date('Y-m-d', strtotime('-29 days')));
+        $endDate   = trim($_GET['end_date']   ?? $today);
 
         // Validera datumformat
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDate)) {
@@ -1403,6 +1413,10 @@ class RebotlingAnalyticsController {
         }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $endDate)) {
             $endDate = $today;
+        }
+        // Validera att start <= end
+        if ($startDate > $endDate) {
+            [$startDate, $endDate] = [$endDate, $startDate];
         }
 
         // Begränsa datumintervall till max 365 dagar
@@ -2934,13 +2948,17 @@ class RebotlingAnalyticsController {
 
     public function getAnnotations() {
         // Validera datumparametrar
-        $start = $_GET['start'] ?? '';
-        $end   = $_GET['end']   ?? '';
+        $start = trim($_GET['start'] ?? '');
+        $end   = trim($_GET['end']   ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltiga datumparametrar'], JSON_UNESCAPED_UNICODE);
             return;
+        }
+        // Validera att start <= end
+        if ($start > $end) {
+            [$start, $end] = [$end, $start];
         }
 
         $annotations = [];
@@ -3512,7 +3530,7 @@ class RebotlingAnalyticsController {
     // POST ?action=rebotling&run=delete-event (kräver admin)
 
     public function getShiftTrend() {
-        $datum = $_GET['datum'] ?? '';
+        $datum = trim($_GET['datum'] ?? '');
         $skift = intval($_GET['skift'] ?? 0);
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum) || $skift <= 0) {
@@ -3878,9 +3896,9 @@ class RebotlingAnalyticsController {
 
     public function getSkiftrapportList() {
         try {
-            $operator = $_GET['operator'] ?? '';
+            $operator = trim($_GET['operator'] ?? '');
             $limit  = max(1, min(500, (int)($_GET['limit'] ?? 100)));
-            $offset = max(0, (int)($_GET['offset'] ?? 0));
+            $offset = max(0, min(100000, (int)($_GET['offset'] ?? 0)));
 
             $where = '';
             $params = [];
@@ -5062,7 +5080,7 @@ HTML;
         // Sätt HTML content-type direkt — api.php sätter application/json som default
         header('Content-Type: text/html; charset=utf-8');
 
-        $date  = $_GET['date']  ?? '';
+        $date  = trim($_GET['date']  ?? '');
         $shift = (int)($_GET['shift'] ?? 0);
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $shift < 1 || $shift > 3) {
@@ -5872,13 +5890,17 @@ HTML;
      * GET ?action=rebotling&run=annotations-list&start=YYYY-MM-DD&end=YYYY-MM-DD[&typ=driftstopp]
      */
     public function getAnnotationsList(): void {
-        $start = $_GET['start'] ?? '';
-        $end   = $_GET['end']   ?? '';
+        $start = trim($_GET['start'] ?? '');
+        $end   = trim($_GET['end']   ?? '');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) ||
             !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltiga datumparametrar (YYYY-MM-DD)'], JSON_UNESCAPED_UNICODE);
             return;
+        }
+        // Validera att start <= end
+        if ($start > $end) {
+            [$start, $end] = [$end, $start];
         }
 
         try {
@@ -6160,7 +6182,10 @@ HTML;
         try {
             $this->ensureProductionGoalsTable();
 
-            $period = $_GET['period'] ?? 'today';
+            $period = trim($_GET['period'] ?? 'today');
+            if (!in_array($period, ['today', 'week'], true)) {
+                $period = 'today';
+            }
             $now    = new DateTime('now', new DateTimeZone('Europe/Stockholm'));
 
             if ($period === 'week') {

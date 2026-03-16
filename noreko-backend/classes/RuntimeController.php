@@ -243,6 +243,12 @@ class RuntimeController {
                 return;
             }
 
+            // Whitelist-validering av period
+            $validPeriods = ['today', 'week', 'month'];
+            if (!in_array($period, $validPeriods, true)) {
+                $period = 'today';
+            }
+
             $totalBreakMinutes = $this->calculateBreakTime($line, $period);
 
             echo json_encode([

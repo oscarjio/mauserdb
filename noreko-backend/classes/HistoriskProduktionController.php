@@ -65,9 +65,18 @@ class HistoriskProduktionController {
         $to   = trim($_GET['to']   ?? '');
 
         if ($from && $to && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+            // Validera att from <= to, annars byt plats
+            if ($from > $to) {
+                [$from, $to] = [$to, $from];
+            }
             $dt1 = new \DateTime($from);
             $dt2 = new \DateTime($to);
             $days = (int)$dt1->diff($dt2)->days + 1;
+            // Begränsa till max 365 dagar
+            if ($days > 365) {
+                $from = (clone $dt2)->modify('-364 days')->format('Y-m-d');
+                $days = 365;
+            }
             return [$from, $to, max(1, $days)];
         }
 

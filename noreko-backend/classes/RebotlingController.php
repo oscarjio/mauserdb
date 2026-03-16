@@ -776,10 +776,14 @@ class RebotlingController {
 
     private function getStatistics() {
         try {
-            $start = $_GET['start'] ?? date('Y-m-d');
-            $end = $_GET['end'] ?? date('Y-m-d');
+            $start = trim($_GET['start'] ?? date('Y-m-d'));
+            $end = trim($_GET['end'] ?? date('Y-m-d'));
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) $end = date('Y-m-d');
+            // Validera att start <= end
+            if ($start > $end) {
+                [$start, $end] = [$end, $start];
+            }
 
             // Hämta cykler för perioden med FAKTISK beräknad cykeltid och target från produkt.
             // OBS: Joina direkt på i.produkt → rebotling_products för att undvika
@@ -1084,7 +1088,11 @@ class RebotlingController {
      */
 
     private function getOEE() {
-        $period = $_GET['period'] ?? 'today';
+        $period = trim($_GET['period'] ?? 'today');
+        // Whitelist-validering av period
+        if (!in_array($period, ['today', 'week', 'month'], true)) {
+            $period = 'today';
+        }
 
         // Notera: alias "r" används i dateFilter och måste matcha yttre queryn
         $dateFilter = match($period) {
@@ -1192,12 +1200,16 @@ class RebotlingController {
 
     private function getCycleTrend() {
         try {
-            $fromDate = $_GET['from_date'] ?? null;
-            $toDate   = $_GET['to_date']   ?? null;
+            $fromDate = isset($_GET['from_date']) ? trim($_GET['from_date']) : null;
+            $toDate   = isset($_GET['to_date'])   ? trim($_GET['to_date'])   : null;
             if ($fromDate && $toDate) {
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
                     echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                     return;
+                }
+                // Validera att from <= to
+                if ($fromDate > $toDate) {
+                    [$fromDate, $toDate] = [$toDate, $fromDate];
                 }
                 $cycleStart = $fromDate;
                 $cycleEnd   = $toDate;
@@ -1207,6 +1219,9 @@ class RebotlingController {
                 $cycleEnd   = date('Y-m-d');
             }
             $granularity = $_GET['granularity'] ?? 'day';
+            if (!in_array($granularity, ['day', 'shift'], true)) {
+                $granularity = 'day';
+            }
 
             if ($granularity === 'shift') {
                 // Per-skift granularitet: varje skift är en datapunkt
@@ -1364,14 +1379,18 @@ class RebotlingController {
 
 
     private function getHeatmap() {
-        $fromDate = $_GET['from_date'] ?? null;
-        $toDate   = $_GET['to_date']   ?? null;
+        $fromDate = isset($_GET['from_date']) ? trim($_GET['from_date']) : null;
+        $toDate   = isset($_GET['to_date'])   ? trim($_GET['to_date'])   : null;
 
         if ($fromDate && $toDate) {
             // Validera datumformat
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
                 echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
+            }
+            // Validera att from <= to
+            if ($fromDate > $toDate) {
+                [$fromDate, $toDate] = [$toDate, $fromDate];
             }
             // Begränsa till max 365 dagar
             $startDt = new DateTime($fromDate);
@@ -1648,10 +1667,14 @@ class RebotlingController {
      */
 
     private function getEvents(): void {
-        $start = $_GET['start'] ?? date('Y-m-d', strtotime('-90 days'));
-        $end   = $_GET['end']   ?? date('Y-m-d');
+        $start = trim($_GET['start'] ?? date('Y-m-d', strtotime('-90 days')));
+        $end   = trim($_GET['end']   ?? date('Y-m-d'));
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start)) $start = date('Y-m-d', strtotime('-90 days'));
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $end))   $end   = date('Y-m-d');
+        // Validera att start <= end
+        if ($start > $end) {
+            [$start, $end] = [$end, $start];
+        }
         try {
             $stmt = $this->pdo->prepare(
                 "SELECT id, event_date, title, description, event_type

@@ -619,8 +619,8 @@ class OeeTrendanalysController {
             $days = $this->getDays();
 
             // Period 1 (aktuell)
-            $from1 = $_GET['from1'] ?? date('Y-m-d', strtotime("-{$days} days"));
-            $to1   = $_GET['to1']   ?? date('Y-m-d');
+            $from1 = trim($_GET['from1'] ?? date('Y-m-d', strtotime("-{$days} days")));
+            $to1   = trim($_GET['to1']   ?? date('Y-m-d'));
 
             // Validera datumformat
             $datePattern = '/^\d{4}-\d{2}-\d{2}$/';
@@ -628,14 +628,22 @@ class OeeTrendanalysController {
                 $this->sendError('Ogiltigt datumformat. Forvantat: YYYY-MM-DD');
                 return;
             }
+            // Validera att from <= to
+            if ($from1 > $to1) {
+                [$from1, $to1] = [$to1, $from1];
+            }
 
             // Period 2 (foregaende)
-            $from2 = $_GET['from2'] ?? date('Y-m-d', strtotime("-{$days} days", strtotime($from1)));
-            $to2   = $_GET['to2']   ?? date('Y-m-d', strtotime('-1 day', strtotime($from1)));
+            $from2 = trim($_GET['from2'] ?? date('Y-m-d', strtotime("-{$days} days", strtotime($from1))));
+            $to2   = trim($_GET['to2']   ?? date('Y-m-d', strtotime('-1 day', strtotime($from1))));
 
             if (!preg_match($datePattern, $from2) || !preg_match($datePattern, $to2)) {
                 $this->sendError('Ogiltigt datumformat for period 2. Forvantat: YYYY-MM-DD');
                 return;
+            }
+            // Validera att from <= to
+            if ($from2 > $to2) {
+                [$from2, $to2] = [$to2, $from2];
             }
 
             $period1 = $this->calcOeePerStation($from1, $to1);

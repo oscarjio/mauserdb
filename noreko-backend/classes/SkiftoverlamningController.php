@@ -595,7 +595,7 @@ class SkiftoverlamningController {
             $whereSql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
 
             $limit  = max(1, min(100, (int)($_GET['limit'] ?? 50)));
-            $offset = max(0, (int)($_GET['offset'] ?? 0));
+            $offset = max(0, min(100000, (int)($_GET['offset'] ?? 0)));
 
             $countStmt = $this->pdo->prepare(
                 "SELECT COUNT(*) FROM skiftoverlamning_logg l {$whereSql}"

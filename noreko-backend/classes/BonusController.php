@@ -141,8 +141,8 @@ class BonusController {
     private function getOperatorStats() {
         $op_id      = isset($_GET['id']) ? intval($_GET['id']) : null;
         $period     = trim($_GET['period'] ?? 'week');
-        $start_date = $_GET['start']  ?? null;
-        $end_date   = $_GET['end']    ?? null;
+        $start_date = isset($_GET['start']) ? trim($_GET['start']) : null;
+        $end_date   = isset($_GET['end'])   ? trim($_GET['end'])   : null;
 
         // Whitelist-validering av $period
         $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
@@ -285,9 +285,9 @@ class BonusController {
      */
     private function getRanking() {
         $period     = trim($_GET['period'] ?? 'week');
-        $limit      = min((int)($_GET['limit'] ?? 10), 100);
-        $start_date = $_GET['start']  ?? null;
-        $end_date   = $_GET['end']    ?? null;
+        $limit      = max(1, min((int)($_GET['limit'] ?? 10), 100));
+        $start_date = isset($_GET['start']) ? trim($_GET['start']) : null;
+        $end_date   = isset($_GET['end'])   ? trim($_GET['end'])   : null;
 
         // Whitelist-validering av $period
         $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
@@ -427,8 +427,8 @@ class BonusController {
      */
     private function getTeamStats() {
         $period     = trim($_GET['period'] ?? 'week');
-        $start_date = $_GET['start']  ?? null;
-        $end_date   = $_GET['end']    ?? null;
+        $start_date = isset($_GET['start']) ? trim($_GET['start']) : null;
+        $end_date   = isset($_GET['end'])   ? trim($_GET['end'])   : null;
 
         // Whitelist-validering av $period
         $allowed_periods = ['today', 'week', 'month', 'year', 'all'];
@@ -649,7 +649,7 @@ class BonusController {
      */
     private function getOperatorHistory() {
         $op_id = isset($_GET['id']) ? intval($_GET['id']) : null;
-        $limit = min((int)($_GET['limit'] ?? 50), 500);
+        $limit = max(1, min((int)($_GET['limit'] ?? 50), 500));
 
         if (!$op_id || $op_id <= 0) {
             $this->sendError('Operatör-ID saknas');
@@ -1798,12 +1798,16 @@ class BonusController {
                 !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
                 return "1=0";
             }
+            // Validera att from <= to, annars byt plats
+            if ($start > $end) {
+                [$start, $end] = [$end, $start];
+            }
             // Begränsa datumintervall till max 365 dagar för att förhindra timeout/memory exhaustion
             $startDt = new DateTime($start);
             $endDt   = new DateTime($end);
             $diffDays = (int)$startDt->diff($endDt)->days;
             if ($diffDays > 365) {
-                $start = $endDt->modify('-365 days')->format('Y-m-d');
+                $start = (clone $endDt)->modify('-365 days')->format('Y-m-d');
             }
             // $start/$end validated to YYYY-MM-DD (digits+hyphens only) — no injection possible
             return "DATE(datum) BETWEEN '" . $start . "' AND '" . $end . "'";
