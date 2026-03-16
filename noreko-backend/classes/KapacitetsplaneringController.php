@@ -326,7 +326,8 @@ class KapacitetsplaneringController {
             ");
             $stmtTrend->execute([':from_date' => $refFrom, ':to_date' => $today]);
             $snittPerDag = (float)($stmtTrend->fetchColumn() ?? 0);
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getKpi (snitt): ' . $e->getMessage());
             $snittPerDag = 0.0;
         }
 
@@ -434,7 +435,8 @@ class KapacitetsplaneringController {
             ");
             $stmtSnitt->execute([':from_date' => $fromDateStr, ':to_date' => $toDateStr]);
             $snitt = (float)($stmtSnitt->fetchColumn() ?? 0);
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getDagligKapacitet (snitt): ' . $e->getMessage());
             $snitt = 0.0;
         }
 
@@ -460,7 +462,8 @@ class KapacitetsplaneringController {
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $faktisk        = (int)($rad['ok_antal'] ?? 0) + (int)($rad['ej_ok_antal'] ?? 0);
                 $antalStationer = 1;
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                error_log('KapacitetsplaneringController::getDagligKapacitet (dag): ' . $e->getMessage());
                 $faktisk        = 0;
                 $antalStationer = 1;
             }
@@ -711,7 +714,8 @@ class KapacitetsplaneringController {
                 ");
                 $stmt->execute([':dag' => $dagStr]);
                 $antalIbc = (int)($stmt->fetchColumn() ?? 0);
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                error_log('KapacitetsplaneringController::getTidFordelning (dag): ' . $e->getMessage());
                 $antalIbc = 0;
             }
 
@@ -880,7 +884,8 @@ class KapacitetsplaneringController {
                 $rad = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $faktisk        = (int)($rad['ok_antal'] ?? 0) + (int)($rad['ej_ok_antal'] ?? 0);
                 $antalStationer = 1;
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                error_log('KapacitetsplaneringController::getUtnyttjandegradTrend (dag): ' . $e->getMessage());
                 $faktisk        = 0;
                 $antalStationer = 1;
             }
@@ -979,7 +984,8 @@ class KapacitetsplaneringController {
             $stmtHalf->execute([':from_date' => $fromDate, ':half_date' => $halfDate]);
             $halfRow = $stmtHalf->fetch(\PDO::FETCH_ASSOC);
             $halfMap = ['rebotling' => (int)($halfRow['total_ibc'] ?? 0)];
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getKapacitetstabell (half): ' . $e->getMessage());
             $halfMap = [];
         }
 
@@ -1076,7 +1082,8 @@ class KapacitetsplaneringController {
             $histIbc = (int)($histRad['total_ibc'] ?? 0);
             $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
             $histIbcPerOpPerDag = $histIbc / $histDagar;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getBemanning (hist): ' . $e->getMessage());
             $histIbcPerOpPerDag = $defaultIbcPerOpTimme * $skiftTimmar;
         }
 
@@ -1147,7 +1154,8 @@ class KapacitetsplaneringController {
             $histIbc = (int)($histRad['total_ibc'] ?? 0);
             $histDagar = max(1, (int)($histRad['prod_dagar'] ?? 1));
             $ibcPerOpPerTimme = $histIbc / ($histDagar * (self::PLANERAD_DRIFTTID_SEK / 3600));
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('KapacitetsplaneringController::getPrognos (hist): ' . $e->getMessage());
             $ibcPerOpPerTimme = self::DEFAULT_IBC_PER_OPERATOR_TIMME;
         }
 

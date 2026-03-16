@@ -119,7 +119,9 @@ class DagligBriefingController {
                 $prevRunning = $running;
             }
             $drifttidSek = max(0, $drifttidSek);
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('DagligBriefingController::calcOeeForDay (onoff): ' . $e->getMessage());
+        }
 
         $schemaSek = self::SCHEMA_SEK_PER_DAG;
         $tillganglighet = $schemaSek > 0 ? min(1.0, $drifttidSek / $schemaSek) : 0.0;
@@ -143,7 +145,9 @@ class DagligBriefingController {
             $ibcRow = $stmt->fetch(\PDO::FETCH_ASSOC);
             $okIbc    = (int)($ibcRow['ok_ibc'] ?? 0);
             $totalIbc = $okIbc + (int)($ibcRow['ej_ok_ibc'] ?? 0);
-        } catch (\Exception) {}
+        } catch (\Exception $e) {
+            error_log('DagligBriefingController::calcOeeForDay (ibc): ' . $e->getMessage());
+        }
 
         $kvalitet = $totalIbc > 0 ? ($okIbc / $totalIbc) : 0.0;
         $prestanda = $drifttidSek > 0 ? min(1.0, ($totalIbc * self::IDEAL_CYCLE_SEC) / $drifttidSek) : 0.0;
@@ -184,7 +188,9 @@ class DagligBriefingController {
                 $stmt->execute([':date' => $datum]);
                 $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                 $kasserade = (int)($row['kasserade'] ?? 0);
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('DagligBriefingController::sammanfattning (kasserade): ' . $e->getMessage());
+            }
 
             $kassationsrate = $totalIbc > 0 ? round(($kasserade / $totalIbc) * 100, 2) : 0;
 
@@ -198,11 +204,14 @@ class DagligBriefingController {
                         ) AS stopp_min
                         FROM stopporsak_registreringar
                         WHERE DATE(start_time) = :date
+                          AND linje = 'rebotling'
                     ");
                     $stmt->execute([':date' => $datum, ':to1' => $datum . ' 23:59:59']);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $stoppMinuter = max(0, (int)($row['stopp_min'] ?? 0));
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('DagligBriefingController::sammanfattning (stoppminuter): ' . $e->getMessage());
+                }
             }
 
             // Dagsmal
@@ -213,7 +222,9 @@ class DagligBriefingController {
                     $stmt->execute([':date' => $datum]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     if ($row) $dagsmal = (int)$row['mal_antal'];
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('DagligBriefingController::sammanfattning (produktionsmal): ' . $e->getMessage());
+                }
             }
 
             if ($dagsmal === 0) {
@@ -231,7 +242,9 @@ class DagligBriefingController {
                     $stmt->execute([':date1' => $datum, ':date2' => $datum]);
                     $row = $stmt->fetch(\PDO::FETCH_ASSOC);
                     $dagsmal = (int)($row['avg_ibc'] ?? 0);
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('DagligBriefingController::sammanfattning (avg_ibc): ' . $e->getMessage());
+                }
             }
             if ($dagsmal === 0) $dagsmal = 100;
 
@@ -269,19 +282,22 @@ class DagligBriefingController {
                         'total_ibc' => (int)$row['total_ibc'],
                     ];
                 }
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('DagligBriefingController::sammanfattning (basta_operator): ' . $e->getMessage());
+            }
 
             // Framsta stopporsak for textsummering
             $framstaOrsak = 'okand orsak';
             if ($this->tableExists('stopporsak_registreringar')) {
                 try {
                     $sql = "
-                        SELECT COALESCE(sk.namn, sr.orsak, 'Okand') AS orsak,
+                        SELECT COALESCE(sk.namn, sr.kommentar, 'Okand') AS orsak,
                                SUM(TIMESTAMPDIFF(MINUTE, sr.start_time, COALESCE(sr.end_time, LEAST(NOW(), :to1)))) AS minuter
                         FROM stopporsak_registreringar sr
                         LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                         WHERE DATE(sr.start_time) = :date
-                        GROUP BY COALESCE(sk.namn, sr.orsak, 'Okand')
+                          AND sr.linje = 'rebotling'
+                        GROUP BY COALESCE(sk.namn, sr.kommentar, 'Okand')
                         ORDER BY minuter DESC
                         LIMIT 1
                     ";
@@ -291,7 +307,9 @@ class DagligBriefingController {
                     if ($row && (int)$row['minuter'] > 0) {
                         $framstaOrsak = $row['orsak'];
                     }
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('DagligBriefingController::sammanfattning (framsta_orsak): ' . $e->getMessage());
+                }
             }
 
             // Autogenererad textsummering
@@ -347,20 +365,23 @@ class DagligBriefingController {
                 try {
                     $sql = "
                         SELECT
-                            COALESCE(sk.namn, sr.orsak, 'Okand') AS orsak,
+                            COALESCE(sk.namn, sr.kommentar, 'Okand') AS orsak,
                             SUM(TIMESTAMPDIFF(MINUTE, sr.start_time, COALESCE(sr.end_time, LEAST(NOW(), :to1)))) AS minuter,
                             COUNT(*) AS antal
                         FROM stopporsak_registreringar sr
                         LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                         WHERE DATE(sr.start_time) = :date
-                        GROUP BY COALESCE(sk.namn, sr.orsak, 'Okand')
+                          AND sr.linje = 'rebotling'
+                        GROUP BY COALESCE(sk.namn, sr.kommentar, 'Okand')
                         ORDER BY minuter DESC
                         LIMIT 5
                     ";
                     $stmt = $this->pdo->prepare($sql);
                     $stmt->execute([':date' => $datum, ':to1' => $datum . ' 23:59:59']);
                     $orsaker = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('DagligBriefingController::stopporsaker: ' . $e->getMessage());
+                }
             }
 
             $totalMin = 0;
@@ -465,7 +486,9 @@ class DagligBriefingController {
                     ");
                     $stmt->execute([':date' => $dag]);
                     $totalIbc = (int)$stmt->fetchColumn();
-                } catch (\Exception) {}
+                } catch (\Exception $e) {
+                    error_log('DagligBriefingController::veckotrend: ' . $e->getMessage());
+                }
 
                 $dow = (int)date('w', strtotime($dag));
                 $dagar = ['Son', 'Man', 'Tis', 'Ons', 'Tor', 'Fre', 'Lor'];
@@ -526,7 +549,9 @@ class DagligBriefingController {
                     $op['ibc_idag'] = (int)$op['ibc_idag'];
                 }
                 unset($op);
-            } catch (\Exception) {}
+            } catch (\Exception $e) {
+                error_log('DagligBriefingController::bemanning: ' . $e->getMessage());
+            }
 
             $this->sendSuccess([
                 'datum'       => $today,

@@ -72,7 +72,8 @@ class ProduktionsPrognosController {
         try {
             $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc")->fetchAll(PDO::FETCH_COLUMN);
             return in_array('timestamp', $cols) ? 'timestamp' : 'datum';
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('ProduktionsPrognosController::getIbcTimestampColumn: ' . $e->getMessage());
             return 'datum';
         }
     }
@@ -121,7 +122,9 @@ class ProduktionsPrognosController {
         try {
             $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(\PDO::FETCH_ASSOC);
             if ($sRow) $mal = (int)$sRow['rebotling_target'];
-        } catch (\Exception) { /* tabell saknas */ }
+        } catch (\Exception $e) {
+            error_log('ProduktionsPrognosController::getDagsMal (settings): ' . $e->getMessage());
+        }
 
         // Undantag for idag
         try {
@@ -129,7 +132,9 @@ class ProduktionsPrognosController {
             $stmtEx->execute();
             $exRow = $stmtEx->fetch(\PDO::FETCH_ASSOC);
             if ($exRow) $mal = (int)$exRow['justerat_mal'];
-        } catch (\Exception) { /* ignorera */ }
+        } catch (\Exception $e) {
+            error_log('ProduktionsPrognosController::getDagsMal (undantag): ' . $e->getMessage());
+        }
 
         return $mal;
     }
@@ -184,7 +189,9 @@ class ProduktionsPrognosController {
         $snittTakt = null;
         try {
             $snittTakt = $this->getHistoricalAvgRate($shift['name'], 14, $ibcCol);
-        } catch (\Exception) { /* ignorera */ }
+        } catch (\Exception $e) {
+            error_log('ProduktionsPrognosController::getForecast (snittTakt): ' . $e->getMessage());
+        }
 
         // -- Trendindikator: jamfor aktuell takt mot historiskt snitt --
         $trendStatus = 'okant'; // 'bättre' | 'sämre' | 'i snitt' | 'okant'

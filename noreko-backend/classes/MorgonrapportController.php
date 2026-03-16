@@ -615,28 +615,35 @@ class MorgonrapportController {
         }
 
         // Snabbaste operator (flest IBC under datumet)
+        // rebotling_ibc uses op1/op2/op3 = operators.number (INTE operators.id)
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'operators'");
             if ($check && $check->rowCount() > 0) {
-                // Forsok med kolumn operator_id i rebotling_ibc
-                $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc LIKE 'operator_id'")->fetchAll();
-                if (!empty($cols)) {
-                    $stmt = $this->pdo->prepare("
-                        SELECT ibc.operator_id, o.name AS operator_namn, COUNT(*) AS cnt
-                        FROM rebotling_ibc ibc
-                        JOIN operators o ON ibc.operator_id = o.id
-                        WHERE DATE(ibc.datum) = ?
-                          AND ibc.operator_id IS NOT NULL
-                        GROUP BY ibc.operator_id, o.name
-                        ORDER BY cnt DESC
-                        LIMIT 1
-                    ");
-                    $stmt->execute([$date]);
-                    $row = $stmt->fetch(\PDO::FETCH_ASSOC);
-                    if ($row) {
-                        $snabbastOperator = $row['operator_namn'];
-                        $snabbastAntal    = (int)$row['cnt'];
-                    }
+                $stmt = $this->pdo->prepare("
+                    SELECT op, SUM(cnt) AS total_ibc, COALESCE(o.name, CONCAT('Operator ', op)) AS operator_namn
+                    FROM (
+                        SELECT op1 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = ? AND op1 IS NOT NULL AND op1 > 0
+                        GROUP BY op1
+                        UNION ALL
+                        SELECT op2 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = ? AND op2 IS NOT NULL AND op2 > 0
+                        GROUP BY op2
+                        UNION ALL
+                        SELECT op3 AS op, COUNT(*) AS cnt FROM rebotling_ibc
+                        WHERE DATE(datum) = ? AND op3 IS NOT NULL AND op3 > 0
+                        GROUP BY op3
+                    ) AS sub
+                    LEFT JOIN operators o ON o.number = sub.op
+                    GROUP BY op, o.name
+                    ORDER BY total_ibc DESC
+                    LIMIT 1
+                ");
+                $stmt->execute([$date, $date, $date]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if ($row) {
+                    $snabbastOperator = $row['operator_namn'];
+                    $snabbastAntal    = (int)$row['total_ibc'];
                 }
             }
         } catch (\Exception $e) {
@@ -644,7 +651,7 @@ class MorgonrapportController {
         }
 
         $bastaTimmeFormaterat = $bastaTimme !== null
-            ? sprintf('%02d:00–%02d:00', $bastaTimme, $bastaTimme + 1)
+            ? sprintf('%02d:00–%02d:00', $bastaTimme, ($bastaTimme + 1) % 24)
             : null;
 
         return [
