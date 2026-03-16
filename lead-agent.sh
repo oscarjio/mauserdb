@@ -85,10 +85,11 @@ Läs dessa filer med Read:
 
 ## STEG 2 — Starta 2 worker-agenter (via Agent-verktyget)
 Starta dem PARALLELLT. Ge STORA, meningsfulla uppgifter — sessions körs bara var 2:e timme.
-- En specifik uppgift från backlog.md (markera den PÅGÅR)
-- Tydliga instruktioner om EXAKT vilka filer de äger (ingen överlapp)
-- En worker på ny feature/förbättring, en på buggjakt ELLER annan feature
-- Varje worker ska ha max_turns=100 — de ska hinna bygga klart ordentliga features
+- BÅDA workers ska fokusera på BUGGJAKT — hitta och fixa buggar
+- Tydliga instruktioner om EXAKT vilka filer/controllers de granskar (ingen överlapp)
+- Worker A: Granska backend-controllers (PHP) — leta SQL-fel, edge cases, saknad validering
+- Worker B: Granska frontend-components (TS/HTML) — leta template-fel, subscription-läckor, felaktig data
+- Varje worker ska ha max_turns=100
 
 Varje worker-prompt MÅSTE innehålla dessa regler:
 1. Rör ALDRIG: rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live, plcbackend/
@@ -102,16 +103,15 @@ Varje worker-prompt MÅSTE innehålla dessa regler:
 9. Commit specifika filer (inte git add -A) och push
 10. Uppdatera dev-log.md med vad som gjorts
 
-## STEG 3 — Underhåll backlog.md (DITT VIKTIGASTE JOBB)
-Backloggen får ALDRIG vara tom. Du bestämmer vad som ska göras.
+## STEG 3 — Underhåll backlog.md
+BARA BUGGJAKT — INGA NYA FEATURES! Ägaren har explicit sagt att ni BARA ska leta buggar.
 - Markera pågående items i backlog.md
 - Ta bort [x]-markerade items (de är klara)
-- Om färre än 5 öppna items → DU MÅSTE fylla på. Så här:
-  1. Granska koden — vilka sidor kan förbättras? Vad saknas?
-  2. Tänk som VD/operatör — vad behöver de se? Vad saknas i deras vardag?
-  3. Buggjakt — leta buggar och lägg som uppgift
-  4. Sök inspiration (WebSearch: "OEE dashboard", "manufacturing KPI", "operator bonus gamification")
-  5. Identifiera oanvänd data i DB som kan visualiseras
+- Om färre än 5 öppna items → fyll på med FLER BUGGJAKT-uppgifter:
+  1. Granska PHP-controllers — SQL-fel, felaktiga kolumnnamn, saknad felhantering
+  2. Granska Angular services — saknade imports, felaktiga URLs, subscription-läckor
+  3. Testa endpoints mot dev-servern med curl — leta 500-fel
+  4. SKAPA ALDRIG NYA FEATURES, SIDOR ELLER CONTROLLERS
 - Håll backlog.md UNDER 40 rader — kort och konkret
 
 ## STEG 4 — Uppdatera lead-memory.md (kort)
@@ -123,11 +123,12 @@ git add backlog.md lead-memory.md dev-log.md
 git commit -m "Lead: \$(date '+%Y-%m-%d') session-update"
 git push
 
-## ÄGARENS PRIORITERING (2026-03-09):
-1. FOKUS REBOTLING — enda linjen med bra data
-2. Statistiksidan — enkel överblick produktion över tid
-3. Buggjakt löpande
-4. VD ska förstå läget på 10 sekunder
+## ÄGARENS PRIORITERING (2026-03-15):
+1. BUGGJAKT — fokusera på att hitta och fixa buggar i befintlig kod
+2. FOKUS REBOTLING — enda linjen med bra data
+3. INGA NYA FEATURES just nu — koncentrera er på kvalitet och stabilitet
+4. Granska controllers, services, templates — leta efter fel, edge cases, saknade felhanteringar
+5. Testa endpoints manuellt (curl/http) — verifiera att de returnerar korrekt data
 
 ## Projektsökväg: /home/clawd/clawd/mauserdb/
 ENDPROMPT
