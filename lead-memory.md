@@ -76,6 +76,21 @@ Session #120: BUGGJAKT — 41 buggar (4 Worker A + 37 Worker B). 16 PHP-controll
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
+
+### PRIORITET 1: FUNKTIONSTESTA HELA SIDAN (agaren krav 2026-03-16)
+Workers ska testköra VARJE sida pa https://dev.mauserdb.com (inlogg: aiab / Noreko2025) och:
+1. Oppna varje sida i menyn — kontrollera att den laddar utan fel
+2. Testa API-anrop — curl mot varje endpoint, kontrollera att response ar giltig JSON (ej 500)
+3. Testa formulär — skicka POST-requests, kontrollera att de sparar korrekt
+4. Kontrollera att feature flags fungerar — admin-anvandare ska se ratt sidor
+5. Kontrollera menyn — "Funktioner"-dropdown med grupperade sektioner ska fungera
+
+**Testplan per worker:**
+- Worker A: Testa alla Rebotling-sidor (skiftrapport, statistik, historik, admin, bonus, andon, skiftoverlamning, stoppregistrering)
+- Worker B: Testa alla Funktioner-sidor (produktion, OEE, kassation, operator, underhall, rapporter, visualisering)
+- Rapportera: vilka sidor ger 500-fel, vilka sidor ar tomma, vilka formulär fungerar inte
+
+### Kvarstaende buggjakt-items:
 - [x] Backend controllers (skift/stopp/vd/statistik, 16 st) — session #120 Worker A klar
 - [x] Frontend services batch 4+5 (produktion + skift/stopp, 21 st) — session #120 Worker B klar
 - [ ] Frontend services batch 6 (Ovrigt, 15 st)

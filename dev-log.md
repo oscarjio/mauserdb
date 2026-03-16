@@ -1,3 +1,25 @@
+## 2026-03-16 — Manuell bugfix-session (ägaren)
+
+### Fixade buggar:
+1. **FeatureFlagController.php** — `isDeveloper()` kollade bara `=== 'developer'`, admin fick 403. Ändrat till `in_array(['developer','admin'])`.
+2. **EffektivitetController.php** — `DATE(created_at)` → `DATE(datum)` (kolumnen finns inte i rebotling_ibc). 8 ställen fixade.
+3. **UtnyttjandegradController.php** — Samma `created_at` → `datum` bugg. 4 ställen fixade.
+4. **SkiftoverlamningController.php** — LIMIT/OFFSET som strängar via execute(). Fixat med bindValue(PDO::PARAM_INT).
+5. **Feature flags roller** — 106 av 129 flags hade min_role='developer', ändrat alla till 'admin'. Migration: `2026-03-16_feature_flags_fix_roles.sql`.
+6. **app.routes.ts** — Feature-flags route använde `developerGuard`, ändrat till `adminGuard`.
+7. **INSTALL_ALL.sql** — Fullständig uppdatering med alla migrationer t.o.m. 2026-03-15. Fixade beroenden (maskin_register), INSERT IGNORE överallt.
+
+### Menyreorganisering:
+- Rebotling-dropdown slimmat till 12 kärn-items
+- Ny "Funktioner"-dropdown med 7 grupperade sektioner (Produktion, OEE, Kassation, Operatör, Underhåll, Rapporter, Visualisering)
+- CSS med scrollbar-stöd för Funktioner-dropdown
+
+### Lead-agent instruktioner uppdaterade:
+- Prioritet 1: Funktionstesta hela sidan — workers ska testa varje sida och API-endpoint
+- Inga nya features — bara buggjakt
+
+---
+
 ## 2026-03-16 Session #120 Worker B — Buggjakt i frontend services
 
 ### Granskade filer (21 services):
