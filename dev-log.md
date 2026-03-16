@@ -1,3 +1,47 @@
+## 2026-03-16 Session #116 Worker A — Buggjakt i 10 operator-controllers
+
+### Granskade controllers (10 st):
+**Grupp 1 - Operator-controllers (4 st):** OperatorDashboardController, OperatorOnboardingController, OperatorRankingController, MyStatsController
+**Grupp 2 - Fler operator-relaterade (6 st):** OperatorController, OperatorJamforelseController, OperatorCompareController, OperatorsPrestandaController, OperatorsportalController, OperatorsbonusController
+
+### Buggar fixade (34 st):
+
+**1. operators.id vs operators.number forvaxling (12 st):**
+- `classes/OperatorController.php` rad 194-199: GET-lista anvande felaktiga kolumnnamn `op1_id`/`op2_id`/`op3_id` (existerar ej) och joinade mot `o.id` istallet for `o.number`. Fixat till `op1`/`op2`/`op3` + `o.number`.
+- `classes/OperatorController.php` getProfile() rad 339, 372, 391, 446, 480, 546, 616: Alla queries anvande `operators.id` ($id) for op1/op2/op3-jamforelser — ska vara `operators.number` ($opNumber). Fixat alla 7 forekomster.
+- `classes/OperatorController.php` getMachineCompatibility() rad 862: `INNER JOIN operators o ON o.id = sub.op_id` — fixat till `o.number = sub.op_id`.
+- `classes/OperatorCompareController.php` getRadarNormData() rad 292: `o.id = s.op1` — fixat till `o.number = s.op1/op2/op3`.
+- `classes/OperatorCompareController.php` getIbcRank() rad 335: Samma bugg — fixat `o.id` till `o.number`.
+- `classes/OperatorsbonusController.php` getOperatorData()/getOperatorIbcPerTimme()/getOperatorKvalitet()/getOperatorNarvaro(): Anvande nonexistent `operator_id` kolumn i rebotling_ibc. Omskrivet till op1/op2/op3 = operators.number monster med korrekt kumulativ aggregering.
+
+**2. Felaktig tabell/kolumnreferens (2 st):**
+- `classes/OperatorsbonusController.php` getOperatorData() rad 198: Refererade till nonexistent tabell `operatorer` med kolumner `aktiv`/`namn`. Fixat till `operators` med `active`/`name` + lagt till `number`-kolumn.
+- `classes/OperatorsbonusController.php` getOperatorIbcPerTimme() rad 267: Anvande nonexistent `rebotling_stats.operator_id`. Omskrivet till korrekt kumulativ aggregering fran rebotling_ibc via op1/op2/op3.
+
+**3. Tomma catch-block utan $e-variabel och error_log (12 st):**
+- `classes/OperatorDashboardController.php`: 2 catch-block fixade (getMinBonus stopp, getMinaStopp inner)
+- `classes/OperatorRankingController.php`: 6 catch-block fixade (tableExists, getOperatorIbcData primary+fallback, getOperatorStopptid, calcStreaks, historik primary)
+- `classes/MyStatsController.php`: 2 catch-block fixade (getOperatorName, getMyAchievements weekIbcPerH)
+- `classes/OperatorsPrestandaController.php`: 2 catch-block fixade (getOperatorDetalj name, getUtveckling name)
+
+**4. Saknad JSON_UNESCAPED_UNICODE (17 st):**
+- `classes/OperatorDashboardController.php`: 9 json_encode-anrop saknade flaggan (getToday empty+success, getWeekly empty, getHistory, getSummary, getOperatorer, getMinProduktion, getMittTempo, getMinBonus, getMinaStopp, getMinVeckotrend)
+- `classes/OperatorController.php`: 9 json_encode-anrop saknade flaggan (GET lista, getStats, getProfile 404+response, getPairs empty+response, getOperatorTrend, getMachineCompatibility, delete 404, toggleActive 404)
+- `classes/OperatorCompareController.php`: 3 json_encode-anrop saknade flaggan (operatorsList, compare, sendError)
+- `classes/OperatorsbonusController.php`: 3 json_encode-anrop saknade flaggan (requireAdmin 401+403, sendError)
+
+**5. Saknad session_status-check (1 st):**
+- `classes/OperatorCompareController.php` handle() rad 19: `session_start()` utan `session_status() === PHP_SESSION_NONE`-check — kunde kasta warning om session redan startad.
+
+**6. Empty catch i OperatorJamforelseController stopp-fallback (1 st):**
+- `classes/OperatorJamforelseController.php` getCompare() rad 235: Tom catch utan error_log. Fixat med error_log.
+
+### Controllers granskade utan strukturella buggar:
+- `classes/OperatorOnboardingController.php` — korrekt, prepared statements, error_log i alla catch, JSON_UNESCAPED_UNICODE overallt
+- `classes/OperatorsportalController.php` — korrekt, alla catch har $e + error_log, korrekt op1/op2/op3-monster
+
+---
+
 ## 2026-03-16 Session #116 Worker B — Buggjakt i 10 backend-controllers (2 grupper)
 
 ### Granskade controllers (10 st):

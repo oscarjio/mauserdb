@@ -98,7 +98,8 @@ class MyStatsController {
             $stmt->execute([$opNum]);
             $row = $stmt->fetch();
             return $row['name'] ?? ('Operatör #' . $opNum);
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('MyStatsController::getOperatorName: ' . $e->getMessage());
             return 'Operatör #' . $opNum;
         }
     }
@@ -635,7 +636,8 @@ class MyStatsController {
                     ]);
                     $val = $stmt->fetchColumn();
                     return $val !== null ? (float)$val : 0.0;
-                } catch (\PDOException) {
+                } catch (\PDOException $e) {
+                    error_log('MyStatsController::getMyAchievements weekIbcPerH: ' . $e->getMessage());
                     return 0.0;
                 }
             };

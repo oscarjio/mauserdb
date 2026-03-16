@@ -150,7 +150,7 @@ class OperatorDashboardController {
                     'snitt_ibc_per_h' => 0,
                     'bast_namn'       => null,
                     'bast_ibc_per_h'  => 0,
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -333,7 +333,7 @@ class OperatorDashboardController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($rows)) {
-                echo json_encode(['success' => true, 'operatorer' => []]);
+                echo json_encode(['success' => true, 'operatorer' => []], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -484,7 +484,7 @@ class OperatorDashboardController {
                 'success'   => true,
                 'dates'     => $dates,
                 'operators' => $operators,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getHistory: ' . $e->getMessage());
             http_response_code(500);
@@ -603,7 +603,7 @@ class OperatorDashboardController {
                 'vecka_snitt_ibc_per_h'   => $veckaSnittIbcPerH,
                 'vecka_bast_operatör'     => $veckaBastNamn,
                 'manad_total_ibc'         => (int)($rowManad['total_ibc'] ?? 0),
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getSummary: ' . $e->getMessage());
             http_response_code(500);
@@ -641,7 +641,7 @@ class OperatorDashboardController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'operatorer' => $ops]);
+            echo json_encode(['success' => true, 'operatorer' => $ops], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getOperatorer: ' . $e->getMessage());
             http_response_code(500);
@@ -715,7 +715,7 @@ class OperatorDashboardController {
                 'timmar'        => $timmar,
                 'ibc_per_timme' => $ibcPerTimme,
                 'datum'         => $today,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinProduktion: ' . $e->getMessage());
             http_response_code(500);
@@ -817,7 +817,7 @@ class OperatorDashboardController {
                 'procent_vs_snitt' => $procentVsSnitt,
                 'antal_operatorer' => $countOps,
                 'datum'            => $today,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMittTempo: ' . $e->getMessage());
             http_response_code(500);
@@ -948,8 +948,8 @@ class OperatorDashboardController {
                 $stoppRow = $stStopp->fetch(PDO::FETCH_ASSOC);
                 $antalStopp = (int)($stoppRow['cnt'] ?? 0);
                 $stopptidSek = max(0, (int)($stoppRow['sek'] ?? 0));
-            } catch (Exception) {
-                // tabellen kanske saknas — ignorera
+            } catch (Exception $e) {
+                error_log('OperatorDashboardController getMinBonus stopp: ' . $e->getMessage());
             }
 
             $skiftSek = 8 * 3600;
@@ -977,7 +977,7 @@ class OperatorDashboardController {
                 'snitt_ibc_per_h'    => round($avgIbcPerH, 1),
                 'antal_stopp'        => $antalStopp,
                 'datum'              => $today,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinBonus: ' . $e->getMessage());
             http_response_code(500);
@@ -1028,8 +1028,8 @@ class OperatorDashboardController {
                         'varaktighet_min' => round($sek / 60, 1),
                     ];
                 }
-            } catch (Exception) {
-                // tabellen kanske saknas
+            } catch (Exception $e) {
+                error_log('OperatorDashboardController getMinaStopp inner: ' . $e->getMessage());
             }
 
             echo json_encode([
@@ -1039,7 +1039,7 @@ class OperatorDashboardController {
                 'total_stopptid_sek' => $totalSek,
                 'total_stopptid_min' => round($totalSek / 60, 1),
                 'datum'          => $today,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinaStopp: ' . $e->getMessage());
             http_response_code(500);
@@ -1108,7 +1108,7 @@ class OperatorDashboardController {
                 'values'  => $values,
                 'from'    => $fromDate,
                 'to'      => $today,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinVeckotrend: ' . $e->getMessage());
             http_response_code(500);

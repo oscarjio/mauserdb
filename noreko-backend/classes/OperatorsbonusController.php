@@ -74,12 +74,12 @@ class OperatorsbonusController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
         if (($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs.']);
+            echo json_encode(['success' => false, 'error' => 'Admin-behörighet krävs.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -101,7 +101,7 @@ class OperatorsbonusController {
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $message]);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
     private function ensureTables(): void {
@@ -195,32 +195,27 @@ class OperatorsbonusController {
 
         // Hämta aktiva operatörer
         try {
-            $stmt = $this->pdo->query("SELECT id, namn FROM operatorer WHERE aktiv = 1 ORDER BY namn ASC");
+            $stmt = $this->pdo->query("SELECT id, number, name AS namn FROM operators WHERE active = 1 ORDER BY name ASC");
             $opRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            // Fallback: prova alternativt tabellnamn
-            try {
-                $stmt = $this->pdo->query("SELECT id, name AS namn FROM operators WHERE active = 1 ORDER BY name ASC");
-                $opRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            } catch (\PDOException $e2) {
-                error_log('OperatorsbonusController getOperatorData: ' . $e2->getMessage());
-                return [];
-            }
+            error_log('OperatorsbonusController getOperatorData: ' . $e->getMessage());
+            return [];
         }
 
         // Hämta produktionsdata per operatör
         foreach ($opRows as $op) {
-            $opId   = (int)$op['id'];
-            $opNamn = $op['namn'];
+            $opId     = (int)$op['id'];
+            $opNumber = (int)$op['number'];
+            $opNamn   = $op['namn'];
 
-            // IBC per timme — hämta från rebotling_stats eller rebotling_ibc
-            $ibcPerTimme = $this->getOperatorIbcPerTimme($opId, $fromDate, $toDate);
+            // IBC per timme — beräkna från rebotling_ibc via op1/op2/op3 = operators.number
+            $ibcPerTimme = $this->getOperatorIbcPerTimme($opNumber, $fromDate, $toDate);
 
             // Kvalitet — andel godkända IBC
-            $kvalitet = $this->getOperatorKvalitet($opId, $fromDate, $toDate);
+            $kvalitet = $this->getOperatorKvalitet($opNumber, $fromDate, $toDate);
 
             // Närvaro — andel närvarade skift
-            $narvaro = $this->getOperatorNarvaro($opId, $fromDate, $toDate);
+            $narvaro = $this->getOperatorNarvaro($opNumber, $fromDate, $toDate);
 
             $operators[] = [
                 'operator_id'    => $opId,
@@ -237,42 +232,34 @@ class OperatorsbonusController {
     /**
      * Hämta IBC per timme för en operatör.
      */
-    private function getOperatorIbcPerTimme(int $opId, string $from, string $to): float {
+    private function getOperatorIbcPerTimme(int $opNumber, string $from, string $to): float {
         try {
-            // Försök med rebotling_stats först
-            $stmt = $this->pdo->prepare("
-                SELECT AVG(ibc_per_timme) AS snitt
-                FROM rebotling_stats
-                WHERE operator_id = :op_id
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
-                  AND ibc_per_timme IS NOT NULL
-                  AND ibc_per_timme > 0
-            ");
-            $stmt->execute([':op_id' => $opId, ':from_date' => $from, ':to_date' => $to]);
-            $val = $stmt->fetchColumn();
-            if ($val !== false && $val !== null) {
-                return round((float)$val, 2);
-            }
-        } catch (\PDOException) {
-            // Tabell finns inte, prova fallback
-        }
-
-        try {
-            // Fallback: beräkna från rebotling_ibc
+            // Beräkna från rebotling_ibc via op1/op2/op3 = operators.number
+            // Kumulativt: MAX(ibc_ok) per skiftraknare, sedan SUM()
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(ibc_ok), 0) AS total_ibc,
-                    COUNT(DISTINCT DATE(datum)) AS dagar
-                FROM rebotling_ibc
-                WHERE operator_id = :op_id
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                    COALESCE(SUM(shift_ibc), 0) AS total_ibc,
+                    COALESCE(SUM(shift_runtime), 0) AS total_runtime_min
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ibc,
+                           MAX(COALESCE(runtime_plc, 0)) AS shift_runtime
+                    FROM rebotling_ibc
+                    WHERE (op1 = :op1 OR op2 = :op2 OR op3 = :op3)
+                      AND skiftraknare IS NOT NULL
+                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY skiftraknare
+                ) AS per_shift
             ");
-            $stmt->execute([':op_id' => $opId, ':from_date' => $from, ':to_date' => $to]);
+            $stmt->execute([
+                ':op1' => $opNumber, ':op2' => $opNumber, ':op3' => $opNumber,
+                ':from_date' => $from, ':to_date' => $to,
+            ]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             $totalIbc = (int)($row['total_ibc'] ?? 0);
-            $dagar    = max(1, (int)($row['dagar'] ?? 1));
-            // Anta 8h per dag
-            $timmar = $dagar * 8;
+            $runtimeMin = (float)($row['total_runtime_min'] ?? 0);
+            // runtime_plc ar i minuter
+            $timmar = $runtimeMin / 60.0;
             return $timmar > 0 ? round($totalIbc / $timmar, 2) : 0;
         } catch (\PDOException $e) {
             error_log('OperatorsbonusController getOperatorIbcPerTimme: ' . $e->getMessage());
@@ -283,17 +270,27 @@ class OperatorsbonusController {
     /**
      * Hämta kvalitetsprocent för en operatör.
      */
-    private function getOperatorKvalitet(int $opId, string $from, string $to): float {
+    private function getOperatorKvalitet(int $opNumber, string $from, string $to): float {
         try {
             $stmt = $this->pdo->prepare("
                 SELECT
-                    COALESCE(SUM(ibc_ok), 0) AS ok,
-                    COALESCE(SUM(ibc_ok), 0) + COALESCE(SUM(ibc_ej_ok), 0) AS total
-                FROM rebotling_ibc
-                WHERE operator_id = :op_id
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                    COALESCE(SUM(shift_ok), 0) AS ok,
+                    COALESCE(SUM(shift_ok), 0) + COALESCE(SUM(shift_ej_ok), 0) AS total
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE (op1 = :op1 OR op2 = :op2 OR op3 = :op3)
+                      AND skiftraknare IS NOT NULL
+                      AND DATE(datum) BETWEEN :from_date AND :to_date
+                    GROUP BY skiftraknare
+                ) AS per_shift
             ");
-            $stmt->execute([':op_id' => $opId, ':from_date' => $from, ':to_date' => $to]);
+            $stmt->execute([
+                ':op1' => $opNumber, ':op2' => $opNumber, ':op3' => $opNumber,
+                ':from_date' => $from, ':to_date' => $to,
+            ]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             $ok    = (int)($row['ok'] ?? 0);
             $total = (int)($row['total'] ?? 0);
@@ -307,7 +304,7 @@ class OperatorsbonusController {
     /**
      * Hämta närvaroprocent för en operatör.
      */
-    private function getOperatorNarvaro(int $opId, string $from, string $to): float {
+    private function getOperatorNarvaro(int $opNumber, string $from, string $to): float {
         try {
             // Kolla om narvaro-tabell finns
             $stmt = $this->pdo->prepare("
@@ -318,26 +315,37 @@ class OperatorsbonusController {
                 WHERE operator_id = :op_id
                   AND DATE(datum) BETWEEN :from_date AND :to_date
             ");
-            $stmt->execute([':op_id' => $opId, ':from_date' => $from, ':to_date' => $to]);
+            $stmt->execute([':op_id' => $opNumber, ':from_date' => $from, ':to_date' => $to]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             $total = (int)($row['total_skift'] ?? 0);
             $narv  = (int)($row['narvarande'] ?? 0);
             if ($total > 0) {
                 return round(($narv / $total) * 100, 1);
             }
-        } catch (\PDOException) {
-            // Tabell saknas, använd fallback
+        } catch (\PDOException $e) {
+            error_log('OperatorsbonusController getOperatorNarvaro narvaro-tabell: ' . $e->getMessage());
         }
 
-        // Fallback: om operatör har produktionsdata, anta 100% närvaro
+        // Fallback: om operatör har produktionsdata via op1/op2/op3
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(DISTINCT DATE(datum)) AS dagar
-                FROM rebotling_ibc
-                WHERE operator_id = :op_id
-                  AND DATE(datum) BETWEEN :from_date AND :to_date
+                SELECT COUNT(DISTINCT dag) AS dagar
+                FROM (
+                    SELECT DATE(datum) AS dag FROM rebotling_ibc
+                    WHERE op1 = :op1 AND DATE(datum) BETWEEN :from1 AND :to1
+                    UNION
+                    SELECT DATE(datum) FROM rebotling_ibc
+                    WHERE op2 = :op2 AND DATE(datum) BETWEEN :from2 AND :to2
+                    UNION
+                    SELECT DATE(datum) FROM rebotling_ibc
+                    WHERE op3 = :op3 AND DATE(datum) BETWEEN :from3 AND :to3
+                ) AS sub
             ");
-            $stmt->execute([':op_id' => $opId, ':from_date' => $from, ':to_date' => $to]);
+            $stmt->execute([
+                ':op1' => $opNumber, ':from1' => $from, ':to1' => $to,
+                ':op2' => $opNumber, ':from2' => $from, ':to2' => $to,
+                ':op3' => $opNumber, ':from3' => $from, ':to3' => $to,
+            ]);
             $dagar = (int)$stmt->fetchColumn();
 
             // Beräkna arbetsdagar i perioden
@@ -346,8 +354,8 @@ class OperatorsbonusController {
             if ($arbetsDagar > 0 && $dagar > 0) {
                 return round(min(($dagar / $arbetsDagar) * 100, 100), 1);
             }
-        } catch (\PDOException) {
-            // Ignorera
+        } catch (\PDOException $e) {
+            error_log('OperatorsbonusController getOperatorNarvaro fallback: ' . $e->getMessage());
         }
 
         return 0;

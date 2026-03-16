@@ -108,7 +108,7 @@ class OperatorController {
 
                     if (!$op) {
                         http_response_code(404);
-                        echo json_encode(['success' => false, 'message' => 'Operatör hittades inte']);
+                        echo json_encode(['success' => false, 'message' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                         return;
                     }
 
@@ -135,7 +135,7 @@ class OperatorController {
 
                     if (!$op) {
                         http_response_code(404);
-                        echo json_encode(['success' => false, 'message' => 'Operatör hittades inte']);
+                        echo json_encode(['success' => false, 'message' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                         return;
                     }
 
@@ -191,17 +191,17 @@ class OperatorController {
                     COUNT(DISTINCT DATE(r.datum)) AS aktiva_dagar_30d
                 FROM operators o
                 LEFT JOIN (
-                    SELECT datum, op1_id AS op_id FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    SELECT datum, op1 AS op_num FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op1 IS NOT NULL
                     UNION ALL
-                    SELECT datum, op2_id FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op2_id IS NOT NULL
+                    SELECT datum, op2 FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op2 IS NOT NULL
                     UNION ALL
-                    SELECT datum, op3_id FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op3_id IS NOT NULL
-                ) r ON r.op_id = o.id
+                    SELECT datum, op3 FROM rebotling_ibc WHERE datum >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND op3 IS NOT NULL
+                ) r ON r.op_num = o.number
                 GROUP BY o.id
                 ORDER BY o.number
             ");
             $operators = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['operators' => $operators]);
+            echo json_encode(['operators' => $operators], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('OperatorController GET: ' . $e->getMessage());
             http_response_code(500);
@@ -258,7 +258,7 @@ class OperatorController {
             }
             unset($s);
 
-            echo json_encode(['success' => true, 'stats' => $stats]);
+            echo json_encode(['success' => true, 'stats' => $stats], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorController getStats: ' . $e->getMessage());
             http_response_code(500);
@@ -290,7 +290,7 @@ class OperatorController {
 
             if (!$op) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -315,6 +315,7 @@ class OperatorController {
             // 2. Stats senaste 30 dagarna (rebotling_ibc — kumulativa fält)
             //    Aggregering: MAX() per skiftraknare → SUM() per period
             // -------------------------------------------------------
+            $opNumber = (int)$op['number'];
             $stmt30 = $this->pdo->prepare("
                 SELECT
                     COUNT(DISTINCT skiftraknare)                                  AS skift_count,
@@ -336,7 +337,7 @@ class OperatorController {
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
-            $stmt30->execute([$id, $id, $id]);
+            $stmt30->execute([$opNumber, $opNumber, $opNumber]);
             $row30 = $stmt30->fetch(PDO::FETCH_ASSOC);
 
             $stats_30d = [
@@ -369,7 +370,7 @@ class OperatorController {
                     GROUP BY skiftraknare
                 ) AS per_shift
             ");
-            $stmtAll->execute([$id, $id, $id]);
+            $stmtAll->execute([$opNumber, $opNumber, $opNumber]);
             $rowAll = $stmtAll->fetch(PDO::FETCH_ASSOC);
 
             // Hämta datum för bästa skiftet (max ibc_ok)
@@ -388,7 +389,7 @@ class OperatorController {
                   )
                 LIMIT 1
             ");
-            $stmtBestDate->execute([$id, $id, $id, $id, $id, $id]);
+            $stmtBestDate->execute([$opNumber, $opNumber, $opNumber, $opNumber, $opNumber, $opNumber]);
             $bestDatumRow = $stmtBestDate->fetch(PDO::FETCH_ASSOC);
 
             $stats_all = [
@@ -443,7 +444,7 @@ class OperatorController {
                 ORDER BY yw DESC
                 LIMIT 8
             ");
-            $stmtTrend->execute([$id, $id, $id]);
+            $stmtTrend->execute([$opNumber, $opNumber, $opNumber]);
             $trendRows = $stmtTrend->fetchAll(PDO::FETCH_ASSOC);
 
             $trend_weekly = array_reverse(array_map(function ($r) {
@@ -477,7 +478,7 @@ class OperatorController {
                 ORDER BY skiftraknare DESC
                 LIMIT 5
             ");
-            $stmtShifts->execute([$id, $id, $id]);
+            $stmtShifts->execute([$opNumber, $opNumber, $opNumber]);
             $shiftRows = $stmtShifts->fetchAll(PDO::FETCH_ASSOC);
 
             $recent_shifts = array_map(function ($r) {
@@ -543,7 +544,7 @@ class OperatorController {
                   AND datum >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                 ORDER BY active_date DESC
             ");
-            $stmtStreak->execute([$id, $id, $id]);
+            $stmtStreak->execute([$opNumber, $opNumber, $opNumber]);
             $streakDates = $stmtStreak->fetchAll(PDO::FETCH_COLUMN);
 
             $streakDays = 0;
@@ -613,7 +614,7 @@ class OperatorController {
                 WHERE ranked.op_id = ?
                 LIMIT 1
             ");
-            $stmtRank->execute([$id]);
+            $stmtRank->execute([$opNumber]);
             $rankRow = $stmtRank->fetch(PDO::FETCH_ASSOC);
 
             $rank_this_week = [
@@ -634,7 +635,7 @@ class OperatorController {
                 'certifications' => $certifications,
                 'achievements'  => $achievements,
                 'rank_this_week' => $rank_this_week,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
             error_log('OperatorController getProfile: ' . $e->getMessage());
@@ -687,7 +688,7 @@ class OperatorController {
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             if (empty($rows)) {
-                echo json_encode(['success' => true, 'pairs' => []]);
+                echo json_encode(['success' => true, 'pairs' => []], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -724,7 +725,7 @@ class OperatorController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'pairs' => $pairs]);
+            echo json_encode(['success' => true, 'pairs' => $pairs], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorController getPairs: ' . $e->getMessage());
             http_response_code(500);
@@ -776,7 +777,7 @@ class OperatorController {
             }
             unset($r);
 
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorController getOperatorTrend: ' . $e->getMessage());
             http_response_code(500);
@@ -859,7 +860,7 @@ class OperatorController {
                       AND datum >= DATE_SUB(NOW(), INTERVAL ? DAY)
                     GROUP BY op3, produkt, skiftraknare
                 ) sub
-                INNER JOIN operators o ON o.id = sub.op_id
+                INNER JOIN operators o ON o.number = sub.op_id
                 LEFT JOIN rebotling_products p ON p.id = sub.produkt_id
                 GROUP BY sub.op_id, sub.produkt_id
                 HAVING antal_skift >= 1
@@ -884,7 +885,7 @@ class OperatorController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'data' => $result, 'days' => $days]);
+            echo json_encode(['success' => true, 'data' => $result, 'days' => $days], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorController getMachineCompatibility: ' . $e->getMessage());
             http_response_code(500);

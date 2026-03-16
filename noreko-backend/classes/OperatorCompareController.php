@@ -16,7 +16,9 @@ class OperatorCompareController {
     }
 
     public function handle(): void {
-        session_start(['read_and_close' => true]);
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start(['read_and_close' => true]);
+        }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
             echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
@@ -50,7 +52,7 @@ class OperatorCompareController {
             }
             unset($r);
 
-            echo json_encode($rows);
+            echo json_encode($rows, JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('OperatorCompareController operatorsList: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörer', 500);
@@ -92,7 +94,7 @@ class OperatorCompareController {
                 'success' => true,
                 'op_a'    => $dataA,
                 'op_b'    => $dataB,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorCompareController compare: ' . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
@@ -289,7 +291,7 @@ class OperatorCompareController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ) s ON (o.id = s.op1 OR o.id = s.op2 OR o.id = s.op3)
+                ) s ON (o.number = s.op1 OR o.number = s.op2 OR o.number = s.op3)
                 WHERE o.active = 1
                 GROUP BY o.id
             ) all_ops
@@ -332,7 +334,7 @@ class OperatorCompareController {
                     FROM rebotling_ibc
                     WHERE datum >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
                     GROUP BY DATE(datum), skiftraknare
-                ) s ON (o.id = s.op1 OR o.id = s.op2 OR o.id = s.op3)
+                ) s ON (o.number = s.op1 OR o.number = s.op2 OR o.number = s.op3)
                 WHERE o.active = 1
                 GROUP BY o.id
             ) ranked
@@ -464,6 +466,6 @@ class OperatorCompareController {
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $message]);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 }

@@ -232,7 +232,9 @@ class OperatorJamforelseController {
                         $stoppRow2     = $stmtStopp2->fetch(\PDO::FETCH_ASSOC);
                         $antalStopp    = $stoppRow2 ? (int)$stoppRow2['antal']     : 0;
                         $totalStopptid = $stoppRow2 ? (float)$stoppRow2['total_min'] : 0.0;
-                    } catch (\PDOException $ignored2) {}
+                    } catch (\PDOException $e2) {
+                        error_log('OperatorJamforelseController::getCompare stopp fallback: ' . $e2->getMessage());
+                    }
                 }
 
                 $result[] = [

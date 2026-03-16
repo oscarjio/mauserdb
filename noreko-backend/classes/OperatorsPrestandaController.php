@@ -344,7 +344,8 @@ class OperatorsPrestandaController {
             $s = $this->pdo->prepare("SELECT name FROM operators WHERE number = ?");
             $s->execute([$opId]);
             $namn = (string)($s->fetchColumn() ?? "Operatör #{$opId}");
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('OperatorsPrestandaController::getOperatorDetalj name: ' . $e->getMessage());
             $namn = "Operatör #{$opId}";
         }
 
@@ -615,7 +616,8 @@ class OperatorsPrestandaController {
             $s = $this->pdo->prepare("SELECT name FROM operators WHERE number = ?");
             $s->execute([$opId]);
             $namn = (string)($s->fetchColumn() ?? "Operatör #{$opId}");
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('OperatorsPrestandaController::getUtveckling name: ' . $e->getMessage());
             $namn = "Operatör #{$opId}";
         }
 

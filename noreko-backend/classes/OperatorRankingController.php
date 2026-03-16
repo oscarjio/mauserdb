@@ -81,7 +81,8 @@ class OperatorRankingController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('OperatorRankingController::tableExists: ' . $e->getMessage());
             return false;
         }
     }
@@ -159,8 +160,8 @@ class OperatorRankingController {
                     'last_ibc'      => $row['last_ibc'],
                 ];
             }
-        } catch (\PDOException) {
-            // op columns might not exist
+        } catch (\PDOException $e) {
+            error_log('OperatorRankingController::getOperatorIbcData primary: ' . $e->getMessage());
         }
 
         // Fallback: rebotling_data
@@ -195,8 +196,8 @@ class OperatorRankingController {
                         'last_ibc'      => $row['last_ibc'],
                     ];
                 }
-            } catch (\PDOException) {
-                // tabellen saknar nagra kolumner
+            } catch (\PDOException $e) {
+                error_log('OperatorRankingController::getOperatorIbcData fallback: ' . $e->getMessage());
             }
         }
 
@@ -244,8 +245,8 @@ class OperatorRankingController {
                     'antal_stopp'     => (int)$row['antal_stopp'],
                 ];
             }
-        } catch (\PDOException) {
-            // Ignorera
+        } catch (\PDOException $e) {
+            error_log('OperatorRankingController::getOperatorStopptid: ' . $e->getMessage());
         }
 
         return $result;
@@ -405,8 +406,8 @@ class OperatorRankingController {
                         break;
                     }
                 }
-            } catch (\PDOException) {
-                // Ignorera
+            } catch (\PDOException $e) {
+                error_log('OperatorRankingController::calcStreaks: ' . $e->getMessage());
             }
 
             $op['streak'] = $streak;
@@ -604,7 +605,8 @@ class OperatorRankingController {
                     }
                     $historik[$dag][$uid] = (int)$row['total_ibc'] * 10; // Poang
                 }
-            } catch (\PDOException) {
+            } catch (\PDOException $e) {
+                error_log('OperatorRankingController::historik primary: ' . $e->getMessage());
                 // Fallback: rebotling_data
                 if ($this->tableExists('rebotling_data')) {
                     $sql = "
