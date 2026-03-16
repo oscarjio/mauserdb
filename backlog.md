@@ -7,14 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **Buggjakt: Backend controllers batch 3** — Worker A #123 — 20 buggar i 10 filer (av 20 controllers)
-- [x] **Buggjakt: Frontend guards/interceptors/utils + pipes** — Worker B #123 — alla rena, inga pipes finns
-- [x] **Buggjakt: Backend controllers batch 4** — Worker B #123 — 7 buggar i 5 filer (av 16 controllers)
-- [ ] **Buggjakt: Resterande controllers batch 5** — ProduktTypEffektivitet t.o.m. WeeklyReport (ca 20 st)
+- [x] **Buggjakt: Backend controllers batch 5** — Worker A #124 — 34 buggar i 6 filer (av 17 controllers)
+- [x] **Buggjakt: Frontend services re-audit** — Worker B #124 — 18 buggar i 9 services (hardkodade URLs, saknad timeout/catchError)
 - [ ] **Buggjakt: Error-logging konsistens** — Verifiera att alla catch-block loggar korrekt
 - [ ] **Buggjakt: SQL-queries parametervalidering** — Granska att alla user-input saniteras
-- [ ] **Buggjakt: Angular services re-audit** — Dubbelkolla services som fixades i #119-#122
 - [ ] **Buggjakt: Template null-safety** — Granska Angular templates for saknade ?. och *ngIf-guards
+- [ ] **Buggjakt: Oanvanda privata metoder** — Ta bort dead code (t.ex. calcMinuter i StopporsakController)
+- [ ] **Buggjakt: Frontend page-komponenter audit** — Granska TS-logik i page-komponenter (edge cases, felhantering)
 
 ## Parkerade features (ta inte dessa nu)
 

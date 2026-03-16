@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #123)*
+*Senast uppdaterad: 2026-03-16 (session #124)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -75,28 +75,32 @@ Session #120: BUGGJAKT — 41 buggar (4 Worker A + 37 Worker B). 16 PHP-controll
 Session #121: BUGGJAKT — 41 buggar (12 Worker A + 29 Worker B). 13 PHP-controllers + 15 TS-services + 14 komponenter granskade.
 Session #122: BUGGJAKT — 28 buggar (13 Worker A + 15 Worker B). 13 PHP-controllers + api.php + PHP helpers + endpoint-testning. Kritisk 500-fix i RebotlingTrendanalys.
 Session #123: BUGGJAKT — 27 buggar (20 Worker A + 7 Worker B). 36 PHP-controllers + 4 Angular utils/guards/interceptors granskade. Inga pipes i projektet.
+Session #124: BUGGJAKT — 52 buggar (34 Worker A + 18 Worker B). 17 PHP-controllers granskade (batch 5 klar) + 9 Angular services re-audit.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] Backend controllers batch 4 (ProduktTypEffektivitet t.o.m. WeeklyReport ~20 st)
+- [x] Backend controllers batch 5 (ProduktionsmalController t.o.m. VeckorapportController — 17 st) — #124
+- [x] Angular services re-audit (9 services fixade) — #124
 - [ ] Error-logging konsistens
 - [ ] SQL-queries parametervalidering
-- [ ] Angular services re-audit (verifiera fixar fran #119-#122)
+- [ ] Oanvanda privata metoder (dead code)
+- [ ] Frontend page-komponenter audit (TS-logik)
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #121 (klar)
-Worker A: 12 buggar i 3 controllers (av 13 granskade). Worker B: 29 buggar i 8 services + 14 komponenter.
-Totalt: 41 buggar.
 
 ### 2026-03-16 — Session #122 (klar)
 Worker A: 13 buggar i 7 filer (av 13 controllers). Worker B: 15 buggar i 8 backend-filer. Kritisk 500-fix i RebotlingTrendanalys.
 Totalt: 28 buggar.
 
 ### 2026-03-16 — Session #123 (klar)
-Worker A: 20 buggar i 10 filer (av 20 controllers granskade) — namespace-buggar (\Exception), SQL kolumnfel, tomma catch-block, saknad error_log i BatchSparning/DagligSammanfattning/DrifttidsTimeline/FeedbackAnalys/Heatmap/HistoriskSammanfattning/KassationsDrilldown/KassationskvotAlarm/KassationsorsakController/DashboardLayout.
-Worker B: 7 buggar i 5 filer (av 16 controllers + 4 Angular-filer granskade) — HAVING-bugg i KvalitetstrendController, SQL created_at->datum i Morgonrapport, \Exception namespace i OeeBenchmark+OeeTrendanalys, trim/intval JSON_UNESCAPED_UNICODE-bugg i LineSkiftrapport. Guards/interceptors/utils rena.
+Worker A: 20 buggar i 10 filer (av 20 controllers granskade) — namespace-buggar, SQL kolumnfel, tomma catch-block.
+Worker B: 7 buggar i 5 filer (av 16 controllers + 4 Angular-filer) — HAVING-bugg, SQL kolumnfel, namespace-buggar.
 Totalt: 27 buggar.
+
+### 2026-03-16 — Session #124 (klar)
+Worker A: 34 buggar i 6 filer (av 17 controllers granskade) — 25x PDO:: utan \-namespace, 5x saknad HTTP 500, 4x created_at->datum.
+Worker B: 18 buggar i 9 services — hardkodade URLs->environment.apiUrl, saknad timeout/catchError. Templates (19 sidor) rena.
+Totalt: 52 buggar.
