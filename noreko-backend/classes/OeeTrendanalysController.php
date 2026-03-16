@@ -92,7 +92,7 @@ class OeeTrendanalysController {
             $stmt = $this->pdo->query("SELECT id, namn FROM rebotling_stationer ORDER BY id");
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
             if (!empty($rows)) return $rows;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::getStationer: ' . $e->getMessage());
         }
 
@@ -223,7 +223,7 @@ class OeeTrendanalysController {
                 $driftByStation[(int)$s['id']] = (int)($totalDrift / $stationCount);
             }
             // (Dead code removed: dummy loop with empty array)
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::calcOeePerStation drifttid: ' . $e->getMessage());
         }
 
@@ -365,7 +365,7 @@ class OeeTrendanalysController {
                 'prestanda_idag_pct'      => round($idagOee['prestanda'] * 100, 1),
                 'kvalitet_idag_pct'       => round($idagOee['kvalitet'] * 100, 1),
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::sammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
@@ -423,7 +423,7 @@ class OeeTrendanalysController {
                 'from_date' => $from,
                 'to_date'   => $to,
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::perStation: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta stationsdata', 500);
         }
@@ -495,7 +495,7 @@ class OeeTrendanalysController {
                 'days'            => $days,
                 'station'         => $station,
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::trend: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta trenddata', 500);
         }
@@ -576,7 +576,7 @@ class OeeTrendanalysController {
                         $stoppInfo[$fItem['station_id']] = $topOrsak;
                     }
                 }
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 error_log('OeeTrendanalysController::flaskhalsar stopporsaker: ' . $e->getMessage());
             }
 
@@ -591,7 +591,7 @@ class OeeTrendanalysController {
                 'from_date'   => $from,
                 'to_date'     => $to,
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::flaskhalsar: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta flaskhalsar', 500);
         }
@@ -677,7 +677,7 @@ class OeeTrendanalysController {
                 'period2'    => ['from' => $from2, 'to' => $to2, 'oee_pct' => round($total2['oee'] * 100, 1)],
                 'total_delta' => round(($total1['oee'] - $total2['oee']) * 100, 1),
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::jamforelse: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta jamforelsedata', 500);
         }
@@ -744,7 +744,7 @@ class OeeTrendanalysController {
                 'trend'       => $trendDir,
                 'medel_30d'   => count($oeeValues) > 0 ? round(array_sum($oeeValues) / count($oeeValues), 1) : 0,
             ]);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             error_log('OeeTrendanalysController::prediktion: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta prediktionsdata', 500);
         }

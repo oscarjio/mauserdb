@@ -162,7 +162,6 @@ class KvalitetstrendController {
                 WHERE DATE(datum) BETWEEN ? AND ?
                   AND op1 IS NOT NULL AND op1 > 0
                 GROUP BY op1, DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
 
                 UNION ALL
 
@@ -173,7 +172,6 @@ class KvalitetstrendController {
                 WHERE DATE(datum) BETWEEN ? AND ?
                   AND op2 IS NOT NULL AND op2 > 0
                 GROUP BY op2, DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
 
                 UNION ALL
 
@@ -184,7 +182,6 @@ class KvalitetstrendController {
                 WHERE DATE(datum) BETWEEN ? AND ?
                   AND op3 IS NOT NULL AND op3 > 0
                 GROUP BY op3, DATE(datum), skiftraknare
-                HAVING COUNT(*) > 1
              ) combined
              GROUP BY op_num, vecka_key
              ORDER BY op_num, vecka_key"
@@ -576,7 +573,6 @@ class KvalitetstrendController {
                     WHERE DATE(datum) BETWEEN ? AND ?
                       AND op1 = ?
                     GROUP BY DATE(datum), skiftraknare
-                    HAVING COUNT(*) > 1
 
                     UNION ALL
 
@@ -587,7 +583,6 @@ class KvalitetstrendController {
                     WHERE DATE(datum) BETWEEN ? AND ?
                       AND op2 = ?
                     GROUP BY DATE(datum), skiftraknare
-                    HAVING COUNT(*) > 1
 
                     UNION ALL
 
@@ -598,7 +593,6 @@ class KvalitetstrendController {
                     WHERE DATE(datum) BETWEEN ? AND ?
                       AND op3 = ?
                     GROUP BY DATE(datum), skiftraknare
-                    HAVING COUNT(*) > 1
                  ) combined
                  GROUP BY vecka_key
                  ORDER BY vecka_key"

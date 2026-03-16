@@ -217,7 +217,7 @@ class LineSkiftrapportController {
             $params = [];
 
             if (isset($data['datum'])) {
-                $datum = trim($data['datum'], JSON_UNESCAPED_UNICODE);
+                $datum = trim($data['datum']);
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
@@ -228,7 +228,7 @@ class LineSkiftrapportController {
             }
             if (isset($data['antal_ok'])) {
                 $fields[] = 'antal_ok = ?';
-                $params[] = intval($data['antal_ok'], JSON_UNESCAPED_UNICODE);
+                $params[] = intval($data['antal_ok']);
             }
             if (isset($data['antal_ej_ok'])) {
                 $fields[] = 'antal_ej_ok = ?';

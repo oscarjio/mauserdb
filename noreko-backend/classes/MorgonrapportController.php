@@ -133,7 +133,7 @@ class MorgonrapportController {
                  FROM (
                      SELECT skiftraknare, MAX(runtime_plc) AS max_runtime
                      FROM rebotling_ibc
-                     WHERE DATE(created_at) = ?
+                     WHERE DATE(datum) = ?
                      GROUP BY skiftraknare
                      HAVING COUNT(*) > 1
                  ) sub"
