@@ -261,7 +261,7 @@
                     <span class="snitt-display" [class.snitt-green]="op.snitt_stamning >= 3.0"
                           [class.snitt-yellow]="op.snitt_stamning >= 2.0 && op.snitt_stamning < 3.0"
                           [class.snitt-red]="op.snitt_stamning < 2.0">
-                      {{ op.snitt_stamning.toFixed(2) }}
+                      {{ (op.snitt_stamning ?? 0).toFixed(2) }}
                     </span>
                   </td>
                   <td class="text-center text-muted">{{ op.antal }}</td>

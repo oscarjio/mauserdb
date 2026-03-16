@@ -141,10 +141,10 @@
                   <td class="text-end fw-bold">{{ op.antal_ibc | number }}</td>
                   <td class="text-end">{{ formatCykeltid(op.medel_cykeltid) }}</td>
                   <td class="text-end" [style.color]="op.kassationsgrad > 5 ? '#fc8181' : op.kassationsgrad > 2 ? '#ecc94b' : '#48bb78'">
-                    {{ op.kassationsgrad.toFixed(1) }} %
+                    {{ (op.kassationsgrad ?? 0).toFixed(1) }} %
                   </td>
                   <td class="text-end" [style.color]="op.oee >= 80 ? '#48bb78' : op.oee >= 60 ? '#ecc94b' : '#fc8181'">
-                    {{ op.oee.toFixed(1) }} %
+                    {{ (op.oee ?? 0).toFixed(1) }} %
                   </td>
                 </tr>
 
@@ -272,7 +272,7 @@
                   <div class="skift-kpi">
                     <span class="skift-kpi-label">Kassation</span>
                     <span class="skift-kpi-val" [style.color]="skift.kassationsgrad > 5 ? '#fc8181' : skift.kassationsgrad > 2 ? '#ecc94b' : '#48bb78'">
-                      {{ skift.kassationsgrad.toFixed(1) }} %
+                      {{ (skift.kassationsgrad ?? 0).toFixed(1) }} %
                     </span>
                   </div>
                   <div class="skift-kpi">
@@ -282,7 +282,7 @@
                   <div class="skift-kpi">
                     <span class="skift-kpi-label">OEE</span>
                     <span class="skift-kpi-val" [style.color]="skift.oee >= 80 ? '#48bb78' : skift.oee >= 60 ? '#ecc94b' : '#fc8181'">
-                      {{ skift.oee.toFixed(1) }} %
+                      {{ (skift.oee ?? 0).toFixed(1) }} %
                     </span>
                   </div>
                 </div>

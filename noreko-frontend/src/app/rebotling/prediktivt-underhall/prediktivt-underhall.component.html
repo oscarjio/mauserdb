@@ -193,7 +193,7 @@
             <tr *ngFor="let station of trendStationer; trackBy: trackByIndex">
               <td>{{ station.station_namn }}</td>
               <td class="text-end">{{ station.totalt }}</td>
-              <td class="text-end">{{ (station.totalt / (trendVeckonycklar.length || 1)).toFixed(1) }}</td>
+              <td class="text-end">{{ ((station.totalt ?? 0) / (trendVeckonycklar.length || 1)).toFixed(1) }}</td>
             </tr>
           </tbody>
         </table>

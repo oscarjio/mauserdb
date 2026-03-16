@@ -119,7 +119,7 @@
               <td class="text-end">{{ op.total_ibc }}</td>
               <td class="text-end">
                 <span class="quality-badge" [class.quality-good]="op.kassations_rate < 5" [class.quality-warn]="op.kassations_rate >= 5">
-                  {{ (100 - op.kassations_rate).toFixed(1) }}%
+                  {{ (100 - (op.kassations_rate ?? 0)).toFixed(1) }}%
                 </span>
               </td>
               <td class="text-end">

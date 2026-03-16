@@ -287,7 +287,7 @@
                   <span class="anomali-datum ms-2">{{ a.datum }}</span>
                 </div>
                 <span class="anomali-avv" [style.color]="a.positivt ? '#48bb78' : '#fc8181'">
-                  {{ a.avvikelse > 0 ? '+' : '' }}{{ a.avvikelse.toFixed(1) }}σ
+                  {{ a.avvikelse > 0 ? '+' : '' }}{{ (a.avvikelse ?? 0).toFixed(1) }}σ
                 </span>
               </div>
               <div class="anomali-varden mt-1">

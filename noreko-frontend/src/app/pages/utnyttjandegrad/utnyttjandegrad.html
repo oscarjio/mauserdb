@@ -207,8 +207,8 @@
                       <span class="loss-dot" [style.background-color]="l.farg"></span>
                       {{ l.kategori }}
                     </td>
-                    <td class="text-end fw-600">{{ l.timmar.toFixed(1) }} h</td>
-                    <td class="text-end">{{ l.procent.toFixed(1) }}%</td>
+                    <td class="text-end fw-600">{{ (l.timmar ?? 0).toFixed(1) }} h</td>
+                    <td class="text-end">{{ (l.procent ?? 0).toFixed(1) }}%</td>
                     <td>
                       <div class="loss-bar-wrap">
                         <div class="loss-bar" [style.width.%]="l.procent" [style.background-color]="l.farg"></div>
@@ -232,7 +232,7 @@
                                           [class.badge-oplanerad]="o.category === 'unplanned'">
                   {{ o.category === 'planned' ? 'Planerat' : 'Oplanerat' }}
                 </span>
-                <span class="topp-tid">{{ o.total_h.toFixed(1) }} h</span>
+                <span class="topp-tid">{{ (o.total_h ?? 0).toFixed(1) }} h</span>
                 <span class="topp-antal text-muted">({{ o.antal }} stopp)</span>
               </div>
             </div>
@@ -269,7 +269,7 @@
             <tbody>
               <tr *ngFor="let r of dagligaTabelRader; trackBy: trackByIndex">
                 <td class="text-muted">{{ formatDatum(r.date) }}</td>
-                <td class="text-end text-muted">{{ r.tillganglig_h.toFixed(1) }} h</td>
+                <td class="text-end text-muted">{{ (r.tillganglig_h ?? 0).toFixed(1) }} h</td>
                 <td class="text-end">
                   <span [class.text-success]="r.drifttid_h > 0" [class.text-muted]="r.drifttid_h === 0">
                     {{ r.drifttid_h > 0 ? r.drifttid_h.toFixed(1) + ' h' : '-' }}
