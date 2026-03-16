@@ -87,7 +87,8 @@ class DagligBriefingController {
             );
             $stmt->execute([$table]);
             return (int)$stmt->fetchColumn() > 0;
-        } catch (\PDOException) {
+        } catch (\PDOException $e) {
+            error_log('DagligBriefingController::tableExists: ' . $e->getMessage());
             return false;
         }
     }

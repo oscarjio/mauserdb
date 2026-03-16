@@ -342,89 +342,101 @@ class ProduktionspulsController {
      * Senaste X IBC:er med operatorsnamn, produktnamn, cykeltid, status
      */
     private function getLatest() {
-        $limit = max(1, min(100, (int)($_GET['limit'] ?? 50)));
+        try {
+            $limit = max(1, min(100, (int)($_GET['limit'] ?? 50)));
 
-        $stmt = $this->pdo->prepare("
-            SELECT
-                i.id,
-                i.datum,
-                i.ibc_count,
-                i.skiftraknare,
-                i.ibc_ok,
-                i.ibc_ej_ok,
-                i.bur_ej_ok,
-                i.op1,
-                i.produkt,
-                TIMESTAMPDIFF(SECOND,
-                    LAG(i.datum) OVER (PARTITION BY i.skiftraknare ORDER BY i.datum),
-                    i.datum
-                ) AS cycle_time_seconds,
-                o1.name AS operator_namn,
-                p.name AS produkt_namn,
-                p.cycle_time_minutes AS target_cycle_minutes
-            FROM rebotling_ibc i
-            LEFT JOIN operators o1 ON i.op1 = o1.number
-            LEFT JOIN rebotling_products p ON i.produkt = p.id
-            ORDER BY i.datum DESC
-            LIMIT :lim
-        ");
-        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $stmt = $this->pdo->prepare("
+                SELECT
+                    i.id,
+                    i.datum,
+                    i.ibc_count,
+                    i.skiftraknare,
+                    i.ibc_ok,
+                    i.ibc_ej_ok,
+                    i.bur_ej_ok,
+                    i.op1,
+                    i.produkt,
+                    TIMESTAMPDIFF(SECOND,
+                        LAG(i.datum) OVER (PARTITION BY i.skiftraknare ORDER BY i.datum),
+                        i.datum
+                    ) AS cycle_time_seconds,
+                    o1.name AS operator_namn,
+                    p.name AS produkt_namn,
+                    p.cycle_time_minutes AS target_cycle_minutes
+                FROM rebotling_ibc i
+                LEFT JOIN operators o1 ON i.op1 = o1.number
+                LEFT JOIN rebotling_products p ON i.produkt = p.id
+                ORDER BY i.datum DESC
+                LIMIT :lim
+            ");
+            $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        $items = [];
-        foreach ($rows as $row) {
-            $cycleSeconds = $row['cycle_time_seconds'] !== null ? (int)$row['cycle_time_seconds'] : null;
-            $cycleMinutes = $cycleSeconds !== null ? round($cycleSeconds / 60, 1) : null;
-            $targetMinutes = $row['target_cycle_minutes'] !== null ? (float)$row['target_cycle_minutes'] : null;
+            $items = [];
+            foreach ($rows as $row) {
+                $cycleSeconds = $row['cycle_time_seconds'] !== null ? (int)$row['cycle_time_seconds'] : null;
+                $cycleMinutes = $cycleSeconds !== null ? round($cycleSeconds / 60, 1) : null;
+                $targetMinutes = $row['target_cycle_minutes'] !== null ? (float)$row['target_cycle_minutes'] : null;
 
-            if ($cycleMinutes !== null && $cycleMinutes > 30) {
-                $cycleMinutes = null;
+                if ($cycleMinutes !== null && $cycleMinutes > 30) {
+                    $cycleMinutes = null;
+                }
+
+                $kasserad = ((int)($row['ibc_ej_ok'] ?? 0) > 0) || ((int)($row['bur_ej_ok'] ?? 0) > 0);
+
+                $overTarget = false;
+                if ($cycleMinutes !== null && $targetMinutes !== null && $targetMinutes > 0) {
+                    $overTarget = $cycleMinutes > $targetMinutes;
+                }
+
+                $items[] = [
+                    'id'              => (int)$row['id'],
+                    'datum'           => $row['datum'],
+                    'operator'        => $row['operator_namn'] ?? ('Op ' . ($row['op1'] ?? '?')),
+                    'produkt'         => $row['produkt_namn'] ?? 'Okand',
+                    'cykeltid'        => $cycleMinutes,
+                    'target_cykeltid' => $targetMinutes,
+                    'kasserad'        => $kasserad,
+                    'over_target'     => $overTarget,
+                    'ibc_nr'          => (int)($row['ibc_count'] ?? 0),
+                    'skift'           => (int)($row['skiftraknare'] ?? 0),
+                ];
             }
 
-            $kasserad = ((int)($row['ibc_ej_ok'] ?? 0) > 0) || ((int)($row['bur_ej_ok'] ?? 0) > 0);
-
-            $overTarget = false;
-            if ($cycleMinutes !== null && $targetMinutes !== null && $targetMinutes > 0) {
-                $overTarget = $cycleMinutes > $targetMinutes;
-            }
-
-            $items[] = [
-                'id'              => (int)$row['id'],
-                'datum'           => $row['datum'],
-                'operator'        => $row['operator_namn'] ?? ('Op ' . ($row['op1'] ?? '?')),
-                'produkt'         => $row['produkt_namn'] ?? 'Okand',
-                'cykeltid'        => $cycleMinutes,
-                'target_cykeltid' => $targetMinutes,
-                'kasserad'        => $kasserad,
-                'over_target'     => $overTarget,
-                'ibc_nr'          => (int)($row['ibc_count'] ?? 0),
-                'skift'           => (int)($row['skiftraknare'] ?? 0),
-            ];
+            echo json_encode([
+                'success' => true,
+                'data'    => $items,
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log('ProduktionspulsController::getLatest: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
         }
-
-        echo json_encode([
-            'success' => true,
-            'data'    => $items,
-        ], JSON_UNESCAPED_UNICODE);
     }
 
     /**
      * Timstatistik: IBC/h, snittcykeltid, godkanda/kasserade — senaste + foregaende timme
      */
     private function getHourlyStats() {
-        $now = date('Y-m-d H:i:s');
-        $oneHourAgo = date('Y-m-d H:i:s', strtotime('-1 hour'));
-        $twoHoursAgo = date('Y-m-d H:i:s', strtotime('-2 hours'));
+        try {
+            $now = date('Y-m-d H:i:s');
+            $oneHourAgo = date('Y-m-d H:i:s', strtotime('-1 hour'));
+            $twoHoursAgo = date('Y-m-d H:i:s', strtotime('-2 hours'));
 
-        $current = $this->getHourData($oneHourAgo, $now);
-        $previous = $this->getHourData($twoHoursAgo, $oneHourAgo);
+            $current = $this->getHourData($oneHourAgo, $now);
+            $previous = $this->getHourData($twoHoursAgo, $oneHourAgo);
 
-        echo json_encode([
-            'success'  => true,
-            'current'  => $current,
-            'previous' => $previous,
-        ], JSON_UNESCAPED_UNICODE);
+            echo json_encode([
+                'success'  => true,
+                'current'  => $current,
+                'previous' => $previous,
+            ], JSON_UNESCAPED_UNICODE);
+        } catch (\PDOException $e) {
+            error_log('ProduktionspulsController::getHourlyStats: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
+        }
     }
 
     private function getHourData(string $from, string $to): array {

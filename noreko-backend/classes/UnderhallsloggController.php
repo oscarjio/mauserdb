@@ -220,13 +220,14 @@ class UnderhallsloggController {
             $whereSql = count($where) > 0 ? 'WHERE ' . implode(' AND ', $where) : '';
             $limit = max(1, min(200, (int)($_GET['limit'] ?? 50)));
 
+            $params[] = $limit;
             $stmt = $this->pdo->prepare(
                 "SELECT id, station_id, typ, beskrivning, varaktighet_min, stopporsak,
                         utford_av, datum, skapad
                  FROM rebotling_underhallslogg
                  {$whereSql}
                  ORDER BY datum DESC
-                 LIMIT {$limit}"
+                 LIMIT ?"
             );
             $stmt->execute($params);
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
