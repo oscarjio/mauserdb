@@ -790,6 +790,8 @@ class RebotlingController {
                     i.ibc_count,
                     i.produktion_procent,
                     i.skiftraknare,
+                    i.produkt as produkt_id,
+                    COALESCE(p.product_name, CONCAT("Produkt ", i.produkt)) as produkt_namn,
                     TIMESTAMPDIFF(MINUTE,
                         LAG(i.datum) OVER (PARTITION BY i.skiftraknare ORDER BY i.datum),
                         i.datum

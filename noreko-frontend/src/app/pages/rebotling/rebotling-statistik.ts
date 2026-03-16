@@ -1081,10 +1081,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const cycleTime: number[] = [];
     const avgCycleTimeArr: number[] = [];
     const targetCycleTimeArr: number[] = [];
+    const produktNamn: string[] = [];
 
     let totalCycleTime = 0;
 
-    displayCycles.forEach((cycle: any) => {
+    // Spåra produktbyten för annotations
+    let lastProduktId: any = null;
+    const produktByten: { index: number; namn: string }[] = [];
+
+    displayCycles.forEach((cycle: any, i: number) => {
       const d = new Date(cycle.datum);
       labels.push(
         `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`
@@ -1092,6 +1097,21 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       const ct = parseFloat(cycle.cycle_time);
       cycleTime.push(Math.round(ct * 10) / 10);
       totalCycleTime += ct;
+
+      // Per-cykel mål baserat på produktens cykeltid (stegar vid produktbyte)
+      const target = parseFloat(cycle.target_cycle_time);
+      targetCycleTimeArr.push(!isNaN(target) && target > 0 ? Math.round(target * 10) / 10 : 0);
+
+      // Produktnamn per cykel (för tooltip)
+      produktNamn.push(cycle.produkt_namn || '');
+
+      // Detektera produktbyte
+      if (cycle.produkt_id && cycle.produkt_id !== lastProduktId) {
+        if (lastProduktId !== null) {
+          produktByten.push({ index: i, namn: cycle.produkt_namn || 'Ny produkt' });
+        }
+        lastProduktId = cycle.produkt_id;
+      }
     });
 
     const overallAvg = displayCycles.length > 0
@@ -1099,7 +1119,6 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       : 0;
     labels.forEach(() => {
       avgCycleTimeArr.push(overallAvg);
-      targetCycleTimeArr.push(this.targetCycleTime);
     });
 
     // Bygg kör/stopp-perioder från on/off-händelser, mappade till cykelindex
@@ -1109,7 +1128,11 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
     const rast: any[] = data.rast_events || [];
     const rastPeriods = this.buildRastPeriodsForCycles(displayCycles, rast);
 
-    return { labels, cycleTime, avgCycleTime: avgCycleTimeArr, targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods };
+    return {
+      labels, cycleTime, avgCycleTime: avgCycleTimeArr,
+      targetCycleTime: targetCycleTimeArr, runningPeriods, rastPeriods,
+      produktByten, produktNamn
+    };
   }
 
   /**
@@ -1226,14 +1249,16 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
         }
       ];
 
-      // Add target line if target exists
-      if (this.targetCycleTime > 0) {
+      // Add target line if any target values exist
+      const hasTarget = chartData.targetCycleTime?.some((v: number) => v > 0);
+      if (hasTarget || this.targetCycleTime > 0) {
         datasets.push({
           label: 'Mål Cykeltid',
           data: chartData.targetCycleTime,
           borderColor: '#ff8800',
           borderDash: [4, 4],
           tension: 0,
+          stepped: this.viewMode === 'day' ? 'before' as const : false,
           fill: false,
           yAxisID: 'y',
           pointRadius: 0,
@@ -1264,7 +1289,15 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
               borderColor: '#00d4ff',
               borderWidth: 1,
               padding: 12,
-              displayColors: true
+              displayColors: true,
+              callbacks: this.viewMode === 'day' ? {
+                afterBody: (tooltipItems: any[]) => {
+                  if (!tooltipItems.length || !chartData.produktNamn) return '';
+                  const idx = tooltipItems[0].dataIndex;
+                  const namn = chartData.produktNamn[idx];
+                  return namn ? `Produkt: ${namn}` : '';
+                }
+              } : {}
             }
           },
           scales: {
@@ -1292,7 +1325,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
             const { ctx, chartArea, scales } = chart;
             if (!chartArea || !scales.x) return;
 
-            const { left, right, top, bottom } = chartArea;
+            const { top, bottom } = chartArea;
 
             chartData.runningPeriods.forEach((period: any) => {
               try {
@@ -1320,6 +1353,29 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
                 ctx.moveTo(xStart, top);
                 ctx.lineTo(xEnd, top);
                 ctx.stroke();
+              } catch (e) {}
+            });
+
+            // Rita produktbyte-linjer (vertikala streckade linjer)
+            (chartData.produktByten || []).forEach((pb: any) => {
+              try {
+                const xPos = scales.x.getPixelForValue(pb.index);
+                ctx.save();
+                ctx.strokeStyle = '#ff8800';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(xPos, top);
+                ctx.lineTo(xPos, bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Produktnamn-etikett
+                ctx.fillStyle = '#ff8800';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(pb.namn, xPos, top - 4);
+                ctx.restore();
               } catch (e) {}
             });
 
@@ -1617,7 +1673,7 @@ export class RebotlingStatistikPage implements OnInit, AfterViewInit, OnDestroy 
       grouped.get(key)!.push(cycle);
     });
 
-    grouped.forEach((cycles, key) => {
+    grouped.forEach((cycles, _key) => {
       const date = new Date(cycles[0].datum);
       let period: string;
 
