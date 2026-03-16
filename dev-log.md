@@ -1,3 +1,61 @@
+## 2026-03-16 Session #123 Worker B — Buggjakt i Angular frontend-utils + PHP controllers batch 3
+
+### DEL 1: Granskade Angular-filer (aldrig granskade tidigare):
+
+**Rena filer (inga buggar):**
+1. auth.guard.ts — OK (functional CanActivateFn, initialized$.pipe(filter+take+switchMap) korrekt, RxJS 7.8-imports fran 'rxjs' ar giltiga)
+2. error.interceptor.ts — OK (functional HttpInterceptorFn, korrekt 401/403/404/429/500-hantering, loggedIn$.next(false) vid session-utgång)
+3. chart-export.util.ts — OK (dark theme-farger korrekt: #1a202c/#e2e8f0/#a0aec0, canvas-export med titel+datum)
+4. date-utils.ts — OK (timezone-saker CET/CEST via T00:00:00-suffix i parseLocalDate)
+
+**DEL 2: Sokta *.pipe.ts-filer:** Inga pipes existerar i projektet — inget att granska.
+
+### DEL 3: Granskade 16 PHP backend-controllers:
+
+**Rena filer (inga buggar):**
+1. KassationsorsakPerStationController.php — OK
+2. KvalitetscertifikatController.php — OK
+3. KvalitetstrendanalysController.php — OK (korrekt operators.number i queries)
+4. KvalitetsTrendbrottController.php — OK (anvander \PDOException korrekt)
+5. LeveransplaneringController.php — OK
+6. MaskinDrifttidController.php — OK
+7. MaskinhistorikController.php — OK
+8. MaskinOeeController.php — OK
+9. MaskinunderhallController.php — OK
+10. OeeJamforelseController.php — OK (anvander \PDOException korrekt)
+11. OeeWaterfallController.php — OK (anvander \Exception med backslash korrekt)
+
+**Filer med buggar fixade (7 buggar i 5 filer):**
+
+12. **LineSkiftrapportController.php (2 buggar):**
+    - trim($data['datum'], JSON_UNESCAPED_UNICODE) — JSON_UNESCAPED_UNICODE=256 tolkades som character mask av trim() — andrat till trim($data['datum'])
+    - intval($data['antal_ok'], JSON_UNESCAPED_UNICODE) — bas 256 gav fel heltalsparsning — andrat till intval($data['antal_ok'])
+
+13. **KvalitetstrendController.php (1 bugg, 6 stallen):**
+    - HAVING COUNT(*) > 1 i alla 6 SQL-subfrageor — filtrade bort giltiga skift med en enda rad i rebotling_ibc, gav kraftigt underrapporterade operatorkvalitetsmatningar
+    - Tog bort HAVING-satsen fran alla 6 frageor i getVeckodataPerOperator() och getOperatorDetail()
+
+14. **MorgonrapportController.php (1 bugg):**
+    - WHERE DATE(created_at) = ? i getRuntimeHoursForDate() — rebotling_ibc har ingen created_at-kolumn (kolumner: datum, lopnummer, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, rasttime, op1, op2, op3)
+    - Andrat till WHERE DATE(datum) = ? — total_drifttid_h var alltid 0 i morgonrapporten
+
+15. **OeeBenchmarkController.php (4 buggar):**
+    - 4x catch (Exception $e) utan backslash — PHP fanger inte global \Exception utan \-prefix i class-kontext
+    - Andrat till catch (\Exception $e) i getCurrentOee(), getBenchmark(), getTrend(), getBreakdown()
+
+16. **OeeTrendanalysController.php (9 buggar):**
+    - 9x catch (Exception $e) utan backslash — samma namespace-problem som OeeBenchmarkController
+    - Andrat till catch (\Exception $e) pa 9 stallen
+
+### Build och deployment:
+- Frontend: npx ng build — SUCCESS (inga kompileringsfel)
+- Git commit: 53bc123 — 5 filer, 7 buggar fixade
+- Push: OK
+
+### Totalt: 7 buggar fixade i 5 filer
+
+---
+
 ## 2026-03-16 Session #122 Worker A — Buggjakt i backend PHP-controllers batch 2
 
 ### Granskade 20 controllers + api.php routing:
