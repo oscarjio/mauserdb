@@ -38,7 +38,7 @@ class ProduktTypEffektivitetController {
             case 'summary':    $this->getSummary();    break;
             case 'trend':      $this->getTrend();      break;
             case 'comparison': $this->getComparison(); break;
-            default:           $this->sendError('Ogiltig run: ' . $run); break;
+            default:           $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 

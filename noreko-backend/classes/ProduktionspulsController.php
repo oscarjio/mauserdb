@@ -41,7 +41,7 @@ class ProduktionspulsController {
                 break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig run-parameter']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig run-parameter'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -55,7 +55,7 @@ class ProduktionspulsController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Inloggning kravs']);
+            echo json_encode(['success' => false, 'error' => 'Inloggning kravs'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -231,7 +231,7 @@ class ProduktionspulsController {
             'success'   => true,
             'data'      => array_values($events),
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ================================================================
@@ -331,7 +331,7 @@ class ProduktionspulsController {
             'driftstatus'              => $driftstatus,
             'tid_sedan_senaste_stopp'  => $senasteStopp,
             'timestamp'                => $now,
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ================================================================
@@ -406,7 +406,7 @@ class ProduktionspulsController {
         echo json_encode([
             'success' => true,
             'data'    => $items,
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     /**

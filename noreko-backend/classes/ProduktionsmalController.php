@@ -538,7 +538,7 @@ class ProduktionsmalController {
             $stmt = $this->pdo->prepare("
                 SELECT skiftraknare, MAX(ibc_ok) AS max_ok
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = :today
+                WHERE DATE(datum) = :today
                   AND skiftraknare IS NOT NULL
                 GROUP BY skiftraknare
             ");
@@ -697,7 +697,7 @@ class ProduktionsmalController {
                        COUNT(*) AS antal_rader,
                        COUNT(DISTINCT skiftraknare) AS antal_skift
                 FROM rebotling_ibc
-                WHERE DATE(created_at) = :today
+                WHERE DATE(datum) = :today
                   AND lopnummer IS NOT NULL
                   AND lopnummer BETWEEN 1 AND 8
                 GROUP BY lopnummer
@@ -1059,7 +1059,7 @@ class ProduktionsmalController {
             'success'   => true,
             'data'      => $data,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
@@ -1082,7 +1082,8 @@ class ProduktionsmalController {
                 $goals[(int)$r['weekday']] = (int)$r['daily_goal'];
             }
             return $goals;
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('ProduktionsmalController::getWeekdayGoals: ' . $e->getMessage());
             return [];
         }
     }
@@ -1096,9 +1097,9 @@ class ProduktionsmalController {
         $stmt = $this->pdo->prepare(
             "SELECT dag, SUM(max_ibc) AS ibc_count
              FROM (
-                SELECT DATE(created_at) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
+                SELECT DATE(datum) AS dag, skiftraknare, MAX(ibc_ok) AS max_ibc
                 FROM rebotling_ibc
-                WHERE DATE(created_at) BETWEEN ? AND ?
+                WHERE DATE(datum) BETWEEN ? AND ?
                 GROUP BY DATE(created_at), skiftraknare
                 HAVING COUNT(*) > 1
              ) sub

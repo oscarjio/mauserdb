@@ -65,7 +65,7 @@ class ProduktionsSlaController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -87,7 +87,7 @@ class ProduktionsSlaController {
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $message]);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
     private function ensureTables(): void {

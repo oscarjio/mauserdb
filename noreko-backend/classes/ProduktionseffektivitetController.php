@@ -34,7 +34,7 @@ class ProduktionseffektivitetController {
             case 'hourly-heatmap':  $this->getHourlyHeatmap();  break;
             case 'hourly-summary':  $this->getHourlySummary();  break;
             case 'peak-analysis':   $this->getPeakAnalysis();   break;
-            default:                $this->sendError('Ogiltig run: ' . $run); break;
+            default:                $this->sendError('Ogiltig run: ' . htmlspecialchars($run)); break;
         }
     }
 
@@ -66,7 +66,8 @@ class ProduktionseffektivitetController {
         try {
             $cols = $this->pdo->query("SHOW COLUMNS FROM rebotling_ibc")->fetchAll(PDO::FETCH_COLUMN);
             return in_array('timestamp', $cols) ? 'timestamp' : 'datum';
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('ProduktionseffektivitetController::getIbcTimestampColumn: ' . $e->getMessage());
             return 'datum';
         }
     }

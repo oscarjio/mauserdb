@@ -79,8 +79,8 @@ class ProduktionsTaktController {
             );
             $val = $stmt->fetchColumn();
             return $val !== false ? (float)$val : 12.0;
-        } catch (\Exception) {
-            // Tabellen kanske inte finns ännu — returnera default
+        } catch (\Exception $e) {
+            error_log('ProduktionsTaktController::getTargetValue: ' . $e->getMessage());
             return 12.0;
         }
     }
@@ -247,7 +247,8 @@ class ProduktionsTaktController {
         try {
             $target = $this->getTargetValue();
             $this->sendSuccess(['target' => $target]);
-        } catch (\Exception) {
+        } catch (\Exception $e) {
+            error_log('ProduktionsTaktController::getTarget: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta maltal', 500);
         }
     }

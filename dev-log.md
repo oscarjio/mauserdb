@@ -1,3 +1,60 @@
+## 2026-03-16 Session #117 Worker A — Buggjakt i 11 Produktion-controllers
+
+### Granskade controllers (11 st):
+1. ProduktionsDashboardController.php
+2. ProduktionseffektivitetController.php
+3. ProduktionsflodeController.php
+4. ProduktionskalenderController.php
+5. ProduktionskostnadController.php
+6. ProduktionsmalController.php
+7. ProduktionspulsController.php
+8. ProduktionsSlaController.php
+9. ProduktionsTaktController.php
+10. ProduktionsPrognosController.php
+11. ProduktTypEffektivitetController.php
+
+### Buggar fixade (25 st):
+
+**1. Felaktigt kolumnnamn created_at istallet for datum (3 st):**
+- `ProduktionsmalController.php` getPerSkift() rad 541: `WHERE DATE(created_at) = :today` — rebotling_ibc har `datum`, inte `created_at`. Fixat till `DATE(datum)`.
+- `ProduktionsmalController.php` getPerStation() rad 700: Samma bugg — `DATE(created_at)` fixat till `DATE(datum)`.
+- `ProduktionsmalController.php` getFactualIbcByDate() rad 1099-1101: `DATE(created_at)` anvands 2 ganger i subquery. Fixat bada till `DATE(datum)`.
+
+**2. Tomma catch-block utan $e-variabel och error_log (10 st):**
+- `ProduktionseffektivitetController.php` getIbcTimestampColumn() rad 69: `catch (\Exception)` utan $e — fixat med error_log.
+- `ProduktionskalenderController.php` getOperatorMap() rad 77: `catch (Exception)` utan $e — fixat.
+- `ProduktionskalenderController.php` getDrifttid() rad 138: `catch (Exception)` utan $e — fixat.
+- `ProduktionskalenderController.php` getMonthData() settings rad 198: `catch (Exception)` utan $e — fixat.
+- `ProduktionskalenderController.php` buildVeckoData() prev rad 334: `catch (Exception)` utan $e — fixat.
+- `ProduktionskalenderController.php` getTop5Operatorer() rad 514: `catch (Exception)` utan $e — fixat.
+- `ProduktionskalenderController.php` getStopporsaker() rad 542: `catch (Exception)` utan $e — fixat.
+- `ProduktionsTaktController.php` getTargetValue() rad 82: `catch (\Exception)` utan $e — fixat.
+- `ProduktionsTaktController.php` getTarget() rad 250: `catch (\Exception)` utan $e — fixat.
+- `ProduktionsmalController.php` getWeekdayGoals() rad 1085: `catch (\Exception)` utan $e — fixat.
+
+**3. Saknad JSON_UNESCAPED_UNICODE (10 st):**
+- `ProduktionskostnadController.php` requireLogin() rad 79: json_encode saknade flaggan.
+- `ProduktionskostnadController.php` sendError() rad 101: json_encode saknade flaggan.
+- `ProduktionspulsController.php` handle() default rad 44: json_encode saknade flaggan.
+- `ProduktionspulsController.php` requireAuth() rad 58: json_encode saknade flaggan.
+- `ProduktionspulsController.php` getPulse() rad 230: json_encode saknade flaggan.
+- `ProduktionspulsController.php` getLiveKpi() rad 327: json_encode saknade flaggan.
+- `ProduktionspulsController.php` getLatest() rad 406: json_encode saknade flaggan.
+- `ProduktionsSlaController.php` requireLogin() rad 68: json_encode saknade flaggan.
+- `ProduktionsSlaController.php` sendError() rad 90: json_encode saknade flaggan.
+- `ProduktionsmalController.php` sendSuccess() rad 1058: json_encode saknade flaggan.
+
+**4. Saknad htmlspecialchars pa user input i felmeddelanden (2 st):**
+- `ProduktionseffektivitetController.php` handle() default rad 37: `$run` skrivs rakt ut utan htmlspecialchars().
+- `ProduktTypEffektivitetController.php` handle() default rad 41: Samma bugg — fixat.
+
+### Controllers utan buggar (ren kod):
+- ProduktionsDashboardController.php — valskriven, alla catch har $e, alla json_encode har flagga
+- ProduktionsflodeController.php — ren
+- ProduktionsPrognosController.php — ren
+
+---
+
 ## 2026-03-16 Session #116 Worker A — Buggjakt i 10 operator-controllers
 
 ### Granskade controllers (10 st):
