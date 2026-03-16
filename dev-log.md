@@ -1,3 +1,31 @@
+## 2026-03-16 Session #130 Worker B — Template null-safety: 21 .toFixed() crash-buggar
+
+### Problem
+`.toFixed()` anropat direkt pa potentiellt null/undefined varden i Angular-templates.
+Nar API returnerar null for ett numeriskt falt kraschar hela komponent-renderingen
+med `TypeError: Cannot read properties of null (reading 'toFixed')`.
+
+### Fixar (21 st, 10 filer)
+Alla fixade med `(value ?? 0).toFixed(N)` monstret:
+
+- **operatorsbonus.component.html** (3): `ibc_per_timme`, `kvalitet`, `narvaro`
+- **operators-prestanda.component.html** (4): `kassationsgrad` (2x), `oee` (2x)
+- **stopptidsanalys.component.html** (2): `period_total_min`, `andel_pct`
+- **rebotling-trendanalys.component.html** (1): `avvikelse`
+- **gamification.component.html** (1): `kassations_rate` (100 - null = NaN)
+- **prediktivt-underhall.component.html** (1): `station.totalt` i division
+- **utnyttjandegrad.html** (4): `timmar`, `procent`, `total_h`, `tillganglig_h`
+- **feedback-analys.html** (1): `snitt_stamning`
+- **andon.html** (2): `oee_pct`, `ibc_per_h`
+- **produktionseffektivitet.html** (3): `heatmapMaxVal`, topp3/botten3 `snitt_ibc`
+
+### Genomgang utan fynd (verifierat OK)
+- **Lazy loading (Task 2)**: Alla routes i app.routes.ts anvander `loadComponent` med dynamiska imports. Inga cirkulara beroenden.
+- **Service URL audit (Task 3)**: Inga hardkodade absoluta URLer i nagon service-fil. Alla anvander relativa sokvagar.
+- **Redan sakra .toFixed()**: effektivitet.html, operator-onboarding.html, statistik-bonus-simulator.html — alla skyddade med ternary-guards eller literal-varden.
+
+---
+
 ## 2026-03-16 Session #129 Worker B — Frontend buggjakt: division-by-zero, sparkline Infinity
 
 ### Division-by-zero i rebotling-statistik.ts (2 instanser)
