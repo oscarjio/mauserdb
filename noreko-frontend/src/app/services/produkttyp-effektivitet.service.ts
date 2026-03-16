@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { timeout } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ================================================================
 // Interfaces
@@ -96,28 +97,28 @@ export interface ProduktTypComparisonResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ProduktTypEffektivitetService {
-  private readonly base = '/noreko-backend/api.php?action=produkttyp-effektivitet';
+  private readonly api = `${environment.apiUrl}?action=produkttyp-effektivitet`;
 
   constructor(private http: HttpClient) {}
 
-  getSummary(days: number): Observable<ProduktTypSummaryResponse> {
+  getSummary(days: number): Observable<ProduktTypSummaryResponse | null> {
     return this.http.get<ProduktTypSummaryResponse>(
-      `${this.base}&run=summary&days=${days}`,
+      `${this.api}&run=summary&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15_000));
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getTrend(days: number): Observable<ProduktTypTrendResponse> {
+  getTrend(days: number): Observable<ProduktTypTrendResponse | null> {
     return this.http.get<ProduktTypTrendResponse>(
-      `${this.base}&run=trend&days=${days}`,
+      `${this.api}&run=trend&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15_000));
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getComparison(a: number, b: number, days: number): Observable<ProduktTypComparisonResponse> {
+  getComparison(a: number, b: number, days: number): Observable<ProduktTypComparisonResponse | null> {
     return this.http.get<ProduktTypComparisonResponse>(
-      `${this.base}&run=comparison&a=${a}&b=${b}&days=${days}`,
+      `${this.api}&run=comparison&a=${a}&b=${b}&days=${days}`,
       { withCredentials: true }
-    ).pipe(timeout(15_000));
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 }

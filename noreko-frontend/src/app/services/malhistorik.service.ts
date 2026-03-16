@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -66,7 +67,7 @@ export interface GoalImpactResponse {
 
 @Injectable({ providedIn: 'root' })
 export class MalhistorikService {
-  private api = '../../noreko-backend/api.php?action=malhistorik';
+  private api = `${environment.apiUrl}?action=malhistorik`;
 
   constructor(private http: HttpClient) {}
 

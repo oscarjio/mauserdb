@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface NarvaroDayEntry {
   dag: string;
@@ -39,12 +41,14 @@ export interface NarvaroMonthlyResponse {
 
 @Injectable({ providedIn: 'root' })
 export class NarvarotrackerService {
+  private api = `${environment.apiUrl}?action=narvaro`;
+
   constructor(private http: HttpClient) {}
 
-  getMonthlyOverview(year: number, month: number): Observable<NarvaroMonthlyResponse> {
+  getMonthlyOverview(year: number, month: number): Observable<NarvaroMonthlyResponse | null> {
     return this.http.get<NarvaroMonthlyResponse>(
-      `/noreko-backend/api.php?action=narvaro&run=monthly-overview&year=${year}&month=${month}`,
+      `${this.api}&run=monthly-overview&year=${year}&month=${month}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 }

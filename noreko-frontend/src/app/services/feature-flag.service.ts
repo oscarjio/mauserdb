@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { timeout, catchError } from 'rxjs/operators';
 import { of, firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 interface FeatureFlagResponse {
   success: boolean;
@@ -29,7 +30,7 @@ export class FeatureFlagService {
   loadFlags(): Promise<void> {
     return firstValueFrom(
       this.http.get<FeatureFlagResponse>(
-        '/noreko-backend/api.php?action=feature-flags&run=list',
+        `${environment.apiUrl}?action=feature-flags&run=list`,
         { withCredentials: true }
       ).pipe(
         timeout(8000),
