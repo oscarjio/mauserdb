@@ -68,7 +68,7 @@ class LoginController {
                 // Set session
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
-                $_SESSION['role'] = $user['role'] ?? (($user['admin'] == 1) ? 'admin' : 'user');
+                $_SESSION['role'] = $user['role'] ?? (((int)$user['admin'] === 1) ? 'admin' : 'user');
                 $_SESSION['email'] = $user['email'] ?? null;
                 $_SESSION['operator_id'] = $user['operator_id'] ? (int)$user['operator_id'] : null;
 

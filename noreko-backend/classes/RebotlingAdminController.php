@@ -1214,7 +1214,7 @@ class RebotlingAdminController {
 
     public function saveGoalException() {
         $data = json_decode(file_get_contents('php://input'), true);
-        if (!$data) {
+        if (!is_array($data)) {
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => 'Ogiltig JSON'], JSON_UNESCAPED_UNICODE);
             return;

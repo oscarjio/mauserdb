@@ -123,7 +123,7 @@ class AdminController {
             // DELETE - Ta bort användare
             if ($action === 'delete') {
                 // Förhindra att admin tar bort sig själv
-                if ($id == $_SESSION['user_id']) {
+                if ($id === (int)$_SESSION['user_id']) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'Du kan inte ta bort ditt eget konto'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -153,7 +153,7 @@ class AdminController {
             // Toggle admin status
             if ($action === 'toggleAdmin') {
                 // Förhindra att admin tar bort sin egen admin-status
-                if ($id == $_SESSION['user_id']) {
+                if ($id === (int)$_SESSION['user_id']) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'Du kan inte ändra din egen admin-status'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -163,7 +163,7 @@ class AdminController {
                     $stmt->execute([$id]);
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     if ($user) {
-                        $newAdminStatus = $user['admin'] == 1 ? 0 : 1;
+                        $newAdminStatus = (int)$user['admin'] === 1 ? 0 : 1;
                         $stmt = $pdo->prepare("UPDATE users SET admin = ? WHERE id = ?");
                         $stmt->execute([$newAdminStatus, $id]);
                         // Hämta username för audit
@@ -190,7 +190,7 @@ class AdminController {
             // Toggle active status
             if ($action === 'toggleActive') {
                 // Förhindra att admin inaktiverar sig själv
-                if ($id == $_SESSION['user_id']) {
+                if ($id === (int)$_SESSION['user_id']) {
                     http_response_code(400);
                     echo json_encode(['success' => false, 'message' => 'Du kan inte inaktivera ditt eget konto'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -214,7 +214,7 @@ class AdminController {
                     $user = $stmt->fetch(PDO::FETCH_ASSOC);
                     
                     if ($user) {
-                        $newActiveStatus = ($user['active'] == 1) ? 0 : 1;
+                        $newActiveStatus = ((int)$user['active'] === 1) ? 0 : 1;
                         $stmt = $pdo->prepare("UPDATE users SET active = ? WHERE id = ?");
                         $stmt->execute([$newActiveStatus, $id]);
                         $stmt = $pdo->prepare("SELECT username FROM users WHERE id = ?");
@@ -272,7 +272,7 @@ class AdminController {
             if ($email) { $fields[] = 'email = ?'; $params[] = $email; }
             if ($phone !== null) { $fields[] = 'phone = ?'; $params[] = $phone; }
             if ($password) { $fields[] = 'password = ?'; $params[] = AuthHelper::hashPassword($password); }
-            if ($admin !== null && $id != $_SESSION['user_id']) {
+            if ($admin !== null && $id !== (int)$_SESSION['user_id']) {
                 $fields[] = 'admin = ?';
                 $params[] = $admin;
             }
@@ -316,13 +316,13 @@ class AdminController {
             $activeExists = $stmt->rowCount() > 0;
             
             if ($activeExists) {
-                $stmt = $pdo->query("SELECT id, username, email, phone, code, last_login, admin, active, operator_id FROM users");
+                $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, active, operator_id FROM users");
             } else {
-                $stmt = $pdo->query("SELECT id, username, email, phone, code, last_login, admin, operator_id FROM users");
+                $stmt = $pdo->query("SELECT id, username, email, phone, last_login, admin, operator_id FROM users");
             }
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
             foreach ($users as &$u) { 
-                $u['role'] = ($u['admin'] == 1) ? 'admin' : 'user';
+                $u['role'] = ((int)$u['admin'] === 1) ? 'admin' : 'user';
                 if (!isset($u['active'])) {
                     $u['active'] = 1; // Default till aktiv om kolumnen inte finns
                 }

@@ -1,3 +1,37 @@
+## 2026-03-16 Session #128 Worker A — PHP backend buggjakt: type coercion, input validation, auth
+
+### Bugg 1: Loose comparison (==) istallet for strict (===) i AdminController.php (6 instanser)
+
+- **AdminController.php** rad 126, 156, 193: `$id == $_SESSION['user_id']` — loose comparison mellan int och string/int. Kunde potentiellt kringgas med type juggling. Fix: `$id === (int)$_SESSION['user_id']`
+- **AdminController.php** rad 166: `$user['admin'] == 1` — DB-varden ar strang, loose comparison. Fix: `(int)$user['admin'] === 1`
+- **AdminController.php** rad 217: `$user['active'] == 1` — samma problem. Fix: `(int)$user['active'] === 1`
+- **AdminController.php** rad 275: `$id != $_SESSION['user_id']` — loose comparison. Fix: `$id !== (int)$_SESSION['user_id']`
+- **AdminController.php** rad 325: `$u['admin'] == 1` i GET-lista. Fix: `(int)$u['admin'] === 1`
+
+### Bugg 2: Loose comparison i LoginController.php (1 instans)
+
+- **LoginController.php** rad 71: `$user['admin'] == 1` vid session role-tilldelning. Fix: `(int)$user['admin'] === 1`
+
+### Bugg 3: Loose comparison i linjar regression — RebotlingTrendanalysController.php (1 instans)
+
+- **RebotlingTrendanalysController.php** rad 133: `$denom == 0` — division-by-zero guard med loose comparison. I PHP < 8 kunde `0 == "0"` orsaka oforutsedda resultat. Fix: `$denom === 0`
+
+### Bugg 4: Saknad autentisering for GET i RebotlingProductController.php
+
+- **RebotlingProductController.php** rad 12-24: GET-anrop (getProducts) hade ingen sessionskontroll — all produktdata var publikt tillganglig utan inloggning. Fix: Lade till session_start och user_id-kontroll for alla HTTP-metoder.
+
+### Bugg 5: Saknad input-validering i RebotlingProductController.php (3 metoder)
+
+- **RebotlingProductController.php** createProduct: `$data['name']` och `$data['cycle_time_minutes']` skickades direkt till SQL utan typ-validering. Negativa/noll-cykeltider och tomma namn tillets. Fix: Lade till trim(), float-cast och validering (name !== '', cycleTime > 0).
+- **RebotlingProductController.php** updateProduct: Samma problem + `$data['id']` skickades utan int-cast. Fix: int-cast och validering av id > 0, name, cycleTime.
+- **RebotlingProductController.php** deleteProduct: `$data['id']` skickades ratt till SQL utan int-cast/validering. Fix: int-cast, validering id > 0.
+
+### Bugg 6: Falsy-check istallet for is_array() i RebotlingAdminController.php (1 instans)
+
+- **RebotlingAdminController.php** rad 1217: `if (!$data)` efter json_decode — en tom array `[]` skulle passera checken men ar ogiltigt. `false` fran json_decode-fel passerar korrekt, men en tom siffra `0` eller tom strang `` fran felaktigt JSON skulle inte fanga korrekt. Fix: `if (!is_array($data))`
+
+---
+
 ## 2026-03-16 Session #127 Worker A — PHP backend buggjakt: intval-bugg, info-lackage, XSS-risk
 
 ### Bugg 1: intval() med ogiltig bas (4 instanser) — KRITISK

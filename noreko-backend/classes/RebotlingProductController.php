@@ -13,9 +13,22 @@ class RebotlingProductController {
         $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
         $action = trim($_GET['run'] ?? '');
 
+        // Session krävs för alla anrop
+        if (session_status() === PHP_SESSION_NONE) {
+            if ($method === 'GET') {
+                session_start(['read_and_close' => true]);
+            } else {
+                session_start();
+            }
+        }
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Inloggning krävs'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         // Write operations require admin
         if ($method !== 'GET') {
-            if (session_status() === PHP_SESSION_NONE) session_start();
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
@@ -78,9 +91,20 @@ class RebotlingProductController {
             return;
         }
 
+        $name = trim($data['name']);
+        $cycleTime = (float)$data['cycle_time_minutes'];
+        if ($name === '' || $cycleTime <= 0) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Namn får inte vara tomt och cykeltid måste vara > 0'
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         try {
             $stmt = $this->pdo->prepare("INSERT INTO rebotling_products (name, cycle_time_minutes) VALUES (?, ?)");
-            $stmt->execute([$data['name'], $data['cycle_time_minutes']]);
+            $stmt->execute([$name, $cycleTime]);
             
             $productId = $this->pdo->lastInsertId();
             $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
@@ -119,9 +143,21 @@ class RebotlingProductController {
             return;
         }
 
+        $id = (int)$data['id'];
+        $name = trim($data['name']);
+        $cycleTime = (float)$data['cycle_time_minutes'];
+        if ($id <= 0 || $name === '' || $cycleTime <= 0) {
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Ogiltigt ID, tomt namn eller ogiltig cykeltid'
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         try {
             $stmt = $this->pdo->prepare("UPDATE rebotling_products SET name = ?, cycle_time_minutes = ? WHERE id = ?");
-            $stmt->execute([$data['name'], $data['cycle_time_minutes'], $data['id']]);
+            $stmt->execute([$name, $cycleTime, $id]);
             
             if ($stmt->rowCount() > 0) {
                 $safeName = htmlspecialchars($data['name'], ENT_QUOTES, 'UTF-8');
@@ -157,22 +193,24 @@ class RebotlingProductController {
     private function deleteProduct() {
         $data = json_decode(file_get_contents('php://input'), true);
         
-        if (!isset($data['id'])) {
+        if (!isset($data['id']) || (int)$data['id'] <= 0) {
             http_response_code(400);
             echo json_encode([
                 'success' => false,
-                'error' => 'Produkt ID krävs'
+                'error' => 'Giltigt produkt-ID krävs'
             ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
+        $id = (int)$data['id'];
+
         try {
             // Hard delete - ta bort raden från databasen
             $stmt = $this->pdo->prepare("DELETE FROM rebotling_products WHERE id = ?");
-            $stmt->execute([$data['id']]);
+            $stmt->execute([$id]);
             
             if ($stmt->rowCount() > 0) {
-                AuditLogger::log($this->pdo, 'product_delete', 'rebotling_products', (int)$data['id'],
+                AuditLogger::log($this->pdo, 'product_delete', 'rebotling_products', $id,
                     'Produkt borttagen');
                 echo json_encode([
                     'success' => true,
