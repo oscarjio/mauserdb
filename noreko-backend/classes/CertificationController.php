@@ -36,7 +36,7 @@ class CertificationController {
         if ($method === 'GET' && $run === 'expiry-count') {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $this->getExpiryCount();
@@ -47,7 +47,7 @@ class CertificationController {
         if ($method === 'POST') {
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -63,7 +63,7 @@ class CertificationController {
         }
 
         http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Okänd åtgärd']);
+        echo json_encode(['success' => false, 'error' => 'Okänd åtgärd'], JSON_UNESCAPED_UNICODE);
     }
 
     private function getExpiryCount() {
@@ -106,7 +106,7 @@ class CertificationController {
             ]);
         } catch (Exception $e) {
             error_log('CertificationController getExpiryCount: ' . $e->getMessage());
-            echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0]);
+            echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -165,7 +165,7 @@ class CertificationController {
         } catch (Exception $e) {
             error_log('CertificationController getAll: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringar']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -276,7 +276,7 @@ class CertificationController {
         } catch (Exception $e) {
             error_log('CertificationController getMatrix: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompetensmatris']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompetensmatris'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -294,31 +294,31 @@ class CertificationController {
 
         if (!$opNumber || $opNumber <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if (!in_array($line, $allowedLines, true)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig linje']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig linje'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $certDate)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt certifieringsdatum']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt certifieringsdatum'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if ($expiresDate !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $expiresDate)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt utgångsdatum']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt utgångsdatum'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if ($expiresDate !== null && $expiresDate <= $certDate) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Utgångsdatum måste vara efter certifieringsdatum']);
+            echo json_encode(['success' => false, 'error' => 'Utgångsdatum måste vara efter certifieringsdatum'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -334,11 +334,11 @@ class CertificationController {
             $stmt->execute([$opNumber, $line, $certifiedBy, $certDate, $expiresDate, $notes ?: null]);
             $newId = (int)$this->pdo->lastInsertId();
 
-            echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd']);
+            echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('CertificationController addCertification: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till certifiering']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till certifiering'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -348,7 +348,7 @@ class CertificationController {
 
         if (!$id || $id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -358,15 +358,15 @@ class CertificationController {
 
             if ($stmt->rowCount() === 0) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Certifiering hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Certifiering hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
-            echo json_encode(['success' => true, 'message' => 'Certifiering återkallad']);
+            echo json_encode(['success' => true, 'message' => 'Certifiering återkallad'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('CertificationController revokeCertification: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte återkalla certifiering']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte återkalla certifiering'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

@@ -18,7 +18,7 @@ class HistorikController {
     public function handle() {
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -33,7 +33,7 @@ class HistorikController {
                 break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')]);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig run: ' . htmlspecialchars($run, ENT_QUOTES, 'UTF-8')], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -121,11 +121,11 @@ class HistorikController {
         } catch (PDOException $e) {
             error_log('HistorikController::getMonthly PDOException: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av månadsdata']);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av månadsdata'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('HistorikController::getMonthly Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -179,11 +179,11 @@ class HistorikController {
         } catch (PDOException $e) {
             error_log('HistorikController::getYearly PDOException: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av årsdata']);
+            echo json_encode(['success' => false, 'error' => 'Databasfel vid hämtning av årsdata'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('HistorikController::getYearly Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

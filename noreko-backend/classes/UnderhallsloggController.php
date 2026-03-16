@@ -164,7 +164,7 @@ class UnderhallsloggController {
     }
 
     private function sendSuccess(array $data): void {
-        echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
+        echo json_encode(array_merge(['success' => true], $data));
     }
 
     private function sendError(string $message, int $code = 400): void {

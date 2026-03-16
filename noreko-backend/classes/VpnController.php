@@ -34,12 +34,12 @@ class VpnController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -49,7 +49,7 @@ class VpnController {
             $this->handlePost();
         } else {
             http_response_code(405);
-            echo json_encode(['error' => 'Ogiltig metod']);
+            echo json_encode(['error' => 'Ogiltig metod'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -62,13 +62,13 @@ class VpnController {
 
             if ($commonName === '') {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Common Name krävs.']);
+                echo json_encode(['success' => false, 'message' => 'Common Name krävs.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             if (preg_match('/[\r\n]/', $commonName) || !preg_match('/^[\w\.\-@]+$/u', $commonName)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltigt Common Name-format.']);
+                echo json_encode(['success' => false, 'message' => 'Ogiltigt Common Name-format.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -78,7 +78,7 @@ class VpnController {
         }
 
         http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Ogiltigt kommando.']);
+        echo json_encode(['success' => false, 'message' => 'Ogiltigt kommando.'], JSON_UNESCAPED_UNICODE);
     }
 
     private function disconnectClient($commonName) {
@@ -134,7 +134,7 @@ class VpnController {
                     'error' => 'Kunde inte ansluta till OpenVPN management interface',
                     'message' => "Fel: $errstr ($errno). Kontrollera att management interface är aktiverat i server.conf",
                     'timings' => $timings
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -206,7 +206,7 @@ class VpnController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Fel vid hämtning av VPN-status'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 

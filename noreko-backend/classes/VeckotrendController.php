@@ -13,7 +13,7 @@ class VeckotrendController {
             $this->getWeeklyKpis();
         } else {
             http_response_code(404);
-            echo json_encode(['success' => false, 'error' => 'Okänd run: ' . $run]);
+            echo json_encode(['success' => false, 'error' => 'Okänd run: ' . $run], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -216,7 +216,7 @@ class VeckotrendController {
         } catch (Exception $e) {
             error_log('VeckotrendController::getWeeklyKpis error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'error' => 'Serverfel: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
     }
 

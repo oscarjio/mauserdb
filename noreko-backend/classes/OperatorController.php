@@ -20,7 +20,7 @@ class OperatorController {
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Endast admin har behörighet.']);
+            echo json_encode(['error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
         global $pdo;
@@ -36,7 +36,7 @@ class OperatorController {
 
                 if (empty($name) || $number === null || $number <= 0) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Namn och nummer krävs']);
+                    echo json_encode(['success' => false, 'message' => 'Namn och nummer krävs'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
 
@@ -48,15 +48,15 @@ class OperatorController {
                         "Skapade operatör: $name (#$number)",
                         null, ['name' => $name, 'number' => $number]
                     );
-                    echo json_encode(['success' => true, 'message' => 'Operatör skapad', 'id' => $newId]);
+                    echo json_encode(['success' => true, 'message' => 'Operatör skapad', 'id' => $newId], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('OperatorController create: ' . $e->getMessage());
                     if ($e->getCode() == 23000) {
                         http_response_code(409);
-                        echo json_encode(['success' => false, 'message' => 'Operatörsnumret är redan registrerat']);
+                        echo json_encode(['success' => false, 'message' => 'Operatörsnumret är redan registrerat'], JSON_UNESCAPED_UNICODE);
                     } else {
                         http_response_code(500);
-                        echo json_encode(['success' => false, 'message' => 'Kunde inte skapa operatör']);
+                        echo json_encode(['success' => false, 'message' => 'Kunde inte skapa operatör'], JSON_UNESCAPED_UNICODE);
                     }
                 }
                 return;
@@ -65,7 +65,7 @@ class OperatorController {
             $id = isset($data['id']) ? intval($data['id']) : null;
             if (!$id) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'ID saknas']);
+                echo json_encode(['success' => false, 'message' => 'ID saknas'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -75,7 +75,7 @@ class OperatorController {
 
                 if (empty($name) || $number === null || $number <= 0) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Namn och nummer krävs']);
+                    echo json_encode(['success' => false, 'message' => 'Namn och nummer krävs'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
 
@@ -86,15 +86,15 @@ class OperatorController {
                         "Uppdaterade operatör #$id: $name (#$number)",
                         null, ['name' => $name, 'number' => $number]
                     );
-                    echo json_encode(['success' => true, 'message' => 'Operatör uppdaterad']);
+                    echo json_encode(['success' => true, 'message' => 'Operatör uppdaterad'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('OperatorController update: ' . $e->getMessage());
                     if ($e->getCode() == 23000) {
                         http_response_code(409);
-                        echo json_encode(['success' => false, 'message' => 'Operatörsnumret är redan registrerat']);
+                        echo json_encode(['success' => false, 'message' => 'Operatörsnumret är redan registrerat'], JSON_UNESCAPED_UNICODE);
                     } else {
                         http_response_code(500);
-                        echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera operatör']);
+                        echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera operatör'], JSON_UNESCAPED_UNICODE);
                     }
                 }
                 return;
@@ -118,11 +118,11 @@ class OperatorController {
                         "Tog bort operatör: " . ($op['name'] ?? 'okänd') . " (#" . ($op['number'] ?? '?') . ")",
                         $op, null
                     );
-                    echo json_encode(['success' => true, 'message' => 'Operatör borttagen']);
+                    echo json_encode(['success' => true, 'message' => 'Operatör borttagen'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('OperatorController delete: ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort operatör']);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort operatör'], JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
@@ -146,17 +146,17 @@ class OperatorController {
                         ($newActive ? 'Aktiverade' : 'Inaktiverade') . " operatör: " . $op['name'],
                         ['active' => $op['active']], ['active' => $newActive]
                     );
-                    echo json_encode(['success' => true, 'active' => $newActive]);
+                    echo json_encode(['success' => true, 'active' => $newActive], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('OperatorController toggleActive: ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Kunde inte ändra status']);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte ändra status'], JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
 
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Okänd åtgärd']);
+            echo json_encode(['success' => false, 'message' => 'Okänd åtgärd'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -205,7 +205,7 @@ class OperatorController {
         } catch (PDOException $e) {
             error_log('OperatorController GET: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte hämta operatörer']);
+            echo json_encode(['error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -262,7 +262,7 @@ class OperatorController {
         } catch (Exception $e) {
             error_log('OperatorController getStats: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatistik']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -274,7 +274,7 @@ class OperatorController {
         $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
         if ($id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörs-ID']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörs-ID'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -639,7 +639,7 @@ class OperatorController {
         } catch (Exception $e) {
             error_log('OperatorController getProfile: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsprofil']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsprofil'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -728,7 +728,7 @@ class OperatorController {
         } catch (Exception $e) {
             error_log('OperatorController getPairs: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta pardata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta pardata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -740,7 +740,7 @@ class OperatorController {
         $opNumber = isset($_GET['op_number']) ? intval($_GET['op_number']) : 0;
         if ($opNumber <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt operatörsnummer'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -780,7 +780,7 @@ class OperatorController {
         } catch (Exception $e) {
             error_log('OperatorController getOperatorTrend: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -888,7 +888,7 @@ class OperatorController {
         } catch (Exception $e) {
             error_log('OperatorController getMachineCompatibility: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompatibilitetsdata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompatibilitetsdata'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

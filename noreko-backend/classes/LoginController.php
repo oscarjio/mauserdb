@@ -23,7 +23,7 @@ class LoginController {
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
+            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $username = strip_tags(trim($data['username'] ?? ''));
@@ -32,7 +32,7 @@ class LoginController {
 
         if ($username === '' || $password === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Användarnamn och lösenord krävs']);
+            echo json_encode(['success' => false, 'message' => 'Användarnamn och lösenord krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -43,7 +43,7 @@ class LoginController {
             echo json_encode([
                 'success' => false,
                 'message' => "För många inloggningsförsök. Försök igen om {$remaining} minuter."
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -93,7 +93,7 @@ class LoginController {
                 AuditLogger::log($pdo, 'login_failed', 'user', null, "Misslyckat inloggningsförsök: {$username}");
 
                 http_response_code(401);
-                echo json_encode(['success' => false, 'message' => $msg]);
+                echo json_encode(['success' => false, 'message' => $msg], JSON_UNESCAPED_UNICODE);
             }
 
             // Cleanup old attempts ~1% of requests
@@ -103,7 +103,7 @@ class LoginController {
         } catch (PDOException $e) {
             error_log('LoginController handle: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel — försök igen senare.']);
+            echo json_encode(['success' => false, 'message' => 'Databasfel — försök igen senare.'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -118,6 +118,6 @@ class LoginController {
         }
         session_unset();
         session_destroy();
-        echo json_encode(['success' => true, 'message' => 'Utloggad']);
+        echo json_encode(['success' => true, 'message' => 'Utloggad'], JSON_UNESCAPED_UNICODE);
     }
 }

@@ -231,7 +231,7 @@ class ProduktionspulsController {
             'success'   => true,
             'data'      => array_values($events),
             'timestamp' => date('Y-m-d H:i:s'),
-        ], JSON_UNESCAPED_UNICODE);
+        ]);
     }
 
     // ================================================================
@@ -331,7 +331,7 @@ class ProduktionspulsController {
             'driftstatus'              => $driftstatus,
             'tid_sedan_senaste_stopp'  => $senasteStopp,
             'timestamp'                => $now,
-        ], JSON_UNESCAPED_UNICODE);
+        ]);
     }
 
     // ================================================================
@@ -406,7 +406,7 @@ class ProduktionspulsController {
         echo json_encode([
             'success' => true,
             'data'    => $items,
-        ], JSON_UNESCAPED_UNICODE);
+        ]);
     }
 
     /**

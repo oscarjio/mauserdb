@@ -161,7 +161,7 @@ class DashboardLayoutController {
             return;
         }
 
-        $layoutJson = json_encode($cleaned, JSON_UNESCAPED_UNICODE);
+        $layoutJson = json_encode($cleaned);
 
         try {
             $stmt = $this->pdo->prepare(
@@ -215,7 +215,7 @@ class DashboardLayoutController {
         echo json_encode(array_merge(
             ['success' => true, 'timestamp' => date('Y-m-d H:i:s')],
             $data
-        ), JSON_UNESCAPED_UNICODE);
+        ));
     }
 
     private function sendError(string $message, int $code = 400): void {

@@ -934,7 +934,7 @@ class SkiftoverlamningController {
         // Checklista JSON
         $checklistaJson = null;
         if (isset($data['checklista']) && is_array($data['checklista'])) {
-            $checklistaJson = json_encode($data['checklista'], JSON_UNESCAPED_UNICODE);
+            $checklistaJson = json_encode($data['checklista']);
         }
 
         // Begränsa textlängder

@@ -48,7 +48,7 @@ class ShiftHandoverController {
         }
 
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte']);
+        echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);
     }
 
     // -------------------------------------------------------------------------
@@ -61,7 +61,7 @@ class ShiftHandoverController {
         }
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -123,7 +123,7 @@ class ShiftHandoverController {
             session_start(['read_and_close' => true]);
         }
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['antal' => 0]);
+            echo json_encode(['antal' => 0], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -140,7 +140,7 @@ class ShiftHandoverController {
             echo json_encode(['antal' => (int)($row['antal'] ?? 0)]);
         } catch (PDOException $e) {
             error_log('ShiftHandoverController unreadCount: ' . $e->getMessage());
-            echo json_encode(['antal' => 0]);
+            echo json_encode(['antal' => 0], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -210,7 +210,7 @@ class ShiftHandoverController {
         } catch (PDOException $e) {
             error_log('ShiftHandoverController getRecent: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta anteckningar']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta anteckningar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -230,23 +230,23 @@ class ShiftHandoverController {
         // Validering
         if ($skiftNr < 1 || $skiftNr > 3) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'skift_nr måste vara 1, 2 eller 3']);
+            echo json_encode(['success' => false, 'error' => 'skift_nr måste vara 1, 2 eller 3'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (empty($note)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Anteckningstext krävs']);
+            echo json_encode(['success' => false, 'error' => 'Anteckningstext krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (mb_strlen($note) > 500) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Anteckning får inte vara längre än 500 tecken']);
+            echo json_encode(['success' => false, 'error' => 'Anteckning får inte vara längre än 500 tecken'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $allowedPriorities = ['normal', 'important', 'urgent'];
         if (!in_array($priority, $allowedPriorities, true)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig prioritet']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig prioritet'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $allowedAudiences = ['alla', 'ansvarig', 'teknik'];
@@ -321,7 +321,7 @@ class ShiftHandoverController {
         } catch (PDOException $e) {
             error_log('ShiftHandoverController addNote: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte spara anteckning']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara anteckning'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -335,7 +335,7 @@ class ShiftHandoverController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -343,7 +343,7 @@ class ShiftHandoverController {
         $id   = intval($data['id'] ?? $_POST['id'] ?? 0);
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Saknar id']);
+            echo json_encode(['success' => false, 'error' => 'Saknar id'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -372,7 +372,7 @@ class ShiftHandoverController {
         } catch (PDOException $e) {
             error_log('ShiftHandoverController acknowledge: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte kvittera anteckning']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte kvittera anteckning'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -385,7 +385,7 @@ class ShiftHandoverController {
         $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
         if ($id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt id']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt id'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -406,18 +406,18 @@ class ShiftHandoverController {
 
             if (!$isAdmin && !$ownNote) {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Du har inte behörighet att ta bort denna anteckning']);
+                echo json_encode(['success' => false, 'error' => 'Du har inte behörighet att ta bort denna anteckning'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             $delStmt = $this->pdo->prepare('DELETE FROM shift_handover WHERE id = ?');
             $delStmt->execute([$id]);
 
-            echo json_encode(['success' => true, 'message' => 'Anteckning borttagen']);
+            echo json_encode(['success' => true, 'message' => 'Anteckning borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('ShiftHandoverController deleteNote: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort anteckning']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort anteckning'], JSON_UNESCAPED_UNICODE);
         }
     }
     // -------------------------------------------------------------------------

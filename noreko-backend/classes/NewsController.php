@@ -23,7 +23,7 @@ class NewsController {
             $this->delete();
         } else {
             http_response_code(404);
-            echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte']);
+            echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -31,7 +31,7 @@ class NewsController {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         if (!isset($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Ej behörig']);
+            echo json_encode(['error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
             return false;
         }
         return true;
@@ -64,7 +64,7 @@ class NewsController {
         } catch (Exception $e) {
             error_log("NewsController adminList: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -74,7 +74,7 @@ class NewsController {
         $body = json_decode(file_get_contents('php://input'), true);
         if (!$body) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt JSON']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt JSON'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -92,7 +92,7 @@ class NewsController {
 
         if ($title === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Rubrik krävs']);
+            echo json_encode(['success' => false, 'error' => 'Rubrik krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -110,11 +110,11 @@ class NewsController {
                 ':priority'  => $priority,
             ]);
             $id = (int)$this->pdo->lastInsertId();
-            echo json_encode(['success' => true, 'id' => $id]);
+            echo json_encode(['success' => true, 'id' => $id], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log("NewsController create: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -124,7 +124,7 @@ class NewsController {
         $body = json_decode(file_get_contents('php://input'), true);
         if (!$body) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt JSON']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt JSON'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -143,13 +143,13 @@ class NewsController {
 
         if ($id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if ($title === '') {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Rubrik krävs']);
+            echo json_encode(['success' => false, 'error' => 'Rubrik krävs'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -169,11 +169,11 @@ class NewsController {
                 ':priority'  => $priority,
                 ':id'        => $id,
             ]);
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log("NewsController update: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -185,18 +185,18 @@ class NewsController {
 
         if ($id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         try {
             $stmt = $this->pdo->prepare("DELETE FROM news WHERE id = :id");
             $stmt->execute([':id' => $id]);
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log("NewsController delete: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -620,7 +620,7 @@ class NewsController {
 
         $events = array_slice($unique, 0, $antal);
 
-        echo json_encode(['success' => true, 'events' => $events]);
+        echo json_encode(['success' => true, 'events' => $events], JSON_UNESCAPED_UNICODE);
     }
 
     private function ikonForCategory(string $category): string {

@@ -29,7 +29,7 @@ class FeedbackController {
 
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $run    = trim($_GET['run'] ?? '');
@@ -39,14 +39,14 @@ class FeedbackController {
                 case 'submit': $this->submit(); break;
                 default:
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => 'Ogiltig POST-action']);
+                    echo json_encode(['success' => false, 'error' => 'Ogiltig POST-action'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
 
         if ($method !== 'GET') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Metod ej tillåten']);
+            echo json_encode(['success' => false, 'error' => 'Metod ej tillåten'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -55,7 +55,7 @@ class FeedbackController {
             case 'summary':    $this->summary();   break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig action: ' . htmlspecialchars($run)]);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig action: ' . htmlspecialchars($run)], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -87,7 +87,7 @@ class FeedbackController {
         } catch (\Exception $e) {
             error_log('FeedbackController::myHistory — ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av historik']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av historik'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -97,7 +97,7 @@ class FeedbackController {
     private function summary(): void {
         if (empty($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad']);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -129,7 +129,7 @@ class FeedbackController {
         } catch (\Exception $e) {
             error_log('FeedbackController::summary — ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av sammanfattning']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid hämtning av sammanfattning'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -145,7 +145,7 @@ class FeedbackController {
 
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig request-body (förväntar JSON)']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig request-body (förväntar JSON)'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -153,7 +153,7 @@ class FeedbackController {
         $stamning = isset($data['stamning']) ? (int) $data['stamning'] : 0;
         if ($stamning < 1 || $stamning > 4) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Stämning måste vara 1–4']);
+            echo json_encode(['success' => false, 'error' => 'Stämning måste vara 1–4'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -212,11 +212,11 @@ class FeedbackController {
                 ':kommentar' => $kommentar,
             ]);
 
-            echo json_encode(['success' => true, 'message' => 'Tack för din feedback!']);
+            echo json_encode(['success' => true, 'message' => 'Tack för din feedback!'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('FeedbackController::submit — ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel vid sparning av feedback']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid sparning av feedback'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

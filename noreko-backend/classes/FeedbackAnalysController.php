@@ -56,7 +56,7 @@ class FeedbackAnalysController {
             'success'   => true,
             'data'      => $data,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
@@ -65,7 +65,7 @@ class FeedbackAnalysController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     /** Stämning 1-4 → text */

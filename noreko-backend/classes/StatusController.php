@@ -23,7 +23,7 @@ class StatusController {
         }
 
         if (!isset($_SESSION['user_id'])) {
-            echo json_encode(['loggedIn' => false]);
+            echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -57,10 +57,10 @@ class StatusController {
                     'role' => $role,
                     'operator_id' => $user['operator_id'] ? (int)$user['operator_id'] : null
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('StatusController fel: ' . $e->getMessage());
-            echo json_encode(['loggedIn' => false]);
+            echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -209,7 +209,7 @@ class StatusController {
         } catch (Exception $e) {
             error_log('StatusController all-lines: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta linjestatus']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta linjestatus'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

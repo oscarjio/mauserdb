@@ -146,7 +146,7 @@ class MinDagController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ================================================================

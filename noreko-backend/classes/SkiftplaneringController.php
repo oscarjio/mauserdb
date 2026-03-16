@@ -77,12 +77,12 @@ class SkiftplaneringController {
     // =========================================================================
 
     private function sendSuccess(array $data): void {
-        echo json_encode(array_merge(['success' => true], $data));
+        echo json_encode(array_merge(['success' => true], $data), JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $message]);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
     private function ensureTables(): void {

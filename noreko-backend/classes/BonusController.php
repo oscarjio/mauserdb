@@ -1867,7 +1867,7 @@ class BonusController {
             'success'   => false,
             'error'     => $message,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
     /**
      * GET /api.php?action=bonus&run=my-ranking&op_id=123&period=week|day|month

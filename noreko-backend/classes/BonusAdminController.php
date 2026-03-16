@@ -1519,7 +1519,7 @@ class BonusAdminController {
             }
 
             // --- Hämta rådata per operatör (senaste $days dagar, per skift) ---
-            $stmt = $this->pdo->query("
+            $stmt = $this->pdo->prepare("
                 SELECT
                     op_id,
                     skiftraknare,
@@ -1535,21 +1535,26 @@ class BonusAdminController {
                 FROM (
                     SELECT op1 AS op_id, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN '$dateFrom' AND '$dateTo'
+                    WHERE DATE(datum) BETWEEN :from1 AND :to1
                       AND op1 IS NOT NULL AND op1 > 0 AND skiftraknare IS NOT NULL
                     UNION ALL
                     SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN '$dateFrom' AND '$dateTo'
+                    WHERE DATE(datum) BETWEEN :from2 AND :to2
                       AND op2 IS NOT NULL AND op2 > 0 AND skiftraknare IS NOT NULL
                     UNION ALL
                     SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, bur_ej_ok, runtime_plc, produkt, effektivitet, produktivitet, kvalitet, bonus_poang, datum
                     FROM rebotling_ibc
-                    WHERE DATE(datum) BETWEEN '$dateFrom' AND '$dateTo'
+                    WHERE DATE(datum) BETWEEN :from3 AND :to3
                       AND op3 IS NOT NULL AND op3 > 0 AND skiftraknare IS NOT NULL
                 ) AS all_ops
                 GROUP BY op_id, skiftraknare
             ");
+            $stmt->execute([
+                'from1' => $dateFrom, 'to1' => $dateTo,
+                'from2' => $dateFrom, 'to2' => $dateTo,
+                'from3' => $dateFrom, 'to3' => $dateTo,
+            ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Hämta operatörsnamn
@@ -1812,7 +1817,7 @@ class BonusAdminController {
             'success' => true,
             'data' => $data,
             'timestamp' => date('Y-m-d H:i:s')
-        ], JSON_PRETTY_PRINT);
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError($message, $code = 400) {
@@ -1821,7 +1826,7 @@ class BonusAdminController {
             'success' => false,
             'error' => $message,
             'timestamp' => date('Y-m-d H:i:s')
-        ], JSON_PRETTY_PRINT);
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
     /**

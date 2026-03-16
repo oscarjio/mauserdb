@@ -19,7 +19,7 @@ class OperatorCompareController {
         session_start(['read_and_close' => true]);
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -155,7 +155,7 @@ class OperatorCompareController {
                         'scores'    => $scores2,
                     ],
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorCompareController radarData: ' . $e->getMessage());
             $this->sendError('Internt serverfel', 500);

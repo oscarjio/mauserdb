@@ -41,7 +41,7 @@ class SaglinjeController {
                 if (session_status() === PHP_SESSION_NONE) session_start();
                 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                     http_response_code(403);
-                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 $this->setSettings();
@@ -52,7 +52,7 @@ class SaglinjeController {
                 if (session_status() === PHP_SESSION_NONE) session_start();
                 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                     http_response_code(403);
-                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 $this->setWeekdayGoals();
@@ -60,7 +60,7 @@ class SaglinjeController {
             }
         }
 
-        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
+        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action'], JSON_UNESCAPED_UNICODE);
     }
 
     // =========================================================
@@ -95,7 +95,7 @@ class SaglinjeController {
             echo json_encode(['success' => true, 'data' => $rows]);
         } catch (\Exception $e) {
             error_log('SaglinjeController getSettings: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -123,7 +123,7 @@ class SaglinjeController {
             echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
         } catch (\Exception $e) {
             error_log('SaglinjeController setSettings: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -176,7 +176,7 @@ class SaglinjeController {
             ]);
         } catch (\Exception $e) {
             error_log('SaglinjeController getSystemStatus: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -207,7 +207,7 @@ class SaglinjeController {
             echo json_encode(['success' => true, 'data' => $rows]);
         } catch (\Exception $e) {
             error_log('SaglinjeController getWeekdayGoals: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -216,7 +216,7 @@ class SaglinjeController {
         $goals = $data['goals'] ?? [];
         if (!is_array($goals)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig data']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig data'], JSON_UNESCAPED_UNICODE);
             return;
         }
         try {
@@ -231,10 +231,10 @@ class SaglinjeController {
             }
             AuditLogger::log($this->pdo, 'update_saglinje_weekday_goals', 'saglinje_weekday_goals', null,
                 'goals=' . count($goals));
-            echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade']);
+            echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('SaglinjeController setWeekdayGoals: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -310,10 +310,10 @@ class SaglinjeController {
                     'pct_of_goal'   => $pctOfGoal,
                     'senaste_datum' => $senasteDatum,
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('SaglinjeController getTodaySnapshot: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -343,7 +343,7 @@ class SaglinjeController {
             ]);
         } catch (\Exception $e) {
             error_log('SaglinjeController getRunningStatus: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta status']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta status'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -369,7 +369,7 @@ class SaglinjeController {
             ]);
         } catch (\Exception $e) {
             error_log('SaglinjeController getLiveStats: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -401,7 +401,7 @@ class SaglinjeController {
             ]);
         } catch (\Exception $e) {
             error_log('SaglinjeController getStatistics: ' . $e->getMessage());
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -412,7 +412,7 @@ class SaglinjeController {
     private function getReport() {
         $datum = $_GET['datum'] ?? date('Y-m-d');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -516,7 +516,7 @@ class SaglinjeController {
                     'ibc_per_hour' => 0, 'delta_ibc' => 0, 'prev_ibc' => 0,
                     'skift_count' => 0, 'skift_data' => [],
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -605,7 +605,7 @@ class SaglinjeController {
                     'basta_dag'     => $bestaDag,
                     'basta_ibc'     => $bestaIbc,
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('SaglinjeController getOeeTrend: ' . $e->getMessage());
             echo json_encode([
@@ -617,7 +617,7 @@ class SaglinjeController {
                     'total_ibc' => 0, 'snitt_per_dag' => 0,
                     'snitt_oee_pct' => 0, 'basta_dag' => null, 'basta_ibc' => 0,
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 }

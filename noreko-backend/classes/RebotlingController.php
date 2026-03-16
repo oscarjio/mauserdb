@@ -32,7 +32,7 @@ class RebotlingController {
                 if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
                 if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
                     http_response_code(403);
-                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                    echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
             }
@@ -226,7 +226,7 @@ class RebotlingController {
             if ($action === 'set-skift-kommentar') {
                 if (!isset($_SESSION['user_id'])) {
                     http_response_code(401);
-                    echo json_encode(['success' => false, 'error' => 'Inloggning krävs.']);
+                    echo json_encode(['success' => false, 'error' => 'Inloggning krävs.'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 $this->setSkiftKommentar();
@@ -244,7 +244,7 @@ class RebotlingController {
             if ($action === 'kassation-register') {
                 if (!isset($_SESSION['user_id'])) {
                     http_response_code(401);
-                    echo json_encode(['success' => false, 'error' => 'Inloggning krävs.']);
+                    echo json_encode(['success' => false, 'error' => 'Inloggning krävs.'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 $this->registerKassation();
@@ -252,7 +252,7 @@ class RebotlingController {
             }
             if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+                echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -299,14 +299,14 @@ class RebotlingController {
                 $this->analyticsController->setProductionGoal();
             } else {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig action']);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig action'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
 
         // Om ingen matchande metod finns
         http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
+        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action'], JSON_UNESCAPED_UNICODE);
     }
 
 
@@ -547,7 +547,7 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -594,7 +594,7 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta status'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -683,7 +683,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getRastStatus error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -769,7 +769,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getDriftstoppStatus error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta driftstoppstatus']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta driftstoppstatus'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -957,7 +957,7 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1066,7 +1066,7 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta dagsstatistik'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1180,7 +1180,7 @@ class RebotlingController {
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte beräkna OEE'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1195,7 +1195,7 @@ class RebotlingController {
             $toDate   = $_GET['to_date']   ?? null;
             if ($fromDate && $toDate) {
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
-                    echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                    echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 $cycleStart = $fromDate;
@@ -1357,7 +1357,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getCycleTrend: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1369,7 +1369,7 @@ class RebotlingController {
         if ($fromDate && $toDate) {
             // Validera datumformat
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fromDate) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate)) {
-                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             // Begränsa till max 365 dagar
@@ -1409,7 +1409,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController getHeatmap: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta heatmap-data']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta heatmap-data'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1549,7 +1549,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getLiveRanking: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta live ranking']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta live ranking'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1564,12 +1564,12 @@ class RebotlingController {
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum.']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum.'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($skiftNr < 1 || $skiftNr > 3) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt skift_nr (1-3).']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skift_nr (1-3).'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -1585,12 +1585,12 @@ class RebotlingController {
             if ($row) {
                 echo json_encode(['success' => true, 'data' => $row]);
             } else {
-                echo json_encode(['success' => true, 'data' => null]);
+                echo json_encode(['success' => true, 'data' => null], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
             error_log('getSkiftKommentar: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel.']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel.'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1599,7 +1599,7 @@ class RebotlingController {
         $body = json_decode(file_get_contents('php://input'), true);
         if (!is_array($body)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig request-body.']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig request-body.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -1609,17 +1609,17 @@ class RebotlingController {
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum.']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum.'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($skiftNr < 1 || $skiftNr > 3) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt skift_nr (1-3).']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skift_nr (1-3).'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (mb_strlen($kommentar) > 500) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Kommentaren får vara max 500 tecken.']);
+            echo json_encode(['success' => false, 'error' => 'Kommentaren får vara max 500 tecken.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -1633,11 +1633,11 @@ class RebotlingController {
             );
             $stmt->execute([$datum, $skiftNr, $kommentar, $skapadAv]);
 
-            echo json_encode(['success' => true, 'message' => 'Kommentar sparad.']);
+            echo json_encode(['success' => true, 'message' => 'Kommentar sparad.'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('setSkiftKommentar: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel vid sparande.']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel vid sparande.'], JSON_UNESCAPED_UNICODE);
         }
     }
     /**
@@ -1663,7 +1663,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController getEvents: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'events' => []]);
+            echo json_encode(['success' => false, 'events' => []], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1673,7 +1673,7 @@ class RebotlingController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Åtkomst nekad']);
+            echo json_encode(['error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $date  = trim($_POST['event_date']   ?? '');
@@ -1682,7 +1682,7 @@ class RebotlingController {
         $type  = trim($_POST['event_type']   ?? 'ovrigt');
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !$title) {
             http_response_code(400);
-            echo json_encode(['error' => 'Ogiltiga uppgifter']);
+            echo json_encode(['error' => 'Ogiltiga uppgifter'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $allowed = ['underhall', 'ny_operator', 'mal_andring', 'rekord', 'ovrigt'];
@@ -1693,11 +1693,11 @@ class RebotlingController {
                  VALUES (?, ?, ?, ?, ?)"
             );
             $stmt->execute([$date, $title, $desc, $type, $_SESSION['user_id']]);
-            echo json_encode(['success' => true, 'id' => $this->pdo->lastInsertId()]);
+            echo json_encode(['success' => true, 'id' => $this->pdo->lastInsertId()], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingController addEvent: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte spara händelsen']);
+            echo json_encode(['error' => 'Kunde inte spara händelsen'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1709,22 +1709,22 @@ class RebotlingController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (empty($_SESSION['user_id']) || ($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Åtkomst nekad']);
+            echo json_encode(['error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
         $id = intval($_POST['id'] ?? 0);
         if (!$id) {
             http_response_code(400);
-            echo json_encode(['error' => 'Saknar id']);
+            echo json_encode(['error' => 'Saknar id'], JSON_UNESCAPED_UNICODE);
             return;
         }
         try {
             $this->pdo->prepare("DELETE FROM production_events WHERE id = ?")->execute([$id]);
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('RebotlingController deleteEvent: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte ta bort händelsen']);
+            echo json_encode(['error' => 'Kunde inte ta bort händelsen'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1937,7 +1937,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getPersonalBests: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta personbästa-data']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta personbästa-data'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2008,7 +2008,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getHallOfFameDays: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta hall of fame-data']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta hall of fame-data'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2066,7 +2066,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getMonthlyLeaders: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsdata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsdata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2076,13 +2076,13 @@ class RebotlingController {
         if (session_status() === PHP_SESSION_NONE) session_start(['read_and_close' => true]);
         if (($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad']);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         $month = $_GET['month'] ?? date('Y-m');
         if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt månadsformat']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt månadsformat'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -2142,7 +2142,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('RebotlingController getAttendance: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
     /**
@@ -2166,7 +2166,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2177,7 +2177,7 @@ class RebotlingController {
         if (session_status() === PHP_SESSION_NONE) session_start();
         if (($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Ej behörig']);
+            echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
             return;
         }
         try {
@@ -2193,11 +2193,11 @@ class RebotlingController {
             foreach ($settings as $k => $v) {
                 $stmt->execute([$k, $v]);
             }
-            echo json_encode(['success' => true]);
+            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('saveLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2265,7 +2265,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getHourlyRhythm: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Fel vid hämtning av produktionsrytm']);
+            echo json_encode(['success' => false, 'error' => 'Fel vid hämtning av produktionsrytm'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2295,7 +2295,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getOperatorListForTrend: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2312,7 +2312,7 @@ class RebotlingController {
         // Tillåtna veckovärden
         if (!in_array($weeks, [8, 16, 26], true)) $weeks = 8;
         if ($opId <= 0) {
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt op_id']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt op_id'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -2450,7 +2450,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getOperatorWeeklyTrend: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2558,7 +2558,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getKassationTyper: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationstyper']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationstyper'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2639,7 +2639,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getKassationPareto: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta Pareto-data']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta Pareto-data'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2680,7 +2680,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getKassationSenaste: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationsregistreringar']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationsregistreringar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2702,17 +2702,17 @@ class RebotlingController {
         // Validering
         if ($orsakId <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig orsak_id']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig orsak_id'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($antal < 1 || $antal > 9999) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Antal måste vara mellan 1 och 9999']);
+            echo json_encode(['success' => false, 'error' => 'Antal måste vara mellan 1 och 9999'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($kommentar && mb_strlen($kommentar) > 500) {
@@ -2743,11 +2743,11 @@ class RebotlingController {
                 ':kommentar'       => $kommentar ?: null,
                 ':registrerad_av'  => $userId,
             ]);
-            echo json_encode(['success' => true, 'id' => (int)$this->pdo->lastInsertId()]);
+            echo json_encode(['success' => true, 'id' => (int)$this->pdo->lastInsertId()], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('registerKassation: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte spara kassationsregistrering']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte spara kassationsregistrering'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2825,7 +2825,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getStaffingWarning: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2843,7 +2843,7 @@ class RebotlingController {
             $month = $_GET['month'] ?? '';
             if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig månadsparameter (YYYY-MM krävs)']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig månadsparameter (YYYY-MM krävs)'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -2856,7 +2856,7 @@ class RebotlingController {
                 }
             } catch (\Exception) {
                 http_response_code(500);
-                echo json_encode(['success' => false, 'items' => [], 'fallback' => true]);
+                echo json_encode(['success' => false, 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -2894,7 +2894,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log('getMonthlyStopSummary: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -2973,7 +2973,7 @@ class RebotlingController {
         } catch (Exception $e) {
             error_log('getOeeComponents: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-komponentdata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-komponentdata'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -3019,7 +3019,7 @@ class RebotlingController {
         } catch (\Exception $e) {
             error_log("getProductionRate: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(["success" => false, "error" => "Serverfel"]);
+            echo json_encode(["success" => false, "error" => "Serverfel"], JSON_UNESCAPED_UNICODE);
         }
     }
 

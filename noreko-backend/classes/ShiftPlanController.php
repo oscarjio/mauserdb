@@ -56,7 +56,7 @@ class ShiftPlanController {
         }
 
         http_response_code(404);
-        echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte']);
+        echo json_encode(['success' => false, 'error' => 'Endpoint hittades inte'], JSON_UNESCAPED_UNICODE);
     }
 
     // -----------------------------------------------------------------------
@@ -69,7 +69,7 @@ class ShiftPlanController {
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.']);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -146,11 +146,11 @@ class ShiftPlanController {
         } catch (PDOException $e) {
             error_log('ShiftPlanController getWeek: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftplan']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftplan'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController getWeek Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -336,11 +336,11 @@ class ShiftPlanController {
         } catch (PDOException $e) {
             error_log('ShiftPlanController getWeekView: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckoöversikt']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckoöversikt'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController getWeekView Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -421,11 +421,11 @@ class ShiftPlanController {
         } catch (PDOException $e) {
             error_log('ShiftPlanController getStaffingWarning: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController getStaffingWarning Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -451,11 +451,11 @@ class ShiftPlanController {
         } catch (PDOException $e) {
             error_log('ShiftPlanController getOperators: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController getOperators Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -485,11 +485,11 @@ class ShiftPlanController {
         } catch (PDOException $e) {
             error_log('ShiftPlanController getOperatorsList: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController getOperatorsList Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -507,17 +507,17 @@ class ShiftPlanController {
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($skiftNr < 1 || $skiftNr > 3) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'skift_nr måste vara 1, 2 eller 3']);
+            echo json_encode(['success' => false, 'error' => 'skift_nr måste vara 1, 2 eller 3'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if ($opNumber <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt op_number']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt op_number'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -533,15 +533,15 @@ class ShiftPlanController {
                 ':op_number' => $opNumber,
                 ':note'      => $note ?: null,
             ]);
-            echo json_encode(['success' => true, 'message' => 'Operatör tillagd i skift']);
+            echo json_encode(['success' => true, 'message' => 'Operatör tillagd i skift'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('ShiftPlanController assign: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till operatör']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till operatör'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController assign Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -557,7 +557,7 @@ class ShiftPlanController {
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $targetStart)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum för target_week_start']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum för target_week_start'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -565,7 +565,7 @@ class ShiftPlanController {
             $dt = new DateTime($targetStart);
         } catch (Exception) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datum'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -637,11 +637,11 @@ class ShiftPlanController {
         } catch (PDOException $e) {
             error_log('ShiftPlanController copyWeek: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte kopiera schema']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte kopiera schema'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController copyWeek Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -658,7 +658,7 @@ class ShiftPlanController {
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum) || $skiftNr < 1 || $skiftNr > 3 || $opNumber <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltiga parametrar']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltiga parametrar'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -672,15 +672,15 @@ class ShiftPlanController {
                 ':skift_nr'  => $skiftNr,
                 ':op_number' => $opNumber,
             ]);
-            echo json_encode(['success' => true, 'message' => 'Operatör borttagen från skift']);
+            echo json_encode(['success' => true, 'message' => 'Operatör borttagen från skift'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('ShiftPlanController remove: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort operatör']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort operatör'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('ShiftPlanController remove Exception: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

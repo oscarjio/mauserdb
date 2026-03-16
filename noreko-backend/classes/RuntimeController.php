@@ -38,7 +38,7 @@ class RuntimeController {
         }
 
         http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action']);
+        echo json_encode(['success' => false, 'message' => 'Ogiltig metod eller action'], JSON_UNESCAPED_UNICODE);
     }
 
     /**
@@ -55,7 +55,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Parametrar saknas: line och rast krävs'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -66,7 +66,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line. Måste vara: tvattlinje eller rebotling'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -110,12 +110,12 @@ class RuntimeController {
                         'rast_status' => $rast,
                         'changed' => false
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
             error_log('registerBreakFromShelly: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -134,7 +134,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'line och rast_status krävs'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -144,7 +144,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -166,7 +166,7 @@ class RuntimeController {
         } catch (Exception $e) {
             error_log('registerBreak: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -183,7 +183,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Parameter line saknas'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -193,7 +193,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -207,11 +207,11 @@ class RuntimeController {
                     'total_break_minutes' => round($totalBreakMinutes, 2),
                     'total_break_hours' => round($totalBreakMinutes / 60, 2)
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getTodayBreakTime: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rasttid']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rasttid'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -229,7 +229,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Parameter line saknas'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -239,7 +239,7 @@ class RuntimeController {
                 echo json_encode([
                     'success' => false,
                     'error' => 'Ogiltig line'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -253,11 +253,11 @@ class RuntimeController {
                     'total_break_minutes' => round($totalBreakMinutes, 2),
                     'total_break_hours' => round($totalBreakMinutes / 60, 2)
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('getBreakStats: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
     }
 

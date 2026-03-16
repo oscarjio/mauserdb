@@ -23,13 +23,13 @@ class WeeklyReportController {
 
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -44,7 +44,7 @@ class WeeklyReportController {
 
     private function sendError(string $msg, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $msg]);
+        echo json_encode(['success' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE);
     }
 
     // -------------------------------------------------------------------------
@@ -101,7 +101,7 @@ class WeeklyReportController {
                     'avg_quality_pct_diff' => $diffQualityPctDiff,
                 ],
                 'operator_of_week'  => $operatorOfWeek,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
             error_log("WeeklyReportController::getWeekCompare error: " . $e->getMessage());

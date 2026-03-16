@@ -14,7 +14,7 @@ class AdminController {
         }
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['error' => 'Endast admin har behörighet.']);
+            echo json_encode(['error' => 'Endast admin har behörighet.'], JSON_UNESCAPED_UNICODE);
             return;
         }
         global $pdo;
@@ -25,7 +25,7 @@ class AdminController {
             $data = json_decode(file_get_contents('php://input'), true);
             if (!is_array($data)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $action = trim($data['action'] ?? 'update');
@@ -40,17 +40,17 @@ class AdminController {
                 // Enkel validering
                 if (empty($username) || empty($password) || empty($email)) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Användarnamn, lösenord och e-post krävs']);
+                    echo json_encode(['success' => false, 'message' => 'Användarnamn, lösenord och e-post krävs'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 if (strlen($password) < 8) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Lösenordet måste vara minst 8 tecken']);
+                    echo json_encode(['success' => false, 'message' => 'Lösenordet måste vara minst 8 tecken'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress']);
+                    echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
 
@@ -66,7 +66,7 @@ class AdminController {
                 } catch (PDOException $e) {
                     error_log('AdminController create_user check: ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn']);
+                    echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 
@@ -103,11 +103,11 @@ class AdminController {
                             'username' => $username,
                             'email' => $email
                         ]
-                    ]);
+                    ], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
                     error_log('AdminController create_user insert: ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Kunde inte skapa användare']);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte skapa användare'], JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
@@ -116,7 +116,7 @@ class AdminController {
 
             if (!$id) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'ID saknas']);
+                echo json_encode(['success' => false, 'message' => 'ID saknas'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             
@@ -125,7 +125,7 @@ class AdminController {
                 // Förhindra att admin tar bort sig själv
                 if ($id == $_SESSION['user_id']) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Du kan inte ta bort ditt eget konto']);
+                    echo json_encode(['success' => false, 'message' => 'Du kan inte ta bort ditt eget konto'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 
@@ -145,7 +145,7 @@ class AdminController {
                 } catch (PDOException $e) {
                     error_log('AdminController delete_user: ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort användare']);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte ta bort användare'], JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
@@ -155,7 +155,7 @@ class AdminController {
                 // Förhindra att admin tar bort sin egen admin-status
                 if ($id == $_SESSION['user_id']) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Du kan inte ändra din egen admin-status']);
+                    echo json_encode(['success' => false, 'message' => 'Du kan inte ändra din egen admin-status'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 try {
@@ -177,12 +177,12 @@ class AdminController {
                         echo json_encode(['success' => true, 'message' => 'Admin-status uppdaterad', 'admin' => $newAdminStatus]);
                     } else {
                         http_response_code(404);
-                        echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
+                        echo json_encode(['success' => false, 'message' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                     }
                 } catch (PDOException $e) {
                     error_log('AdminController toggle_admin: ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera admin-status']);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera admin-status'], JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
@@ -192,7 +192,7 @@ class AdminController {
                 // Förhindra att admin inaktiverar sig själv
                 if ($id == $_SESSION['user_id']) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'message' => 'Du kan inte inaktivera ditt eget konto']);
+                    echo json_encode(['success' => false, 'message' => 'Du kan inte inaktivera ditt eget konto'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 try {
@@ -227,12 +227,12 @@ class AdminController {
                         echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'active' => $newActiveStatus]);
                     } else {
                         http_response_code(404);
-                        echo json_encode(['success' => false, 'message' => 'Användare hittades inte']);
+                        echo json_encode(['success' => false, 'message' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                     }
                 } catch (PDOException $e) {
                     error_log('Kunde inte uppdatera status (toggleActive): ' . $e->getMessage());
                     http_response_code(500);
-                    echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera status']);
+                    echo json_encode(['success' => false, 'message' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);
                 }
                 return;
             }
@@ -248,21 +248,21 @@ class AdminController {
             // Validera username om angiven
             if ($username !== null && (strlen($username) < 3 || strlen($username) > 50)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Användarnamn måste vara 3–50 tecken']);
+                echo json_encode(['success' => false, 'message' => 'Användarnamn måste vara 3–50 tecken'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             // Validera email om angiven
             if ($email && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress']);
+                echo json_encode(['success' => false, 'message' => 'Ogiltig e-postadress'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
             // Validera lösenord om angivet
             if ($password && (strlen($password) < 8 || !preg_match('/[A-Za-z]/', $password) || !preg_match('/[0-9]/', $password))) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Lösenord måste vara minst 8 tecken med bokstav och siffra']);
+                echo json_encode(['success' => false, 'message' => 'Lösenord måste vara minst 8 tecken med bokstav och siffra'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -298,7 +298,7 @@ class AdminController {
                 );
                 echo json_encode(['success' => true, 'message' => 'Användare uppdaterad']);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Inga fält att uppdatera']);
+                echo json_encode(['success' => false, 'message' => 'Inga fält att uppdatera'], JSON_UNESCAPED_UNICODE);
             }
             return;
         }
@@ -325,7 +325,7 @@ class AdminController {
         } catch (PDOException $e) {
             error_log('AdminController get_users: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['error' => 'Kunde inte hämta användare']);
+            echo json_encode(['error' => 'Kunde inte hämta användare'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

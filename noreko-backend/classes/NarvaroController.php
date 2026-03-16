@@ -21,7 +21,7 @@ class NarvaroController {
             $this->monthlyOverview();
         } else {
             http_response_code(404);
-            echo json_encode(['success' => false, 'error' => 'Okand endpoint']);
+            echo json_encode(['success' => false, 'error' => 'Okand endpoint'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -171,7 +171,7 @@ class NarvaroController {
         } catch (Exception $e) {
             error_log('NarvaroController monthlyOverview: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta narvarodata']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hamta narvarodata'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

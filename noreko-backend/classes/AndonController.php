@@ -20,7 +20,7 @@ class AndonController {
     public function handle(): void {
         if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -40,7 +40,7 @@ class AndonController {
             $this->getBoardStatus();
         } else {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Okänd metod']);
+            echo json_encode(['success' => false, 'error' => 'Okänd metod'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -170,7 +170,7 @@ class AndonController {
         } catch (\Exception $e) {
             error_log('AndonController::getStatus fel: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -215,7 +215,7 @@ class AndonController {
         } catch (\Exception $e) {
             error_log('AndonController::recentStoppages fel: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stoppregistreringar']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stoppregistreringar'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -264,7 +264,7 @@ class AndonController {
         } catch (\Exception $e) {
             error_log('AndonController::andonNotes fel: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta andon-noter']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta andon-noter'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -355,7 +355,7 @@ class AndonController {
         } catch (\Exception $e) {
             error_log('AndonController::getHourlyToday fel: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -585,7 +585,7 @@ class AndonController {
         } catch (\Exception $e) {
             error_log('AndonController::getDailyChallenge fel: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -811,7 +811,7 @@ class AndonController {
         } catch (\Exception $e) {
             error_log('AndonController::getBoardStatus fel: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Internt serverfel']);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

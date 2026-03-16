@@ -21,7 +21,7 @@ class OperatorDashboardController {
     public function handle() {
         if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet']);
+            echo json_encode(['success' => false, 'error' => 'Endast GET tillåtet'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -35,7 +35,7 @@ class OperatorDashboardController {
             }
             if (empty($_SESSION['user_id'])) {
                 http_response_code(401);
-                echo json_encode(['success' => false, 'error' => 'Inloggning krävs']);
+                echo json_encode(['success' => false, 'error' => 'Inloggning krävs'], JSON_UNESCAPED_UNICODE);
                 return;
             }
         }
@@ -54,7 +54,7 @@ class OperatorDashboardController {
             case 'min-veckotrend':   $this->getMinVeckotrend();    break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Okänd metod']);
+                echo json_encode(['success' => false, 'error' => 'Okänd metod'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -241,11 +241,11 @@ class OperatorDashboardController {
                 'snitt_ibc_per_h' => $snittIbcPerH,
                 'bast_namn'       => $bastNamn ?: null,
                 'bast_ibc_per_h'  => $bastRate,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getToday: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatus']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörsstatus'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -374,11 +374,11 @@ class OperatorDashboardController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'operatorer' => $operatorer, 'fran' => $sjuDagarSen, 'till' => $today]);
+            echo json_encode(['success' => true, 'operatorer' => $operatorer, 'fran' => $sjuDagarSen, 'till' => $today], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
             error_log('OperatorDashboardController getWeekly: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckostats']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckostats'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -488,7 +488,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getHistory: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta historik']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta historik'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -607,7 +607,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getSummary: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta sammanfattning']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta sammanfattning'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -645,7 +645,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getOperatorer: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -657,7 +657,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -719,7 +719,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinProduktion: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta produktion']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta produktion'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -731,7 +731,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -821,7 +821,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMittTempo: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta tempo']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta tempo'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -839,7 +839,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -981,7 +981,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinBonus: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bonus']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bonus'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -993,7 +993,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -1043,7 +1043,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinaStopp: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopp']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopp'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -1055,7 +1055,7 @@ class OperatorDashboardController {
         try {
             $opNum = (int)($_GET['op'] ?? 0);
             if ($opNum <= 0) {
-                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter']);
+                echo json_encode(['success' => false, 'error' => 'Saknar op-parameter'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -1112,7 +1112,7 @@ class OperatorDashboardController {
         } catch (Exception $e) {
             error_log('OperatorDashboardController getMinVeckotrend: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckotrend']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckotrend'], JSON_UNESCAPED_UNICODE);
         }
     }
 }

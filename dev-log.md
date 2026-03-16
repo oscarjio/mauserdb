@@ -1,3 +1,34 @@
+## 2026-03-16 Session #114 Worker A — JSON_UNESCAPED_UNICODE audit + SQL-injection fix + Rebotling-granskning
+
+### DEL 1 — Rebotling-controllers djupgranskning:
+Granskade RebotlingAnalyticsController (6769 rader), RebotlingSammanfattningController (332),
+RebotlingTrendanalysController (554), RebotlingStationsdetaljController (403).
+
+**Bugg fixad: BonusAdminController.php (1 SQL-injection)**
+1. getBonusSimulator(): SQL-query anvande string-interpolation `'$dateFrom'`/`'$dateTo'` direkt i SQL.
+   Andrat till prepared statement med namngivna parametrar (:from1/:to1 etc).
+
+**Granskning utan fynd (OK):**
+- Alla JOIN operators anvander `o.number = s.op1/op2/op3` korrekt (inga id-forvaxlingar)
+- Aggregering ar korrekt: MAX() per skiftraknare, sedan SUM() per dag
+- Division by zero skyddat overallt med `> 0`-kontroller
+- Felhantering med try/catch + error_log konsekvent
+
+### DEL 2 — Inga oanvanda variabler hittades:
+Skannade alla fyra filer med automatisk analys — inga genuint oanvanda variabler.
+Tidigare sessioner har redan rensat.
+
+### DEL 3 — JSON_UNESCAPED_UNICODE audit (83 filer fixade):
+Alla PHP-controllers i noreko-backend/classes/ och controllers/ granskade.
+Lagt till JSON_UNESCAPED_UNICODE i json_encode() for korrekt hantering av svenska tecken.
+
+- 49 filer med sendSuccess/sendError-helpers: flagga tillagd i helper-funktionerna
+- 34 filer med inline echo json_encode(): flagga tillagd pa varje anrop
+- BonusAdminController: JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE
+- 1 felaktig htmlspecialchars()-anrop fixat (RebotlingAnalyticsController rad 5642)
+
+---
+
 ## 2026-03-16 Session #114 Worker B — catch-block audit, setTimeout-lackor del 2, maskin-controllers
 
 ### DEL 1 — Tomma catch-block audit (5 fixar i 3 filer):

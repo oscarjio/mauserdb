@@ -8,14 +8,14 @@ class RegisterController {
         
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Endast POST-metod tillåten']);
+            echo json_encode(['success' => false, 'message' => 'Endast POST-metod tillåten'], JSON_UNESCAPED_UNICODE);
             return;
         }
         
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data']);
+            echo json_encode(['success' => false, 'message' => 'Ogiltig JSON-data'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -69,7 +69,7 @@ class RegisterController {
 
         if (!empty($errors)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => implode('. ', $errors)]);
+            echo json_encode(['success' => false, 'message' => implode('. ', $errors)], JSON_UNESCAPED_UNICODE);
             return;
         }
         
@@ -84,7 +84,7 @@ class RegisterController {
             }
         } catch (PDOException) {
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn']);
+            echo json_encode(['success' => false, 'message' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
             return;
         }
         
@@ -105,13 +105,13 @@ class RegisterController {
                     'username' => $username,
                     'email' => $email
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException) {
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte skapa användare. Försök igen senare.'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 }

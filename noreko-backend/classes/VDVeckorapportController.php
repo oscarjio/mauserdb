@@ -46,7 +46,7 @@ class VDVeckorapportController {
         }
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -69,7 +69,7 @@ class VDVeckorapportController {
                 break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Okänt run-kommando']);
+                echo json_encode(['success' => false, 'error' => 'Okänt run-kommando'], JSON_UNESCAPED_UNICODE);
                 return;
         }
     }
@@ -148,7 +148,7 @@ class VDVeckorapportController {
                 'daglig_produktion' => $daglig,
             ],
             'timestamp' => date('c'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function beraknaKpiForPeriod(string $fran, string $till): array {
@@ -354,7 +354,7 @@ class VDVeckorapportController {
                 'trender'   => $trender,
             ],
             'timestamp' => date('c'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ============================================================
@@ -467,7 +467,7 @@ class VDVeckorapportController {
                 'period' => $period,
             ],
             'timestamp' => date('c'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ============================================================
@@ -491,7 +491,7 @@ class VDVeckorapportController {
                 'till'         => $till,
             ],
             'timestamp' => date('c'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function hamtaStopporsaker(string $fran, string $till): array {

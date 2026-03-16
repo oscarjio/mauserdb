@@ -27,7 +27,7 @@ class RebotlingTrendanalysController {
                 break;
             default:
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Okänt run-kommando']);
+                echo json_encode(['success' => false, 'error' => 'Okänt run-kommando'], JSON_UNESCAPED_UNICODE);
                 return;
         }
     }
@@ -262,7 +262,7 @@ class RebotlingTrendanalysController {
                 ],
             ],
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function tomTrendKort(): array {
@@ -282,7 +282,7 @@ class RebotlingTrendanalysController {
         $dagdata = $this->hamtaDagligData($dagar);
 
         if (empty($dagdata)) {
-            echo json_encode(['success' => true, 'data' => [], 'timestamp' => date('Y-m-d H:i:s')]);
+            echo json_encode(['success' => true, 'data' => [], 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -311,7 +311,7 @@ class RebotlingTrendanalysController {
             'success'   => true,
             'data'      => $enriched,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ============================================================
@@ -424,7 +424,7 @@ class RebotlingTrendanalysController {
     private function anomalier(): void {
         $dagdata = $this->hamtaDagligData(30);
         if (count($dagdata) < 4) {
-            echo json_encode(['success' => true, 'data' => [], 'timestamp' => date('Y-m-d H:i:s')]);
+            echo json_encode(['success' => true, 'data' => [], 'timestamp' => date('Y-m-d H:i:s')], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -483,7 +483,7 @@ class RebotlingTrendanalysController {
             'success'   => true,
             'data'      => $anomalier,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     // ============================================================
@@ -497,7 +497,7 @@ class RebotlingTrendanalysController {
                 'success' => true,
                 'data'    => ['oee' => null, 'produktion' => null, 'kassation' => null, 'dagar' => []],
                 'timestamp' => date('Y-m-d H:i:s'),
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -549,6 +549,6 @@ class RebotlingTrendanalysController {
                 'kass_slope' => $kassReg['slope'],
             ],
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 }
