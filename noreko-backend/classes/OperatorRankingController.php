@@ -215,9 +215,11 @@ class OperatorRankingController {
         }
 
         try {
+            // sr.user_id = users.id, men ranking indexeras pa operators.number (= users.operator_id).
+            // Vi joinar med users for att mappa user_id -> operator_id (= operators.number).
             $sql = "
                 SELECT
-                    sr.user_id,
+                    u.operator_id AS op_number,
                     SUM(
                         TIMESTAMPDIFF(SECOND,
                             sr.start_time,
@@ -226,16 +228,17 @@ class OperatorRankingController {
                     ) AS total_stopp_sek,
                     COUNT(*) AS antal_stopp
                 FROM stopporsak_registreringar sr
+                JOIN users u ON sr.user_id = u.id
                 WHERE sr.start_time >= :from
                   AND sr.start_time <= :to
-                  AND sr.user_id IS NOT NULL
-                  AND sr.user_id > 0
-                GROUP BY sr.user_id
+                  AND u.operator_id IS NOT NULL
+                  AND u.operator_id > 0
+                GROUP BY u.operator_id
             ";
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $to . ' 23:59:59']);
             foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-                $uid = (int)$row['user_id'];
+                $uid = (int)$row['op_number'];
                 $result[$uid] = [
                     'total_stopp_sek' => max(0, (int)$row['total_stopp_sek']),
                     'antal_stopp'     => (int)$row['antal_stopp'],

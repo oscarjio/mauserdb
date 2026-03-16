@@ -275,15 +275,24 @@ class ProduktionsDashboardController {
             $ibcIdag = 0; $ibcOkIdag = 0;
         }
 
-        // --- Gardag produktion ---
+        // --- Gardag produktion (samma skift-aggregering som idag for korrekt jamforelse) ---
         try {
             $stmt = $this->pdo->prepare("
-                SELECT COUNT(*) AS total
-                FROM rebotling_ibc
-                WHERE DATE(datum) = :igar
+                SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                       COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                FROM (
+                    SELECT skiftraknare,
+                           MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                           MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) = :igar
+                      AND skiftraknare IS NOT NULL
+                    GROUP BY skiftraknare
+                ) sub
             ");
             $stmt->execute([':igar' => $igar]);
-            $ibcIgar = (int)($stmt->fetchColumn() ?? 0);
+            $radIgar = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $ibcIgar = (int)($radIgar['ok_antal'] ?? 0) + (int)($radIgar['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
             error_log('ProduktionsDashboard::oversikt igar: ' . $e->getMessage());
             $ibcIgar = 0;
@@ -411,12 +420,21 @@ class ProduktionsDashboardController {
 
             try {
                 $stmt = $this->pdo->prepare("
-                    SELECT COUNT(*) AS total
-                    FROM rebotling_ibc
-                    WHERE DATE(datum) = :dag
+                    SELECT COALESCE(SUM(shift_ok), 0) AS ok_antal,
+                           COALESCE(SUM(shift_ej_ok), 0) AS ej_ok_antal
+                    FROM (
+                        SELECT skiftraknare,
+                               MAX(COALESCE(ibc_ok, 0)) AS shift_ok,
+                               MAX(COALESCE(ibc_ej_ok, 0)) AS shift_ej_ok
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) = :dag
+                          AND skiftraknare IS NOT NULL
+                        GROUP BY skiftraknare
+                    ) sub
                 ");
                 $stmt->execute([':dag' => $dagStr]);
-                $total = (int)($stmt->fetchColumn() ?? 0);
+                $radDag = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $total = (int)($radDag['ok_antal'] ?? 0) + (int)($radDag['ej_ok_antal'] ?? 0);
             } catch (\PDOException $e) {
                 error_log('ProduktionsDashboard::vecko-produktion: ' . $e->getMessage());
                 $total = 0;

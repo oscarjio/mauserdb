@@ -1,3 +1,30 @@
+## 2026-03-16 Session #113 Worker A — buggjakt batch 5 + operator-controllers
+
+### Granskade filer (8 st, ~4120 rader):
+1. ProduktionsDashboardController.php (654 rader) — 2 buggar fixade
+2. ProduktionseffektivitetController.php (355 rader) — inga buggar
+3. ProduktionsSlaController.php (601 rader) — inga buggar
+4. ProduktionsTaktController.php (305 rader) — inga buggar
+5. StopporsakTrendController.php (452 rader) — inga buggar
+6. OperatorRankingController.php (691 rader) — 1 bugg fixad
+7. OperatorsportalController.php (649 rader) — inga nya buggar (session #112 fix OK)
+8. OperatorOnboardingController.php (413 rader) — inga buggar
+
+### Fixade buggar (3 st):
+
+**ProduktionsDashboardController.php (2 buggar)**
+1. getOversikt — gardag-produktion anvande COUNT(*) (radrader) istallet for skift-aggregering (MAX per skiftraknare + SUM). Trend idag-vs-igar jamforde applen med paeron.
+2. getVeckoProduktion — samma bugg: COUNT(*) istallet for korrekt skift-aggregeringsmonster. Veckografen visade felaktiga siffror.
+
+**OperatorRankingController.php (1 bugg)**
+3. getOperatorStopptid — indexerade resultat pa sr.user_id (= users.id), men calcRanking sokte med operators.number (fran op1/op2/op3). Matchade aldrig — alla operatorer fick 0 stopptid och maxbonus. Fix: JOIN users ON sr.user_id = u.id, gruppera pa u.operator_id (= operators.number).
+
+### Noterbart (ej bugg):
+- OperatorsportalController anvander :op_id tre ganger i samma named-param-query. Fungerar med emulated prepares (PHP default) men ar fragilt. Lat vara da det ar konsekvent i kodbasen.
+- ProduktionseffektivitetController anvander INTERVAL :period DAY med named param — fungerar med emulated prepares (default).
+
+---
+
 ## 2026-03-16 Session #112 Lead — 5 operator id/number-buggar i 3 controllers
 
 ### Fixade buggar (5 st):
