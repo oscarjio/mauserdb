@@ -1,3 +1,53 @@
+## 2026-03-16 Session #122 Worker A — Buggjakt i backend PHP-controllers batch 2
+
+### Granskade 20 controllers + api.php routing:
+
+**Rena filer (inga buggar):**
+1. AndonController.php — OK (felhantering, try/catch, parametervalidering)
+2. AuditController.php — OK (admin-check, paginering, felhantering)
+3. LoginController.php — OK (bcrypt, rate limiting, session-hantering)
+4. ProfileController.php — OK (auth-check, validering, try/catch)
+5. StatusController.php — OK (read_and_close session, felhantering)
+6. FeatureFlagController.php — OK (developer-check, validering, ensureTable)
+7. api.php routing — OK (alla actions i classNameMap, korrekt autoloading, 404-hantering)
+
+**Finns ej (ej i uppdraget att skapa):**
+- NotificationController.php, SkiftController.php, DashboardController.php
+- KPIController.php, ExportController.php, SettingsController.php, UserController.php
+
+**Filer med buggar fixade (13 buggar i 7 filer):**
+
+8. **NewsController.php (7 buggar):**
+   - Certifierings-query: JOIN operators o ON o.operator_id -> o.number (operators.number ar badge-numret)
+   - Certifierings-query: oc.certified_at -> oc.certified_date (ratt kolumnnamn)
+   - Certifierings-query: oc.line_name -> oc.line (ratt kolumnnamn)
+   - Certifierings-query: oc.expires_at -> oc.expires_date (ratt kolumnnamn)
+   - Skiftnotat-query: skapad_tid -> created_at (shift_handover har created_at)
+   - Bonus-query: o.operator_id = bp.op_id -> o.id = bp.op_id (matchar BonusAdminController)
+   - Streak-query: o.operator_id -> o.number (op1/op2/op3 = operators.number)
+
+9. **RegisterController.php (2 buggar):**
+   - catch(PDOException) utan variabel: la till error_log() vid check_username
+   - catch(PDOException) utan variabel: la till error_log() vid create_user
+
+10. **AdminController.php (1 bugg):**
+    - Standard update-blocket (rad 283-302) saknade try/catch — DB-fel gav okontrollerat exception
+
+11. **NarvaroController.php (1 bugg):**
+    - Saknad autentiseringskontroll — la till session_start + user_id-check
+
+12. **TidrapportController.php (1 bugg):**
+    - sendError('Databasfel') anvande default HTTP 400 — andrat till 500 (5 stallen)
+    - getDetaljer() returnerade array men ska vara void (typ-signaturfix)
+
+13. **AlertsController.php (1 bugg):**
+    - Osanerad $run i felmeddelande — la till htmlspecialchars()
+
+14. **MinDagController.php (1 bugg):**
+    - Osanerad $run i felmeddelande — la till htmlspecialchars()
+
+---
+
 ## 2026-03-16 Session #121 Worker B — Buggjakt i frontend services batch 6 + komponent-granskning
 
 ### DEL 1: Granskade 15 frontend-services:
