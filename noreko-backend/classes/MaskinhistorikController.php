@@ -221,7 +221,7 @@ class MaskinhistorikController {
         $oee = $this->calcOee($fromDate, $toDate);
 
         $this->sendSuccess([
-            'station'            => $_GET['station'] ?? 'Rebotling',
+            'station'            => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
             'period_dagar'       => $period,
             'from_date'          => $fromDate,
             'to_date'            => $toDate,
@@ -269,7 +269,7 @@ class MaskinhistorikController {
         }
 
         $this->sendSuccess([
-            'station'     => $_GET['station'] ?? 'Rebotling',
+            'station'     => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
             'period_dagar'=> $period,
             'dagdata'     => $result,
         ]);
@@ -303,7 +303,7 @@ class MaskinhistorikController {
         }
 
         $this->sendSuccess([
-            'station'      => $_GET['station'] ?? 'Rebotling',
+            'station'      => htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8'),
             'period_dagar' => $period,
             'dagdata'      => $result,
         ]);

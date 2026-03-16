@@ -216,7 +216,7 @@ class VeckotrendController {
         } catch (Exception $e) {
             error_log('VeckotrendController::getWeeklyKpis error: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => 'Internt serverfel vid hämtning av vecko-KPI'], JSON_UNESCAPED_UNICODE);
         }
     }
 

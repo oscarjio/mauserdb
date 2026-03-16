@@ -1,3 +1,31 @@
+## 2026-03-16 Session #127 Worker A — PHP backend buggjakt: intval-bugg, info-lackage, XSS-risk
+
+### Bugg 1: intval() med ogiltig bas (4 instanser) — KRITISK
+
+`intval($value, JSON_UNESCAPED_UNICODE)` anvandes pa 4 stallen. `JSON_UNESCAPED_UNICODE = 256`, men `intval()` accepterar bara bas 2-36. Resulterar i att user_id och reason_id alltid blir 0, vilket ger felaktig data vid INSERT.
+
+- **StopporsakRegistreringController.php** rad 225, 282: `intval($_SESSION['user_id'], JSON_UNESCAPED_UNICODE)` — user_id sparas som 0
+- **StoppageController.php** rad 295: `intval($_SESSION['user_id'], JSON_UNESCAPED_UNICODE)` — user_id sparas som 0
+- **StoppageController.php** rad 335: `intval($data['reason_id'], JSON_UNESCAPED_UNICODE)` — reason_id sparas som 0
+- Fix: Ersatte alla med `(int)$value`
+
+### Bugg 2: DB-felmeddelande exponeras till klient (1 instans)
+
+- **VeckotrendController.php** rad 219: `'error' => 'Serverfel: ' . $e->getMessage()` — PDOException-meddelanden (med SQL-detaljer) skickades till klienten
+- Fix: Ersatte med generiskt `'Internt serverfel vid hamtning av vecko-KPI'`
+
+### Bugg 3: XSS-risk — osaniterad GET-parameter i JSON-output (3 instanser)
+
+- **MaskinhistorikController.php** rad 224, 272, 306: `$_GET['station']` returnerades direkt i JSON-response utan `htmlspecialchars()`
+- Fix: Lade till `htmlspecialchars($_GET['station'] ?? 'Rebotling', ENT_QUOTES, 'UTF-8')`
+
+### Sammanfattning
+- **8 buggar fixade** (4 intval, 1 info-lackage, 3 XSS)
+- **Filer andrade:** StopporsakRegistreringController.php, StoppageController.php, VeckotrendController.php, MaskinhistorikController.php
+- **Ingen frontend-build kravs** (bara PHP-anderingar)
+
+---
+
 ## 2026-03-16 Session #127 Worker B — Untracked setTimeout memory leaks + timezone date-parsing bugs
 
 ### DEL 1: Untracked setTimeout memory leaks (4 komponenter, 9 buggar)

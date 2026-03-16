@@ -292,7 +292,7 @@ class StoppageController {
                 $comment = mb_substr($comment, 0, 500);
             }
 
-            $userId = intval($_SESSION['user_id'], JSON_UNESCAPED_UNICODE);
+            $userId = (int)$_SESSION['user_id'];
 
             $stmt = $this->pdo->prepare("
                 INSERT INTO stoppage_log (line, reason_id, start_time, end_time, duration_minutes, comment, user_id)
@@ -332,7 +332,7 @@ class StoppageController {
 
             if (isset($data['reason_id'])) {
                 $fields[] = 'reason_id = ?';
-                $params[] = intval($data['reason_id'], JSON_UNESCAPED_UNICODE);
+                $params[] = (int)$data['reason_id'];
             }
             if (isset($data['end_time'])) {
                 $endTime = $data['end_time'];

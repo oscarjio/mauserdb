@@ -222,7 +222,7 @@ class StopporsakRegistreringController {
 
             $linje     = $this->validatedLinje($data['linje'] ?? 'rebotling');
             $kommentar = mb_substr(strip_tags(trim($data['kommentar'] ?? '')), 0, 500);
-            $userId    = intval($_SESSION['user_id'], JSON_UNESCAPED_UNICODE);
+            $userId    = (int)$_SESSION['user_id'];
             $startTime = date('Y-m-d H:i:s');
 
             $stmt = $this->pdo->prepare(
@@ -279,7 +279,7 @@ class StopporsakRegistreringController {
                 return;
             }
 
-            $userId  = intval($_SESSION['user_id'], JSON_UNESCAPED_UNICODE);
+            $userId  = (int)$_SESSION['user_id'];
             $role    = $_SESSION['role'] ?? '';
             if ($role !== 'admin' && (int)$row['user_id'] !== $userId) {
                 http_response_code(403);
