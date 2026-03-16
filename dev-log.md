@@ -1,3 +1,45 @@
+## 2026-03-16 Session #112 Worker B — buggjakt classes/ audit del 3 (6 filer + api.php)
+
+### Granskade filer:
+1. AndonController.php (~817 rader)
+2. GamificationController.php (~815 rader)
+3. HistoriskSammanfattningController.php (~792 rader)
+4. VDVeckorapportController.php (~773 rader)
+5. OeeTrendanalysController.php (~748 rader)
+6. DagligSammanfattningController.php (~745 rader)
+7. api.php — auth/CORS/routing granskning
+
+### Fixade buggar (8 st i 5 filer):
+
+**VDVeckorapportController.php (4 buggar)**
+1. hamtaStopporsaker: stoppage_log query anvande `reason` och `duration` som inte finns — fixat till JOIN stoppage_reasons + duration_minutes
+2. hamtaStopporsaker fallback: stopporsak_registreringar query anvande `orsak`/`start_tid`/`slut_tid` som inte finns — fixat till JOIN stopporsak_kategorier + start_time/end_time
+3. trenderAnomalier: named parameter `:dagar` i MySQL INTERVAL-klausul (stods inte) — bytt till saker int-interpolering
+4. topBottomOperatorer + hamtaOperatorsData: refererade rebotling_skiftrapport.op1/op2/op3/drifttid som inte existerar pa tabellen — omskrivet till rebotling_ibc med kumulativa PLC-falt
+
+**GamificationController.php (2 buggar)**
+5. calcStreaks: kontrollerade inte datumgap mellan dagar — streak raknade alla dagar med data utan att verifiera konsekutivitet. Fixat med korrekt datumjamforelse
+6. getBadges Perfektionist: inner subquery alias var `d` men outer GROUP BY anvande `DATE(datum)` som inte finns i resultatsetet — fixat till GROUP BY d
+
+**AndonController.php (1 bugg)**
+7. getBoardStatus: refererade kolumnen `varaktighet_min` pa stopporsak_registreringar som inte finns — andrat till TIMESTAMPDIFF(MINUTE, start_time, end_time)
+
+**OeeTrendanalysController.php (1 bugg)**
+8. flaskhalsar: refererade `station_id` pa stopporsak_registreringar som inte har den kolumnen — borttaget, visar istallet topporsaken for alla stationer
+
+**DagligSammanfattningController.php (cleanup)**
+- getTrendmot: borttagen oanvand prepared statement (dead code)
+
+### api.php granskning:
+- Auth: varje controller hanterar sin egen autentisering via session. AndonController ar korrekt publik.
+- CORS: konfigurerat med vitlistade origins + automatisk subdoman-matching, SameSite=Lax cookie
+- Routing: alla controllers mappas korrekt via $classNameMap
+- Security headers: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy — alla pa plats
+- Rate limiting: finns i LoginController for inloggningsforsok
+- Inga saknade auth-kontroller hittade i de granskade controllers
+
+---
+
 ## 2026-03-16 Session #111 Worker B — buggjakt i stora class-filer (4 st)
 
 ### Granskade filer:
