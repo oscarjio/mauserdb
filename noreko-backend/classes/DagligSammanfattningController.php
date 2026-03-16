@@ -437,13 +437,6 @@ class DagligSammanfattningController {
     private function getTrendmot(string $date, int $ibcIdag): array {
         $foregDatum = date('Y-m-d', strtotime($date . ' -7 days'));
 
-        $stmt = $this->pdo->prepare(
-            "SELECT COALESCE(SUM(ibc_ok), 0) AS ibc_ok
-             FROM rebotling_ibc
-             WHERE DATE(created_at) = ?
-             GROUP BY DATE(created_at)
-             LIMIT 1"
-        );
         // Summera per skift + datum föreg
         $foStmt = $this->pdo->prepare(
             "SELECT SUM(max_ok) AS ibc_ok FROM (

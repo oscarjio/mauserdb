@@ -25,11 +25,11 @@
  *       Returnerar all data i ett anrop.
  *
  * Tabeller:
- *   rebotling_ibc          — IBC-data (datum, lopnummer)
- *   rebotling_onoff        — drift/stopp (status, created_at)
- *   rebotling_skiftrapport — skiftdata (op1/op2/op3, ibc_ok, ibc_ej_ok, drifttid)
- *   operators              — (number, name)
- *   stoppage_log           — stopporsaker (reason, duration, created_at)
+ *   rebotling_ibc                  — IBC-data (datum, ibc_ok, ibc_ej_ok, runtime_plc, op1/op2/op3)
+ *   rebotling_onoff                — drift/stopp (datum, running)
+ *   operators                      — (number, name)
+ *   stoppage_log + stoppage_reasons — stopporsaker (reason_id, duration_minutes, created_at)
+ *   stopporsak_registreringar      — stopp (kategori_id, start_time, end_time, kommentar)
  */
 class VDVeckorapportController {
     private $pdo;
@@ -261,18 +261,19 @@ class VDVeckorapportController {
     private function trenderAnomalier(): void {
         $dagar = 14;
 
+        $dagar = (int)$dagar; // Säkerställ int
         $sql = "
             SELECT
                 DATE(datum) AS dag,
                 COUNT(*) AS total_ibc,
                 SUM(CASE WHEN lopnummer = 0 OR lopnummer >= 998 THEN 0 ELSE 1 END) AS godkanda
             FROM rebotling_ibc
-            WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL :dagar DAY)
+            WHERE DATE(datum) >= DATE_SUB(CURDATE(), INTERVAL {$dagar} DAY)
             GROUP BY DATE(datum)
             ORDER BY dag ASC
         ";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':dagar' => $dagar]);
+        $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (count($rows) < 3) {
@@ -365,27 +366,47 @@ class VDVeckorapportController {
         $fran   = date('Y-m-d', strtotime("-{$period} days"));
         $till   = date('Y-m-d');
 
-        // Samla operatörsdata från rebotling_skiftrapport
+        // Samla operatorsdata fran rebotling_ibc (kumulativa PLC-falt)
         $sql = "
             SELECT
-                o.number  AS operator_id,
-                o.name    AS operator_namn,
-                SUM(sr.ibc_ok)                     AS ibc_ok,
-                SUM(sr.ibc_ej_ok)                  AS ibc_kasserade,
-                SUM(sr.ibc_ok + sr.ibc_ej_ok)      AS ibc_totalt,
-                SUM(sr.drifttid)                    AS drifttid_sek,
-                COUNT(*)                            AS antal_skift
-            FROM operators o
-            JOIN rebotling_skiftrapport sr
-                ON (sr.op1 = o.number OR sr.op2 = o.number OR sr.op3 = o.number)
-            WHERE DATE(sr.datum) BETWEEN :fran AND :till
-              AND o.active = 1
-            GROUP BY o.number, o.name
+                sub.op_num AS operator_id,
+                COALESCE(o.name, CONCAT('Op #', sub.op_num)) AS operator_namn,
+                SUM(sub.shift_ok)                  AS ibc_ok,
+                SUM(sub.shift_ej_ok)               AS ibc_kasserade,
+                SUM(sub.shift_ok + sub.shift_ej_ok) AS ibc_totalt,
+                SUM(sub.runtime_sek)               AS drifttid_sek,
+                COUNT(*)                           AS antal_skift
+            FROM (
+                SELECT op_num, skiftraknare,
+                       MAX(ibc_ok) AS shift_ok,
+                       MAX(ibc_ej_ok) AS shift_ej_ok,
+                       MAX(runtime_plc) * 60 AS runtime_sek
+                FROM (
+                    SELECT op1 AS op_num, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :fran1 AND :till1 AND op1 IS NOT NULL AND op1 > 0
+                    UNION ALL
+                    SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :fran2 AND :till2 AND op2 IS NOT NULL AND op2 > 0
+                    UNION ALL
+                    SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+                    FROM rebotling_ibc
+                    WHERE DATE(datum) BETWEEN :fran3 AND :till3 AND op3 IS NOT NULL AND op3 > 0
+                ) raw
+                GROUP BY op_num, skiftraknare
+            ) sub
+            LEFT JOIN operators o ON o.number = sub.op_num
+            GROUP BY sub.op_num, o.name
             HAVING ibc_totalt > 0
             ORDER BY ibc_ok DESC
         ";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([':fran' => $fran, ':till' => $till]);
+        $stmt->execute([
+            ':fran1' => $fran, ':till1' => $till,
+            ':fran2' => $fran, ':till2' => $till,
+            ':fran3' => $fran, ':till3' => $till,
+        ]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (empty($rows)) {
@@ -478,14 +499,15 @@ class VDVeckorapportController {
         try {
             $sql = "
                 SELECT
-                    reason                   AS orsak,
-                    COUNT(*)                 AS antal,
-                    SUM(duration)            AS total_tid_sek,
-                    AVG(duration)            AS medel_tid_sek
-                FROM stoppage_log
-                WHERE DATE(created_at) BETWEEN :fran AND :till
-                  AND duration > 0
-                GROUP BY reason
+                    sr.name                          AS orsak,
+                    COUNT(*)                         AS antal,
+                    SUM(sl.duration_minutes * 60)    AS total_tid_sek,
+                    AVG(sl.duration_minutes * 60)    AS medel_tid_sek
+                FROM stoppage_log sl
+                JOIN stoppage_reasons sr ON sl.reason_id = sr.id
+                WHERE DATE(sl.created_at) BETWEEN :fran AND :till
+                  AND sl.duration_minutes > 0
+                GROUP BY sr.name
                 ORDER BY total_tid_sek DESC
                 LIMIT 15
             ";
@@ -514,12 +536,13 @@ class VDVeckorapportController {
         try {
             $sql = "
                 SELECT
-                    orsak,
+                    COALESCE(sk.namn, 'Okand') AS orsak,
                     COUNT(*) AS antal,
-                    SUM(TIMESTAMPDIFF(SECOND, start_tid, slut_tid)) AS total_tid_sek
-                FROM stopporsak_registreringar
-                WHERE DATE(start_tid) BETWEEN :fran AND :till
-                GROUP BY orsak
+                    SUM(TIMESTAMPDIFF(SECOND, sr.start_time, COALESCE(sr.end_time, NOW()))) AS total_tid_sek
+                FROM stopporsak_registreringar sr
+                LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
+                WHERE DATE(sr.start_time) BETWEEN :fran AND :till
+                GROUP BY COALESCE(sk.namn, 'Okand')
                 ORDER BY total_tid_sek DESC
                 LIMIT 15
             ";
@@ -619,25 +642,45 @@ class VDVeckorapportController {
         try {
             $sql = "
                 SELECT
-                    o.number  AS operator_id,
-                    o.name    AS operator_namn,
-                    SUM(sr.ibc_ok)                AS ibc_ok,
-                    SUM(sr.ibc_ej_ok)             AS ibc_kasserade,
-                    SUM(sr.ibc_ok + sr.ibc_ej_ok) AS ibc_totalt,
-                    SUM(sr.drifttid)              AS drifttid_sek,
-                    COUNT(*)                      AS antal_skift
-                FROM operators o
-                JOIN rebotling_skiftrapport sr
-                    ON (sr.op1 = o.number OR sr.op2 = o.number OR sr.op3 = o.number)
-                WHERE DATE(sr.datum) BETWEEN :fran AND :till
-                  AND o.active = 1
-                GROUP BY o.number, o.name
+                    sub.op_num AS operator_id,
+                    COALESCE(o.name, CONCAT('Op #', sub.op_num)) AS operator_namn,
+                    SUM(sub.shift_ok)                  AS ibc_ok,
+                    SUM(sub.shift_ej_ok)               AS ibc_kasserade,
+                    SUM(sub.shift_ok + sub.shift_ej_ok) AS ibc_totalt,
+                    SUM(sub.runtime_sek)               AS drifttid_sek,
+                    COUNT(*)                           AS antal_skift
+                FROM (
+                    SELECT op_num, skiftraknare,
+                           MAX(ibc_ok) AS shift_ok,
+                           MAX(ibc_ej_ok) AS shift_ej_ok,
+                           MAX(runtime_plc) * 60 AS runtime_sek
+                    FROM (
+                        SELECT op1 AS op_num, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :fran1 AND :till1 AND op1 IS NOT NULL AND op1 > 0
+                        UNION ALL
+                        SELECT op2, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :fran2 AND :till2 AND op2 IS NOT NULL AND op2 > 0
+                        UNION ALL
+                        SELECT op3, skiftraknare, ibc_ok, ibc_ej_ok, runtime_plc
+                        FROM rebotling_ibc
+                        WHERE DATE(datum) BETWEEN :fran3 AND :till3 AND op3 IS NOT NULL AND op3 > 0
+                    ) raw
+                    GROUP BY op_num, skiftraknare
+                ) sub
+                LEFT JOIN operators o ON o.number = sub.op_num
+                GROUP BY sub.op_num, o.name
                 HAVING ibc_totalt > 0
                 ORDER BY ibc_ok DESC
                 LIMIT 20
             ";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':fran' => $fran, ':till' => $till]);
+            $stmt->execute([
+                ':fran1' => $fran, ':till1' => $till,
+                ':fran2' => $fran, ':till2' => $till,
+                ':fran3' => $fran, ':till3' => $till,
+            ]);
             $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             return array_map(function($r) {

@@ -322,12 +322,28 @@ class GamificationController {
                 $stmt->execute([':uid1' => $op['user_id'], ':uid2' => $op['user_id'], ':uid3' => $op['user_id']]);
                 $dagData = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+                $prevDate = null;
                 foreach ($dagData as $d) {
-                    if ((int)$d['ibc_count'] > 0) {
-                        $streak++;
-                    } else {
+                    $currentDate = $d['dag'];
+                    if ((int)$d['ibc_count'] <= 0) {
                         break;
                     }
+                    if ($prevDate === null) {
+                        // Forsta dagen -- kontrollera att det ar idag eller igar
+                        $daysDiff = (int)((strtotime(date('Y-m-d')) - strtotime($currentDate)) / 86400);
+                        if ($daysDiff > 1) {
+                            break; // Senaste produktionsdagen ar for lang sedan
+                        }
+                        $streak = 1;
+                    } else {
+                        $gap = (int)round((strtotime($prevDate) - strtotime($currentDate)) / 86400);
+                        if ($gap === 1) {
+                            $streak++;
+                        } else {
+                            break; // Lucka i datumen — streak bruten
+                        }
+                    }
+                    $prevDate = $currentDate;
                 }
             } catch (\PDOException) {
                 // Ignorera
@@ -382,7 +398,7 @@ class GamificationController {
         try {
             $sql = "
                 SELECT dag FROM (
-                    SELECT DATE(datum) AS dag,
+                    SELECT d AS dag,
                            SUM(max_ok) AS total_ok, SUM(max_ej_ok) AS total_ej_ok
                     FROM (
                         SELECT DATE(datum) AS d, skiftraknare,
@@ -392,7 +408,7 @@ class GamificationController {
                           AND (op1 = :uid1 OR op2 = :uid2 OR op3 = :uid3)
                         GROUP BY DATE(datum), skiftraknare
                     ) AS per_skift
-                    GROUP BY DATE(datum)
+                    GROUP BY d
                     HAVING total_ok >= 10 AND total_ej_ok = 0
                 ) AS days_ok
                 ORDER BY dag DESC LIMIT 1

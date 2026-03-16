@@ -692,7 +692,8 @@ class AndonController {
                 $check = $this->pdo->query("SHOW TABLES LIKE 'stopporsak_registreringar'");
                 if ($check && $check->rowCount() > 0) {
                     $stmtStop = $this->pdo->prepare("
-                        SELECT r.kommentar AS reason, r.varaktighet_min AS duration_minutes,
+                        SELECT r.kommentar AS reason,
+                               TIMESTAMPDIFF(MINUTE, r.start_time, COALESCE(r.end_time, NOW())) AS duration_minutes,
                                r.created_at, k.namn AS category_name
                         FROM stopporsak_registreringar r
                         LEFT JOIN stopporsak_kategorier k ON r.kategori_id = k.id

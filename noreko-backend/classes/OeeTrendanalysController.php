@@ -553,22 +553,27 @@ class OeeTrendanalysController {
             try {
                 $sql = "
                     SELECT
-                        COALESCE(sr.station_id, 1) AS station_id,
                         sk.namn AS orsak,
                         COUNT(*) AS antal
                     FROM stopporsak_registreringar sr
                     LEFT JOIN stopporsak_kategorier sk ON sr.kategori_id = sk.id
                     WHERE sr.start_time >= :from
                       AND sr.start_time <= :to
-                    GROUP BY COALESCE(sr.station_id, 1), sk.namn
+                    GROUP BY sk.namn
                     ORDER BY antal DESC
                 ";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([':from' => $from . ' 00:00:00', ':to' => $to . ' 23:59:59']);
+                $topOrsak = null;
                 foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-                    $sid = (int)$row['station_id'];
-                    if (!isset($stoppInfo[$sid])) {
-                        $stoppInfo[$sid] = $row['orsak'] . ' (' . $row['antal'] . ' ggr)';
+                    if ($topOrsak === null) {
+                        $topOrsak = ($row['orsak'] ?? 'Okand') . ' (' . $row['antal'] . ' ggr)';
+                    }
+                }
+                // Utan station_id kan vi bara visa topporsaken for alla stationer
+                if ($topOrsak) {
+                    foreach ($flaskhalsar as $fIdx => $fItem) {
+                        $stoppInfo[$fItem['station_id']] = $topOrsak;
                     }
                 }
             } catch (Exception) {
