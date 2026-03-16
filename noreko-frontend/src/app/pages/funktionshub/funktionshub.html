@@ -1,0 +1,89 @@
+<div class="hub-page">
+  <div class="container-fluid px-3 px-md-4">
+
+    <!-- Header -->
+    <div class="hub-header">
+      <div class="hub-title-row">
+        <h1 class="hub-title">
+          <i class="fas fa-th-large me-2"></i>Funktioner
+        </h1>
+        <span class="hub-count">{{ totalVisible }} tillgängliga</span>
+      </div>
+      <div class="hub-search-row">
+        <div class="hub-search-wrap">
+          <i class="fas fa-search hub-search-icon"></i>
+          <input
+            type="text"
+            class="form-control hub-search"
+            placeholder="Sök bland funktioner..."
+            [(ngModel)]="searchQuery" />
+          <button class="hub-search-clear" *ngIf="searchQuery" (click)="searchQuery = ''">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="hub-tabs-wrap">
+      <div class="hub-tabs">
+        <button class="hub-tab"
+                [class.active]="activeTab === 'all'"
+                (click)="setTab('all')">
+          <i class="fas fa-border-all me-1"></i>Alla
+          <span class="hub-tab-badge">{{ totalVisible }}</span>
+        </button>
+        <button class="hub-tab"
+                [class.active]="activeTab === 'favorites'"
+                (click)="setTab('favorites')">
+          <i class="fas fa-star me-1" style="color:#ecc94b"></i>Favoriter
+          <span class="hub-tab-badge" *ngIf="favCount > 0">{{ favCount }}</span>
+        </button>
+        <span class="hub-tab-divider"></span>
+        <button class="hub-tab"
+                *ngFor="let cat of visibleCategories; trackBy: trackByCat"
+                [class.active]="activeTab === cat.id"
+                [style.--tab-color]="cat.color"
+                (click)="setTab(cat.id)">
+          <i [class]="cat.icon + ' me-1'" [style.color]="cat.color"></i>{{ cat.label }}
+          <span class="hub-tab-badge">{{ cat.items.length }}</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="hub-content" *ngFor="let group of displayItems; trackBy: trackByCat">
+      <div class="hub-section-header" *ngIf="activeTab === 'all' || activeTab === 'favorites' || searchQuery">
+        <span class="hub-section-dot" [style.background]="group.category.color"></span>
+        <span class="hub-section-label" [style.color]="group.category.color">{{ group.category.label }}</span>
+        <span class="hub-section-line" [style.background]="group.category.color + '33'"></span>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-6 col-md-4 col-lg-3 col-xl-2" *ngFor="let item of group.items; trackBy: trackByRoute">
+          <a [routerLink]="item.route" class="hub-card" [style.--card-color]="group.category.color">
+            <button class="hub-fav-btn"
+                    [class.active]="isFav(item.route)"
+                    (click)="toggleFavorite(item.route, $event)"
+                    title="Favoritmarkera">
+              <i [class]="isFav(item.route) ? 'fas fa-star' : 'far fa-star'"></i>
+            </button>
+            <div class="hub-card-icon">
+              <i [class]="item.icon" [style.color]="group.category.color"></i>
+            </div>
+            <div class="hub-card-label">{{ item.label }}</div>
+            <div class="hub-card-desc">{{ item.description }}</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty search -->
+    <div class="hub-empty" *ngIf="displayItems.length === 0">
+      <i class="fas fa-search mb-3" style="font-size:2.5rem; opacity:0.3;"></i>
+      <p *ngIf="searchQuery">Inga funktioner matchar <strong>"{{ searchQuery }}"</strong></p>
+      <p *ngIf="activeTab === 'favorites' && !searchQuery">Du har inga favoriter ännu. Klicka <i class="far fa-star"></i> på ett kort för att lägga till.</p>
+    </div>
+
+  </div>
+</div>

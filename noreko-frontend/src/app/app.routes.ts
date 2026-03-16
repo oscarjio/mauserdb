@@ -80,6 +80,7 @@ export const routes: Routes = [
       { path: 'rebotling/operator-onboarding', canActivate: [authGuard], loadComponent: () => import('./pages/operator-onboarding/operator-onboarding').then(m => m.OperatorOnboardingPage) },
       { path: 'rebotling/operator-jamforelse', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/operator-jamforelse/operator-jamforelse').then(m => m.OperatorJamforelsePage) },
       { path: 'favoriter', canActivate: [authGuard], loadComponent: () => import('./pages/favoriter/favoriter').then(m => m.FavoriterPage) },
+      { path: 'funktioner', canActivate: [authGuard], loadComponent: () => import('./pages/funktionshub/funktionshub').then(m => m.FunktionshubPage) },
       { path: 'rebotling/produktionseffektivitet', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/produktionseffektivitet/produktionseffektivitet').then(m => m.ProduktionseffektivitetPage) },
       { path: 'rebotling/kvalitets-trendbrott', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/kvalitets-trendbrott/kvalitets-trendbrott').then(m => m.KvalitetsTrendbrottPage) },
       { path: 'rebotling/maskinunderhall', canActivate: [authGuard], loadComponent: () => import('./pages/rebotling/maskinunderhall/maskinunderhall.component').then(m => m.MaskinunderhallPage) },
