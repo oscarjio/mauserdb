@@ -7,17 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **SQL edge cases** — 3x LIMIT utan ORDER BY, 3x NULL-safe aggregering (Worker A #130)
-- [x] **Template null-safety deep audit** — 21x .toFixed() pa null/undefined (Worker B #130)
-- [x] **PHP return type consistency** — 18x saknad success-nyckel i JSON-svar (Worker A #130)
-- [x] **PHP error_log audit** — 3x catch utan error_log (Worker A #130)
-- [x] **Angular lazy loading** — verifierat OK, alla routes lazy-loadar (Worker B #130)
-- [x] **Angular service URL audit** — verifierat OK, alla URLs relativa (Worker B #130)
-- [ ] **PHP boundary validation** — granska att alla query-params (limit, offset, dates) valideras
-- [ ] **Angular form validation** — granska att alla formuler validerar input korrekt
-- [ ] **PHP SQL injection re-audit** — dubbelkolla prepared statements i nyare controllers
-- [ ] **Angular error state UI** — granska att felmeddelanden visas korrekt for anvandaren
-- [ ] **PHP date range validation** — verifiera att from/to-datum i queries ar logiskt korrekta
+- [x] **PHP boundary validation** — 5 fixar: limit min/max, offset cap, trim() (Worker A #131)
+- [x] **Angular form validation** — 4 fixar: required/min/max pa leveransplanering-formuler (Worker B #131)
+- [x] **PHP SQL injection re-audit** — 7 fixar: period/granularity whitelists (Worker A #131)
+- [x] **Angular error state UI** — 26 fixar: felmeddelanden i 6 komponenter (Worker B #131)
+- [x] **PHP date range validation** — 10 fixar: from<=to swap, 365-dagars cap (Worker A #131)
+- [ ] **PHP HTTP method enforcement** — granska att controllers avvisar felaktiga HTTP-metoder
+- [ ] **Angular memory profiling** — granska stora komponenter for minneslakor
+- [ ] **PHP unused variables cleanup** — ta bort oanvanda variabler (intelephense-varningar)
+- [ ] **PHP CORS/headers audit** — granska att ratt CORS-headers satts i alla endpoints
+- [ ] **Angular accessibility audit** — granska aria-attribut, keyboard navigation, kontrastnivaer
 
 ## Parkerade features (ta inte dessa nu)
 

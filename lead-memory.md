@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #130)*
+*Senast uppdaterad: 2026-03-16 (session #131)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -82,28 +82,25 @@ Session #127: BUGGJAKT — 16 buggar (8 Worker A + 8 Worker B). intval()-bugg (k
 Session #128: BUGGJAKT — 27 buggar (12 Worker A + 15 Worker B). Type coercion, saknad auth, input validation + Safari datetime-parsing, timezone-fix.
 Session #129: BUGGJAKT — 23 buggar (20 Worker A + 3 Worker B). PDOException-lackage, 18x loose comparisons, 3x division-by-zero. Frontend audit: 109 charts OK, alla subscriptions OK.
 Session #130: BUGGJAKT — 48 buggar (27 Worker A + 21 Worker B). SQL edge cases, JSON return consistency, error_log audit + template null-safety (.toFixed). Lazy loading OK, service URLs OK.
+Session #131: BUGGJAKT — 52 buggar (22 Worker A + 30 Worker B). Boundary validation, date range swap, SQL param whitelists + form validation, error state UI i 6 komponenter.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] SQL edge cases — fixat #130 (LIMIT+ORDER BY, NULL-safe aggregering)
-- [x] Template null-safety deep — fixat #130 (21x .toFixed null-guard)
-- [x] PHP return type consistency — fixat #130 (18x success-nyckel)
-- [x] PHP error_log audit — fixat #130 (3x catch-loggning)
-- [x] Angular lazy loading — verifierat OK #130
-- [x] Service URL audit — verifierat OK #130
-- [ ] PHP boundary validation — query-param validering
-- [ ] Angular form validation — input-validering i formuler
-- [ ] PHP date range validation — from/to-datum logik
+- [x] PHP boundary validation — fixat #131 (5 limit/offset/trim)
+- [x] Angular form validation — fixat #131 (4 required/min/max)
+- [x] PHP SQL injection re-audit — fixat #131 (7 whitelists)
+- [x] Angular error state UI — fixat #131 (26 error alerts)
+- [x] PHP date range validation — fixat #131 (10 from<=to swap)
+- [ ] PHP HTTP method enforcement
+- [ ] Angular memory profiling
+- [ ] PHP unused variables cleanup
+- [ ] PHP CORS/headers audit
+- [ ] Angular accessibility audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #128 (klar)
-Worker A: 12 buggar — 7x type coercion (== till ===), 1x saknad auth, 2x input validation, 1x typ-check, 1x div-by-zero guard.
-Worker B: 15 buggar — 10x Safari datetime-parsing (new Date till parseLocalDate), 5x timezone (toISOString till localToday).
-Totalt: 27 buggar.
 
 ### 2026-03-16 — Session #129 (klar)
 Worker A: 20 buggar — 2x PDOException-lackage (sakerhetsfix), 18x loose comparisons (== till ===) i 16 controllers.
@@ -114,3 +111,8 @@ Totalt: 23 buggar.
 Worker A: 27 buggar — 3x LIMIT utan ORDER BY, 3x NULL-safe aggregering, 18x inkonsistenta JSON-svar (saknad success-nyckel), 3x catch utan error_log.
 Worker B: 21 buggar — 21x .toFixed() pa null/undefined i 10 templates. Lazy loading OK, service URLs OK.
 Totalt: 48 buggar.
+
+### 2026-03-16 — Session #131 (klar)
+Worker A: 22 buggar — 5x boundary validation (limit min/max, offset cap, trim), 10x date range (from<=to swap, 365-dagars cap), 7x SQL param whitelists (period, granularity). Alla controllers granskade — inga SQL injections.
+Worker B: 30 buggar — 4x form validation (leveransplanering required/min/max), 26x error state UI (felmeddelanden i 6 komponenter: operator-ranking, leveransplanering, tidrapport, skiftplanering, historisk-sammanfattning, oee-trendanalys).
+Totalt: 52 buggar.
