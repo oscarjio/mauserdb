@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface RebotlingLiveStatsResponse {
   success: boolean;
@@ -96,35 +98,35 @@ export class RebotlingService {
 
   getLiveStats(): Observable<RebotlingLiveStatsResponse> {
     return this.http.get<RebotlingLiveStatsResponse>(
-      '/noreko-backend/api.php?action=rebotling',
+      `${environment.apiUrl}?action=rebotling`,
       { withCredentials: true }
     );
   }
 
   getRunningStatus(): Observable<LineStatusResponse> {
     return this.http.get<LineStatusResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=status',
+      `${environment.apiUrl}?action=rebotling&run=status`,
       { withCredentials: true }
     );
   }
 
   getDriftstoppStatus(): Observable<any> {
     return this.http.get<any>(
-      '/noreko-backend/api.php?action=rebotling&run=driftstopp',
+      `${environment.apiUrl}?action=rebotling&run=driftstopp`,
       { withCredentials: true }
     );
   }
 
   getRastStatus(): Observable<RastStatusResponse> {
     return this.http.get<RastStatusResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=rast',
+      `${environment.apiUrl}?action=rebotling&run=rast`,
       { withCredentials: true }
     );
   }
 
   getStatistics(startDate: string, endDate: string): Observable<StatisticsResponse> {
     return this.http.get<StatisticsResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=statistics&start=${startDate}&end=${endDate}`,
+      `${environment.apiUrl}?action=rebotling&run=statistics&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
     );
   }
@@ -132,9 +134,9 @@ export class RebotlingService {
   getHeatmap(days: number = 30, fromDate?: string, toDate?: string): Observable<any> {
     let url: string;
     if (fromDate && toDate) {
-      url = `/noreko-backend/api.php?action=rebotling&run=heatmap&from_date=${fromDate}&to_date=${toDate}`;
+      url = `${environment.apiUrl}?action=rebotling&run=heatmap&from_date=${fromDate}&to_date=${toDate}`;
     } else {
-      url = `/noreko-backend/api.php?action=rebotling&run=heatmap&days=${days}`;
+      url = `${environment.apiUrl}?action=rebotling&run=heatmap&days=${days}`;
     }
     return this.http.get<any>(url, { withCredentials: true });
   }
@@ -142,16 +144,16 @@ export class RebotlingService {
   getCycleTrend(days: number = 30, granularity: string = 'day', fromDate?: string, toDate?: string): Observable<CycleTrendResponse> {
     let url: string;
     if (fromDate && toDate) {
-      url = `/noreko-backend/api.php?action=rebotling&run=cycle-trend&from_date=${fromDate}&to_date=${toDate}&granularity=${granularity}`;
+      url = `${environment.apiUrl}?action=rebotling&run=cycle-trend&from_date=${fromDate}&to_date=${toDate}&granularity=${granularity}`;
     } else {
-      url = `/noreko-backend/api.php?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`;
+      url = `${environment.apiUrl}?action=rebotling&run=cycle-trend&days=${days}&granularity=${granularity}`;
     }
     return this.http.get<CycleTrendResponse>(url, { withCredentials: true });
   }
 
   getWeekComparison(granularity: string = 'day'): Observable<WeekComparisonResponse> {
     return this.http.get<WeekComparisonResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=week-comparison&granularity=${granularity}`,
+      `${environment.apiUrl}?action=rebotling&run=week-comparison&granularity=${granularity}`,
       { withCredentials: true }
     );
   }
@@ -159,71 +161,71 @@ export class RebotlingService {
   getOEETrend(days: number = 30, granularity: string = 'day', fromDate?: string, toDate?: string): Observable<OEETrendResponse> {
     let url: string;
     if (fromDate && toDate) {
-      url = `/noreko-backend/api.php?action=rebotling&run=oee-trend&from_date=${fromDate}&to_date=${toDate}&granularity=${granularity}`;
+      url = `${environment.apiUrl}?action=rebotling&run=oee-trend&from_date=${fromDate}&to_date=${toDate}&granularity=${granularity}`;
     } else {
-      url = `/noreko-backend/api.php?action=rebotling&run=oee-trend&days=${days}&granularity=${granularity}`;
+      url = `${environment.apiUrl}?action=rebotling&run=oee-trend&days=${days}&granularity=${granularity}`;
     }
     return this.http.get<OEETrendResponse>(url, { withCredentials: true });
   }
 
   getBestShifts(limit: number = 10): Observable<BestShiftsResponse> {
     return this.http.get<BestShiftsResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=best-shifts&limit=${limit}`,
+      `${environment.apiUrl}?action=rebotling&run=best-shifts&limit=${limit}`,
       { withCredentials: true }
     );
   }
 
   getExecDashboard(): Observable<ExecDashboardResponse> {
     return this.http.get<ExecDashboardResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=exec-dashboard`,
+      `${environment.apiUrl}?action=rebotling&run=exec-dashboard`,
       { withCredentials: true }
     );
   }
 
   getOEE(period: string = 'today'): Observable<OEEResponse> {
     return this.http.get<OEEResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=oee&period=${period}`,
+      `${environment.apiUrl}?action=rebotling&run=oee&period=${period}`,
       { withCredentials: true }
     );
   }
 
   getCycleHistogram(date: string): Observable<CycleHistogramResponse> {
     return this.http.get<CycleHistogramResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=cycle-histogram&date=${date}`,
+      `${environment.apiUrl}?action=rebotling&run=cycle-histogram&date=${date}`,
       { withCredentials: true }
     );
   }
 
   getSPC(days: number = 7): Observable<SPCResponse> {
     return this.http.get<SPCResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=spc&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=spc&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getCycleByOperator(startDate: string, endDate: string): Observable<CycleByOperatorResponse> {
     return this.http.get<CycleByOperatorResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=cycle-by-operator&start_date=${startDate}&end_date=${endDate}`,
+      `${environment.apiUrl}?action=rebotling&run=cycle-by-operator&start_date=${startDate}&end_date=${endDate}`,
       { withCredentials: true }
     );
   }
 
   getBenchmarking(): Observable<BenchmarkingResponse> {
     return this.http.get<BenchmarkingResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=benchmarking',
+      `${environment.apiUrl}?action=rebotling&run=benchmarking`,
       { withCredentials: true }
     );
   }
 
   getAnnotations(startDate: string, endDate: string): Observable<AnnotationsResponse> {
     return this.http.get<AnnotationsResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=annotations&start=${startDate}&end=${endDate}`,
+      `${environment.apiUrl}?action=rebotling&run=annotations&start=${startDate}&end=${endDate}`,
       { withCredentials: true }
     );
   }
 
   getManualAnnotations(startDate: string, endDate: string, typ?: string): Observable<ManualAnnotationsResponse> {
-    let url = `/noreko-backend/api.php?action=rebotling&run=annotations-list&start=${startDate}&end=${endDate}`;
+    let url = `${environment.apiUrl}?action=rebotling&run=annotations-list&start=${startDate}&end=${endDate}`;
     if (typ) url += `&typ=${typ}`;
     return this.http.get<ManualAnnotationsResponse>(url, { withCredentials: true });
   }
@@ -235,7 +237,7 @@ export class RebotlingService {
     body.set('titel', data.titel);
     body.set('beskrivning', data.beskrivning);
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=annotation-create',
+      `${environment.apiUrl}?action=rebotling&run=annotation-create`,
       body.toString(),
       { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
@@ -245,7 +247,7 @@ export class RebotlingService {
     const body = new URLSearchParams();
     body.set('id', String(id));
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=annotation-delete',
+      `${environment.apiUrl}?action=rebotling&run=annotation-delete`,
       body.toString(),
       { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
@@ -253,28 +255,28 @@ export class RebotlingService {
 
   getQualityTrend(days: number = 30): Observable<QualityTrendResponse> {
     return this.http.get<QualityTrendResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=quality-trend&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=quality-trend&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getOeeWaterfall(days: number = 30): Observable<OeeWaterfallResponse> {
     return this.http.get<OeeWaterfallResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=oee-waterfall&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=oee-waterfall&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getWeekdayStats(dagar: number = 90): Observable<WeekdayStatsResponse> {
     return this.http.get<WeekdayStatsResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=weekday-stats&dagar=${dagar}`,
+      `${environment.apiUrl}?action=rebotling&run=weekday-stats&dagar=${dagar}`,
       { withCredentials: true }
     );
   }
 
   getProductionEvents(start: string, end: string): Observable<ProductionEventsResponse> {
     return this.http.get<ProductionEventsResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=events&start=${start}&end=${end}`,
+      `${environment.apiUrl}?action=rebotling&run=events&start=${start}&end=${end}`,
       { withCredentials: true }
     );
   }
@@ -286,7 +288,7 @@ export class RebotlingService {
     body.set('event_type', event.event_type);
     body.set('description', event.description);
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=add-event',
+      `${environment.apiUrl}?action=rebotling&run=add-event`,
       body.toString(),
       { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
@@ -296,7 +298,7 @@ export class RebotlingService {
     const body = new URLSearchParams();
     body.set('id', String(id));
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=delete-event',
+      `${environment.apiUrl}?action=rebotling&run=delete-event`,
       body.toString(),
       { withCredentials: true, headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
@@ -304,42 +306,42 @@ export class RebotlingService {
 
   getStoppageAnalysis(days: number = 30): Observable<StoppageAnalysisResponse> {
     return this.http.get<StoppageAnalysisResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=stoppage-analysis&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=stoppage-analysis&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getParetoStoppage(days: number = 30): Observable<any> {
     return this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=pareto-stoppage&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=pareto-stoppage&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getRealtimeOee(period: string = 'today'): Observable<RealtimeOeeResponse> {
     return this.http.get<RealtimeOeeResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=realtime-oee&period=${period}`,
+      `${environment.apiUrl}?action=rebotling&run=realtime-oee&period=${period}`,
       { withCredentials: true }
     );
   }
 
   getStopCauseDrilldown(cause: string, days: number = 30): Observable<any> {
     return this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=stop-cause-drilldown&cause=${encodeURIComponent(cause)}&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=stop-cause-drilldown&cause=${encodeURIComponent(cause)}&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getPersonalBests(): Observable<PersonalBestsResponse> {
     return this.http.get<PersonalBestsResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=personal-bests',
+      `${environment.apiUrl}?action=rebotling&run=personal-bests`,
       { withCredentials: true }
     );
   }
 
   getMonthlyLeaders(months: number = 12): Observable<MonthlyLeadersResponse> {
     return this.http.get<MonthlyLeadersResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=monthly-leaders&months=${months}`,
+      `${environment.apiUrl}?action=rebotling&run=monthly-leaders&months=${months}`,
       { withCredentials: true }
     );
   }
@@ -347,56 +349,56 @@ export class RebotlingService {
 
   getHourlyRhythm(days: number = 30): Observable<any> {
     return this.http.get<any>(
-      `/noreko-backend/api.php?action=rebotling&run=hourly-rhythm&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=hourly-rhythm&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getHallOfFameDays(): Observable<HallOfFameDaysResponse> {
     return this.http.get<HallOfFameDaysResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=hall-of-fame',
+      `${environment.apiUrl}?action=rebotling&run=hall-of-fame`,
       { withCredentials: true }
     );
   }
 
   getRejectionAnalysis(days: number = 30): Observable<RejectionAnalysisResponse> {
     return this.http.get<RejectionAnalysisResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=rejection-analysis&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=rejection-analysis&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getMaintenanceStats(): Observable<MaintenanceStatsResponse> {
     return this.http.get<MaintenanceStatsResponse>(
-      '/noreko-backend/api.php?action=maintenance&run=stats',
+      `${environment.apiUrl}?action=maintenance&run=stats`,
       { withCredentials: true }
     );
   }
 
   getFeedbackSummary(): Observable<FeedbackSummaryResponse> {
     return this.http.get<FeedbackSummaryResponse>(
-      '/noreko-backend/api.php?action=feedback&run=summary',
+      `${environment.apiUrl}?action=feedback&run=summary`,
       { withCredentials: true }
     );
   }
 
   getStaffingWarning(): Observable<StaffingWarningResponse> {
     return this.http.get<StaffingWarningResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=staffing-warning',
+      `${environment.apiUrl}?action=rebotling&run=staffing-warning`,
       { withCredentials: true }
     );
   }
 
   getMonthlyStopSummary(month: string): Observable<MonthlyStopSummaryResponse> {
     return this.http.get<MonthlyStopSummaryResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=monthly-stop-summary&month=${month}`,
+      `${environment.apiUrl}?action=rebotling&run=monthly-stop-summary&month=${month}`,
       { withCredentials: true }
     );
   }
 
   getProductionRate(): Observable<ProductionRateResponse> {
     return this.http.get<ProductionRateResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=production-rate',
+      `${environment.apiUrl}?action=rebotling&run=production-rate`,
       { withCredentials: true }
     );
   }
@@ -404,7 +406,7 @@ export class RebotlingService {
   // ---- Alert Thresholds ----
   saveAlertThresholds(thresholds: any): Observable<any> {
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=save-alert-thresholds',
+      `${environment.apiUrl}?action=rebotling&run=save-alert-thresholds`,
       thresholds,
       { withCredentials: true }
     );
@@ -413,7 +415,7 @@ export class RebotlingService {
   // ---- Notification Settings ----
   saveNotificationSettings(settings: any): Observable<any> {
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=save-notification-settings',
+      `${environment.apiUrl}?action=rebotling&run=save-notification-settings`,
       settings,
       { withCredentials: true }
     );
@@ -421,14 +423,14 @@ export class RebotlingService {
 
   getWeeklySummary(week: string): Observable<WeeklySummaryResponse> {
     return this.http.get<WeeklySummaryResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=weekly-summary-email&week=${week}`,
+      `${environment.apiUrl}?action=rebotling&run=weekly-summary-email&week=${week}`,
       { withCredentials: true }
     );
   }
 
   sendWeeklySummary(week: string): Observable<SendWeeklySummaryResponse> {
     return this.http.post<SendWeeklySummaryResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=send-weekly-summary',
+      `${environment.apiUrl}?action=rebotling&run=send-weekly-summary`,
       JSON.stringify({ week }),
       { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
     );
@@ -438,7 +440,7 @@ export class RebotlingService {
   getMonthlyReport(year: number, month: number): Observable<MonthlyReportResponse> {
     const m = `${year}-${String(month).padStart(2, '0')}`;
     return this.http.get<MonthlyReportResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=monthly-report&month=${m}`,
+      `${environment.apiUrl}?action=rebotling&run=monthly-report&month=${m}`,
       { withCredentials: true }
     );
   }
@@ -446,21 +448,21 @@ export class RebotlingService {
   getMonthCompare(year: number, month: number): Observable<MonthCompareResponse> {
     const m = `${year}-${String(month).padStart(2, '0')}`;
     return this.http.get<MonthCompareResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=month-compare&month=${m}`,
+      `${environment.apiUrl}?action=rebotling&run=month-compare&month=${m}`,
       { withCredentials: true }
     );
   }
 
   getProductionGoalProgress(period: string = 'today'): Observable<ProductionGoalProgressResponse> {
     return this.http.get<ProductionGoalProgressResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=production-goal-progress&period=${period}`,
+      `${environment.apiUrl}?action=rebotling&run=production-goal-progress&period=${period}`,
       { withCredentials: true }
     );
   }
 
   setProductionGoal(periodType: string, targetCount: number): Observable<any> {
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=rebotling&run=set-production-goal',
+      `${environment.apiUrl}?action=rebotling&run=set-production-goal`,
       JSON.stringify({ period_type: periodType, target_count: targetCount }),
       { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
     );
@@ -468,21 +470,21 @@ export class RebotlingService {
 
   getShiftDayNightComparison(days: number = 30): Observable<ShiftDayNightResponse> {
     return this.http.get<ShiftDayNightResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=shift-day-night&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=shift-day-night&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getMachineUptimeHeatmap(days: number = 7): Observable<UptimeHeatmapResponse> {
     return this.http.get<UptimeHeatmapResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=machine-uptime-heatmap&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=machine-uptime-heatmap&days=${days}`,
       { withCredentials: true }
     );
   }
 
   // ---- Bonus-simulator ----
   getBonusSimulator(days: number = 30, params?: BonusSimulatorParams): Observable<BonusSimulatorResponse> {
-    let url = `/noreko-backend/api.php?action=bonusadmin&run=bonus-simulator&days=${days}`;
+    let url = `${environment.apiUrl}?action=bonusadmin&run=bonus-simulator&days=${days}`;
     if (params) {
       const p = params;
       url += `&eff_w_1=${p.eff_w_1}&prod_w_1=${p.prod_w_1}&qual_w_1=${p.qual_w_1}`;
@@ -497,7 +499,7 @@ export class RebotlingService {
 
   saveBonusSimulatorParams(payload: BonusSimulatorSavePayload): Observable<any> {
     return this.http.post<any>(
-      '/noreko-backend/api.php?action=bonusadmin&run=save-simulator-params',
+      `${environment.apiUrl}?action=bonusadmin&run=save-simulator-params`,
       JSON.stringify(payload),
       { withCredentials: true, headers: { 'Content-Type': 'application/json' } }
     );
@@ -505,7 +507,7 @@ export class RebotlingService {
 
   getTopOperatorsLeaderboard(days: number = 30): Observable<LeaderboardResponse> {
     return this.http.get<LeaderboardResponse>(
-      `/noreko-backend/api.php?action=rebotling&run=top-operators-leaderboard&days=${days}`,
+      `${environment.apiUrl}?action=rebotling&run=top-operators-leaderboard&days=${days}`,
       { withCredentials: true }
     );
   }
@@ -515,7 +517,7 @@ export class RebotlingService {
   getMinDagSummary(operatorId?: number): Observable<MinDagSummaryResponse> {
     const opParam = operatorId ? `&operator=${operatorId}` : '';
     return this.http.get<MinDagSummaryResponse>(
-      `/noreko-backend/api.php?action=min-dag&run=today-summary${opParam}`,
+      `${environment.apiUrl}?action=min-dag&run=today-summary${opParam}`,
       { withCredentials: true }
     );
   }
@@ -523,7 +525,7 @@ export class RebotlingService {
   getMinDagCycleTrend(operatorId?: number): Observable<MinDagCycleTrendResponse> {
     const opParam = operatorId ? `&operator=${operatorId}` : '';
     return this.http.get<MinDagCycleTrendResponse>(
-      `/noreko-backend/api.php?action=min-dag&run=cycle-trend${opParam}`,
+      `${environment.apiUrl}?action=min-dag&run=cycle-trend${opParam}`,
       { withCredentials: true }
     );
   }
@@ -531,42 +533,42 @@ export class RebotlingService {
   getMinDagGoalsProgress(operatorId?: number): Observable<MinDagGoalsProgressResponse> {
     const opParam = operatorId ? `&operator=${operatorId}` : '';
     return this.http.get<MinDagGoalsProgressResponse>(
-      `/noreko-backend/api.php?action=min-dag&run=goals-progress${opParam}`,
+      `${environment.apiUrl}?action=min-dag&run=goals-progress${opParam}`,
       { withCredentials: true }
     );
   }
 
   getWeeklyKpis(): Observable<WeeklyKpisResponse> {
     return this.http.get<WeeklyKpisResponse>(
-      '/noreko-backend/api.php?action=rebotling&run=weekly-kpis',
+      `${environment.apiUrl}?action=rebotling&run=weekly-kpis`,
       { withCredentials: true }
     );
   }
 
   getKassationsSummary(days: number): Observable<{ success: boolean; data: KassationsSummaryData }> {
     return this.http.get<{ success: boolean; data: KassationsSummaryData }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=summary&days=${days}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=summary&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getKassationsByCause(days: number): Observable<{ success: boolean; data: { days: number; from: string; to: string; total: number; orsaker: KassationOrsak[] } }> {
     return this.http.get<{ success: boolean; data: { days: number; from: string; to: string; total: number; orsaker: KassationOrsak[] } }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=by-cause&days=${days}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=by-cause&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getKassationsDailyStacked(days: number): Observable<{ success: boolean; data: KassationsDailyStackedData }> {
     return this.http.get<{ success: boolean; data: KassationsDailyStackedData }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=daily-stacked&days=${days}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=daily-stacked&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getKassationsDrilldown(cause: number, days: number): Observable<{ success: boolean; data: KassationsDrilldownData }> {
     return this.http.get<{ success: boolean; data: KassationsDrilldownData }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=drilldown&cause=${cause}&days=${days}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=drilldown&cause=${cause}&days=${days}`,
       { withCredentials: true }
     );
   }
@@ -575,20 +577,20 @@ export class RebotlingService {
 
   getKassationsOverview(days: number): Observable<{ success: boolean; data: KassationsOverviewData }> {
     return this.http.get<{ success: boolean; data: KassationsOverviewData }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=overview&days=${days}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=overview&days=${days}`,
       { withCredentials: true }
     );
   }
 
   getKassationsByPeriod(days: number, group: 'week' | 'month'): Observable<{ success: boolean; data: KassationsByPeriodData }> {
     return this.http.get<{ success: boolean; data: KassationsByPeriodData }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=by-period&days=${days}&group=${group}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=by-period&days=${days}&group=${group}`,
       { withCredentials: true }
     );
   }
 
   getKassationsDetails(days: number, orsak?: number, operator?: string): Observable<{ success: boolean; data: KassationsDetailsData }> {
-    let url = `/noreko-backend/api.php?action=kassationsanalys&run=details&days=${days}`;
+    let url = `${environment.apiUrl}?action=kassationsanalys&run=details&days=${days}`;
     if (orsak) url += `&orsak=${orsak}`;
     if (operator) url += `&operator=${encodeURIComponent(operator)}`;
     return this.http.get<{ success: boolean; data: KassationsDetailsData }>(url, { withCredentials: true });
@@ -596,7 +598,7 @@ export class RebotlingService {
 
   getKassationsTrendRate(days: number): Observable<{ success: boolean; data: KassationsTrendRateData }> {
     return this.http.get<{ success: boolean; data: KassationsTrendRateData }>(
-      `/noreko-backend/api.php?action=kassationsanalys&run=trend-rate&days=${days}`,
+      `${environment.apiUrl}?action=kassationsanalys&run=trend-rate&days=${days}`,
       { withCredentials: true }
     );
   }
@@ -605,14 +607,14 @@ export class RebotlingService {
 
   getDashboardLayout(): Observable<DashboardLayoutResponse> {
     return this.http.get<DashboardLayoutResponse>(
-      `/noreko-backend/api.php?action=dashboard-layout&run=get-layout`,
+      `${environment.apiUrl}?action=dashboard-layout&run=get-layout`,
       { withCredentials: true }
     );
   }
 
   saveDashboardLayout(widgets: DashboardWidgetEntry[]): Observable<DashboardLayoutSaveResponse> {
     return this.http.post<DashboardLayoutSaveResponse>(
-      `/noreko-backend/api.php?action=dashboard-layout&run=save-layout`,
+      `${environment.apiUrl}?action=dashboard-layout&run=save-layout`,
       { widgets },
       { withCredentials: true }
     );
@@ -620,7 +622,7 @@ export class RebotlingService {
 
   getAvailableWidgets(): Observable<DashboardAvailableWidgetsResponse> {
     return this.http.get<DashboardAvailableWidgetsResponse>(
-      `/noreko-backend/api.php?action=dashboard-layout&run=available-widgets`,
+      `${environment.apiUrl}?action=dashboard-layout&run=available-widgets`,
       { withCredentials: true }
     );
   }
@@ -629,7 +631,7 @@ export class RebotlingService {
 
   getOperatorsForCompare(): Observable<OperatorsListResponse> {
     return this.http.get<OperatorsListResponse>(
-      `/noreko-backend/api.php?action=operator-jamforelse&run=operators-list`,
+      `${environment.apiUrl}?action=operator-jamforelse&run=operators-list`,
       { withCredentials: true }
     );
   }
@@ -637,7 +639,7 @@ export class RebotlingService {
   compareOperators(ids: number[], period: number): Observable<CompareResponse> {
     const ops = ids.join(',');
     return this.http.get<CompareResponse>(
-      `/noreko-backend/api.php?action=operator-jamforelse&run=compare&operators=${ops}&period=${period}`,
+      `${environment.apiUrl}?action=operator-jamforelse&run=compare&operators=${ops}&period=${period}`,
       { withCredentials: true }
     );
   }
@@ -645,7 +647,7 @@ export class RebotlingService {
   compareOperatorsTrend(ids: number[], period: number): Observable<CompareTrendResponse> {
     const ops = ids.join(',');
     return this.http.get<CompareTrendResponse>(
-      `/noreko-backend/api.php?action=operator-jamforelse&run=compare-trend&operators=${ops}&period=${period}`,
+      `${environment.apiUrl}?action=operator-jamforelse&run=compare-trend&operators=${ops}&period=${period}`,
       { withCredentials: true }
     );
   }
@@ -654,21 +656,21 @@ export class RebotlingService {
 
   getHourlyHeatmap(period: number): Observable<HourlyHeatmapResponse> {
     return this.http.get<HourlyHeatmapResponse>(
-      `/noreko-backend/api.php?action=produktionseffektivitet&run=hourly-heatmap&period=${period}`,
+      `${environment.apiUrl}?action=produktionseffektivitet&run=hourly-heatmap&period=${period}`,
       { withCredentials: true }
     );
   }
 
   getHourlySummary(period: number): Observable<HourlySummaryResponse> {
     return this.http.get<HourlySummaryResponse>(
-      `/noreko-backend/api.php?action=produktionseffektivitet&run=hourly-summary&period=${period}`,
+      `${environment.apiUrl}?action=produktionseffektivitet&run=hourly-summary&period=${period}`,
       { withCredentials: true }
     );
   }
 
   getPeakAnalysis(period: number): Observable<PeakAnalysisResponse> {
     return this.http.get<PeakAnalysisResponse>(
-      `/noreko-backend/api.php?action=produktionseffektivitet&run=peak-analysis&period=${period}`,
+      `${environment.apiUrl}?action=produktionseffektivitet&run=peak-analysis&period=${period}`,
       { withCredentials: true }
     );
   }

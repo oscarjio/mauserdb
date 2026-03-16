@@ -1,3 +1,64 @@
+## 2026-03-16 Session #118 Worker B — Buggjakt i 15 frontend services (batch 2)
+
+### Granskade services (15 st):
+1. kvalitetstrend.service.ts
+2. kvalitetstrendanalys.service.ts
+3. kvalitets-trendbrott.service.ts
+4. leveransplanering.service.ts
+5. maskin-drifttid.service.ts
+6. maskinhistorik.service.ts
+7. maskin-oee.service.ts
+8. maskinunderhall.service.ts
+9. morgonrapport.service.ts
+10. my-stats.service.ts
+11. operatorsportal.service.ts
+12. ranking-historik.service.ts
+13. rebotling.service.ts
+14. rebotling-sammanfattning.service.ts
+15. tidrapport.service.ts
+
+### Buggar fixade (18 st):
+
+**1. kvalitets-trendbrott.service.ts (5 buggar):**
+- Saknad import av `environment` — lagt till
+- Saknad import av `of`, `timeout`, `catchError` — lagt till
+- Hårdkodad relativ URL `/noreko-backend/api.php?action=kvalitetstrendbrott` — ersatt med `${environment.apiUrl}?action=kvalitetstrendbrott`
+- getOverview() — saknade timeout(15000) och catchError(() => of(null)) — fixat
+- getAlerts() — saknade timeout(15000) och catchError(() => of(null)) — fixat
+- getDailyDetail() — saknade timeout(15000) och catchError(() => of(null)) — fixat
+
+**2. maskinunderhall.service.ts (2 buggar):**
+- Saknad import av `environment` — lagt till
+- Felaktig relativ URL `../../noreko-backend/api.php?action=maskinunderhall` — ersatt med `${environment.apiUrl}?action=maskinunderhall`
+
+**3. ranking-historik.service.ts (2 buggar):**
+- Saknad import av `environment` — lagt till
+- Felaktig relativ URL `../../noreko-backend/api.php?action=ranking-historik` — ersatt med `${environment.apiUrl}?action=ranking-historik`
+
+**4. rebotling-sammanfattning.service.ts (2 buggar):**
+- Saknad import av `environment` — lagt till
+- Felaktig relativ URL `../../noreko-backend/api.php?action=rebotling-sammanfattning` — ersatt med `${environment.apiUrl}?action=rebotling-sammanfattning`
+
+**5. rebotling.service.ts (7 buggar):**
+- Saknad import av `environment`, `of`, `timeout`, `catchError` — lagt till
+- Hårdkodade `/noreko-backend/api.php` URL:er (60+ st) ersatta med `${environment.apiUrl}` — gäller action=rebotling, action=maintenance, action=bonusadmin, action=feedback, action=kassationsanalys, action=min-dag
+- Single-quoted statiska strängar (getLiveStats, getRunningStatus, getDriftstoppStatus, getRastStatus, getBenchmarking, getPersonalBests, getHallOfFameDays, getStaffingWarning, getProductionRate, saveAlertThresholds, saveNotificationSettings, sendWeeklySummary, setProductionGoal, getWeeklyKpis) — konverterade till template literals med environment.apiUrl
+- Felaktig getFeedbackSummary()-URL (`'`${...}'` → korrekt template literal) — fixat
+
+### Ingen bugg hittad i (9 services):
+- kvalitetstrend.service.ts — korrekt (environment + timeout + catchError OK)
+- kvalitetstrendanalys.service.ts — korrekt
+- leveransplanering.service.ts — korrekt
+- maskin-drifttid.service.ts — korrekt
+- maskinhistorik.service.ts — korrekt
+- maskin-oee.service.ts — korrekt
+- morgonrapport.service.ts — korrekt
+- my-stats.service.ts — korrekt
+- operatorsportal.service.ts — korrekt
+- tidrapport.service.ts — korrekt
+
+---
+
 ## 2026-03-16 Session #118 Worker A — Buggjakt i Kassation/Kvalitet + Stopporsak/Skift controllers
 
 ### Granskade filer (10 st):

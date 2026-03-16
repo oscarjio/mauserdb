@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
+import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface TrendbrottDailyItem {
   datum: string;
@@ -99,28 +101,28 @@ export interface ApiResponse<T> {
 
 @Injectable({ providedIn: 'root' })
 export class KvalitetsTrendbrottService {
-  private baseUrl = '/noreko-backend/api.php?action=kvalitetstrendbrott';
+  private baseUrl = `${environment.apiUrl}?action=kvalitetstrendbrott`;
 
   constructor(private http: HttpClient) {}
 
-  getOverview(period: number): Observable<ApiResponse<TrendbrottOverviewData>> {
+  getOverview(period: number): Observable<ApiResponse<TrendbrottOverviewData> | null> {
     return this.http.get<ApiResponse<TrendbrottOverviewData>>(
       `${this.baseUrl}&run=overview&period=${period}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getAlerts(period: number): Observable<ApiResponse<TrendbrottAlertsData>> {
+  getAlerts(period: number): Observable<ApiResponse<TrendbrottAlertsData> | null> {
     return this.http.get<ApiResponse<TrendbrottAlertsData>>(
       `${this.baseUrl}&run=alerts&period=${period}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 
-  getDailyDetail(date: string): Observable<ApiResponse<TrendbrottDailyDetailData>> {
+  getDailyDetail(date: string): Observable<ApiResponse<TrendbrottDailyDetailData> | null> {
     return this.http.get<ApiResponse<TrendbrottDailyDetailData>>(
       `${this.baseUrl}&run=daily-detail&date=${date}`,
       { withCredentials: true }
-    );
+    ).pipe(timeout(15000), catchError(() => of(null)));
   }
 }

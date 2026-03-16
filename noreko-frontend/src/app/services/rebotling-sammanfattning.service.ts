@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { timeout, catchError } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 // ---- Interfaces ----
 
@@ -79,7 +80,7 @@ export interface MaskinStatusResponse {
 
 @Injectable({ providedIn: 'root' })
 export class RebotlingSammanfattningService {
-  private api = '../../noreko-backend/api.php?action=rebotling-sammanfattning';
+  private api = `${environment.apiUrl}?action=rebotling-sammanfattning`;
 
   constructor(private http: HttpClient) {}
 
