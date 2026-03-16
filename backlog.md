@@ -7,14 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **PHP type coercion** — granska loose comparisons (== vs ===) i PHP-controllers (Worker A #128)
-- [ ] **Input validation** — controllers som saknar validering av required params (Worker A #128)
-- [ ] **SQL edge cases** — division by zero, NULL i AVG, LIMIT utan ORDER BY (Worker A #128)
-- [ ] **Template null-safety** — granska .html-filer for saknad ?. navigation som kraschar vid undefined (Worker B #128)
-- [ ] **Chart.js memory leaks** — verifiera att alla chart-instanser destroyas korrekt (Worker B #128)
-- [ ] **Date/timezone edge cases** — granska datum-hantering, new Date() vs parseLocalDate (Worker B #128)
-- [ ] **Error response audit** — leta efter controllers som exponerar PDOException-meddelanden till klienten
-- [ ] **HTTP error handling** — granska Angular services for saknad catchError i HTTP-anrop
+- [x] **Error response audit** — 2 PDOException-lackage fixade (Worker A #129)
+- [x] **Loose comparisons** — 18 fixar i 16 controllers (Worker A #129)
+- [x] **Chart.js memory leaks** — 109 instanser verifierade, alla OK (Worker B #129)
+- [x] **HTTP error handling** — alla services har catchError, verifierat (Worker B #129)
+- [x] **Subscription leaks** — alla har takeUntil/unsubscribe, verifierat (Worker B #129)
+- [ ] **SQL edge cases** — LIMIT utan ORDER BY, NULL i aggregeringar, saknad index-audit
+- [ ] **Template null-safety deep audit** — granska komplexa templates med nestade objekt
+- [ ] **PHP return type consistency** — controllers som returnerar inkonsistenta JSON-strukturer
+- [ ] **PHP error_log audit** — verifiera att alla catch-block loggar till error_log
+- [ ] **Angular lazy loading** — verifiera att alla routes lazy-loadar korrekt
 
 ## Parkerade features (ta inte dessa nu)
 
