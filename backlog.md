@@ -7,14 +7,17 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **PHP HTTP method enforcement** — granska att controllers avvisar felaktiga HTTP-metoder (Worker A #132)
-- [ ] **Angular memory profiling** — granska stora komponenter for minneslakor (Worker B #132)
-- [ ] **PHP unused variables cleanup** — ta bort oanvanda variabler (Worker A #132)
-- [ ] **PHP CORS/headers audit** — granska att ratt CORS-headers satts i alla endpoints (Worker A #132)
-- [ ] **Angular accessibility audit** — granska aria-attribut, keyboard navigation (Worker B #132)
-- [ ] **Angular template null-safety** — optional chaining, null-guards i templates (Worker B #132)
+- [x] **PHP HTTP method enforcement** — 2 fixar: login + alerts POST-krav (Worker A #132)
+- [x] **Angular memory profiling** — alla komponenter OK, inga lakor (Worker B #132)
+- [x] **PHP unused variables cleanup** — 6 fixar i 6 controllers (Worker A #132)
+- [x] **PHP CORS/headers audit** — 3 fixar: redundant header, JSON_UNESCAPED_UNICODE (Worker A #132)
+- [x] **Angular accessibility audit** — 13 fixar: aria-label pa knappar/selects/inputs (Worker B #132)
+- [x] **Angular template null-safety** — 9 fixar: optional chaining, nullish coalescing (Worker B #132)
 - [ ] **PHP error response consistency** — granska att alla error-svar har samma JSON-format
 - [ ] **Angular route guard audit** — granska att alla admin-routes har AuthGuard
+- [ ] **PHP session/auth timeout audit** — granska session-hantering och timeout-logik
+- [ ] **Angular HTTP error interceptor** — granska att alla HTTP-fel hanteras konsistent
+- [ ] **PHP file upload validation** — granska att filuppladdningar valideras korrekt
 
 ## Parkerade features (ta inte dessa nu)
 
