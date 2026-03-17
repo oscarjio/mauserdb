@@ -188,14 +188,15 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     });
 
     // Read query params for pre-fill (from QR code scan)
+    const validLines = ['rebotling', 'tvattlinje', 'saglinje', 'klassificeringslinje'];
     this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       if (params['maskin']) {
         // Open the form and pre-fill comment with machine name
         this.showForm = true;
-        const maskinNamn = decodeURIComponent(params['maskin']);
+        const maskinNamn = decodeURIComponent(params['maskin']).substring(0, 100);
         this.newEntry.comment = maskinNamn;
-        // If a line param is provided, use it
-        if (params['linje']) {
+        // If a line param is provided, validate against allowed values
+        if (params['linje'] && validLines.includes(params['linje'])) {
           this.selectedLine = params['linje'];
           this.newEntry.line = params['linje'];
         }

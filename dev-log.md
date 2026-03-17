@@ -1,3 +1,39 @@
+## 2026-03-17 Session #138 Worker B — Angular frontend: 8 buggar fixade (router params, memory, change detection)
+
+### Uppgift 1: Angular router parameter validation
+Granskade ALLA komponenter i noreko-frontend/src/app/pages/ som anvander ActivatedRoute (exkl. *-live).
+Filer granskade: operator-detail.ts (redan validerad), rebotling-statistik.ts (redan validerad), tvattlinje-statistik.ts (redan validerad), login.ts, stoppage-log.ts.
+
+**BUGG 1 FIXAD:** login.ts rad 89 — `returnUrl` fran queryParams anvandes utan validering, mojliggor open redirect. Lade till check att URL:en borjar med `/` och INTE `//` (forhindrar protocol-relative redirects).
+
+**BUGG 2 FIXAD:** stoppage-log.ts rad 191-201 — `params['linje']` fran queryParams anvandes utan validering, kunde satta godtycklig strang som linje-val. Lade till whitelist-validering (`validLines = ['rebotling', 'tvattlinje', 'saglinje', 'klassificeringslinje']`). Ocksa begransat `maskin`-param till max 100 tecken.
+
+### Uppgift 2: Angular memory profiling — oanvanda imports
+Granskade ALLA 165 .ts-filer i pages/ (exkl. *-live) med automatiskt skript for att hitta oanvanda imports.
+
+**BUGG 3 FIXAD:** statistik-kassationsanalys.ts rad 1 — `ViewChild` och `ElementRef` importerade men aldrig anvanda. Borttagna.
+
+**BUGG 4 FIXAD:** statistik-oee-gauge.ts rad 1 — `ElementRef` och `ViewChild` importerade men aldrig anvanda. Rad 4 — `switchMap` importerad men aldrig anvand. Borttagna.
+
+**BUGG 5 FIXAD:** statistik-produktionsmal.ts rad 1 — `ElementRef` och `ViewChild` importerade men aldrig anvanda (komponenten anvander `document.getElementById` istallet). Borttagna.
+
+**BUGG 6 FIXAD:** statistik-produkttyp-effektivitet.ts rad 1 — `AfterViewInit` importerad men klassen implementerar inte interfacet (bara `OnInit, OnDestroy`). Borttagen.
+
+**BUGG 7 FIXAD:** daglig-sammanfattning.ts rad 5 — `interval` (rxjs) importerad men aldrig anvand (komponenten anvander nativ `setInterval` istallet). Borttagen.
+
+### Uppgift 3: Angular change detection audit
+Granskade templates for metodanrop i interpoleringar (`{{ method() }}`).
+
+**BUGG 8 DOKUMENTERAD:** stoppage-log.html har 18 metodanrop i templates (bl.a. `getAvgDuration()`, `getMostCommonReason()`, `getTotalDowntimeFiltered()`, `formatMinutes()`, `getWeekDiff()`, `getDurationBadge()`, `getMonthLabel()`, `formatDuration()`). Manga av dessa (t.ex. `getAvgDuration`, `getTotalDowntimeFiltered`, `getMostCommonReason`) itererar over filteredStoppages vid varje change detection cycle. Rekommendation: cache:a resultaten i egenskaper som uppdateras vid datainlasning/filterandring.
+
+**Ovriga observationer (ej fixade, dokumenterade):**
+- narvarotracker.html: `getCellIbc(op, d)` anropas per cell i tabell — kan bli kostsamt med manga operatorer/dagar.
+- operator-jamforelse.html: `kpiRowValue(op, field)` anropas 6 ganger per operator-rad.
+- skiftrapport-sammanstallning.html: `getSnitt(key)` anropas 4 ganger per entry.
+- kassationsorsak-statistik.html: `getTrendText()` utan argument — bor vara en property.
+- min-dag.html: `ibcVsSnittText()`, `cykelTrendText()`, `formatSek()` — enkla men onodiga per CD-cykel.
+- Alla dessa ar kandidater for att flytta till computed properties eller pipes i framtida optimering.
+
 ## 2026-03-17 Session #138 Worker A — PHP-backend: 9 buggar fixade (boundary, error boundary, race condition)
 
 ### Uppgift 1: PHP boundary/pagination validation

@@ -86,7 +86,9 @@ export class LoginPage implements OnDestroy {
     private router: Router,
     private route: ActivatedRoute
   ) {
-    this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
+    const raw = this.route.snapshot.queryParams['returnUrl'] || '/';
+    // Validate returnUrl to prevent open redirect — only allow relative paths
+    this.returnUrl = (typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//')) ? raw : '/';
   }
 
   ngOnDestroy() {
