@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-16 (session #131)*
+*Senast uppdaterad: 2026-03-17 (session #132)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -83,29 +83,23 @@ Session #128: BUGGJAKT — 27 buggar (12 Worker A + 15 Worker B). Type coercion,
 Session #129: BUGGJAKT — 23 buggar (20 Worker A + 3 Worker B). PDOException-lackage, 18x loose comparisons, 3x division-by-zero. Frontend audit: 109 charts OK, alla subscriptions OK.
 Session #130: BUGGJAKT — 48 buggar (27 Worker A + 21 Worker B). SQL edge cases, JSON return consistency, error_log audit + template null-safety (.toFixed). Lazy loading OK, service URLs OK.
 Session #131: BUGGJAKT — 52 buggar (22 Worker A + 30 Worker B). Boundary validation, date range swap, SQL param whitelists + form validation, error state UI i 6 komponenter.
+Session #132: BUGGJAKT — pagaende. Worker A: HTTP method enforcement, unused vars, CORS. Worker B: memory profiling, accessibility, template null-safety.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] PHP boundary validation — fixat #131 (5 limit/offset/trim)
-- [x] Angular form validation — fixat #131 (4 required/min/max)
-- [x] PHP SQL injection re-audit — fixat #131 (7 whitelists)
-- [x] Angular error state UI — fixat #131 (26 error alerts)
-- [x] PHP date range validation — fixat #131 (10 from<=to swap)
-- [ ] PHP HTTP method enforcement
-- [ ] Angular memory profiling
-- [ ] PHP unused variables cleanup
-- [ ] PHP CORS/headers audit
-- [ ] Angular accessibility audit
+- [ ] PHP HTTP method enforcement (Worker A #132)
+- [ ] Angular memory profiling (Worker B #132)
+- [ ] PHP unused variables cleanup (Worker A #132)
+- [ ] PHP CORS/headers audit (Worker A #132)
+- [ ] Angular accessibility audit (Worker B #132)
+- [ ] Angular template null-safety (Worker B #132)
+- [ ] PHP error response consistency
+- [ ] Angular route guard audit
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-16 — Session #129 (klar)
-Worker A: 20 buggar — 2x PDOException-lackage (sakerhetsfix), 18x loose comparisons (== till ===) i 16 controllers.
-Worker B: 3 buggar — 2x division-by-zero (rebotling-statistik), 1x Infinity (sparkline). Verifierade 109 charts, alla subscriptions, alla HTTP-services — rent.
-Totalt: 23 buggar.
 
 ### 2026-03-16 — Session #130 (klar)
 Worker A: 27 buggar — 3x LIMIT utan ORDER BY, 3x NULL-safe aggregering, 18x inkonsistenta JSON-svar (saknad success-nyckel), 3x catch utan error_log.
@@ -116,3 +110,8 @@ Totalt: 48 buggar.
 Worker A: 22 buggar — 5x boundary validation (limit min/max, offset cap, trim), 10x date range (from<=to swap, 365-dagars cap), 7x SQL param whitelists (period, granularity). Alla controllers granskade — inga SQL injections.
 Worker B: 30 buggar — 4x form validation (leveransplanering required/min/max), 26x error state UI (felmeddelanden i 6 komponenter: operator-ranking, leveransplanering, tidrapport, skiftplanering, historisk-sammanfattning, oee-trendanalys).
 Totalt: 52 buggar.
+
+### 2026-03-17 — Session #132 (pagaende)
+Worker A: PHP HTTP method enforcement, unused variables cleanup, CORS/headers audit.
+Worker B: Angular memory profiling, accessibility audit, template null-safety.
+Totalt: pagaende...
