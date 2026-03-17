@@ -66,11 +66,15 @@ class LoginController {
                 // Update last login
                 $pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?")->execute([$user['id']]);
 
-                // Starta session FÖRST HÄR (efter verifiering) — inga gamla session-ID:n
-                // att regenerera, så exakt EN Set-Cookie: PHPSESSID skickas till browsern.
+                // Starta session FÖRST HÄR (efter verifiering).
+                // Om en befintlig session finns (t.ex. från en annan sida) — regenerera ID:t
+                // för att förhindra session fixation. Om ingen session fanns startas en ny.
                 if (session_status() === PHP_SESSION_NONE) {
                     session_start();
                 }
+                // Regenerera session-ID för att förhindra session fixation-attacker.
+                // true = radera gammal session-fil.
+                session_regenerate_id(true);
 
                 // Set session
                 $_SESSION['user_id'] = $user['id'];
@@ -125,6 +129,24 @@ class LoginController {
         }
         session_unset();
         session_destroy();
+        // Radera session-cookien i browsern så att ingen stale PHPSESSID ligger kvar.
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            $isHttps = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                       (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+            setcookie(
+                session_name(),
+                '',
+                [
+                    'expires'  => time() - 42000,
+                    'path'     => $params['path'],
+                    'domain'   => $params['domain'],
+                    'secure'   => $isHttps,
+                    'httponly'  => true,
+                    'samesite' => 'Lax',
+                ]
+            );
+        }
         echo json_encode(['success' => true, 'message' => 'Utloggad'], JSON_UNESCAPED_UNICODE);
     }
 }

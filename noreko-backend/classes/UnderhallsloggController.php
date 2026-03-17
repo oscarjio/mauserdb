@@ -208,6 +208,17 @@ class UnderhallsloggController {
 
             $from = trim($_GET['from'] ?? '');
             $to   = trim($_GET['to'] ?? '');
+            // Validera att from <= to, annars byt plats
+            if ($from && $to && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to) && $from > $to) {
+                [$from, $to] = [$to, $from];
+            }
+            // Begränsa till max 365 dagar
+            if ($from && $to && preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
+                $diffDays = (int)((strtotime($to) - strtotime($from)) / 86400);
+                if ($diffDays > 365) {
+                    $from = date('Y-m-d', strtotime($to . ' -365 days'));
+                }
+            }
             if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) {
                 $where[]  = 'datum >= ?';
                 $params[] = $from . ' 00:00:00';

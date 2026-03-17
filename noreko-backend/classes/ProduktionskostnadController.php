@@ -498,6 +498,15 @@ class ProduktionskostnadController {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
                 $to = $today;
             }
+            // Validera att from <= to, annars byt plats
+            if ($from > $to) {
+                [$from, $to] = [$to, $from];
+            }
+            // Begränsa till max 365 dagar
+            $diffDays = (int)((strtotime($to) - strtotime($from)) / 86400);
+            if ($diffDays > 365) {
+                $from = date('Y-m-d', strtotime($to . ' -365 days'));
+            }
 
             $perDag    = $this->getProductionPerDay($from, $to);
             $stoppPerDag = $this->getStopptidPerDay($from, $to);

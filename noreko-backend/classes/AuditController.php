@@ -68,6 +68,17 @@ class AuditController {
                 $dateEnd = (preg_match('/^\d{4}-\d{2}-\d{2}$/', $toDate))
                     ? $toDate . ' 23:59:59'
                     : null;
+                // Validera att from <= to, annars byt plats
+                if ($dateEnd !== null && $dateStart > $dateEnd) {
+                    [$dateStart, $dateEnd] = [$dateEnd, $dateStart];
+                }
+                // Begränsa till max 365 dagar
+                if ($dateEnd !== null) {
+                    $diffDays = (int)((strtotime($dateEnd) - strtotime($dateStart)) / 86400);
+                    if ($diffDays > 365) {
+                        $dateStart = date('Y-m-d 00:00:00', strtotime($dateEnd . ' -365 days'));
+                    }
+                }
             }
 
             $where  = ['created_at >= ?'];
