@@ -120,9 +120,9 @@ class TvattlinjeController {
         try {
             $this->ensureSettingsTable();
             $rows = $this->pdo->query("SELECT setting, value FROM tvattlinje_settings ORDER BY id")->fetchAll(PDO::FETCH_KEY_PAIR);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getSettings: ' . $e->getMessage());
+            error_log('TvattlinjeController::getSettings: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -145,10 +145,10 @@ class TvattlinjeController {
                 $stmt->execute([$key, $value]);
             }
             AuditLogger::log($this->pdo, 'update_tvattlinje_settings_v2', 'tvattlinje_settings', null,
-                json_encode(array_intersect_key($data, array_flip($allowed))));
-            echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
+                json_encode(array_intersect_key($data, array_flip($allowed)), JSON_UNESCAPED_UNICODE));
+            echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController setSettings: ' . $e->getMessage());
+            error_log('TvattlinjeController::setSettings: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -217,9 +217,9 @@ class TvattlinjeController {
                     'note'             => $note,
                     'server_time'      => $now->format('Y-m-d H:i:s'),
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getSystemStatus: ' . $e->getMessage());
+            error_log('TvattlinjeController::getSystemStatus: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -330,9 +330,9 @@ class TvattlinjeController {
                     'is_running'    => $isRunning,
                     'server_time'   => $now->format('H:i:s'),
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getTodaySnapshot: ' . $e->getMessage());
+            error_log('TvattlinjeController::getTodaySnapshot: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -354,7 +354,7 @@ class TvattlinjeController {
         $stmt = $this->pdo->prepare(
             "INSERT IGNORE INTO tvattlinje_settings (setting, value) VALUES ('alert_thresholds', ?)"
         );
-        $stmt->execute([json_encode($this->defaultAlertThresholds())]);
+        $stmt->execute([json_encode($this->defaultAlertThresholds(), JSON_UNESCAPED_UNICODE)]);
     }
 
     private function getAlertThresholds() {
@@ -372,9 +372,9 @@ class TvattlinjeController {
                     $thresholds = array_merge($defaults, $saved);
                 }
             }
-            echo json_encode(['success' => true, 'data' => $thresholds]);
+            echo json_encode(['success' => true, 'data' => $thresholds], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getAlertThresholds: ' . $e->getMessage());
+            error_log('TvattlinjeController::getAlertThresholds: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta alert-trösklar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -395,7 +395,7 @@ class TvattlinjeController {
                     $cleaned[$key] = max(0, intval($data[$key]));
                 }
             }
-            $json = json_encode($cleaned);
+            $json = json_encode($cleaned, JSON_UNESCAPED_UNICODE);
             $stmt = $this->pdo->prepare(
                 "UPDATE tvattlinje_settings SET value = ?, updated_at = CURRENT_TIMESTAMP WHERE setting = 'alert_thresholds'"
             );
@@ -404,7 +404,7 @@ class TvattlinjeController {
                 'thresholds=' . $json);
             echo json_encode(['success' => true, 'message' => 'Alert-trösklar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController saveAlertThresholds: ' . $e->getMessage());
+            error_log('TvattlinjeController::saveAlertThresholds: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara alert-trösklar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -433,9 +433,9 @@ class TvattlinjeController {
         try {
             $this->ensureWeekdayGoalsTable();
             $rows = $this->pdo->query("SELECT weekday, mal FROM tvattlinje_weekday_goals ORDER BY weekday")->fetchAll(\PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getWeekdayGoals: ' . $e->getMessage());
+            error_log('TvattlinjeController::getWeekdayGoals: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -462,7 +462,7 @@ class TvattlinjeController {
                 'goals=' . count($goals));
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController setWeekdayGoals: ' . $e->getMessage());
+            error_log('TvattlinjeController::setWeekdayGoals: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -571,7 +571,7 @@ class TvattlinjeController {
                     $utetemperatur = (float)$weatherData['utetemperatur'];
                 }
             } catch (Exception $e) {
-                error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
+                error_log('TvattlinjeController::inte hämta väderdata: ' . $e->getMessage());
             }
 
             $response = [
@@ -598,13 +598,13 @@ class TvattlinjeController {
                 ];
             }
             
-            echo json_encode($response);
+            echo json_encode($response, JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
-            error_log('Kunde inte hämta statistik (tvattlinje getLiveStats): ' . $e->getMessage());
+            error_log('TvattlinjeController::inte hämta statistik (tvattlinje getLiveStats): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -628,9 +628,9 @@ class TvattlinjeController {
                     'running' => $isRunning,
                     'lastUpdate' => $lastUpdate
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta status (tvattlinje getRunningStatus): ' . $e->getMessage());
+            error_log('TvattlinjeController::inte hämta status (tvattlinje getRunningStatus): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta status'
@@ -647,7 +647,7 @@ class TvattlinjeController {
                 'data' => $settings
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta admin-inställningar (tvattlinje): ' . $e->getMessage());
+            error_log('TvattlinjeController::inte hämta admin-inställningar (tvattlinje): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta admin-inställningar'
@@ -703,9 +703,9 @@ class TvattlinjeController {
                     'timtakt'       => $timtakt,
                     'skiftlangd'    => $skiftlangd
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte spara inställningar (tvattlinje): ' . $e->getMessage());
+            error_log('TvattlinjeController::inte spara inställningar (tvattlinje): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte spara inställningar'
@@ -870,9 +870,9 @@ class TvattlinjeController {
                         'days_with_production' => $days_with_production
                     ]
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta statistik (tvattlinje getStatistics): ' . $e->getMessage());
+            error_log('TvattlinjeController::inte hämta statistik (tvattlinje getStatistics): ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
                 'error' => 'Kunde inte hämta statistik'
@@ -923,7 +923,7 @@ class TvattlinjeController {
                 $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
-                error_log('TvattlinjeController getReport prevRows: ' . $e->getMessage());
+                error_log('TvattlinjeController::getReport prevRows: ' . $e->getMessage());
             }
 
             // Beräkna KPI för aktuellt datum
@@ -965,7 +965,7 @@ class TvattlinjeController {
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
                 }
             } catch (\Exception $e) {
-                error_log('TvattlinjeController getReport runtime: ' . $e->getMessage());
+                error_log('TvattlinjeController::getReport runtime: ' . $e->getMessage());
             }
 
             // Snitt IBC/h
@@ -993,9 +993,9 @@ class TvattlinjeController {
                     'skift_count'     => count($rows),
                     'skift_data'      => $rows,
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getReport: ' . $e->getMessage());
+            error_log('TvattlinjeController::getReport: ' . $e->getMessage());
             echo json_encode([
                 'success' => true,
                 'empty'   => true,
@@ -1057,7 +1057,7 @@ class TvattlinjeController {
                         'basta_dag'      => null,
                         'basta_ibc'      => 0,
                     ],
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -1105,7 +1105,7 @@ class TvattlinjeController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('TvattlinjeController getOeeTrend: ' . $e->getMessage());
+            error_log('TvattlinjeController::getOeeTrend: ' . $e->getMessage());
             echo json_encode([
                 'success' => true,
                 'empty'   => true,

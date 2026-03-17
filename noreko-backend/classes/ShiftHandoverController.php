@@ -137,9 +137,9 @@ class ShiftHandoverController {
             ');
             $stmt->execute();
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
-            echo json_encode(['antal' => (int)($row['antal'] ?? 0)]);
+            echo json_encode(['antal' => (int)($row['antal'] ?? 0)], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('ShiftHandoverController unreadCount: ' . $e->getMessage());
+            error_log('ShiftHandoverController::unreadCount: ' . $e->getMessage());
             echo json_encode(['antal' => 0], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -206,9 +206,9 @@ class ShiftHandoverController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'notes' => $notes]);
+            echo json_encode(['success' => true, 'notes' => $notes], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('ShiftHandoverController getRecent: ' . $e->getMessage());
+            error_log('ShiftHandoverController::getRecent: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta anteckningar'], JSON_UNESCAPED_UNICODE);
         }
@@ -264,7 +264,7 @@ class ShiftHandoverController {
                 $opName = $op ? $op['name'] : null;
             } catch (PDOException $e) {
                 // Op-namn är icke-kritiskt — fortsätt utan det
-                error_log('ShiftHandoverController addNote op lookup: ' . $e->getMessage());
+                error_log('ShiftHandoverController::addNote op lookup: ' . $e->getMessage());
             }
         }
 
@@ -317,9 +317,9 @@ class ShiftHandoverController {
                     'acknowledged_by_name' => null,
                     'acknowledged_time_ago'=> null,
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('ShiftHandoverController addNote: ' . $e->getMessage());
+            error_log('ShiftHandoverController::addNote: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara anteckning'], JSON_UNESCAPED_UNICODE);
         }
@@ -368,9 +368,9 @@ class ShiftHandoverController {
                 'acknowledged_at'      => $row['acknowledged_at'] ?? null,
                 'acknowledged_by_name' => $row['acknowledged_by_name'] ?? null,
                 'acknowledged_time_ago'=> 'Just nu',
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('ShiftHandoverController acknowledge: ' . $e->getMessage());
+            error_log('ShiftHandoverController::acknowledge: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte kvittera anteckning'], JSON_UNESCAPED_UNICODE);
         }
@@ -396,7 +396,7 @@ class ShiftHandoverController {
 
             if (!$row) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Anteckning hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Anteckning hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -415,7 +415,7 @@ class ShiftHandoverController {
 
             echo json_encode(['success' => true, 'message' => 'Anteckning borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('ShiftHandoverController deleteNote: ' . $e->getMessage());
+            error_log('ShiftHandoverController::deleteNote: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort anteckning'], JSON_UNESCAPED_UNICODE);
         }
@@ -455,7 +455,7 @@ class ShiftHandoverController {
             }
             return $emails;
         } catch (Exception $e) {
-            error_log('ShiftHandoverController getAdminEmails: ' . $e->getMessage());
+            error_log('ShiftHandoverController::getAdminEmails: ' . $e->getMessage());
             return [];
         }
     }

@@ -161,7 +161,7 @@ class DashboardLayoutController {
             return;
         }
 
-        $layoutJson = json_encode($cleaned);
+        $layoutJson = json_encode($cleaned, JSON_UNESCAPED_UNICODE);
 
         try {
             $stmt = $this->pdo->prepare(

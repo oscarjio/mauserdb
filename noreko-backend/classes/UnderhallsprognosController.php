@@ -167,7 +167,7 @@ class UnderhallsprognosController {
                 $this->seedStandarddata();
             }
         } catch (\PDOException $e) {
-            error_log('UnderhallsprognosController ensureTablesExist: ' . $e->getMessage());
+            error_log('UnderhallsprognosController::ensureTablesExist: ' . $e->getMessage());
         }
     }
 
@@ -217,7 +217,7 @@ class UnderhallsprognosController {
                 $stmtS->execute($s);
             }
         } catch (\PDOException $e) {
-            error_log('UnderhallsprognosController seedStandarddata: ' . $e->getMessage());
+            error_log('UnderhallsprognosController::seedStandarddata: ' . $e->getMessage());
         }
     }
 
@@ -406,7 +406,7 @@ class UnderhallsprognosController {
                     ];
                 }
             } catch (\PDOException $e) {
-                error_log('UnderhallsprognosController history (maintenance_log): ' . $e->getMessage());
+                error_log('UnderhallsprognosController::history (maintenance_log): ' . $e->getMessage());
             }
 
             // --- Källa 2: underhallslogg ---
@@ -445,7 +445,7 @@ class UnderhallsprognosController {
                     ];
                 }
             } catch (\PDOException $e) {
-                error_log('UnderhallsprognosController history (underhallslogg): ' . $e->getMessage());
+                error_log('UnderhallsprognosController::history (underhallslogg): ' . $e->getMessage());
             }
 
             // Sortera kombinerat resultat nyast först

@@ -116,7 +116,7 @@ class HistorikController {
                 'total_ibc_ar'   => $totalIbcAr,
                 'snitt_per_manad' => $snittPerManad,
                 'basta_manad'    => $bastaManad,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (PDOException $e) {
             error_log('HistorikController::getMonthly PDOException: ' . $e->getMessage());
@@ -174,7 +174,7 @@ class HistorikController {
             echo json_encode([
                 'success' => true,
                 'yearly'  => $yearly,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (PDOException $e) {
             error_log('HistorikController::getYearly PDOException: ' . $e->getMessage());

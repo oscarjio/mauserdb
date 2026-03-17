@@ -32,7 +32,7 @@ class BonusController {
 
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+            echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -275,7 +275,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getOperatorStats error: ' . $e->getMessage());
+            error_log('BonusController::getOperatorStats error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -417,7 +417,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getRanking error: ' . $e->getMessage());
+            error_log('BonusController::getRanking error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -539,7 +539,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getTeamStats error: ' . $e->getMessage());
+            error_log('BonusController::getTeamStats error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -635,7 +635,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getKPIDetails error: ' . $e->getMessage());
+            error_log('BonusController::getKPIDetails error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -700,7 +700,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getOperatorHistory error: ' . $e->getMessage());
+            error_log('BonusController::getOperatorHistory error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -764,7 +764,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getDailySummary error: ' . $e->getMessage());
+            error_log('BonusController::getDailySummary error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -882,7 +882,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('Bonus getWeeklyHistory error: ' . $e->getMessage());
+            error_log('BonusController::getWeeklyHistory error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1031,7 +1031,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getHallOfFame error: ' . $e->getMessage());
+            error_log('BonusController::getHallOfFame error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1151,7 +1151,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getLoneprognos error: ' . $e->getMessage());
+            error_log('BonusController::getLoneprognos error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1268,7 +1268,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getPersonalBest error: ' . $e->getMessage());
+            error_log('BonusController::getPersonalBest error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1352,7 +1352,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getStreak error: ' . $e->getMessage());
+            error_log('BonusController::getStreak error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1582,7 +1582,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getAchievements error: ' . $e->getMessage());
+            error_log('BonusController::getAchievements error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1758,7 +1758,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController simulate error: ' . $e->getMessage());
+            error_log('BonusController::simulate error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1848,7 +1848,7 @@ class BonusController {
             if ($c2 >= $c1 && $c2 >= $c3) return 'Kontrollstation';
             return 'Truckförare';
         } catch (PDOException $e) {
-            error_log('BonusController getOperatorPrimaryPosition: ' . $e->getMessage());
+            error_log('BonusController::getOperatorPrimaryPosition: ' . $e->getMessage());
             return 'Okänd';
         }
     }
@@ -1862,7 +1862,7 @@ class BonusController {
             'success'   => true,
             'data'      => $data,
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function sendError(string $message, int $code = 400): void {
@@ -2042,7 +2042,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getMyRanking error: ' . $e->getMessage());
+            error_log('BonusController::getMyRanking error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -2205,7 +2205,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getWeekTrend error: ' . $e->getMessage());
+            error_log('BonusController::getWeekTrend error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -2405,7 +2405,7 @@ class BonusController {
                 }
             } catch (PDOException $e) {
                 // Trend-beräkning är ej kritisk, logga och fortsätt
-                error_log('BonusController getRankingPosition trend error: ' . $e->getMessage());
+                error_log('BonusController::getRankingPosition trend error: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -2420,7 +2420,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getRankingPosition error: ' . $e->getMessage());
+            error_log('BonusController::getRankingPosition error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -2553,7 +2553,7 @@ class BonusController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusController getPeerRanking error: ' . $e->getMessage());
+            error_log('BonusController::getPeerRanking error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }

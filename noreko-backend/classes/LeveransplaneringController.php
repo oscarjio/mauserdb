@@ -434,7 +434,7 @@ class LeveransplaneringController {
             $stmt->execute([
                 ':kap'      => $kapPerDag,
                 ':buffer'   => $buffer,
-                ':underhall' => json_encode($underhall),
+                ':underhall' => json_encode($underhall, JSON_UNESCAPED_UNICODE),
             ]);
 
             $this->sendSuccess(['updated' => true, 'config' => $this->getConfig()]);

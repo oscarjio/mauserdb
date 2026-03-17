@@ -79,11 +79,11 @@ class RegisterController {
             $stmt->execute([$username]);
             if ($stmt->fetch()) {
                 http_response_code(409);
-                echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget']);
+                echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
                 return;
             }
         } catch (PDOException $e) {
-            error_log('RegisterController check_username: ' . $e->getMessage());
+            error_log('RegisterController::check_username: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
             return;
@@ -108,7 +108,7 @@ class RegisterController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('RegisterController create_user: ' . $e->getMessage());
+            error_log('RegisterController::create_user: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,

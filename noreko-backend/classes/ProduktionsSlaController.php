@@ -104,7 +104,7 @@ class ProduktionsSlaController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController ensureTables: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -300,7 +300,7 @@ class ProduktionsSlaController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController getOverview: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
     }
@@ -360,7 +360,7 @@ class ProduktionsSlaController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController getDailyProgress: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::getDailyProgress: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta daglig progress', 500);
         }
     }
@@ -425,7 +425,7 @@ class ProduktionsSlaController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController getWeeklyProgress: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::getWeeklyProgress: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta vecko-progress', 500);
         }
     }
@@ -501,7 +501,7 @@ class ProduktionsSlaController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController getHistory: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::getHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta historik', 500);
         }
     }
@@ -540,7 +540,7 @@ class ProduktionsSlaController {
 
             $this->sendSuccess(['goals' => $result]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController getGoals: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::getGoals: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta mål', 500);
         }
     }
@@ -594,7 +594,7 @@ class ProduktionsSlaController {
                 'message' => 'Mål sparat',
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionsSlaController setGoal: ' . $e->getMessage());
+            error_log('ProduktionsSlaController::setGoal: ' . $e->getMessage());
             $this->sendError('Kunde inte spara mål', 500);
         }
     }

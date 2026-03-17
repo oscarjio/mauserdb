@@ -99,7 +99,7 @@ class SkiftplaneringController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController ensureTables: ' . $e->getMessage());
+            error_log('SkiftplaneringController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -130,7 +130,7 @@ class SkiftplaneringController {
             $row2 = $stmt2->fetch(\PDO::FETCH_ASSOC);
             return $row2 ? $row2['name'] : 'Operatör #' . $id;
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController getOperatorName: ' . $e->getMessage());
+            error_log('SkiftplaneringController::getOperatorName: ' . $e->getMessage());
             return 'Operatör #' . $id;
         }
     }
@@ -258,7 +258,7 @@ class SkiftplaneringController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController getOverview: ' . $e->getMessage());
+            error_log('SkiftplaneringController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
     }
@@ -301,7 +301,7 @@ class SkiftplaneringController {
                         $operatorNames[(int)$op['number']] = $op['name'];
                     }
                 } catch (\PDOException $e) {
-                    error_log('SkiftplaneringController getSchedule operators: ' . $e->getMessage());
+                    error_log('SkiftplaneringController::getSchedule operators: ' . $e->getMessage());
                 }
             }
 
@@ -385,7 +385,7 @@ class SkiftplaneringController {
                 'schema' => $result,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController getSchedule: ' . $e->getMessage());
+            error_log('SkiftplaneringController::getSchedule: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta veckoschema', 500);
         }
     }
@@ -472,7 +472,7 @@ class SkiftplaneringController {
                 $prodStmt->execute([$fromDt, $toDt]);
                 $faktiskProduktion = (int)$prodStmt->fetchColumn();
             } catch (\PDOException $e) {
-                error_log('SkiftplaneringController getShiftDetail rebotling_log: ' . $e->getMessage());
+                error_log('SkiftplaneringController::getShiftDetail rebotling_log: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -489,7 +489,7 @@ class SkiftplaneringController {
                 'faktisk_produktion' => $faktiskProduktion,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController getShiftDetail: ' . $e->getMessage());
+            error_log('SkiftplaneringController::getShiftDetail: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta skiftdetaljer', 500);
         }
     }
@@ -540,7 +540,7 @@ class SkiftplaneringController {
                 'message' => 'Operatör tilldelad',
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController assignOperator: ' . $e->getMessage());
+            error_log('SkiftplaneringController::assignOperator: ' . $e->getMessage());
             $this->sendError('Kunde inte tilldela operatör', 500);
         }
     }
@@ -573,7 +573,7 @@ class SkiftplaneringController {
 
             $this->sendSuccess(['message' => 'Operatör borttagen från skift']);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController unassignOperator: ' . $e->getMessage());
+            error_log('SkiftplaneringController::unassignOperator: ' . $e->getMessage());
             $this->sendError('Kunde inte ta bort operatör', 500);
         }
     }
@@ -647,7 +647,7 @@ class SkiftplaneringController {
                 $val = (float)$ibcStmt->fetchColumn();
                 if ($val > 0) $ibcPerH = round($val, 1);
             } catch (\PDOException $e) {
-                error_log('SkiftplaneringController getCapacity rebotling_log: ' . $e->getMessage());
+                error_log('SkiftplaneringController::getCapacity rebotling_log: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -657,7 +657,7 @@ class SkiftplaneringController {
                 'skift_konfiguration' => $configs,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController getCapacity: ' . $e->getMessage());
+            error_log('SkiftplaneringController::getCapacity: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta kapacitetsdata', 500);
         }
     }
@@ -676,12 +676,12 @@ class SkiftplaneringController {
                 );
                 $operatorer = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\PDOException $e) {
-                error_log('SkiftplaneringController getOperators: ' . $e->getMessage());
+                error_log('SkiftplaneringController::getOperators: ' . $e->getMessage());
             }
 
             $this->sendSuccess(['operatorer' => $operatorer]);
         } catch (\PDOException $e) {
-            error_log('SkiftplaneringController getOperators: ' . $e->getMessage());
+            error_log('SkiftplaneringController::getOperators: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörer', 500);
         }
     }

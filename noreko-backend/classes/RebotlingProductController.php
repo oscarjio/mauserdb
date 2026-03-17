@@ -70,7 +70,7 @@ class RebotlingProductController {
                 'data' => $products
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta produkter: ' . $e->getMessage());
+            error_log('RebotlingProductController::getProducts: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -122,7 +122,7 @@ class RebotlingProductController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte skapa produkt: ' . $e->getMessage());
+            error_log('RebotlingProductController::createProduct: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -181,7 +181,7 @@ class RebotlingProductController {
                 ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
-            error_log('Kunde inte uppdatera produkt: ' . $e->getMessage());
+            error_log('RebotlingProductController::updateProduct: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -224,7 +224,7 @@ class RebotlingProductController {
                 ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
-            error_log('Kunde inte ta bort produkt: ' . $e->getMessage());
+            error_log('RebotlingProductController::deleteProduct: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,

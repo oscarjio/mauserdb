@@ -67,7 +67,7 @@ class MaskinunderhallController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -106,7 +106,7 @@ class MaskinunderhallController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController ensureTables: ' . $e->getMessage());
+            error_log('MaskinunderhallController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -185,7 +185,7 @@ class MaskinunderhallController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController getOverview: ' . $e->getMessage());
+            error_log('MaskinunderhallController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
     }
@@ -242,7 +242,7 @@ class MaskinunderhallController {
 
             $this->sendSuccess(['maskiner' => $maskiner]);
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController getMachines: ' . $e->getMessage());
+            error_log('MaskinunderhallController::getMachines: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta maskiner', 500);
         }
     }
@@ -308,7 +308,7 @@ class MaskinunderhallController {
                 'historik' => $historik,
             ]);
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController getMachineHistory: ' . $e->getMessage());
+            error_log('MaskinunderhallController::getMachineHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta historik', 500);
         }
     }
@@ -373,7 +373,7 @@ class MaskinunderhallController {
 
             $this->sendSuccess(['items' => $items]);
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController getTimeline: ' . $e->getMessage());
+            error_log('MaskinunderhallController::getTimeline: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta tidslinje-data', 500);
         }
     }
@@ -465,7 +465,7 @@ class MaskinunderhallController {
                 'message' => 'Service registrerad',
             ]);
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController addService: ' . $e->getMessage());
+            error_log('MaskinunderhallController::addService: ' . $e->getMessage());
             $this->sendError('Kunde inte spara service', 500);
         }
     }
@@ -503,7 +503,7 @@ class MaskinunderhallController {
                 'message' => 'Maskin registrerad',
             ]);
         } catch (\PDOException $e) {
-            error_log('MaskinunderhallController addMachine: ' . $e->getMessage());
+            error_log('MaskinunderhallController::addMachine: ' . $e->getMessage());
             $this->sendError('Kunde inte spara maskin', 500);
         }
     }

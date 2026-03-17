@@ -144,7 +144,7 @@ class SkiftoverlamningController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController ensureTable: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::ensureTable: ' . $e->getMessage());
         }
     }
 
@@ -163,7 +163,7 @@ class SkiftoverlamningController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController ensureNewColumns: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::ensureNewColumns: ' . $e->getMessage());
         }
     }
 
@@ -279,7 +279,7 @@ class SkiftoverlamningController {
             try {
                 $drifttidSek = $this->calcDrifttidSek($tider['start'], $tider['slut']);
             } catch (\PDOException $e) {
-                error_log('getAktuelltSkift drifttid: ' . $e->getMessage());
+                error_log('SkiftoverlamningController::getAktuelltSkift drifttid: ' . $e->getMessage());
             }
 
             // OEE-beräkning
@@ -296,7 +296,7 @@ class SkiftoverlamningController {
                 $row = $aStmt->fetch(\PDO::FETCH_ASSOC);
                 $aktivNu = $row ? (bool)$row['running'] : false;
             } catch (\PDOException $e) {
-                error_log('SkiftoverlamningController getAktuelltSkift aktivNu: ' . $e->getMessage());
+                error_log('SkiftoverlamningController::getAktuelltSkift aktivNu: ' . $e->getMessage());
             }
 
             $this->sendSuccess([
@@ -316,7 +316,7 @@ class SkiftoverlamningController {
                 'operator'        => $this->currentUsername(),
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getAktuelltSkift: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getAktuelltSkift: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta aktuellt skift', 500);
         }
     }
@@ -379,7 +379,7 @@ class SkiftoverlamningController {
             try {
                 $drifttidSek = $this->calcDrifttidSek($tider['start'], $tider['slut']);
             } catch (\PDOException $e) {
-                error_log('getSkiftSammanfattning drifttid: ' . $e->getMessage());
+                error_log('SkiftoverlamningController::getSkiftSammanfattning drifttid: ' . $e->getMessage());
             }
 
             // OEE
@@ -443,7 +443,7 @@ class SkiftoverlamningController {
                 'overlamning'           => $overlamning,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getSkiftSammanfattning: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getSkiftSammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta skift-sammanfattning', 500);
         }
     }
@@ -483,7 +483,7 @@ class SkiftoverlamningController {
 
             $this->sendSuccess(['problem' => $items, 'antal' => count($items)]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getOppnaProblem: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getOppnaProblem: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta öppna problem', 500);
         }
     }
@@ -554,7 +554,7 @@ class SkiftoverlamningController {
 
             $this->sendSuccess(['items' => $items]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getHistorik: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getHistorik: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta historik', 500);
         }
     }
@@ -661,7 +661,7 @@ class SkiftoverlamningController {
                 'offset'=> $offset,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getList: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getList: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta överlämningar', 500);
         }
     }
@@ -721,7 +721,7 @@ class SkiftoverlamningController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getDetail: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getDetail: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta överlämning', 500);
         }
     }
@@ -785,7 +785,7 @@ class SkiftoverlamningController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getShiftKpis: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getShiftKpis: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta skift-KPI:er', 500);
         }
     }
@@ -857,7 +857,7 @@ class SkiftoverlamningController {
                 'pagaende_problem_lista'  => $activeItems,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getSummaryKpis: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getSummaryKpis: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta sammanfattning', 500);
         }
     }
@@ -883,7 +883,7 @@ class SkiftoverlamningController {
             }
             $this->sendSuccess(['operators' => $operators]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getOperators: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getOperators: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörer', 500);
         }
     }
@@ -908,7 +908,7 @@ class SkiftoverlamningController {
                 $uRow = $uStmt->fetch(\PDO::FETCH_ASSOC);
                 $username = $uRow['username'] ?? null;
             } catch (\PDOException $e) {
-                error_log('SkiftoverlamningController createHandover username lookup: ' . $e->getMessage());
+                error_log('SkiftoverlamningController::createHandover username lookup: ' . $e->getMessage());
             }
         }
 
@@ -943,7 +943,7 @@ class SkiftoverlamningController {
         // Checklista JSON
         $checklistaJson = null;
         if (isset($data['checklista']) && is_array($data['checklista'])) {
-            $checklistaJson = json_encode($data['checklista']);
+            $checklistaJson = json_encode($data['checklista'], JSON_UNESCAPED_UNICODE);
         }
 
         // Begränsa textlängder
@@ -987,7 +987,7 @@ class SkiftoverlamningController {
                 'message' => 'Skiftöverlämning sparad',
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController createHandover: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::createHandover: ' . $e->getMessage());
             $this->sendError('Kunde inte spara överlämning', 500);
         }
     }
@@ -1023,7 +1023,7 @@ class SkiftoverlamningController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController ensureProtokollTable: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::ensureProtokollTable: ' . $e->getMessage());
         }
     }
 
@@ -1064,7 +1064,7 @@ class SkiftoverlamningController {
             try {
                 $drifttidSek = $this->calcDrifttidSek($tider['start'], $tider['slut']);
             } catch (\PDOException $e) {
-                error_log('getSkiftdata drifttid: ' . $e->getMessage());
+                error_log('SkiftoverlamningController::getSkiftdata drifttid: ' . $e->getMessage());
             }
 
             // OEE-berakning
@@ -1094,7 +1094,7 @@ class SkiftoverlamningController {
                 // Stopptid = planerad tid minus drifttid
                 $stoppMinuter = max(0, round(($planeradSek - $drifttidSek) / 60));
             } catch (\PDOException $e) {
-                error_log('SkiftoverlamningController getSkiftdata stopp: ' . $e->getMessage());
+                error_log('SkiftoverlamningController::getSkiftdata stopp: ' . $e->getMessage());
                 $stoppMinuter = max(0, round((($planeradSek - $drifttidSek) / 60)));
             }
 
@@ -1111,7 +1111,7 @@ class SkiftoverlamningController {
                 'kassation_procent' => $kassationPct,
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getSkiftdata: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getSkiftdata: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta skiftdata', 500);
         }
     }
@@ -1175,7 +1175,7 @@ class SkiftoverlamningController {
                 'message' => 'Skiftoverlamningsprotokoll sparat',
             ]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController sparaProtokoll: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::sparaProtokoll: ' . $e->getMessage());
             $this->sendError('Kunde inte spara protokoll', 500);
         }
     }
@@ -1206,7 +1206,7 @@ class SkiftoverlamningController {
 
             $this->sendSuccess(['items' => $items]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getProtokollHistorik: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getProtokollHistorik: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta protokollhistorik', 500);
         }
     }
@@ -1239,7 +1239,7 @@ class SkiftoverlamningController {
 
             $this->sendSuccess(['item' => $this->formatProtokollRow($r)]);
         } catch (\PDOException $e) {
-            error_log('SkiftoverlamningController getProtokollDetalj: ' . $e->getMessage());
+            error_log('SkiftoverlamningController::getProtokollDetalj: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta protokoll', 500);
         }
     }

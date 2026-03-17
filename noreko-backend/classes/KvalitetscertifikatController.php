@@ -81,12 +81,12 @@ class KvalitetscertifikatController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gatt ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gatt ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
         if (($_SESSION['role'] ?? '') !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Admin-behorighet kravs.']);
+            echo json_encode(['success' => false, 'error' => 'Admin-behorighet kravs.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -108,7 +108,7 @@ class KvalitetscertifikatController {
 
     private function sendError(string $message, int $code = 400): void {
         http_response_code($code);
-        echo json_encode(['success' => false, 'error' => $message]);
+        echo json_encode(['success' => false, 'error' => $message], JSON_UNESCAPED_UNICODE);
     }
 
     private function ensureTables(): void {
@@ -125,7 +125,7 @@ class KvalitetscertifikatController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('KvalitetscertifikatController ensureTables: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -197,7 +197,7 @@ class KvalitetscertifikatController {
                 ],
             ]);
         } catch (\Exception $e) {
-            error_log('KvalitetscertifikatController getOverview: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta oversikt', 500);
         }
     }
@@ -257,7 +257,7 @@ class KvalitetscertifikatController {
                 ],
             ]);
         } catch (\Exception $e) {
-            error_log('KvalitetscertifikatController getLista: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::getLista: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta lista', 500);
         }
     }
@@ -297,7 +297,7 @@ class KvalitetscertifikatController {
                 ],
             ]);
         } catch (\Exception $e) {
-            error_log('KvalitetscertifikatController getDetalj: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::getDetalj: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta certifikat', 500);
         }
     }
@@ -353,7 +353,7 @@ class KvalitetscertifikatController {
                 'kvalitetspoang' => $kvalitetspoang,
             ]);
         } catch (\PDOException $e) {
-            error_log('KvalitetscertifikatController generera: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::generera: ' . $e->getMessage());
             $this->sendError('Kunde inte skapa certifikat', 500);
         }
     }
@@ -483,7 +483,7 @@ class KvalitetscertifikatController {
                 'message' => 'Certifikat bedomt som ' . ($status === 'godkand' ? 'godkant' : 'underkant'),
             ]);
         } catch (\PDOException $e) {
-            error_log('KvalitetscertifikatController bedom: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::bedom: ' . $e->getMessage());
             $this->sendError('Kunde inte bedoma certifikat', 500);
         }
     }
@@ -500,7 +500,7 @@ class KvalitetscertifikatController {
 
             $this->sendSuccess(['data' => $rows]);
         } catch (\Exception $e) {
-            error_log('KvalitetscertifikatController getKriterier: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::getKriterier: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta kriterier', 500);
         }
     }
@@ -548,7 +548,7 @@ class KvalitetscertifikatController {
                 'updated' => $updated,
             ]);
         } catch (\PDOException $e) {
-            error_log('KvalitetscertifikatController uppdateraKriterier: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::uppdateraKriterier: ' . $e->getMessage());
             $this->sendError('Kunde inte uppdatera kriterier', 500);
         }
     }
@@ -577,7 +577,7 @@ class KvalitetscertifikatController {
 
             $this->sendSuccess(['data' => $rows]);
         } catch (\Exception $e) {
-            error_log('KvalitetscertifikatController getStatistik: ' . $e->getMessage());
+            error_log('KvalitetscertifikatController::getStatistik: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta statistik', 500);
         }
     }

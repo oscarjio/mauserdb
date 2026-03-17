@@ -41,7 +41,7 @@ class AuditController {
             // Verify table exists (ensureTable may have failed silently)
             $check = $this->pdo->query("SHOW TABLES LIKE 'audit_log'");
             if (!$check || $check->rowCount() === 0) {
-                echo json_encode(['success' => true, 'data' => [], 'total' => 0, 'page' => 1, 'pages' => 0]);
+                echo json_encode(['success' => true, 'data' => [], 'total' => 0, 'page' => 1, 'pages' => 0], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -126,9 +126,9 @@ class AuditController {
                 'limit'   => $limit,
                 'pages'   => (int)ceil($total / $limit),
                 'hasMore' => $hasMore
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('AuditController getLogs: ' . $e->getMessage());
+            error_log('AuditController::getLogs: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta loggar'], JSON_UNESCAPED_UNICODE);
         }
@@ -179,9 +179,9 @@ class AuditController {
                     'by_user' => $byUser,
                     'daily' => $daily
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('AuditController getStats: ' . $e->getMessage());
+            error_log('AuditController::getStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
@@ -191,16 +191,16 @@ class AuditController {
         try {
             $check = $this->pdo->query("SHOW TABLES LIKE 'audit_log'");
             if (!$check || $check->rowCount() === 0) {
-                echo json_encode(['success' => true, 'data' => []]);
+                echo json_encode(['success' => true, 'data' => []], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $stmt = $this->pdo->query("SELECT DISTINCT action FROM audit_log ORDER BY action");
             echo json_encode([
                 'success' => true,
                 'data'    => $stmt->fetchAll(PDO::FETCH_COLUMN)
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('AuditController getActions: ' . $e->getMessage());
+            error_log('AuditController::getActions: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'data' => []], JSON_UNESCAPED_UNICODE);
         }
@@ -243,7 +243,7 @@ class AuditLogger {
                 KEY `idx_created_at` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
         } catch (PDOException $e) {
-            error_log('AuditLogger ensureTable (json): ' . $e->getMessage());
+            error_log('AuditController::ensureTable (json): ' . $e->getMessage());
             // Fallback for MySQL < 5.7.8 that lacks native JSON type
             try {
                 $pdo->exec("CREATE TABLE IF NOT EXISTS `audit_log` (
@@ -264,7 +264,7 @@ class AuditLogger {
                     KEY `idx_created_at` (`created_at`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
             } catch (PDOException $e2) {
-                error_log('AuditLogger ensureTable (longtext fallback): ' . $e2->getMessage());
+                error_log('AuditController::ensureTable (longtext fallback): ' . $e2->getMessage());
             }
         }
     }
@@ -288,13 +288,13 @@ class AuditLogger {
                 $entityType,
                 $entityId,
                 $description,
-                $oldValue ? json_encode($oldValue) : null,
-                $newValue ? json_encode($newValue) : null,
+                $oldValue ? json_encode($oldValue, JSON_UNESCAPED_UNICODE) : null,
+                $newValue ? json_encode($newValue, JSON_UNESCAPED_UNICODE) : null,
                 $_SESSION['username'] ?? 'system',
                 $_SERVER['REMOTE_ADDR'] ?? null
             ]);
         } catch (PDOException $e) {
-            error_log('AuditLogger log failed: ' . $e->getMessage());
+            error_log('AuditController::log failed: ' . $e->getMessage());
         }
     }
 }

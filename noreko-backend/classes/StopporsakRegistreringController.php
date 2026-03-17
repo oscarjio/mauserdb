@@ -127,7 +127,7 @@ class StopporsakRegistreringController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('StopporsakRegistreringController ensureTablesExist: ' . $e->getMessage());
+            error_log('StopporsakRegistreringController::ensureTablesExist: ' . $e->getMessage());
         }
     }
 
@@ -137,9 +137,9 @@ class StopporsakRegistreringController {
                 "SELECT id, namn, ikon, sort_order FROM stopporsak_kategorier
                  WHERE active = 1 ORDER BY sort_order, namn"
             );
-            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('getCategories: ' . $e->getMessage());
+            error_log('StopporsakRegistreringController::getCategories: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kategorier'], JSON_UNESCAPED_UNICODE);
         }
@@ -159,9 +159,9 @@ class StopporsakRegistreringController {
                  ORDER BY r.start_time DESC"
             );
             $stmt->execute([$linje]);
-            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('getActiveStops: ' . $e->getMessage());
+            error_log('StopporsakRegistreringController::getActiveStops: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta aktiva stopp'], JSON_UNESCAPED_UNICODE);
         }
@@ -187,9 +187,9 @@ class StopporsakRegistreringController {
                  LIMIT " . $limit
             );
             $stmt->execute([$linje]);
-            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)]);
+            echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('getRecentStops: ' . $e->getMessage());
+            error_log('StopporsakRegistreringController::getRecentStops: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta senaste stopp'], JSON_UNESCAPED_UNICODE);
         }
@@ -216,7 +216,7 @@ class StopporsakRegistreringController {
             $check->execute([$kategoriId]);
             if (!$check->fetch()) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig kategori']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig kategori'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -236,9 +236,9 @@ class StopporsakRegistreringController {
                 'success' => true,
                 'message' => 'Stopp registrerat',
                 'id'      => $newId,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('registerStop: ' . $e->getMessage());
+            error_log('StopporsakRegistreringController::registerStop: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera stopp'], JSON_UNESCAPED_UNICODE);
         }
@@ -269,7 +269,7 @@ class StopporsakRegistreringController {
 
             if (!$row) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Stopp hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Stopp hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -295,7 +295,7 @@ class StopporsakRegistreringController {
 
             echo json_encode(['success' => true, 'message' => 'Stopp avslutat', 'end_time' => $endTime], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('endStop: ' . $e->getMessage());
+            error_log('StopporsakRegistreringController::endStop: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte avsluta stopp'], JSON_UNESCAPED_UNICODE);
         }

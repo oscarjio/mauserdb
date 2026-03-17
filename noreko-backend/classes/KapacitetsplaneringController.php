@@ -101,7 +101,7 @@ class KapacitetsplaneringController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('KapacitetsplaneringController ensureConfigTable: ' . $e->getMessage());
+            error_log('KapacitetsplaneringController::ensureConfigTable: ' . $e->getMessage());
         }
     }
 
@@ -114,7 +114,7 @@ class KapacitetsplaneringController {
             );
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log('KapacitetsplaneringController loadKapacitetConfig: ' . $e->getMessage());
+            error_log('KapacitetsplaneringController::loadKapacitetConfig: ' . $e->getMessage());
             return [];
         }
     }

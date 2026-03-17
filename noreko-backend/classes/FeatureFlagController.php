@@ -72,7 +72,7 @@ class FeatureFlagController {
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         } catch (\PDOException $e) {
-            error_log('FeatureFlagController ensureTableExists: ' . $e->getMessage());
+            error_log('FeatureFlagController::ensureTableExists: ' . $e->getMessage());
         }
     }
 
@@ -84,9 +84,9 @@ class FeatureFlagController {
                  ORDER BY category, label"
             );
             $flags = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $flags]);
+            echo json_encode(['success' => true, 'data' => $flags], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('FeatureFlagController getList: ' . $e->getMessage());
+            error_log('FeatureFlagController::getList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta feature flags'], JSON_UNESCAPED_UNICODE);
         }
@@ -124,7 +124,7 @@ class FeatureFlagController {
 
             echo json_encode(['success' => true, 'message' => 'Uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('FeatureFlagController updateFlag: ' . $e->getMessage());
+            error_log('FeatureFlagController::updateFlag: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
         }
@@ -155,7 +155,7 @@ class FeatureFlagController {
 
             echo json_encode(['success' => true, 'message' => "$updated feature flags uppdaterade", 'count' => $updated], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('FeatureFlagController bulkUpdate: ' . $e->getMessage());
+            error_log('FeatureFlagController::bulkUpdate: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
         }

@@ -83,7 +83,7 @@ class FeedbackController {
             }
             unset($item);
 
-            echo json_encode(['success' => true, 'items' => $items]);
+            echo json_encode(['success' => true, 'items' => $items], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('FeedbackController::myHistory — ' . $e->getMessage());
             http_response_code(500);
@@ -125,7 +125,7 @@ class FeedbackController {
                 'avg_stamning' => $row['avg_stamning'] !== null ? (float) $row['avg_stamning'] : null,
                 'total'        => (int) $row['total'],
                 'per_dag'      => $perDag,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
             error_log('FeedbackController::summary — ' . $e->getMessage());
             http_response_code(500);
@@ -196,7 +196,7 @@ class FeedbackController {
 
             if ($stmtCheck->fetch()) {
                 http_response_code(409);
-                echo json_encode(['success' => false, 'error' => 'Feedback redan inlämnad för detta skift']);
+                echo json_encode(['success' => false, 'error' => 'Feedback redan inlämnad för detta skift'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 

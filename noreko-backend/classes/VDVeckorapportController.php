@@ -277,7 +277,7 @@ class VDVeckorapportController {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         if (count($rows) < 3) {
-            echo json_encode(['success' => true, 'data' => ['anomalier' => [], 'trender' => []]]);
+            echo json_encode(['success' => true, 'data' => ['anomalier' => [], 'trender' => []]], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -413,7 +413,7 @@ class VDVeckorapportController {
             echo json_encode([
                 'success' => true,
                 'data'    => ['top' => [], 'bottom' => [], 'period' => $period],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -635,7 +635,7 @@ class VDVeckorapportController {
                 'genererad'  => date('Y-m-d H:i:s'),
             ],
             'timestamp' => date('c'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     private function hamtaOperatorsData(string $fran, string $till): array {

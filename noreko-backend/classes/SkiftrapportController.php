@@ -50,7 +50,7 @@ class SkiftrapportController {
         } elseif ($method === 'POST') {
             if (empty($_SESSION['user_id'])) {
                 http_response_code(401);
-                echo json_encode(['success' => false, 'error' => 'Ej inloggad']);
+                echo json_encode(['success' => false, 'error' => 'Ej inloggad'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $data = json_decode(file_get_contents('php://input'), true);
@@ -75,18 +75,18 @@ class SkiftrapportController {
                 $this->updateSkiftrapport($data);
             } else {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltig action']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltig action'], JSON_UNESCAPED_UNICODE);
             }
         } else {
             http_response_code(405);
-            echo json_encode(['success' => false, 'error' => 'Ogiltig metod']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltig metod'], JSON_UNESCAPED_UNICODE);
         }
     }
 
     private function checkAdmin() {
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet']);
+            echo json_encode(['success' => false, 'error' => 'Endast admin har behörighet'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -94,7 +94,7 @@ class SkiftrapportController {
     private function checkOwnerOrAdmin($reportId) {
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
@@ -111,19 +111,19 @@ class SkiftrapportController {
             
             if (!$report) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Skiftrapport hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Skiftrapport hittades inte'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
             if ((int)$report['user_id'] !== (int)$_SESSION['user_id']) {
                 http_response_code(403);
-                echo json_encode(['success' => false, 'error' => 'Du kan bara ändra dina egna skiftrapporter']);
+                echo json_encode(['success' => false, 'error' => 'Du kan bara ändra dina egna skiftrapporter'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
         } catch (PDOException $e) {
             error_log('SkiftrapportController::checkOwnerOrAdmin: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Databasfel']);
+            echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -217,14 +217,14 @@ class SkiftrapportController {
             echo json_encode([
                 'success' => true,
                 'data' => $results
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte hämta skiftrapporter: ' . $e->getMessage());
+            error_log('SkiftrapportController::inte hämta skiftrapporter: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte hämta skiftrapporter'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -233,7 +233,7 @@ class SkiftrapportController {
             $datum = $data['datum'] ?? date('Y-m-d');
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $ibc_ok = intval($data['ibc_ok'] ?? 0);
@@ -255,14 +255,14 @@ class SkiftrapportController {
                 'success' => true,
                 'message' => 'Skiftrapport skapad',
                 'id' => $newId
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte skapa skiftrapport: ' . $e->getMessage());
+            error_log('SkiftrapportController::inte skapa skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte skapa skiftrapport'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -271,7 +271,7 @@ class SkiftrapportController {
             $id = intval($data['id'] ?? 0);
             if ($id <= 0) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -284,14 +284,14 @@ class SkiftrapportController {
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport borttagen'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte ta bort skiftrapport: ' . $e->getMessage());
+            error_log('SkiftrapportController::inte ta bort skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte ta bort skiftrapport'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -300,7 +300,7 @@ class SkiftrapportController {
             $ids = $data['ids'] ?? [];
             if (empty($ids) || !is_array($ids)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna']);
+                echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -315,14 +315,14 @@ class SkiftrapportController {
             echo json_encode([
                 'success' => true,
                 'message' => count($ids) . ' skiftrapport(er) borttagna'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte ta bort skiftrapporter: ' . $e->getMessage());
+            error_log('SkiftrapportController::inte ta bort skiftrapporter: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte ta bort skiftrapporter'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -333,7 +333,7 @@ class SkiftrapportController {
             
             if ($id <= 0) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -346,14 +346,14 @@ class SkiftrapportController {
                 'success' => true,
                 'message' => 'Status uppdaterad',
                 'inlagd' => $inlagd
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte uppdatera status (updateInlagd): ' . $e->getMessage());
+            error_log('SkiftrapportController::inte uppdatera status (updateInlagd): ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte uppdatera status'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -364,7 +364,7 @@ class SkiftrapportController {
             
             if (empty($ids) || !is_array($ids)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna']);
+                echo json_encode(['success' => false, 'error' => 'Inga ID:n angivna'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -380,14 +380,14 @@ class SkiftrapportController {
                 'success' => true,
                 'message' => count($ids) . ' skiftrapport(er) uppdaterade',
                 'inlagd' => $inlagd
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte uppdatera status (bulkUpdateInlagd): ' . $e->getMessage());
+            error_log('SkiftrapportController::inte uppdatera status (bulkUpdateInlagd): ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte uppdatera status'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -396,7 +396,7 @@ class SkiftrapportController {
             $id = intval($data['id'] ?? 0);
             if ($id <= 0) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID']);
+                echo json_encode(['success' => false, 'error' => 'Ogiltigt ID'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -412,7 +412,7 @@ class SkiftrapportController {
             if ($datum) {
                 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
                     http_response_code(400);
-                    echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+                    echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
                 $fields[] = 'datum = ?';
@@ -437,7 +437,7 @@ class SkiftrapportController {
             
             if (empty($fields)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera']);
+                echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             
@@ -449,7 +449,7 @@ class SkiftrapportController {
                 $current = $stmt->fetch(PDO::FETCH_ASSOC);
                 if (!$current) {
                     http_response_code(404);
-                    echo json_encode(['success' => false, 'error' => 'Skiftrapport hittades inte']);
+                    echo json_encode(['success' => false, 'error' => 'Skiftrapport hittades inte'], JSON_UNESCAPED_UNICODE);
                     return;
                 }
 
@@ -474,14 +474,14 @@ class SkiftrapportController {
             echo json_encode([
                 'success' => true,
                 'message' => 'Skiftrapport uppdaterad'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('Kunde inte uppdatera skiftrapport: ' . $e->getMessage());
+            error_log('SkiftrapportController::inte uppdatera skiftrapport: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
                 'message' => 'Kunde inte uppdatera skiftrapport'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -489,7 +489,7 @@ class SkiftrapportController {
         $skiftraknare = isset($_GET['skiftraknare']) ? intval($_GET['skiftraknare']) : 0;
         if ($skiftraknare <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt skifträknare']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt skifträknare'], JSON_UNESCAPED_UNICODE);
             return;
         }
         try {
@@ -543,11 +543,11 @@ class SkiftrapportController {
                 $response['original_skiftraknare'] = $skiftraknare;
             }
 
-            echo json_encode($response);
+            echo json_encode($response, JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getLopnummerForSkift: ' . $e->getMessage());
+            error_log('SkiftrapportController::getLopnummerForSkift: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta löpnummer']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta löpnummer'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -683,11 +683,11 @@ class SkiftrapportController {
             echo json_encode([
                 'success' => true,
                 'data'    => $operators
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getOperatorList: ' . $e->getMessage());
+            error_log('SkiftrapportController::getOperatorList: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörer'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -702,12 +702,12 @@ class SkiftrapportController {
 
         if ($operatorId <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'operator_id saknas']);
+            echo json_encode(['success' => false, 'error' => 'operator_id saknas'], JSON_UNESCAPED_UNICODE);
             return;
         }
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $to)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat (from/to)']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat (from/to)'], JSON_UNESCAPED_UNICODE);
             return;
         }
         // Validera att from <= to
@@ -722,7 +722,7 @@ class SkiftrapportController {
             $operator = $stmtOp->fetch(PDO::FETCH_ASSOC);
             if (!$operator) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Operator hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Operator hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $opNumber = intval($operator['number']);
@@ -808,11 +808,11 @@ class SkiftrapportController {
                 'success'       => true,
                 'operator_name' => $operator['name'],
                 'data'          => $data,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getShiftReportByOperator: ' . $e->getMessage());
+            error_log('SkiftrapportController::getShiftReportByOperator: ' . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapport per operatör']);
+            echo json_encode(['success' => false, 'error' => 'Kunde inte hämta skiftrapport per operatör'], JSON_UNESCAPED_UNICODE);
         }
     }
 
@@ -865,7 +865,7 @@ class SkiftrapportController {
             }
             $drifttidSek = max(0, $drifttidSek);
         } catch (\PDOException $e) {
-            error_log('calcSkiftData onoff: ' . $e->getMessage());
+            error_log('SkiftrapportController::calcSkiftData onoff: ' . $e->getMessage());
         }
 
         // 2) IBC-data fran rebotling_ibc (MAX per skiftraknare, then SUM)
@@ -888,7 +888,7 @@ class SkiftrapportController {
             $okIbc = (int)($row['ok_antal'] ?? 0);
             $totalIbc = $okIbc + (int)($row['ej_ok_antal'] ?? 0);
         } catch (\PDOException $e) {
-            error_log('calcSkiftData ibc: ' . $e->getMessage());
+            error_log('SkiftrapportController::calcSkiftData ibc: ' . $e->getMessage());
         }
 
         $kasserade = $totalIbc - $okIbc;
@@ -943,7 +943,7 @@ class SkiftrapportController {
         $datum = trim($_GET['datum'] ?? date('Y-m-d'));
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat']);
+            echo json_encode(['success' => false, 'error' => 'Ogiltigt datumformat'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -975,7 +975,7 @@ class SkiftrapportController {
                 ],
             ],
             'timestamp' => date('Y-m-d H:i:s'),
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
     }
 
     /**

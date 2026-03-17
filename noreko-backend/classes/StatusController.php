@@ -41,7 +41,7 @@ class StatusController {
                 session_start();
                 session_unset();
                 session_destroy();
-                echo json_encode(['loggedIn' => false]);
+                echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -59,7 +59,7 @@ class StatusController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('StatusController fel: ' . $e->getMessage());
+            error_log('StatusController::fel: ' . $e->getMessage());
             echo json_encode(['loggedIn' => false], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -164,7 +164,7 @@ class StatusController {
                     'ej_i_drift'      => false
                 ];
             } catch (Exception $e) {
-                error_log('StatusController all-lines rebotling: ' . $e->getMessage());
+                error_log('StatusController::all-lines rebotling: ' . $e->getMessage());
                 $lines[] = [
                     'id'           => 'rebotling',
                     'namn'         => 'Rebotling',
@@ -205,9 +205,9 @@ class StatusController {
                 'ej_i_drift'   => true
             ];
 
-            echo json_encode(['success' => true, 'lines' => $lines]);
+            echo json_encode(['success' => true, 'lines' => $lines], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('StatusController all-lines: ' . $e->getMessage());
+            error_log('StatusController::all-lines: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta linjestatus'], JSON_UNESCAPED_UNICODE);
         }

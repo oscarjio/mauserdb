@@ -133,7 +133,7 @@ class UnderhallsloggController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController ensureTablesExist: ' . $e->getMessage());
+            error_log('UnderhallsloggController::ensureTablesExist: ' . $e->getMessage());
         }
     }
 
@@ -151,7 +151,7 @@ class UnderhallsloggController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController ensureRebotlingTable: ' . $e->getMessage());
+            error_log('UnderhallsloggController::ensureRebotlingTable: ' . $e->getMessage());
         }
     }
 
@@ -250,7 +250,7 @@ class UnderhallsloggController {
 
             $this->sendSuccess(['items' => $items, 'antal' => count($items)]);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getLista: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getLista: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta underhallslista', 500);
         }
     }
@@ -319,7 +319,7 @@ class UnderhallsloggController {
                 'top_station'        => $topStation,
             ]);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getSammanfattning: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getSammanfattning: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta sammanfattning', 500);
         }
     }
@@ -361,7 +361,7 @@ class UnderhallsloggController {
 
             $this->sendSuccess(['stationer' => $stationer, 'days' => $days]);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getPerStation: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getPerStation: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta per-station-data', 500);
         }
     }
@@ -403,7 +403,7 @@ class UnderhallsloggController {
                 'oplanerat' => $oplanerat,
             ]);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getManadsChart: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getManadsChart: ' . $e->getMessage());
             $this->sendError('Kunde inte hamta manadsdata', 500);
         }
     }
@@ -474,7 +474,7 @@ class UnderhallsloggController {
                 'message' => 'Underhall registrerat',
             ]);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController skapa: ' . $e->getMessage());
+            error_log('UnderhallsloggController::skapa: ' . $e->getMessage());
             $this->sendError('Kunde inte spara underhall', 500);
         }
     }
@@ -511,7 +511,7 @@ class UnderhallsloggController {
 
             $this->sendSuccess(['message' => 'Post borttagen']);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController taBort: ' . $e->getMessage());
+            error_log('UnderhallsloggController::taBort: ' . $e->getMessage());
             $this->sendError('Kunde inte ta bort post', 500);
         }
     }
@@ -527,7 +527,7 @@ class UnderhallsloggController {
             );
             echo json_encode(['success' => true, 'data' => $stmt->fetchAll(\PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getCategories: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getCategories: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta kategorier'], JSON_UNESCAPED_UNICODE);
         }
@@ -581,7 +581,7 @@ class UnderhallsloggController {
                 'id'      => $newId,
             ], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController logUnderhall: ' . $e->getMessage());
+            error_log('UnderhallsloggController::logUnderhall: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte logga underhall'], JSON_UNESCAPED_UNICODE);
         }
@@ -622,7 +622,7 @@ class UnderhallsloggController {
 
             echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getList: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getList: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta underhallslogg'], JSON_UNESCAPED_UNICODE);
         }
@@ -679,7 +679,7 @@ class UnderhallsloggController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController getStats: ' . $e->getMessage());
+            error_log('UnderhallsloggController::getStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hamta statistik'], JSON_UNESCAPED_UNICODE);
         }
@@ -721,7 +721,7 @@ class UnderhallsloggController {
 
             echo json_encode(['success' => true, 'message' => 'Post borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
-            error_log('UnderhallsloggController deleteEntry: ' . $e->getMessage());
+            error_log('UnderhallsloggController::deleteEntry: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort post'], JSON_UNESCAPED_UNICODE);
         }

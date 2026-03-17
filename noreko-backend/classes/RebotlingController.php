@@ -368,7 +368,7 @@ class RebotlingController {
                 }
             } catch (Exception $e) {
                 // Tabellen kanske inte finns ännu – ignorera tyst i live-vyn
-                error_log('RebotlingController getLiveStats: kunde inte läsa rebotling_lopnummer_current: ' . $e->getMessage());
+                error_log('RebotlingController::getLiveStats: kunde inte läsa rebotling_lopnummer_current: ' . $e->getMessage());
             }
 
             // Hämta antal IBCer från senaste timmen för nuvarande skift
@@ -489,7 +489,7 @@ class RebotlingController {
                 $sRow = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1")->fetch(PDO::FETCH_ASSOC);
                 if ($sRow) $rebotlingTarget = (int)$sRow['rebotling_target'];
             } catch (Exception $e) {
-                error_log('getLiveStats: kunde inte läsa rebotling_settings: ' . $e->getMessage());
+                error_log('RebotlingController::getLiveStats: kunde inte läsa rebotling_settings: ' . $e->getMessage());
             }
 
             // Kolla om undantag finns för idag
@@ -518,7 +518,7 @@ class RebotlingController {
                 }
             } catch (Exception $e) {
                 // Ignorera fel vid hämtning av väderdata
-                error_log('Kunde inte hämta väderdata: ' . $e->getMessage());
+                error_log('RebotlingController::getLiveStats väderdata: ' . $e->getMessage());
             }
 
             echo json_encode([
@@ -533,7 +533,7 @@ class RebotlingController {
                     'nextLopnummer' => $nextLopnummer,
                     'utetemperatur' => $utetemperatur
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
             // Auto-kontroll: skapa rekordnyhet om klockan är efter 18:00 och det finns produktion
             $currentHour = (int)date('G');
@@ -542,7 +542,7 @@ class RebotlingController {
             }
 
         } catch (Exception $e) {
-            error_log('Kunde inte hämta statistik (getLiveStats): ' . $e->getMessage());
+            error_log('RebotlingController::getLiveStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -587,9 +587,9 @@ class RebotlingController {
                     'on_rast'    => $onRast,
                     'lastUpdate' => $lastUpdate
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta status (getRunningStatus): ' . $e->getMessage());
+            error_log('RebotlingController::getRunningStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -679,9 +679,9 @@ class RebotlingController {
                         'rast_status' => (int)$e['rast_status']
                     ], $events)
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getRastStatus error: ' . $e->getMessage());
+            error_log('RebotlingController::getRastStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta raststatus'], JSON_UNESCAPED_UNICODE);
         }
@@ -765,9 +765,9 @@ class RebotlingController {
                         'driftstopp_status'  => (int)$e['driftstopp_status']
                     ], $events)
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getDriftstoppStatus error: ' . $e->getMessage());
+            error_log('RebotlingController::getDriftstoppStatus: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta driftstoppstatus'], JSON_UNESCAPED_UNICODE);
         }
@@ -955,9 +955,9 @@ class RebotlingController {
                         'total_rast_minutes' => round($totalRastMinutes, 1)
                     ]
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta statistik (getStatistics): ' . $e->getMessage());
+            error_log('RebotlingController::getStatistics: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -1064,9 +1064,9 @@ class RebotlingController {
                         'total_runtime_min_plc' => $plc_runtime_min
                     ]
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte hämta dagsstatistik: ' . $e->getMessage());
+            error_log('RebotlingController::getDayStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -1182,9 +1182,9 @@ class RebotlingController {
                     'cycles' => $rawCycles,
                     'world_class_benchmark' => 85.0
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('Kunde inte beräkna OEE: ' . $e->getMessage());
+            error_log('RebotlingController::calcOee: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,
@@ -1276,7 +1276,7 @@ class RebotlingController {
                         'total_cycles'   => array_sum(array_column($shiftData, 'cycles')),
                         'alert'          => null
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -1369,9 +1369,9 @@ class RebotlingController {
                     'total_cycles' => $totalCycles,
                     'alert' => $alert
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getCycleTrend: ' . $e->getMessage());
+            error_log('RebotlingController::getCycleTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata'], JSON_UNESCAPED_UNICODE);
         }
@@ -1425,9 +1425,9 @@ class RebotlingController {
                 return ['date' => $r['date'], 'hour' => (int)$r['hour'], 'count' => (int)$r['count']];
             }, $rows);
 
-            echo json_encode(['success' => true, 'data' => $data, 'start' => $start, 'end' => $end]);
+            echo json_encode(['success' => true, 'data' => $data, 'start' => $start, 'end' => $end], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingController getHeatmap: ' . $e->getMessage());
+            error_log('RebotlingController::getHeatmap: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta heatmap-data'], JSON_UNESCAPED_UNICODE);
         }
@@ -1553,7 +1553,7 @@ class RebotlingController {
                     $rekordDatum = $recordRow['datum_rekord'];
                 }
             } catch (Exception $e) {
-                error_log('getLiveRanking rekord: ' . $e->getMessage());
+                error_log('RebotlingController::getLiveRanking rekord: ' . $e->getMessage());
             }
 
             echo json_encode([
@@ -1565,9 +1565,9 @@ class RebotlingController {
                 'ibc_idag_total'  => $ibcIdagTotal,
                 'rekord_ibc'      => $rekordIbc,
                 'rekord_datum'    => $rekordDatum,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getLiveRanking: ' . $e->getMessage());
+            error_log('RebotlingController::getLiveRanking: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta live ranking'], JSON_UNESCAPED_UNICODE);
         }
@@ -1603,12 +1603,12 @@ class RebotlingController {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($row) {
-                echo json_encode(['success' => true, 'data' => $row]);
+                echo json_encode(['success' => true, 'data' => $row], JSON_UNESCAPED_UNICODE);
             } else {
                 echo json_encode(['success' => true, 'data' => null], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
-            error_log('getSkiftKommentar: ' . $e->getMessage());
+            error_log('RebotlingController::getSkiftKommentar: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel.'], JSON_UNESCAPED_UNICODE);
         }
@@ -1655,7 +1655,7 @@ class RebotlingController {
 
             echo json_encode(['success' => true, 'message' => 'Kommentar sparad.'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('setSkiftKommentar: ' . $e->getMessage());
+            error_log('RebotlingController::setSkiftKommentar: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel vid sparande.'], JSON_UNESCAPED_UNICODE);
         }
@@ -1683,9 +1683,9 @@ class RebotlingController {
                  ORDER BY event_date"
             );
             $stmt->execute([$start, $end]);
-            echo json_encode(['success' => true, 'events' => $stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            echo json_encode(['success' => true, 'events' => $stmt->fetchAll(PDO::FETCH_ASSOC)], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingController getEvents: ' . $e->getMessage());
+            error_log('RebotlingController::getEvents: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'events' => []], JSON_UNESCAPED_UNICODE);
         }
@@ -1719,7 +1719,7 @@ class RebotlingController {
             $stmt->execute([$date, $title, $desc, $type, $_SESSION['user_id']]);
             echo json_encode(['success' => true, 'id' => $this->pdo->lastInsertId()], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingController addEvent: ' . $e->getMessage());
+            error_log('RebotlingController::addEvent: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara händelsen'], JSON_UNESCAPED_UNICODE);
         }
@@ -1746,7 +1746,7 @@ class RebotlingController {
             $this->pdo->prepare("DELETE FROM production_events WHERE id = ?")->execute([$id]);
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingController deleteEvent: ' . $e->getMessage());
+            error_log('RebotlingController::deleteEvent: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort händelsen'], JSON_UNESCAPED_UNICODE);
         }
@@ -1957,9 +1957,9 @@ class RebotlingController {
                     'team_best_week'    => $teamBestWeek,
                     'team_best_month'   => $teamBestMonth,
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getPersonalBests: ' . $e->getMessage());
+            error_log('RebotlingController::getPersonalBests: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta personbästa-data'], JSON_UNESCAPED_UNICODE);
         }
@@ -2028,9 +2028,9 @@ class RebotlingController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'data' => $result]);
+            echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getHallOfFameDays: ' . $e->getMessage());
+            error_log('RebotlingController::getHallOfFameDays: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta hall of fame-data'], JSON_UNESCAPED_UNICODE);
         }
@@ -2086,9 +2086,9 @@ class RebotlingController {
                 ];
             }, $rows);
 
-            echo json_encode(['success' => true, 'data' => $result]);
+            echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getMonthlyLeaders: ' . $e->getMessage());
+            error_log('RebotlingController::getMonthlyLeaders: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta månadsdata'], JSON_UNESCAPED_UNICODE);
         }
@@ -2162,9 +2162,9 @@ class RebotlingController {
                     'calendar'  => $calendar,
                     'operators' => $operators
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('RebotlingController getAttendance: ' . $e->getMessage());
+            error_log('RebotlingController::getAttendance: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
@@ -2186,9 +2186,9 @@ class RebotlingController {
                 'lr_show_motto'    => ($rows['lr_show_motto']    ?? '1') === '1',
                 'lr_poll_interval' => intval($rows['lr_poll_interval'] ?? 30),
                 'lr_title'         => $rows['lr_title'] ?? 'Live Ranking',
-            ]]);
+            ]], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getLiveRankingSettings: ' . $e->getMessage());
+            error_log('RebotlingController::getLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
@@ -2219,7 +2219,7 @@ class RebotlingController {
             }
             echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('saveLiveRankingSettings: ' . $e->getMessage());
+            error_log('RebotlingController::saveLiveRankingSettings: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
         }
@@ -2285,9 +2285,9 @@ class RebotlingController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'data' => $result]);
+            echo json_encode(['success' => true, 'data' => $result], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getHourlyRhythm: ' . $e->getMessage());
+            error_log('RebotlingController::getHourlyRhythm: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Fel vid hämtning av produktionsrytm'], JSON_UNESCAPED_UNICODE);
         }
@@ -2315,9 +2315,9 @@ class RebotlingController {
                     'number' => (int)$r['number'],
                 ];
             }, $rows);
-            echo json_encode(['success' => true, 'operators' => $operators]);
+            echo json_encode(['success' => true, 'operators' => $operators], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getOperatorListForTrend: ' . $e->getMessage());
+            error_log('RebotlingController::getOperatorListForTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta operatörslista'], JSON_UNESCAPED_UNICODE);
         }
@@ -2346,7 +2346,7 @@ class RebotlingController {
             $opStmt->execute([$opId]);
             $op = $opStmt->fetch(PDO::FETCH_ASSOC);
             if (!$op) {
-                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Operatör hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
             $opNumber = (int)$op['number'];
@@ -2469,10 +2469,10 @@ class RebotlingController {
                 'trend'         => $trend,
                 'trend_arrow'   => $trendArrow,
                 'trend_pct'     => $trendPct,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
-            error_log('getOperatorWeeklyTrend: ' . $e->getMessage());
+            error_log('RebotlingController::getOperatorWeeklyTrend: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta trenddata'], JSON_UNESCAPED_UNICODE);
         }
@@ -2551,10 +2551,10 @@ class RebotlingController {
                 ':title' => $titel,
                 ':body'  => $body,
             ]);
-            error_log('checkAndCreateRecordNews: Rekordnyhet skapad! Idag=' . $ibcIdag . ', Rekord=' . $rekordIbc);
+            error_log('RebotlingController::checkAndCreateRecordNews: Rekordnyhet skapad! Idag=' . $ibcIdag . ', Rekord=' . $rekordIbc);
 
         } catch (\Exception $e) {
-            error_log('checkAndCreateRecordNews: ' . $e->getMessage());
+            error_log('RebotlingController::checkAndCreateRecordNews: ' . $e->getMessage());
         }
     }
 
@@ -2578,9 +2578,9 @@ class RebotlingController {
                 $t['sortorder'] = (int)$t['sortorder'];
             }
             unset($t);
-            echo json_encode(['success' => true, 'data' => $typer]);
+            echo json_encode(['success' => true, 'data' => $typer], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getKassationTyper: ' . $e->getMessage());
+            error_log('RebotlingController::getKassationTyper: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationstyper'], JSON_UNESCAPED_UNICODE);
         }
@@ -2659,9 +2659,9 @@ class RebotlingController {
                 'total_kassation'  => (int)$totalKassation,
                 'total_produktion' => (int)$totalProduktion,
                 'kassation_pct'    => $kassationPct,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getKassationPareto: ' . $e->getMessage());
+            error_log('RebotlingController::getKassationPareto: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta Pareto-data'], JSON_UNESCAPED_UNICODE);
         }
@@ -2700,9 +2700,9 @@ class RebotlingController {
                 $row['skiftraknare'] = $row['skiftraknare'] !== null ? (int)$row['skiftraknare'] : null;
             }
             unset($row);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getKassationSenaste: ' . $e->getMessage());
+            error_log('RebotlingController::getKassationSenaste: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kassationsregistreringar'], JSON_UNESCAPED_UNICODE);
         }
@@ -2749,7 +2749,7 @@ class RebotlingController {
             $checkStmt->execute([$orsakId]);
             if (!$checkStmt->fetch()) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Kassationsorsak hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Kassationsorsak hittades inte'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -2769,7 +2769,7 @@ class RebotlingController {
             ]);
             echo json_encode(['success' => true, 'id' => (int)$this->pdo->lastInsertId()], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('registerKassation: ' . $e->getMessage());
+            error_log('RebotlingController::registerKassation: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara kassationsregistrering'], JSON_UNESCAPED_UNICODE);
         }
@@ -2845,9 +2845,9 @@ class RebotlingController {
                 'success'       => true,
                 'min_operators' => $minOps,
                 'warnings'      => $warnings,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getStaffingWarning: ' . $e->getMessage());
+            error_log('RebotlingController::getStaffingWarning: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta bemanningsvarning'], JSON_UNESCAPED_UNICODE);
         }
@@ -2875,7 +2875,7 @@ class RebotlingController {
             try {
                 $checkStmt = $this->pdo->query("SHOW TABLES LIKE 'rebotling_stopporsak'");
                 if ($checkStmt->rowCount() === 0) {
-                    echo json_encode(['success' => true, 'items' => [], 'fallback' => true]);
+                    echo json_encode(['success' => true, 'items' => [], 'fallback' => true], JSON_UNESCAPED_UNICODE);
                     return;
                 }
             } catch (\Exception $e) {
@@ -2915,9 +2915,9 @@ class RebotlingController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'items' => $items]);
+            echo json_encode(['success' => true, 'items' => $items], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('getMonthlyStopSummary: ' . $e->getMessage());
+            error_log('RebotlingController::getMonthlyStopSummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker'], JSON_UNESCAPED_UNICODE);
         }
@@ -2994,9 +2994,9 @@ class RebotlingController {
                 'success' => true,
                 'days'    => $days,
                 'data'    => $data,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getOeeComponents: ' . $e->getMessage());
+            error_log('RebotlingController::getOeeComponents: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta OEE-komponentdata'], JSON_UNESCAPED_UNICODE);
         }
@@ -3029,7 +3029,7 @@ class RebotlingController {
                 $s = $this->pdo->query("SELECT rebotling_target FROM rebotling_settings WHERE id = 1 LIMIT 1")->fetch(PDO::FETCH_ASSOC);
                 if ($s) $dagMal = (int)$s["rebotling_target"];
             } catch (\Exception $e2) {
-                error_log("getProductionRate: could not fetch rebotling_settings: " . $e2->getMessage());
+                error_log("RebotlingController::getProductionRate: could not fetch rebotling_settings: " . $e2->getMessage());
             }
 
             echo json_encode([
@@ -3040,9 +3040,9 @@ class RebotlingController {
                     "avg_ibc_per_day_90d" => round((float)($row["avg_ibc_per_day_90d"] ?? 0), 1),
                     "dag_mal"             => $dagMal
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log("getProductionRate: " . $e->getMessage());
+            error_log("RebotlingController::getProductionRate: " . $e->getMessage());
             http_response_code(500);
             echo json_encode(["success" => false, "error" => "Serverfel"], JSON_UNESCAPED_UNICODE);
         }

@@ -286,7 +286,7 @@ class WeeklyReportController {
                     $dagmal = intval($goalRow['dagmal']);
                 }
             } catch (Exception $e) {
-                error_log("WeeklyReportController: kunde ej hämta dagmal: " . $e->getMessage());
+                error_log("WeeklyReportController::getSummary: kunde ej hämta dagmal: " . $e->getMessage());
             }
 
             // Daglig aggregering
@@ -452,7 +452,7 @@ class WeeklyReportController {
                 'best_day'  => $bestDay,
                 'worst_day' => $worstDay,
                 'operators' => $operatorsFormatted,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
             error_log("WeeklyReportController::getSummary error: " . $e->getMessage());

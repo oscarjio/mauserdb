@@ -118,7 +118,7 @@ class OperatorsbonusController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController ensureTables: ' . $e->getMessage());
+            error_log('OperatorsbonusController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -149,7 +149,7 @@ class OperatorsbonusController {
                 return $config;
             }
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController loadKonfig: ' . $e->getMessage());
+            error_log('OperatorsbonusController::loadKonfig: ' . $e->getMessage());
         }
 
         return $defaults;
@@ -198,7 +198,7 @@ class OperatorsbonusController {
             $stmt = $this->pdo->query("SELECT id, number, name AS namn FROM operators WHERE active = 1 ORDER BY name ASC");
             $opRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getOperatorData: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getOperatorData: ' . $e->getMessage());
             return [];
         }
 
@@ -262,7 +262,7 @@ class OperatorsbonusController {
             $timmar = $runtimeMin / 60.0;
             return $timmar > 0 ? round($totalIbc / $timmar, 2) : 0;
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getOperatorIbcPerTimme: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getOperatorIbcPerTimme: ' . $e->getMessage());
             return 0;
         }
     }
@@ -296,7 +296,7 @@ class OperatorsbonusController {
             $total = (int)($row['total'] ?? 0);
             return $total > 0 ? round(($ok / $total) * 100, 1) : 0;
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getOperatorKvalitet: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getOperatorKvalitet: ' . $e->getMessage());
             return 0;
         }
     }
@@ -323,7 +323,7 @@ class OperatorsbonusController {
                 return round(($narv / $total) * 100, 1);
             }
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getOperatorNarvaro narvaro-tabell: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getOperatorNarvaro narvaro-tabell: ' . $e->getMessage());
         }
 
         // Fallback: om operatör har produktionsdata via op1/op2/op3
@@ -355,7 +355,7 @@ class OperatorsbonusController {
                 return round(min(($dagar / $arbetsDagar) * 100, 100), 1);
             }
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getOperatorNarvaro fallback: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getOperatorNarvaro fallback: ' . $e->getMessage());
         }
 
         return 0;
@@ -418,7 +418,7 @@ class OperatorsbonusController {
 
             return $totalDays > 0 ? round(($daysHit / $totalDays) * 100, 1) : 0;
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getTeamMalProcent: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getTeamMalProcent: ' . $e->getMessage());
             return 0;
         }
     }
@@ -524,7 +524,7 @@ class OperatorsbonusController {
                 ],
             ]);
         } catch (\Exception $e) {
-            error_log('OperatorsbonusController getOverview: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
     }
@@ -550,7 +550,7 @@ class OperatorsbonusController {
                 ],
             ]);
         } catch (\Exception $e) {
-            error_log('OperatorsbonusController getPerOperator: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getPerOperator: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörsdata', 500);
         }
     }
@@ -588,7 +588,7 @@ class OperatorsbonusController {
                 'max_total' => $maxTotal,
             ]);
         } catch (\Exception $e) {
-            error_log('OperatorsbonusController getKonfiguration: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getKonfiguration: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta konfiguration', 500);
         }
     }
@@ -640,7 +640,7 @@ class OperatorsbonusController {
                 'updated' => $updated,
             ]);
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController sparaKonfiguration: ' . $e->getMessage());
+            error_log('OperatorsbonusController::sparaKonfiguration: ' . $e->getMessage());
             $this->sendError('Kunde inte spara konfiguration', 500);
         }
     }
@@ -688,7 +688,7 @@ class OperatorsbonusController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('OperatorsbonusController getHistorik: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getHistorik: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta historik', 500);
         }
     }
@@ -733,7 +733,7 @@ class OperatorsbonusController {
                 ],
             ]);
         } catch (\Exception $e) {
-            error_log('OperatorsbonusController getSimulering: ' . $e->getMessage());
+            error_log('OperatorsbonusController::getSimulering: ' . $e->getMessage());
             $this->sendError('Kunde inte köra simulering', 500);
         }
     }

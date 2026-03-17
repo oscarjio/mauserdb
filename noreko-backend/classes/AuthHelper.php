@@ -39,7 +39,7 @@ class AuthHelper {
                 KEY `idx_created` (`created_at`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
         } catch (PDOException $e) {
-            error_log('AuthHelper ensureRateLimitTable: ' . $e->getMessage());
+            error_log('AuthHelper::ensureRateLimitTable: ' . $e->getMessage());
         }
     }
 
@@ -51,7 +51,7 @@ class AuthHelper {
             $stmt = $pdo->prepare("INSERT INTO login_attempts (ip_address, username, success) VALUES (?, ?, ?)");
             $stmt->execute([$ip, $username, $success ? 1 : 0]);
         } catch (PDOException $e) {
-            error_log('AuthHelper recordAttempt: ' . $e->getMessage());
+            error_log('AuthHelper::recordAttempt: ' . $e->getMessage());
         }
     }
 
@@ -74,7 +74,7 @@ class AuthHelper {
             $stmt->execute([$ip, $cutoff]);
             return (int)$stmt->fetchColumn();
         } catch (PDOException $e) {
-            error_log('AuthHelper getFailedAttemptCount: ' . $e->getMessage());
+            error_log('AuthHelper::getFailedAttemptCount: ' . $e->getMessage());
             return 0;
         }
     }
@@ -105,7 +105,7 @@ class AuthHelper {
         try {
             $pdo->prepare("DELETE FROM login_attempts WHERE ip_address = ? AND success = 0")->execute([$ip]);
         } catch (PDOException $e) {
-            error_log('AuthHelper clearAttempts: ' . $e->getMessage());
+            error_log('AuthHelper::clearAttempts: ' . $e->getMessage());
         }
     }
 
@@ -117,7 +117,7 @@ class AuthHelper {
             $cutoff = date('Y-m-d H:i:s', time() - 86400); // 24h
             $pdo->prepare("DELETE FROM login_attempts WHERE created_at < ?")->execute([$cutoff]);
         } catch (PDOException $e) {
-            error_log('AuthHelper cleanupOldAttempts: ' . $e->getMessage());
+            error_log('AuthHelper::cleanupOldAttempts: ' . $e->getMessage());
         }
     }
 }

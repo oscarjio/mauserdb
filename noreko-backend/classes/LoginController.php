@@ -88,7 +88,7 @@ class LoginController {
                     'email' => $user['email'] ?? null,
                     'role' => $_SESSION['role'],
                     'operator_id' => $_SESSION['operator_id']
-                ]]);
+                ]], JSON_UNESCAPED_UNICODE);
             } else {
                 AuthHelper::recordAttempt($pdo, $ip, $username, false);
                 $attemptsLeft = 5 - AuthHelper::getFailedAttemptCount($pdo, $ip);
@@ -108,7 +108,7 @@ class LoginController {
                 AuthHelper::cleanupOldAttempts($pdo);
             }
         } catch (PDOException $e) {
-            error_log('LoginController handle: ' . $e->getMessage());
+            error_log('LoginController::handle: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel — försök igen senare.'], JSON_UNESCAPED_UNICODE);
         }

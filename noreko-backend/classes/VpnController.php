@@ -73,7 +73,7 @@ class VpnController {
             }
 
             $result = $this->disconnectClient($commonName);
-            echo json_encode($result);
+            echo json_encode($result, JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -198,10 +198,10 @@ class VpnController {
                 $response['debug'] = $debug;
             }
             
-            echo json_encode($response);
+            echo json_encode($response, JSON_UNESCAPED_UNICODE);
 
         } catch (Exception $e) {
-            error_log('Fel vid hämtning av VPN-status: ' . $e->getMessage());
+            error_log('VpnController::vid hämtning av VPN-status: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode([
                 'success' => false,

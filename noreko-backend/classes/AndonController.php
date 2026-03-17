@@ -74,7 +74,7 @@ class AndonController {
                     $malIdag = (int)$row['value'];
                 }
             } catch (\Exception $e) {
-                error_log('AndonController dagmal: ' . $e->getMessage());
+                error_log('AndonController::dagmal: ' . $e->getMessage());
             }
 
             // ---- Dagens IBC och runtime från rebotling_ibc ----
@@ -120,7 +120,7 @@ class AndonController {
                     $taktMal = (float)$taktRad['value'];
                 }
             } catch (\Exception $e) {
-                error_log('AndonController takt_mal: ' . $e->getMessage());
+                error_log('AndonController::takt_mal: ' . $e->getMessage());
             }
 
             $runtimeH = $runtimeMinPlc > 0 ? ($runtimeMinPlc / 60.0) : ($totalMin / 60);
@@ -165,7 +165,7 @@ class AndonController {
                 'senaste_ibc_tid'         => $senasteTid ?? '',
                 'minuter_sedan_senaste_ibc' => $minuterSedanSenaste < 9999 ? $minuterSedanSenaste : null,
                 'linje_status'            => $linjeStatus,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
             error_log('AndonController::getStatus fel: ' . $e->getMessage());
@@ -210,7 +210,7 @@ class AndonController {
                 ];
             }
 
-            echo json_encode(['success' => true, 'stoppages' => $result]);
+            echo json_encode(['success' => true, 'stoppages' => $result], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
             error_log('AndonController::recentStoppages fel: ' . $e->getMessage());
@@ -259,7 +259,7 @@ class AndonController {
                 'success'      => true,
                 'notes'        => $notes,
                 'unread_count' => count($notes),
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
             error_log('AndonController::andonNotes fel: ' . $e->getMessage());
@@ -305,7 +305,7 @@ class AndonController {
                     $malIdag = (int)$malRad['value'];
                 }
             } catch (\Exception $e) {
-                error_log('AndonController hourly-today dagmal: ' . $e->getMessage());
+                error_log('AndonController::hourly-today dagmal: ' . $e->getMessage());
             }
 
             // Bygg upp kumulativ data per timme 6–22
@@ -350,7 +350,7 @@ class AndonController {
                 'datum'    => $datum,
                 'mal_idag' => $malIdag,
                 'data'     => $result,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
             error_log('AndonController::getHourlyToday fel: ' . $e->getMessage());
@@ -379,7 +379,7 @@ class AndonController {
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
                 if ($row) $malIdag = intval($row['value']);
             } catch (\Exception $e) {
-                error_log('AndonController getDailyChallenge dagmal: ' . $e->getMessage());
+                error_log('AndonController::getDailyChallenge dagmal: ' . $e->getMessage());
             }
 
             // Hämta dagens IBC
@@ -580,7 +580,7 @@ class AndonController {
                 'completed'    => $completed,
                 'type'         => $chosen['type'],
                 'datum'        => $datum,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
             error_log('AndonController::getDailyChallenge fel: ' . $e->getMessage());
@@ -613,7 +613,7 @@ class AndonController {
                     $malIdag = (int)$row['value'];
                 }
             } catch (\Exception $e) {
-                error_log('AndonBoard dagmal: ' . $e->getMessage());
+                error_log('AndonController::dagmal: ' . $e->getMessage());
             }
 
             // ---- 2. Dagens IBC + runtime ----
@@ -727,7 +727,7 @@ class AndonController {
                     }
                 }
             } catch (\Exception $e) {
-                error_log('AndonBoard stopp: ' . $e->getMessage());
+                error_log('AndonController::stopp: ' . $e->getMessage());
             }
 
             // Minuter sedan senaste stopp
@@ -806,7 +806,7 @@ class AndonController {
                     'operator' => $operator,
                 ],
                 'timestamp' => $nu->format('Y-m-d H:i:s'),
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
 
         } catch (\Exception $e) {
             error_log('AndonController::getBoardStatus fel: ' . $e->getMessage());

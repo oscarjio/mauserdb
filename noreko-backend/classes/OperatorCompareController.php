@@ -54,7 +54,7 @@ class OperatorCompareController {
 
             echo json_encode($rows, JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('OperatorCompareController operatorsList: ' . $e->getMessage());
+            error_log('OperatorCompareController::operatorsList: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta operatörer', 500);
         }
     }
@@ -96,7 +96,7 @@ class OperatorCompareController {
                 'op_b'    => $dataB,
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('OperatorCompareController compare: ' . $e->getMessage());
+            error_log('OperatorCompareController::compare: ' . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
     }
@@ -159,7 +159,7 @@ class OperatorCompareController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('OperatorCompareController radarData: ' . $e->getMessage());
+            error_log('OperatorCompareController::radarData: ' . $e->getMessage());
             $this->sendError('Internt serverfel', 500);
         }
     }

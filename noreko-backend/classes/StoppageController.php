@@ -138,7 +138,7 @@ class StoppageController {
                 KEY `idx_user` (`user_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci");
         } catch (PDOException $e) {
-            error_log('StoppageController ensureTablesExist: ' . $e->getMessage());
+            error_log('StoppageController::ensureTablesExist: ' . $e->getMessage());
         }
     }
 
@@ -148,9 +148,9 @@ class StoppageController {
             echo json_encode([
                 'success' => true,
                 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getReasons: ' . $e->getMessage());
+            error_log('StoppageController::getReasons: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta orsakskoder'], JSON_UNESCAPED_UNICODE);
         }
@@ -178,9 +178,9 @@ class StoppageController {
             echo json_encode([
                 'success' => true,
                 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getStoppages: ' . $e->getMessage());
+            error_log('StoppageController::getStoppages: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stopporsaker'], JSON_UNESCAPED_UNICODE);
         }
@@ -246,9 +246,9 @@ class StoppageController {
                     'unplanned_minutes' => $unplanned,
                     'daily' => $stmtDaily->fetchAll(PDO::FETCH_ASSOC)
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getStats: ' . $e->getMessage());
+            error_log('StoppageController::getStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta stoppstatistik'], JSON_UNESCAPED_UNICODE);
         }
@@ -307,9 +307,9 @@ class StoppageController {
                 'success' => true,
                 'message' => 'Stoppost registrerad',
                 'id' => $newId
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('createStoppage: ' . $e->getMessage());
+            error_log('StoppageController::createStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera stoppost'], JSON_UNESCAPED_UNICODE);
         }
@@ -369,7 +369,7 @@ class StoppageController {
 
             if (empty($fields)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera']);
+                echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -379,9 +379,9 @@ class StoppageController {
 
             AuditLogger::log($this->pdo, 'update_stoppage', 'stoppage_log', $id,
                 'Uppdaterad: fields=' . implode(',', array_map(fn($f) => strtok($f, ' '), $fields)));
-            echo json_encode(['success' => true, 'message' => 'Stoppost uppdaterad']);
+            echo json_encode(['success' => true, 'message' => 'Stoppost uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('updateStoppage: ' . $e->getMessage());
+            error_log('StoppageController::updateStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera stoppost'], JSON_UNESCAPED_UNICODE);
         }
@@ -402,7 +402,7 @@ class StoppageController {
             AuditLogger::log($this->pdo, 'delete_stoppage', 'stoppage_log', $id, 'Stoppost borttagen');
             echo json_encode(['success' => true, 'message' => 'Stoppost borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('deleteStoppage: ' . $e->getMessage());
+            error_log('StoppageController::deleteStoppage: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort stoppost'], JSON_UNESCAPED_UNICODE);
         }
@@ -453,9 +453,9 @@ class StoppageController {
                 'orsaker'        => $orsaker,
                 'total_minuter'  => (int)$totalMinuter,
                 'dagar'          => $dagar,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getPareto: ' . $e->getMessage());
+            error_log('StoppageController::getPareto: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta Pareto-data'], JSON_UNESCAPED_UNICODE);
         }
@@ -556,9 +556,9 @@ class StoppageController {
                 'hourly_distribution' => $hourlyDistribution,
                 'costly_reasons' => $costlyReasons,
                 'period_days' => $days,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getPatternAnalysis: ' . $e->getMessage());
+            error_log('StoppageController::getPatternAnalysis: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta mönsteranalys'], JSON_UNESCAPED_UNICODE);
         }
@@ -615,9 +615,9 @@ class StoppageController {
                     'prev_week'  => $prevWeek,
                     'daily_14'   => $daily14
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('getWeeklySummary: ' . $e->getMessage());
+            error_log('StoppageController::getWeeklySummary: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckosummering'], JSON_UNESCAPED_UNICODE);
         }
@@ -632,7 +632,7 @@ class StoppageController {
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$row || (int)$row['user_id'] !== (int)$_SESSION['user_id']) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad']);
+            echo json_encode(['success' => false, 'error' => 'Åtkomst nekad'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }

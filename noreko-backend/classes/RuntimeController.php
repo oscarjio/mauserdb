@@ -99,7 +99,7 @@ class RuntimeController {
                         'rast_status' => $rast,
                         'changed' => true
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
             } else {
                 // Status oförändrad, skippa
                 echo json_encode([
@@ -113,7 +113,7 @@ class RuntimeController {
                 ], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
-            error_log('registerBreakFromShelly: ' . $e->getMessage());
+            error_log('RuntimeController::registerBreakFromShelly: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast'], JSON_UNESCAPED_UNICODE);
         }
@@ -162,9 +162,9 @@ class RuntimeController {
                     'line' => $line,
                     'rast_status' => $rastStatus
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('registerBreak: ' . $e->getMessage());
+            error_log('RuntimeController::registerBreak: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte registrera rast'], JSON_UNESCAPED_UNICODE);
         }
@@ -209,7 +209,7 @@ class RuntimeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getTodayBreakTime: ' . $e->getMessage());
+            error_log('RuntimeController::getTodayBreakTime: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rasttid'], JSON_UNESCAPED_UNICODE);
         }
@@ -261,7 +261,7 @@ class RuntimeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('getBreakStats: ' . $e->getMessage());
+            error_log('RuntimeController::getBreakStats: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }

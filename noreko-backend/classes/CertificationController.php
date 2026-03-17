@@ -75,7 +75,7 @@ class CertificationController {
                 AND table_name = 'operator_certifications'
             ");
             if ((int)$tableCheck->fetchColumn() === 0) {
-                echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0]);
+                echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -103,9 +103,9 @@ class CertificationController {
                 'success'       => true,
                 'count'         => $count,
                 'urgent_count'  => $urgentCount,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('CertificationController getExpiryCount: ' . $e->getMessage());
+            error_log('CertificationController::getExpiryCount: ' . $e->getMessage());
             echo json_encode(['success' => true, 'count' => 0, 'urgent_count' => 0], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -161,9 +161,9 @@ class CertificationController {
             echo json_encode([
                 'success'      => true,
                 'operators'    => array_values($grouped)
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('CertificationController getAll: ' . $e->getMessage());
+            error_log('CertificationController::getAll: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta certifieringar'], JSON_UNESCAPED_UNICODE);
         }
@@ -194,7 +194,7 @@ class CertificationController {
                     'operators' => [],
                     'lines'     => [],
                     'matrix'    => (object)[]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -272,9 +272,9 @@ class CertificationController {
                 'operators' => $operatorsOut,
                 'lines'     => $linesOut,
                 'matrix'    => $matrix,
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('CertificationController getMatrix: ' . $e->getMessage());
+            error_log('CertificationController::getMatrix: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta kompetensmatris'], JSON_UNESCAPED_UNICODE);
         }
@@ -336,7 +336,7 @@ class CertificationController {
 
             echo json_encode(['success' => true, 'id' => $newId, 'message' => 'Certifiering tillagd'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('CertificationController addCertification: ' . $e->getMessage());
+            error_log('CertificationController::addCertification: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte lägga till certifiering'], JSON_UNESCAPED_UNICODE);
         }
@@ -364,7 +364,7 @@ class CertificationController {
 
             echo json_encode(['success' => true, 'message' => 'Certifiering återkallad'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('CertificationController revokeCertification: ' . $e->getMessage());
+            error_log('CertificationController::revokeCertification: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte återkalla certifiering'], JSON_UNESCAPED_UNICODE);
         }

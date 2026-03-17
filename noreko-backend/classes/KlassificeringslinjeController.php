@@ -93,9 +93,9 @@ class KlassificeringslinjeController {
         try {
             $this->ensureSettingsTable();
             $rows = $this->pdo->query("SELECT setting, value FROM klassificeringslinje_settings ORDER BY id")->fetchAll(\PDO::FETCH_KEY_PAIR);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getSettings: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getSettings: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -120,10 +120,10 @@ class KlassificeringslinjeController {
                 $stmt->execute([$key, $value]);
             }
             AuditLogger::log($this->pdo, 'update_klassificeringslinje_settings', 'klassificeringslinje_settings', null,
-                json_encode(array_intersect_key($data, array_flip($allowed))));
-            echo json_encode(['success' => true, 'message' => 'Inställningar sparade']);
+                json_encode(array_intersect_key($data, array_flip($allowed)), JSON_UNESCAPED_UNICODE));
+            echo json_encode(['success' => true, 'message' => 'Inställningar sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController setSettings: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::setSettings: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara inställningar'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -174,9 +174,9 @@ class KlassificeringslinjeController {
                     'note'            => 'Linjen ej i drift',
                     'server_time'     => date('Y-m-d H:i:s'),
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getSystemStatus: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getSystemStatus: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta systemstatus'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -205,9 +205,9 @@ class KlassificeringslinjeController {
         try {
             $this->ensureWeekdayGoalsTable();
             $rows = $this->pdo->query("SELECT weekday, mal FROM klassificeringslinje_weekday_goals ORDER BY weekday")->fetchAll(\PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $rows]);
+            echo json_encode(['success' => true, 'data' => $rows], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getWeekdayGoals: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getWeekdayGoals: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -234,7 +234,7 @@ class KlassificeringslinjeController {
                 'goals=' . count($goals));
             echo json_encode(['success' => true, 'message' => 'Veckodagsmål sparade'], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController setWeekdayGoals: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::setWeekdayGoals: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte spara veckodagsmål'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -295,7 +295,7 @@ class KlassificeringslinjeController {
                         'pct_of_goal'   => 0,
                         'senaste_datum' => $senasteDatum,
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -313,7 +313,7 @@ class KlassificeringslinjeController {
                 ]
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getTodaySnapshot: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getTodaySnapshot: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta dagens snapshot'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -346,9 +346,9 @@ class KlassificeringslinjeController {
                     'productionPercentage'=> 0,
                     'utetemperatur'       => null,
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getLiveStats: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getLiveStats: ' . $e->getMessage());
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta statistik'], JSON_UNESCAPED_UNICODE);
         }
     }
@@ -426,7 +426,7 @@ class KlassificeringslinjeController {
                 $stmt->execute(['datum' => $prevDatum]);
                 $prevRows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
             } catch (\Exception $e) {
-                error_log('KlassificeringslinjeController getReport prevRows: ' . $e->getMessage());
+                error_log('KlassificeringslinjeController::getReport prevRows: ' . $e->getMessage());
             }
 
             $totalOk   = 0;
@@ -464,7 +464,7 @@ class KlassificeringslinjeController {
                     if ($runtimeMinutes < 1 && $ibcRange['cnt'] > 0) $runtimeMinutes = 5;
                 }
             } catch (\Exception $e) {
-                error_log('KlassificeringslinjeController getReport runtime: ' . $e->getMessage());
+                error_log('KlassificeringslinjeController::getReport runtime: ' . $e->getMessage());
             }
 
             $ibcPerHour = ($runtimeMinutes > 0 && $totalIbc > 0)
@@ -490,9 +490,9 @@ class KlassificeringslinjeController {
                     'skift_count'     => count($rows),
                     'skift_data'      => $rows,
                 ],
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getReport: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getReport: ' . $e->getMessage());
             echo json_encode([
                 'success' => true,
                 'empty'   => true,
@@ -548,7 +548,7 @@ class KlassificeringslinjeController {
                         'basta_dag'     => null,
                         'basta_ibc'     => 0,
                     ],
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -595,7 +595,7 @@ class KlassificeringslinjeController {
                 ],
             ], JSON_UNESCAPED_UNICODE);
         } catch (\Exception $e) {
-            error_log('KlassificeringslinjeController getOeeTrend: ' . $e->getMessage());
+            error_log('KlassificeringslinjeController::getOeeTrend: ' . $e->getMessage());
             echo json_encode([
                 'success' => true,
                 'empty'   => true,

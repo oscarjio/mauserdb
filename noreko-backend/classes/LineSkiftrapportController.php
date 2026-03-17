@@ -108,7 +108,7 @@ class LineSkiftrapportController {
             $report = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$report) {
                 http_response_code(404);
-                echo json_encode(['success' => false, 'error' => 'Rapport hittades inte']);
+                echo json_encode(['success' => false, 'error' => 'Rapport hittades inte'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
             if ((int)$report['user_id'] !== (int)$_SESSION['user_id']) {
@@ -149,7 +149,7 @@ class LineSkiftrapportController {
                 $this->pdo->exec($sql);
             }
         } catch (PDOException $e) {
-            error_log("ensureTable($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::ensureTable($table): " . $e->getMessage());
         }
     }
 
@@ -167,9 +167,9 @@ class LineSkiftrapportController {
             ");
             $stmt->execute();
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode(['success' => true, 'data' => $results]);
+            echo json_encode(['success' => true, 'data' => $results], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("getReports($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::getReports($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta rapporter'], JSON_UNESCAPED_UNICODE);
         }
@@ -199,7 +199,7 @@ class LineSkiftrapportController {
                 "Skapad: datum=$datum, antal_ok=$antal_ok, totalt=$totalt");
             echo json_encode(['success' => true, 'message' => 'Rapport skapad', 'id' => $newId], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("createReport($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::createReport($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte skapa rapport'], JSON_UNESCAPED_UNICODE);
         }
@@ -258,7 +258,7 @@ class LineSkiftrapportController {
 
             if (empty($fields)) {
                 http_response_code(400);
-                echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera']);
+                echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera'], JSON_UNESCAPED_UNICODE);
                 return;
             }
 
@@ -268,9 +268,9 @@ class LineSkiftrapportController {
             $stmt->execute($params);
             AuditLogger::log($this->pdo, 'update_rapport', $table, $id,
                 'Rapport uppdaterad');
-            echo json_encode(['success' => true, 'message' => 'Rapport uppdaterad']);
+            echo json_encode(['success' => true, 'message' => 'Rapport uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("updateReport($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::updateReport($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera rapport'], JSON_UNESCAPED_UNICODE);
         }
@@ -290,7 +290,7 @@ class LineSkiftrapportController {
                 'Rapport borttagen');
             echo json_encode(['success' => true, 'message' => 'Rapport borttagen'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("deleteReport($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::deleteReport($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort rapport'], JSON_UNESCAPED_UNICODE);
         }
@@ -310,7 +310,7 @@ class LineSkiftrapportController {
             AuditLogger::log($this->pdo, 'update_inlagd', $table, $id, 'inlagd=' . $inlagd);
             echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'inlagd' => $inlagd], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("updateInlagd($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::updateInlagd($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);
         }
@@ -335,9 +335,9 @@ class LineSkiftrapportController {
             $stmt->execute(array_values($ids));
             AuditLogger::log($this->pdo, 'bulk_delete_rapport', $table, null,
                 count($ids) . ' rapporter borttagna (ID: ' . implode(', ', $ids) . ')');
-            echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) borttagna']);
+            echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) borttagna'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("bulkDelete($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::bulkDelete($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort rapporter'], JSON_UNESCAPED_UNICODE);
         }
@@ -364,9 +364,9 @@ class LineSkiftrapportController {
             $stmt->execute($params);
             AuditLogger::log($this->pdo, 'bulk_update_inlagd', $table, null,
                 count($ids) . ' rader, inlagd=' . $inlagd . ', ids=' . implode(',', $ids));
-            echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) uppdaterade']);
+            echo json_encode(['success' => true, 'message' => count($ids) . ' rapport(er) uppdaterade'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log("bulkUpdateInlagd($table): " . $e->getMessage());
+            error_log("LineSkiftrapportController::bulkUpdateInlagd($table): " . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);
         }

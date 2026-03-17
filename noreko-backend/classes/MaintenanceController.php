@@ -119,7 +119,7 @@ class MaintenanceController {
             echo json_encode([
                 'entries'     => $entries,
                 'total_count' => $total
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::listEntries: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta underhållsposter', 500);
@@ -222,7 +222,7 @@ class MaintenanceController {
                 'success' => true,
                 'message' => 'Underhållspost sparad',
                 'id'      => $newId
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::addEntry: ' . $e->getMessage());
             $this->sendError('Kunde inte spara underhållspost', 500);
@@ -332,7 +332,7 @@ class MaintenanceController {
             $sql = 'UPDATE maintenance_log SET ' . implode(', ', $fields) . ' WHERE id = :id';
             $this->pdo->prepare($sql)->execute($params);
 
-            echo json_encode(['success' => true, 'message' => 'Underhållspost uppdaterad']);
+            echo json_encode(['success' => true, 'message' => 'Underhållspost uppdaterad'], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::updateEntry: ' . $e->getMessage());
             $this->sendError('Kunde inte uppdatera underhållspost', 500);
@@ -381,7 +381,7 @@ class MaintenanceController {
             echo json_encode([
                 'success' => true,
                 'stats'   => $stats
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::getStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta statistik', 500);
@@ -401,7 +401,7 @@ class MaintenanceController {
             echo json_encode([
                 'success'   => true,
                 'equipment' => $equipment
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::getEquipmentList: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta utrustningslista', 500);
@@ -454,7 +454,7 @@ class MaintenanceController {
                     'total_cost'         => $totalCost,
                     'worst_equipment'    => $worstEquipment
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::getEquipmentStats: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta utrustningsstatistik', 500);
@@ -506,7 +506,7 @@ class MaintenanceController {
                 'success' => true,
                 'days'    => $days,
                 'kpis'    => $rows
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::getMttrMtbf: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta MTTR/MTBF-data', 500);
@@ -570,7 +570,7 @@ class MaintenanceController {
                 'success'   => true,
                 'intervals' => $intervals,
                 'total_ibc' => $totalIbc
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::getServiceIntervals: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta serviceintervall', 500);
@@ -636,7 +636,7 @@ class MaintenanceController {
                 'success' => true,
                 'message' => 'Serviceintervall sparat',
                 'id'      => $id
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::setServiceInterval: ' . $e->getMessage());
             $this->sendError('Kunde inte spara serviceintervall', 500);
@@ -675,7 +675,7 @@ class MaintenanceController {
             echo json_encode([
                 'success' => true,
                 'message' => 'Serviceräknare nollställd'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
             error_log('MaintenanceController::resetServiceCounter: ' . $e->getMessage());
             $this->sendError('Kunde inte nollställa serviceräknare', 500);

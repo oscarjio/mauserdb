@@ -157,9 +157,9 @@ class BonusAdminController {
             if (!$config) {
                 // Return default config if not exists
                 $config = [
-                    'weights_foodgrade' => json_encode(['eff' => 0.30, 'prod' => 0.30, 'qual' => 0.40]),
-                    'weights_nonun' => json_encode(['eff' => 0.35, 'prod' => 0.45, 'qual' => 0.20]),
-                    'weights_tvattade' => json_encode(['eff' => 0.40, 'prod' => 0.35, 'qual' => 0.25]),
+                    'weights_foodgrade' => json_encode(['eff' => 0.30, 'prod' => 0.30, 'qual' => 0.40], JSON_UNESCAPED_UNICODE),
+                    'weights_nonun' => json_encode(['eff' => 0.35, 'prod' => 0.45, 'qual' => 0.20], JSON_UNESCAPED_UNICODE),
+                    'weights_tvattade' => json_encode(['eff' => 0.40, 'prod' => 0.35, 'qual' => 0.25], JSON_UNESCAPED_UNICODE),
                     'productivity_target_foodgrade' => 12.0,
                     'productivity_target_nonun' => 20.0,
                     'productivity_target_tvattade' => 15.0,
@@ -168,7 +168,7 @@ class BonusAdminController {
                         ['threshold' => 90, 'multiplier' => 1.5, 'name' => 'Excellent'],
                         ['threshold' => 80, 'multiplier' => 1.25, 'name' => 'God prestanda'],
                         ['threshold' => 70, 'multiplier' => 1.0, 'name' => 'Basbonus']
-                    ]),
+                    ], JSON_UNESCAPED_UNICODE),
                     'max_bonus' => 200,
                     'team_bonus_enabled' => false,
                     'safety_bonus_enabled' => false
@@ -184,7 +184,7 @@ class BonusAdminController {
             $this->sendSuccess($config);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin getConfig error: ' . $e->getMessage());
+            error_log('BonusAdminController::getConfig error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -261,7 +261,7 @@ class BonusAdminController {
                 'prod' => round($prod, 3),
                 'qual' => round($qual, 3)
             ];
-            $weights_json = json_encode($weights_normalized);
+            $weights_json = json_encode($weights_normalized, JSON_UNESCAPED_UNICODE);
 
             // Build query dynamically with safe column name
             $query = "
@@ -287,7 +287,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin updateWeights error: ' . $e->getMessage());
+            error_log('BonusAdminController::updateWeights error: ' . $e->getMessage());
             $this->sendError('Database operation failed', 500);
         }
     }
@@ -370,7 +370,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin setTargets error: ' . $e->getMessage());
+            error_log('BonusAdminController::setTargets error: ' . $e->getMessage());
             $this->sendError('Database operation failed', 500);
         }
     }
@@ -417,7 +417,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin getBonusPeriods error: ' . $e->getMessage());
+            error_log('BonusAdminController::getBonusPeriods error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -485,7 +485,7 @@ class BonusAdminController {
             }
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin exportReport error: ' . $e->getMessage());
+            error_log('BonusAdminController::exportReport error: ' . $e->getMessage());
             $this->sendError('Database operation failed', 500);
         }
     }
@@ -557,7 +557,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin approveBonuses error: ' . $e->getMessage());
+            error_log('BonusAdminController::approveBonuses error: ' . $e->getMessage());
             $this->sendError('Database operation failed', 500);
         }
     }
@@ -625,7 +625,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin getSystemStats error: ' . $e->getMessage());
+            error_log('BonusAdminController::getSystemStats error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -656,7 +656,7 @@ class BonusAdminController {
             $this->logAudit('set_weekly_goal', 'config', 1, null, ['weekly_bonus_goal' => round($goal, 2)]);
             $this->sendSuccess(['weekly_bonus_goal' => round($goal, 2)]);
         } catch (PDOException $e) {
-            error_log('BonusAdmin setWeeklyGoal error: ' . $e->getMessage());
+            error_log('BonusAdminController::setWeeklyGoal error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -740,7 +740,7 @@ class BonusAdminController {
                 'pct_of_goal'            => $pct_of_goal,
             ]);
         } catch (PDOException $e) {
-            error_log('BonusAdmin getOperatorForecast error: ' . $e->getMessage());
+            error_log('BonusAdminController::getOperatorForecast error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -775,7 +775,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin getAmounts error: ' . $e->getMessage());
+            error_log('BonusAdminController::getAmounts error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -841,7 +841,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin setAmounts error: ' . $e->getMessage());
+            error_log('BonusAdminController::setAmounts error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -878,7 +878,7 @@ class BonusAdminController {
             }
             $this->sendSuccess(['operators' => $operators]);
         } catch (PDOException $e) {
-            error_log('BonusAdmin listOperators: ' . $e->getMessage());
+            error_log('BonusAdminController::listOperators: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -958,7 +958,7 @@ class BonusAdminController {
                 'total_sek' => round($total_sek, 2),
             ]);
         } catch (PDOException $e) {
-            error_log('BonusAdmin listPayouts: ' . $e->getMessage());
+            error_log('BonusAdminController::listPayouts: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1017,12 +1017,12 @@ class BonusAdminController {
             try {
                 $this->logAudit('update_status', 'bonus_payout', $id, null, ['status' => $status]);
             } catch (Exception $ae) {
-                error_log('BonusAdmin updatePayoutStatus audit: ' . $ae->getMessage());
+                error_log('BonusAdminController::updatePayoutStatus audit: ' . $ae->getMessage());
             }
 
             $this->sendSuccess(['id' => $id, 'status' => $status, 'message' => 'Status uppdaterad']);
         } catch (PDOException $e) {
-            error_log('BonusAdmin updatePayoutStatus: ' . $e->getMessage());
+            error_log('BonusAdminController::updatePayoutStatus: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1094,12 +1094,12 @@ class BonusAdminController {
                     'op_id' => $op_id, 'amount_sek' => $amount_sek, 'period' => "{$period_start}–{$period_end}"
                 ]);
             } catch (Exception $ae) {
-                error_log('BonusAdmin recordPayout audit: ' . $ae->getMessage());
+                error_log('BonusAdminController::recordPayout audit: ' . $ae->getMessage());
             }
 
             $this->sendSuccess(['id' => (int)$newId, 'message' => 'Utbetalning registrerad']);
         } catch (PDOException $e) {
-            error_log('BonusAdmin recordPayout: ' . $e->getMessage());
+            error_log('BonusAdminController::recordPayout: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1130,12 +1130,12 @@ class BonusAdminController {
             try {
                 $this->logAudit('delete', 'bonus_payout', $id, ['id' => $id], null);
             } catch (Exception $ae) {
-                error_log('BonusAdmin deletePayout audit: ' . $ae->getMessage());
+                error_log('BonusAdminController::deletePayout audit: ' . $ae->getMessage());
             }
 
             $this->sendSuccess(['message' => 'Utbetalning borttagen']);
         } catch (PDOException $e) {
-            error_log('BonusAdmin deletePayout: ' . $e->getMessage());
+            error_log('BonusAdminController::deletePayout: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1181,7 +1181,7 @@ class BonusAdminController {
 
             $this->sendSuccess(['summary' => $rows, 'year' => $year]);
         } catch (PDOException $e) {
-            error_log('BonusAdmin getPayoutSummary: ' . $e->getMessage());
+            error_log('BonusAdminController::getPayoutSummary: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1434,7 +1434,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin getFairnessAudit error: ' . $e->getMessage());
+            error_log('BonusAdminController::getFairnessAudit error: ' . $e->getMessage());
             $this->sendError('Databasfel vid rättviseaudit', 500);
         }
     }
@@ -1672,7 +1672,7 @@ class BonusAdminController {
             ]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin getBonusSimulator error: ' . $e->getMessage());
+            error_log('BonusAdminController::getBonusSimulator error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1715,7 +1715,7 @@ class BonusAdminController {
                             return;
                         }
                         $updates[] = "$col = :$col";
-                        $params[$col] = json_encode(['eff' => round($eff,3), 'prod' => round($prod,3), 'qual' => round($qual,3)]);
+                        $params[$col] = json_encode(['eff' => round($eff,3), 'prod' => round($prod,3), 'qual' => round($qual,3)], JSON_UNESCAPED_UNICODE);
                     }
                 }
             }
@@ -1763,7 +1763,7 @@ class BonusAdminController {
             $this->sendSuccess(['message' => 'Parametrar sparade', 'uppdaterat' => count($updates) - 1]);
 
         } catch (PDOException $e) {
-            error_log('BonusAdmin saveSimulatorParams error: ' . $e->getMessage());
+            error_log('BonusAdminController::saveSimulatorParams error: ' . $e->getMessage());
             $this->sendError('Databasfel', 500);
         }
     }
@@ -1869,14 +1869,14 @@ class BonusAdminController {
                 'action' => $action,
                 'entity_type' => $entity_type,
                 'entity_id' => $entity_id,
-                'old_value' => $old_value ? json_encode($old_value) : null,
-                'new_value' => $new_value ? json_encode($new_value) : null,
+                'old_value' => $old_value ? json_encode($old_value, JSON_UNESCAPED_UNICODE) : null,
+                'new_value' => $new_value ? json_encode($new_value, JSON_UNESCAPED_UNICODE) : null,
                 'user' => $_SESSION['username'] ?? 'admin',
                 'ip_address' => $_SERVER['REMOTE_ADDR'] ?? null
             ]);
         } catch (PDOException $e) {
             // Don't fail the main operation if audit logging fails
-            error_log('Audit log failed: ' . $e->getMessage());
+            error_log('BonusAdminController::log failed: ' . $e->getMessage());
         }
     }
 }

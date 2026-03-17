@@ -1,3 +1,38 @@
+## 2026-03-17 Session #136 Worker A — PHP-backend: 3 buggar fixade (response format, error_log format, json_encode unicode)
+
+### Uppgift 1: PHP response format consistency audit
+Granskade ALLA 117 PHP-controllers i noreko-backend/classes/.
+- Content-Type: application/json satts korrekt i api.php (centralt entry point) — alla controllers arver detta
+- Alla controllers returnerar konsekvent JSON-struktur (success/error) via echo json_encode()
+- Icke-JSON-output (CSV-export, HTML-rendering) i RebotlingAnalyticsController och BonusAdminController ar korrekt och satter egna Content-Type headers
+- StatusController returnerar {loggedIn: ...} format — korrekt domain-specifikt format for auth-check
+- Inga controllers echo:ar ra text utan JSON-wrapping (utom intentionell CSV/HTML)
+
+**BUGG FIXAD:** 263 json_encode()-anrop i 42 filer saknade JSON_UNESCAPED_UNICODE-flaggan, vilket kunde orsaka att svenska tecken (a, ae, o) escapades som \uXXXX i JSON-svar. Fixat med PHP-script som parsar parenteser korrekt for bade enrads- och flerrads-anrop.
+
+Paaverkade filer: AdminController, AndonController, AuditController, BatchSparningController, BonusAdminController, BonusController, CertificationController, DashboardLayoutController, FeatureFlagController, FeedbackController, HistorikController, KassationskvotAlarmController, KlassificeringslinjeController, KvalitetscertifikatController, LeveransplaneringController, LineSkiftrapportController, LoginController, MaintenanceController, MaskinunderhallController, MinDagController, NarvaroController, NewsController, ProfileController, RebotlingAdminController, RebotlingAnalyticsController, RebotlingController, RegisterController, RuntimeController, SaglinjeController, ShiftHandoverController, ShiftPlanController, SkiftoverlamningController, SkiftrapportController, StatusController, StoppageController, StopporsakRegistreringController, TidrapportController, TvattlinjeController, VDVeckorapportController, VeckotrendController, VpnController, WeeklyReportController
+
+### Uppgift 2: PHP file upload validation audit
+Granskade ALLA PHP-controllers efter $_FILES-anvandning och move_uploaded_file.
+**Resultat:** Inga controllers hanterar filuppladdning — $_FILES anvands inte nagonstan i noreko-backend/classes/. Inga atgarder behoves.
+
+### Uppgift 3: PHP error_log format consistency
+Granskade alla 984 error_log()-anrop i PHP-controllers.
+
+**BUGG FIXAD:** 444 error_log()-anrop anvande inkonsekvent format:
+- 250 anvande "ControllerName methodName:" (mellanslag) istallet for "ControllerName::methodName:" (standard)
+- 64 anvande forkortade klassnamn (t.ex. "BonusAdmin" istf "BonusAdminController")
+- 109 anvande bara metodnamn utan klassprefix (t.ex. "getLiveStats:" istf "RebotlingController::getLiveStats:")
+- 21 blandade format (svenska meddelanden, kolon efter klassnamn, etc.)
+
+Alla 984 error_log()-anrop anvander nu konsekvent format: ControllerName::methodName: meddelande
+
+**BUGG FIXAD:** 8 error_log-anrop i LineSkiftrapportController.php saknade kontroller-prefix helt (bara metodnamn).
+
+Sakerhet: Inga losenord, tokens eller annan kanslig data loggas i nagon error_log()-anrop.
+
+Paaverkade filer: 55 PHP-filer totalt (748 rader andrade)
+
 ## 2026-03-17 Session #136 Worker B — Angular frontend: 3 buggar fixade (chart destroy audit, lazy loading audit, setTimeout-laeacka)
 
 ### Uppgift 1: Angular Chart.js destroy audit (GRUNDLIG)

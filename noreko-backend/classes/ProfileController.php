@@ -28,7 +28,7 @@ class ProfileController {
             session_unset();
             session_destroy();
             http_response_code(404);
-            echo json_encode(['success' => false, 'error' => 'Användaren hittades inte.']);
+            echo json_encode(['success' => false, 'error' => 'Användaren hittades inte.'], JSON_UNESCAPED_UNICODE);
             return;
         }
 
@@ -139,13 +139,13 @@ class ProfileController {
                     'role' => $_SESSION['role'],
                     'operator_id' => $_SESSION['operator_id']
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('ProfileController update error: ' . $e->getMessage());
+            error_log('ProfileController::update error: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         } catch (Exception $e) {
-            error_log('ProfileController update error: ' . $e->getMessage());
+            error_log('ProfileController::update error: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Internt serverfel vid uppdatering av profil.'], JSON_UNESCAPED_UNICODE);
         }

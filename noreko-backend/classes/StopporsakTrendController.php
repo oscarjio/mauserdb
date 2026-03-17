@@ -137,7 +137,7 @@ class StopporsakTrendController {
                 $result[$vk][$rsn]['total_minutes']  += (float)$row['total_min'];
             }
         } catch (\PDOException $e) {
-            error_log('StopporsakTrendController hämtaStoppdata (stoppage_log): ' . $e->getMessage());
+            error_log('StopporsakTrendController::hämtaStoppdata (stoppage_log): ' . $e->getMessage());
         }
 
         // --- Källa 2: stopporsak_registreringar + stopporsak_kategorier ---
@@ -169,7 +169,7 @@ class StopporsakTrendController {
                 $result[$vk][$rsn]['total_minutes']  += (float)$row['total_min'];
             }
         } catch (\PDOException $e) {
-            error_log('StopporsakTrendController hämtaStoppdata (stopporsak_registreringar): ' . $e->getMessage());
+            error_log('StopporsakTrendController::hämtaStoppdata (stopporsak_registreringar): ' . $e->getMessage());
         }
 
         return $result;

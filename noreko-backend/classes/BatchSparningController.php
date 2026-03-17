@@ -67,7 +67,7 @@ class BatchSparningController {
         }
         if (empty($_SESSION['user_id'])) {
             http_response_code(401);
-            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.']);
+            echo json_encode(['success' => false, 'error' => 'Sessionen har gått ut. Logga in igen.'], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -106,7 +106,7 @@ class BatchSparningController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('BatchSparningController ensureTables: ' . $e->getMessage());
+            error_log('BatchSparningController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -185,7 +185,7 @@ class BatchSparningController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('BatchSparningController getOverview: ' . $e->getMessage());
+            error_log('BatchSparningController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
     }
@@ -239,7 +239,7 @@ class BatchSparningController {
 
             $this->sendSuccess(['batchar' => $batchar]);
         } catch (\PDOException $e) {
-            error_log('BatchSparningController getActiveBatches: ' . $e->getMessage());
+            error_log('BatchSparningController::getActiveBatches: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta aktiva batchar', 500);
         }
     }
@@ -363,7 +363,7 @@ class BatchSparningController {
                 }, $ibcRows),
             ]);
         } catch (\PDOException $e) {
-            error_log('BatchSparningController getBatchDetail: ' . $e->getMessage());
+            error_log('BatchSparningController::getBatchDetail: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta batch-detaljer', 500);
         }
     }
@@ -439,7 +439,7 @@ class BatchSparningController {
 
             $this->sendSuccess(['batchar' => $batchar]);
         } catch (\PDOException $e) {
-            error_log('BatchSparningController getBatchHistory: ' . $e->getMessage());
+            error_log('BatchSparningController::getBatchHistory: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta batch-historik', 500);
         }
     }
@@ -482,7 +482,7 @@ class BatchSparningController {
                 'message' => 'Batch skapad',
             ]);
         } catch (\PDOException $e) {
-            error_log('BatchSparningController createBatch: ' . $e->getMessage());
+            error_log('BatchSparningController::createBatch: ' . $e->getMessage());
             $this->sendError('Kunde inte skapa batch', 500);
         }
     }
@@ -525,7 +525,7 @@ class BatchSparningController {
 
             $this->sendSuccess(['message' => 'Batch markerad som klar']);
         } catch (\PDOException $e) {
-            error_log('BatchSparningController completeBatch: ' . $e->getMessage());
+            error_log('BatchSparningController::completeBatch: ' . $e->getMessage());
             $this->sendError('Kunde inte avsluta batch', 500);
         }
     }

@@ -115,7 +115,7 @@ class ProduktionskostnadController {
                 }
             }
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController ensureTables: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::ensureTables: ' . $e->getMessage());
         }
     }
 
@@ -137,7 +137,7 @@ class ProduktionskostnadController {
             }
             return $config;
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController loadConfig: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::loadConfig: ' . $e->getMessage());
             return $this->defaultConfig;
         }
     }
@@ -213,7 +213,7 @@ class ProduktionskostnadController {
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             return (float)($row['total_stopp'] ?? 0);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getStopptidMinuter: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getStopptidMinuter: ' . $e->getMessage());
             return 0.0;
         }
     }
@@ -237,7 +237,7 @@ class ProduktionskostnadController {
             $stmt->execute([':from_date' => $fromDate, ':to_date' => $toDate]);
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getStopptidPerDay: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getStopptidPerDay: ' . $e->getMessage());
             return [];
         }
     }
@@ -371,7 +371,7 @@ class ProduktionskostnadController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getOverview: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getOverview: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta översikt', 500);
         }
     }
@@ -415,7 +415,7 @@ class ProduktionskostnadController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getBreakdown: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getBreakdown: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta kostnadsuppdelning', 500);
         }
     }
@@ -475,7 +475,7 @@ class ProduktionskostnadController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getTrend: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getTrend: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta trend', 500);
         }
     }
@@ -541,7 +541,7 @@ class ProduktionskostnadController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getDailyTable: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getDailyTable: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta daglig tabell', 500);
         }
     }
@@ -615,7 +615,7 @@ class ProduktionskostnadController {
                 ],
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getShiftComparison: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getShiftComparison: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta skiftjämförelse', 500);
         }
     }
@@ -639,7 +639,7 @@ class ProduktionskostnadController {
             }
             $this->sendSuccess(['config' => $result]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController getConfig: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::getConfig: ' . $e->getMessage());
             $this->sendError('Kunde inte hämta konfiguration', 500);
         }
     }
@@ -703,7 +703,7 @@ class ProduktionskostnadController {
                 'updated' => $updated,
             ]);
         } catch (\PDOException $e) {
-            error_log('ProduktionskostnadController updateConfig: ' . $e->getMessage());
+            error_log('ProduktionskostnadController::updateConfig: ' . $e->getMessage());
             $this->sendError('Kunde inte spara konfiguration', 500);
         }
     }

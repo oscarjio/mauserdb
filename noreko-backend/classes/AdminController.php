@@ -60,11 +60,11 @@ class AdminController {
                     $stmt->execute([$username]);
                     if ($stmt->fetch()) {
                         http_response_code(409);
-                        echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget']);
+                        echo json_encode(['success' => false, 'error' => 'Användarnamnet är redan taget'], JSON_UNESCAPED_UNICODE);
                         return;
                     }
                 } catch (PDOException $e) {
-                    error_log('AdminController create_user check: ' . $e->getMessage());
+                    error_log('AdminController::create_user check: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Databasfel vid kontroll av användarnamn'], JSON_UNESCAPED_UNICODE);
                     return;
@@ -105,7 +105,7 @@ class AdminController {
                         ]
                     ], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
-                    error_log('AdminController create_user insert: ' . $e->getMessage());
+                    error_log('AdminController::create_user insert: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte skapa användare'], JSON_UNESCAPED_UNICODE);
                 }
@@ -147,9 +147,9 @@ class AdminController {
                         "Tog bort användare: " . ($deletedUser['username'] ?? 'okänd'),
                         $deletedUser, null
                     );
-                    echo json_encode(['success' => true, 'message' => 'Användare borttagen']);
+                    echo json_encode(['success' => true, 'message' => 'Användare borttagen'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
-                    error_log('AdminController delete_user: ' . $e->getMessage());
+                    error_log('AdminController::delete_user: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte ta bort användare'], JSON_UNESCAPED_UNICODE);
                 }
@@ -180,13 +180,13 @@ class AdminController {
                             "Ändrade admin-status för $uname: " . ($newAdminStatus ? 'admin' : 'user'),
                             ['admin' => $user['admin']], ['admin' => $newAdminStatus]
                         );
-                        echo json_encode(['success' => true, 'message' => 'Admin-status uppdaterad', 'admin' => $newAdminStatus]);
+                        echo json_encode(['success' => true, 'message' => 'Admin-status uppdaterad', 'admin' => $newAdminStatus], JSON_UNESCAPED_UNICODE);
                     } else {
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                     }
                 } catch (PDOException $e) {
-                    error_log('AdminController toggle_admin: ' . $e->getMessage());
+                    error_log('AdminController::toggle_admin: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera admin-status'], JSON_UNESCAPED_UNICODE);
                 }
@@ -230,13 +230,13 @@ class AdminController {
                             ($newActiveStatus ? 'Aktiverade' : 'Inaktiverade') . " användare: $uname",
                             ['active' => $user['active']], ['active' => $newActiveStatus]
                         );
-                        echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'active' => $newActiveStatus]);
+                        echo json_encode(['success' => true, 'message' => 'Status uppdaterad', 'active' => $newActiveStatus], JSON_UNESCAPED_UNICODE);
                     } else {
                         http_response_code(404);
                         echo json_encode(['success' => false, 'error' => 'Användare hittades inte'], JSON_UNESCAPED_UNICODE);
                     }
                 } catch (PDOException $e) {
-                    error_log('Kunde inte uppdatera status (toggleActive): ' . $e->getMessage());
+                    error_log('AdminController::inte uppdatera status (toggleActive): ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera status'], JSON_UNESCAPED_UNICODE);
                 }
@@ -303,9 +303,9 @@ class AdminController {
                         "Uppdaterade användare (ID: $id): " . implode(', ', array_keys($changedFields)),
                         null, $changedFields
                     );
-                    echo json_encode(['success' => true, 'message' => 'Användare uppdaterad']);
+                    echo json_encode(['success' => true, 'message' => 'Användare uppdaterad'], JSON_UNESCAPED_UNICODE);
                 } catch (PDOException $e) {
-                    error_log('AdminController update_user: ' . $e->getMessage());
+                    error_log('AdminController::update_user: ' . $e->getMessage());
                     http_response_code(500);
                     echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera användare'], JSON_UNESCAPED_UNICODE);
                 }
@@ -333,9 +333,9 @@ class AdminController {
                     $u['active'] = 1; // Default till aktiv om kolumnen inte finns
                 }
             }
-            echo json_encode(['success' => true, 'users' => $users]);
+            echo json_encode(['success' => true, 'users' => $users], JSON_UNESCAPED_UNICODE);
         } catch (PDOException $e) {
-            error_log('AdminController get_users: ' . $e->getMessage());
+            error_log('AdminController::get_users: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Kunde inte hämta användare'], JSON_UNESCAPED_UNICODE);
         }
