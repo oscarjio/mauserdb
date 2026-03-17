@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #143)*
+*Senast uppdaterad: 2026-03-17 (session #144)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -95,25 +95,28 @@ Session #140: BUGGJAKT — 39 buggar (7 Worker A + 32 Worker B). SQL mixed param
 Session #141: BUGGJAKT — 55 buggar (15 Worker A + 40 Worker B). Response format, transactions, in_array strict, XSS + error state UI (7 komponenter), 33x setTimeout guards, route guards OK.
 Session #142: BUGGJAKT — 43 buggar (21 Worker A + 22 Worker B). DateTime explicit timezone (11 controllers), strtotime false-check (5 controllers), session timeout (8h), isFetching polling guards (21 komponenter).
 Session #143: BUGGJAKT — 24 buggar (15 Worker A + 9 Worker B). N+1 query-optimering (365->1 i calcDailyStreak), CORS/headers, error_log + form validation, routing pathMatch, template null-safety.
+Session #144: BUGGJAKT — 33 buggar (19 Worker A + 14 Worker B). Race conditions (6 SELECT-then-UPDATE), input boundary (11 max-langd/limits), template null-safety (12 !. -> ?.), router guard (andon authGuard).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] Angular template null-safety audit — saknade ?. och *ngIf guards
 - [ ] PHP race condition audit — concurrent requests, locking, DB transactions
-- [ ] Angular change detection audit — OnPush-strategi, unnecessary re-renders
 - [ ] PHP input length/boundary audit — max-langder, overflow, edge cases
+- [ ] Angular template null-safety audit — saknade ?. och *ngIf guards
+- [ ] Angular change detection audit — OnPush-strategi, unnecessary re-renders
 - [ ] Angular router guard audit — saknade guards pa admin/auth-routes
+- [ ] PHP error handling consistency — try/catch, saknade rollback
+- [ ] Angular HTTP error display — felmeddelanden for anvandaren
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #142 (klar)
-Worker A: 21 buggar — DateTime explicit timezone, strtotime false-check, session timeout.
-Worker B: 22 buggar — isFetching polling guards, setTimeout destroy$-checks. Totalt: 43.
-
 ### 2026-03-17 — Session #143 (klar)
 Worker A: 15 buggar — 8 SQL N+1 optimeringar (calcDailyStreak 365->1 query, calcWeeklyStreak 52->1, prepare utanfor loopar), 1 saknad LIMIT. 7 CORS/headers (JSON_UNESCAPED_UNICODE i api.php/admin.php/login.php/update-weather.php). 1 error_log format.
-Worker B: 9 buggar — 5 form validation (type-attribut, disabled submit, duration range), 1 routing (pathMatch: 'full'), 3 template null-safety (*ngIf guard). 149 !.-assertions auditerade OK. Bygget OK.
-Totalt: 24 buggar fixade.
+Worker B: 9 buggar — 5 form validation (type-attribut, disabled submit, duration range), 1 routing (pathMatch: 'full'), 3 template null-safety (*ngIf guard). Totalt: 24.
+
+### 2026-03-17 — Session #144 (klar)
+Worker A: 19 buggar — 8 race conditions (transaction+FOR UPDATE i AdminController, OperatorController, FeedbackController, StoppageController, RebotlingController) + 11 input boundary (max-langd username/name/title/content, pagination limits, negative clamping).
+Worker B: 14 buggar — 12 template null-safety (!. i *ngIf/*ngFor ersatta med ?. och ?? []), 1 router guard (andon saknade authGuard), 1 change detection audit (OnPush skippad — for stor refactor). Bygget OK.
+Totalt: 33 buggar fixade.

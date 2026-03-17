@@ -7,16 +7,15 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP SQL query optimization** — granska N+1 queries, saknade INDEX, ineffektiva JOINs
-- [x] **PHP CORS/headers audit** — granska alla endpoints for korrekta Content-Type och CORS-headers
-- [x] **PHP error_log consistency audit** — granska att alla error_log()-anrop foljer samma format
-- [x] **Angular form validation audit** — granska alla reaktiva formuler for saknad validering
-- [x] **Angular lazy loading audit** — verifiera att alla feature-moduler laddas lazy
-- [ ] **Angular template null-safety audit** — saknade ?. och *ngIf guards i templates
-- [ ] **PHP race condition audit** — granska concurrent requests, locking, DB transactions
-- [ ] **Angular change detection audit** — OnPush-strategi, unnecessary re-renders
-- [ ] **PHP input length/boundary audit** — granska max-langder, overflow, edge cases
-- [ ] **Angular router guard audit** — saknade guards pa admin/auth-routes
+- [x] **PHP race condition audit** — concurrent requests, locking, DB transactions (Worker A #144)
+- [x] **PHP input length/boundary audit** — max-langder, overflow, edge cases (Worker A #144)
+- [x] **Angular template null-safety audit** — saknade ?. och *ngIf guards (Worker B #144)
+- [x] **Angular router guard audit** — saknade guards pa admin/auth-routes (Worker B #144)
+- [ ] **Angular change detection audit** — OnPush-strategi (stor refactor, lag prioritet)
+- [ ] **PHP error handling consistency** — granska try/catch-block, saknade rollback vid exception
+- [ ] **Angular HTTP error display** — granska att alla API-anrop visar felmeddelanden for anvandaren
+- [ ] **PHP session security audit** — session fixation, cookie flags, session regeneration
+- [ ] **Angular memory profiling** — granska komponenter for DOM-lackor, event listener cleanup
 
 ## Parkerade features (ta inte dessa nu)
 
