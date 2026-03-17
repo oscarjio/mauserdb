@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #145)*
+*Senast uppdaterad: 2026-03-17 (session #146)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -97,6 +97,7 @@ Session #142: BUGGJAKT — 43 buggar (21 Worker A + 22 Worker B). DateTime expli
 Session #143: BUGGJAKT — 24 buggar (15 Worker A + 9 Worker B). N+1 query-optimering (365->1 i calcDailyStreak), CORS/headers, error_log + form validation, routing pathMatch, template null-safety.
 Session #144: BUGGJAKT — 33 buggar (19 Worker A + 14 Worker B). Race conditions (6 SELECT-then-UPDATE), input boundary (11 max-langd/limits), template null-safety (12 !. -> ?.), router guard (andon authGuard).
 Session #145: BUGGJAKT — 70 buggar (18 Worker A + 52 Worker B). Error handling consistency (14 controllers), session security (4 fixes), HTTP error display (52 subscribe-anrop i 10 komponenter). Memory profiling OK.
+Session #146: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL injection fixes (BonusController, RebotlingAnalyticsController), dead code, LIMIT cast + 14 getter->cached property (change detection) i 9 komponenter.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
@@ -109,13 +110,14 @@ BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #143 (klar)
-Worker A: 15 buggar — N+1 query-optimeringar, CORS/headers. Worker B: 9 buggar — form validation, routing, null-safety. Totalt: 24.
-
 ### 2026-03-17 — Session #144 (klar)
 Worker A: 19 buggar — 8 race conditions (transaction+FOR UPDATE), 11 input boundary. Worker B: 14 buggar — 12 null-safety, 1 router guard. Totalt: 33.
 
 ### 2026-03-17 — Session #145 (klar)
-Worker A: 18 buggar — 14 error handling consistency (tomma catch, saknad error_log, inkonsekvent error-nyckel, session read_and_close), 4 session security (cookie lifetime sync, gc_maxlifetime, strict_mode, use_only_cookies).
-Worker B: 52 buggar — 52 HTTP error display (subscribe utan error-callback i 10 komponenter: avvikelselarm, historisk-produktion, operatorsbonus, produktions-sla, kvalitetscertifikat, produktionskostnad, maskin-oee, stopptidsanalys, kapacitetsplanering, skiftoverlamning). Memory profiling: alla 42 komponenter OK.
+Worker A: 18 buggar — 14 error handling consistency, 4 session security.
+Worker B: 52 buggar — 52 HTTP error display (subscribe utan error-callback i 10 komponenter). Memory profiling OK.
 Totalt: 70 buggar fixade.
+
+### 2026-03-17 — Session #146 (klar)
+Worker A: 5 buggar — 2 SQL injection (BonusController, RebotlingAnalyticsController), 2 dead code, 1 LIMIT cast. 33 controllers + 90 classes auditerade.
+Worker B: 14 buggar — 14 getter->cached property i 9 komponenter (change detection performance). Alla 42 komponenter OK.
