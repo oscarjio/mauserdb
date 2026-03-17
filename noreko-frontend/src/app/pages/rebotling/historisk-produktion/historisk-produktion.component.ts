@@ -56,6 +56,7 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: HistoriskProduktionService) {}
 
@@ -119,6 +120,8 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
   }
 
   loadOverview(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadingOverview = true;
     this.errorData = false;
     this.svc.getOverview(this.getDaysParam(), this.getFrom(), this.getTo())
@@ -126,10 +129,11 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
       .subscribe({
         next: res => {
           this.loadingOverview = false;
+          this.isFetching = false;
           if (res?.success) { this.overview = res.data; }
           else { this.errorData = true; }
         },
-        error: () => { this.loadingOverview = false; this.errorData = true; }
+        error: () => { this.loadingOverview = false; this.isFetching = false; this.errorData = true; }
       });
   }
 

@@ -47,6 +47,7 @@ export class GamificationPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: GamificationService) {}
 
@@ -75,6 +76,8 @@ export class GamificationPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadLeaderboard();
     if (this.activeTab === 'min-profil') this.loadProfil();
     if (this.activeTab === 'vd-vy') this.loadOverview();
@@ -133,6 +136,7 @@ export class GamificationPage implements OnInit, OnDestroy {
       timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$)
     ).subscribe(res => {
       this.loadingLeaderboard = false;
+      this.isFetching = false;
       if (res?.success) {
         this.leaderboardData = res.data;
       } else {

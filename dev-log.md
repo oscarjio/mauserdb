@@ -1,3 +1,48 @@
+## 2026-03-17 Session #142 Worker B — 22 buggar fixade (isFetching polling guards + setTimeout memory leak guards)
+
+### Uppgift 1: Angular HTTP retry/timeout audit — polling isFetching guards (20 fix)
+Granskade alla ~92 Angular services och ~35 komponenter. Alla services har redan timeout() + catchError().
+Hittade 20 komponenter med setInterval-polling som saknade isFetching-guard, vilket tillat overlappande HTTP-anrop vid langsamma svar.
+
+1. avvikelselarm.component.ts — Lade till isFetching guard i loadAll() (60s poller)
+2. operatorsbonus.component.ts — Lade till isFetching guard i loadOverview() (60s poller)
+3. historisk-produktion.component.ts — Lade till isFetching guard i loadOverview() (120s poller)
+4. produktionskostnad.component.ts — Lade till isFetching guard i loadOverview() (60s poller)
+5. kvalitetscertifikat.component.ts — Lade till isFetching guard i loadOverview() (60s poller)
+6. produktions-sla.component.ts — Lade till isFetching guard i loadAll() (60s poller)
+7. maskin-oee.component.ts — Lade till isFetching guard i loadAll() (60s poller)
+8. stopptidsanalys.component.ts — Lade till isFetching guard i loadAll() (60s poller)
+9. statistik-dashboard.component.ts — Lade till isFetching guard i loadAll() (60s poller)
+10. kapacitetsplanering.component.ts — Lade till isFetching guard i laddaAllt() (60s poller)
+11. leveransplanering.component.ts — Lade till isFetching guard i loadAll() (60s poller)
+12. skiftplanering.component.ts — Lade till isFetching guard i loadAll() (300s poller)
+13. stopporsaker.component.ts — Lade till isFetching guard i loadAll() (120s poller)
+14. gamification.component.ts — Lade till isFetching guard i loadAll() (120s poller)
+15. oee-trendanalys.component.ts — Lade till isFetching guard i loadAll() (120s poller)
+16. statistik-overblick.component.ts — Lade till isFetching guard i loadAll() (120s poller)
+17. operator-ranking.component.ts — Lade till isFetching guard i loadAll() (120s poller)
+18. tidrapport.component.ts — Lade till isFetching guard i loadAll() (300s poller)
+19. prediktivt-underhall.component.ts — Lade till isFetching guard i loadAll() (300s poller)
+20. daglig-briefing.component.ts — Lade till isFetching guard i loadAll() (300s poller)
+
+### Uppgift 1b: maskinunderhall isFetching guard (1 fix)
+21. maskinunderhall.component.ts — Lade till isFetching guard i loadAll() (300s poller)
+
+### Uppgift 1c: setTimeout memory leak guards (2 fix — destroy$.closed checks)
+22. leveransplanering.component.ts — setTimeout for buildGanttChart/buildKapacitetChart saknade destroy$.closed check
+23. skiftplanering.component.ts — setTimeout for closeAssignModal saknade destroy$.closed check
+
+### Uppgift 1d: Typ-fixar (2 fix)
+prediktivt-underhall.component.ts — refreshInterval typade som any, andrad till ReturnType<typeof setInterval> | null
+daglig-briefing.component.ts — refreshInterval typade som any, andrad till ReturnType<typeof setInterval> | null
+
+### Uppgift 2: Angular memory profiling — event listeners (0 fix)
+Granskade alla Angular-komponenter for addEventListener utan removeEventListener, fromEvent utan takeUntil,
+ResizeObserver/MutationObserver/IntersectionObserver utan disconnect(). Inga buggar hittade.
+
+### Uppgift 3: Angular unused imports/declarations cleanup (0 fix)
+Build ger inga TypeScript-fel. Alla importerade typer anvands i respektive komponent. Inga doda imports hittade.
+
 ## 2026-03-17 Session #142 Worker A — 21 buggar fixade (date/time, strtotime, session timeout)
 
 ### Uppgift 1: PHP date/time handling audit (15 fix)

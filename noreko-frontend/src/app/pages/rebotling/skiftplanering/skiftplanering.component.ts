@@ -66,6 +66,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   private capacityChart: Chart | null = null;
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: SkiftplaneringService) {}
 
@@ -89,6 +90,8 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadOverview();
     this.loadSchedule();
     this.loadCapacity();
@@ -101,6 +104,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
     this.errorOverview = false;
     this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
+      this.isFetching = false;
       if (res?.success) {
         this.overview = res.data;
       } else {
@@ -240,7 +244,7 @@ export class SkiftplaneringPage implements OnInit, OnDestroy {
           this.loadSchedule(this.currentWeek);
           this.loadOverview();
           this.loadCapacity();
-          setTimeout(() => this.closeAssignModal(), 800);
+          setTimeout(() => { if (!this.destroy$.closed) this.closeAssignModal(); }, 800);
         } else {
           this.assignError = res?.error || 'Kunde inte tilldela operatör';
         }

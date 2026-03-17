@@ -73,6 +73,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private modalTimerId: ReturnType<typeof setTimeout> | null = null;
   private chartTimerId: ReturnType<typeof setTimeout> | null = null;
+  private isFetching = false;
 
   constructor(private svc: MaskinunderhallService) {}
 
@@ -101,6 +102,8 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadOverview();
     this.loadMachines();
     this.loadTimeline();
@@ -116,6 +119,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingOverview = false;
+      this.isFetching = false;
       if (res?.success) {
         this.overview = res.data;
       } else if (res !== null) {

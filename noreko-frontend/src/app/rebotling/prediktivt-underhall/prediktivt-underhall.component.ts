@@ -56,7 +56,8 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   aktivFlik: 'heatmap' | 'mtbf' | 'trender' | 'rekom' = 'mtbf';
 
   private destroy$ = new Subject<void>();
-  private refreshInterval: any = null;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: PrediktivtUnderhallService) {}
 
@@ -77,6 +78,8 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadHeatmap();
     this.loadMtbf();
     this.loadTrender();
@@ -101,6 +104,7 @@ export class PrediktivtUnderhallPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingHeatmap = false;
+      this.isFetching = false;
       if (res?.success) {
         this.heatmapOrsaker = res.data.orsaker;
         this.heatmapMatris = res.data.matris;

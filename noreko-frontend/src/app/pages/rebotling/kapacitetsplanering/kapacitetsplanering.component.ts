@@ -100,6 +100,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
   // Auto-refresh
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   private destroy$ = new Subject<void>();
 
@@ -162,6 +163,8 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
   }
 
   laddaAllt(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.laddaKpi();
     this.laddaDaglig();
     this.laddaStation();
@@ -186,6 +189,7 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingKpi = false;
+        this.isFetching = false;
         if (res?.success) {
           this.kpiData = res.data;
         } else {

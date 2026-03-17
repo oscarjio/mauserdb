@@ -65,6 +65,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
   private chartBuildTimer: ReturnType<typeof setTimeout> | null = null;
+  private isFetching = false;
 
   constructor(private svc: StatistikDashboardService) {}
 
@@ -92,6 +93,8 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
   // ================================================================
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadSummary();
     this.loadTrend();
     this.loadTable();
@@ -112,6 +115,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingSummary = false;
+      this.isFetching = false;
       if (res?.success) {
         this.summary = res.data;
       } else if (res !== null) {

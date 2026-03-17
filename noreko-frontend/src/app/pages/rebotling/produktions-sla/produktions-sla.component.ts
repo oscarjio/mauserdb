@@ -65,6 +65,7 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: ProduktionsSlaService) {}
 
@@ -90,6 +91,8 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadOverview();
     this.loadDailyProgress();
     this.loadWeeklyProgress();
@@ -104,10 +107,11 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
       next: res => {
         this.loadingOverview = false;
+        this.isFetching = false;
         if (res?.success) { this.overview = res.data; }
         else { this.errorData = true; }
       },
-      error: () => { this.loadingOverview = false; this.errorData = true; }
+      error: () => { this.loadingOverview = false; this.isFetching = false; this.errorData = true; }
     });
   }
 

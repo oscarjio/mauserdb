@@ -77,6 +77,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: StopptidsanalysService) {}
 
@@ -113,6 +114,8 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadOverview();
     this.loadPerMaskin();
     this.loadTrend();
@@ -127,6 +130,7 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
     this.errorOverview   = false;
     this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
+      this.isFetching = false;
       if (res?.success) {
         this.overview = res.data;
       } else {

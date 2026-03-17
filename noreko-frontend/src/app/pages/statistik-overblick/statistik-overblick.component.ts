@@ -49,6 +49,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
   private produktionChartTimer: ReturnType<typeof setTimeout> | null = null;
   private oeeChartTimer: ReturnType<typeof setTimeout> | null = null;
   private kassationChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private isFetching = false;
 
   constructor(private svc: StatistikOverblickService) {}
 
@@ -72,6 +73,8 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadKpi();
     this.loadCharts();
   }
@@ -92,6 +95,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingKpi = false;
+      this.isFetching = false;
       if (res?.success) {
         this.kpi = res.data;
       } else if (res !== null) {

@@ -72,6 +72,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
   private trendChartTimer: ReturnType<typeof setTimeout> | null = null;
   private prediktionChartTimer: ReturnType<typeof setTimeout> | null = null;
+  private isFetching = false;
 
   constructor(private svc: OeeTrendanalysService) {}
 
@@ -102,6 +103,8 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loadSammanfattning();
     this.loadStationer();
     this.loadTrend();
@@ -145,6 +148,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
     this.errorSammanfattning = false;
     this.svc.getSammanfattning().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingSammanfattning = false;
+      this.isFetching = false;
       if (res?.success) {
         this.sammanfattning = res.data;
       } else {

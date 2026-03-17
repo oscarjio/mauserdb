@@ -75,6 +75,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   // Lifecycle
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: LeveransplaneringService) {}
 
@@ -120,6 +121,8 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
   // ---- Load data ----
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     this.loading = true;
     this.loadOverview();
     this.loadOrdrar();
@@ -132,6 +135,7 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
     this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
       this.loadingOverview = false;
       this.loading = false;
+      this.isFetching = false;
       if (res?.success) {
         this.overview = res.data;
       } else {
@@ -161,8 +165,10 @@ export class LeveransplaneringPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.kapacitetData = res.data;
         setTimeout(() => {
-          this.buildGanttChart();
-          this.buildKapacitetChart();
+          if (!this.destroy$.closed) {
+            this.buildGanttChart();
+            this.buildKapacitetChart();
+          }
         }, 80);
       } else {
         this.errorKapacitet = true;

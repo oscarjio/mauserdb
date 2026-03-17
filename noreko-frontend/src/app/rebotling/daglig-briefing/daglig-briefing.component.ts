@@ -56,7 +56,8 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
   private trendChart: Chart | null = null;
 
   private destroy$ = new Subject<void>();
-  private refreshInterval: any = null;
+  private refreshInterval: ReturnType<typeof setInterval> | null = null;
+  private isFetching = false;
 
   constructor(private svc: DagligBriefingService) {}
 
@@ -92,6 +93,8 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
   }
 
   loadAll(): void {
+    if (this.isFetching) return;
+    this.isFetching = true;
     const datum = this.getDatum();
     this.loadSammanfattning(datum);
     this.loadStopp(datum);
@@ -109,6 +112,7 @@ export class DagligBriefingPage implements OnInit, OnDestroy {
       takeUntil(this.destroy$),
     ).subscribe(res => {
       this.loadingSammanfattning = false;
+      this.isFetching = false;
       if (res?.success) {
         this.sammanfattning = res.data;
         this.visatDatum = res.data.datum;
