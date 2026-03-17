@@ -268,42 +268,38 @@ class VpnController {
         
         $inClientList = false;
         $inRoutingTable = false;
-        $headerSkipped = false;
-        
+
         foreach ($lines as $line) {
             $line = rtrim($line, "\r\n");
             $trimmedLine = trim($line);
-            
+
             // Skip empty lines and command prompts
             if (empty($trimmedLine) || $trimmedLine === '>') {
                 continue;
             }
-            
+
             // Identifiera sektioner - OpenVPN använder CSV-format (komma-separerat)
             if (strpos($trimmedLine, 'HEADER,CLIENT_LIST') === 0) {
                 $inClientList = true;
                 $inRoutingTable = false;
-                $headerSkipped = false;
                 continue;
             }
-            
+
             if (strpos($trimmedLine, 'HEADER,ROUTING_TABLE') === 0) {
                 $inRoutingTable = true;
                 $inClientList = false;
-                $headerSkipped = false;
                 continue;
             }
-            
+
             // Hoppa över HEADER-rader
             if (strpos($trimmedLine, 'HEADER,') === 0) {
                 continue;
             }
-            
-            if ($trimmedLine === 'END' || strpos($trimmedLine, 'GLOBAL_STATS') === 0 || 
+
+            if ($trimmedLine === 'END' || strpos($trimmedLine, 'GLOBAL_STATS') === 0 ||
                 strpos($trimmedLine, 'TITLE,') === 0 || strpos($trimmedLine, 'TIME,') === 0) {
                 $inClientList = false;
                 $inRoutingTable = false;
-                $headerSkipped = false;
                 continue;
             }
             

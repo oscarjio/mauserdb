@@ -1674,25 +1674,8 @@ class RebotlingAnalyticsController {
         }
 
         try {
-            // Hämta timvis ackumulerad data från rebotling_ibc
-            $stmt = $this->pdo->prepare("
-                SELECT
-                    HOUR(datum) AS timme,
-                    MAX(ibc_ok)        AS ackumulerat_ibc,
-                    MAX(ibc_ej_ok)     AS ej_ok_ackumulerat,
-                    MAX(runtime_plc)   AS runtime_min_cum,
-                    COUNT(DISTINCT skiftraknare) AS skift_count
-                FROM rebotling_ibc
-                WHERE DATE(datum) = ?
-                  AND skiftraknare IS NOT NULL
-                GROUP BY HOUR(datum)
-                ORDER BY timme
-            ");
-            $stmt->execute([$date]);
-            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
             // Beräkna delta-IBC per timme (differens från föregående ackumulerat värde per skift)
-            // Vi hämtar rådata per skift och timme för att kunna beräkna deltas korrekt
+            // Hämtar rådata per skift och timme för att kunna beräkna deltas korrekt
             $rawStmt = $this->pdo->prepare("
                 SELECT
                     HOUR(datum)      AS timme,
@@ -3268,7 +3251,6 @@ class RebotlingAnalyticsController {
 
         // Svenska veckodagsnamn (MySQL returnerar engelska)
         $dagNamn = [1 => 'Söndag', 2 => 'Måndag', 3 => 'Tisdag', 4 => 'Onsdag', 5 => 'Torsdag', 6 => 'Fredag', 7 => 'Lördag'];
-        $idealRatePerMin = 15.0 / 60.0;
 
         try {
             // Aggregera per skift först, summera sedan per dag, gruppera slutligen per veckodag
@@ -5938,8 +5920,8 @@ HTML;
     public function createAnnotation(): void {
         $datum       = trim($_POST['datum'] ?? '');
         $typ         = trim($_POST['typ'] ?? '');
-        $titel       = trim($_POST['titel'] ?? '');
-        $beskrivning = trim($_POST['beskrivning'] ?? '');
+        $titel       = strip_tags(trim($_POST['titel'] ?? ''));
+        $beskrivning = strip_tags(trim($_POST['beskrivning'] ?? ''));
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $datum)) {
             http_response_code(400);

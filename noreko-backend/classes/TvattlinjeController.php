@@ -789,30 +789,30 @@ class TvattlinjeController {
             $onoff_events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $total_cycles = count($cycles);
-            $avg_production_percent = 100;
+            $avg_production_percent = 0;
             $avg_cycle_time = 0;
             $total_runtime_hours = 0;
             $target_cycle_time = 3;
-            
+
             if ($total_cycles > 0) {
                 $cycle_times = array_filter(array_column($cycles, 'cycle_time'), function($val) {
                     return $val !== null && $val > 0;
                 });
-                
+
                 if (count($cycle_times) > 0) {
                     $avg_cycle_time = array_sum($cycle_times) / count($cycle_times);
                 }
             }
 
             $totalRuntimeMinutes = 0;
-            
+
             if (count($onoff_events) > 0) {
                 $lastRunningStart = null;
-                
+
                 foreach ($onoff_events as $event) {
                     $eventTime = new DateTime($event['datum']);
                     $isRunning = (bool)($event['running'] ?? false);
-                    
+
                     if ($isRunning && $lastRunningStart === null) {
                         $lastRunningStart = $eventTime;
                     } elseif (!$isRunning && $lastRunningStart !== null) {
@@ -822,7 +822,7 @@ class TvattlinjeController {
                         $lastRunningStart = null;
                     }
                 }
-                
+
                 if ($lastRunningStart !== null) {
                     $lastEventTime = new DateTime($onoff_events[count($onoff_events) - 1]['datum']);
                     $diff = $lastRunningStart->diff($lastEventTime);
@@ -830,15 +830,26 @@ class TvattlinjeController {
                     $totalRuntimeMinutes += $periodMinutes;
                 }
             }
-            
+
             if ((float)$totalRuntimeMinutes === 0.0 && $total_cycles > 0) {
                 $firstCycle = new DateTime($cycles[0]['datum']);
                 $lastCycle = new DateTime($cycles[count($cycles) - 1]['datum']);
                 $diff = $firstCycle->diff($lastCycle);
                 $totalRuntimeMinutes = ($diff->days * 24 * 60) + ($diff->h * 60) + $diff->i + ($diff->s / 60);
             }
-            
+
             $total_runtime_hours = $totalRuntimeMinutes / 60;
+
+            // Beräkna produktionsprocent: faktisk IBC/h vs mål-IBC/h
+            if ($totalRuntimeMinutes > 0 && $total_cycles > 0) {
+                $settings = $this->loadSettings();
+                $ibcTarget = $settings['antal_per_dag'] ?? 150;
+                $hourlyTarget = $ibcTarget / 8;
+                if ($hourlyTarget > 0) {
+                    $actualProductionPerHour = ($total_cycles * 60) / $totalRuntimeMinutes;
+                    $avg_production_percent = round(($actualProductionPerHour / $hourlyTarget) * 100, 1);
+                }
+            }
 
             $unique_dates = array_unique(array_map(function($cycle) {
                 return date('Y-m-d', strtotime($cycle['datum']));

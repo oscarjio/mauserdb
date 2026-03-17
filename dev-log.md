@@ -1,3 +1,32 @@
+## 2026-03-17 Session #134 Worker A — PHP backend: 5 buggar fixade (unused variables, XSS sanitering, hardkodad produktionsprocent)
+
+### Uppgift 1: PHP SQL prepared statement audit
+Granskade SAMTLIGA PHP-controllers i noreko-backend/controllers/ (33 filer, varav 32 proxy-filer + 1 fullstandig) och classes/ (~50+ filer). Alla SQL-queries anvander korrekt prepared statements med parameteriserade fragor. Inga SQL injection-sarbarheter hittades. Specifikt verifierat:
+- Alla `$_GET`-parametrar som anvands i SQL gar via prepared statements med `?` eller `:param`-placeholders
+- Tabellnamn som interpoleras i SQL (`$tableName`) kommer fran hardkodade whitelists (RuntimeController, LineSkiftrapportController)
+- Dynamiska WHERE-satser (AuditController, MaintenanceController) byggs med parameteriserade villkor
+- IN()-satser byggs korrekt med `array_fill()` for placeholders
+
+### Uppgift 2: PHP input sanitization audit
+Granskade alla controllers for `$_GET`, `$_POST`, `$_REQUEST`-anvandning. Inga `$_REQUEST` anvands. Alla `$_GET`-parametrar ar korrekt validerade med `intval()`, `(int)`, `preg_match()`, `in_array()` whitelists, eller `max()/min()` bounds-checking. Hittade 1 XSS-risk:
+
+1. **RebotlingAnalyticsController.php** — `createAnnotation()`: `$titel` och `$beskrivning` fran `$_POST` anvandes utan `strip_tags()`. Fixat: lagt till `strip_tags()` for bada.
+
+### Uppgift 3: PHP unused variables cleanup (4 buggar)
+1. **VpnController.php** — `$headerSkipped` sattes 4 ganger i `parseStatusOutput()` men listes aldrig. Borttagen helt (4 tilldelningar raderade).
+2. **RebotlingAnalyticsController.php** — `$rows` (rad 1692) i `getDayDetail()`: forsta SQL-fraga hamtade timvis data som sedan aldrig anvandes (ersattes av en mer detaljerad fraga pa rad 1696). Borttog den oanvanda forsta SQL-fragan och variabeln.
+3. **RebotlingAnalyticsController.php** — `$idealRatePerMin` (rad 3271) i `getWeekdayStats()`: tilldelades `15.0 / 60.0` men refererades aldrig. Borttagen.
+4. **TvattlinjeController.php** — `$avg_production_percent` (rad 792) i `getStatistics()`: hardkodad till 100 och aldrig beraknad, returnerades alltid som 100% oavsett faktisk produktion. Fixat: beraknas nu fran faktisk IBC/h vs mal-IBC/h, konsistent med `getLiveStats()`.
+
+Andrade filer:
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/VpnController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/RebotlingAnalyticsController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/TvattlinjeController.php`
+
+Totalt: 5 buggar fixade i 3 filer.
+
+---
+
 ## 2026-03-17 Session #134 Worker B — Angular frontend: 14 buggar fixade (form validation, unused declarations, subscription/timer leaks)
 
 ### Uppgift 1: Angular form validation audit (7 buggar)
