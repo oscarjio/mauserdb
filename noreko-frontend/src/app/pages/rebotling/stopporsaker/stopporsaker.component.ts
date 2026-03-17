@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
@@ -26,7 +25,7 @@ const COLORS = [
   standalone: true,
   selector: 'app-stopporsaker',
   templateUrl: './stopporsaker.component.html',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
   styles: [`
     :host { display: block; color: #e2e8f0; }
     .page-title { color: #e2e8f0; font-size: 1.5rem; font-weight: 600; }

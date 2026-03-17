@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
@@ -22,7 +21,7 @@ Chart.register(...registerables);
   selector: 'app-operator-ranking',
   templateUrl: './operator-ranking.component.html',
   styleUrls: ['./operator-ranking.component.css'],
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule],
 })
 export class OperatorRankingPage implements OnInit, OnDestroy {
 

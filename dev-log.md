@@ -1,3 +1,26 @@
+## 2026-03-17 Session #148 Worker B — 7 buggar fixade (unused imports, form validation)
+### Uppgift: Angular unused imports/declarations + form validation audit
+Granskade alla Angular-komponenter efter oanvanda imports, dead code och formularvalideringsproblem.
+
+**Unused FormsModule imports (5 buggar):**
+1. `noreko-frontend/src/app/pages/rebotling/stopporsaker/stopporsaker.component.ts` — FormsModule importerad och deklarerad i standalone imports men aldrig anvand i template (ingen ngModel/ngForm). Borttagen fran import-statement och @Component imports-array.
+2. `noreko-frontend/src/app/pages/rebotling/maskinhistorik/maskinhistorik.component.ts` — FormsModule importerad men aldrig anvand i template. Borttagen.
+3. `noreko-frontend/src/app/pages/rebotling/vd-veckorapport/vd-veckorapport.component.ts` — FormsModule importerad men aldrig anvand i template. Borttagen.
+4. `noreko-frontend/src/app/pages/rebotling/produktionsflode/produktionsflode.component.ts` — FormsModule importerad men aldrig anvand i template. Borttagen.
+5. `noreko-frontend/src/app/pages/operator-ranking/operator-ranking.component.ts` — FormsModule importerad men aldrig anvand i template. Borttagen.
+
+**Form validation (2 buggar):**
+6. `noreko-frontend/src/app/pages/rebotling/avvikelselarm/avvikelselarm.component.html` rad 250 — Number-input for gransvarde saknade min-attribut. Negativt gransvarde ar ogiltigt. Lade till `min="0"`.
+7. `noreko-frontend/src/app/pages/rebotling/batch-sparning/batch-sparning.component.html` rad 356 — Number-input for planerat_antal hade `min="1"` men saknade `max`. Lade till `max="99999"` for att forhindra orimliga varden.
+
+**Audit-resultat for ovriga omraden:**
+- **ngFor trackBy**: Alla *ngFor i samtliga templates har trackBy — inga saknade.
+- **[innerHTML]**: Ingen komponent anvander [innerHTML] — inga sanitiseringsproblem.
+- **Null-access i templates**: Alla templates anvander korrekt ?. (optional chaining) eller *ngIf-guards for null-saker data.
+- **Duplicerade imports**: Inga duplicerade imports hittades i nagon komponent.
+- **Formulervalidering**: Alla formuler med submit-knappar har [disabled]-guards som forhindrar submission utan validering. Required-attribut finns dar de behovs.
+- **Input type-attribut**: Alla inputs har korrekta type-attribut (text, number, date, etc).
+
 ## 2026-03-17 Session #147 Worker A — 10 buggar fixade (rate limiting, security headers, error handling)
 ### Uppgift: PHP rate limiting + CSRF + response header security audit
 Granskade alla PHP-filer som hanterar login, registrering, autentisering, profilandringar och kansliga operationer. Sokte efter saknad rate limiting, saknade security headers, session-konfigurationsinkonsekvenser, felaktiga HTTP-statuskoder och error handling edge cases.

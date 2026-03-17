@@ -1,6 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
 import { Subject, of } from 'rxjs';
 import { takeUntil, timeout, catchError } from 'rxjs/operators';
 import {
@@ -16,7 +15,7 @@ import { PdfExportButtonComponent } from '../../../components/pdf-export-button/
   selector: 'app-produktionsflode',
   templateUrl: './produktionsflode.component.html',
   styleUrls: ['./produktionsflode.component.css'],
-  imports: [CommonModule, FormsModule, PdfExportButtonComponent],
+  imports: [CommonModule, PdfExportButtonComponent],
 })
 export class ProduktionsflodePage implements OnInit, OnDestroy {
 

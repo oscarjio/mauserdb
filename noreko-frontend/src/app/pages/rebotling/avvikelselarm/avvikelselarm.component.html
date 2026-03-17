@@ -251,6 +251,7 @@
                      style="max-width:120px"
                      [value]="regel.grans_varde"
                      step="0.5"
+                     min="0"
                      (change)="updateGrans(regel, $event)">
               <span class="small text-muted">{{ getEnhet(regel.typ) }}</span>
             </div>
@@ -265,7 +266,7 @@
   </ng-container>
 
   <!-- KVITTERA DIALOG -->
-  <div class="kvittera-overlay" *ngIf="kvitteraLarm" (click)="closeKvittera()">
+  <div class="kvittera-overlay" *ngIf="kvitteraLarm" (click)="closeKvittera()" role="dialog" aria-modal="true" aria-label="Kvittera larm">
     <div class="kvittera-dialog" (click)="$event.stopPropagation()">
       <h5 class="mb-3"><i class="fas fa-check-circle me-2" style="color:#68d391"></i>Kvittera larm</h5>
       <div class="mb-2">

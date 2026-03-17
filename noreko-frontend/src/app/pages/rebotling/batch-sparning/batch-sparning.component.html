@@ -5,7 +5,7 @@
     <h2 class="page-title mb-0">
       <i class="fas fa-boxes me-2" style="color:#63b3ed"></i>Batch-spårning
     </h2>
-    <button class="btn btn-sm btn-success" (click)="openCreateModal()">
+    <button class="btn btn-sm btn-success" (click)="openCreateModal()" aria-label="Skapa ny batch">
       <i class="fas fa-plus me-1"></i>Ny batch
     </button>
   </div>
@@ -112,7 +112,8 @@
               <td><span [class]="statusBadgeClass(b.status)">{{ b.status_label }}</span></td>
               <td style="min-width:140px">
                 <div class="progress bg-dark" style="height:20px">
-                  <div class="progress-bar bg-success" [style.width.%]="progressPct(b)">
+                  <div class="progress-bar bg-success" [style.width.%]="progressPct(b)"
+                       role="progressbar" [attr.aria-valuenow]="progressPct(b)" aria-valuemin="0" aria-valuemax="100">
                     {{ progressPct(b) }}%
                   </div>
                 </div>
@@ -215,7 +216,7 @@
   </div>
 
   <!-- ===== Batch-detaljvy (modal-liknande overlay) ===== -->
-  <div class="detail-overlay" *ngIf="selectedBatchDetail || loadingDetail" (click)="closeDetail()">
+  <div class="detail-overlay" *ngIf="selectedBatchDetail || loadingDetail" (click)="closeDetail()" role="dialog" aria-modal="true" aria-label="Batch-detaljvy">
     <div class="detail-panel" (click)="$event.stopPropagation()">
 
       <!-- Loading -->
@@ -230,7 +231,7 @@
             <h4 class="mb-1">{{ selectedBatchDetail.batch.batch_nummer }}</h4>
             <span [class]="statusBadgeClass(selectedBatchDetail.batch.status)">{{ selectedBatchDetail.batch.status_label }}</span>
           </div>
-          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()">
+          <button class="btn btn-sm btn-outline-secondary" (click)="closeDetail()" aria-label="Stang detaljvy">
             <i class="fas fa-times"></i>
           </button>
         </div>
@@ -248,7 +249,10 @@
           </div>
           <div class="progress bg-dark" style="height:24px">
             <div class="progress-bar bg-success"
-                 [style.width.%]="selectedBatchDetail.batch.planerat_antal > 0 ? (selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) : 0">
+                 [style.width.%]="selectedBatchDetail.batch.planerat_antal > 0 ? (selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) : 0"
+                 role="progressbar"
+                 [attr.aria-valuenow]="selectedBatchDetail.batch.planerat_antal > 0 ? (selectedBatchDetail.antal_klara / selectedBatchDetail.batch.planerat_antal * 100) : 0"
+                 aria-valuemin="0" aria-valuemax="100">
             </div>
           </div>
         </div>
@@ -333,27 +337,27 @@
   </div>
 
   <!-- ===== Skapa batch-modal ===== -->
-  <div class="detail-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="detail-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()" role="dialog" aria-modal="true" aria-label="Skapa ny batch">
     <div class="detail-panel" style="max-width:500px" (click)="$event.stopPropagation()">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="mb-0"><i class="fas fa-plus-circle me-2 text-success"></i>Skapa ny batch</h5>
-        <button class="btn btn-sm btn-outline-secondary" (click)="closeCreateModal()">
+        <button class="btn btn-sm btn-outline-secondary" (click)="closeCreateModal()" aria-label="Stang dialog">
           <i class="fas fa-times"></i>
         </button>
       </div>
 
-      <form (ngSubmit)="submitCreateBatch()" novalidate>
+      <form (ngSubmit)="submitCreateBatch()">
         <div class="mb-3">
-          <label class="form-label">Batch-nummer</label>
-          <input type="text" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" required placeholder="T.ex. BATCH-2026-0312">
+          <label class="form-label" for="batchNummer">Batch-nummer</label>
+          <input type="text" id="batchNummer" class="form-control dark-input" [(ngModel)]="createForm.batch_nummer" name="batch_nummer" required placeholder="T.ex. BATCH-2026-0312" aria-required="true">
         </div>
         <div class="mb-3">
-          <label class="form-label">Planerat antal IBC</label>
-          <input type="number" class="form-control dark-input" [(ngModel)]="createForm.planerat_antal" name="planerat_antal" min="1" required>
+          <label class="form-label" for="planeratAntal">Planerat antal IBC</label>
+          <input type="number" id="planeratAntal" class="form-control dark-input" [(ngModel)]="createForm.planerat_antal" name="planerat_antal" min="1" max="99999" required aria-required="true">
         </div>
         <div class="mb-3">
-          <label class="form-label">Kommentar</label>
-          <textarea class="form-control dark-input" [(ngModel)]="createComment" name="kommentar" rows="3" placeholder="Valfri kommentar..."></textarea>
+          <label class="form-label" for="batchKommentar">Kommentar</label>
+          <textarea id="batchKommentar" class="form-control dark-input" [(ngModel)]="createComment" name="kommentar" rows="3" placeholder="Valfri kommentar..."></textarea>
         </div>
 
         <div class="alert alert-success py-2" *ngIf="createMessage">{{ createMessage }}</div>
