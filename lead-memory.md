@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #139)*
+*Senast uppdaterad: 2026-03-17 (session #140)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -91,27 +91,29 @@ Session #136: BUGGJAKT — 6 buggar (3 Worker A + 3 Worker B). JSON_UNESCAPED_UN
 Session #137: BUGGJAKT — 23 buggar (9 Worker A + 14 Worker B). Session fixation, cookie cleanup, 7x date range validation + 5 null-check, 5 input sanitization, 90 HTTP timeout/catchError.
 Session #138: BUGGJAKT — 18 buggar (10 Worker A + 8 Worker B). Boundary/pagination, error boundary, 8x race condition (transaktioner) + open redirect-fix, router param whitelist, 5x unused imports, change detection audit.
 Session #139: BUGGJAKT — 29 buggar (13 Worker A + 16 Worker B). SQL-kolumner, timestamp, GROUP BY, json_decode null-safety, dead code + interceptor retry, 10x change detection cache, deprecated API migration.
+Session #140: BUGGJAKT — 39 buggar (7 Worker A + 32 Worker B). SQL mixed params, PII i loggar, hardkodade credentials, security headers + 32x setTimeout destroy$-guards i 19 chart-komponenter.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP SQL query consistency — prepared statements, bindParam-typer
-- [ ] Angular form validation audit — reaktiva forms saknad validering
-- [ ] PHP error_log audit — sakerhetskanslig data i loggar
-- [ ] Angular lazy loading audit — routes lazy-loading
-- [ ] PHP CORS/headers audit — Access-Control-* headers
+- [x] PHP SQL query consistency — prepared statements, bindParam-typer [#140]
+- [x] Angular form validation audit — inga reaktiva forms i projektet (template-driven) [#140]
+- [x] PHP error_log audit — PII borttagen fran loggar [#140]
+- [x] Angular lazy loading audit — alla routes lazy-loadas korrekt [#140]
+- [x] PHP CORS/headers audit — CORS OK, security headers tillagda [#140]
+- [ ] PHP response format consistency — JSON-svar konsekvent struktur
+- [ ] Angular error state UI audit — felmeddelanden vid HTTP-fel
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #138 (klar)
-Worker A: 10 buggar — boundary, error boundary, 8x race conditions (transaktioner).
-Worker B: 8 buggar — open redirect-fix, router param whitelist, 5x unused imports, change detection audit.
-Totalt: 18 buggar fixade.
-
 ### 2026-03-17 — Session #139 (klar)
-Worker A: 13 buggar — SQL-kolumner (operator_id->user_id, datum->start_time), 3x created_at->start_time, GROUP BY saknad, 8x json_decode null-safety, 1x dead code (saveLiveRankingSettings).
-Worker B: 16 buggar — 2x interceptor (retry-logik, HTTP 408), 10x change detection (cached properties i stoppage-log, narvarotracker, operator-jamforelse, kassationsorsak, min-dag), 4x deprecated HttpClientModule borttagen.
+Worker A: 13 buggar — SQL-kolumner, timestamp, GROUP BY, json_decode null-safety, dead code.
+Worker B: 16 buggar — interceptor retry, change detection cache, deprecated API migration.
 Totalt: 29 buggar fixade.
-Worker B: HTTP interceptor audit, change detection optimering, deprecated API migration.
+
+### 2026-03-17 — Session #140 (klar)
+Worker A: 7 buggar — SQL mixed params (SkiftoverlamningController), LIMIT/OFFSET (AuditController), 2x PII i error_log (RebotlingAnalytics), PII i audit (AdminController), raw exception i response (update-weather), hardkodade DB-credentials (update-weather), security headers.
+Worker B: 32 buggar — 32x setTimeout utan destroy$-guard i 19 chart-komponenter. Form validation OK (template-driven). Lazy loading OK.
+Totalt: 39 buggar fixade.

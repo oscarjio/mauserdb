@@ -7,16 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] PHP file operation safety — inga path traversal-sarbarheter hittade [Worker A #139]
-- [x] PHP unused variable cleanup + dead code — 1 oanvand metod borttagen [Worker A #139]
-- [x] Angular HTTP interceptor audit — retry-logik + HTTP 408 [Worker B #139]
-- [x] Angular change detection optimering — 10 metodanrop ersatta med cached properties [Worker B #139]
-- [x] Angular deprecated API migration — HttpClientModule borttagen fran 7 komponenter [Worker B #139]
-- [ ] **PHP SQL query consistency** — granska prepared statements, saknade bindParam-typer
-- [ ] **Angular form validation audit** — granska alla reaktiva forms for saknad validering
-- [ ] **PHP error_log audit** — sakerhetskanslig data i loggar (losen, tokens)
-- [ ] **Angular lazy loading audit** — verifiera att alla routes lazy-loadas korrekt
-- [ ] **PHP CORS/headers audit** — granska Access-Control-* headers for saknade/felaktiga varden
+- [ ] **PHP response format consistency** — granska JSON-svar for konsekvent success/error-struktur
+- [ ] **Angular error state UI audit** — komponenter som saknar felmeddelanden vid HTTP-fel
+- [ ] **PHP transaction audit** — granska BEGIN/COMMIT/ROLLBACK for korrekta transaktionsgranser
+- [ ] **Angular route guard audit** — verifiera att skyddade sidor har canActivate-guards
+- [ ] **PHP input sanitization audit** — granska $_GET/$_POST for saknad htmlspecialchars/intval
+- [ ] **Angular chart cleanup audit** — verifiera chart.destroy() i alla ngOnDestroy
 
 ## Parkerade features (ta inte dessa nu)
 
