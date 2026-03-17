@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #134)*
+*Senast uppdaterad: 2026-03-17 (session #135)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -86,31 +86,27 @@ Session #131: BUGGJAKT — 52 buggar (22 Worker A + 30 Worker B). Boundary valid
 Session #132: BUGGJAKT — 33 buggar (11 Worker A + 22 Worker B). HTTP method enforcement, unused vars, CORS/headers + accessibility, template null-safety. Memory profiling: inga lakor.
 Session #133: BUGGJAKT — 29 buggar (22 Worker A + 7 Worker B). Error response consistency (19 controllers), HTTP 405 + route guards, error interceptor, dark theme.
 Session #134: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL prepared statements OK, 1 XSS-fix, unused vars + form validation, unused declarations, subscription fixes.
+Session #135: BUGGJAKT — 15 buggar (9 Worker A + 6 Worker B). Date/time ISO-fix, unused vars, null/edge cases + error state UI, auth guard. HTTP services alla konsekvent.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP date/time handling audit
-- [ ] Angular error state UI audit
-- [ ] Angular auth.guard unused route params
-- [ ] PHP RebotlingAnalyticsController unused vars ($shift, $opRows)
-- [ ] PHP null/edge case audit
+- [ ] PHP response format consistency audit
+- [ ] Angular chart destroy audit
+- [ ] PHP file upload validation audit
+- [ ] PHP error_log format consistency
+- [ ] Angular lazy loading route audit
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #132 (klar)
-Worker A: 11 buggar — HTTP method enforcement, unused vars, CORS/headers.
-Worker B: 22 buggar — accessibility (13), template null-safety (9). Memory profiling: inga lakor.
-Totalt: 33 buggar.
-
-### 2026-03-17 — Session #133 (klar)
-Worker A: 22 buggar — 19x error response consistency, 3x HTTP 405.
-Worker B: 7 buggar — 3x route guard, 2x error interceptor, 1x unused observable, 3x dark theme.
-Totalt: 29 buggar.
-
 ### 2026-03-17 — Session #134 (klar)
-Worker A: 5 buggar — SQL prepared statements alla OK (inga sarbarheter), 1x XSS-risk (strip_tags i createAnnotation), 4x unused vars (VpnController, RebotlingAnalyticsController, TvattlinjeController).
-Worker B: 14 buggar — 8x form validation (disabled submit), 3x unused declarations (developerGuard borttagen), 3x subscription/timeout fixes (takeUntil + clearTimeout).
+Worker A: 5 buggar — SQL prepared statements alla OK, 1x XSS-risk, 4x unused vars.
+Worker B: 14 buggar — 8x form validation, 3x unused declarations, 3x subscription fixes.
 Totalt: 19 buggar.
+
+### 2026-03-17 — Session #135 (klar)
+Worker A: 9 buggar — 1x date('o') ISO-vecka vid arsgrans, 1x unused $shift (unset), 7x null/edge cases (json_decode guards, empty array guards, null-checks i LineSkiftrapport/Runtime/Operator/AdminController).
+Worker B: 6 buggar — 4x error state UI i maintenance-log-komponenter (loadError-flaggor + felmeddelanden), 2x auth.guard unused route params (_route). HTTP services: alla 92 redan konsekvent.
+Totalt: 15 buggar. $opRows ar false positive (anvands i closure).

@@ -7,17 +7,16 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP SQL prepared statement audit** — alla queries OK, inga sarbarheter (Worker A #134)
-- [x] **PHP input sanitization audit** — 1 XSS-risk fixad i createAnnotation (Worker A #134)
-- [x] **PHP unused variables cleanup** — 4 fixar i VpnController, RebotlingAnalyticsController, TvattlinjeController (Worker A #134)
-- [x] **Angular form validation audit** — 8 formulaer fixade med disabled submit (Worker B #134)
-- [x] **Angular unused declarations cleanup** — developerGuard borttagen, event-param fixad (Worker B #134)
-- [x] **Angular subscription/observable audit** — 5 fixar: takeUntil + clearTimeout (Worker B #134)
-- [ ] **PHP date/time handling audit** — granska tidszoner, date()-format, strtotime()-edge cases
-- [ ] **Angular error state UI audit** — granska att alla komponenter visar felmeddelanden vid API-fel
-- [ ] **Angular auth.guard unused route params** — diagnostics visar unused 'route' param pa rad 6 och 25
-- [ ] **PHP RebotlingAnalyticsController unused vars** — diagnostics: $shift (rad 4531-4532), $opRows (rad 6616-6617)
-- [ ] **PHP null/edge case audit** — granska saknade null-checks, tomma arrays, division-by-zero
+- [x] **PHP date/time handling audit** — 1 fix: date('o') for ISO-veckor (Worker A #135)
+- [x] **Angular error state UI audit** — 4 maintenance-log-komponenter fixade (Worker B #135)
+- [x] **Angular auth.guard unused route params** — 2 fixar: route -> _route (Worker B #135)
+- [x] **PHP RebotlingAnalyticsController unused vars** — $shift fixad, $opRows false positive (Worker A #135)
+- [x] **PHP null/edge case audit** — 7 fixar: json_decode guards, null-checks, empty arrays (Worker A #135)
+- [ ] **PHP response format consistency audit** — granska att alla controllers returnerar konsekvent JSON-struktur
+- [ ] **Angular chart destroy audit** — verifiera att alla Chart.js-instanser destroyas i ngOnDestroy
+- [ ] **PHP file upload validation audit** — granska filuppladdning for storlek, typ, path traversal
+- [ ] **PHP error_log format consistency** — granska att error_log() anvander konsekvent format och nivaser
+- [ ] **Angular lazy loading route audit** — verifiera att alla lazy-loaded routes har korrekt preloading-strategi
 
 ## Parkerade features (ta inte dessa nu)
 
