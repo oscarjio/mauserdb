@@ -119,12 +119,15 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadDailyProgress(): void {
     this.loadingDaily = true;
-    this.svc.getDailyProgress().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingDaily = false;
-      if (res?.success) {
-        this.daily = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderGaugeChart(); }, 100);
-      }
+    this.svc.getDailyProgress().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingDaily = false;
+        if (res?.success) {
+          this.daily = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderGaugeChart(); }, 100);
+        }
+      },
+      error: () => { this.loadingDaily = false; }
     });
   }
 
@@ -132,12 +135,15 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadWeeklyProgress(): void {
     this.loadingWeekly = true;
-    this.svc.getWeeklyProgress().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingWeekly = false;
-      if (res?.success) {
-        this.weekly = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderWeeklyChart(); }, 100);
-      }
+    this.svc.getWeeklyProgress().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingWeekly = false;
+        if (res?.success) {
+          this.weekly = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderWeeklyChart(); }, 100);
+        }
+      },
+      error: () => { this.loadingWeekly = false; }
     });
   }
 
@@ -145,12 +151,15 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadHistory(): void {
     this.loadingHistory = true;
-    this.svc.getHistory(this.historyPeriod).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingHistory = false;
-      if (res?.success) {
-        this.historyData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderHistoryChart(); }, 100);
-      }
+    this.svc.getHistory(this.historyPeriod).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingHistory = false;
+        if (res?.success) {
+          this.historyData = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderHistoryChart(); }, 100);
+        }
+      },
+      error: () => { this.loadingHistory = false; }
     });
   }
 
@@ -162,11 +171,14 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadGoals(): void {
     this.loadingGoals = true;
-    this.svc.getGoals().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingGoals = false;
-      if (res?.success) {
-        this.goals = res.goals;
-      }
+    this.svc.getGoals().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingGoals = false;
+        if (res?.success) {
+          this.goals = res.goals;
+        }
+      },
+      error: () => { this.loadingGoals = false; }
     });
   }
 
@@ -187,15 +199,18 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
     this.savingGoal = true;
     this.goalError = '';
     this.goalMessage = '';
-    this.svc.setGoal(this.goalForm).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.savingGoal = false;
-      if (res?.success) {
-        this.goalMessage = 'Mal sparat!';
-        this.loadGoals();
-        this.loadAll();
-      } else {
-        this.goalError = res?.error || 'Kunde inte spara mal';
-      }
+    this.svc.setGoal(this.goalForm).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.savingGoal = false;
+        if (res?.success) {
+          this.goalMessage = 'Mal sparat!';
+          this.loadGoals();
+          this.loadAll();
+        } else {
+          this.goalError = res?.error || 'Kunde inte spara mal';
+        }
+      },
+      error: () => { this.savingGoal = false; this.goalError = 'Kunde inte spara mal'; }
     });
   }
 

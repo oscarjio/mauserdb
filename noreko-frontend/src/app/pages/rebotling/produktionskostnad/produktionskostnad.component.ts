@@ -124,12 +124,15 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadBreakdown(): void {
     this.loadingBreakdown = true;
-    this.svc.getBreakdown(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingBreakdown = false;
-      if (res?.success) {
-        this.breakdown = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderDoughnutChart(); }, 100);
-      }
+    this.svc.getBreakdown(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingBreakdown = false;
+        if (res?.success) {
+          this.breakdown = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderDoughnutChart(); }, 100);
+        }
+      },
+      error: () => { this.loadingBreakdown = false; }
     });
   }
 
@@ -142,12 +145,15 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.trendPeriod).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingTrend = false;
-      if (res?.success) {
-        this.trendData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100);
-      }
+    this.svc.getTrend(this.trendPeriod).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingTrend = false;
+        if (res?.success) {
+          this.trendData = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100);
+        }
+      },
+      error: () => { this.loadingTrend = false; }
     });
   }
 
@@ -159,11 +165,14 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadTable(): void {
     this.loadingTable = true;
-    this.svc.getDailyTable(this.tableFrom, this.tableTo).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingTable = false;
-      if (res?.success) {
-        this.dailyTable = res.data;
-      }
+    this.svc.getDailyTable(this.tableFrom, this.tableTo).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingTable = false;
+        if (res?.success) {
+          this.dailyTable = res.data;
+        }
+      },
+      error: () => { this.loadingTable = false; }
     });
   }
 
@@ -175,12 +184,15 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadShift(): void {
     this.loadingShift = true;
-    this.svc.getShiftComparison(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingShift = false;
-      if (res?.success) {
-        this.shiftComp = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderShiftChart(); }, 100);
-      }
+    this.svc.getShiftComparison(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingShift = false;
+        if (res?.success) {
+          this.shiftComp = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderShiftChart(); }, 100);
+        }
+      },
+      error: () => { this.loadingShift = false; }
     });
   }
 
@@ -188,12 +200,15 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadConfig(): void {
     this.loadingConfig = true;
-    this.svc.getConfig().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingConfig = false;
-      if (res?.success) {
-        this.configItems = res.config;
-        this.configForm = res.config.map(c => ({ faktor: c.faktor, varde: c.varde }));
-      }
+    this.svc.getConfig().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingConfig = false;
+        if (res?.success) {
+          this.configItems = res.config;
+          this.configForm = res.config.map(c => ({ faktor: c.faktor, varde: c.varde }));
+        }
+      },
+      error: () => { this.loadingConfig = false; }
     });
   }
 
@@ -211,15 +226,18 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
     this.configError  = '';
     this.configMessage= '';
 
-    this.svc.updateConfig(this.configForm).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.savingConfig = false;
-      if (res?.success) {
-        this.configMessage = 'Konfiguration sparad!';
-        this.loadAll();
-        this.loadConfig();
-      } else {
-        this.configError = res?.error || 'Kunde inte spara konfiguration';
-      }
+    this.svc.updateConfig(this.configForm).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.savingConfig = false;
+        if (res?.success) {
+          this.configMessage = 'Konfiguration sparad!';
+          this.loadAll();
+          this.loadConfig();
+        } else {
+          this.configError = res?.error || 'Kunde inte spara konfiguration';
+        }
+      },
+      error: () => { this.savingConfig = false; this.configError = 'Kunde inte spara konfiguration'; }
     });
   }
 

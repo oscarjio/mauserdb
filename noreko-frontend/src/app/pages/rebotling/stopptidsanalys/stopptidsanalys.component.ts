@@ -82,10 +82,13 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   constructor(private svc: StopptidsanalysService) {}
 
   ngOnInit(): void {
-    this.svc.getMaskiner().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res?.success) {
-        this.allaMaskiner = res.data.maskiner;
-      }
+    this.svc.getMaskiner().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        if (res?.success) {
+          this.allaMaskiner = res.data.maskiner;
+        }
+      },
+      error: () => { console.error('Kunde inte hamta maskinlista'); }
     });
     this.loadAll();
     this.refreshTimer = setInterval(() => this.loadAll(), 60000);
@@ -128,64 +131,79 @@ export class StopptidsanalysPage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview   = false;
-    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOverview = false;
-      this.isFetching = false;
-      if (res?.success) {
-        this.overview = res.data;
-      } else {
-        this.errorOverview = true;
-      }
+    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOverview = false;
+        this.isFetching = false;
+        if (res?.success) {
+          this.overview = res.data;
+        } else {
+          this.errorOverview = true;
+        }
+      },
+      error: () => { this.loadingOverview = false; this.isFetching = false; this.errorOverview = true; }
     });
   }
 
   private loadPerMaskin(): void {
     this.loadingPerMaskin = true;
-    this.svc.getPerMaskin(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingPerMaskin = false;
-      if (res?.success) {
-        this.perMaskinData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
-      }
+    this.svc.getPerMaskin(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingPerMaskin = false;
+        if (res?.success) {
+          this.perMaskinData = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
+        }
+      },
+      error: () => { this.loadingPerMaskin = false; }
     });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingTrend = false;
-      if (res?.success) {
-        this.trendData = res.data;
-        // Välj top-3 maskiner som standard
-        this.selectedTrendMaskiner.clear();
-        const top = res.data.series
-          .map(s => ({ id: s.maskin_id, sum: s.values.reduce((a, b) => a + b, 0) }))
-          .sort((a, b) => b.sum - a.sum)
-          .slice(0, 3);
-        top.forEach(t => this.selectedTrendMaskiner.add(t.id));
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
-      }
+    this.svc.getTrend(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingTrend = false;
+        if (res?.success) {
+          this.trendData = res.data;
+          // Välj top-3 maskiner som standard
+          this.selectedTrendMaskiner.clear();
+          const top = res.data.series
+            .map(s => ({ id: s.maskin_id, sum: s.values.reduce((a, b) => a + b, 0) }))
+            .sort((a, b) => b.sum - a.sum)
+            .slice(0, 3);
+          top.forEach(t => this.selectedTrendMaskiner.add(t.id));
+          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
+        }
+      },
+      error: () => { this.loadingTrend = false; }
     });
   }
 
   private loadFordelning(): void {
     this.loadingFordelning = true;
-    this.svc.getFordelning(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingFordelning = false;
-      if (res?.success) {
-        this.fordelningData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildDoughnutChart(); }, 80);
-      }
+    this.svc.getFordelning(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingFordelning = false;
+        if (res?.success) {
+          this.fordelningData = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.buildDoughnutChart(); }, 80);
+        }
+      },
+      error: () => { this.loadingFordelning = false; }
     });
   }
 
   private loadDetaljtabell(): void {
     this.loadingDetalj = true;
-    this.svc.getDetaljtabell(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingDetalj = false;
-      if (res?.success) {
-        this.detaljData = res.data;
-      }
+    this.svc.getDetaljtabell(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingDetalj = false;
+        if (res?.success) {
+          this.detaljData = res.data;
+        }
+      },
+      error: () => { this.loadingDetalj = false; }
     });
   }
 

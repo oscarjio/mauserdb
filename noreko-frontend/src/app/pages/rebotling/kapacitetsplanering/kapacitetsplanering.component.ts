@@ -187,14 +187,17 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getKpi(this.periodFilter)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingKpi = false;
-        this.isFetching = false;
-        if (res?.success) {
-          this.kpiData = res.data;
-        } else {
-          this.errorKpi = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingKpi = false;
+          this.isFetching = false;
+          if (res?.success) {
+            this.kpiData = res.data;
+          } else {
+            this.errorKpi = true;
+          }
+        },
+        error: () => { this.loadingKpi = false; this.isFetching = false; this.errorKpi = true; }
       });
   }
 
@@ -209,15 +212,18 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getDagligKapacitet(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingDaglig = false;
-        if (res?.success) {
-          this.dagligData     = res.data.dagdata;
-          this.dagligGenomsni = res.data.genomsnitt;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggKapacitetsChart(); }, 0);
-        } else {
-          this.errorDaglig = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingDaglig = false;
+          if (res?.success) {
+            this.dagligData     = res.data.dagdata;
+            this.dagligGenomsni = res.data.genomsnitt;
+            setTimeout(() => { if (!this.destroy$.closed) this.byggKapacitetsChart(); }, 0);
+          } else {
+            this.errorDaglig = true;
+          }
+        },
+        error: () => { this.loadingDaglig = false; this.errorDaglig = true; }
       });
   }
 
@@ -343,14 +349,17 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getStationUtnyttjande(this.diagramPeriod, this.periodFilter)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingStation = false;
-        if (res?.success) {
-          this.stationData = res.data.stationer;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggStationChart(); }, 0);
-        } else {
-          this.errorStation = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingStation = false;
+          if (res?.success) {
+            this.stationData = res.data.stationer;
+            setTimeout(() => { if (!this.destroy$.closed) this.byggStationChart(); }, 0);
+          } else {
+            this.errorStation = true;
+          }
+        },
+        error: () => { this.loadingStation = false; this.errorStation = true; }
       });
   }
 
@@ -440,15 +449,18 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getUtnyttjandegradTrend(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingTrend = false;
-        if (res?.success) {
-          this.trendData  = res.data.dagdata;
-          this.trendMalPct = res.data.mal_pct;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
-        } else {
-          this.errorTrend = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingTrend = false;
+          if (res?.success) {
+            this.trendData  = res.data.dagdata;
+            this.trendMalPct = res.data.mal_pct;
+            setTimeout(() => { if (!this.destroy$.closed) this.byggTrendChart(); }, 0);
+          } else {
+            this.errorTrend = true;
+          }
+        },
+        error: () => { this.loadingTrend = false; this.errorTrend = true; }
       });
   }
 
@@ -541,21 +553,24 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getStopporsaker(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingStopporsaker = false;
-        if (res?.success) {
-          this.stopporsakData = res.data.orsaker;
-          this.stoppInfo = {
-            planerad_h:   res.data.planerad_h,
-            drifttid_h:   res.data.drifttid_h,
-            stopp_h:      res.data.stopp_h,
-            antal_stopp:  res.data.antal_stopp,
-            avg_stopp_min: res.data.avg_stopp_min,
-          };
-          setTimeout(() => { if (!this.destroy$.closed) this.byggStopporsakChart(); }, 0);
-        } else {
-          this.errorStopporsaker = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingStopporsaker = false;
+          if (res?.success) {
+            this.stopporsakData = res.data.orsaker;
+            this.stoppInfo = {
+              planerad_h:   res.data.planerad_h,
+              drifttid_h:   res.data.drifttid_h,
+              stopp_h:      res.data.stopp_h,
+              antal_stopp:  res.data.antal_stopp,
+              avg_stopp_min: res.data.avg_stopp_min,
+            };
+            setTimeout(() => { if (!this.destroy$.closed) this.byggStopporsakChart(); }, 0);
+          } else {
+            this.errorStopporsaker = true;
+          }
+        },
+        error: () => { this.loadingStopporsaker = false; this.errorStopporsaker = true; }
       });
   }
 
@@ -619,14 +634,17 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getTidFordelning(this.diagramPeriod)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingTidFordelning = false;
-        if (res?.success) {
-          this.tidFordelningData = res.data.dagdata;
-          setTimeout(() => { if (!this.destroy$.closed) this.byggTidFordelningChart(); }, 0);
-        } else {
-          this.errorTidFordelning = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingTidFordelning = false;
+          if (res?.success) {
+            this.tidFordelningData = res.data.dagdata;
+            setTimeout(() => { if (!this.destroy$.closed) this.byggTidFordelningChart(); }, 0);
+          } else {
+            this.errorTidFordelning = true;
+          }
+        },
+        error: () => { this.loadingTidFordelning = false; this.errorTidFordelning = true; }
       });
   }
 
@@ -718,13 +736,16 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getVeckoOversikt()
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingVecko = false;
-        if (res?.success) {
-          this.veckoData = res.data.veckor;
-        } else {
-          this.errorVecko = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingVecko = false;
+          if (res?.success) {
+            this.veckoData = res.data.veckor;
+          } else {
+            this.errorVecko = true;
+          }
+        },
+        error: () => { this.loadingVecko = false; this.errorVecko = true; }
       });
   }
 
@@ -739,13 +760,16 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getKapacitetstabell(this.periodFilter)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingTabell = false;
-        if (res?.success) {
-          this.tabellData = res.data.stationer;
-        } else {
-          this.errorTabell = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingTabell = false;
+          if (res?.success) {
+            this.tabellData = res.data.stationer;
+          } else {
+            this.errorTabell = true;
+          }
+        },
+        error: () => { this.loadingTabell = false; this.errorTabell = true; }
       });
   }
 
@@ -760,13 +784,16 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getBemanning(this.orderbehovInput, this.periodFilter)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingBemanning = false;
-        if (res?.success) {
-          this.bemanningData = res.data;
-        } else {
-          this.errorBemanning = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingBemanning = false;
+          if (res?.success) {
+            this.bemanningData = res.data;
+          } else {
+            this.errorBemanning = true;
+          }
+        },
+        error: () => { this.loadingBemanning = false; this.errorBemanning = true; }
       });
   }
 
@@ -785,13 +812,16 @@ export class KapacitetsplaneringPage implements OnInit, OnDestroy {
 
     this.svc.getPrognos(this.prognosTimmar, this.prognosOperatorer)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingPrognos = false;
-        if (res?.success) {
-          this.prognosData = res.data;
-        } else {
-          this.errorPrognos = true;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingPrognos = false;
+          if (res?.success) {
+            this.prognosData = res.data;
+          } else {
+            this.errorPrognos = true;
+          }
+        },
+        error: () => { this.loadingPrognos = false; this.errorPrognos = true; }
       });
   }
 

@@ -134,13 +134,16 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
     const period = this.filterPeriod || undefined;
     const opId   = this.filterOperator > 0 ? this.filterOperator : undefined;
 
-    this.svc.getLista(status, period, opId).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingLista = false;
-      if (res?.success) {
-        this.certifikat = res.data.certifikat;
-        this.operatorer = res.data.operatorer;
-        this.sortCertifikat();
-      }
+    this.svc.getLista(status, period, opId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingLista = false;
+        if (res?.success) {
+          this.certifikat = res.data.certifikat;
+          this.operatorer = res.data.operatorer;
+          this.sortCertifikat();
+        }
+      },
+      error: () => { this.loadingLista = false; }
     });
   }
 
@@ -190,12 +193,15 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadDetalj(id: number): void {
     this.loadingDetalj = true;
-    this.svc.getDetalj(id).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingDetalj = false;
-      if (res?.success) {
-        this.selectedCert = res.data.certifikat as Certifikat;
-        this.selectedKriterier = res.data.kriterier;
-      }
+    this.svc.getDetalj(id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingDetalj = false;
+        if (res?.success) {
+          this.selectedCert = res.data.certifikat as Certifikat;
+          this.selectedKriterier = res.data.kriterier;
+        }
+      },
+      error: () => { this.loadingDetalj = false; }
     });
   }
 
@@ -217,21 +223,24 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       this.selectedCert.id,
       this.bedomStatus as 'godkand' | 'underkand',
       this.bedomKommentar
-    ).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.bedomLoading = false;
-      if (res?.success) {
-        this.bedomMessage = res.message || 'Bedomning sparad';
-        this.loadLista();
-        this.loadOverview();
-        this.loadStatistik();
-        // Uppdatera valt certifikat
-        if (this.selectedCert) {
-          this.selectedCert.status = this.bedomStatus as any;
-          this.selectedCert.kommentar = this.bedomKommentar;
+    ).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.bedomLoading = false;
+        if (res?.success) {
+          this.bedomMessage = res.message || 'Bedomning sparad';
+          this.loadLista();
+          this.loadOverview();
+          this.loadStatistik();
+          // Uppdatera valt certifikat
+          if (this.selectedCert) {
+            this.selectedCert.status = this.bedomStatus as any;
+            this.selectedCert.kommentar = this.bedomKommentar;
+          }
+        } else {
+          this.bedomError = res?.error || 'Kunde inte spara bedomning';
         }
-      } else {
-        this.bedomError = res?.error || 'Kunde inte spara bedomning';
-      }
+      },
+      error: () => { this.bedomLoading = false; this.bedomError = 'Kunde inte spara bedomning'; }
     });
   }
 
@@ -265,21 +274,24 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
       antal_ibc: this.genAntalIbc,
       kassation_procent: this.genKassationPct,
       cykeltid_snitt: this.genCykeltidSnitt,
-    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.genLoading = false;
-      if (res?.success) {
-        this.genMessage = `Certifikat skapat (Kvalitetspoang: ${res.kvalitetspoang})`;
-        this.loadAll();
-        // Reset form
-        this.genBatchNummer = '';
-        this.genOperatorNamn = '';
-        this.genOperatorId = null;
-        this.genAntalIbc = 0;
-        this.genKassationPct = 0;
-        this.genCykeltidSnitt = 0;
-      } else {
-        this.genError = res?.error || 'Kunde inte skapa certifikat';
-      }
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.genLoading = false;
+        if (res?.success) {
+          this.genMessage = `Certifikat skapat (Kvalitetspoang: ${res.kvalitetspoang})`;
+          this.loadAll();
+          // Reset form
+          this.genBatchNummer = '';
+          this.genOperatorNamn = '';
+          this.genOperatorId = null;
+          this.genAntalIbc = 0;
+          this.genKassationPct = 0;
+          this.genCykeltidSnitt = 0;
+        } else {
+          this.genError = res?.error || 'Kunde inte skapa certifikat';
+        }
+      },
+      error: () => { this.genLoading = false; this.genError = 'Kunde inte skapa certifikat'; }
     });
   }
 
@@ -287,12 +299,15 @@ export class KvalitetscertifikatPage implements OnInit, OnDestroy {
 
   loadStatistik(): void {
     this.loadingStatistik = true;
-    this.svc.getStatistik(30).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingStatistik = false;
-      if (res?.success) {
-        this.statistik = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 150);
-      }
+    this.svc.getStatistik(30).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingStatistik = false;
+        if (res?.success) {
+          this.statistik = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.renderChart(); }, 150);
+        }
+      },
+      error: () => { this.loadingStatistik = false; }
     });
   }
 

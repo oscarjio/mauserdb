@@ -1,3 +1,71 @@
+## 2026-03-17 Session #145 Worker B — 52 buggar fixade (HTTP error display, memory profiling)
+### Uppgift 1: Angular HTTP error display audit — 52 fix
+Granskade 15+ komponenter i noreko-frontend/src/app/ for subscribe()-anrop utan error-handler, dar HTTP-fel leder till att loading-flaggor fastnar pa true och anvandaren inte far nagot felmeddelande.
+1. avvikelselarm — loadAktiva(): subscribe utan error-handler, loading fastnar. Lade till error-callback.
+2. avvikelselarm — loadHistorik(): subscribe utan error-handler. Lade till error-callback.
+3. avvikelselarm — loadRegler(): subscribe utan error-handler. Lade till error-callback.
+4. avvikelselarm — loadTrend(): subscribe utan error-handler. Lade till error-callback.
+5. avvikelselarm — submitKvittera(): subscribe utan error-handler, savingKvittera fastnar. Lade till error-callback.
+6. historisk-produktion — loadGraph(): subscribe utan error-handler. Lade till error-callback.
+7. historisk-produktion — loadCompare(): subscribe utan error-handler. Lade till error-callback.
+8. historisk-produktion — loadTable(): subscribe utan error-handler. Lade till error-callback.
+9. operatorsbonus — loadOperatorer(): subscribe utan error-handler. Lade till error-callback.
+10. operatorsbonus — loadKonfig(): subscribe utan error-handler. Lade till error-callback.
+11. operatorsbonus — sparaKonfiguration(): subscribe utan error-handler, savingKonfig fastnar. Lade till error-callback med felmeddelande.
+12. operatorsbonus — runSimulering(): subscribe utan error-handler. Lade till error-callback.
+13. produktions-sla — loadDailyProgress(): subscribe utan error-handler. Lade till error-callback.
+14. produktions-sla — loadWeeklyProgress(): subscribe utan error-handler. Lade till error-callback.
+15. produktions-sla — loadHistory(): subscribe utan error-handler. Lade till error-callback.
+16. produktions-sla — loadGoals(): subscribe utan error-handler. Lade till error-callback.
+17. produktions-sla — submitGoal(): subscribe utan error-handler, savingGoal fastnar. Lade till error-callback med felmeddelande.
+18. kvalitetscertifikat — loadLista(): subscribe utan error-handler. Lade till error-callback.
+19. kvalitetscertifikat — loadDetalj(): subscribe utan error-handler. Lade till error-callback.
+20. kvalitetscertifikat — submitBedom(): subscribe utan error-handler, bedomLoading fastnar. Lade till error-callback med felmeddelande.
+21. kvalitetscertifikat — submitGenerera(): subscribe utan error-handler, genLoading fastnar. Lade till error-callback med felmeddelande.
+22. kvalitetscertifikat — loadStatistik(): subscribe utan error-handler. Lade till error-callback.
+23. produktionskostnad — loadBreakdown(): subscribe utan error-handler. Lade till error-callback.
+24. produktionskostnad — loadTrend(): subscribe utan error-handler. Lade till error-callback.
+25. produktionskostnad — loadTable(): subscribe utan error-handler. Lade till error-callback.
+26. produktionskostnad — loadShift(): subscribe utan error-handler. Lade till error-callback.
+27. produktionskostnad — loadConfig(): subscribe utan error-handler. Lade till error-callback.
+28. produktionskostnad — submitConfig(): subscribe utan error-handler, savingConfig fastnar. Lade till error-callback med felmeddelande.
+29. maskin-oee — getMaskiner(): subscribe utan error-handler. Lade till error-callback.
+30. maskin-oee — loadOverview(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback med errorOverview.
+31. maskin-oee — loadPerMaskin(): subscribe utan error-handler. Lade till error-callback.
+32. maskin-oee — loadTrend(): subscribe utan error-handler. Lade till error-callback.
+33. maskin-oee — loadBenchmark(): subscribe utan error-handler. Lade till error-callback.
+34. maskin-oee — loadDetalj(): subscribe utan error-handler. Lade till error-callback.
+35. stopptidsanalys — getMaskiner(): subscribe utan error-handler. Lade till error-callback.
+36. stopptidsanalys — loadOverview(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback med errorOverview.
+37. stopptidsanalys — loadPerMaskin(): subscribe utan error-handler. Lade till error-callback.
+38. stopptidsanalys — loadTrend(): subscribe utan error-handler. Lade till error-callback.
+39. stopptidsanalys — loadFordelning(): subscribe utan error-handler. Lade till error-callback.
+40. stopptidsanalys — loadDetaljtabell(): subscribe utan error-handler. Lade till error-callback.
+41. kapacitetsplanering — laddaKpi(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+42. kapacitetsplanering — laddaDaglig(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+43. kapacitetsplanering — laddaStation(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+44. kapacitetsplanering — laddaTrend(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+45. kapacitetsplanering — laddaStopporsaker(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+46. kapacitetsplanering — laddaTidFordelning(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+47. kapacitetsplanering — laddaVecko(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+48. kapacitetsplanering — laddaTabell(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+49. kapacitetsplanering — laddaBemanning(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+50. kapacitetsplanering — laddaPrognos(): subscribe utan error-handler vid HTTP-fel. Lade till error-callback.
+51. skiftoverlamning — spara(): subscribe utan error-handler, isSubmitting fastnar. Lade till error-callback med toast.error.
+52. skiftoverlamning — getDetalj(): subscribe utan error-handler. Lade till error-callback med console.error.
+### Uppgift 2: Angular memory profiling — 0 fix (alla komponenter rena)
+Granskade ALLA 42 .component.ts-filer i noreko-frontend/src/app/ for DOM-lackor och event listeners:
+- addEventListener: 5 filer (andon.ts, rebotling-admin.ts, klassificeringslinje-admin.ts, saglinje-admin.ts, tvattlinje-admin.ts) — alla har matchande removeEventListener i ngOnDestroy. OK.
+- fromEvent(): Ingen anvandning i nagon komponent. OK.
+- ResizeObserver/IntersectionObserver/MutationObserver: Ingen anvandning. OK.
+- Renderer2.listen(): Ingen anvandning. OK.
+- HostListener med closures: Ingen problematisk anvandning. OK.
+- Alla komponenter anvander destroy$ + takeUntil korrekt.
+- Alla setInterval/setTimeout rensas korrekt i ngOnDestroy.
+- Alla Chart.js-instanser destroyas korrekt i ngOnDestroy.
+Slutsats: Inga minneslaeckor hittades. Projektet foljer redan bast-praxis for memory management.
+Filer andrade: noreko-frontend/src/app/pages/rebotling/avvikelselarm/avvikelselarm.component.ts, noreko-frontend/src/app/pages/rebotling/historisk-produktion/historisk-produktion.component.ts, noreko-frontend/src/app/pages/rebotling/operatorsbonus/operatorsbonus.component.ts, noreko-frontend/src/app/pages/rebotling/produktions-sla/produktions-sla.component.ts, noreko-frontend/src/app/pages/rebotling/kvalitetscertifikat/kvalitetscertifikat.component.ts, noreko-frontend/src/app/pages/rebotling/produktionskostnad/produktionskostnad.component.ts, noreko-frontend/src/app/pages/rebotling/maskin-oee/maskin-oee.component.ts, noreko-frontend/src/app/pages/rebotling/stopptidsanalys/stopptidsanalys.component.ts, noreko-frontend/src/app/pages/rebotling/kapacitetsplanering/kapacitetsplanering.component.ts, noreko-frontend/src/app/rebotling/skiftoverlamning/skiftoverlamning.component.ts
+
 ## 2026-03-17 Session #145 Worker A — 18 buggar fixade (error handling, session security)
 ### Uppgift 1: PHP error handling consistency — 14 fix
 1. ProfileController.php — DB-fraga (SELECT user) utanfor try/catch. Lade till try/catch med error_log och HTTP 500-svar.

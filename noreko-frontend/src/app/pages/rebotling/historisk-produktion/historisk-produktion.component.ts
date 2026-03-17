@@ -141,12 +141,15 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     this.loadingGraph = true;
     this.svc.getProduktionPerPeriod(this.getDaysParam(), this.getFrom(), this.getTo())
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingGraph = false;
-        if (res?.success) {
-          this.periodData = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
-        }
+      .subscribe({
+        next: res => {
+          this.loadingGraph = false;
+          if (res?.success) {
+            this.periodData = res.data;
+            setTimeout(() => { if (!this.destroy$.closed) this.renderProductionChart(); }, 100);
+          }
+        },
+        error: () => { this.loadingGraph = false; }
       });
   }
 
@@ -154,9 +157,12 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
     this.loadingCompare = true;
     this.svc.getJamforelse(this.getDaysParam(), this.getFrom(), this.getTo())
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingCompare = false;
-        if (res?.success) this.jamforelse = res.data;
+      .subscribe({
+        next: res => {
+          this.loadingCompare = false;
+          if (res?.success) this.jamforelse = res.data;
+        },
+        error: () => { this.loadingCompare = false; }
       });
   }
 
@@ -170,9 +176,12 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
       per_page: 50,
       sort: this.tableSort,
       order: this.tableOrder,
-    }).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingTable = false;
-      if (res?.success) this.tabell = res.data;
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingTable = false;
+        if (res?.success) this.tabell = res.data;
+      },
+      error: () => { this.loadingTable = false; }
     });
   }
 

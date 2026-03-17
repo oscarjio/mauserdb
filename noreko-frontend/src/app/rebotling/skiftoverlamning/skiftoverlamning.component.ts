@@ -137,15 +137,18 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
       kommentar_ovrigt: this.kommentarOvrigt,
     };
 
-    this.svc.spara(payload).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.isSubmitting = false;
-      if (res?.success) {
-        this.toast.success('Skiftoverlamningsprotokoll sparat!');
-        this.resetForm();
-        this.loadHistorik();
-      } else {
-        this.toast.error(res?.error ?? 'Kunde inte spara protokollet');
-      }
+    this.svc.spara(payload).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.isSubmitting = false;
+        if (res?.success) {
+          this.toast.success('Skiftoverlamningsprotokoll sparat!');
+          this.resetForm();
+          this.loadHistorik();
+        } else {
+          this.toast.error(res?.error ?? 'Kunde inte spara protokollet');
+        }
+      },
+      error: () => { this.isSubmitting = false; this.toast.error('Kunde inte spara protokollet'); }
     });
   }
 
@@ -175,10 +178,13 @@ export class SkiftoverlamningProtokollPage implements OnInit, OnDestroy {
       return;
     }
     this.expandedItemId = id;
-    this.svc.getDetalj(id).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res?.success && res.item) {
-        this.selectedDetail = res.item;
-      }
+    this.svc.getDetalj(id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        if (res?.success && res.item) {
+          this.selectedDetail = res.item;
+        }
+      },
+      error: () => { console.error('Kunde inte hamta detalj'); }
     });
   }
 

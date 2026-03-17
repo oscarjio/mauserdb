@@ -140,11 +140,14 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   private loadAktiva(): void {
     this.loadingAktiva = true;
-    this.svc.getAktiva().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingAktiva = false;
-      if (res?.success) {
-        this.aktivaLarm = res.data.larm;
-      }
+    this.svc.getAktiva().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingAktiva = false;
+        if (res?.success) {
+          this.aktivaLarm = res.data.larm;
+        }
+      },
+      error: () => { this.loadingAktiva = false; }
     });
   }
 
@@ -152,31 +155,40 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     this.loadingHistorik = true;
     this.svc.getHistorik(this.period, this.filterTyp, this.filterGrad)
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingHistorik = false;
-        if (res?.success) {
-          this.historikData = res.data;
-        }
+      .subscribe({
+        next: res => {
+          this.loadingHistorik = false;
+          if (res?.success) {
+            this.historikData = res.data;
+          }
+        },
+        error: () => { this.loadingHistorik = false; }
       });
   }
 
   private loadRegler(): void {
     this.loadingRegler = true;
-    this.svc.getRegler().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingRegler = false;
-      if (res?.success) {
-        this.regler = res.data.regler;
-      }
+    this.svc.getRegler().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingRegler = false;
+        if (res?.success) {
+          this.regler = res.data.regler;
+        }
+      },
+      error: () => { this.loadingRegler = false; }
     });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingTrend = false;
-      if (res?.success) {
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
-      }
+    this.svc.getTrend(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingTrend = false;
+        if (res?.success) {
+          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(res.data.dates, res.data.series); }, 80);
+        }
+      },
+      error: () => { this.loadingTrend = false; }
     });
   }
 
@@ -250,14 +262,17 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
     this.savingKvittera = true;
     this.svc.kvittera(this.kvitteraLarm.id, this.kvitteraNamn.trim(), this.kvitteraKommentar.trim())
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.savingKvittera = false;
-        if (res?.success) {
-          this.kvitteraLarm = null;
-          this.loadOverview();
-          this.loadAktiva();
-          this.loadHistorik();
-        }
+      .subscribe({
+        next: res => {
+          this.savingKvittera = false;
+          if (res?.success) {
+            this.kvitteraLarm = null;
+            this.loadOverview();
+            this.loadAktiva();
+            this.loadHistorik();
+          }
+        },
+        error: () => { this.savingKvittera = false; }
       });
   }
 

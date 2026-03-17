@@ -84,10 +84,13 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   constructor(private svc: MaskinOeeService) {}
 
   ngOnInit(): void {
-    this.svc.getMaskiner().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      if (res?.success) {
-        this.allaMaskiner = res.data.maskiner;
-      }
+    this.svc.getMaskiner().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        if (res?.success) {
+          this.allaMaskiner = res.data.maskiner;
+        }
+      },
+      error: () => { console.error('Kunde inte hamta maskinlista'); }
     });
     this.loadAll();
     this.refreshTimer = setInterval(() => this.loadAll(), 60000);
@@ -130,65 +133,80 @@ export class MaskinOeePage implements OnInit, OnDestroy {
   private loadOverview(): void {
     this.loadingOverview = true;
     this.errorOverview   = false;
-    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOverview = false;
-      this.isFetching = false;
-      if (res?.success) {
-        this.overview = res.data;
-        this.oeeMal = res.data.oee_mal;
-      } else {
-        this.errorOverview = true;
-      }
+    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOverview = false;
+        this.isFetching = false;
+        if (res?.success) {
+          this.overview = res.data;
+          this.oeeMal = res.data.oee_mal;
+        } else {
+          this.errorOverview = true;
+        }
+      },
+      error: () => { this.loadingOverview = false; this.isFetching = false; this.errorOverview = true; }
     });
   }
 
   private loadPerMaskin(): void {
     this.loadingPerMaskin = true;
-    this.svc.getPerMaskin(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingPerMaskin = false;
-      if (res?.success) {
-        this.perMaskinData = res.data;
-      }
+    this.svc.getPerMaskin(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingPerMaskin = false;
+        if (res?.success) {
+          this.perMaskinData = res.data;
+        }
+      },
+      error: () => { this.loadingPerMaskin = false; }
     });
   }
 
   private loadTrend(): void {
     this.loadingTrend = true;
-    this.svc.getTrend(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingTrend = false;
-      if (res?.success) {
-        this.trendData = res.data;
-        this.oeeMal = res.data.oee_mal;
-        // Valj top-3 maskiner som standard
-        this.selectedTrendMaskiner.clear();
-        const top = res.data.series
-          .map(s => ({ id: s.maskin_id, avg: s.values.filter(v => v !== null).reduce((a, b) => a + (b || 0), 0) / Math.max(s.values.filter(v => v !== null).length, 1) }))
-          .sort((a, b) => b.avg - a.avg)
-          .slice(0, 3);
-        top.forEach(t => this.selectedTrendMaskiner.add(t.id));
-        setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
-      }
+    this.svc.getTrend(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingTrend = false;
+        if (res?.success) {
+          this.trendData = res.data;
+          this.oeeMal = res.data.oee_mal;
+          // Valj top-3 maskiner som standard
+          this.selectedTrendMaskiner.clear();
+          const top = res.data.series
+            .map(s => ({ id: s.maskin_id, avg: s.values.filter(v => v !== null).reduce((a, b) => a + (b || 0), 0) / Math.max(s.values.filter(v => v !== null).length, 1) }))
+            .sort((a, b) => b.avg - a.avg)
+            .slice(0, 3);
+          top.forEach(t => this.selectedTrendMaskiner.add(t.id));
+          setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 80);
+        }
+      },
+      error: () => { this.loadingTrend = false; }
     });
   }
 
   private loadBenchmark(): void {
     this.loadingBenchmark = true;
-    this.svc.getBenchmark(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingBenchmark = false;
-      if (res?.success) {
-        this.benchmarkData = res.data;
-        setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
-      }
+    this.svc.getBenchmark(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingBenchmark = false;
+        if (res?.success) {
+          this.benchmarkData = res.data;
+          setTimeout(() => { if (!this.destroy$.closed) this.buildBarChart(); }, 80);
+        }
+      },
+      error: () => { this.loadingBenchmark = false; }
     });
   }
 
   private loadDetalj(): void {
     this.loadingDetalj = true;
-    this.svc.getDetalj(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingDetalj = false;
-      if (res?.success) {
-        this.detaljData = res.data;
-      }
+    this.svc.getDetalj(this.period, this.maskinFilter).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingDetalj = false;
+        if (res?.success) {
+          this.detaljData = res.data;
+        }
+      },
+      error: () => { this.loadingDetalj = false; }
     });
   }
 

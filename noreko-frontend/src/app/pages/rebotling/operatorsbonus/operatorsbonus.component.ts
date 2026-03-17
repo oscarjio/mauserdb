@@ -119,20 +119,23 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadOperatorer(): void {
     this.loadingOperatorer = true;
-    this.svc.getPerOperator(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOperatorer = false;
-      if (res?.success) {
-        this.perOpData  = res.data;
-        this.operatorer = res.data.operatorer;
-        this.sortOperatorer();
-        if (this.operatorer.length > 0 && !this.selectedOperator) {
-          this.selectedOperator = this.operatorer[0];
+    this.svc.getPerOperator(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOperatorer = false;
+        if (res?.success) {
+          this.perOpData  = res.data;
+          this.operatorer = res.data.operatorer;
+          this.sortOperatorer();
+          if (this.operatorer.length > 0 && !this.selectedOperator) {
+            this.selectedOperator = this.operatorer[0];
+          }
+          setTimeout(() => {
+            this.renderBarChart();
+            this.renderRadarChart();
+          }, 150);
         }
-        setTimeout(() => {
-          this.renderBarChart();
-          this.renderRadarChart();
-        }, 150);
-      }
+      },
+      error: () => { this.loadingOperatorer = false; }
     });
   }
 
@@ -188,18 +191,21 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadKonfig(): void {
     this.loadingKonfig = true;
-    this.svc.getKonfiguration().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingKonfig = false;
-      if (res?.success) {
-        this.konfigItems = res.konfig;
-        this.maxTotal    = res.max_total;
-        this.konfigForm  = res.konfig.map(k => ({
-          faktor: k.faktor,
-          vikt: k.vikt,
-          mal_varde: k.mal_varde,
-          max_bonus_kr: k.max_bonus_kr,
-        }));
-      }
+    this.svc.getKonfiguration().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingKonfig = false;
+        if (res?.success) {
+          this.konfigItems = res.konfig;
+          this.maxTotal    = res.max_total;
+          this.konfigForm  = res.konfig.map(k => ({
+            faktor: k.faktor,
+            vikt: k.vikt,
+            mal_varde: k.mal_varde,
+            max_bonus_kr: k.max_bonus_kr,
+          }));
+        }
+      },
+      error: () => { this.loadingKonfig = false; }
     });
   }
 
@@ -208,15 +214,18 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
     this.konfigError  = '';
     this.konfigMessage = '';
 
-    this.svc.sparaKonfiguration(this.konfigForm).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.savingKonfig = false;
-      if (res?.success) {
-        this.konfigMessage = 'Konfiguration sparad!';
-        this.loadAll();
-        this.loadKonfig();
-      } else {
-        this.konfigError = res?.error || 'Kunde inte spara konfiguration';
-      }
+    this.svc.sparaKonfiguration(this.konfigForm).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.savingKonfig = false;
+        if (res?.success) {
+          this.konfigMessage = 'Konfiguration sparad!';
+          this.loadAll();
+          this.loadKonfig();
+        } else {
+          this.konfigError = res?.error || 'Kunde inte spara konfiguration';
+        }
+      },
+      error: () => { this.savingKonfig = false; this.konfigError = 'Kunde inte spara konfiguration'; }
     });
   }
 
@@ -225,12 +234,15 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
   runSimulering(): void {
     this.loadingSimulering = true;
     this.svc.getSimulering(this.simIbcPerTimme, this.simKvalitet, this.simNarvaro, this.simTeamMal)
-      .pipe(takeUntil(this.destroy$)).subscribe(res => {
-        this.loadingSimulering = false;
-        if (res?.success) {
-          this.simulering = res.data;
-          setTimeout(() => { if (!this.destroy$.closed) this.renderSimChart(); }, 100);
-        }
+      .pipe(takeUntil(this.destroy$)).subscribe({
+        next: res => {
+          this.loadingSimulering = false;
+          if (res?.success) {
+            this.simulering = res.data;
+            setTimeout(() => { if (!this.destroy$.closed) this.renderSimChart(); }, 100);
+          }
+        },
+        error: () => { this.loadingSimulering = false; }
       });
   }
 
