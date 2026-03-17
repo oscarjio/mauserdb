@@ -1,3 +1,39 @@
+## 2026-03-17 Session #135 Worker A — PHP backend: 9 buggar fixade (date/time, unused vars, null/edge cases)
+
+### Uppgift 1: PHP date/time handling audit
+Granskade samtliga PHP-controllers i noreko-backend/classes/ for date(), strtotime(), DateTime-anvandning. Timezone sätts korrekt i api.php (`date_default_timezone_set('Europe/Stockholm')`). Inga problematiska `strtotime("next month")`-monster hittades. Hittade 1 bugg:
+
+1. **OperatorsPrestandaController.php** rad 630 — `date('Y')` anvandes ihop med `date('W')` for ISO-veckonummer. Vid arsgranser (t.ex. 29 dec 2026, ISO-vecka 1 2027) ger `date('Y')` fel ar. Fixat: andrat till `date('o')` som ger korrekt ISO-8601-ar.
+
+### Uppgift 2: PHP RebotlingAnalyticsController unused vars
+Utredde de tva diagnostik-varningarna:
+
+1. **$shift (rad 4531)** — Parameter i `buildShiftReportHtml()` som aldrig anvands i funktionskroppen (bara `$shiftName` anvands i HTML-output). Fixat: lagt till `unset($shift)` for att undertrycka varningen och behalla API-kompatibilitet.
+2. **$opRows (rad 6616)** — Anvands korrekt i closure via `use ($makeInner, $opRows, $limit)` pa rad 6693 for att slå upp operatorsnamn. Inte en bugg — false positive fran diagnostiken.
+
+### Uppgift 3: PHP null/edge case audit (7 buggar)
+Granskade AuditController, MaintenanceController, RuntimeController, LineSkiftrapportController, OperatorController, AdminController. Hittade 7 buggar:
+
+1. **LineSkiftrapportController.php** — `updateReport()`: `$cur` fran `fetch()` kunde vara null/false om rapporten raderades mellan requests. Lade till null-check med 404-svar.
+2. **LineSkiftrapportController.php** — `bulkDelete()`: efter `array_filter` kunde `$ids` bli tom array, vilket orsakade tom IN()-klausul i SQL. Lade till empty-guard.
+3. **LineSkiftrapportController.php** — `bulkUpdateInlagd()`: samma tomma `$ids`-problem. Lade till empty-guard.
+4. **LineSkiftrapportController.php** — `json_decode()` utan `?? []` — returnerar null pa ogiltig JSON, vilket ger PHP 8.2 deprecation warning vid `null['key']`. Fixat.
+5. **RuntimeController.php** — `registerBreak()`: samma `json_decode` null-problem. Fixat med `?? []`.
+6. **OperatorController.php** — POST-hantering: samma `json_decode` null-problem. Fixat med `?? []`.
+7. **AdminController.php** — `deleteEntry()`: `$deletedUser` fran `fetch()` kunde vara false om anvandaren inte hittades, vilket orsakade deprecation vid `false['username']` i PHP 8.2. Lade till null-check med 404-svar.
+
+Andrade filer:
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/OperatorsPrestandaController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/RebotlingAnalyticsController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/LineSkiftrapportController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/RuntimeController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/OperatorController.php`
+- `/home/clawd/clawd/mauserdb/noreko-backend/classes/AdminController.php`
+
+Totalt: 9 buggar fixade i 6 filer.
+
+---
+
 ## 2026-03-17 Session #134 Worker A — PHP backend: 5 buggar fixade (unused variables, XSS sanitering, hardkodad produktionsprocent)
 
 ### Uppgift 1: PHP SQL prepared statement audit
