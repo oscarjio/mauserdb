@@ -7,17 +7,15 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP HTTP method enforcement** — 2 fixar: login + alerts POST-krav (Worker A #132)
-- [x] **Angular memory profiling** — alla komponenter OK, inga lakor (Worker B #132)
-- [x] **PHP unused variables cleanup** — 6 fixar i 6 controllers (Worker A #132)
-- [x] **PHP CORS/headers audit** — 3 fixar: redundant header, JSON_UNESCAPED_UNICODE (Worker A #132)
-- [x] **Angular accessibility audit** — 13 fixar: aria-label pa knappar/selects/inputs (Worker B #132)
-- [x] **Angular template null-safety** — 9 fixar: optional chaining, nullish coalescing (Worker B #132)
-- [ ] **PHP error response consistency** — granska att alla error-svar har samma JSON-format
-- [ ] **Angular route guard audit** — granska att alla admin-routes har AuthGuard
-- [ ] **PHP session/auth timeout audit** — granska session-hantering och timeout-logik
-- [ ] **Angular HTTP error interceptor** — granska att alla HTTP-fel hanteras konsistent
-- [ ] **PHP file upload validation** — granska att filuppladdningar valideras korrekt
+- [x] **PHP error response consistency** — 19 controllers fixade (Worker A #133)
+- [x] **PHP session/auth timeout audit** — OK, inga problem (Worker A #133)
+- [x] **Angular route guard audit** — 3 fixar (Worker B #133)
+- [x] **Angular HTTP error interceptor** — 2 fixar + clearSession (Worker B #133)
+- [ ] **PHP SQL prepared statement audit** — granska att alla queries anvander prepared statements korrekt
+- [ ] **Angular form validation audit** — granska formularsvalidering och felmeddelanden
+- [ ] **PHP unused variables cleanup** — VpnController, RebotlingController, RebotlingAnalyticsController, TvattlinjeController (fran diagnostics)
+- [ ] **Angular unused declarations cleanup** — developerGuard, alertsService, event (fran diagnostics)
+- [ ] **PHP input sanitization audit** — granska att user-input saneras korrekt i alla controllers
 
 ## Parkerade features (ta inte dessa nu)
 

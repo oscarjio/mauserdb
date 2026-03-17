@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #132)*
+*Senast uppdaterad: 2026-03-17 (session #133)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -84,29 +84,31 @@ Session #129: BUGGJAKT — 23 buggar (20 Worker A + 3 Worker B). PDOException-la
 Session #130: BUGGJAKT — 48 buggar (27 Worker A + 21 Worker B). SQL edge cases, JSON return consistency, error_log audit + template null-safety (.toFixed). Lazy loading OK, service URLs OK.
 Session #131: BUGGJAKT — 52 buggar (22 Worker A + 30 Worker B). Boundary validation, date range swap, SQL param whitelists + form validation, error state UI i 6 komponenter.
 Session #132: BUGGJAKT — 33 buggar (11 Worker A + 22 Worker B). HTTP method enforcement, unused vars, CORS/headers + accessibility, template null-safety. Memory profiling: inga lakor.
+Session #133: BUGGJAKT — 29 buggar (22 Worker A + 7 Worker B). Error response consistency (19 controllers), HTTP 405 + route guards, error interceptor, dark theme.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP HTTP method enforcement (Worker A #132)
-- [ ] Angular memory profiling (Worker B #132)
-- [ ] PHP unused variables cleanup (Worker A #132)
-- [ ] PHP CORS/headers audit (Worker A #132)
-- [ ] Angular accessibility audit (Worker B #132)
-- [ ] Angular template null-safety (Worker B #132)
-- [ ] PHP error response consistency
-- [ ] Angular route guard audit
+- [x] PHP error response consistency (Worker A #133)
+- [x] PHP session/auth timeout audit (Worker A #133 — OK)
+- [x] PHP file upload validation (Worker A #133 — ej tillampbart)
+- [x] Angular route guard audit (Worker B #133)
+- [x] Angular HTTP error interceptor (Worker B #133)
+- [ ] PHP SQL prepared statement audit
+- [ ] Angular form validation audit
+- [ ] PHP unused variables cleanup (diagnostics visar kvarstaende i VpnController, RebotlingController, RebotlingAnalyticsController, TvattlinjeController)
+- [ ] Angular unused declarations cleanup (diagnostics: developerGuard, alertsService, event)
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-16 — Session #131 (klar)
-Worker A: 22 buggar — 5x boundary validation (limit min/max, offset cap, trim), 10x date range (from<=to swap, 365-dagars cap), 7x SQL param whitelists (period, granularity). Alla controllers granskade — inga SQL injections.
-Worker B: 30 buggar — 4x form validation (leveransplanering required/min/max), 26x error state UI (felmeddelanden i 6 komponenter: operator-ranking, leveransplanering, tidrapport, skiftplanering, historisk-sammanfattning, oee-trendanalys).
-Totalt: 52 buggar.
-
 ### 2026-03-17 — Session #132 (klar)
-Worker A: 11 buggar — 2x HTTP method enforcement (login/alerts POST-krav), 6x unused variables (6 controllers), 3x CORS/headers (redundant header, JSON_UNESCAPED_UNICODE).
-Worker B: 22 buggar — 0x minneslakor (alla komponenter OK), 13x accessibility (aria-label pa knappar/selects/inputs), 9x template null-safety (optional chaining, nullish coalescing).
+Worker A: 11 buggar — HTTP method enforcement, unused vars, CORS/headers.
+Worker B: 22 buggar — accessibility (13), template null-safety (9). Memory profiling: inga lakor.
 Totalt: 33 buggar.
+
+### 2026-03-17 — Session #133 (klar)
+Worker A: 22 buggar — 19x error response consistency (alla controllers nu {"success":false,"error":"..."}), 3x HTTP 405 statuskod. Session/auth OK, inga filuppladdningar finns.
+Worker B: 7 buggar — 3x route guard (narvarotracker+VD-vyer), 2x error interceptor (clearSession, fetchStatus subscribe), 1x unused observable, 3x dark theme.
+Totalt: 29 buggar.
