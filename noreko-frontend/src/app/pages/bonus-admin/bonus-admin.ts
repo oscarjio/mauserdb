@@ -1318,7 +1318,7 @@ export class BonusAdminPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success && res.data) {
           this.auditResult = res.data;
-          this.auditChartTimerId = setTimeout(() => this.renderAuditChart(), 100);
+          this.auditChartTimerId = setTimeout(() => { if (!this.destroy$.closed) this.renderAuditChart(); }, 100);
         } else {
           this.auditError = res?.error || 'Kunde inte ladda rättviseaudit';
         }

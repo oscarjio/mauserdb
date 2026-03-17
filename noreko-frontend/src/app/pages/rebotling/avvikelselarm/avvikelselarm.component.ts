@@ -58,6 +58,9 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
   loadingRegler   = false;
   loadingTrend    = false;
 
+  // Error states
+  errorData = false;
+
   // Data
   overview: OverviewData | null = null;
   aktivaLarm: LarmItem[] = [];
@@ -120,11 +123,14 @@ export class AvvikelselarmPage implements OnInit, OnDestroy {
 
   private loadOverview(): void {
     this.loadingOverview = true;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOverview = false;
-      if (res?.success) {
-        this.overview = res.data;
-      }
+    this.errorData = false;
+    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOverview = false;
+        if (res?.success) { this.overview = res.data; }
+        else { this.errorData = true; }
+      },
+      error: () => { this.loadingOverview = false; this.errorData = true; }
     });
   }
 

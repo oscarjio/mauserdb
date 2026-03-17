@@ -67,7 +67,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
     this.viewReady = true;
     if (this.trendLoaded && this.trendData) {
       if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
-      this.trendChartTimer = setTimeout(() => this.renderTrendChart(), 50);
+      this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);
     }
   }
 
@@ -125,7 +125,7 @@ export class FeedbackAnalysComponent implements OnInit, OnDestroy, AfterViewInit
         this.trendLoaded  = true;
         if (this.viewReady && this.trendData) {
           if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
-          this.trendChartTimer = setTimeout(() => this.renderTrendChart(), 50);
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);
         }
       });
   }

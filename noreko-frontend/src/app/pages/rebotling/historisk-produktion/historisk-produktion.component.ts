@@ -31,6 +31,9 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
   loadingCompare  = false;
   loadingTable    = false;
 
+  // Error states
+  errorData = false;
+
   // Data
   overview: HistoriskOverview | null     = null;
   periodData: ProduktionPerPeriod | null = null;
@@ -117,11 +120,16 @@ export class HistoriskProduktionPage implements OnInit, OnDestroy {
 
   loadOverview(): void {
     this.loadingOverview = true;
+    this.errorData = false;
     this.svc.getOverview(this.getDaysParam(), this.getFrom(), this.getTo())
       .pipe(takeUntil(this.destroy$))
-      .subscribe(res => {
-        this.loadingOverview = false;
-        if (res?.success) this.overview = res.data;
+      .subscribe({
+        next: res => {
+          this.loadingOverview = false;
+          if (res?.success) { this.overview = res.data; }
+          else { this.errorData = true; }
+        },
+        error: () => { this.loadingOverview = false; this.errorData = true; }
       });
   }
 

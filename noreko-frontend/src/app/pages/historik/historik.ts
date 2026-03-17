@@ -473,7 +473,7 @@ export class HistorikPage implements OnInit, OnDestroy, AfterViewInit {
         } else {
           this.error = '';
           if (this.chartBuildTimer !== null) clearTimeout(this.chartBuildTimer);
-          this.chartBuildTimer = setTimeout(() => this.buildCharts(), 100);
+          this.chartBuildTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildCharts(); }, 100);
         }
       }
     };

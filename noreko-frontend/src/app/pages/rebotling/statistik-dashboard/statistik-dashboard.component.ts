@@ -132,7 +132,7 @@ export class StatistikDashboardPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.trendData = res.data;
         if (this.chartBuildTimer) clearTimeout(this.chartBuildTimer);
-        this.chartBuildTimer = setTimeout(() => this.buildChart(), 100);
+        this.chartBuildTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100);
       } else if (res !== null) {
         this.errorTrend = true;
       }

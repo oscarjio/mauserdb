@@ -205,7 +205,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.poangfordelningData = res.data;
         if (this.poangChartTimer) clearTimeout(this.poangChartTimer);
-        this.poangChartTimer = setTimeout(() => this.buildPoangChart(), 100);
+        this.poangChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildPoangChart(); }, 100);
       } else {
         this.errorPoangfordelning = true;
       }
@@ -220,7 +220,7 @@ export class OperatorRankingPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.historikData = res.data;
         if (this.historikChartTimer) clearTimeout(this.historikChartTimer);
-        this.historikChartTimer = setTimeout(() => this.buildHistorikChart(), 100);
+        this.historikChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildHistorikChart(); }, 100);
       } else {
         this.errorHistorik = true;
       }

@@ -76,7 +76,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
     this.viewReady = true;
     if (this.patternLoaded && this.dayPattern.length > 0) {
       if (this.chartTimer) clearTimeout(this.chartTimer);
-      this.chartTimer = setTimeout(() => this.renderPatternChart(), 50);
+      this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderPatternChart(); }, 50);
     }
   }
 
@@ -148,7 +148,7 @@ export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewIni
         this.patternLoaded = true;
         if (this.viewReady) {
           if (this.chartTimer) clearTimeout(this.chartTimer);
-          this.chartTimer = setTimeout(() => this.renderPatternChart(), 50);
+          this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderPatternChart(); }, 50);
         }
       });
   }

@@ -79,7 +79,7 @@ export class OperatorsportalPage implements OnInit, OnDestroy {
       this.loadingTrend = false;
       if (res?.success && res.data) {
         this.trend = res.data;
-        this.chartTimer = setTimeout(() => this.buildChart(), 100);
+        this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100);
       } else {
         this.errorTrend = 'Kunde inte ladda trenddata.';
       }

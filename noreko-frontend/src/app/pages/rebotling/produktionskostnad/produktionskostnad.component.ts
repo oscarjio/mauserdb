@@ -34,6 +34,9 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
   loadingShift      = false;
   loadingConfig     = false;
 
+  // Error states
+  errorData = false;
+
   // Data
   overview:    KostnadOverview | null  = null;
   breakdown:   KostnadBreakdown | null = null;
@@ -102,11 +105,14 @@ export class ProduktionskostnadPage implements OnInit, OnDestroy {
 
   loadOverview(): void {
     this.loadingOverview = true;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOverview = false;
-      if (res?.success) {
-        this.overview = res.data;
-      }
+    this.errorData = false;
+    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOverview = false;
+        if (res?.success) { this.overview = res.data; }
+        else { this.errorData = true; }
+      },
+      error: () => { this.loadingOverview = false; this.errorData = true; }
     });
   }
 

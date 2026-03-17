@@ -155,7 +155,7 @@ export class MaskinunderhallPage implements OnInit, OnDestroy {
       this.loadingTimeline = false;
       if (res?.success) {
         this.timelineItems = res.items;
-        this.chartTimerId = setTimeout(() => this.buildTimelineChart(), 100);
+        this.chartTimerId = setTimeout(() => { if (!this.destroy$.closed) this.buildTimelineChart(); }, 100);
       } else if (res !== null) {
         this.errorTimeline = true;
       }

@@ -153,7 +153,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
         if (res?.success) {
           this.trendData = res.data;
           if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
-          this.trendChartTimer = setTimeout(() => this.buildTrendChart(), 100);
+          this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
         } else {
           this.errorTrend = true;
         }
@@ -198,7 +198,7 @@ export class HistoriskSammanfattningPage implements OnInit, OnDestroy {
           this.stopporsaker = res.data.stopporsaker || [];
           this.stopporsakerTotalH = res.data.total_h || 0;
           if (this.paretoChartTimer) clearTimeout(this.paretoChartTimer);
-          this.paretoChartTimer = setTimeout(() => this.buildParetoChart(), 100);
+          this.paretoChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildParetoChart(); }, 100);
         } else {
           this.errorStopporsaker = true;
         }

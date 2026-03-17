@@ -178,7 +178,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.trendData = res.data;
         if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
-        this.trendChartTimer = setTimeout(() => this.buildTrendChart(), 100);
+        this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 100);
       } else {
         this.errorTrend = true;
       }
@@ -219,7 +219,7 @@ export class OeeTrendanalysPage implements OnInit, OnDestroy {
       if (res?.success) {
         this.prediktionData = res.data;
         if (this.prediktionChartTimer) clearTimeout(this.prediktionChartTimer);
-        this.prediktionChartTimer = setTimeout(() => this.buildPrediktionChart(), 100);
+        this.prediktionChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildPrediktionChart(); }, 100);
       } else {
         this.errorPrediktion = true;
       }

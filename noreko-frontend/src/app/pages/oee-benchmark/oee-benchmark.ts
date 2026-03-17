@@ -65,11 +65,11 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
     this.viewReady = true;
     if (this.oeeLoaded && this.oeeData) {
       if (this.gaugeTimer) clearTimeout(this.gaugeTimer);
-      this.gaugeTimer = setTimeout(() => this.renderGauge(), 50);
+      this.gaugeTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderGauge(); }, 50);
     }
     if (this.trendLoaded && this.trendData) {
       if (this.trendTimer) clearTimeout(this.trendTimer);
-      this.trendTimer = setTimeout(() => this.renderTrendChart(), 50);
+      this.trendTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);
     }
   }
 
@@ -118,7 +118,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
         this.oeeLoaded = true;
         if (this.viewReady && this.oeeData) {
           if (this.gaugeTimer) clearTimeout(this.gaugeTimer);
-          this.gaugeTimer = setTimeout(() => this.renderGauge(), 50);
+          this.gaugeTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderGauge(); }, 50);
         }
       });
   }
@@ -146,7 +146,7 @@ export class OeeBenchmarkComponent implements OnInit, OnDestroy, AfterViewInit {
         this.trendLoaded = true;
         if (this.viewReady && this.trendData) {
           if (this.trendTimer) clearTimeout(this.trendTimer);
-          this.trendTimer = setTimeout(() => this.renderTrendChart(), 50);
+          this.trendTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);
         }
       });
   }

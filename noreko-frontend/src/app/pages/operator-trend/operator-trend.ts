@@ -163,7 +163,7 @@ export class OperatorTrendPage implements OnInit, OnDestroy {
           this.trendArrow = res.trend_arrow ?? null;
           this.trendPct   = res.trend_pct ?? null;
           if (this.chartTimer) clearTimeout(this.chartTimer);
-          this.chartTimer = setTimeout(() => this.buildChart(), 100);
+          this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildChart(); }, 100);
         } else {
           this.errorMsg = res?.error || 'Kunde inte hämta trenddata.';
           this.trendData = [];

@@ -122,7 +122,7 @@ export class BatchSparningPage implements OnInit, OnDestroy {
       this.loadingActive = false;
       if (res?.success) {
         this.activeBatches = res.batchar;
-        this.chartTimerId = setTimeout(() => this.renderProgressChart(), 100);
+        this.chartTimerId = setTimeout(() => { if (!this.destroy$.closed) this.renderProgressChart(); }, 100);
       } else if (res !== null) {
         this.errorActive = true;
       }

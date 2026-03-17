@@ -28,6 +28,11 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
   private isFetchingFlode     = false;
   private isFetchingStationer = false;
 
+  // Error states
+  errorOverview  = false;
+  errorFlode     = false;
+  errorStationer = false;
+
   // Data
   overview: FlodeOverview | null          = null;
   flodeData: FlodeData | null             = null;
@@ -78,12 +83,14 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     if (this.isFetchingOverview) return;
     this.isFetchingOverview = true;
     this.loadingOverview = true;
+    this.errorOverview = false;
     this.svc.getOverview(this.selectedDays)
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingOverview = false;
         this.isFetchingOverview = false;
-        if (res?.success) this.overview = res.data;
+        if (res?.success) { this.overview = res.data; }
+        else { this.errorOverview = true; }
       });
   }
 
@@ -91,12 +98,14 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     if (this.isFetchingFlode) return;
     this.isFetchingFlode = true;
     this.loadingFlode = true;
+    this.errorFlode = false;
     this.svc.getFlodeData(this.selectedDays)
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingFlode = false;
         this.isFetchingFlode = false;
-        if (res?.success) this.flodeData = res.data;
+        if (res?.success) { this.flodeData = res.data; }
+        else { this.errorFlode = true; }
       });
   }
 
@@ -104,12 +113,14 @@ export class ProduktionsflodePage implements OnInit, OnDestroy {
     if (this.isFetchingStationer) return;
     this.isFetchingStationer = true;
     this.loadingStationer = true;
+    this.errorStationer = false;
     this.svc.getStationDetaljer(this.selectedDays)
       .pipe(timeout(15000), catchError(() => of(null)), takeUntil(this.destroy$))
       .subscribe(res => {
         this.loadingStationer = false;
         this.isFetchingStationer = false;
-        if (res?.success) this.stationerData = res.data;
+        if (res?.success) { this.stationerData = res.data; }
+        else { this.errorStationer = true; }
       });
   }
 

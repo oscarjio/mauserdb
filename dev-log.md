@@ -1,3 +1,44 @@
+## 2026-03-17 Session #141 Worker B — 40 buggar fixade (error state UI + setTimeout guards)
+
+### Uppgift 1: Angular error state UI audit (7 fix)
+Granskade alla Angular-komponenter for saknad felhantering i UI. Hittade 7 standalone-sidkomponenter som gor HTTP-anrop men aldrig visar felmeddelanden for anvandaren vid natverksfel eller serverfel. Lade till `errorData`-flagga i TS och Bootstrap alert-danger i HTML-template (dark theme-stil).
+
+**Filer som fixades:**
+- produktionsflode.component.ts + .html (3 HTTP-anrop utan error state)
+- produktionskostnad.component.ts + .html (1 fix)
+- kvalitetscertifikat.component.ts + .html (1 fix)
+- produktions-sla.component.ts + .html (1 fix)
+- historisk-produktion.component.ts + .html (1 fix)
+- operatorsbonus.component.ts + .html (1 fix)
+- avvikelselarm.component.ts + .html (1 fix)
+
+### Uppgift 2: Angular route guard audit (0 fix)
+Granskade alla 80+ routes i app.routes.ts. Alla admin-sidor har adminGuard, alla autentiserade sidor har authGuard, login/register ar publika. Andon-sidan (rebotling/andon) ar avsiktligt publik (fabrikstavla utan inloggningskrav). Inga orphan-routes hittades — alla import-sokvagar pekar pa existerande filer. Inga buggar att fixa.
+
+### Uppgift 3: Angular chart cleanup audit (31 setTimeout guards fixade)
+Hittade 33 ytterligare setTimeout-anrop som bygger Chart.js-diagram utan `destroy$.closed`-guard, som missades i session #140. Alla chart.destroy() i ngOnDestroy ar korrekta, och alla charts gor destroy fore new Chart. Lade till `if (!this.destroy$.closed)` guard pa samtliga.
+
+**Filer som fixades (19 komponentfiler, 33 setTimeout-anrop):**
+- operator-ranking.component.ts (2 fix)
+- oee-trendanalys.component.ts (2 fix)
+- production-calendar.ts (1 fix)
+- historik.ts (1 fix)
+- operator-trend.ts (1 fix)
+- vd-dashboard.component.ts (2 fix)
+- cykeltid-heatmap.ts (2 fix)
+- ranking-historik.ts (3 fix)
+- bonus-admin.ts (1 fix)
+- statistik-overblick.component.ts (3 fix)
+- oee-benchmark.ts (4 fix)
+- historisk-sammanfattning.component.ts (2 fix)
+- operator-compare.ts (2 fix)
+- feedback-analys.ts (2 fix)
+- operatorsportal.ts (1 fix)
+- statistik-dashboard.component.ts (1 fix)
+- maskinunderhall.component.ts (1 fix)
+- batch-sparning.component.ts (1 fix)
+- statistik-veckotrend.ts (1 fix — drawAllSparklines)
+
 ## 2026-03-17 Session #140 Worker B — Angular frontend: 32 buggar fixade (setTimeout memory leak guards)
 
 ### Uppgift 1: Angular form validation audit

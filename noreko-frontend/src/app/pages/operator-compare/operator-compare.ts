@@ -1088,7 +1088,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
           if (this.chartTimer) {
             clearTimeout(this.chartTimer);
           }
-          this.chartTimer = setTimeout(() => this.buildTrendChart(), 120);
+          this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildTrendChart(); }, 120);
           this.loadRadarData();
         } else {
           this.errorMsg = data?.error || 'Kunde inte hämta jämförelsedata. Försök igen.';
@@ -1124,7 +1124,7 @@ export class OperatorComparePage implements OnInit, OnDestroy {
           if (this.radarTimer) {
             clearTimeout(this.radarTimer);
           }
-          this.radarTimer = setTimeout(() => this.buildRadarChart(), 150);
+          this.radarTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildRadarChart(); }, 150);
         } else {
           this.radarData = null;
         }

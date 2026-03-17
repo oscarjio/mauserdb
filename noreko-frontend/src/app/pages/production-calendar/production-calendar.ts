@@ -246,7 +246,7 @@ export class ProductionCalendarPage implements OnInit, OnDestroy {
           if (res?.success) {
             this.dayDetail = res;
             // Ge Angular tid att rendera canvas-elementet
-            this.dayDetailTimer = setTimeout(() => this.buildDayDetailChart(), 50);
+            this.dayDetailTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildDayDetailChart(); }, 50);
           }
         }
       });

@@ -112,7 +112,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
       this.loadingProduktion = false;
       if (res?.success) {
         if (this.produktionChartTimer) clearTimeout(this.produktionChartTimer);
-        this.produktionChartTimer = setTimeout(() => this.buildProduktionChart(res.data), 100);
+        this.produktionChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildProduktionChart(res.data); }, 100);
       } else if (res !== null) {
         this.errorProduktion = true;
       }
@@ -131,7 +131,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
       this.loadingOee = false;
       if (res?.success) {
         if (this.oeeChartTimer) clearTimeout(this.oeeChartTimer);
-        this.oeeChartTimer = setTimeout(() => this.buildOeeChart(res.data), 100);
+        this.oeeChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildOeeChart(res.data); }, 100);
       } else if (res !== null) {
         this.errorOee = true;
       }
@@ -150,7 +150,7 @@ export class StatistikOverblickPage implements OnInit, OnDestroy {
       this.loadingKassation = false;
       if (res?.success) {
         if (this.kassationChartTimer) clearTimeout(this.kassationChartTimer);
-        this.kassationChartTimer = setTimeout(() => this.buildKassationChart(res.data), 100);
+        this.kassationChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.buildKassationChart(res.data); }, 100);
       } else if (res !== null) {
         this.errorKassation = true;
       }

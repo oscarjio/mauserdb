@@ -80,7 +80,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
     this.viewReady = true;
     if (this.rankingsLoaded && this.rankingsData) {
       if (this.chartTimer) clearTimeout(this.chartTimer);
-      this.chartTimer = setTimeout(() => this.renderTrendChart(), 50);
+      this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);
     }
   }
 
@@ -126,7 +126,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
         this.rankingsLoaded = true;
         if (this.viewReady && this.rankingsData) {
           if (this.chartTimer) clearTimeout(this.chartTimer);
-          this.chartTimer = setTimeout(() => this.renderTrendChart(), 50);
+          this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 50);
         }
       });
   }
@@ -334,7 +334,7 @@ export class RankingHistorikComponent implements OnInit, OnDestroy, AfterViewIni
   onH2HChange(): void {
     if (this.h2hOp1Id !== null && this.h2hOp2Id !== null) {
       if (this.chartTimer) clearTimeout(this.chartTimer);
-      this.chartTimer = setTimeout(() => this.renderH2HChart(), 50);
+      this.chartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderH2HChart(); }, 50);
     }
   }
 

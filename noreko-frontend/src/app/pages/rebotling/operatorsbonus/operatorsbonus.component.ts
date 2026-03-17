@@ -30,6 +30,9 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
   loadingKonfig      = false;
   loadingSimulering  = false;
 
+  // Error states
+  errorData = false;
+
   // Data
   overview:    BonusOverviewData | null = null;
   perOpData:   PerOperatorData | null   = null;
@@ -97,11 +100,14 @@ export class OperatorsbonusPage implements OnInit, OnDestroy {
 
   loadOverview(): void {
     this.loadingOverview = true;
-    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOverview = false;
-      if (res?.success) {
-        this.overview = res.data;
-      }
+    this.errorData = false;
+    this.svc.getOverview(this.period).pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOverview = false;
+        if (res?.success) { this.overview = res.data; }
+        else { this.errorData = true; }
+      },
+      error: () => { this.loadingOverview = false; this.errorData = true; }
     });
   }
 

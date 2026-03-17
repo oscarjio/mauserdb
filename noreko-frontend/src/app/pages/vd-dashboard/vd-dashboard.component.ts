@@ -95,13 +95,13 @@ export class VdDashboardPage implements OnInit, OnDestroy {
       if (stationRes?.success) {
         this.stationOee = stationRes.data;
         if (this.stationChartTimer) clearTimeout(this.stationChartTimer);
-        this.stationChartTimer = setTimeout(() => this.renderStationChart(), 100);
+        this.stationChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderStationChart(); }, 100);
       }
 
       if (trendRes?.success) {
         this.veckotrend = trendRes.data;
         if (this.trendChartTimer) clearTimeout(this.trendChartTimer);
-        this.trendChartTimer = setTimeout(() => this.renderTrendChart(), 100);
+        this.trendChartTimer = setTimeout(() => { if (!this.destroy$.closed) this.renderTrendChart(); }, 100);
       }
 
       if (skiftRes?.success) this.skiftstatus = skiftRes.data;

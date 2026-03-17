@@ -33,6 +33,9 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
   loadingHistory = false;
   loadingGoals = false;
 
+  // Error states
+  errorData = false;
+
   // Data
   overview: SlaOverview | null = null;
   daily: DailyProgress | null = null;
@@ -97,11 +100,14 @@ export class ProduktionsSlaPage implements OnInit, OnDestroy {
 
   loadOverview(): void {
     this.loadingOverview = true;
-    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe(res => {
-      this.loadingOverview = false;
-      if (res?.success) {
-        this.overview = res.data;
-      }
+    this.errorData = false;
+    this.svc.getOverview().pipe(takeUntil(this.destroy$)).subscribe({
+      next: res => {
+        this.loadingOverview = false;
+        if (res?.success) { this.overview = res.data; }
+        else { this.errorData = true; }
+      },
+      error: () => { this.loadingOverview = false; this.errorData = true; }
     });
   }
 

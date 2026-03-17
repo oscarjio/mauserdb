@@ -77,7 +77,7 @@ export class StatistikVeckotrendComponent implements OnInit, AfterViewInit, OnDe
         }
         this.kpis = resp.kpis;
         // setTimeout ger Angular en cykel att rendera canvases
-        setTimeout(() => this.drawAllSparklines(), 50);
+        setTimeout(() => { if (!this.destroy$.closed) this.drawAllSparklines(); }, 50);
       });
   }
 
