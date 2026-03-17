@@ -19,7 +19,7 @@
 }
 
 .dashboard-card {
-  background: #23272b;
+  background: #2d3748;
   border-radius: 1.5rem;
   padding: 1.5rem;
   box-shadow: 0 2px 16px rgba(0,0,0,0.2);
@@ -239,7 +239,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: #23272b;
+  background: #2d3748;
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 12px;
   padding: 1rem 1.25rem;

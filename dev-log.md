@@ -1,3 +1,29 @@
+## 2026-03-17 Session #133 Worker B — Angular frontend: 7 buggar fixade (route guards, interceptor, theme, unsubscribed observable)
+
+### Uppgift 1: Angular route guard audit (3 fixar)
+- **app.routes.ts**: `rebotling/narvarotracker` saknade authGuard — narvarotracker (narvaro-sparning) ar kaenslig data, la till `canActivate: [authGuard]`
+- **app.routes.ts**: `rebotling/vd-dashboard` hade bara authGuard — VD-dashboard ar en executive-vy, uppgraderade till `canActivate: [adminGuard]`
+- **app.routes.ts**: `rebotling/vd-veckorapport` hade bara authGuard — VD-veckorapport ar en executive-vy, uppgraderade till `canActivate: [adminGuard]`
+- Alla admin/* routes har redan korrekt adminGuard — inga problem
+- authGuard, adminGuard, developerGuard implementationer ar korrekta med initialized$-gating
+
+### Uppgift 2: Angular HTTP error interceptor audit (1 fix)
+- **error.interceptor.ts**: Vid 401 manipulerades auth-state direkt (loggedIn$.next, user$.next, sessionStorage.removeItem) utan att stoppa polling — polling fortsatte efter session expired. Bytte till ny `auth.clearSession()` metod
+- **auth.service.ts**: La till publik `clearSession()` metod som stoppar polling + rensar state + tar bort sessionStorage
+- Interceptorn hanterar 0, 401, 403, 404, 429, 500+ korrekt med svenska felmeddelanden
+- Alla 89+ services har catchError ELLER forlitar sig pa global interceptor (korrekt)
+
+### Uppgift 3: Unsubscribed observable (1 fix)
+- **menu.ts**: `this.auth.fetchStatus()` anropades efter profil-uppdatering utan `.subscribe()` — HTTP-anropet exekverades aldrig. La till `.subscribe()`
+
+### Uppgift 4: Dark theme audit (3 fixar)
+- **login.ts**: Login-kort anvande `#23272b` istallet for korrekt dark theme `#2d3748`
+- **register.css**: Register-kort anvande `#23272b` istallet for `#2d3748`
+- **news.css**: Tva element (dashboard-card, quick-link-card) anvande `#23272b` istallet for `#2d3748`
+- Obs: live-sidor (rebotling-live, tvattlinje-live, saglinje-live, klassificeringslinje-live) ej rorda (enligt regler)
+
+---
+
 ## 2026-03-17 Session #132 Worker B — Angular frontend: 22 buggar (0 memory leaks, 13 accessibility, 9 null-safety)
 
 ### Uppgift 1: Angular memory profiling (0 buggar)

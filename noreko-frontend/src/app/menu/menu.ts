@@ -298,7 +298,7 @@ export class Menu implements OnInit, OnDestroy {
             this.profileForm.currentPassword = '';
             this.profileForm.newPassword = '';
             this.profileForm.confirmPassword = '';
-            this.auth.fetchStatus();
+            this.auth.fetchStatus().subscribe();
           } else {
             this.profileError = response?.message || 'Kunde inte uppdatera kontot.';
           }

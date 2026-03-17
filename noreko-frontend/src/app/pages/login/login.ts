@@ -48,7 +48,7 @@ import { AuthService } from '../../services/auth.service';
       padding: 1rem;
     }
     .login-card {
-      background: #23272b;
+      background: #2d3748;
       border-radius: 1rem;
       padding: 2rem;
       width: 100%;

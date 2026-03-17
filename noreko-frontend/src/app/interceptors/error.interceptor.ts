@@ -22,10 +22,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 0) {
         message = 'Ingen kontakt med servern. Kontrollera nätverksanslutningen.';
       } else if (error.status === 401) {
-        // Clear auth state and redirect to login
-        auth.loggedIn$.next(false);
-        auth.user$.next(null);
-        sessionStorage.removeItem('auth_user');
+        // Rensa auth-state och stoppa polling via AuthService
+        auth.clearSession();
         if (!router.url.includes('/login')) {
           message = 'Sessionen har gått ut. Logga in igen.';
           // Bevara nuvarande URL som returnUrl så användaren kan komma tillbaka efter login

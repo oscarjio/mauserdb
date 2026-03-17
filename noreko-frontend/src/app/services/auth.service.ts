@@ -100,6 +100,17 @@ export class AuthService {
     });
   }
 
+  /**
+   * Rensa auth-state och stoppa polling.
+   * Anropas av error interceptor vid 401 (session expired).
+   */
+  clearSession(): void {
+    this.stopPolling();
+    sessionStorage.removeItem('auth_user');
+    this.loggedIn$.next(false);
+    this.user$.next(null);
+  }
+
   /** Anropas efter lyckad inloggning för att återstarta polling. */
   onLoginSuccess(): void {
     this.startPolling();
