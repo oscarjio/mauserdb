@@ -7,12 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **PHP file I/O error handling** — file_get_contents/file_put_contents utan felkontroll
 - [ ] **Angular lazy loading audit** — onodiga imports, SharedModule-bloat, bundle-storlekar
-- [ ] **PHP response consistency audit** — granska att alla controllers returnerar konsekvent JSON-format (success/error/data)
-- [ ] **Angular memory leak audit** — Chart.js destroy(), setInterval utan clearInterval, event listeners
-- [ ] **PHP date/time edge cases** — midnight-boundary, DST-overganger, tomma datumstrangar
-- [ ] **Angular HTTP retry/timeout audit** — saknade timeout(), retry-logik, offline-hantering
+- [ ] **PHP error logging consistency** — error_log format, loggniva, PII-kontroll
+- [ ] **Angular template accessibility** — aria-labels, tab-index, screen reader
+- [ ] **Angular unused imports cleanup** — diagnostics visar oanvanda of, timeout, catchError imports i flera komponenter
+- [ ] **PHP unused variables cleanup** — $e i catch-block, $opRows, $dtEx etc (intelephense-varningar)
+- [ ] **PHP input validation audit** — isset/empty-kontroller pa $_GET/$_POST parametrar
+- [ ] **Angular error state UI audit** — visa felmeddelanden i template vid HTTP-fel
 
 ## Parkerade features (ta inte dessa nu)
 

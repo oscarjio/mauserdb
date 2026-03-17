@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #148)*
+*Senast uppdaterad: 2026-03-17 (session #149)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -75,23 +75,20 @@ Session #145: BUGGJAKT — 70 buggar (18 Worker A + 52 Worker B). Error handling
 Session #146: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL injection fixes (BonusController, RebotlingAnalyticsController), dead code, LIMIT cast + 14 getter->cached property (change detection) i 9 komponenter.
 Session #147: BUGGJAKT — 10 buggar (Worker A). Rate limiting (register, password change), security headers (Cache-Control, HSTS, X-Powered-By), session lifetime sync, transaction + error fixes.
 Session #148: BUGGJAKT — 21 buggar (14 Worker A + 7 Worker B). Transaction consistency (4 controllers), json_decode null-safety (10 fix) + unused FormsModule imports (5), form validation (2).
+Session #149: BUGGJAKT — 161 buggar (16 Worker A + 145 Worker B). File I/O guards (2), DateTime try/catch (12), json_decode null-safety (4) + HTTP timeout/catchError (145 i 31 komponenter). Memory leak audit OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP transaction consistency — multi-statement operations utan transaction
-- [ ] PHP file I/O error handling
-- [ ] Angular unused imports/declarations
-- [ ] Angular form validation audit
 - [ ] Angular lazy loading performance — bundle-storlekar, onodiga imports
+- [ ] PHP error logging consistency
+- [ ] Angular template accessibility
+- [ ] Angular unused imports cleanup (diagnostics-varningar kvar)
+- [ ] PHP unused variables cleanup ($e, $opRows etc)
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-17 — Session #146 (klar)
-Worker A: 5 buggar — 2 SQL injection (BonusController, RebotlingAnalyticsController), 2 dead code, 1 LIMIT cast.
-Worker B: 14 buggar — 14 getter->cached property i 9 komponenter (change detection performance).
 
 ### 2026-03-17 — Session #147 (klar)
 Worker A: 10 buggar — rate limiting (register, password change), security headers (Cache-Control, HSTS, X-Powered-By), session lifetime sync, transaction + error fixes.
@@ -100,3 +97,7 @@ Worker B: ej kord.
 ### 2026-03-17 — Session #148 (klar)
 Worker A: 14 buggar — 4 transaction consistency (KvalitetscertifikatController, RebotlingAdminController x3, OperatorController), 10 json_decode null-safety.
 Worker B: 7 buggar — 5 unused FormsModule imports, 2 form validation (avvikelselarm min, batch-sparning max).
+
+### 2026-03-17 — Session #149 (klar)
+Worker A: 16 buggar — 2 file I/O (VpnController fwrite), 12 DateTime try/catch (6 controllers), 4 json_decode null-safety (4 controllers).
+Worker B: 145 buggar — 145 HTTP timeout/catchError i 31 komponenter. Memory leak audit: alla OK (Chart.js destroy, clearInterval, takeUntil).
