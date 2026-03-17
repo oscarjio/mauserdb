@@ -7,17 +7,17 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] PHP session/cookie security audit [Worker A #137]
-- [x] Angular template strict null-check audit [Worker B #137]
-- [x] PHP SQL column name verification [Worker A #137] — inga kolumnnamnsfel
-- [x] PHP date range validation audit [Worker A #137]
-- [x] Angular form input sanitization audit [Worker B #137]
-- [x] Angular HTTP retry/timeout audit [Worker B #137]
-- [ ] **PHP boundary/pagination validation** — granska LIMIT/OFFSET-parametrar, max-granser, negativa varden
-- [ ] **PHP error boundary audit** — granska try/catch-block i controllers, saknade exception-hanterare
-- [ ] **Angular router parameter validation** — granska att route params valideras (typ, format, existens)
-- [ ] **PHP race condition audit** — granska parallella requests, UPDATE utan locking, dubbletter
-- [ ] **Angular memory profiling — komponent-storlek** — granska stora komponenter for onodiga imports/data
+- [x] PHP boundary/pagination validation [Worker A #138]
+- [x] PHP error boundary audit [Worker A #138]
+- [x] PHP race condition audit — 8 transaktioner tillagda [Worker A #138]
+- [x] Angular router parameter validation — open redirect + whitelist [Worker B #138]
+- [x] Angular memory profiling — 5 unused imports borttagna [Worker B #138]
+- [x] Angular change detection audit — 18+ metodanrop dokumenterade [Worker B #138]
+- [ ] **PHP file operation safety** — granska file_get_contents, fopen, fwrite for felhantering och path traversal
+- [ ] **Angular HTTP interceptor audit** — granska error/auth interceptors for edge cases
+- [ ] **Angular change detection optimering** — implementera computed properties/pipes for 18+ dokumenterade metodanrop
+- [ ] **PHP unused variable cleanup** — ta bort oanvanda variabler ($ignored, saveLiveRankingSettings, $opRows)
+- [ ] **Angular deprecated API migration** — HttpClientModule -> provideHttpClient()
 
 ## Parkerade features (ta inte dessa nu)
 

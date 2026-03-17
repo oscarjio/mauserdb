@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #136)*
+*Senast uppdaterad: 2026-03-17 (session #138)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -89,23 +89,25 @@ Session #134: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL prepared st
 Session #135: BUGGJAKT — 15 buggar (9 Worker A + 6 Worker B). Date/time ISO-fix, unused vars, null/edge cases + error state UI, auth guard. HTTP services alla konsekvent.
 Session #136: BUGGJAKT — 6 buggar (3 Worker A + 3 Worker B). JSON_UNESCAPED_UNICODE (263x), error_log format (444x), PreloadAllModules, setTimeout-lacka. 109 charts + 138 routes OK.
 Session #137: BUGGJAKT — 23 buggar (9 Worker A + 14 Worker B). Session fixation, cookie cleanup, 7x date range validation + 5 null-check, 5 input sanitization, 90 HTTP timeout/catchError.
+Session #138: BUGGJAKT — 18 buggar (10 Worker A + 8 Worker B). Boundary/pagination, error boundary, 8x race condition (transaktioner) + open redirect-fix, router param whitelist, 5x unused imports, change detection audit.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] PHP error boundary audit — try/catch-block i controllers
-- [ ] Angular router parameter validation — route params typ/format
-- [ ] PHP boundary/pagination validation — LIMIT/OFFSET max-granser
+- [ ] PHP file operation safety — file_get_contents, fopen, fwrite felhantering
+- [ ] Angular HTTP interceptor audit — error/auth interceptors edge cases
+- [ ] Angular change detection optimering — metod-anrop i templates (18+ dokumenterade)
 
 ## BESLUTSDAGBOK (senaste 3)
-
-### 2026-03-17 — Session #136 (klar)
-Worker A: 3 buggar — 263x json_encode saknade JSON_UNESCAPED_UNICODE (42 filer), 444x error_log standardiserade.
-Worker B: 3 buggar — PreloadAllModules saknades, 1x setTimeout-lacka. Totalt: 6 buggar.
 
 ### 2026-03-17 — Session #137 (klar)
 Worker A: 9 buggar — session_regenerate_id vid login, cookie-rensning vid logout, 7x date range validation (swap + max 365 dagar).
 Worker B: 14 buggar — 5x template null-check (pipe-precedens, null-safety), 5x input sanitization (trim, maxlength), 4x HTTP timeout/catchError (90 anrop i 4 services).
 Totalt: 23 buggar fixade.
+
+### 2026-03-17 — Session #138 (klar)
+Worker A: 10 buggar — 1x boundary (days-validering), 1x error boundary (AlertsController try/catch), 8x race conditions (transaktioner + FOR UPDATE i FavoriterController, SkiftplaneringController, StopporsakRegistreringController, BatchSparningController, RebotlingController, RegisterController, RebotlingAnalyticsController).
+Worker B: 8 buggar — 1x open redirect-fix (login returnUrl), 1x router param whitelist (stoppage-log), 5x unused imports, 1x change detection audit (18+ metodanrop dokumenterade).
+Totalt: 18 buggar fixade.
