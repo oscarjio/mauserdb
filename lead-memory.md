@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #140)*
+*Senast uppdaterad: 2026-03-17 (session #141)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -92,28 +92,27 @@ Session #137: BUGGJAKT — 23 buggar (9 Worker A + 14 Worker B). Session fixatio
 Session #138: BUGGJAKT — 18 buggar (10 Worker A + 8 Worker B). Boundary/pagination, error boundary, 8x race condition (transaktioner) + open redirect-fix, router param whitelist, 5x unused imports, change detection audit.
 Session #139: BUGGJAKT — 29 buggar (13 Worker A + 16 Worker B). SQL-kolumner, timestamp, GROUP BY, json_decode null-safety, dead code + interceptor retry, 10x change detection cache, deprecated API migration.
 Session #140: BUGGJAKT — 39 buggar (7 Worker A + 32 Worker B). SQL mixed params, PII i loggar, hardkodade credentials, security headers + 32x setTimeout destroy$-guards i 19 chart-komponenter.
+Session #141: BUGGJAKT — 55 buggar (15 Worker A + 40 Worker B). Response format, transactions, in_array strict, XSS + error state UI (7 komponenter), 33x setTimeout guards, route guards OK.
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [x] PHP SQL query consistency — prepared statements, bindParam-typer [#140]
-- [x] Angular form validation audit — inga reaktiva forms i projektet (template-driven) [#140]
-- [x] PHP error_log audit — PII borttagen fran loggar [#140]
-- [x] Angular lazy loading audit — alla routes lazy-loadas korrekt [#140]
-- [x] PHP CORS/headers audit — CORS OK, security headers tillagda [#140]
-- [ ] PHP response format consistency — JSON-svar konsekvent struktur
-- [ ] Angular error state UI audit — felmeddelanden vid HTTP-fel
+- [ ] PHP date/time handling audit — timezone-hantering, date()-format, strtotime()-edge cases
+- [ ] Angular HTTP retry/timeout audit — timeout och retry-logik
+- [ ] PHP file upload validation — MIME-type, filstorlek, sokvag-validering
+- [ ] Angular memory profiling — event listeners som inte tas bort
+- [ ] PHP session handling audit — session_start, session_regenerate_id, timeout
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #139 (klar)
-Worker A: 13 buggar — SQL-kolumner, timestamp, GROUP BY, json_decode null-safety, dead code.
-Worker B: 16 buggar — interceptor retry, change detection cache, deprecated API migration.
-Totalt: 29 buggar fixade.
-
 ### 2026-03-17 — Session #140 (klar)
-Worker A: 7 buggar — SQL mixed params (SkiftoverlamningController), LIMIT/OFFSET (AuditController), 2x PII i error_log (RebotlingAnalytics), PII i audit (AdminController), raw exception i response (update-weather), hardkodade DB-credentials (update-weather), security headers.
-Worker B: 32 buggar — 32x setTimeout utan destroy$-guard i 19 chart-komponenter. Form validation OK (template-driven). Lazy loading OK.
+Worker A: 7 buggar — SQL mixed params, PII i loggar, hardkodade credentials, security headers.
+Worker B: 32 buggar — 32x setTimeout destroy$-guards i 19 chart-komponenter.
 Totalt: 39 buggar fixade.
+
+### 2026-03-17 — Session #141 (klar)
+Worker A: 15 buggar — 4 response format (MaintenanceController, OperatorCompare, ShiftHandover, StatusController), 4 transaction (rollBack utan inTransaction-guard, return i transaktion), 7 input sanitization (in_array strict, 2x XSS htmlspecialchars).
+Worker B: 40 buggar — 7 error state UI (dark theme alert-danger i 7 komponenter), route guards OK (80+ routes korrekt), 33x setTimeout destroy$-guards i 19 chart-komponenter.
+Totalt: 55 buggar fixade.

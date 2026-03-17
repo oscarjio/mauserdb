@@ -7,12 +7,13 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **PHP response format consistency** — granska JSON-svar for konsekvent success/error-struktur
-- [ ] **Angular error state UI audit** — komponenter som saknar felmeddelanden vid HTTP-fel
-- [ ] **PHP transaction audit** — granska BEGIN/COMMIT/ROLLBACK for korrekta transaktionsgranser
-- [ ] **Angular route guard audit** — verifiera att skyddade sidor har canActivate-guards
-- [ ] **PHP input sanitization audit** — granska $_GET/$_POST for saknad htmlspecialchars/intval
-- [ ] **Angular chart cleanup audit** — verifiera chart.destroy() i alla ngOnDestroy
+- [ ] **PHP date/time handling audit** — granska timezone-hantering, date()-format, strtotime()-edge cases
+- [ ] **Angular HTTP retry/timeout audit** — verifiera att alla HTTP-anrop har timeout och retry-logik
+- [ ] **PHP file upload validation** — granska MIME-type, filstorlek, sokvag-validering
+- [ ] **Angular memory profiling** — granska komponenter for event listeners som inte tas bort
+- [ ] **PHP session handling audit** — granska session_start, session_regenerate_id, session timeout
+- [ ] **PHP unused variable cleanup** — ta bort oanvanda variabler ($ignored, $days, $multiplier)
+- [ ] **Angular unused imports/declarations** — ta bort oanvanda TypeScript-importer och deklarationer
 
 ## Parkerade features (ta inte dessa nu)
 
