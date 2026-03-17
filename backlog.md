@@ -7,16 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [x] **PHP date/time handling audit** — 1 fix: date('o') for ISO-veckor (Worker A #135)
-- [x] **Angular error state UI audit** — 4 maintenance-log-komponenter fixade (Worker B #135)
-- [x] **Angular auth.guard unused route params** — 2 fixar: route -> _route (Worker B #135)
-- [x] **PHP RebotlingAnalyticsController unused vars** — $shift fixad, $opRows false positive (Worker A #135)
-- [x] **PHP null/edge case audit** — 7 fixar: json_decode guards, null-checks, empty arrays (Worker A #135)
-- [ ] **PHP response format consistency audit** — granska att alla controllers returnerar konsekvent JSON-struktur
-- [ ] **Angular chart destroy audit** — verifiera att alla Chart.js-instanser destroyas i ngOnDestroy
-- [ ] **PHP file upload validation audit** — granska filuppladdning for storlek, typ, path traversal
-- [ ] **PHP error_log format consistency** — granska att error_log() anvander konsekvent format och nivaser
-- [ ] **Angular lazy loading route audit** — verifiera att alla lazy-loaded routes har korrekt preloading-strategi
+- [ ] **PHP session/cookie security audit** — granska session-hantering, cookie-flaggor (httponly, secure, samesite)
+- [ ] **Angular template strict null-check audit** — granska templates for saknade ?. och null-guards i bindings
+- [ ] **PHP SQL column name verification** — jamfor SQL-queries mot faktiskt DB-schema, leta felstavade kolumner
+- [ ] **PHP boundary/pagination validation** — granska LIMIT/OFFSET-parametrar, max-gränser, negativa värden
+- [ ] **Angular form input sanitization audit** — granska att input-fält saniterar data korrekt fore HTTP-anrop
+- [ ] **PHP date range validation audit** — granska att start_date <= end_date, max spannet, ogiltiga datum
 
 ## Parkerade features (ta inte dessa nu)
 
