@@ -487,8 +487,8 @@ class MaskinunderhallController {
             $namn = mb_substr($namn, 0, 100);
         }
 
-        $beskrivning = isset($data['beskrivning']) ? strip_tags(trim($data['beskrivning'])) : null;
-        $intervall   = max(1, (int)($data['service_intervall_dagar'] ?? 90));
+        $beskrivning = isset($data['beskrivning']) ? mb_substr(strip_tags(trim($data['beskrivning'])), 0, 2000) : null;
+        $intervall   = max(1, min(3650, (int)($data['service_intervall_dagar'] ?? 90)));
 
         try {
             $stmt = $this->pdo->prepare(

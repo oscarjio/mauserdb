@@ -1,3 +1,28 @@
+## 2026-03-17 Session #147 Worker A — 10 buggar fixade (rate limiting, security headers, error handling)
+### Uppgift: PHP rate limiting + CSRF + response header security audit
+Granskade alla PHP-filer som hanterar login, registrering, autentisering, profilandringar och kansliga operationer. Sokte efter saknad rate limiting, saknade security headers, session-konfigurationsinkonsekvenser, felaktiga HTTP-statuskoder och error handling edge cases.
+
+1. api.php — Saknade Cache-Control/Pragma-headers pa alla API-svar. Lade till `Cache-Control: no-store, no-cache, must-revalidate, private` och `Pragma: no-cache` sa att browsern aldrig cachar kansliga JSON-svar.
+2. api.php — PHP-version exponerades via X-Powered-By header. Lade till `header_remove('X-Powered-By')` for att dolga server-fingerprint.
+3. api.php — Saknad HSTS-header. Lade till `Strict-Transport-Security: max-age=31536000; includeSubDomains` (aktiveras bara vid HTTPS-anslutning).
+4. api.php — PDOException-catch vid databasanslutning svalvde felet utan logging. Lade till `error_log()` sa att anslutningsfel syns i loggen.
+5. .htaccess — Session-livslangd var satt till 86400 (24h) medan api.php och AuthHelper anvander 28800 (8h). Synkade till 28800 overallt. Lade aven till `expose_php Off` for att dolga PHP-version.
+6. RegisterController.php — Saknad rate limiting tillat obegransade registreringsforsk. Lade till AuthHelper::isRateLimited() med prefix `reg:` for att separera fran login-attempts. Loggar misslyckade forsk via recordAttempt().
+7. ProfileController.php — Saknad rate limiting pa losenordsbyte tillat brute-force av nuvarande losenord via profilsidan. Lade till rate limiting med prefix `pwchange:`, loggar misslyckade forsk, rensar vid lyckat byte.
+8. AdminController.php — "Inga falt att uppdatera" returnerade success:false med HTTP 200. Lade till http_response_code(400).
+9. FavoriterController.php — Session oppnades i skrivlage (utan read_and_close) aven for GET-requests, vilket blockade parallella requests i onodan. Andrade till read_and_close for GET, skrivlage for POST.
+10. FeatureFlagController.php — bulkUpdate() saknade transaktion, sa partiella uppdateringar kunde ske vid DB-fel. Lade till beginTransaction()/commit()/rollBack().
+11. UnderhallsloggController.php — skapa() validerade inte station_id mot giltiga stationer. Lade till check mot STATIONER-konstanten.
+12. MaskinunderhallController.php — addMachine() begransade inte beskrivning-langd eller service_intervall_dagar. Lade till mb_substr(0,2000) och max(1,min(3650,...)).
+13. login.php, admin.php — Saknade Cache-Control och X-Powered-By-header. Lade till bada.
+
+Audit-resultat for ovriga omraden:
+- **CSRF**: Projektet anvander JSON API med SameSite=Lax cookies, session.use_only_cookies=1, session.use_trans_sid=0. Tillsammans med Origin-validering i CORS-hanteringen ger detta adekvat CSRF-skydd for ett SPA-baserat API.
+- **Session fixation**: session_regenerate_id(true) anropas korrekt vid login. session.use_strict_mode=1 aktiveras i api.php.
+- **Timing attacks**: password_verify() (bcrypt, constant-time) anvands konsekvent via AuthHelper::verifyPassword(). Inga sha1/md5-jamforelser.
+- **Login rate limiting**: Redan implementerat med AuthHelper::isRateLimited() (5 forsok, 15 min lockout).
+- **Division by zero**: Alla kritiska divisioner har guards (> 0 check) eller anvander konstanter (PLANERAD_DAG_SEK = 86400).
+
 ## 2026-03-17 Session #146 Worker A — 5 buggar fixade (SQL injection re-audit, deprecated patterns)
 ### Uppgift: PHP SQL injection re-audit + deprecated patterns
 Granskade ALLA PHP-filer i noreko-backend/controllers/, noreko-backend/classes/, noreko-backend/api.php, samt auxiliarfiler (login.php, admin.php, update-weather.php). Systematisk sokning efter SQL injection, deprecated PHP patterns, type coercion buggar och dead code.

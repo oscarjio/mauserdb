@@ -4,6 +4,8 @@
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
+header('Cache-Control: no-store, no-cache, must-revalidate, private');
+header_remove('X-Powered-By');
 http_response_code(410);
 echo json_encode([
     'success' => false,

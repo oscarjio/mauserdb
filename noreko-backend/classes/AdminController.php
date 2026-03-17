@@ -337,6 +337,7 @@ class AdminController {
                     echo json_encode(['success' => false, 'error' => 'Kunde inte uppdatera användare'], JSON_UNESCAPED_UNICODE);
                 }
             } else {
+                http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Inga fält att uppdatera'], JSON_UNESCAPED_UNICODE);
             }
             return;

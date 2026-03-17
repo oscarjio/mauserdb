@@ -444,6 +444,11 @@ class UnderhallsloggController {
                 $utfordAv = $_SESSION['username'] ?? 'Okand';
             }
 
+            if ($stationId > 0 && !isset(self::STATIONER[$stationId])) {
+                $this->sendError('Ogiltig station_id');
+                return;
+            }
+
             if (!in_array($typ, ['planerat', 'oplanerat'], true)) {
                 $this->sendError('Typ maste vara planerat eller oplanerat');
                 return;

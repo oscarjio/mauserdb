@@ -89,11 +89,29 @@ class ProfileController {
                 echo json_encode(['success' => false, 'error' => 'Nuvarande lösenord krävs för att ändra lösenord.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
+
+            // Rate limiting — förhindra brute-force av nuvarande lösenord via profilsidan
+            AuthHelper::ensureRateLimitTable($pdo);
+            $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+            $pwChangeIp = 'pwchange:' . $ip;
+            if (AuthHelper::isRateLimited($pdo, $pwChangeIp)) {
+                $remaining = AuthHelper::getLockoutRemaining($pdo, $pwChangeIp);
+                http_response_code(429);
+                echo json_encode([
+                    'success' => false,
+                    'error' => "För många misslyckade lösenordsförsök. Försök igen om {$remaining} minuter."
+                ], JSON_UNESCAPED_UNICODE);
+                return;
+            }
+
             if (!AuthHelper::verifyPassword($currentPassword, $user['password'])) {
+                AuthHelper::recordAttempt($pdo, $pwChangeIp, $user['username'], false);
                 http_response_code(400);
                 echo json_encode(['success' => false, 'error' => 'Nuvarande lösenord är felaktigt.'], JSON_UNESCAPED_UNICODE);
                 return;
             }
+            // Rensa misslyckade försök vid rätt lösenord
+            AuthHelper::clearAttempts($pdo, $pwChangeIp);
             $fields[] = 'password = ?';
             $params[] = AuthHelper::hashPassword($newPassword);
         }

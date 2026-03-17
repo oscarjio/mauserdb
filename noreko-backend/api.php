@@ -57,6 +57,16 @@ header('X-Frame-Options: SAMEORIGIN');
 header('X-XSS-Protection: 1; mode=block');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+header('Cache-Control: no-store, no-cache, must-revalidate, private');
+header('Pragma: no-cache');
+// Dölj PHP-version från response headers
+header_remove('X-Powered-By');
+// HSTS — tvinga HTTPS i 1 år (aktiveras bara om anslutningen redan är HTTPS)
+$isHttpsForHsts = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                  (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+if ($isHttpsForHsts) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 
 // Konfigurera session-cookie-parametrar (måste göras innan session_start() anropas av respektive controller).
 // Anropar INTE session_start() här — det gör varje controller som behöver sessioner själv.
@@ -91,7 +101,8 @@ try {
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
     ]);
-} catch (PDOException) {
+} catch (PDOException $e) {
+    error_log('api.php: Databasanslutning misslyckades: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => 'Databasanslutning misslyckades'], JSON_UNESCAPED_UNICODE);
     exit;

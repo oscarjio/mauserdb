@@ -1,3 +1,6 @@
-# Sätt PHP session-livslängd till 24h så sessioner inte dör efter 24 min (PHP-standard)
-php_value session.gc_maxlifetime 86400
-php_value session.cookie_lifetime 86400
+# Sätt PHP session-livslängd till 8h — matchar AuthHelper::SESSION_TIMEOUT och api.php
+php_value session.gc_maxlifetime 28800
+php_value session.cookie_lifetime 28800
+
+# Dölj PHP-version från HTTP-headers (skydd mot version fingerprinting)
+php_flag expose_php Off

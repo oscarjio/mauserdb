@@ -142,6 +142,7 @@ class FeatureFlagController {
         $updated = 0;
 
         try {
+            $this->pdo->beginTransaction();
             $stmt = $this->pdo->prepare("UPDATE feature_flags SET min_role = ? WHERE feature_key = ?");
 
             foreach ($data['updates'] as $item) {
@@ -153,8 +154,12 @@ class FeatureFlagController {
                 }
             }
 
+            $this->pdo->commit();
             echo json_encode(['success' => true, 'message' => "$updated feature flags uppdaterade", 'count' => $updated], JSON_UNESCAPED_UNICODE);
         } catch (\PDOException $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             error_log('FeatureFlagController::bulkUpdate: ' . $e->getMessage());
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Databasfel'], JSON_UNESCAPED_UNICODE);

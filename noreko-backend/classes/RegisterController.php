@@ -12,6 +12,20 @@ class RegisterController {
             return;
         }
         
+        // Rate limiting — förhindra mass-registreringar från samma IP
+        AuthHelper::ensureRateLimitTable($pdo);
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $regIp = 'reg:' . $ip; // Prefix för att skilja från login-attempts
+        if (AuthHelper::isRateLimited($pdo, $regIp)) {
+            $remaining = AuthHelper::getLockoutRemaining($pdo, $regIp);
+            http_response_code(429);
+            echo json_encode([
+                'success' => false,
+                'error' => "För många registreringsförsök. Försök igen om {$remaining} minuter."
+            ], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+
         $data = json_decode(file_get_contents('php://input'), true);
         if (!is_array($data)) {
             http_response_code(400);
@@ -76,6 +90,7 @@ class RegisterController {
         }
 
         if (!empty($errors)) {
+            AuthHelper::recordAttempt($pdo, $regIp, $username ?: 'unknown', false);
             http_response_code(400);
             echo json_encode(['success' => false, 'error' => implode('. ', $errors)], JSON_UNESCAPED_UNICODE);
             return;
