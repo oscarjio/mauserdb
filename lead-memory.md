@@ -1,6 +1,6 @@
 # Lead Agent Memory — MauserDB
 
-*Senast uppdaterad: 2026-03-17 (session #146)*
+*Senast uppdaterad: 2026-03-17 (session #148)*
 *Fullstandig historik: lead-memory-archive.md*
 
 ---
@@ -57,32 +57,7 @@ IBC-tvatteri (1000L plasttankar i metallbur). Systemet ger VD realtidsoerblick +
 
 Bug Hunts #1-#50 genomforda. Kodbasen har genomgatt systematisk granskning.
 Session #57-#104: Feature-utveckling. Se lead-memory-archive.md.
-Session #105-#106: BUGGJAKT — 12 backend + 4 frontend + 12 endpoints testade.
-Session #107: BUGGJAKT — 122 fixar + 270 trackBy.
-Session #108: BUGGJAKT — 13 buggar (10 backend + 3 frontend) + 7 endpoints OK.
-Session #109: BUGGJAKT — 33 buggar (11 backend + 22 UTC-datum).
-Session #110: BUGGJAKT — 15 buggar (13 backend + 2 imports). Alla controllers/ granskade.
-Session #111: BUGGJAKT — 30 buggar (21 workers + 9 lead).
-Session #112: BUGGJAKT — 22 buggar + 10 unused vars.
-Session #113: BUGGJAKT — 11 buggar (3 aggregering + 8 null-safety/setTimeout/unicode).
-Session #114: BUGGJAKT — 26 fixar. Worker A: 1 SQL-injection + 83 JSON_UNESCAPED_UNICODE. Worker B: 25 (5 catch-block + 18 setTimeout + 2 maskin).
-Session #115: BUGGJAKT — 40 buggar (20 Worker A + 20 Worker B). 17 controllers granskade.
-Session #116: BUGGJAKT — 58 buggar (34 Worker A + 24 Worker B). 20 controllers granskade. 12 kritiska operators.id/number-fixar.
-Session #117: BUGGJAKT — 51 buggar (25 Worker A + 26 Worker B). 11 PHP-controllers + 15 TS-services granskade.
-Session #118: BUGGJAKT — 23 buggar (5 Worker A + 18 Worker B). 10 PHP-controllers + 15 TS-services granskade.
-Session #119: BUGGJAKT — 46 buggar (33 Worker A + 13 Worker B). 5 rebotling-controllers + 11 TS-services granskade.
-Session #120: BUGGJAKT — 41 buggar (4 Worker A + 37 Worker B). 16 PHP-controllers + 21 TS-services granskade.
-Session #121: BUGGJAKT — 41 buggar (12 Worker A + 29 Worker B). 13 PHP-controllers + 15 TS-services + 14 komponenter granskade.
-Session #122: BUGGJAKT — 28 buggar (13 Worker A + 15 Worker B). 13 PHP-controllers + api.php + PHP helpers + endpoint-testning. Kritisk 500-fix i RebotlingTrendanalys.
-Session #123: BUGGJAKT — 27 buggar (20 Worker A + 7 Worker B). 36 PHP-controllers + 4 Angular utils/guards/interceptors granskade. Inga pipes i projektet.
-Session #124: BUGGJAKT — 52 buggar (34 Worker A + 18 Worker B). 17 PHP-controllers granskade (batch 5 klar) + 9 Angular services re-audit.
-Session #125: BUGGJAKT — 16 buggar (10 Worker A + 6 Worker B). SQL-parametervalidering OK + error-logging + TS-logik + dead code.
-Session #126: BUGGJAKT — 9 buggar (2 Worker A 500-fixar + 7 Worker B polling/guards). Kritiska 500-fel fixade (shift filter, time_of_day, saknade tabeller).
-Session #127: BUGGJAKT — 16 buggar (8 Worker A + 8 Worker B). intval()-bugg (kritisk), XSS-risk, DB-lakcor + setTimeout-leaks, timezone-parsing.
-Session #128: BUGGJAKT — 27 buggar (12 Worker A + 15 Worker B). Type coercion, saknad auth, input validation + Safari datetime-parsing, timezone-fix.
-Session #129: BUGGJAKT — 23 buggar (20 Worker A + 3 Worker B). PDOException-lackage, 18x loose comparisons, 3x division-by-zero. Frontend audit: 109 charts OK, alla subscriptions OK.
-Session #130: BUGGJAKT — 48 buggar (27 Worker A + 21 Worker B). SQL edge cases, JSON return consistency, error_log audit + template null-safety (.toFixed). Lazy loading OK, service URLs OK.
-Session #131: BUGGJAKT — 52 buggar (22 Worker A + 30 Worker B). Boundary validation, date range swap, SQL param whitelists + form validation, error state UI i 6 komponenter.
+Session #105-#131: BUGGJAKT — ~700 buggar totalt. SQL injection, UTC-datum, trackBy, operators.id/number, 500-fel, type coercion, boundary validation, form validation. Se lead-memory-archive.md.
 Session #132: BUGGJAKT — 33 buggar (11 Worker A + 22 Worker B). HTTP method enforcement, unused vars, CORS/headers + accessibility, template null-safety. Memory profiling: inga lakor.
 Session #133: BUGGJAKT — 29 buggar (22 Worker A + 7 Worker B). Error response consistency (19 controllers), HTTP 405 + route guards, error interceptor, dark theme.
 Session #134: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL prepared statements OK, 1 XSS-fix, unused vars + form validation, unused declarations, subscription fixes.
@@ -98,26 +73,30 @@ Session #143: BUGGJAKT — 24 buggar (15 Worker A + 9 Worker B). N+1 query-optim
 Session #144: BUGGJAKT — 33 buggar (19 Worker A + 14 Worker B). Race conditions (6 SELECT-then-UPDATE), input boundary (11 max-langd/limits), template null-safety (12 !. -> ?.), router guard (andon authGuard).
 Session #145: BUGGJAKT — 70 buggar (18 Worker A + 52 Worker B). Error handling consistency (14 controllers), session security (4 fixes), HTTP error display (52 subscribe-anrop i 10 komponenter). Memory profiling OK.
 Session #146: BUGGJAKT — 19 buggar (5 Worker A + 14 Worker B). SQL injection fixes (BonusController, RebotlingAnalyticsController), dead code, LIMIT cast + 14 getter->cached property (change detection) i 9 komponenter.
+Session #147: BUGGJAKT — 10 buggar (Worker A). Rate limiting (register, password change), security headers (Cache-Control, HSTS, X-Powered-By), session lifetime sync, transaction + error fixes.
+Session #148: BUGGJAKT — 21 buggar (14 Worker A + 7 Worker B). Transaction consistency (4 controllers), json_decode null-safety (10 fix) + unused FormsModule imports (5), form validation (2).
 
 ## OPPEN BACKLOG (prioritetsordning)
 
 BUGGJAKT-FOKUS — inga nya features tills vidare.
 
 ### Kvarstaende buggjakt-items:
-- [ ] Angular change detection audit — OnPush-strategi, unnecessary re-renders
-- [ ] PHP SQL injection re-audit — prepared statements, dynamiska kolumnnamn, ORDER BY
+- [ ] PHP transaction consistency — multi-statement operations utan transaction
+- [ ] PHP file I/O error handling
+- [ ] Angular unused imports/declarations
+- [ ] Angular form validation audit
 - [ ] Angular lazy loading performance — bundle-storlekar, onodiga imports
 
 ## BESLUTSDAGBOK (senaste 3)
 
-### 2026-03-17 — Session #144 (klar)
-Worker A: 19 buggar — 8 race conditions (transaction+FOR UPDATE), 11 input boundary. Worker B: 14 buggar — 12 null-safety, 1 router guard. Totalt: 33.
-
-### 2026-03-17 — Session #145 (klar)
-Worker A: 18 buggar — 14 error handling consistency, 4 session security.
-Worker B: 52 buggar — 52 HTTP error display (subscribe utan error-callback i 10 komponenter). Memory profiling OK.
-Totalt: 70 buggar fixade.
-
 ### 2026-03-17 — Session #146 (klar)
-Worker A: 5 buggar — 2 SQL injection (BonusController, RebotlingAnalyticsController), 2 dead code, 1 LIMIT cast. 33 controllers + 90 classes auditerade.
-Worker B: 14 buggar — 14 getter->cached property i 9 komponenter (change detection performance). Alla 42 komponenter OK.
+Worker A: 5 buggar — 2 SQL injection (BonusController, RebotlingAnalyticsController), 2 dead code, 1 LIMIT cast.
+Worker B: 14 buggar — 14 getter->cached property i 9 komponenter (change detection performance).
+
+### 2026-03-17 — Session #147 (klar)
+Worker A: 10 buggar — rate limiting (register, password change), security headers (Cache-Control, HSTS, X-Powered-By), session lifetime sync, transaction + error fixes.
+Worker B: ej kord.
+
+### 2026-03-17 — Session #148 (klar)
+Worker A: 14 buggar — 4 transaction consistency (KvalitetscertifikatController, RebotlingAdminController x3, OperatorController), 10 json_decode null-safety.
+Worker B: 7 buggar — 5 unused FormsModule imports, 2 form validation (avvikelselarm min, batch-sparning max).

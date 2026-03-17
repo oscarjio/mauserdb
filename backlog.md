@@ -7,13 +7,12 @@
 
 Agaren har bett oss fokusera pa att hitta och fixa buggar. Inga nya features.
 
-- [ ] **PHP SQL injection re-audit** — ORDER BY utan whitelist, dynamiska kolumnnamn, LIMIT utan intval (Worker A #146)
-- [ ] **PHP deprecated patterns** — nullable params utan ?, strftime(), loose comparisons (Worker A #146)
-- [ ] **Angular lazy loading audit** — onodiga imports, SharedModule-bloat, bundle-storlekar (Worker B #146)
-- [ ] **Angular change detection audit** — OnPush-strategi, tunga getter-anrop i templates (Worker B #146)
-- [ ] **Angular unused imports/declarations** — oanvanda module-imports, deklarerade men ej anvanda komponenter
-- [ ] **PHP rate limiting** — granska login/API-endpoints for brute-force-skydd
-- [ ] **Angular accessibility audit** — aria-attribut, keyboard navigation, fokushantering
+- [ ] **PHP file I/O error handling** — file_get_contents/file_put_contents utan felkontroll
+- [ ] **Angular lazy loading audit** — onodiga imports, SharedModule-bloat, bundle-storlekar
+- [ ] **PHP response consistency audit** — granska att alla controllers returnerar konsekvent JSON-format (success/error/data)
+- [ ] **Angular memory leak audit** — Chart.js destroy(), setInterval utan clearInterval, event listeners
+- [ ] **PHP date/time edge cases** — midnight-boundary, DST-overganger, tomma datumstrangar
+- [ ] **Angular HTTP retry/timeout audit** — saknade timeout(), retry-logik, offline-hantering
 
 ## Parkerade features (ta inte dessa nu)
 
