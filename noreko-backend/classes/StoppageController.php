@@ -473,11 +473,11 @@ class StoppageController {
                 SELECT s.reason_id, r.name AS orsak, r.category,
                     COUNT(*) AS antal_7d,
                     ROUND(AVG(s.duration_minutes), 1) AS snitt_tid,
-                    MIN(s.created_at) AS forsta,
-                    MAX(s.created_at) AS senaste
+                    MIN(s.start_time) AS forsta,
+                    MAX(s.start_time) AS senaste
                 FROM stoppage_log s
                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
-                WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                WHERE s.start_time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                   AND s.line = ?
                 GROUP BY s.reason_id, r.name, r.category
                 HAVING COUNT(*) >= 3
@@ -496,13 +496,13 @@ class StoppageController {
 
             // 2. Fördelning av stopp per timme (0-23)
             $stmtHourly = $this->pdo->prepare("
-                SELECT HOUR(created_at) AS timme,
+                SELECT HOUR(start_time) AS timme,
                     COUNT(*) AS antal,
                     ROUND(AVG(duration_minutes), 1) AS snitt_min
                 FROM stoppage_log
-                WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                WHERE start_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
                   AND line = ?
-                GROUP BY HOUR(created_at)
+                GROUP BY HOUR(start_time)
                 ORDER BY timme
             ");
             $stmtHourly->execute([$days, $line]);
@@ -533,9 +533,9 @@ class StoppageController {
                     COALESCE(SUM(s.duration_minutes), 0) AS total_min
                 FROM stoppage_log s
                 LEFT JOIN stoppage_reasons r ON s.reason_id = r.id
-                WHERE s.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+                WHERE s.start_time >= DATE_SUB(NOW(), INTERVAL ? DAY)
                   AND s.line = ?
-                GROUP BY r.id, COALESCE(r.name, 'Okänd')
+                GROUP BY r.id, COALESCE(r.name, 'Okänd'), r.category
                 ORDER BY total_min DESC
                 LIMIT 5
             ");

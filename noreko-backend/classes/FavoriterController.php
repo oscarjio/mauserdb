@@ -71,7 +71,7 @@ class FavoriterController {
         }
 
         $userId = (int) $_SESSION['user_id'];
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
 
         $route = trim($body['route'] ?? '');
         $label = trim($body['label'] ?? '');
@@ -146,7 +146,7 @@ class FavoriterController {
         }
 
         $userId = (int) $_SESSION['user_id'];
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $id = (int) ($body['id'] ?? 0);
 
         if ($id <= 0) {
@@ -182,7 +182,7 @@ class FavoriterController {
         }
 
         $userId = (int) $_SESSION['user_id'];
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $ids = $body['ids'] ?? [];
 
         if (!is_array($ids) || empty($ids)) {

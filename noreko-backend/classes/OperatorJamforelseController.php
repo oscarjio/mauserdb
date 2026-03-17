@@ -203,7 +203,7 @@ class OperatorJamforelseController {
                     $stmtStopp = $this->pdo->prepare(
                         "SELECT COUNT(*) AS antal, COALESCE(SUM(duration_minutes), 0) AS total_min
                          FROM stoppage_log
-                         WHERE operator_id = ? AND datum >= ?"
+                         WHERE user_id = ? AND start_time >= ?"
                     );
                     $stmtStopp->execute([$opId, $cutoff]);
                     $stoppRow      = $stmtStopp->fetch(\PDO::FETCH_ASSOC);

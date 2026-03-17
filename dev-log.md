@@ -1,3 +1,36 @@
+## 2026-03-17 Session #139 Worker A — PHP backend: 13 buggar fixade (SQL-kolumner, timestamp, GROUP BY, null-safety, dead code)
+
+### Uppgift 1: PHP file operation safety audit
+Granskade alla PHP-filer i noreko-backend/ som anvander file_get_contents, fopen, fwrite etc. Majoriteten anvander `php://input` (saker) eller `__DIR__`-baserade sokvagar (saker). VpnController validerar socket-input med regex. update-weather.php har bra felhantering. Inga path traversal-sarbarheter hittades.
+
+### Uppgift 2: PHP unused variable cleanup
+Sokte igenom alla klasser for $ignored, saveLiveRankingSettings, $opRows. $ignored anvands korrekt i catch-block (medveten suppress). $opRows anvands aktivt overallt.
+
+**BUGG 1 FIXAD (dead code):** RebotlingController.php — Privat metod `saveLiveRankingSettings()` (rad 2200-2226) var aldrig anropad. Rad 271 anropar `$this->adminController->saveLiveRankingSettings()` istallet. Borttagen.
+
+### Uppgift 3: PHP controller deep review (12 buggar fixade)
+
+**BUGG 2 FIXAD (SQL-kolumn):** OperatorJamforelseController.php rad 205-206 — SQL-fraga mot stoppage_log anvande `operator_id` och `datum` som inte existerar. Andrat till `user_id` och `start_time` (matchar faktisk tabell-schema).
+
+**BUGG 3 FIXAD (timestamp):** StoppageController.php getPatternAnalysis() — Repeat stoppages-fraga anvande `s.created_at` istallet for `s.start_time` i MIN/MAX/WHERE. Fixat.
+
+**BUGG 4 FIXAD (timestamp):** StoppageController.php getPatternAnalysis() — Hourly distribution-fraga anvande `HOUR(created_at)` istallet for `HOUR(start_time)`. Fixat.
+
+**BUGG 5 FIXAD (timestamp):** StoppageController.php getPatternAnalysis() — Costly reasons-fraga anvande `s.created_at` istallet for `s.start_time`. Fixat.
+
+**BUGG 6 FIXAD (GROUP BY):** StoppageController.php getPatternAnalysis() — `r.category` var i SELECT men saknades i GROUP BY (kraschar i strict SQL mode). Lagt till.
+
+**BUGG 7-8 FIXAD (null-safety):** AvvikelselarmController.php rad 363, 453 — json_decode utan `?? []`. Fixat.
+
+**BUGG 9-10 FIXAD (null-safety):** CertificationController.php rad 284, 346 — json_decode utan `?? []`. Fixat.
+
+**BUGG 11-13 FIXAD (null-safety):** FavoriterController.php rad 74, 149, 185 — json_decode utan `?? []`. Fixat.
+
+**BUGG 14 FIXAD (null-safety):** RebotlingProductController.php rad 83 — json_decode utan `?? []`. Fixat.
+
+### Granskade controllers utan buggar
+LoginController, RegisterController, AdminController, ProfileController, OperatorController, FeedbackController, FeedbackAnalysController, NewsController, DashboardLayoutController, FeatureFlagController, RuntimeController, VpnController, LineSkiftrapportController, GamificationController, PrediktivtUnderhallController, MalhistorikController, SkiftrapportExportController, AlertsController, ProduktionsmalController, ProduktionsTaktController, BonusController, BonusAdminController, LeveransplaneringController, StopporsakRegistreringController, SkiftrapportController, RebotlingAdminController, RebotlingAnalyticsController, TvattlinjeController, KlassificeringslinjeController, SaglinjeController, UnderhallsloggController.
+
 ## 2026-03-17 Session #139 Worker B — Angular frontend: 16 buggar fixade (interceptor, change detection, HttpClientModule)
 
 ### Uppgift 1: Angular HTTP interceptor audit

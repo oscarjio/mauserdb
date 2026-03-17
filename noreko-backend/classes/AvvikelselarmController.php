@@ -360,7 +360,7 @@ class AvvikelselarmController {
             return;
         }
 
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $larmId    = (int)($body['larm_id'] ?? 0);
         $kommentar = trim($body['kommentar'] ?? '');
         $kvitteradAv = trim($body['kvitterad_av'] ?? '');
@@ -450,7 +450,7 @@ class AvvikelselarmController {
             return;
         }
 
-        $body = json_decode(file_get_contents('php://input'), true);
+        $body = json_decode(file_get_contents('php://input'), true) ?? [];
         $regelId   = (int)($body['regel_id'] ?? 0);
         $gransVarde = isset($body['grans_varde']) ? (float)$body['grans_varde'] : null;
         $aktiv      = isset($body['aktiv']) ? (bool)$body['aktiv'] : null;

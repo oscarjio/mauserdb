@@ -281,7 +281,7 @@ class CertificationController {
     }
 
     private function addCertification() {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
 
         $opNumber    = isset($data['op_number'])     ? intval($data['op_number'])     : null;
         $line        = trim($data['line'] ?? '');
@@ -343,7 +343,7 @@ class CertificationController {
     }
 
     private function revokeCertification() {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = json_decode(file_get_contents('php://input'), true) ?? [];
         $id   = isset($data['id']) ? intval($data['id']) : null;
 
         if (!$id || $id <= 0) {

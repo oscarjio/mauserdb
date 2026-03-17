@@ -2195,37 +2195,6 @@ class RebotlingController {
     }
 
     /**
-     * POST ?action=rebotling&run=save-live-ranking-settings
-     */
-    private function saveLiveRankingSettings(): void {
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        if (($_SESSION['role'] ?? '') !== 'admin') {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'error' => 'Ej behörig'], JSON_UNESCAPED_UNICODE);
-            return;
-        }
-        try {
-            $body = json_decode(file_get_contents('php://input'), true) ?? [];
-            $settings = [
-                'lr_show_quality'  => isset($body['lr_show_quality'])  ? ($body['lr_show_quality']  ? '1' : '0') : '1',
-                'lr_show_progress' => isset($body['lr_show_progress']) ? ($body['lr_show_progress'] ? '1' : '0') : '1',
-                'lr_show_motto'    => isset($body['lr_show_motto'])    ? ($body['lr_show_motto']    ? '1' : '0') : '1',
-                'lr_poll_interval' => strval(max(10, min(120, intval($body['lr_poll_interval'] ?? 30)))),
-                'lr_title'         => substr(strip_tags($body['lr_title'] ?? 'Live Ranking'), 0, 80),
-            ];
-            $stmt = $this->pdo->prepare("INSERT INTO rebotling_settings (`key`,`value`) VALUES (?,?) ON DUPLICATE KEY UPDATE `value`=VALUES(`value`)");
-            foreach ($settings as $k => $v) {
-                $stmt->execute([$k, $v]);
-            }
-            echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
-            error_log('RebotlingController::saveLiveRankingSettings: ' . $e->getMessage());
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Serverfel'], JSON_UNESCAPED_UNICODE);
-        }
-    }
-
-    /**
      * GET ?action=rebotling&run=goal-history
      * Returnerar historik för dagsmål-ändringar
      */
