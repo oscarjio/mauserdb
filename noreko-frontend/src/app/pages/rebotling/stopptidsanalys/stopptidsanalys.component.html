@@ -131,7 +131,7 @@
       </h5>
       <!-- Maskin-checkboxar -->
       <div class="d-flex flex-wrap gap-2" *ngIf="trendData?.series?.length">
-        <span *ngFor="let s of trendData!.series; let i = index; trackBy: trackByIndex"
+        <span *ngFor="let s of trendData?.series ?? []; let i = index; trackBy: trackByIndex"
               class="trend-badge"
               [class.trend-badge-active]="isTrendMaskinSelected(s.maskin_id)"
               [style.border-color]="getMaskinColor(i)"
@@ -174,7 +174,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let m of perMaskinData!.maskiner; let i = index; trackBy: trackByIndex">
+          <tr *ngFor="let m of perMaskinData?.maskiner ?? []; let i = index; trackBy: trackByIndex">
             <td>
               <span class="color-dot" [style.background]="getMaskinColor(i)"></span>
               {{ m.maskin_namn }}
@@ -197,7 +197,7 @@
         <tfoot>
           <tr class="table-secondary">
             <td><strong>Totalt</strong></td>
-            <td class="text-end fw-bold">{{ formatMin(perMaskinData!.total_min) }}</td>
+            <td class="text-end fw-bold">{{ formatMin(perMaskinData?.total_min ?? 0) }}</td>
             <td class="text-end fw-bold">
               {{ getTotalAntalStopp() }}
             </td>
@@ -269,7 +269,7 @@
     </div>
 
     <div class="text-muted small mt-2" *ngIf="detaljData?.total">
-      Visar {{ detaljData!.total }} poster (max 500)
+      Visar {{ detaljData?.total }} poster (max 500)
     </div>
   </div>
 

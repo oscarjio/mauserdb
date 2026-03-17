@@ -569,7 +569,8 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
   // Template-hjälpare
   // ============================================================
 
-  trendPilKlass(kort: TrendKort, inverterad = false): string {
+  trendPilKlass(kort: TrendKort | undefined, inverterad = false): string {
+    if (!kort) return 'fas fa-minus trend-stable';
     const trend = inverterad
       ? (kort.trend === 'up' ? 'down' : kort.trend === 'down' ? 'up' : 'stable')
       : kort.trend;
@@ -584,14 +585,16 @@ export class RebotlingTrendanalysPage implements OnInit, OnDestroy {
     return '';
   }
 
-  slopeFarg(slope: number, inverterad = false): string {
+  slopeFarg(slope: number | undefined, inverterad = false): string {
+    if (slope == null) return '#ecc94b';
     const v = inverterad ? -slope : slope;
     if (v > 0) return '#48bb78';
     if (v < 0) return '#fc8181';
     return '#ecc94b';
   }
 
-  formatSlope(slope: number): string {
+  formatSlope(slope: number | undefined): string {
+    if (slope == null) return '—';
     const sign = slope > 0 ? '+' : '';
     return `${sign}${slope.toFixed(2)}/dag`;
   }

@@ -96,7 +96,7 @@
           <div class="kpi-value" *ngIf="!loadingOverview">
             {{ overview?.basta_dag_antal ?? 0 }} <small class="kpi-unit">IBC</small>
           </div>
-          <div class="kpi-sub" *ngIf="overview?.basta_dag">{{ formatDate(overview!.basta_dag) }}</div>
+          <div class="kpi-sub" *ngIf="overview?.basta_dag">{{ formatDate(overview?.basta_dag ?? '') }}</div>
           <div *ngIf="loadingOverview" class="spinner-border spinner-border-sm text-info"></div>
         </div>
       </div>

@@ -31,12 +31,12 @@
             <span class="big-number">{{ trenderData?.oee?.nuvarande ?? '—' }}</span>
             <span class="unit">%</span>
             <i *ngIf="trenderData?.oee"
-               [class]="trendPilKlass(trenderData!.oee)"
+               [class]="trendPilKlass(trenderData?.oee)"
                class="trend-pil ms-2"></i>
           </div>
           <div class="slope-text" *ngIf="trenderData?.oee"
-               [style.color]="slopeFarg(trenderData!.oee.slope)">
-            {{ formatSlope(trenderData!.oee.slope) }}
+               [style.color]="slopeFarg(trenderData?.oee?.slope)">
+            {{ formatSlope(trenderData?.oee?.slope) }}
           </div>
           <div class="medel-rad mt-2">
             <span class="medel-etikett">7d medel</span>
@@ -69,12 +69,12 @@
             <span class="big-number">{{ trenderData?.produktion?.nuvarande ?? '—' }}</span>
             <span class="unit">IBC</span>
             <i *ngIf="trenderData?.produktion"
-               [class]="trendPilKlass(trenderData!.produktion)"
+               [class]="trendPilKlass(trenderData?.produktion)"
                class="trend-pil ms-2"></i>
           </div>
           <div class="slope-text" *ngIf="trenderData?.produktion"
-               [style.color]="slopeFarg(trenderData!.produktion.slope)">
-            {{ formatSlope(trenderData!.produktion.slope) }}
+               [style.color]="slopeFarg(trenderData?.produktion?.slope)">
+            {{ formatSlope(trenderData?.produktion?.slope) }}
           </div>
           <div class="medel-rad mt-2">
             <span class="medel-etikett">7d medel</span>
@@ -108,12 +108,12 @@
             <span class="unit">%</span>
             <!-- Kassation: uppåtpil är negativt, nedåtpil är positivt -->
             <i *ngIf="trenderData?.kassation"
-               [class]="trendPilKlass(trenderData!.kassation, true)"
+               [class]="trendPilKlass(trenderData?.kassation, true)"
                class="trend-pil ms-2"></i>
           </div>
           <div class="slope-text" *ngIf="trenderData?.kassation"
-               [style.color]="slopeFarg(trenderData!.kassation.slope, true)">
-            {{ formatSlope(trenderData!.kassation.slope) }}
+               [style.color]="slopeFarg(trenderData?.kassation?.slope, true)">
+            {{ formatSlope(trenderData?.kassation?.slope) }}
           </div>
           <div class="medel-rad mt-2">
             <span class="medel-etikett">7d medel</span>

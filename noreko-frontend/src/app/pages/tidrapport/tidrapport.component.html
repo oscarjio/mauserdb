@@ -86,7 +86,7 @@
           <span class="loading-spinner"></span>
         </div>
         <div class="kpi-unit" *ngIf="sammanfattning?.mest_aktiv_timmar">
-          {{ sammanfattning!.mest_aktiv_timmar }} timmar
+          {{ sammanfattning?.mest_aktiv_timmar }} timmar
         </div>
       </div>
     </div>
@@ -126,7 +126,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let op of operatorData!.operatorer; trackBy: trackByIndex">
+                <tr *ngFor="let op of operatorData?.operatorer ?? []; trackBy: trackByIndex">
                   <td>
                     <i class="fas fa-user-circle me-1" style="color:#63b3ed"></i>
                     {{ op.namn }}
@@ -229,7 +229,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let d of detaljerData!.detaljer; trackBy: trackByIndex">
+                <tr *ngFor="let d of detaljerData?.detaljer ?? []; trackBy: trackByIndex">
                   <td>{{ formatDatum(d.datum) }}</td>
                   <td>
                     <i class="fas fa-user me-1" style="color:#63b3ed; font-size:0.75rem"></i>

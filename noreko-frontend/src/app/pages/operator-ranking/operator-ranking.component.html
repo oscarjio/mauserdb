@@ -19,7 +19,7 @@
   <div class="podium-section mb-4" *ngIf="!loadingTopplista && topplistaData?.topplista?.length">
     <div class="row justify-content-center g-3">
       <!-- Silver - plats 2 -->
-      <div class="col-12 col-md-4 col-lg-3 order-md-1 order-2" *ngIf="topplistaData!.topplista.length >= 2">
+      <div class="col-12 col-md-4 col-lg-3 order-md-1 order-2" *ngIf="(topplistaData?.topplista?.length ?? 0) >= 2">
         <div class="podium-card podium-silver">
           <div class="podium-medal">
             <i class="fas fa-medal" style="color:#C0C0C0; font-size:1.5rem"></i>
@@ -35,7 +35,7 @@
         </div>
       </div>
       <!-- Guld - plats 1 -->
-      <div class="col-12 col-md-4 col-lg-3 order-md-2 order-1" *ngIf="topplistaData!.topplista.length >= 1">
+      <div class="col-12 col-md-4 col-lg-3 order-md-2 order-1" *ngIf="(topplistaData?.topplista?.length ?? 0) >= 1">
         <div class="podium-card podium-gold">
           <div class="podium-medal">
             <i class="fas fa-crown" style="color:#FFD700; font-size:2rem"></i>
@@ -51,7 +51,7 @@
         </div>
       </div>
       <!-- Brons - plats 3 -->
-      <div class="col-12 col-md-4 col-lg-3 order-md-3 order-3" *ngIf="topplistaData!.topplista.length >= 3">
+      <div class="col-12 col-md-4 col-lg-3 order-md-3 order-3" *ngIf="(topplistaData?.topplista?.length ?? 0) >= 3">
         <div class="podium-card podium-bronze">
           <div class="podium-medal">
             <i class="fas fa-medal" style="color:#CD7F32; font-size:1.5rem"></i>
@@ -133,24 +133,24 @@
         </div>
         <div class="d-flex align-items-center gap-4">
           <div class="mvp-avatar">
-            {{ getInitials(mvpData!.mvp!.operator_namn) }}
+            {{ getInitials(mvpData?.mvp?.operator_namn ?? '') }}
           </div>
           <div class="flex-grow-1">
-            <div class="mvp-name">{{ mvpData!.mvp!.operator_namn }}</div>
+            <div class="mvp-name">{{ mvpData?.mvp?.operator_namn }}</div>
             <div class="d-flex gap-4 flex-wrap mt-2">
               <div class="mvp-stat">
-                <span class="mvp-stat-value">{{ mvpData!.mvp!.total_poang }}</span>
+                <span class="mvp-stat-value">{{ mvpData?.mvp?.total_poang }}</span>
                 <span class="mvp-stat-label">poang</span>
               </div>
               <div class="mvp-stat">
-                <span class="mvp-stat-value">{{ mvpData!.mvp!.total_ibc }}</span>
+                <span class="mvp-stat-value">{{ mvpData?.mvp?.total_ibc }}</span>
                 <span class="mvp-stat-label">IBC</span>
               </div>
               <div class="mvp-stat">
-                <span class="mvp-stat-value">{{ mvpData!.mvp!.ok_pct }}%</span>
+                <span class="mvp-stat-value">{{ mvpData?.mvp?.ok_pct }}%</span>
                 <span class="mvp-stat-label">kvalitet</span>
               </div>
-              <div class="mvp-stat" *ngIf="mvpData!.mvp!.streak > 0">
+              <div class="mvp-stat" *ngIf="(mvpData?.mvp?.streak ?? 0) > 0">
                 <span class="mvp-stat-value">{{ mvpData!.mvp!.streak }}d</span>
                 <span class="mvp-stat-label">streak</span>
               </div>
@@ -187,7 +187,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let op of rankingData!.ranking; trackBy: trackByIndex"
+              <tr *ngFor="let op of rankingData?.ranking ?? []; trackBy: trackByIndex"
                   [class.row-gold]="op.rank === 1"
                   [class.row-silver]="op.rank === 2"
                   [class.row-bronze]="op.rank === 3">

@@ -37,7 +37,7 @@
     <div class="podium-section mb-4" *ngIf="!loadingLeaderboard && leaderboardData?.leaderboard?.length">
       <div class="row justify-content-center g-3">
         <!-- Silver -->
-        <div class="col-12 col-md-4 col-lg-3 order-md-1 order-2" *ngIf="leaderboardData!.leaderboard.length >= 2">
+        <div class="col-12 col-md-4 col-lg-3 order-md-1 order-2" *ngIf="(leaderboardData?.leaderboard?.length ?? 0) >= 2">
           <div class="podium-card podium-silver">
             <div class="podium-medal"><i class="fas fa-medal" style="color:#C0C0C0; font-size:1.5rem"></i></div>
             <div class="podium-rank">#2</div>
@@ -51,7 +51,7 @@
           </div>
         </div>
         <!-- Guld -->
-        <div class="col-12 col-md-4 col-lg-3 order-md-2 order-1" *ngIf="leaderboardData!.leaderboard.length >= 1">
+        <div class="col-12 col-md-4 col-lg-3 order-md-2 order-1" *ngIf="(leaderboardData?.leaderboard?.length ?? 0) >= 1">
           <div class="podium-card podium-gold">
             <div class="podium-medal"><i class="fas fa-crown" style="color:#FFD700; font-size:2rem"></i></div>
             <div class="podium-rank">#1</div>
@@ -65,7 +65,7 @@
           </div>
         </div>
         <!-- Brons -->
-        <div class="col-12 col-md-4 col-lg-3 order-md-3 order-3" *ngIf="leaderboardData!.leaderboard.length >= 3">
+        <div class="col-12 col-md-4 col-lg-3 order-md-3 order-3" *ngIf="(leaderboardData?.leaderboard?.length ?? 0) >= 3">
           <div class="podium-card podium-bronze">
             <div class="podium-medal"><i class="fas fa-medal" style="color:#CD7F32; font-size:1.5rem"></i></div>
             <div class="podium-rank">#3</div>
@@ -99,7 +99,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let op of leaderboardData!.leaderboard; trackBy: trackByIndex"
+            <tr *ngFor="let op of leaderboardData?.leaderboard ?? []; trackBy: trackByIndex"
                 [class.row-gold]="op.rank === 1"
                 [class.row-silver]="op.rank === 2"
                 [class.row-bronze]="op.rank === 3">

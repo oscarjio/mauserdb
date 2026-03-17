@@ -1,3 +1,38 @@
+## 2026-03-17 Session #144 Worker B — 14 buggar fixade (null-safety, router guard, template safety)
+
+### Uppgift 1: Angular template null-safety audit — 12 fix
+
+Granskade alla 38 .component.html-filer i noreko-frontend/src/app/ for saknade ?. (optional chaining), osaker *ngIf-guards, och potentiellt farliga !. (non-null assertions) i *ngFor-loopar.
+
+1. gamification.component.html — 3 podium-*ngIf anvande `leaderboardData!.leaderboard.length` utan null-guard. Andrade till `(leaderboardData?.leaderboard?.length ?? 0) >= N` for saker null-hantering i *ngIf. Bodys anvander !. (safe med compile-time assertion).
+2. gamification.component.html — *ngFor iterade over `leaderboardData!.leaderboard` — andrade till `leaderboardData?.leaderboard ?? []` for att undvika runtime-krasch om data ar null.
+3. operator-ranking.component.html — 3 podium-*ngIf anvande `topplistaData!.topplista.length` utan null-guard. Andrade till `(topplistaData?.topplista?.length ?? 0) >= N`.
+4. operator-ranking.component.html — MVP-sektionen anvande `mvpData!.mvp!.` direkt — andrade till `mvpData?.mvp?.` for interpolation, `(mvpData?.mvp?.streak ?? 0) > 0` for *ngIf.
+5. operator-ranking.component.html — *ngFor iterade over `rankingData!.ranking` — andrade till `rankingData?.ranking ?? []`.
+6. tidrapport.component.html — `sammanfattning!.mest_aktiv_timmar` — andrade till `sammanfattning?.mest_aktiv_timmar`.
+7. tidrapport.component.html — *ngFor over `operatorData!.operatorer` och `detaljerData!.detaljer` — andrade till `?.` + `?? []`.
+8. oee-trendanalys.component.html — *ngFor over `stationerData!.stationer`, `flaskhalserData!.flaskhalsar`, `jamforelseData!.stationer` — andrade till `?.` + `?? []`.
+9. stopporsaker.component.html — *ngFor over `orsakerData!.orsaker` och `detaljerData!.detaljer` — andrade till `?.` + `?? []`.
+10. maskin-oee.component.html — *ngFor over `perMaskinData!.maskiner`, `trendData!.series` — andrade till `?.` + `?? []`. `detaljData!.total` — andrade till `detaljData?.total`.
+11. kassationskvot-alarm.component.html — `trendData!.troskel!.varning_procent/alarm_procent` och `aktuellData!.troskel!.` — andrade till `?.` for saker property-access.
+12. stopptidsanalys.component.html — *ngFor over `trendData!.series`, `perMaskinData!.maskiner` — andrade till `?.` + `?? []`. `perMaskinData!.total_min` — andrade till `perMaskinData?.total_min ?? 0`. `detaljData!.total` — andrade till `detaljData?.total`.
+
+Dessutom fixade rebotling-trendanalys: andrade `trenderData!.oee/produktion/kassation` till `trenderData?.oee/produktion/kassation` och uppdaterade trendPilKlass/slopeFarg/formatSlope-metoderna i .ts for att acceptera undefined-parametrar.
+
+### Uppgift 2: Angular change detection audit — 0 andring (medvetet avstaende)
+
+Granskade alla 42 .component.ts-filer. Ingen av dem anvander ChangeDetectionStrategy.OnPush. Att lagga till OnPush kraver ChangeDetectorRef.markForCheck() i varje subscribe-callback — en stor refactor som skulle kunna bryta UI-uppdateringar om den gors felaktigt. Inget *ngFor saknar trackBy. Inga inline object-literals i [style]-bindings hittades.
+
+### Uppgift 3: Angular router guard audit — 1 fix
+
+13. app.routes.ts — `rebotling/andon` saknade canActivate-guard. Lade till `canActivate: [authGuard]` eftersom Andon-sidan visar operatorsspecifik data och inte ar en publik live-vy.
+
+Alla ovriga routes har korrekta guards: admin-routes anvander adminGuard, autentiserade routes anvander authGuard, publika routes (live-vyer, skiftrapporter, statistik, login, register, about, contact) saknar guard korrekt.
+
+### Uppgift 1 extra: rebotling-trendanalys.component.ts — 1 fix
+
+14. rebotling-trendanalys.component.ts — Metoderna trendPilKlass, slopeFarg, formatSlope accepterade inte null/undefined men anropades fran template med potentiellt undefined varden efter optional chaining. Uppdaterade signaturerna till `TrendKort | undefined` och `number | undefined` med fallback-hantering.
+
 ## 2026-03-17 Session #144 Worker A — 19 buggar fixade (race conditions, input boundary)
 
 ### Uppgift 1: PHP race condition audit — 8 fix

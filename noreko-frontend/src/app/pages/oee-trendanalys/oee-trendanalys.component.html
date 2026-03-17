@@ -136,7 +136,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let s of stationerData!.stationer; trackBy: trackByIndex">
+              <tr *ngFor="let s of stationerData?.stationer ?? []; trackBy: trackByIndex">
                 <td>
                   <span class="ranking-badge"
                         [class.ranking-1]="s.ranking === 1"
@@ -196,7 +196,7 @@
           <i class="fas fa-exclamation-triangle me-1"></i>Kunde inte ladda flaskhalsar.
         </div>
         <div *ngIf="!loadingFlaskhalsar && !errorFlaskhalsar && flaskhalserData?.flaskhalsar?.length">
-          <div *ngFor="let f of flaskhalserData!.flaskhalsar; let i = index; trackBy: trackByIndex" class="flaskhals-card">
+          <div *ngFor="let f of flaskhalserData?.flaskhalsar ?? []; let i = index; trackBy: trackByIndex" class="flaskhals-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
                 <strong>{{ f.station_namn }}</strong>
@@ -260,7 +260,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let j of jamforelseData!.stationer; trackBy: trackByIndex">
+              <tr *ngFor="let j of jamforelseData?.stationer ?? []; trackBy: trackByIndex">
                 <td>{{ j.station_namn }}</td>
                 <td class="text-center"><strong>{{ j.period1_oee }}%</strong></td>
                 <td class="text-center">{{ j.period2_oee }}%</td>
