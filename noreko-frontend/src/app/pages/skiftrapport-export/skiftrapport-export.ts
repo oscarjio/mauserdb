@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -23,7 +22,7 @@ import pdfFonts from 'pdfmake/build/vfs_fonts';
   selector: 'app-skiftrapport-export',
   templateUrl: './skiftrapport-export.html',
   styleUrls: ['./skiftrapport-export.css'],
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
 })
 export class SkiftrapportExportComponent implements OnInit, OnDestroy {
   // Läge: 'dag' eller 'vecka'

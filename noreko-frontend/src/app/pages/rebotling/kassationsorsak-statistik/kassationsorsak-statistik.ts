@@ -54,6 +54,10 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
   drilldownData: DrilldownData | null = null;
   drilldownOrsakNamn = '';
 
+  // Cached computed properties
+  cachedTrendText = '';
+  cachedTrendIcon = '';
+
   // Trend checkboxar
   selectedTrendOrsaker = new Set<number>();
 
@@ -105,6 +109,8 @@ export class KassationsorsakStatistikPage implements OnInit, OnDestroy {
       this.loadingOverview = false;
       if (res?.success) {
         this.overview = res.data;
+        this.cachedTrendText = this.getTrendText();
+        this.cachedTrendIcon = this.getTrendIcon();
       } else {
         this.errorOverview = true;
       }

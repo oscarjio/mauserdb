@@ -40,6 +40,9 @@ export class NarvarotrackerPage implements OnInit, OnDestroy {
 
   // Lookup for quick cell access
   private opDayMap: Map<string, NarvaroDayEntry> = new Map();
+  // Cached cell IBC values and CSS classes — avoids repeated Map lookups per CD-cycle
+  cachedCellIbc: Map<string, number> = new Map();
+  cachedCellClass: Map<string, string> = new Map();
 
   readonly monthNames = [
     'Januari', 'Februari', 'Mars', 'April', 'Maj', 'Juni',
@@ -108,10 +111,28 @@ export class NarvarotrackerPage implements OnInit, OnDestroy {
 
   private buildOpDayMap(): void {
     this.opDayMap.clear();
+    this.cachedCellIbc.clear();
+    this.cachedCellClass.clear();
     for (const op of this.operators) {
       for (const d of op.days) {
         const dayNum = parseInt(d.dag.split('-')[2], 10);
-        this.opDayMap.set(`${op.operator_id}_${dayNum}`, d);
+        const key = `${op.operator_id}_${dayNum}`;
+        this.opDayMap.set(key, d);
+        const ibc = d.ibc ?? 0;
+        this.cachedCellIbc.set(key, ibc);
+        let cls = 'cell-empty';
+        if (ibc > 0 && ibc <= 10) cls = 'cell-low';
+        else if (ibc > 10 && ibc <= 30) cls = 'cell-mid';
+        else if (ibc > 30) cls = 'cell-high';
+        this.cachedCellClass.set(key, cls);
+      }
+      // Pre-fill missing days with defaults
+      for (let dayNum = 1; dayNum <= this.daysInMonth; dayNum++) {
+        const key = `${op.operator_id}_${dayNum}`;
+        if (!this.cachedCellIbc.has(key)) {
+          this.cachedCellIbc.set(key, 0);
+          this.cachedCellClass.set(key, 'cell-empty');
+        }
       }
     }
   }

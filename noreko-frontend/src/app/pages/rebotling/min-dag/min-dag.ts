@@ -32,6 +32,10 @@ export class MinDagPage implements OnInit, OnDestroy {
 
   operatorId: number | null = null;
 
+  // Cached computed properties
+  cachedIbcVsSnittText = '';
+  cachedCykelTrendText = '';
+
   private chart: Chart | null = null;
   private destroy$ = new Subject<void>();
   private refreshTimer: ReturnType<typeof setInterval> | null = null;
@@ -77,6 +81,11 @@ export class MinDagPage implements OnInit, OnDestroy {
 
       if (summary?.success) {
         this.summary = summary.data ?? null;
+        // Update cached template values
+        if (this.summary) {
+          this.cachedIbcVsSnittText = this.ibcVsSnittText(this.summary.ibc_today, this.summary.snitt_ibc_30d);
+          this.cachedCykelTrendText = this.cykelTrendText(this.summary.vs_team_cykel);
+        }
       } else if (!this.operatorId) {
         this.error = 'Inget operatör-ID kopplat till ditt konto. Gå till inställningar och ange ditt Operatör-ID.';
       } else {

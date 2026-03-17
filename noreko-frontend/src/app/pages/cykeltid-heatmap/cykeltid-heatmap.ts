@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { Chart, registerables } from 'chart.js';
@@ -23,7 +22,7 @@ Chart.register(...registerables);
   selector: 'app-cykeltid-heatmap',
   templateUrl: './cykeltid-heatmap.html',
   styleUrls: ['./cykeltid-heatmap.css'],
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
 })
 export class CykeltidHeatmapComponent implements OnInit, OnDestroy, AfterViewInit {
   // Periodselektor

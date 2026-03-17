@@ -81,11 +81,11 @@
               </td>
               <td *ngFor="let d of dayNumbers; trackBy: trackByIndex"
                   class="day-cell"
-                  [ngClass]="getCellClass(op.operator_id, d)"
+                  [ngClass]="cachedCellClass.get(op.operator_id + '_' + d) || 'cell-empty'"
                   (mouseenter)="showTooltip($event, op.operator_id, d, op.operator_name)"
                   (mouseleave)="hideTooltip()">
-                <span class="cell-value" *ngIf="getCellIbc(op.operator_id, d) > 0">
-                  {{ getCellIbc(op.operator_id, d) }}
+                <span class="cell-value" *ngIf="(cachedCellIbc.get(op.operator_id + '_' + d) || 0) > 0">
+                  {{ cachedCellIbc.get(op.operator_id + '_' + d) }}
                 </span>
               </td>
               <td class="total-cell">{{ op.total_ibc }}</td>

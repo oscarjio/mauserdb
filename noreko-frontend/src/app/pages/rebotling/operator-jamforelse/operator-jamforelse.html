@@ -155,10 +155,10 @@
                   </td>
                   <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
-                      [class.fw-bold]="bestOperatorFor('totalt_ibc') === i"
-                      [style.color]="bestOperatorFor('totalt_ibc') === i ? operatorFarg(i) : '#e2e8f0'">
-                    {{ kpiRowValue(op, 'totalt_ibc') }}
-                    <i *ngIf="bestOperatorFor('totalt_ibc') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                      [class.fw-bold]="cachedBestOp.get('totalt_ibc') === i"
+                      [style.color]="cachedBestOp.get('totalt_ibc') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ cachedKpiValues.get(i + '_totalt_ibc') }}
+                    <i *ngIf="cachedBestOp.get('totalt_ibc') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
                   </td>
                 </tr>
                 <!-- IBC/h -->
@@ -168,10 +168,10 @@
                   </td>
                   <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
-                      [class.fw-bold]="bestOperatorFor('ibc_per_h') === i"
-                      [style.color]="bestOperatorFor('ibc_per_h') === i ? operatorFarg(i) : '#e2e8f0'">
-                    {{ kpiRowValue(op, 'ibc_per_h') }}
-                    <i *ngIf="bestOperatorFor('ibc_per_h') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                      [class.fw-bold]="cachedBestOp.get('ibc_per_h') === i"
+                      [style.color]="cachedBestOp.get('ibc_per_h') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ cachedKpiValues.get(i + '_ibc_per_h') }}
+                    <i *ngIf="cachedBestOp.get('ibc_per_h') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
                   </td>
                 </tr>
                 <!-- Kvalitetsgrad -->
@@ -181,10 +181,10 @@
                   </td>
                   <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
-                      [class.fw-bold]="bestOperatorFor('kvalitetsgrad') === i"
-                      [style.color]="bestOperatorFor('kvalitetsgrad') === i ? operatorFarg(i) : '#e2e8f0'">
-                    {{ kpiRowValue(op, 'kvalitetsgrad') }}
-                    <i *ngIf="bestOperatorFor('kvalitetsgrad') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                      [class.fw-bold]="cachedBestOp.get('kvalitetsgrad') === i"
+                      [style.color]="cachedBestOp.get('kvalitetsgrad') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ cachedKpiValues.get(i + '_kvalitetsgrad') }}
+                    <i *ngIf="cachedBestOp.get('kvalitetsgrad') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
                   </td>
                 </tr>
                 <!-- Antal stopp -->
@@ -194,10 +194,10 @@
                   </td>
                   <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
-                      [class.fw-bold]="bestOperatorFor('antal_stopp') === i"
-                      [style.color]="bestOperatorFor('antal_stopp') === i ? operatorFarg(i) : '#e2e8f0'">
-                    {{ kpiRowValue(op, 'antal_stopp') }}
-                    <i *ngIf="bestOperatorFor('antal_stopp') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                      [class.fw-bold]="cachedBestOp.get('antal_stopp') === i"
+                      [style.color]="cachedBestOp.get('antal_stopp') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ cachedKpiValues.get(i + '_antal_stopp') }}
+                    <i *ngIf="cachedBestOp.get('antal_stopp') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
                   </td>
                 </tr>
                 <!-- Total stopptid -->
@@ -207,10 +207,10 @@
                   </td>
                   <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
-                      [class.fw-bold]="bestOperatorFor('total_stopptid_min') === i"
-                      [style.color]="bestOperatorFor('total_stopptid_min') === i ? operatorFarg(i) : '#e2e8f0'">
-                    {{ kpiRowValue(op, 'total_stopptid_min') }}
-                    <i *ngIf="bestOperatorFor('total_stopptid_min') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                      [class.fw-bold]="cachedBestOp.get('total_stopptid_min') === i"
+                      [style.color]="cachedBestOp.get('total_stopptid_min') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ cachedKpiValues.get(i + '_total_stopptid_min') }}
+                    <i *ngIf="cachedBestOp.get('total_stopptid_min') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
                   </td>
                 </tr>
                 <!-- Aktiva timmar -->
@@ -220,10 +220,10 @@
                   </td>
                   <td *ngFor="let op of compareData; let i = index; trackBy: trackByIndex"
                       style="padding:10px 16px; text-align:center;"
-                      [class.fw-bold]="bestOperatorFor('aktiva_timmar') === i"
-                      [style.color]="bestOperatorFor('aktiva_timmar') === i ? operatorFarg(i) : '#e2e8f0'">
-                    {{ kpiRowValue(op, 'aktiva_timmar') }}
-                    <i *ngIf="bestOperatorFor('aktiva_timmar') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
+                      [class.fw-bold]="cachedBestOp.get('aktiva_timmar') === i"
+                      [style.color]="cachedBestOp.get('aktiva_timmar') === i ? operatorFarg(i) : '#e2e8f0'">
+                    {{ cachedKpiValues.get(i + '_aktiva_timmar') }}
+                    <i *ngIf="cachedBestOp.get('aktiva_timmar') === i" class="fas fa-crown ms-1" style="color:#ecc94b; font-size:0.75em;"></i>
                   </td>
                 </tr>
               </tbody>

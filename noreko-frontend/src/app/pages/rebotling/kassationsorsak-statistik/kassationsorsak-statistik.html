@@ -38,8 +38,8 @@
         <div class="kpi-label">Kassationsgrad</div>
         <div class="kpi-value">{{ overview.kassationsgrad }}%</div>
         <div class="kpi-sub">
-          <i [class]="getTrendIcon()" class="me-1"></i>
-          {{ getTrendText() }}
+          <i [class]="cachedTrendIcon" class="me-1"></i>
+          {{ cachedTrendText }}
           <span class="ms-1">({{ overview.trend_diff > 0 ? '+' : '' }}{{ overview.trend_diff }}%)</span>
         </div>
       </div>
@@ -48,7 +48,7 @@
       <div class="kpi-card">
         <div class="kpi-label">Trend vs foreg. period</div>
         <div class="kpi-value">
-          <i [class]="getTrendIcon()" class="me-1"></i>
+          <i [class]="cachedTrendIcon" class="me-1"></i>
           {{ overview.trend_direction === 'up' ? 'Uppat' : overview.trend_direction === 'down' ? 'Nedat' : 'Stabilt' }}
         </div>
         <div class="kpi-sub">Foreg. {{ overview.prev_kassationsgrad }}%</div>

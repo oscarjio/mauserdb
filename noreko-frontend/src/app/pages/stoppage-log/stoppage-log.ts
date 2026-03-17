@@ -81,6 +81,16 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   Object = Object;
   Math = Math;
 
+  // Cached computed properties (uppdateras vid datainlasning/filterandring)
+  cachedAvgDuration = 0;
+  cachedTotalDowntime = 0;
+  cachedTotalDowntimeFiltered = 0;
+  cachedUnplannedCount = 0;
+  cachedMostCommonReason: { name: string; count: number } | null = null;
+  cachedWeekDiffCount: number | null = null;
+  cachedWeekDiffMinutes: number | null = null;
+  cachedMonthLabel = '';
+
   get filteredStoppages(): StoppageEntry[] {
     let result = this.stoppages;
 
@@ -125,6 +135,53 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     return result;
   }
 
+  /** Uppdatera alla cachade berakningar — anropas vid datainlasning, filterandring, sortering */
+  private updateCachedComputations(): void {
+    const filtered = this.filteredStoppages;
+
+    // cachedAvgDuration
+    const finished = filtered.filter(s => s.duration_minutes !== null && s.duration_minutes !== undefined);
+    this.cachedAvgDuration = finished.length === 0 ? 0 :
+      Math.round(finished.reduce((sum, s) => sum + (s.duration_minutes || 0), 0) / finished.length);
+
+    // cachedTotalDowntime (all stoppages)
+    this.cachedTotalDowntime = this.stoppages.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+
+    // cachedTotalDowntimeFiltered
+    this.cachedTotalDowntimeFiltered = filtered.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+
+    // cachedUnplannedCount
+    this.cachedUnplannedCount = this.stoppages.filter(s => s.category === 'unplanned').length;
+
+    // cachedMostCommonReason
+    if (filtered.length === 0) {
+      this.cachedMostCommonReason = null;
+    } else {
+      const countMap: Record<string, number> = {};
+      for (const s of filtered) {
+        const key = s.reason_name || 'Okänd';
+        countMap[key] = (countMap[key] || 0) + 1;
+      }
+      const sorted = Object.entries(countMap).sort((a, b) => b[1] - a[1]);
+      this.cachedMostCommonReason = { name: sorted[0][0], count: sorted[0][1] };
+    }
+
+    // cachedWeekDiff
+    this.cachedWeekDiffCount = this._calcWeekDiff('count');
+    this.cachedWeekDiffMinutes = this._calcWeekDiff('total_minutes');
+
+    // cachedMonthLabel
+    this.cachedMonthLabel = this.getMonthLabel(this.monthlyStopMonth);
+  }
+
+  private _calcWeekDiff(field: 'count' | 'total_minutes'): number | null {
+    if (!this.weeklySummary) return null;
+    const cur  = Number(this.weeklySummary.this_week[field]);
+    const prev = Number(this.weeklySummary.prev_week[field]);
+    if (prev === 0) return null;
+    return Math.round(((cur - prev) / prev) * 100);
+  }
+
   toggleSort(column: string) {
     if (this.sortColumn === column) {
       this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -143,6 +200,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this._debouncedSearchQuery = this.searchQuery;
+      this.updateCachedComputations();
     }, 350);
   }
 
@@ -253,6 +311,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success) this.stoppages = res.data;
         this.loading = false;
+        this.updateCachedComputations();
       },
       error: () => this.loading = false
     });
@@ -263,6 +322,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res?.success) {
           this.weeklySummary = res.data;
+          this.updateCachedComputations();
           clearTimeout(this.chartTimerId);
           this.chartTimerId = setTimeout(() => {
             if (!this.destroy$.closed) this.buildWeekly14Chart();
@@ -388,9 +448,15 @@ export class StoppageLogPage implements OnInit, OnDestroy {
     this.onFilterChange();
   }
 
+  /** Uppdatera cachade berakningar nar lokala filter (kategori, datum) andras */
+  onLocalFilterChange() {
+    this.updateCachedComputations();
+  }
+
   clearDateFilter() {
     this.filterFromDate = '';
     this.filterToDate = '';
+    this.updateCachedComputations();
   }
 
   addStoppage() {
@@ -432,6 +498,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
       next: (res) => {
         if (res.success) {
           this.stoppages = this.stoppages.filter(s => s.id !== id);
+          this.updateCachedComputations();
           this.showSuccess('Stoppost borttagen');
         }
       }
@@ -486,6 +553,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
             this.editingId = null;
             this.editDuration = '';
             this.editComment = '';
+            this.updateCachedComputations();
             this.showSuccess('Stoppost uppdaterad');
           } else {
             this.errorMessage = res.message || 'Kunde inte spara';
@@ -793,6 +861,7 @@ export class StoppageLogPage implements OnInit, OnDestroy {
   }
 
   onMonthlyStopMonthChange(): void {
+    this.cachedMonthLabel = this.getMonthLabel(this.monthlyStopMonth);
     this.loadMonthlyStopSummary();
   }
 

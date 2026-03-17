@@ -1,3 +1,47 @@
+## 2026-03-17 Session #139 Worker B — Angular frontend: 16 buggar fixade (interceptor, change detection, HttpClientModule)
+
+### Uppgift 1: Angular HTTP interceptor audit
+Granskade error.interceptor.ts och app.config.ts. Inga class-baserade interceptors — enbart functional (HttpInterceptorFn).
+
+**BUGG 1 FIXAD:** error.interceptor.ts — Saknade retry-logik for natverksfel (status 0) och 502/503/504. Lade till `retry({ count: 1, delay: ... })` med 1s delay for dessa statuskoder, sa att transient natverksfel inte omedelbart visar felmeddelande.
+
+**BUGG 2 FIXAD:** error.interceptor.ts — Saknade hantering av HTTP 408 (timeout). Lade till specifikt meddelande: "Forfragan tog for lang tid (timeout). Forsok igen."
+
+### Uppgift 2: Angular change detection optimering
+Implementerade cached computed properties i 5 komponenter for att eliminera tunga metodanrop i templates varje CD-cykel.
+
+**BUGG 3 FIXAD:** stoppage-log.ts/html — `getAvgDuration()` anropades 2 ganger per CD-cykel, itererade filteredStoppages varje gang. Ersatt med `cachedAvgDuration` property.
+
+**BUGG 4 FIXAD:** stoppage-log.ts/html — `getTotalDowntime()` anropades per CD-cykel. Ersatt med `cachedTotalDowntime`.
+
+**BUGG 5 FIXAD:** stoppage-log.ts/html — `getUnplannedCount()` anropades per CD-cykel. Ersatt med `cachedUnplannedCount`.
+
+**BUGG 6 FIXAD:** stoppage-log.ts/html — `getTotalDowntimeFiltered()` anropades 2 ganger per CD-cykel. Ersatt med `cachedTotalDowntimeFiltered`.
+
+**BUGG 7 FIXAD:** stoppage-log.ts/html — `getMostCommonReason()` anropades 2 ganger per CD-cykel, sorterade alla orsaker varje gang. Ersatt med `cachedMostCommonReason`.
+
+**BUGG 8 FIXAD:** stoppage-log.ts/html — `getWeekDiff('count')` och `getWeekDiff('total_minutes')` anropades 3 ganger vardera per CD-cykel (ngIf + binding + ngClass). Ersatt med `cachedWeekDiffCount` och `cachedWeekDiffMinutes`.
+
+**BUGG 9 FIXAD:** narvarotracker.ts/html — `getCellIbc(op, d)` och `getCellClass(op, d)` anropades per cell (operatorer * dagar = 100+ anrop per CD-cykel). Ersatt med pre-computed `cachedCellIbc` och `cachedCellClass` Maps som byggs vid datainlasning.
+
+**BUGG 10 FIXAD:** operator-jamforelse.ts/html — `kpiRowValue(op, kpi)` anropades 18 ganger och `bestOperatorFor(kpi)` anropades 36 ganger per CD-cykel. Ersatt med `cachedKpiValues` och `cachedBestOp` Maps.
+
+**BUGG 11 FIXAD:** kassationsorsak-statistik.ts/html — `getTrendText()` och `getTrendIcon()` anropades 2 ganger vardera per CD-cykel. Ersatt med `cachedTrendText` och `cachedTrendIcon` properties.
+
+**BUGG 12 FIXAD:** min-dag.ts/html — `ibcVsSnittText(ibc, snitt)` och `cykelTrendText(vsTeam)` anropades per CD-cykel med samma varden. Ersatt med `cachedIbcVsSnittText` och `cachedCykelTrendText` properties.
+
+Alla cacher uppdateras vid datainlasning, filterandring (kategori, datum), search debounce, inline edit, och delete.
+
+### Uppgift 3: Angular deprecated API migration (HttpClientModule -> provideHttpClient)
+
+**BUGG 13 FIXAD:** app.config.ts — Lade till `withFetch()` i `provideHttpClient()` for moderna HTTP-anrop via fetch API.
+
+**BUGG 14 FIXAD:** daglig-sammanfattning.ts — Tog bort deprecated `HttpClientModule` fran standalone-komponentens imports (HttpClient ar redan tillhandahallen via `provideHttpClient()` i app.config.ts).
+
+**BUGG 15 FIXAD:** ranking-historik.ts, produktionskalender.ts, skiftrapport-export.ts, oee-benchmark.ts, cykeltid-heatmap.ts, feedback-analys.ts — Tog bort deprecated `HttpClientModule` fran 6 standalone-komponenters imports. Samma fix som bugg 14.
+
+**BUGG 16 FIXAD (7 filer totalt):** Alla 7 komponenter importerade `HttpClientModule` direkt i standalone-komponentens `imports`-array, vilket ar deprecated sedan Angular 18. Borttaget — `provideHttpClient(withInterceptors([...]), withFetch())` i app.config.ts tillhandahaller HttpClient globalt.
+
 ## 2026-03-17 Session #138 Worker B — Angular frontend: 8 buggar fixade (router params, memory, change detection)
 
 ### Uppgift 1: Angular router parameter validation

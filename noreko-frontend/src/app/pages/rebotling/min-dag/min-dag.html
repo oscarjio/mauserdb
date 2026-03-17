@@ -57,7 +57,7 @@
             <div style="font-size:0.82rem; margin-top:0.4rem;"
                  *ngIf="summary && summary.snitt_ibc_30d > 0"
                  [style.color]="ibcVsSnittFarg(summary.ibc_today, summary.snitt_ibc_30d)">
-              {{ ibcVsSnittText(summary.ibc_today, summary.snitt_ibc_30d) }}
+              {{ cachedIbcVsSnittText }}
             </div>
             <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;"
                  *ngIf="summary && summary.snitt_ibc_30d > 0">
@@ -78,7 +78,7 @@
             <div style="font-size:0.82rem; margin-top:0.4rem;"
                  *ngIf="summary && summary.team_snitt_sek > 0"
                  [style.color]="cykelTrendFarg(summary.vs_team_cykel)">
-              {{ cykelTrendText(summary.vs_team_cykel) }}
+              {{ cachedCykelTrendText }}
             </div>
             <div style="color:#718096; font-size:0.78rem; margin-top:0.25rem;"
                  *ngIf="summary && summary.team_snitt_sek > 0">

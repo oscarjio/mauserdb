@@ -1,6 +1,6 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { catchError, throwError, retry, timer } from 'rxjs';
 import { Router } from '@angular/router';
 import { ToastService } from '../services/toast.service';
 import { AuthService } from '../services/auth.service';
@@ -11,6 +11,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
 
   return next(req).pipe(
+    // Retry en gång vid nätverksfel (status 0) eller 502/503/504 med 1s delay
+    retry({
+      count: 1,
+      delay: (err: HttpErrorResponse) => {
+        if (err.status === 0 || err.status === 502 || err.status === 503 || err.status === 504) {
+          return timer(1000);
+        }
+        return throwError(() => err);
+      },
+    }),
     catchError((error: HttpErrorResponse) => {
       // Skip toast for status check (polling) and requests with custom skip header
       if (req.url.includes('action=status') || req.headers.has('X-Skip-Error-Toast')) {
@@ -36,6 +46,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         message = 'Åtkomst nekad. Du har inte behörighet.';
       } else if (error.status === 404) {
         message = 'Resursen hittades inte (404).';
+      } else if (error.status === 408) {
+        message = 'Förfrågan tog för lång tid (timeout). Försök igen.';
       } else if (error.status === 429) {
         message = 'För många förfrågningar. Försök igen om en stund.';
       } else if (error.status >= 500) {

@@ -43,21 +43,21 @@
       <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-icon-red"><i class="fas fa-clock"></i></div>
-          <div class="kpi-value">{{ formatDuration(getTotalDowntime()) }}</div>
+          <div class="kpi-value">{{ formatDuration(cachedTotalDowntime) }}</div>
           <div class="kpi-label">Total stopptid</div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-icon-orange"><i class="fas fa-bolt"></i></div>
-          <div class="kpi-value">{{ getUnplannedCount() }}</div>
+          <div class="kpi-value">{{ cachedUnplannedCount }}</div>
           <div class="kpi-label">Oplanerade stopp</div>
         </div>
       </div>
       <div class="col-12 col-md-6 col-lg-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-icon kpi-icon-green"><i class="fas fa-ruler"></i></div>
-          <div class="kpi-value">{{ getAvgDuration() > 0 ? getAvgDuration() + ' min' : '—' }}</div>
+          <div class="kpi-value">{{ cachedAvgDuration > 0 ? cachedAvgDuration + ' min' : '—' }}</div>
           <div class="kpi-label">Snitt stopplängd</div>
         </div>
       </div>
@@ -71,11 +71,11 @@
           <div class="kpi-week-label">Denna vecka</div>
           <div class="kpi-value">{{ weeklySummary.this_week.count }}</div>
           <div class="kpi-label">stopp</div>
-          <div class="kpi-diff" *ngIf="getWeekDiff('count') !== null"
-               [class.diff-up]="(getWeekDiff('count') ?? 0) > 0"
-               [class.diff-down]="(getWeekDiff('count') ?? 0) < 0">
-            <i class="fas" [ngClass]="(getWeekDiff('count') ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
-            {{ (getWeekDiff('count') ?? 0) | number:'1.0-0' }}% vs förra veckan
+          <div class="kpi-diff" *ngIf="cachedWeekDiffCount !== null"
+               [class.diff-up]="(cachedWeekDiffCount ?? 0) > 0"
+               [class.diff-down]="(cachedWeekDiffCount ?? 0) < 0">
+            <i class="fas" [ngClass]="(cachedWeekDiffCount ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ (cachedWeekDiffCount ?? 0) | number:'1.0-0' }}% vs förra veckan
           </div>
         </div>
       </div>
@@ -84,11 +84,11 @@
           <div class="kpi-week-label">Denna vecka</div>
           <div class="kpi-value">{{ formatDuration(weeklySummary.this_week.total_minutes) }}</div>
           <div class="kpi-label">total stopptid</div>
-          <div class="kpi-diff" *ngIf="getWeekDiff('total_minutes') !== null"
-               [class.diff-up]="(getWeekDiff('total_minutes') ?? 0) > 0"
-               [class.diff-down]="(getWeekDiff('total_minutes') ?? 0) < 0">
-            <i class="fas" [ngClass]="(getWeekDiff('total_minutes') ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
-            {{ (getWeekDiff('total_minutes') ?? 0) | number:'1.0-0' }}% vs förra veckan
+          <div class="kpi-diff" *ngIf="cachedWeekDiffMinutes !== null"
+               [class.diff-up]="(cachedWeekDiffMinutes ?? 0) > 0"
+               [class.diff-down]="(cachedWeekDiffMinutes ?? 0) < 0">
+            <i class="fas" [ngClass]="(cachedWeekDiffMinutes ?? 0) > 0 ? 'fa-arrow-up' : 'fa-arrow-down'"></i>
+            {{ (cachedWeekDiffMinutes ?? 0) | number:'1.0-0' }}% vs förra veckan
           </div>
         </div>
       </div>
@@ -231,10 +231,10 @@
             <span class="filter-label"><i class="fas fa-calendar me-1"></i>Datumintervall:</span>
             <div class="date-range-inputs">
               <input type="date" class="form-control form-control-sm date-input"
-                     [(ngModel)]="filterFromDate" placeholder="Fr.o.m">
+                     [(ngModel)]="filterFromDate" (ngModelChange)="onLocalFilterChange()" placeholder="Fr.o.m">
               <span class="date-sep">—</span>
               <input type="date" class="form-control form-control-sm date-input"
-                     [(ngModel)]="filterToDate" placeholder="T.o.m">
+                     [(ngModel)]="filterToDate" (ngModelChange)="onLocalFilterChange()" placeholder="T.o.m">
               <button class="btn btn-sm btn-outline-secondary" *ngIf="filterFromDate || filterToDate"
                       (click)="clearDateFilter()" title="Rensa datumfilter">
                 <i class="fas fa-times"></i>
@@ -245,7 +245,7 @@
           <!-- Category filter -->
           <div class="filter-group">
             <span class="filter-label"><i class="fas fa-tag me-1"></i>Kategori:</span>
-            <select class="form-select form-select-sm filter-select-sm" [(ngModel)]="filterCategory">
+            <select class="form-select form-select-sm filter-select-sm" [(ngModel)]="filterCategory" (ngModelChange)="onLocalFilterChange()">
               <option value="">Alla kategorier</option>
               <option value="unplanned">Oplanerat</option>
               <option value="planned">Planerat</option>
@@ -264,17 +264,17 @@
         <div class="stats-summary-sep"></div>
         <div class="stats-summary-item">
           <span class="stats-summary-icon text-danger"><i class="fas fa-clock"></i></span>
-          <span class="stats-summary-val">{{ formatDuration(getTotalDowntimeFiltered()) }}</span>
+          <span class="stats-summary-val">{{ formatDuration(cachedTotalDowntimeFiltered) }}</span>
           <span class="stats-summary-lbl">total stopptid</span>
         </div>
         <div class="stats-summary-sep"></div>
         <div class="stats-summary-item">
           <span class="stats-summary-icon text-warning"><i class="fas fa-ruler-horizontal"></i></span>
-          <span class="stats-summary-val">{{ getAvgDuration() > 0 ? getAvgDuration() + ' min' : '—' }}</span>
+          <span class="stats-summary-val">{{ cachedAvgDuration > 0 ? cachedAvgDuration + ' min' : '—' }}</span>
           <span class="stats-summary-lbl">snitt/händelse</span>
         </div>
-        <div class="stats-summary-sep" *ngIf="getMostCommonReason()"></div>
-        <div class="stats-summary-item" *ngIf="getMostCommonReason() as mcr">
+        <div class="stats-summary-sep" *ngIf="cachedMostCommonReason"></div>
+        <div class="stats-summary-item" *ngIf="cachedMostCommonReason as mcr">
           <span class="stats-summary-icon text-info"><i class="fas fa-fire"></i></span>
           <span class="stats-summary-val">{{ mcr.name }}</span>
           <span class="stats-summary-lbl">vanligast ({{ mcr.count }}×)</span>
@@ -496,7 +496,7 @@
               <tfoot>
                 <tr class="summary-row">
                   <td colspan="4"><strong>Totalt ({{ filteredStoppages.length }} poster)</strong></td>
-                  <td class="text-end"><strong>{{ formatDuration(getTotalDowntimeFiltered()) }}</strong></td>
+                  <td class="text-end"><strong>{{ formatDuration(cachedTotalDowntimeFiltered) }}</strong></td>
                   <td colspan="2"></td>
                   <td *ngIf="loggedIn"></td>
                 </tr>

@@ -52,6 +52,10 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
   // ---- Data ----
   compareData: OperatorJamforelseKpi[]     = [];
   trendData:   OperatorJamforelseTrendRow[] = [];
+  // Cached KPI row values — key: "opIndex_kpi" -> formatted string
+  cachedKpiValues: Map<string, string> = new Map();
+  // Cached best operator per KPI
+  cachedBestOp: Map<string, number> = new Map();
 
   // ---- Charts ----
   private lineChart:  Chart | null = null;
@@ -203,6 +207,7 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
           this.loadingCompare    = false;
           if (res?.success) {
             this.compareData = res.data?.operatorer ?? [];
+            this.rebuildKpiCache();
             setTimeout(() => {
               if (!this.destroy$.closed) { this.buildRadarChart(); }
             }, 0);
@@ -398,6 +403,23 @@ export class OperatorJamforelsePage implements OnInit, OnDestroy {
         },
       },
     });
+  }
+
+  /** Rebuild cached KPI values and best-operator lookups */
+  private rebuildKpiCache(): void {
+    this.cachedKpiValues.clear();
+    this.cachedBestOp.clear();
+
+    const kpis = ['totalt_ibc', 'ibc_per_h', 'kvalitetsgrad', 'antal_stopp', 'total_stopptid_min', 'aktiva_timmar'];
+    for (const kpi of kpis) {
+      this.cachedBestOp.set(kpi, this.bestOperatorFor(kpi));
+    }
+    for (let i = 0; i < this.compareData.length; i++) {
+      const op = this.compareData[i];
+      for (const kpi of kpis) {
+        this.cachedKpiValues.set(`${i}_${kpi}`, this.kpiRowValue(op, kpi));
+      }
+    }
   }
 
   // ================================================================

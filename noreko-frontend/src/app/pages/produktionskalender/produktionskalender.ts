@@ -1,7 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClientModule } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -43,7 +42,7 @@ interface KalenderVecka {
   selector: 'app-produktionskalender',
   templateUrl: './produktionskalender.html',
   styleUrls: ['./produktionskalender.css'],
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule],
 })
 export class ProduktionskalenderComponent implements OnInit, OnDestroy {
   // Navigering
